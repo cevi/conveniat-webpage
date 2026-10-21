@@ -1,6 +1,7 @@
 'use client';
 
 import { OfflineBanner } from '@/components/offline-banner';
+import { EmptyState } from '@/components/ui/empty-state';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import type { ChatMessage } from '@/features/chat/api/types';
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
@@ -19,7 +20,7 @@ import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronRight, MessageSquareOff } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect } from 'react';
 
@@ -48,9 +49,9 @@ const showInChatText: StaticTranslationString = {
 };
 
 const threadFailedText: StaticTranslationString = {
-  de: 'Der Thread konnte nicht geladen werden.',
-  en: 'Failed to load thread.',
-  fr: 'Impossible de charger le fil.',
+  de: 'Der Thread konnte nicht geladen werden',
+  en: 'The thread could not be loaded',
+  fr: 'Impossible de charger le fil',
 };
 
 const backButtonLabel: StaticTranslationString = {
@@ -143,7 +144,7 @@ const ThreadRoot: React.FC<{
         <button
           type="button"
           onClick={onShowInChat}
-          className="-ml-2 flex min-h-11 cursor-pointer items-center gap-1 rounded-[12px] px-2 text-[13px] font-semibold text-green-900"
+          className="hover:bg-quiet -ml-2 flex min-h-11 cursor-pointer items-center gap-1 rounded-[12px] px-2 text-[13px] font-semibold text-green-900"
         >
           {showInChatText[locale]}
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
@@ -245,8 +246,8 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
       <div className="flex-1 overflow-hidden">
         {isLoadingParent && <ThreadRootSkeleton />}
         {!isLoadingParent && !parentMessage && (
-          <div className="flex h-full items-center justify-center text-[15px] text-green-700">
-            {threadFailedText[locale]}
+          <div className="flex h-full items-center justify-center">
+            <EmptyState icon={MessageSquareOff} title={threadFailedText[locale]} />
           </div>
         )}
         {!isLoadingParent && parentMessage && (

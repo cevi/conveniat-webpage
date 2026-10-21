@@ -519,7 +519,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                   {showMeta && (
                     <span
                       aria-hidden="true"
-                      className={cn('inline-block h-px', isCurrentUser ? 'w-[60px]' : 'w-[40px]')}
+                      className={cn('inline-block h-px', isCurrentUser ? 'w-[66px]' : 'w-[40px]')}
                     />
                   )}
                 </div>

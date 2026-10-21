@@ -323,7 +323,7 @@ export const MessageList: React.FC<{
               ? `${jumpToLatestText[locale]}, ${newMessagesText(unseenCount, locale)}`
               : jumpToLatestText[locale]
           }
-          className="animate-in fade-in zoom-in-95 border-line absolute right-3 bottom-3 z-30 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border bg-white text-green-900 shadow-md duration-150"
+          className="animate-in fade-in zoom-in-95 border-line hover:bg-quiet absolute right-3 bottom-3 z-30 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border bg-white text-green-900 shadow-md duration-150"
         >
           <ArrowDown className="h-5 w-5" aria-hidden="true" />
           {unseenCount > 0 && (

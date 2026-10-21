@@ -13,7 +13,7 @@ const reactionsText: StaticTranslationString = {
 const youText: StaticTranslationString = {
   de: 'Du',
   en: 'You',
-  fr: 'Vous',
+  fr: 'Toi',
 };
 
 export interface ReactionGroup {

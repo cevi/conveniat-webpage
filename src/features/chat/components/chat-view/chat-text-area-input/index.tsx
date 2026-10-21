@@ -16,7 +16,17 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatMembershipPermission, ChatType } from '@prisma/client';
-import { Megaphone, Paperclip, Reply, Send, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  Archive,
+  Lock,
+  Megaphone,
+  MessageSquareOff,
+  Paperclip,
+  Reply,
+  Send,
+  X,
+} from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
@@ -67,19 +77,19 @@ const attachImageText: StaticTranslationString = {
 const chatIsArchivedMessage: StaticTranslationString = {
   de: 'Dieser Chat ist archiviert. Du kannst keine Nachrichten senden.',
   en: 'This chat is archived. You cannot send messages.',
-  fr: 'Ce chat est archivé. Vous ne pouvez pas envoyer de messages.',
+  fr: 'Ce chat est archivé. Tu ne peux pas envoyer de messages.',
 };
 
 const isGuestMessage: StaticTranslationString = {
   de: 'Du bist ein Gast in diesem Chat. Du kannst keine Nachrichten senden.',
   en: 'You are a guest in this chat. You cannot send messages.',
-  fr: 'Vous êtes un invité dans ce chat. Vous ne pouvez pas envoyer de messages.',
+  fr: 'Tu es invité·e dans ce chat. Tu ne peux pas envoyer de messages.',
 };
 
 const isAnnouncementChannelMessage: StaticTranslationString = {
   de: 'Dies ist ein Ankündigungskanal. Du kannst hier keine Nachrichten senden.',
   en: 'This is an announcement channel. You cannot send messages here.',
-  fr: "Il s'agit d'un canal d'annonces. Vous ne pouvez pas envoyer de messages ici.",
+  fr: "Il s'agit d'un canal d'annonces. Tu ne peux pas envoyer de messages ici.",
 };
 
 const messageTooLongText: StaticTranslationString = {
@@ -331,51 +341,27 @@ export const ChatTextAreaInput: React.FC = () => {
   };
 
   if (isGuest && !isAllowedGuestThreadReplies) {
-    if (chatDetails?.type === ChatType.ANNOUNCEMENT) {
-      return (
-        <div className="bg-quiet flex w-full items-center justify-center gap-3 rounded-[14px] p-4 text-center">
-          <Megaphone className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
-          <span className="text-sm font-medium text-balance text-green-700">
-            {isAnnouncementChannelMessage[locale]}
-          </span>
-        </div>
-      );
-    }
-    return (
-      <div className="p-2 text-center text-sm text-balance text-green-700">
-        {isGuestMessage[locale]}
-      </div>
+    return chatDetails?.type === ChatType.ANNOUNCEMENT ? (
+      <ComposerNotice icon={Megaphone} text={isAnnouncementChannelMessage[locale]} />
+    ) : (
+      <ComposerNotice icon={Lock} text={isGuestMessage[locale]} />
     );
   }
 
   if (chatDetails?.archivedAt !== null) {
-    return (
-      <div className="p-2 text-center text-sm text-balance text-green-700">
-        {chatIsArchivedMessage[locale]}
-      </div>
-    );
+    return <ComposerNotice icon={Archive} text={chatIsArchivedMessage[locale]} />;
   }
 
   if (isGlobalMessagingDisabled) {
-    return (
-      <div className="bg-quiet flex w-full items-center justify-center rounded-[14px] p-4 text-center text-sm text-green-700">
-        {messagingDisabledText[locale]}
-      </div>
-    );
+    return <ComposerNotice icon={MessageSquareOff} text={messagingDisabledText[locale]} />;
   }
 
   if (!canSendMessagesInChat) {
-    const isEmergency = chatDetails.type === ChatType.EMERGENCY;
-    return (
-      <div
-        className={cn(
-          'flex w-full items-center justify-center rounded-[14px] p-4 text-center text-sm',
-          // red belongs to Notfall, so only the locked emergency chat keeps it
-          isEmergency ? 'border border-red-100 bg-red-50 text-red-700' : 'bg-quiet text-green-700',
-        )}
-      >
-        {isEmergency ? emergencyLockedText[locale] : chatLockedText[locale]}
-      </div>
+    // red belongs to Notfall, so only the locked emergency chat keeps it
+    return chatDetails.type === ChatType.EMERGENCY ? (
+      <ComposerNotice icon={Lock} text={emergencyLockedText[locale]} isEmergency />
+    ) : (
+      <ComposerNotice icon={Lock} text={chatLockedText[locale]} />
     );
   }
 
@@ -390,7 +376,7 @@ export const ChatTextAreaInput: React.FC = () => {
       {/* Error message when sending fails */}
       {localizedError !== undefined && localizedError !== '' && (
         <div
-          className="bg-quiet rounded-xl px-3 py-2 text-sm font-semibold text-green-900"
+          className="bg-danger-soft text-danger-text rounded-[12px] px-3 py-2 text-sm font-semibold"
           role="alert"
         >
           {localizedError}
@@ -466,15 +452,14 @@ export const ChatTextAreaInput: React.FC = () => {
                   accept="image/*"
                   onChange={handleFileSelect}
                 />
-                <Button
+                <button
+                  type="button"
                   onClick={() => fileInputReference.current?.click()}
                   aria-label={attachImageText[locale]}
-                  size="icon"
-                  variant="ghost"
-                  className="h-[42px] w-[42px] shrink-0 cursor-pointer rounded-[11px] text-green-700 hover:bg-transparent [&_svg]:size-5"
+                  className="flex h-[42px] w-[42px] shrink-0 cursor-pointer items-center justify-center rounded-[11px] text-green-700 hover:text-green-900"
                 >
-                  <Paperclip aria-hidden="true" />
-                </Button>
+                  <Paperclip className="h-5 w-5" aria-hidden="true" />
+                </button>
               </div>
             )}
             <textarea
@@ -502,20 +487,20 @@ export const ChatTextAreaInput: React.FC = () => {
         </div>
 
         {isTooLong ? (
+          // the one way on from a message that is too long, so it takes the send button's place
           <Button
             onClick={() => void handleSplitAndSend()}
-            size="sm"
-            className="bg-danger h-[44px] shrink-0 rounded-[12px] px-4 font-semibold text-white"
+            variant="primary"
+            className="h-[44px] shrink-0 rounded-[12px] px-4 text-[15px]"
           >
             {splitAndSendText[locale]}
           </Button>
         ) : (
           <Button
             onClick={() => void sendWithAttachment()}
-            size="icon"
-            variant="ghost"
+            variant="primary"
             aria-label={sendLabel[locale]}
-            className="bg-conveniat-green disabled:bg-quiet h-[44px] w-[44px] shrink-0 rounded-[12px] text-white hover:bg-green-700 disabled:text-green-500 disabled:opacity-100 [&_svg]:size-5"
+            className="disabled:bg-quiet h-[44px] w-[44px] shrink-0 rounded-[12px] p-0 disabled:text-green-500 disabled:opacity-100 [&_svg]:size-5"
             disabled={stagedImage === undefined ? isSendButtonDisabled : isUploading}
           >
             <Send aria-hidden="true" />
@@ -531,6 +516,26 @@ export const ChatTextAreaInput: React.FC = () => {
     </div>
   );
 };
+/**
+ * Why the composer is not there: a neutral notice with an icon, red only in a locked Notfall chat.
+ */
+const ComposerNotice: React.FC<{ icon: LucideIcon; text: string; isEmergency?: boolean }> = ({
+  icon: Icon,
+  text,
+  isEmergency = false,
+}) => (
+  <div
+    className={cn(
+      'flex w-full items-center gap-3 rounded-[14px] px-4 py-3 text-sm text-balance',
+      isEmergency ? 'bg-red-50 text-red-700' : 'bg-quiet text-green-700',
+    )}
+    data-allow-red={isEmergency ? '' : undefined}
+  >
+    <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+    <span>{text}</span>
+  </div>
+);
+
 /**
  * What the next message answers, above the composer: whom, a line of what they wrote, and a way
  * to drop it.

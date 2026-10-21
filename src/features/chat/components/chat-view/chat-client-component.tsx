@@ -1,6 +1,7 @@
 'use client';
 import { AppFooterController } from '@/components/footer/hide-footer-context';
 import { OfflineBanner } from '@/components/offline-banner';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ChatHeader, ChatHeaderSkeleton } from '@/features/chat/components/chat-view/chat-header';
 import { ChatSkeleton } from '@/features/chat/components/chat-view/chat-skeleton';
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
@@ -14,93 +15,57 @@ import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { fitToVisualViewport } from '@/features/chat/utils/fit-to-visual-viewport';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import type { LucideIcon } from 'lucide-react';
+import { AlertCircle, UserX, WifiOff } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const yourOffline: StaticTranslationString = {
-  en: "You're offline.",
-  de: 'Du bist offline.',
-  fr: 'Vous êtes hors ligne.',
+  en: 'You are offline',
+  de: 'Du bist offline',
+  fr: 'Tu es hors ligne',
 };
 
 const youMustBeOnline: StaticTranslationString = {
-  en: 'You need to be online to view this chat.',
+  en: 'You need to be online to see this chat.',
   de: 'Du musst online sein, um diesen Chat zu sehen.',
-  fr: 'Vous devez être en ligne pour voir ce chat.',
+  fr: 'Tu dois être en ligne pour voir ce chat.',
 };
 
 const errorLoadingChat: StaticTranslationString = {
-  en: 'Error loading chat.',
-  de: 'Fehler beim Laden des Chats.',
-  fr: 'Erreur de chargement du chat.',
+  en: 'The chat could not be loaded',
+  de: 'Der Chat konnte nicht geladen werden',
+  fr: 'Le chat n’a pas pu être chargé',
 };
 
 const tryAgainLater: StaticTranslationString = {
   en: 'Please try again later.',
   de: 'Bitte versuche es später noch einmal.',
-  fr: 'Veuillez réessayer plus tard.',
+  fr: 'Réessaie plus tard.',
 };
 
 const noLongerMember: StaticTranslationString = {
-  en: 'You are no longer a member of this chat.',
-  de: 'Du bist nicht mehr Mitglied dieses Chats.',
-  fr: "Vous n'êtes plus membre de ce chat.",
+  en: 'You are no longer in this chat',
+  de: 'Du bist nicht mehr in diesem Chat',
+  fr: 'Tu ne fais plus partie de ce chat',
 };
 
 /**
- * Message displayed if the user is offline and tries to access a chat.
- * And the chat is not cached.
- *
- * @constructor
+ * What the chat screen shows instead of a conversation it cannot show: offline without a cached
+ * copy, a failed load, or a chat the user has left. The header keeps the way back to the list.
  */
-const ChatOfflineMessage: React.FC = () => {
-  const locale = useCurrentLocale(i18nConfig) as Locale;
-  return (
-    <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
-      <ChatHeaderSkeleton />
-      <div className="flex flex-1 items-center justify-center p-4 text-center text-[15px] text-green-700">
-        <span>
-          <b className="text-green-900">{yourOffline[locale]}</b>
-          <br />
-          {youMustBeOnline[locale]}
-        </span>
-      </div>
+const ChatUnavailable: React.FC<{ icon: LucideIcon; title: string; description?: string }> = ({
+  icon,
+  title,
+  description,
+}) => (
+  <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
+    <ChatHeaderSkeleton />
+    <div className="flex flex-1 items-center justify-center">
+      <EmptyState icon={icon} title={title} description={description} />
     </div>
-  );
-};
-
-export const ChatErrorMessage: React.FC = () => {
-  const locale = useCurrentLocale(i18nConfig) as Locale;
-
-  return (
-    <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
-      <ChatHeaderSkeleton />
-      <div className="flex flex-1 items-center justify-center p-4 text-center text-[15px] text-green-700">
-        <span>
-          <b className="text-green-900">{errorLoadingChat[locale]}</b>
-          <br />
-          {tryAgainLater[locale]}
-        </span>
-      </div>
-    </div>
-  );
-};
-
-/**
- * Shown instead of the cached chat once the server no longer lets the user read it,
- * i.e. after they left or were removed.
- */
-const ChatNotMemberMessage: React.FC = () => {
-  const locale = useCurrentLocale(i18nConfig) as Locale;
-  return (
-    <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
-      <ChatHeaderSkeleton />
-      <div className="flex flex-1 items-center justify-center p-4 text-center text-[15px] text-green-700">
-        <b className="text-green-900">{noLongerMember[locale]}</b>
-      </div>
-    </div>
-  );
-};
+  </div>
+);
 
 const ChatClientContent: React.FC = () => {
   const chatId = useChatId();
@@ -123,15 +88,29 @@ const ChatClientContent: React.FC = () => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (isLoading && errorUpdateCount === 0 && chatDetails === undefined) return <ChatSkeleton />;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (isPaused && isPending && chatDetails === undefined) return <ChatOfflineMessage />;
+  if (isPaused && isPending && chatDetails === undefined) {
+    return (
+      <ChatUnavailable
+        icon={WifiOff}
+        title={yourOffline[locale]}
+        description={youMustBeOnline[locale]}
+      />
+    );
+  }
 
   // Cached details mean the user could read this chat before; NOT_FOUND now means they left
   // or were removed. Without a cache it may just as well be a chat that never existed.
   if (error?.data?.code === 'NOT_FOUND' && chatDetails !== undefined)
-    return <ChatNotMemberMessage />;
+    return <ChatUnavailable icon={UserX} title={noLongerMember[locale]} />;
 
   if ((isError || (isLoading && errorUpdateCount !== 0)) && chatDetails === undefined)
-    return <ChatErrorMessage />;
+    return (
+      <ChatUnavailable
+        icon={AlertCircle}
+        title={errorLoadingChat[locale]}
+        description={tryAgainLater[locale]}
+      />
+    );
 
   return (
     <div

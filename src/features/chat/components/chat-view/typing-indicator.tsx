@@ -1,4 +1,6 @@
+import { avatarTextColorOf } from '@/components/ui/person-avatar';
 import { SenderAvatar } from '@/features/chat/components/chat-view/message/sender-avatar';
+import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import type { Typist } from '@/features/chat/utils/typing-store';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type React from 'react';
@@ -26,14 +28,17 @@ export const TypingIndicator: React.FC<{
     )}
     <div className="flex flex-col items-start">
       {showName && (
-        <span className="mb-1 px-1.5 text-xs font-semibold text-green-700">{typist.name}</span>
+        <span className="mb-1 max-w-full truncate px-1.5 text-[13px] font-semibold">
+          <span className={avatarTextColorOf(typist.userId)}>
+            {splitDisplayName(typist.name).primary}
+          </span>
+        </span>
       )}
-      {/* same box model as a one-line message bubble: an invisible text line and meta row
-          give it the height the arriving message will have */}
-      <div className="font-body border-line relative min-w-[100px] rounded-2xl rounded-bl-[4px] border bg-white px-4 py-2.5">
-        <div aria-hidden="true" className="invisible">
-          <div className="text-[0.95rem] leading-relaxed">&nbsp;</div>
-          <div className="mt-1 text-[10px]">&nbsp;</div>
+      {/* the box of a one-line message bubble: an invisible line of its text gives it the
+          height the arriving message will have */}
+      <div className="border-line relative w-16 rounded-[16px] border bg-white px-3.5 py-2">
+        <div aria-hidden="true" className="invisible text-[15px] leading-[21px]">
+          &nbsp;
         </div>
         <span className="sr-only">
           {typist.name} {typingText[locale]}
