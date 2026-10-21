@@ -1,7 +1,7 @@
 'use client';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
 
 const formatDate = (date: Date): string => date.toISOString().split('T')[0] ?? '';
 
@@ -21,7 +21,6 @@ export const useSchedule = <T extends { timeslot: { date: string } }>(
     toggleStarred: (entryId: string) => void;
   };
 } => {
-  const router = useRouter();
   const searchParameters = useSearchParams();
 
   const pathname = usePathname();
@@ -79,22 +78,6 @@ export const useSchedule = <T extends { timeslot: { date: string } }>(
   const [expandedEntries, setExpandedEntries] = useState(new Set<string>());
   const [starredEntries, setStarredEntries] = useState(new Set<string>());
 
-  useEffect(() => {
-    // Only sync date to URL if we are on schedule or helper-portal page
-    if (!/\/(schedule|helper-portal)\/?$/.test(pathname)) {
-      return;
-    }
-
-    const currentUrlDate = searchParameters.get('date');
-    const formattedCurrentDate = formatDate(currentDate);
-
-    if (currentUrlDate !== formattedCurrentDate) {
-      const parameters = new URLSearchParams(searchParameters.toString());
-      parameters.set('date', formattedCurrentDate);
-      router.replace(`${pathname}?${parameters.toString()}`);
-    }
-  }, [currentDate, router, searchParameters, pathname]);
-
   const dailyPrograms = useMemo(() => {
     const programs: Record<string, T[]> = {};
     for (const date of allDates) {
@@ -115,6 +98,12 @@ export const useSchedule = <T extends { timeslot: { date: string } }>(
 
   const handleDateSelect = (date: Date): void => {
     setSelectedDate(date);
+    // The chosen day goes into the address, so back from a block and a reload return to it. Only
+    // here, on the tap: written from an effect once the programme had loaded, it cancelled a tab
+    // the user had tapped meanwhile. Only the address changes, so it is no navigation.
+    const parameters = new URLSearchParams(globalThis.location.search);
+    parameters.set('date', formatDate(date));
+    globalThis.history.replaceState(undefined, '', `${pathname}?${parameters.toString()}`);
     setExpandedEntries(new Set()); // Reset expanded state on date change
   };
 
