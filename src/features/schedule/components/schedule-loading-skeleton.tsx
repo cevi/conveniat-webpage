@@ -33,10 +33,9 @@ const TimelineRow: React.FC<{ isBlock: boolean }> = ({ isBlock }) => (
 );
 
 /**
- * The Programm while it loads, in the layout it loads into: the seven days, the switch between
- * the own Quartier and all of them, the filter chips, and a timeline of logistics rows and
- * blocks. The route's loading screen shows the same, so nothing jumps when the data arrives.
- * The Schichteinsätze share the layout without the switch, and with shifts only.
+ * The Programm while it loads, in the layout it loads into: the seven days, the line that
+ * names the view, and a timeline of logistics rows and blocks. The route's loading screen shows the same, so nothing jumps when the data arrives.
+ * The Schichteinsätze share the layout with the filter chips in place of that line, and shifts only.
  */
 export const ScheduleLoadingSkeleton: React.FC<{
   showScope?: boolean;
@@ -61,13 +60,12 @@ export const ScheduleLoadingSkeleton: React.FC<{
       ))}
     </div>
 
-    {/* the Programm: the view with the favourites and the filter beside it; Schichteinsätze:
-        the filter chips */}
+    {/* the Programm: the line that names the view, its filter sits in the header;
+        Schichteinsätze: the filter chips */}
     {showScope ? (
-      <div className="mt-4 flex items-center gap-2">
-        <div className="bg-quiet h-11 flex-1 rounded-xl" />
-        <div className="border-line h-11 w-11 shrink-0 rounded-full border bg-white" />
-        <div className="border-line h-11 w-11 shrink-0 rounded-full border bg-white" />
+      <div className="mt-4 flex h-8 items-center gap-1.5">
+        <div className={cn('h-6 w-6 rounded-full', pulse)} />
+        <div className={cn('h-3.5 w-16 rounded', pulse)} />
       </div>
     ) : (
       <div className="mt-4 flex gap-2 overflow-hidden">
@@ -80,7 +78,7 @@ export const ScheduleLoadingSkeleton: React.FC<{
       </div>
     )}
 
-    <ol className="mt-5">
+    <ol className={showScope ? 'mt-4' : 'mt-5'}>
       {rows.map((isBlock, index) => (
         <TimelineRow key={index} isBlock={isBlock} />
       ))}
