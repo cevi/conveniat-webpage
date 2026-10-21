@@ -1,5 +1,6 @@
 'use client';
 
+import { SectionLabel } from '@/components/ui/section-label';
 import { format, labels } from '@/features/material/components/material-labels';
 import {
   focusRing,
@@ -66,7 +67,7 @@ export const loanSummary = (
 export const positionCount = (count: number, locale: Locale): string =>
   count === 1 ? labels.onePosition[locale] : format(labels.positions, locale, { n: count });
 
-/** A holder's tile: initials on the depot green, red when something is overdue. */
+/** A holder's tile: initials on the depot green, the live orange when something is overdue. */
 export const HolderAvatar: React.FC<{ name: string; alert?: boolean; className?: string }> = ({
   name,
   alert = false,
@@ -76,7 +77,7 @@ export const HolderAvatar: React.FC<{ name: string; alert?: boolean; className?:
     aria-hidden
     className={cn(
       'flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white',
-      alert ? 'bg-red-600' : 'bg-conveniat-green',
+      alert ? 'bg-live' : 'bg-conveniat-green',
       className,
     )}
   >
@@ -84,20 +85,15 @@ export const HolderAvatar: React.FC<{ name: string; alert?: boolean; className?:
   </span>
 );
 
-/**
- * The heading above each part of a counter screen, in the same type as a card's title: one
- * style of heading, not a second one in spaced capitals.
- */
+/** The heading above each part of a counter screen, "HEUTE FÄLLIG · 6", the app's section label. */
 export const SectionTitle: React.FC<{ children: React.ReactNode; count?: number }> = ({
   children,
   count,
 }) => (
-  <h2 className="mb-2 px-1 text-sm font-semibold text-gray-700">
+  <SectionLabel className="mb-2 px-1">
     {children}
-    {count !== undefined && (
-      <span className="font-normal text-gray-500 tabular-nums"> · {count}</span>
-    )}
-  </h2>
+    {count !== undefined && <span className="tabular-nums"> · {count}</span>}
+  </SectionLabel>
 );
 
 /**
@@ -110,7 +106,7 @@ export const StickyAction: React.FC<{ children: React.ReactNode; className?: str
 }) => (
   <div
     className={cn(
-      'sticky bottom-20 z-20 -mx-4 mt-4 border-t border-gray-200 bg-gray-50/95 px-4 pt-3 pb-3 backdrop-blur',
+      'border-line bg-page/95 sticky bottom-20 z-20 -mx-4 mt-4 border-t px-4 pt-3 pb-3 backdrop-blur',
       className,
     )}
   >
@@ -134,7 +130,7 @@ export const Stepper: React.FC<{
   const down = stepQuantity(value, step, -1);
   const up = stepQuantity(value, step, 1);
   const button = cn(
-    'flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40',
+    'flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-rail bg-white text-green-900 hover:bg-quiet disabled:cursor-not-allowed disabled:opacity-40',
     focusRing,
   );
   return (
@@ -175,8 +171,8 @@ const ScannerView: React.FC<{ onResult: (value: string) => boolean }> = ({ onRes
   const { state, videoReference } = useQrScanner(onResult);
   if (state === 'unsupported' || state === 'denied') {
     return (
-      <div className="flex flex-col items-center gap-2 p-6 text-center text-sm text-gray-600">
-        <ScanLine className="size-10 text-gray-300" aria-hidden />
+      <div className="flex flex-col items-center gap-2 p-6 text-center text-sm text-green-700">
+        <ScanLine className="text-rail-node size-10" aria-hidden />
         {state === 'denied' ? text.denied[locale] : text.unsupported[locale]}
       </div>
     );
@@ -215,7 +211,7 @@ export const SearchField: React.FC<{
       }}
     >
       <Search
-        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400"
+        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-green-500"
         aria-hidden
       />
       <input
@@ -235,7 +231,7 @@ export const SearchField: React.FC<{
             title={labels.scan[locale]}
             onClick={() => setScanning(true)}
             className={cn(
-              'bg-conveniat-green absolute top-1/2 right-0.5 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-white',
+              'bg-conveniat-green absolute top-1/2 right-0.5 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-[10px] text-white',
               focusRing,
             )}
           >
@@ -273,7 +269,7 @@ export const Segmented = <Value extends string>({
   <div
     role="radiogroup"
     aria-label={label}
-    className="grid auto-cols-fr grid-flow-col gap-1 rounded-xl bg-gray-200/70 p-1"
+    className="bg-quiet grid h-11 auto-cols-fr grid-flow-col rounded-xl p-[3px]"
   >
     {options.map((option) => (
       <button
@@ -283,9 +279,9 @@ export const Segmented = <Value extends string>({
         aria-checked={value === option.value}
         onClick={() => onChange(option.value)}
         className={cn(
-          'flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg px-2 text-sm font-semibold [&_svg]:size-4',
+          'flex min-w-0 cursor-pointer items-center justify-center gap-2 rounded-[9px] px-2 text-sm font-semibold transition-colors [&_svg]:size-4',
           focusRing,
-          value === option.value ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600',
+          value === option.value ? 'bg-white text-green-900 shadow-xs' : 'text-green-700',
         )}
       >
         {option.icon}
@@ -310,7 +306,7 @@ export const FilterChip: React.FC<{
       focusRing,
       active
         ? 'border-conveniat-green bg-conveniat-green text-white'
-        : 'border-gray-300 bg-white text-gray-800',
+        : 'border-rail bg-white text-green-900',
     )}
   >
     <span className="truncate">{children}</span>

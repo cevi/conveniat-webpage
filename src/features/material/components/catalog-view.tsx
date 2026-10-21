@@ -121,11 +121,11 @@ const RequestAction: React.FC<{
   else if (!item.isReservable) unavailable = text.depotOnly;
   if (unavailable !== undefined) {
     return wide ? (
-      <MaterialButton variant="secondary" disabled className="h-12 w-full text-base">
+      <MaterialButton variant="outlined" disabled className="w-full">
         {unavailable[locale]}
       </MaterialButton>
     ) : (
-      <span className="block py-1 text-xs font-semibold text-gray-500">{unavailable[locale]}</span>
+      <span className="block py-1 text-xs font-semibold text-green-500">{unavailable[locale]}</span>
     );
   }
   if (quantity > 0) {
@@ -143,7 +143,7 @@ const RequestAction: React.FC<{
   if (!wide) {
     return (
       <MaterialButton
-        variant="secondary"
+        variant="outlined"
         className="w-11 rounded-full px-0"
         aria-label={`${text.request[locale]}: ${item.name}`}
         title={text.request[locale]}
@@ -154,7 +154,7 @@ const RequestAction: React.FC<{
     );
   }
   return (
-    <MaterialButton className="h-12 w-full text-base" onClick={add}>
+    <MaterialButton className="w-full" onClick={add}>
       <Plus aria-hidden />
       {text.request[locale]}
     </MaterialButton>
@@ -230,8 +230,8 @@ const CatalogList: React.FC<{
       </div>
       <div ref={listTop} className="@container scroll-mt-20">
         <Panel>
-          <div className="flex items-center justify-between gap-3 border-b border-gray-100 py-1 pr-1 pl-4">
-            <p className="text-sm text-gray-500 tabular-nums">
+          <div className="border-line flex items-center justify-between gap-3 border-b py-1 pr-1 pl-4">
+            <p className="text-sm text-green-500 tabular-nums">
               {format(text.count, locale, { n: visible.length, total: items.length })}
             </p>
             <NativeSelect
@@ -239,7 +239,7 @@ const CatalogList: React.FC<{
               value={sort}
               onChange={(event) => setSort(event.target.value as Sort)}
               // stays at the field's 16 px: anything smaller makes iOS zoom in on a tap
-              className="w-auto border-transparent bg-transparent font-semibold text-gray-700"
+              className="w-auto border-transparent bg-transparent font-semibold text-green-700"
             >
               {Object.entries(sortLabel).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -310,7 +310,7 @@ const CatalogItemView: React.FC<{
         type="button"
         onClick={onBack}
         className={cn(
-          'inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-lg text-sm font-semibold text-gray-600 hover:text-gray-900',
+          'inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-lg text-sm font-semibold text-green-700 hover:text-green-900',
           focusRing,
         )}
       >
@@ -327,7 +327,7 @@ const CatalogItemView: React.FC<{
           size="lg"
           breakdown={false}
         />
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-green-500">
           {format(labels.maxPerRequest, locale, { n: data.maxLoanQuantity, unit: data.unit })}
           {step > 1 && ` · ${format(labels.inSteps, locale, { n: step })}`}
         </p>
@@ -341,8 +341,8 @@ const CatalogItemView: React.FC<{
           </div>
           {lines.length > 0 && (
             <MaterialButton
-              variant={quantity > 0 ? 'primary' : 'secondary'}
-              className={cn('h-12', quantity > 0 && 'flex-1')}
+              variant={quantity > 0 ? 'primary' : 'outlined'}
+              className={cn(quantity > 0 && 'flex-1')}
               onClick={onRequest}
             >
               <Send aria-hidden />
@@ -351,10 +351,10 @@ const CatalogItemView: React.FC<{
           )}
         </div>
         {!data.isReservable && (
-          <p className="text-center text-xs text-gray-500">{text.depotOnlyHint[locale]}</p>
+          <p className="text-center text-xs text-green-500">{text.depotOnlyHint[locale]}</p>
         )}
         {lines.length > 0 && (
-          <p className="text-center text-xs text-gray-500 tabular-nums">
+          <p className="text-center text-xs text-green-500 tabular-nums">
             {basketLabel(lines, locale)}
           </p>
         )}
@@ -411,10 +411,10 @@ const CatalogScreen: React.FC = () => {
       )}
       {itemCode === undefined && lines.length > 0 && (
         <StickyAction className="flex items-center gap-3">
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-800 tabular-nums">
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-green-900 tabular-nums">
             {basketLabel(lines, locale)}
           </span>
-          <MaterialButton className="h-12" onClick={() => setRequesting(true)}>
+          <MaterialButton onClick={() => setRequesting(true)}>
             <Send aria-hidden />
             {text.toRequest[locale]}
           </MaterialButton>

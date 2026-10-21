@@ -39,11 +39,11 @@ export const ListPager: React.FC<{
   const numbered = slice.pageCount > 1;
 
   return (
-    <div className="border-t border-gray-100 px-3 py-3 text-sm text-gray-600">
+    <div className="border-line border-t px-3 py-3 text-sm text-green-700">
       {/* narrow: load more */}
       <div className="flex flex-col items-stretch gap-2 @[42rem]:hidden">
         {slice.hasPrevious && (
-          <MaterialButton variant="secondary" onClick={pagination.loadPrevious}>
+          <MaterialButton variant="outlined" onClick={pagination.loadPrevious}>
             {labels.loadPrevious[locale]}
           </MaterialButton>
         )}
@@ -53,7 +53,7 @@ export const ListPager: React.FC<{
             : format(labels.shownOf, locale, { n: slice.end, total })}
         </p>
         {slice.hasMore && (
-          <MaterialButton variant="secondary" onClick={pagination.loadMore}>
+          <MaterialButton variant="outlined" onClick={pagination.loadMore}>
             {labels.loadMore[locale]}
           </MaterialButton>
         )}
@@ -105,7 +105,7 @@ export const ListPager: React.FC<{
                     pageButton,
                     link === slice.page
                       ? 'bg-conveniat-green text-white'
-                      : 'text-gray-700 hover:bg-gray-100',
+                      : 'hover:bg-quiet text-green-700',
                   )}
                   aria-label={format(labels.pageNumber, locale, { n: link })}
                   aria-current={link === slice.page ? 'page' : undefined}
@@ -114,7 +114,7 @@ export const ListPager: React.FC<{
                   {link}
                 </button>
               ) : (
-                <span key={link} className="px-1 text-gray-400" aria-hidden>
+                <span key={link} className="px-1 text-green-500" aria-hidden>
                   …
                 </span>
               ),

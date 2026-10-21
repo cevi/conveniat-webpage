@@ -124,15 +124,15 @@ export const CategoriesSheet: React.FC<{ onClose: () => void }> = ({ onClose }) 
         title={text.categories[locale]}
       >
         {categoryList.length === 0 && <EmptyState text={labels.empty[locale]} />}
-        <ul className="divide-y divide-gray-100 rounded-lg border border-gray-100">
+        <ul className="divide-line border-line divide-y rounded-lg border">
           {categoryList.map((category) => (
             <li key={category.id} className="flex items-center gap-2 py-0.5 pr-1 pl-3 text-sm">
-              <span className="w-8 font-mono text-xs text-gray-400">{category.sortOrder}</span>
-              <span className="min-w-0 flex-1 truncate font-semibold text-gray-900">
+              <span className="w-8 font-mono text-xs text-green-500">{category.sortOrder}</span>
+              <span className="min-w-0 flex-1 truncate font-semibold text-green-900">
                 {category.name}
               </span>
               <MaterialButton
-                variant="ghost"
+                variant="quiet"
                 className="w-11 px-0"
                 aria-label={`${labels.edit[locale]} ${category.name}`}
                 onClick={() => setEditing({ category })}
@@ -143,7 +143,7 @@ export const CategoriesSheet: React.FC<{ onClose: () => void }> = ({ onClose }) 
           ))}
         </ul>
         <SheetFooter>
-          <MaterialButton variant="secondary" className="w-full" onClick={() => setEditing({})}>
+          <MaterialButton variant="outlined" className="w-full" onClick={() => setEditing({})}>
             <Plus aria-hidden />
             {text.newCategory[locale]}
           </MaterialButton>

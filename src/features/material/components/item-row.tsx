@@ -48,7 +48,7 @@ export const ItemRow: React.FC<{
 }> = ({ item, href, locale, meta, action, breakdown = true }) => (
   <li
     className={cn(
-      'relative flex gap-3 border-b border-gray-100 px-4 py-3 hover:bg-gray-50 @xl:odd:border-r',
+      'border-line hover:bg-quiet relative flex gap-3 border-b px-4 py-3 @xl:odd:border-r',
       'has-[a:focus-visible]:ring-conveniat-green has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-inset',
     )}
   >
@@ -60,11 +60,11 @@ export const ItemRow: React.FC<{
           <Link
             href={href}
             title={item.name}
-            className="line-clamp-2 font-semibold break-words hyphens-auto text-gray-900 after:absolute after:inset-0 focus-visible:outline-none"
+            className="line-clamp-2 font-semibold break-words hyphens-auto text-green-900 after:absolute after:inset-0 focus-visible:outline-none"
           >
             {item.name}
           </Link>
-          <p className="truncate text-xs text-gray-500">
+          <p className="truncate text-xs text-green-500">
             {item.category.name}
             {meta !== undefined && ` · ${meta}`}
           </p>

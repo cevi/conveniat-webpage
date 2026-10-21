@@ -33,7 +33,7 @@ const PARTICIPANT_TABS: Tab[] = [
  * counter's four screens, which fit side by side down to 320 px; everybody else their overview
  * and the catalogue.
  */
-export const MaterialNav: React.FC = () => {
+export const MaterialNav: React.FC<{ inAppDesign: boolean }> = ({ inAppDesign }) => {
   const locale = useMaterialLocale();
   // the locale prefix and the design segment come before `/app`
   const pathname = usePathname().replace(/^.*?(?=\/app\/)/, '');
@@ -43,17 +43,21 @@ export const MaterialNav: React.FC = () => {
   return (
     <nav
       aria-label={labels.sections[locale]}
-      // sticks right below whichever header the design shows; on a phone the app's round logo
-      // hangs below that header, so the tabs start under it, also while they stick
-      className="sticky top-(--app-header-height) z-30 -mx-4 border-b border-gray-200 bg-gray-50 px-4 pt-8 pb-2 xl:pt-2"
+      // sticks right below whichever header the design shows; on a phone the website's round
+      // logo hangs below that header, so there the tabs start under it, also while they stick.
+      // The app design has no logo there.
+      className={cn(
+        'border-line bg-page sticky top-(--app-header-height) z-30 -mx-4 border-b px-4 pb-2',
+        inAppDesign ? 'pt-3' : 'pt-8 xl:pt-2',
+      )}
     >
       {role === undefined ? (
         // holds the room until the role is known, so the page does not jump
-        <div className="h-[52px]" aria-hidden />
+        <div className="h-11" aria-hidden />
       ) : (
         <div
           className={cn(
-            'mx-auto grid max-w-xl gap-1 rounded-xl bg-gray-200/70 p-1',
+            'bg-quiet mx-auto grid h-11 max-w-xl rounded-xl p-[3px]',
             tabs.length === 4 ? 'grid-cols-4' : 'grid-cols-2',
           )}
         >
@@ -65,11 +69,11 @@ export const MaterialNav: React.FC = () => {
                 href={tab.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex min-h-11 min-w-0 items-center justify-center rounded-lg px-0.5 text-xs font-semibold tracking-tight min-[360px]:px-1 min-[360px]:text-sm min-[360px]:tracking-normal',
+                  'flex min-w-0 items-center justify-center rounded-[9px] px-0.5 text-xs font-semibold tracking-tight transition-colors min-[360px]:px-1 min-[360px]:text-sm min-[360px]:tracking-normal',
                   focusRing,
                   active
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:bg-white/60 hover:text-gray-900',
+                    ? 'bg-white text-green-900 shadow-xs'
+                    : 'text-green-700 hover:text-green-900',
                 )}
               >
                 <span className="truncate">{tab.label[locale]}</span>

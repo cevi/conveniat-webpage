@@ -1,12 +1,9 @@
 'use client';
 
+import { buttonVariants } from '@/components/ui/buttons/button';
+import { IconTile } from '@/components/ui/icon-tile';
 import type { MaterialStockAlert } from '@/features/material/api/material-router';
-import {
-  holderName,
-  loanSummary,
-  positionCount,
-  SectionTitle,
-} from '@/features/material/components/counter-ui';
+import { holderName, loanSummary, positionCount } from '@/features/material/components/counter-ui';
 import {
   conditionLabel,
   format,
@@ -14,6 +11,7 @@ import {
   labels,
 } from '@/features/material/components/material-labels';
 import { MaterialQueryError } from '@/features/material/components/material-query-error';
+import { chip, chipTone } from '@/features/material/components/material-status-badge';
 import {
   EmptyState,
   focusRing,
@@ -126,8 +124,6 @@ interface AttentionEntry {
 
 const ATTENTION_STEP = 8;
 
-const iconTile = 'flex size-11 shrink-0 items-center justify-center rounded-xl [&_svg]:size-5';
-
 const stockAlertLine = (alert: MaterialStockAlert, locale: Locale): string => {
   switch (alert.kind) {
     case 'LOW_STOCK': {
@@ -154,7 +150,7 @@ const ResolveButton: React.FC<{ id: string }> = ({ id }) => {
   const resolve = trpc.material.resolveIncident.useMutation();
   return (
     <MaterialButton
-      variant="secondary"
+      variant="outlined"
       loading={resolve.isPending}
       // stays off until the refetch removes the row; a second tap would only repeat it
       disabled={resolve.isSuccess}
@@ -177,11 +173,7 @@ const buildAttention = (data: Dashboard, locale: Locale): AttentionEntry[] => {
     const first = group.loans[0];
     entries.push({
       key: `request-${group.key}`,
-      icon: (
-        <span className={cn(iconTile, 'bg-amber-50 text-amber-700')}>
-          <Inbox aria-hidden />
-        </span>
-      ),
+      icon: <IconTile icon={Inbox} />,
       title: `${holderName(group, locale)} · ${positionCount(group.loans.length, locale)}`,
       subtitle:
         first === undefined
@@ -189,7 +181,7 @@ const buildAttention = (data: Dashboard, locale: Locale): AttentionEntry[] => {
           : format(text.requestedFor, locale, { day: formatDay(first.startDate, locale) }),
       badge: {
         label: text.request[locale],
-        tone: 'bg-amber-50 text-amber-800 ring-1 ring-amber-600/30',
+        tone: chipTone.neutral,
       },
       href: '/app/material/ausgeben',
     });
@@ -197,16 +189,12 @@ const buildAttention = (data: Dashboard, locale: Locale): AttentionEntry[] => {
   for (const group of data.announced) {
     entries.push({
       key: `announced-${group.key}`,
-      icon: (
-        <span className={cn(iconTile, 'bg-blue-50 text-blue-700')}>
-          <CornerDownLeft aria-hidden />
-        </span>
-      ),
+      icon: <IconTile icon={CornerDownLeft} />,
       title: holderName(group, locale),
       subtitle: loanSummary(group.loans.filter((loan) => isAnnounced(loan))),
       badge: {
         label: labels.returnAnnounced[locale],
-        tone: 'bg-blue-50 text-blue-800 ring-1 ring-blue-600/30',
+        tone: chipTone.ready,
       },
       href: `/app/material/zurueck?${holderSearch(group.holder)}`,
     });
@@ -215,14 +203,10 @@ const buildAttention = (data: Dashboard, locale: Locale): AttentionEntry[] => {
     for (const loan of group.loans) {
       entries.push({
         key: `overdue-${loan.id}`,
-        icon: (
-          <span className={cn(iconTile, 'bg-red-50 text-red-700')}>
-            <AlertTriangle aria-hidden />
-          </span>
-        ),
+        icon: <IconTile icon={AlertTriangle} className="bg-live-soft text-live" />,
         title: `${holderName(group, locale)} · ${loan.issuedQuantity ?? loan.quantity} × ${loan.item.name}`,
         subtitle: format(labels.overdueSince, locale, { day: formatDay(loan.endDate, locale) }),
-        badge: { label: text.overdue[locale], tone: 'bg-red-600 text-white' },
+        badge: { label: text.overdue[locale], tone: chipTone.overdue },
         href: `/app/material/zurueck?${holderSearch(group.holder)}`,
       });
     }
@@ -231,11 +215,7 @@ const buildAttention = (data: Dashboard, locale: Locale): AttentionEntry[] => {
     const first = group.loans[0];
     entries.push({
       key: `pickup-${group.key}`,
-      icon: (
-        <span className={cn(iconTile, 'bg-blue-50 text-blue-700')}>
-          <Clock aria-hidden />
-        </span>
-      ),
+      icon: <IconTile icon={Clock} />,
       title: `${holderName(group, locale)} · ${positionCount(group.loans.length, locale)}`,
       subtitle:
         first === undefined
@@ -243,7 +223,7 @@ const buildAttention = (data: Dashboard, locale: Locale): AttentionEntry[] => {
           : format(text.preparedFrom, locale, { day: formatDay(first.startDate, locale) }),
       badge: {
         label: text.pickUp[locale],
-        tone: 'bg-blue-50 text-blue-800 ring-1 ring-blue-600/30',
+        tone: chipTone.neutral,
       },
       href: '/app/material/ausgeben',
     });
@@ -253,15 +233,13 @@ const buildAttention = (data: Dashboard, locale: Locale): AttentionEntry[] => {
       key: `incident-${incident.id}`,
       icon:
         incident.photoUrl === null ? (
-          <span className={cn(iconTile, 'bg-amber-50 text-amber-700')}>
-            <PackageMinus aria-hidden />
-          </span>
+          <IconTile icon={PackageMinus} className="bg-live-soft text-live" />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element -- presigned bucket URL
           <img
             src={incident.photoUrl}
             alt=""
-            className="size-11 shrink-0 rounded-xl object-cover"
+            className="size-[38px] shrink-0 rounded-[10px] object-cover"
           />
         ),
       title: `${incident.item.name} · ${incident.quantity} × ${conditionLabel[incident.condition][locale]}`,
@@ -280,21 +258,17 @@ const buildAttention = (data: Dashboard, locale: Locale): AttentionEntry[] => {
     const repair = alert.kind === 'DAMAGED' || alert.kind === 'IN_REPAIR';
     entries.push({
       key: `stock-${alert.kind}-${alert.itemCode}`,
-      icon: (
-        <span className={cn(iconTile, 'bg-gray-100 text-gray-700')}>
-          {repair ? <Wrench aria-hidden /> : <PackageMinus aria-hidden />}
-        </span>
-      ),
+      icon: <IconTile icon={repair ? Wrench : PackageMinus} />,
       title: alert.itemName,
       subtitle: stockAlertLine(alert, locale),
       badge: repair
         ? {
             label: text.repair[locale],
-            tone: 'bg-amber-50 text-amber-800 ring-1 ring-amber-600/30',
+            tone: chipTone.warning,
           }
         : {
             label: text.lowStock[locale],
-            tone: 'bg-amber-50 text-amber-800 ring-1 ring-amber-600/30',
+            tone: chipTone.warning,
           },
       href: itemPath(alert.itemCode),
     });
@@ -307,31 +281,24 @@ const AttentionRow: React.FC<{ entry: AttentionEntry }> = ({ entry }) => (
     <Link
       href={entry.href}
       className={cn(
-        'flex min-w-0 flex-1 items-center gap-3 py-3 pl-4 hover:bg-gray-50',
+        'hover:bg-quiet flex min-w-0 flex-1 items-center gap-3 py-3 pl-4',
         focusRing,
         'focus-visible:ring-inset',
       )}
     >
       {entry.icon}
       <span className="min-w-0 flex-1">
-        <span className="line-clamp-2 font-semibold text-gray-900" title={entry.title}>
+        <span className="line-clamp-2 font-semibold text-green-900" title={entry.title}>
           {entry.title}
         </span>
         {entry.subtitle !== '' && (
-          <span className="block truncate text-sm text-gray-500" title={entry.subtitle}>
+          <span className="block truncate text-sm text-green-700" title={entry.subtitle}>
             {entry.subtitle}
           </span>
         )}
       </span>
       {entry.badge !== undefined && (
-        <span
-          className={cn(
-            'shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap',
-            entry.badge.tone,
-          )}
-        >
-          {entry.badge.label}
-        </span>
+        <span className={cn(chip, entry.badge.tone)}>{entry.badge.label}</span>
       )}
     </Link>
     {entry.action}
@@ -363,8 +330,6 @@ const TeamOverview: React.FC = () => {
       return holder === undefined ? loan.id : `${holder.kind}:${holder.id}`;
     }),
   ).size;
-  const bigButton =
-    'flex h-14 items-center justify-center gap-2 rounded-2xl text-base font-semibold [&_svg]:size-5';
 
   return (
     <div className="space-y-4">
@@ -383,55 +348,51 @@ const TeamOverview: React.FC = () => {
           label={text.overdue[locale]}
           value={data.overdue.length}
           hint={format(text.holders, locale, { n: overdueHolders })}
-          tone={data.overdue.length > 0 ? 'red' : 'default'}
+          tone={data.overdue.length > 0 ? 'live' : 'default'}
         />
         <StatTile
           label={text.available[locale]}
           value={data.available.toLocaleString(`${locale}-CH`)}
           hint={format(text.articles, locale, { n: data.articles })}
-          tone="green"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Link
           href="/app/material/ausgeben"
-          className={cn(bigButton, 'bg-conveniat-green text-white', focusRing)}
+          className={cn(buttonVariants({ variant: 'primary', size: 'touch' }), focusRing)}
         >
           <ArrowUpRight aria-hidden />
           {text.handOut[locale]}
           {data.requests.length > 0 && (
-            <span className="rounded-full bg-amber-400 px-2 py-0.5 text-xs font-bold text-gray-900 tabular-nums">
+            <span className={cn(chip, 'bg-white text-green-900 tabular-nums')}>
               {data.requests.length}
             </span>
           )}
         </Link>
         <Link
           href="/app/material/zurueck"
-          className={cn(bigButton, 'border border-gray-300 bg-white text-gray-900', focusRing)}
+          className={cn(buttonVariants({ variant: 'outlined', size: 'touch' }), focusRing)}
         >
           <CornerDownLeft aria-hidden />
           {text.takeBack[locale]}
         </Link>
       </div>
 
-      <Panel>
-        <div className="px-4 pt-4">
-          <SectionTitle count={attention.length}>{text.attention[locale]}</SectionTitle>
-        </div>
+      <Panel title={text.attention[locale]} count={attention.length}>
         {attention.length === 0 ? (
           <EmptyState text={text.allClear[locale]} />
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-line divide-y">
             {attention.slice(0, shown).map((entry) => (
               <AttentionRow key={entry.key} entry={entry} />
             ))}
           </ul>
         )}
         {attention.length > shown && (
-          <div className="border-t border-gray-100 p-3">
+          <div className="border-line border-t p-3">
             <MaterialButton
-              variant="secondary"
+              variant="outlined"
               className="w-full"
               onClick={() => setShown(attention.length)}
             >

@@ -1,6 +1,6 @@
 'use client';
 
-import { HolderAvatar, holderName, SectionTitle } from '@/features/material/components/counter-ui';
+import { HolderAvatar, holderName } from '@/features/material/components/counter-ui';
 import { IncidentPhotoField } from '@/features/material/components/incident-photo-field';
 import { ItemEditDialog } from '@/features/material/components/item-edit-dialog';
 import { ItemHeader, ItemTexts } from '@/features/material/components/item-sections';
@@ -125,7 +125,7 @@ const StockActions: React.FC<{ itemId: string; damaged: number; inRepair: number
   return (
     <div className="space-y-3 p-4">
       <div className="flex items-center gap-2 text-sm">
-        <span className="text-gray-600" aria-hidden>
+        <span className="text-green-700" aria-hidden>
           {labels.quantity[locale]}
         </span>
         <NumberInput
@@ -141,7 +141,7 @@ const StockActions: React.FC<{ itemId: string; damaged: number; inRepair: number
         {actions.map(([action, source]) => (
           <MaterialButton
             key={action}
-            variant="secondary"
+            variant="outlined"
             disabled={source < quantity}
             loading={adjust.isPending && adjust.variables.action === action}
             onClick={() =>
@@ -180,7 +180,7 @@ const ReportDamageForm: React.FC<{
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-600">{text.reportHint[locale]}</p>
+      <p className="text-sm text-green-700">{text.reportHint[locale]}</p>
       <Field as="group" label={text.condition[locale]}>
         <div role="radiogroup" className="grid grid-cols-3 gap-2">
           {REPORT_CONDITIONS.map((option) => (
@@ -194,8 +194,8 @@ const ReportDamageForm: React.FC<{
                 'min-h-11 cursor-pointer rounded-lg border-2 px-1 py-1 text-sm leading-tight font-semibold break-words hyphens-auto',
                 focusRing,
                 condition === option
-                  ? 'border-conveniat-green bg-conveniat-green/10 text-gray-900'
-                  : 'border-gray-200 text-gray-700',
+                  ? 'border-conveniat-green bg-conveniat-green/10 text-green-900'
+                  : 'border-line text-green-700',
               )}
             >
               {conditionLabel[option][locale]}
@@ -222,7 +222,7 @@ const ReportDamageForm: React.FC<{
       <SheetFooter>
         <MaterialButton
           className="w-full"
-          variant="danger"
+          variant="outlined"
           loading={report.isPending || photo.isUploading}
           disabled={note.trim() === ''}
           onClick={() =>
@@ -258,14 +258,11 @@ const WhereIsIt: React.FC<{ item: MaterialItemDetail }> = ({ item }) => {
   const now = useNow();
   const groups = groupByHolder(item.openLoans);
   return (
-    <Panel>
-      <div className="px-4 pt-4">
-        <SectionTitle count={groups.length}>{text.whereIsIt[locale]}</SectionTitle>
-      </div>
+    <Panel title={text.whereIsIt[locale]} count={groups.length}>
       {groups.length === 0 ? (
         <EmptyState text={text.allHome[locale]} />
       ) : (
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-line divide-y">
           {groups.map((group) => {
             const name = holderName(group, locale);
             const out = group.loans.filter((loan) => loan.status === 'ISSUED');
@@ -302,13 +299,13 @@ const WhereIsIt: React.FC<{ item: MaterialItemDetail }> = ({ item }) => {
               <>
                 <HolderAvatar name={name} alert={overdue} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold text-gray-900">{name}</span>
+                  <span className="block truncate font-semibold text-green-900">{name}</span>
                   {lines.map((line) => (
                     <span
                       key={line}
                       className={cn(
                         'block truncate text-sm',
-                        overdue ? 'text-red-700' : 'text-gray-500',
+                        overdue ? 'text-live-text font-semibold' : 'text-green-700',
                       )}
                     >
                       {line}
@@ -323,13 +320,13 @@ const WhereIsIt: React.FC<{ item: MaterialItemDetail }> = ({ item }) => {
                   <Link
                     href={`/app/material/zurueck?${holderSearch(group.holder)}`}
                     className={cn(
-                      'flex items-center gap-3 px-4 py-3 hover:bg-gray-50',
+                      'hover:bg-quiet flex items-center gap-3 px-4 py-3',
                       focusRing,
                       'focus-visible:ring-inset',
                     )}
                   >
                     {content}
-                    <ChevronRight className="size-4 shrink-0 text-gray-400" aria-hidden />
+                    <ChevronRight className="size-4 shrink-0 text-green-500" aria-hidden />
                   </Link>
                 ) : (
                   <div className="flex items-center gap-3 px-4 py-3">{content}</div>
@@ -374,7 +371,7 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
       <Link
         href="/app/material/inventar"
         className={cn(
-          'inline-flex min-h-11 items-center gap-1 rounded-lg text-sm font-semibold text-gray-600 hover:text-gray-900',
+          'inline-flex min-h-11 items-center gap-1 rounded-lg text-sm font-semibold text-green-700 hover:text-green-900',
           focusRing,
         )}
       >
@@ -387,10 +384,10 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
           <Panel>
-            <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-t-2xl bg-gray-100">
+            <dl className="bg-line border-line grid grid-cols-3 gap-px border-b">
               {numbers.map(([label, value, tone]) => (
                 <div key={label} className="min-w-0 bg-white px-3 py-2.5 sm:px-4 sm:py-3">
-                  <dt className="flex items-start gap-1.5 text-xs leading-tight text-gray-500">
+                  <dt className="flex items-start gap-1.5 text-xs leading-tight text-green-700">
                     {tone !== undefined && (
                       <span
                         className={cn('mt-1 size-1.5 shrink-0 rounded-full', tone)}
@@ -399,11 +396,11 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
                     )}
                     <span className="break-words hyphens-auto">{label}</span>
                   </dt>
-                  {/* a zero is worth knowing, not worth looking at; grey 500 still reads in sunlight */}
+                  {/* a zero is worth knowing, not worth looking at; green 500 still reads in sunlight */}
                   <dd
                     className={cn(
-                      'mt-0.5 text-xl tabular-nums',
-                      value === 0 ? 'font-normal text-gray-500' : 'font-semibold text-gray-900',
+                      'font-heading mt-0.5 text-xl tabular-nums',
+                      value === 0 ? 'font-semibold text-green-500' : 'text-heading font-extrabold',
                     )}
                   >
                     {value}
@@ -425,15 +422,15 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
             </div>
           </Panel>
           <div className="grid grid-cols-3 gap-2 [&>button]:min-w-0 [&>button]:px-2">
-            <MaterialButton variant="secondary" onClick={() => setEditing(true)}>
+            <MaterialButton variant="outlined" onClick={() => setEditing(true)}>
               <Pencil aria-hidden />
               {labels.edit[locale]}
             </MaterialButton>
-            <MaterialButton variant="secondary" onClick={() => setShowQr(true)}>
+            <MaterialButton variant="outlined" onClick={() => setShowQr(true)}>
               <QrCode aria-hidden />
               QR
             </MaterialButton>
-            <MaterialButton variant="danger" onClick={() => setReporting(true)}>
+            <MaterialButton variant="outlined" onClick={() => setReporting(true)}>
               <AlertTriangle aria-hidden />
               <span className="truncate">{text.damage[locale]}</span>
             </MaterialButton>
@@ -443,7 +440,7 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
         {(data.damagedQuantity > 0 || data.inRepairQuantity > 0) && (
           <Panel
             title={text.repair[locale]}
-            action={<Wrench className="size-4 text-gray-400" aria-hidden />}
+            action={<Wrench className="size-4 text-green-500" aria-hidden />}
           >
             <StockActions
               itemId={data.id}

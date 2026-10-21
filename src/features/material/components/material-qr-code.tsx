@@ -88,7 +88,7 @@ export const MaterialQrCode: React.FC<{ path: string; caption: string }> = ({ pa
         isError={svg.isError}
         locale={locale}
       />
-      <MaterialButton variant="secondary" onClick={printLabel} disabled={svg.data === undefined}>
+      <MaterialButton variant="outlined" onClick={printLabel} disabled={svg.data === undefined}>
         <Printer aria-hidden />
         {text.print[locale]}
       </MaterialButton>

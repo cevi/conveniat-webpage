@@ -161,14 +161,14 @@ const PickupCard: React.FC<{
       <div className="flex items-start gap-3">
         <HolderAvatar name={name} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 font-bold text-gray-900">
+          <div className="flex items-center gap-1.5 font-bold text-green-900">
             {group.holder.kind === 'PERSON' && (
-              <User className="size-4 shrink-0 text-gray-500" aria-hidden />
+              <User className="size-4 shrink-0 text-green-500" aria-hidden />
             )}
             <span className="truncate">{name}</span>
           </div>
-          <p className="line-clamp-2 text-sm text-gray-600">{loanSummary(group.loans)}</p>
-          <p className="text-xs text-gray-500">
+          <p className="line-clamp-2 text-sm text-green-700">{loanSummary(group.loans)}</p>
+          <p className="text-xs text-green-500">
             {[
               first === undefined
                 ? ''
@@ -181,12 +181,12 @@ const PickupCard: React.FC<{
         </div>
       </div>
       {asking ? (
-        <div className="space-y-2 rounded-xl bg-gray-50 p-2">
-          <p className="px-1 text-sm font-semibold text-gray-800">
+        <div className="bg-quiet space-y-2 rounded-xl p-2">
+          <p className="px-1 text-sm font-semibold text-green-900">
             {format(text.issueAllAsk, locale, { lines })}
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <MaterialButton variant="ghost" onClick={() => setAsking(false)}>
+            <MaterialButton variant="outlined" onClick={() => setAsking(false)}>
               {labels.cancel[locale]}
             </MaterialButton>
             <MaterialButton loading={issue.isPending} onClick={issueAll}>
@@ -200,7 +200,7 @@ const PickupCard: React.FC<{
             <PackageOpen aria-hidden />
             {text.issueAll[locale]}
           </MaterialButton>
-          <MaterialButton variant="secondary" onClick={() => onAdjust(group)}>
+          <MaterialButton variant="outlined" onClick={() => onAdjust(group)}>
             <SlidersHorizontal aria-hidden />
             {text.adjust[locale]}
           </MaterialButton>
@@ -247,15 +247,15 @@ const RequestCard: React.FC<{
       <div className="flex items-start gap-3">
         <HolderAvatar name={name} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 font-bold text-gray-900">
+          <div className="flex items-center gap-1.5 font-bold text-green-900">
             {group.holder.kind === 'PERSON' && (
-              <User className="size-4 shrink-0 text-gray-500" aria-hidden />
+              <User className="size-4 shrink-0 text-green-500" aria-hidden />
             )}
             <span className="truncate">{name}</span>
           </div>
-          <p className="line-clamp-2 text-sm text-gray-600">{loanSummary(group.loans)}</p>
+          <p className="line-clamp-2 text-sm text-green-700">{loanSummary(group.loans)}</p>
           {first !== undefined && (
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-green-500">
               {format(text.pickupReturn, locale, {
                 start: formatDay(first.startDate, locale),
                 end: formatDay(first.endDate, locale),
@@ -263,12 +263,12 @@ const RequestCard: React.FC<{
             </p>
           )}
           {notes.length > 0 && (
-            <p className="mt-1 line-clamp-2 text-xs text-gray-500 italic">{notes.join(' · ')}</p>
+            <p className="mt-1 line-clamp-2 text-xs text-green-500 italic">{notes.join(' · ')}</p>
           )}
         </div>
       </div>
       {step === 'reject' && (
-        <div className="space-y-2 rounded-xl bg-gray-50 p-2">
+        <div className="bg-quiet space-y-2 rounded-xl p-2">
           <input
             className={inputClass}
             aria-label={text.rejectReason[locale]}
@@ -278,11 +278,11 @@ const RequestCard: React.FC<{
             onChange={(event) => setReason(event.target.value)}
           />
           <div className="grid grid-cols-2 gap-2">
-            <MaterialButton variant="ghost" onClick={() => setStep('idle')}>
+            <MaterialButton variant="outlined" onClick={() => setStep('idle')}>
               {labels.cancel[locale]}
             </MaterialButton>
             <MaterialButton
-              variant="danger"
+              variant="outlined"
               loading={reject.isPending}
               onClick={() =>
                 reject.mutate(
@@ -297,12 +297,12 @@ const RequestCard: React.FC<{
         </div>
       )}
       {step === 'issue' && (
-        <div className="space-y-2 rounded-xl bg-gray-50 p-2">
-          <p className="px-1 text-sm font-semibold text-gray-800">
+        <div className="bg-quiet space-y-2 rounded-xl p-2">
+          <p className="px-1 text-sm font-semibold text-green-900">
             {format(text.issueAllAsk, locale, { lines })}
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <MaterialButton variant="ghost" onClick={() => setStep('idle')}>
+            <MaterialButton variant="outlined" onClick={() => setStep('idle')}>
               {labels.cancel[locale]}
             </MaterialButton>
             <MaterialButton
@@ -342,7 +342,7 @@ const RequestCard: React.FC<{
           )}
           <div className="grid grid-cols-3 gap-2 [&>button]:min-w-0 [&>button]:px-2">
             <MaterialButton
-              variant={dueToday ? 'secondary' : 'primary'}
+              variant={dueToday ? 'outlined' : 'primary'}
               loading={confirm.isPending}
               onClick={() =>
                 confirm.mutate(
@@ -356,10 +356,10 @@ const RequestCard: React.FC<{
             >
               <span className="truncate">{text.confirm[locale]}</span>
             </MaterialButton>
-            <MaterialButton variant="secondary" onClick={() => onAdjust(group)}>
+            <MaterialButton variant="outlined" onClick={() => onAdjust(group)}>
               <span className="truncate">{text.adjust[locale]}</span>
             </MaterialButton>
-            <MaterialButton variant="danger" onClick={() => setStep('reject')}>
+            <MaterialButton variant="outlined" onClick={() => setStep('reject')}>
               <span className="truncate">{text.reject[locale]}</span>
             </MaterialButton>
           </div>
@@ -416,7 +416,7 @@ const PreparedPickups: React.FC<{ onAdjust: (group: MaterialHolderGroup) => void
         <details className="group">
           <summary
             className={cn(
-              'flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-lg px-1 text-sm font-semibold text-gray-700 [&::-webkit-details-marker]:hidden',
+              'flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-lg px-1 text-sm font-semibold text-green-700 [&::-webkit-details-marker]:hidden',
               focusRing,
             )}
           >
@@ -438,7 +438,7 @@ const PreparedPickups: React.FC<{ onAdjust: (group: MaterialHolderGroup) => void
 };
 
 const pickButton = cn(
-  'flex min-h-14 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left hover:bg-gray-50',
+  'flex min-h-14 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left hover:bg-quiet',
   focusRing,
   'focus-visible:ring-inset',
 );
@@ -458,7 +458,7 @@ const HofChoice: React.FC<{ onPick: (start: BasketStart) => void }> = ({ onPick 
       <Panel>
         {holders.isLoading && <LoadingState text={labels.loading[locale]} />}
         {!holders.isLoading && hoefe.length === 0 && <EmptyState text={labels.empty[locale]} />}
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-line divide-y">
           {hoefe.map((hof) => (
             <li key={hof.id}>
               <button
@@ -467,15 +467,15 @@ const HofChoice: React.FC<{ onPick: (start: BasketStart) => void }> = ({ onPick 
                 onClick={() => onPick({ holder: { kind: 'HOF', id: hof.id, name: hof.name } })}
               >
                 <HolderAvatar name={hof.name} />
-                <span className="min-w-0 flex-1 truncate font-semibold text-gray-900">
+                <span className="min-w-0 flex-1 truncate font-semibold text-green-900">
                   {hof.name}
                 </span>
                 {hof.out > 0 && (
-                  <span className="shrink-0 text-xs text-gray-500">
+                  <span className="shrink-0 text-xs text-green-500">
                     {format(text.out, locale, { n: hof.out })}
                   </span>
                 )}
-                <ChevronRight className="size-4 shrink-0 text-gray-400" aria-hidden />
+                <ChevronRight className="size-4 shrink-0 text-green-500" aria-hidden />
               </button>
             </li>
           ))}
@@ -503,7 +503,7 @@ const PersonChoice: React.FC<{ onPick: (start: BasketStart) => void }> = ({ onPi
         {debounced !== '' && people.data?.length === 0 && (
           <EmptyState text={labels.empty[locale]} />
         )}
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-line divide-y">
           {debounced !== '' &&
             people.data?.map((person) => (
               <li key={person.uuid}>
@@ -515,10 +515,10 @@ const PersonChoice: React.FC<{ onPick: (start: BasketStart) => void }> = ({ onPi
                   }
                 >
                   <HolderAvatar name={person.name} />
-                  <span className="min-w-0 flex-1 truncate font-semibold text-gray-900">
+                  <span className="min-w-0 flex-1 truncate font-semibold text-green-900">
                     {person.name}
                   </span>
-                  <ChevronRight className="size-4 shrink-0 text-gray-400" aria-hidden />
+                  <ChevronRight className="size-4 shrink-0 text-green-500" aria-hidden />
                 </button>
               </li>
             ))}

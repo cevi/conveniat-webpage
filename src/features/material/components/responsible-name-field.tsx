@@ -38,20 +38,20 @@ const SuggestionRow: React.FC<{ person: Suggestion; onPick: (name: string) => vo
         type="button"
         onClick={() => onPick(person.name)}
         className={cn(
-          'flex min-h-12 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left hover:bg-gray-50',
+          'hover:bg-quiet flex min-h-12 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left',
           focusRing,
           'focus-visible:ring-inset',
         )}
       >
         <HolderAvatar name={person.name} className="size-9 text-xs" />
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-semibold text-gray-900">{person.name}</span>
+          <span className="block truncate font-semibold text-green-900">{person.name}</span>
           {funktionen !== '' && (
             <span className="text-conveniat-green block truncate text-xs font-medium">
               {funktionen}
             </span>
           )}
-          {hof !== '' && <span className="block truncate text-xs text-gray-500">{hof}</span>}
+          {hof !== '' && <span className="block truncate text-xs text-green-500">{hof}</span>}
         </span>
       </button>
     </li>
@@ -105,7 +105,7 @@ export const ResponsibleNameField: React.FC<{
         />
       </Field>
       {suggestions.length > 0 && (
-        <ul className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white">
+        <ul className="divide-line border-line divide-y overflow-hidden rounded-xl border bg-white">
           {suggestions.map((person) => (
             <SuggestionRow
               key={person.uuid}

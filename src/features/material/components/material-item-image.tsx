@@ -22,11 +22,10 @@ export const MaterialItemImage: React.FC<{
   // the link that failed, not a flag: a fixed link on the same mounted page loads again
   const [failedUrl, setFailedUrl] = useState<string | undefined>();
   const failed = imageUrl !== null && imageUrl === failedUrl;
-  const tile =
-    'flex shrink-0 items-center justify-center rounded-lg ring-1 ring-gray-200 ring-inset';
+  const tile = 'flex shrink-0 items-center justify-center rounded-lg ring-1 ring-line ring-inset';
   if (imageUrl === null || imageUrl === '' || failed) {
     return (
-      <div className={cn(tile, 'bg-gray-50 text-gray-300', className)} aria-hidden>
+      <div className={cn(tile, 'bg-quiet text-rail-node', className)} aria-hidden>
         <Package className="size-1/2 max-h-8 max-w-8" strokeWidth={1.5} />
       </div>
     );

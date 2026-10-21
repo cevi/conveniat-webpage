@@ -101,11 +101,12 @@ interface LineState extends ReturnDraft {
 
 const CHIPS: MaterialCondition[] = ['OK', 'DAMAGED', 'MISSING'];
 
-const chipTone: Record<MaterialCondition, string> = {
-  OK: 'border-green-600 bg-green-50 text-green-800',
-  LIGHT_DAMAGE: 'border-amber-500 bg-amber-50 text-amber-900',
-  DAMAGED: 'border-red-600 bg-red-50 text-red-800',
-  MISSING: 'border-gray-700 bg-gray-100 text-gray-900',
+// the chosen state: green when all is well, the live orange when something wants a hand
+const conditionTone: Record<MaterialCondition, string> = {
+  OK: 'border-conveniat-green bg-conveniat-green text-white',
+  LIGHT_DAMAGE: 'border-live bg-live-soft text-live-text',
+  DAMAGED: 'border-live bg-live-soft text-live-text',
+  MISSING: 'border-live bg-live-soft text-live-text',
 };
 
 /** One loan of the take-back: how many came back, and in which state. */
@@ -135,8 +136,8 @@ const ReturnLine: React.FC<{
     <li
       className={cn(
         'space-y-2 px-3 py-3',
-        highlighted && 'bg-conveniat-green/5 ring-conveniat-green ring-2 ring-inset',
-        !line.included && 'bg-gray-50',
+        highlighted && 'bg-tint ring-conveniat-green ring-2 ring-inset',
+        !line.included && 'bg-quiet',
       )}
     >
       <div className="flex items-center gap-3">
@@ -158,12 +159,14 @@ const ReturnLine: React.FC<{
           <div
             className={cn(
               'truncate font-semibold',
-              line.included ? 'text-gray-900' : 'text-gray-500',
+              line.included ? 'text-green-900' : 'text-green-500',
             )}
           >
             {loan.item.name}
           </div>
-          <div className={cn('text-xs', overdue ? 'font-semibold text-red-700' : 'text-gray-500')}>
+          <div
+            className={cn('text-xs', overdue ? 'text-live-text font-semibold' : 'text-green-500')}
+          >
             {format(text.out, locale, { n: line.issued })} ·{' '}
             {overdue
               ? format(labels.overdueSince, locale, { day: formatDay(loan.endDate, locale) })
@@ -177,7 +180,7 @@ const ReturnLine: React.FC<{
           onClick={onShowLabel}
           aria-label={`${text.loanLabel[locale]} #${loan.number}`}
           className={cn(
-            'flex h-11 shrink-0 cursor-pointer items-center gap-1 rounded-lg px-2 text-xs text-gray-500 tabular-nums hover:bg-gray-100',
+            'hover:bg-quiet flex h-11 shrink-0 cursor-pointer items-center gap-1 rounded-lg px-2 text-xs text-green-500 tabular-nums',
             focusRing,
           )}
         >
@@ -198,11 +201,11 @@ const ReturnLine: React.FC<{
                   disabled={condition !== 'OK' && line.issued === 0}
                   onClick={() => onChange(withCondition(line, condition))}
                   className={cn(
-                    'h-11 min-w-14 cursor-pointer rounded-lg border px-2.5 text-sm font-semibold',
+                    'h-11 min-w-14 cursor-pointer rounded-xl border px-2.5 text-sm font-semibold',
                     focusRing,
                     line.condition === condition
-                      ? chipTone[condition]
-                      : 'border-gray-300 bg-white text-gray-700',
+                      ? conditionTone[condition]
+                      : 'border-rail bg-white text-green-700',
                   )}
                 >
                   {chipLabel[condition]}
@@ -218,7 +221,7 @@ const ReturnLine: React.FC<{
           </div>
           {line.condition === 'DAMAGED' && (
             <div className="flex items-center justify-end gap-3 sm:pl-14">
-              <span className="text-sm font-semibold text-red-800">
+              <span className="text-live-text text-sm font-semibold">
                 {text.ofWhichDamaged[locale]}
               </span>
               <Stepper
@@ -231,11 +234,11 @@ const ReturnLine: React.FC<{
             </div>
           )}
           {gone > 0 && (
-            <p className="text-right text-sm font-semibold text-gray-800">
+            <p className="text-right text-sm font-semibold text-green-900">
               {format(consumable ? text.usedUpHint : text.missingHint, locale, { n: gone })}
             </p>
           )}
-          {!valid && <p className="text-sm font-semibold text-red-700">{text.invalid[locale]}</p>}
+          {!valid && <p className="text-live-text text-sm font-semibold">{text.invalid[locale]}</p>}
           {line.condition !== 'OK' && (
             <div className="space-y-2 sm:pl-14">
               <input
@@ -325,7 +328,7 @@ export const ReturnEditor: React.FC<{
     <div className="space-y-4">
       <div className="flex items-center gap-1">
         <MaterialButton
-          variant="ghost"
+          variant="quiet"
           className="w-11 px-0"
           aria-label={labels.back[locale]}
           onClick={onClose}
@@ -333,10 +336,12 @@ export const ReturnEditor: React.FC<{
           <ChevronLeft aria-hidden />
         </MaterialButton>
         <HolderAvatar name={name} className="size-9 text-xs" />
-        <h1 className="text-conveniat-green min-w-0 truncate text-lg font-bold">{name}</h1>
+        <h1 className="font-heading text-heading min-w-0 truncate text-xl font-extrabold">
+          {name}
+        </h1>
       </div>
       {scannedGone && (
-        <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <p className="bg-live-soft text-live-text rounded-[10px] px-3 py-2 text-sm">
           {format(text.notOut, locale, { n: scannedNumber })}
         </p>
       )}
@@ -346,7 +351,7 @@ export const ReturnEditor: React.FC<{
           {loans.length === 0 ? (
             <EmptyState text={text.nothingOut[locale]} />
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-line divide-y">
               {loans.map((loan) => (
                 <ReturnLine
                   key={loan.id}
@@ -369,7 +374,7 @@ export const ReturnEditor: React.FC<{
       {loans.length > 0 && (
         <StickyAction>
           <MaterialButton
-            className="h-12 w-full text-base"
+            className="w-full"
             loading={giveBack.isPending}
             disabled={included.length === 0 || !valid}
             onClick={submit}

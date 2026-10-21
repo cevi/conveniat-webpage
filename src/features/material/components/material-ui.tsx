@@ -1,5 +1,7 @@
 'use client';
 
+import { buttonVariants } from '@/components/ui/buttons/button';
+import { SectionLabel } from '@/components/ui/section-label';
 import { formatDay, labels } from '@/features/material/components/material-labels';
 import { useMaterialLocale } from '@/features/material/hooks/use-material';
 import { fromDateInput } from '@/features/material/utils/dates';
@@ -30,23 +32,23 @@ export const MaterialSheet: React.FC<{
         <DialogPrimitive.Content className="fixed inset-x-0 bottom-0 z-[99999] grid max-h-[90dvh] gap-5 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:pb-5">
           {/* the grip says "this slides up from the bottom"; Radix closes it on a tap outside */}
           <div className="-mt-2 -mb-3 flex justify-center sm:hidden" aria-hidden>
-            <span className="h-1.5 w-10 rounded-full bg-gray-300" />
+            <span className="bg-rail h-1.5 w-10 rounded-full" />
           </div>
           <div className="pr-10">
-            <DialogPrimitive.Title className="text-conveniat-green text-lg font-bold">
+            <DialogPrimitive.Title className="font-heading text-heading text-lg font-bold">
               {title}
             </DialogPrimitive.Title>
             {description === undefined ? (
               <DialogPrimitive.Description className="sr-only">{title}</DialogPrimitive.Description>
             ) : (
-              <DialogPrimitive.Description className="mt-1 text-sm text-gray-600">
+              <DialogPrimitive.Description className="mt-1 text-sm text-green-700">
                 {description}
               </DialogPrimitive.Description>
             )}
           </div>
           {children}
           <DialogPrimitive.Close
-            className="focus-visible:ring-conveniat-green absolute top-3 right-3 flex size-11 cursor-pointer items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 focus-visible:ring-2 focus-visible:outline-none"
+            className="focus-visible:ring-conveniat-green hover:bg-quiet absolute top-3 right-3 flex size-11 cursor-pointer items-center justify-center rounded-lg text-green-500 focus-visible:ring-2 focus-visible:outline-none"
             aria-label={labels.close[locale]}
           >
             <X className="size-5" aria-hidden />
@@ -68,7 +70,7 @@ export const SheetFooter: React.FC<{ children: React.ReactNode; className?: stri
 }) => (
   <div
     className={cn(
-      'sticky bottom-0 z-10 -mx-5 -mb-5 border-t border-gray-100 bg-white px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-5',
+      'border-line sticky bottom-0 z-10 -mx-5 -mb-5 border-t bg-white px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-5',
       className,
     )}
   >
@@ -92,14 +94,14 @@ export const Field: React.FC<{
   const labelId = useId();
   const content = (
     <>
-      <span id={labelId} className="mb-1 block text-sm font-semibold text-gray-800">
+      <span id={labelId} className="mb-1 block text-sm font-semibold text-green-900">
         {label}
       </span>
       {children}
       {error !== undefined && (
-        <span className="mt-1 block text-xs font-semibold text-red-700">{error}</span>
+        <span className="text-live-text mt-1 block text-xs font-semibold">{error}</span>
       )}
-      {hint !== undefined && <span className="mt-1 block text-xs text-gray-500">{hint}</span>}
+      {hint !== undefined && <span className="mt-1 block text-xs text-green-500">{hint}</span>}
     </>
   );
   if (as === 'group') {
@@ -113,7 +115,7 @@ export const Field: React.FC<{
 };
 
 export const inputClass =
-  'block h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-base text-gray-900 focus:border-conveniat-green focus:ring-2 focus:ring-conveniat-green/30 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500';
+  'block h-11 w-full rounded-xl border border-rail bg-white px-3 text-base text-green-900 focus:border-conveniat-green focus:ring-2 focus:ring-conveniat-green/30 focus:outline-none disabled:bg-quiet disabled:text-green-500';
 
 /** The focus ring of everything tappable that is not a text field. */
 export const focusRing =
@@ -172,12 +174,12 @@ export const DateInput: React.FC<{
         className={cn(
           inputClass,
           'peer-focus-visible:border-conveniat-green peer-focus-visible:ring-conveniat-green/30 flex items-center gap-2 peer-focus-visible:ring-2',
-          disabled && 'bg-gray-50 text-gray-500',
+          disabled && 'bg-quiet text-green-500',
           showClear && 'pr-12',
         )}
       >
-        <CalendarDays className="size-4 shrink-0 text-gray-500" />
-        <span className={cn('truncate', day === undefined && 'text-gray-400')}>
+        <CalendarDays className="size-4 shrink-0 text-green-500" />
+        <span className={cn('truncate', day === undefined && 'text-green-500')}>
           {day === undefined ? (placeholder ?? label) : formatDay(day, locale)}
         </span>
       </div>
@@ -187,7 +189,7 @@ export const DateInput: React.FC<{
           aria-label={labels.clearDate[locale]}
           onClick={() => onChange('')}
           className={cn(
-            'absolute top-0 right-0 z-[2] flex size-11 cursor-pointer items-center justify-center rounded-lg text-gray-500 hover:text-gray-900',
+            'absolute top-0 right-0 z-[2] flex size-11 cursor-pointer items-center justify-center rounded-lg text-green-500 hover:text-green-900',
             focusRing,
           )}
         >
@@ -207,15 +209,6 @@ export const NativeSelect: React.FC<React.SelectHTMLAttributes<HTMLSelectElement
     {children}
   </select>
 );
-
-type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
-
-const buttonVariant: Record<ButtonVariant, string> = {
-  primary: 'bg-conveniat-green text-white hover:bg-conveniat-green/90',
-  secondary: 'border border-gray-300 bg-white text-gray-800 hover:bg-gray-50',
-  danger: 'border border-red-200 bg-white text-red-700 hover:bg-red-50',
-  ghost: 'text-gray-700 hover:bg-gray-100',
-};
 
 /**
  * A number field that can be emptied while typing. The text lives here until the field loses
@@ -256,16 +249,18 @@ export const NumberInput: React.FC<
   );
 };
 
-/** Big enough to hit with a cold thumb during a hectic hand-out. */
+/**
+ * The app's button at 44 px, big enough to hit with a cold thumb during a hectic hand-out, with
+ * a spinner while its action runs. Destructive actions such as "Ablehnen" are `outlined`: red
+ * belongs to the emergency screens.
+ */
 export const MaterialButton: React.FC<
   React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    variant?: ButtonVariant;
-    size?: 'md' | 'sm';
+    variant?: 'primary' | 'quiet' | 'outlined';
     loading?: boolean;
   }
 > = ({
   variant = 'primary',
-  size = 'md',
   loading = false,
   disabled = false,
   className,
@@ -277,10 +272,9 @@ export const MaterialButton: React.FC<
     type="button"
     {...properties}
     className={cn(
-      'inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0',
+      buttonVariants({ variant, size: 'touch' }),
+      'shrink-0 disabled:cursor-not-allowed',
       focusRing,
-      size === 'md' ? 'h-11 px-4 text-sm' : 'h-9 px-3 text-xs',
-      buttonVariant[variant],
       className,
     )}
     disabled={loading || disabled}
@@ -291,56 +285,84 @@ export const MaterialButton: React.FC<
 );
 
 /**
- * A white card, the building block of every material page. The title is a heading, not a
- * strip: a rule under it would cut the card into blocks.
+ * A white card, the building block of every material page; `className` styles the card. A title
+ * is the app's section label above the card, not a strip inside it.
  */
 export const Panel: React.FC<{
   title?: string;
+  /** "· 21" after the title */
+  count?: number;
   action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
-}> = ({ title, action, children, className }) => (
-  <section className={cn('min-w-0 rounded-2xl border border-gray-200 bg-white', className)}>
-    {title !== undefined && (
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4 pb-1">
-        <h2 className="font-semibold text-gray-900">{title}</h2>
+}> = ({ title, count, action, children, className }) => {
+  const card = cn('border-line min-w-0 overflow-hidden rounded-[14px] border bg-white', className);
+  if (title === undefined) return <section className={card}>{children}</section>;
+  return (
+    <section className="min-w-0">
+      <div className="mb-2 flex min-h-5 flex-wrap items-center justify-between gap-2 px-1">
+        <SectionLabel>
+          {title}
+          {count !== undefined && <span className="tabular-nums"> · {count}</span>}
+        </SectionLabel>
         {action}
       </div>
-    )}
-    {children}
-  </section>
-);
+      <div className={card}>{children}</div>
+    </section>
+  );
+};
 
-/** A key figure. Compact on a phone, where four of them should not push the list off screen. */
+/**
+ * A key figure. Compact on a phone, where four of them should not push the list off screen.
+ * `live` is the orange of a warning, such as something overdue.
+ */
 export const StatTile: React.FC<{
   label: string;
   value: number | string;
   hint?: string;
-  tone?: 'default' | 'green' | 'orange' | 'red' | 'blue';
+  tone?: 'default' | 'live';
 }> = ({ label, value, hint, tone = 'default' }) => (
-  <div className="min-w-0 rounded-2xl border border-gray-200 bg-white px-3 py-2.5 sm:p-4">
-    <div className="text-xs font-medium break-words hyphens-auto text-gray-500">{label}</div>
+  <div
+    className={cn(
+      'min-w-0 rounded-[14px] border px-3 py-2.5 sm:p-4',
+      tone === 'live' ? 'border-live-line bg-live-soft' : 'border-line bg-white',
+    )}
+  >
     <div
-      className={cn('mt-0.5 text-2xl font-bold tabular-nums sm:mt-1 sm:text-3xl', {
-        'text-gray-900': tone === 'default',
-        'text-green-700': tone === 'green',
-        'text-amber-600': tone === 'orange',
-        'text-red-600': tone === 'red',
-        'text-blue-700': tone === 'blue',
-      })}
+      className={cn(
+        'text-xs font-semibold break-words hyphens-auto',
+        tone === 'live' ? 'text-live-text' : 'text-green-700',
+      )}
+    >
+      {label}
+    </div>
+    <div
+      className={cn(
+        'font-heading mt-0.5 text-2xl font-extrabold tabular-nums sm:mt-1 sm:text-3xl',
+        tone === 'live' ? 'text-live-text' : 'text-heading',
+      )}
     >
       {value}
     </div>
-    {hint !== undefined && <div className="mt-0.5 truncate text-xs text-gray-500">{hint}</div>}
+    {hint !== undefined && (
+      <div
+        className={cn(
+          'mt-0.5 truncate text-xs',
+          tone === 'live' ? 'text-live-text' : 'text-green-700',
+        )}
+      >
+        {hint}
+      </div>
+    )}
   </div>
 );
 
 export const EmptyState: React.FC<{ text: string }> = ({ text }) => (
-  <p className="px-4 py-8 text-center text-sm text-gray-500">{text}</p>
+  <p className="px-4 py-8 text-center text-[15px] text-green-700">{text}</p>
 );
 
 export const LoadingState: React.FC<{ text: string }> = ({ text }) => (
-  <div className="flex items-center justify-center gap-2 py-16 text-sm text-gray-500">
+  <div className="flex items-center justify-center gap-2 py-16 text-sm text-green-500">
     <Loader2 className="size-4 animate-spin" aria-hidden />
     {text}
   </div>
