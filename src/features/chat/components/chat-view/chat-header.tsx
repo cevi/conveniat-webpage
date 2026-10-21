@@ -2,7 +2,6 @@
 
 import type React from 'react';
 
-import { Button } from '@/components/ui/buttons/button';
 import { ChatSelectionHeader } from '@/features/chat/components/chat-view/chat-selection-header';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
@@ -10,6 +9,7 @@ import { useOnlineStatus } from '@/hooks/use-online-status';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { ArrowLeft, Info, Loader2 } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link, { useLinkStatus } from 'next/link';
@@ -26,6 +26,23 @@ const participantsText: StaticTranslationString = {
   fr: 'participants',
 };
 
+const backText: StaticTranslationString = {
+  de: 'Zurück zu den Chats',
+  en: 'Back to chats',
+  fr: 'Retour aux discussions',
+};
+
+const detailsText: StaticTranslationString = {
+  de: 'Chat-Details',
+  en: 'Chat details',
+  fr: 'Détails du chat',
+};
+
+const headerClassName =
+  'border-line flex h-[60px] shrink-0 items-center gap-1 border-b bg-white pr-2 pl-1';
+const iconButtonClassName =
+  'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900 hover:bg-quiet';
+
 /**
  * The back arrow turns into a spinner until the overview has loaded, so a tap that takes a while,
  * as it does offline, is not mistaken for one that did nothing.
@@ -33,20 +50,25 @@ const participantsText: StaticTranslationString = {
 const BackIcon: React.FC = () => {
   const { pending } = useLinkStatus();
   return pending ? (
-    <Loader2 className="h-5 w-5 animate-spin text-gray-700" />
+    <Loader2 className="h-[22px] w-[22px] animate-spin" aria-hidden="true" />
   ) : (
-    <ArrowLeft className="h-5 w-5 text-gray-700" />
+    <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
+  );
+};
+
+const BackLink: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+  return (
+    <Link href="/app/chat" aria-label={backText[locale]} className={iconButtonClassName}>
+      <BackIcon />
+    </Link>
   );
 };
 
 export const ChatHeaderSkeleton: React.FC = () => (
-  <div className="flex h-[60px] items-center justify-between border-b-2 border-gray-200 bg-white px-4">
-    <Link href="/app/chat">
-      <Button variant="ghost" size="icon" className="mr-1 hover:bg-gray-100">
-        <BackIcon />
-      </Button>
-    </Link>
-    <div className="h-6 w-48 animate-pulse rounded bg-gray-200" />
+  <div className={headerClassName}>
+    <BackLink />
+    <div className="bg-quiet h-5 w-48 animate-pulse rounded" />
   </div>
 );
 
@@ -74,50 +96,47 @@ export const ChatHeader: React.FC = () => {
   }
 
   return (
-    <>
-      <div className="flex h-[60px] items-center justify-between border-b-2 border-gray-200 bg-white px-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <Link href="/app/chat">
-            <Button variant="ghost" size="icon" className="mr-1 hover:bg-gray-100">
-              <BackIcon />
-            </Button>
-          </Link>
+    <div className={headerClassName}>
+      <BackLink />
 
-          <div className="flex min-w-0 flex-col">
-            <div className="flex items-center gap-2">
-              <h1 className="font-heading truncate text-lg leading-tight font-bold text-gray-900">
-                {chatDetails.name}
-              </h1>
-              {chatDetails.caseNumber != undefined && chatDetails.caseNumber !== '' && (
-                <span className="shrink-0 rounded bg-red-100 px-2 py-0.5 font-mono text-xs font-bold text-red-700">
-                  {chatDetails.caseNumber}
-                </span>
+      <div className="flex min-w-0 flex-1 flex-col pl-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <h1 className="font-heading text-heading truncate text-[17px] leading-tight font-bold">
+            {chatDetails.name}
+          </h1>
+          {chatDetails.caseNumber != undefined && chatDetails.caseNumber !== '' && (
+            <span
+              className={cn(
+                'shrink-0 rounded-md px-1.5 py-0.5 font-mono text-xs font-bold',
+                chatDetails.type === 'EMERGENCY'
+                  ? 'bg-red-50 text-red-700'
+                  : 'bg-chip text-green-900',
               )}
-            </div>
-            {isOneToOne && isPartnerOnline && (
-              <div className="mt-0.5 flex items-center gap-1.5">
-                <div className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.6)]" />
-                <p className="font-body text-[11px] font-medium tracking-tight text-green-600">
-                  {onlineText[locale]}
-                </p>
-              </div>
-            )}
-            {isGroupChat && (
-              <p className="font-body mt-0.5 text-[11px] font-medium tracking-wider text-gray-500 uppercase">
-                {chatDetails.participants.length} {participantsText[locale]}
-              </p>
-            )}
-          </div>
+            >
+              {chatDetails.caseNumber}
+            </span>
+          )}
         </div>
-
-        <div className="flex items-center">
-          <Link href={`/app/chat/${chatId}/details`}>
-            <Button variant="ghost" size="icon" className="hover:bg-gray-100">
-              <Info className="h-5 w-5 text-gray-700" />
-            </Button>
-          </Link>
-        </div>
+        {isOneToOne && isPartnerOnline && (
+          <p className="text-conveniat-green mt-0.5 flex items-center gap-1.5 text-xs font-semibold">
+            <span className="bg-conveniat-green h-1.5 w-1.5 rounded-full" aria-hidden="true" />
+            {onlineText[locale]}
+          </p>
+        )}
+        {isGroupChat && (
+          <p className="mt-0.5 text-xs text-green-700">
+            {chatDetails.participants.length} {participantsText[locale]}
+          </p>
+        )}
       </div>
-    </>
+
+      <Link
+        href={`/app/chat/${chatId}/details`}
+        aria-label={detailsText[locale]}
+        className={iconButtonClassName}
+      >
+        <Info className="h-[22px] w-[22px]" aria-hidden="true" />
+      </Link>
+    </div>
   );
 };

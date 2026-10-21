@@ -1,6 +1,8 @@
+import { SectionLabel } from '@/components/ui/section-label';
 import { ChatCapability } from '@/lib/chat-shared';
 import { ChatMembershipPermission } from '@/lib/prisma/client';
-import { Check, X } from 'lucide-react';
+import { cn } from '@/utils/tailwindcss-override';
+import { Check, Minus } from 'lucide-react';
 
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type React from 'react';
@@ -61,6 +63,18 @@ const noCapabilitiesText: StaticTranslationString = {
   fr: 'Aucune fonctionnalité spéciale définie.',
 };
 
+const enabledText: StaticTranslationString = {
+  de: 'Erlaubt',
+  en: 'Allowed',
+  fr: 'Autorisé',
+};
+
+const disabledText: StaticTranslationString = {
+  de: 'Nicht erlaubt',
+  en: 'Not allowed',
+  fr: 'Non autorisé',
+};
+
 export const ChatCapabilities: React.FC<ChatCapabilitiesProperties> = ({
   capabilities,
   chatPermission,
@@ -68,12 +82,10 @@ export const ChatCapabilities: React.FC<ChatCapabilitiesProperties> = ({
   locale,
 }) => {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
-      <h3 className="font-heading mb-1 text-lg font-semibold text-gray-900">
-        {capabilitiesSectionText[locale]}
-      </h3>
-      <p className="font-body mb-4 text-xs text-gray-500">{adminOnlyRemarkText[locale]}</p>
-      <div className="space-y-4">
+    <section>
+      <SectionLabel>{capabilitiesSectionText[locale]}</SectionLabel>
+      <p className="mt-1 mb-2 text-[13px] text-green-700">{adminOnlyRemarkText[locale]}</p>
+      <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
         {allPossibleCapabilities.map((capabilityKey) => {
           let isEnabled = capabilities.includes(capabilityKey);
 
@@ -105,22 +117,40 @@ export const ChatCapabilities: React.FC<ChatCapabilitiesProperties> = ({
           }
 
           return (
-            <div key={capabilityKey} className="flex items-center justify-between">
-              <span className="font-body text-sm font-medium text-gray-700">
+            <li
+              key={capabilityKey}
+              className="flex min-h-12 items-center justify-between gap-3 px-4 py-2.5"
+            >
+              <span
+                className={cn(
+                  'text-[15px]',
+                  isEnabled ? 'font-semibold text-green-900' : 'text-green-700',
+                )}
+              >
                 {capabilityLabels[capabilityKey]?.[locale] ?? capabilityKey}
               </span>
               {isEnabled ? (
-                <Check className="text-conveniat-green h-5 w-5" strokeWidth={3} />
+                <Check
+                  className="text-conveniat-green h-5 w-5"
+                  strokeWidth={3}
+                  aria-label={enabledText[locale]}
+                  role="img"
+                />
               ) : (
-                <X className="h-5 w-5 text-red-500" strokeWidth={3} />
+                <Minus
+                  className="h-5 w-5 text-green-500"
+                  strokeWidth={3}
+                  aria-label={disabledText[locale]}
+                  role="img"
+                />
               )}
-            </div>
+            </li>
           );
         })}
         {allPossibleCapabilities.length === 0 && (
-          <p className="font-body text-sm text-gray-500 italic">{noCapabilitiesText[locale]}</p>
+          <li className="px-4 py-3 text-[15px] text-green-700">{noCapabilitiesText[locale]}</li>
         )}
-      </div>
-    </div>
+      </ul>
+    </section>
   );
 };

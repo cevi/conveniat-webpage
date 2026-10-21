@@ -7,8 +7,8 @@ import { redirect } from 'next/navigation';
 import type React from 'react';
 
 export const QrCodeIconSkeleton: React.FC = () => (
-  <div className="flex h-10 w-10 items-center justify-center">
-    <QrCode className="h-6 w-6 animate-pulse text-gray-400" />
+  <div className="flex h-11 w-11 items-center justify-center">
+    <QrCode className="h-[22px] w-[22px] animate-pulse text-green-500" aria-hidden="true" />
   </div>
 );
 

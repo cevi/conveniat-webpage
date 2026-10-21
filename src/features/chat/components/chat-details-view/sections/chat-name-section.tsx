@@ -1,6 +1,8 @@
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
+import { SectionLabel } from '@/components/ui/section-label';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { Pencil } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
@@ -30,6 +32,24 @@ const chatNamePlaceholder: StaticTranslationString = {
   de: 'Chat-Namen eingeben',
   en: 'Enter chat name',
   fr: 'Entrez le nom du chat',
+};
+
+const editNameText: StaticTranslationString = {
+  de: 'Namen ändern',
+  en: 'Edit name',
+  fr: 'Modifier le nom',
+};
+
+const saveText: StaticTranslationString = {
+  de: 'Speichern',
+  en: 'Save',
+  fr: 'Enregistrer',
+};
+
+const cancelText: StaticTranslationString = {
+  de: 'Abbrechen',
+  en: 'Cancel',
+  fr: 'Annuler',
 };
 
 const chatNameLengthText: StaticTranslationString = {
@@ -100,28 +120,26 @@ export const ChatNameSection: React.FC<ChatNameSectionProperties> = ({
   };
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="font-body text-sm font-medium text-gray-600">
-          {chatNameSectionText[locale]}
-        </div>
+    <section>
+      <div className="mb-2 flex min-h-11 items-center justify-between gap-3">
+        <SectionLabel>{chatNameSectionText[locale]}</SectionLabel>
         {isGroupChat && !isEditing && (
           <Button
-            variant="ghost"
-            size="sm"
+            variant="quiet"
+            size="touchIcon"
             onClick={() => {
               setName(currentName);
               setIsEditing(true);
             }}
-            className="h-8 px-2 hover:bg-gray-100"
+            aria-label={editNameText[locale]}
           >
-            <Pencil className="h-4 w-4 text-gray-600" />
+            <Pencil aria-hidden="true" />
           </Button>
         )}
       </div>
-      {isEditing ? (
-        <div className="space-y-2">
-          <div className="flex gap-2">
+      <div className="border-line rounded-[14px] border bg-white p-4">
+        {isEditing ? (
+          <div className="space-y-2">
             <Input
               value={name}
               onChange={(event) => {
@@ -130,51 +148,55 @@ export const ChatNameSection: React.FC<ChatNameSectionProperties> = ({
               }}
               onKeyDown={handleKeyDown}
               autoFocus
-              className={`font-body focus:ring-conveniat-green flex-1 ${
-                error
-                  ? 'border-red-300 focus:border-red-500'
-                  : 'focus:border-conveniat-green border-gray-300'
-              }`}
+              aria-label={chatNameSectionText[locale]}
+              aria-invalid={error !== ''}
+              className={cn(
+                'border-line h-11 rounded-xl border bg-white px-4 text-[15px] text-green-900 shadow-none placeholder:text-green-500',
+                'focus-visible:border-conveniat-green focus-visible:ring-0',
+                error !== '' && 'border-green-900',
+              )}
               placeholder={chatNamePlaceholder[locale]}
               disabled={isSaving}
             />
-            <Button
-              size="sm"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="bg-conveniat-green text-white hover:bg-green-600"
+            <p
+              aria-live="polite"
+              className={cn(
+                'text-[13px]',
+                error === '' ? 'text-green-500' : 'font-semibold text-green-900',
+              )}
             >
-              Save
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setName(currentName);
-                setIsEditing(false);
-                setError('');
-              }}
-              disabled={isSaving}
-            >
-              Cancel
-            </Button>
+              {error === '' ? chatNameLengthText[locale] : error}
+            </p>
+            <div className="flex gap-2 pt-1">
+              <Button variant="primary" size="touch" onClick={handleSave} disabled={isSaving}>
+                {saveText[locale]}
+              </Button>
+              <Button
+                variant="quiet"
+                size="touch"
+                onClick={() => {
+                  setName(currentName);
+                  setIsEditing(false);
+                  setError('');
+                }}
+                disabled={isSaving}
+              >
+                {cancelText[locale]}
+              </Button>
+            </div>
           </div>
-          {error && <p className="font-body text-sm text-red-600">{error}</p>}
-          <p className="font-body text-xs text-gray-500">{chatNameLengthText[locale]}</p>
-        </div>
-      ) : (
-        <div className="font-heading text-lg font-semibold text-gray-900">{currentName}</div>
-      )}
-      {description && description.trim() !== '' && (
-        <div className="mt-6 border-t border-gray-100 pt-6">
-          <div className="font-body mb-2 text-sm font-medium text-gray-600">
-            {chatDescriptionLabelText[locale]}
+        ) : (
+          <p className="font-heading text-heading text-lg font-bold">{currentName}</p>
+        )}
+        {description && description.trim() !== '' && (
+          <div className="border-line mt-4 border-t pt-4">
+            <SectionLabel as="h3">{chatDescriptionLabelText[locale]}</SectionLabel>
+            <p className="mt-1 text-[15px] leading-normal whitespace-pre-wrap text-green-900">
+              {description}
+            </p>
           </div>
-          <div className="font-body text-sm leading-relaxed whitespace-pre-wrap text-gray-800">
-            {description}
-          </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </section>
   );
 };

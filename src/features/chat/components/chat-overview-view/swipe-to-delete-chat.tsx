@@ -85,20 +85,21 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
           height: { duration: 0.22, ease: [0.4, 0, 0.2, 1] },
           opacity: { duration: 0.18, ease: 'easeOut' },
         }}
-        className="relative overflow-hidden rounded-md"
+        className="relative overflow-hidden"
         style={{ touchAction: 'pan-y' }}
       >
         {((): React.ReactElement => {
-          let trackBg = 'bg-gray-100';
-          let iconColor = 'text-gray-400';
+          // red belongs to Notfall; past the threshold the track turns dark instead
+          let trackBg = 'bg-quiet';
+          let iconColor = 'text-green-500';
           if (canDelete) {
-            trackBg = pastThreshold ? 'bg-red-500' : 'bg-red-100';
-            iconColor = pastThreshold ? 'text-white' : 'text-red-600';
+            trackBg = pastThreshold ? 'bg-heading' : 'bg-chip';
+            iconColor = pastThreshold ? 'text-white' : 'text-green-900';
           }
           return (
             <div
               className={cn(
-                'absolute inset-y-0 left-0 flex w-full items-center justify-start rounded-md pl-6 transition-colors duration-200',
+                'absolute inset-y-0 left-0 flex w-full items-center justify-start pl-6 transition-colors duration-200',
                 trackBg,
               )}
             >
@@ -107,7 +108,7 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
                   <Trash2 className={cn('h-6 w-6 transition-colors duration-200', iconColor)} />
                   {canDelete ? undefined : (
                     <svg
-                      className="absolute inset-0 h-6 w-6 text-gray-400"
+                      className="absolute inset-0 h-6 w-6 text-green-500"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"

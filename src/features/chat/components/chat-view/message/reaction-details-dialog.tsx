@@ -52,10 +52,10 @@ export const ReactionDetailsDialog: React.FC<{
           group.users.map((reactor) => (
             <li
               key={`${group.emoji}-${reactor.id}`}
-              className="flex items-center gap-3 border-b border-gray-100 pb-2"
+              className="border-line flex items-center gap-3 border-b pb-2"
             >
               <span className="text-xl">{group.emoji}</span>
-              <span className="font-body flex-1 text-sm text-gray-700">
+              <span className="flex-1 text-[15px] text-green-900">
                 {reactor.id === currentUserId ? youText[locale] : reactor.name}
               </span>
             </li>

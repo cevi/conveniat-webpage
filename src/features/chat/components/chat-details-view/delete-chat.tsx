@@ -1,4 +1,5 @@
 'use client';
+import { Button } from '@/components/ui/buttons/button';
 import {
   ArchiveChatConfirmDialog,
   localizedDeleteChat,
@@ -13,7 +14,7 @@ import { ChatMembershipPermission } from '@/lib/prisma';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { cn } from '@/utils/tailwindcss-override';
+import { Trash2 } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import React from 'react';
@@ -70,32 +71,24 @@ export const DeleteChat: React.FC = () => {
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
-        <div className="font-body text-sm font-medium text-gray-600">
-          {localizedDeleteChat[locale]}
-        </div>
-      </div>
-
-      {!canUserArchiveChat && (
-        <div className="mb-2 text-sm text-gray-500">
-          {getCannotDeleteExplanation(userRole, locale)}
-        </div>
-      )}
-
-      <button
-        aria-label={'Delete Chat'}
+      <Button
+        variant="outlined"
+        size="touch"
+        className="w-full"
         onClick={() => setIsDialogOpen(true)}
         disabled={
           !canUserArchiveChat || updateChatMutation.isPending || deleteChatMutation.isPending
         }
-        className={cn('mt-4 w-full rounded-md px-4 py-2', {
-          'cursor-pointer bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none':
-            canUserArchiveChat,
-          'cursor-not-allowed bg-gray-300 text-gray-500': !canUserArchiveChat,
-        })}
       >
+        <Trash2 aria-hidden="true" />
         {localizedDeleteChat[locale]}
-      </button>
+      </Button>
+
+      {!canUserArchiveChat && (
+        <p className="px-1 text-[13px] text-green-700">
+          {getCannotDeleteExplanation(userRole, locale)}
+        </p>
+      )}
 
       <ArchiveChatConfirmDialog
         open={isDialogOpen}

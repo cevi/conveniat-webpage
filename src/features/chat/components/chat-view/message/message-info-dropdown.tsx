@@ -89,15 +89,17 @@ export const MessageInfoDropdown: React.FC<{
           {/* Message Preview */}
           <div
             className={cn(
-              'rounded-lg p-4 shadow-sm',
-              isCurrentUser ? 'bg-conveniat-green text-white' : 'bg-gray-100 text-gray-900',
+              'rounded-2xl px-3.5 py-2.5',
+              isCurrentUser
+                ? 'bg-conveniat-green text-white'
+                : 'border-line border bg-white text-green-900',
             )}
           >
-            <div className="font-body text-sm">{renderedContent}</div>
+            <div className="text-[15px]">{renderedContent}</div>
             <div
               className={cn(
                 'mt-2 flex items-center justify-end text-xs',
-                isCurrentUser ? 'text-white/80' : 'text-gray-500',
+                isCurrentUser ? 'text-white/80' : 'text-green-500',
               )}
             >
               {formatMessageTime(sentDate)}
@@ -106,25 +108,27 @@ export const MessageInfoDropdown: React.FC<{
 
           {/* Details List */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+            <div className="border-line flex items-center justify-between border-b pb-2">
               <div className="flex items-center gap-2">
-                <div className="bg-conveniat-green/10 flex h-8 w-8 items-center justify-center rounded-full">
+                <div className="bg-tint flex h-8 w-8 items-center justify-center rounded-[10px]">
                   <Clock className="text-conveniat-green h-4 w-4" />
                 </div>
-                <span className="font-body font-medium text-gray-700">{sentText[locale]}</span>
+                <span className="text-[15px] font-semibold text-green-900">{sentText[locale]}</span>
               </div>
-              <span className="font-body text-sm text-gray-500">{formatMessageTime(sentDate)}</span>
+              <span className="text-sm text-green-700">{formatMessageTime(sentDate)}</span>
             </div>
 
             {/* the delivery status belongs to the sender; on a received message it would
                 only ever say "sent" */}
             {isCurrentUser ? (
-              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+              <div className="border-line flex items-center justify-between border-b pb-2">
                 <div className="flex items-center gap-2">
-                  <div className="bg-conveniat-green/10 flex h-8 w-8 items-center justify-center rounded-full">
+                  <div className="bg-tint flex h-8 w-8 items-center justify-center rounded-[10px]">
                     <Check className="text-conveniat-green h-4 w-4" />
                   </div>
-                  <span className="font-body font-medium text-gray-700">{statusText[locale]}</span>
+                  <span className="text-[15px] font-semibold text-green-900">
+                    {statusText[locale]}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   {/* Visual Indicator for Status */}
@@ -136,14 +140,14 @@ export const MessageInfoDropdown: React.FC<{
                   )}
                   {message.status === MessageEventType.RECEIVED && (
                     <div className="flex">
-                      <Check className="h-4 w-4 text-gray-400" />
-                      <Check className="-ml-2 h-4 w-4 text-gray-400" />
+                      <Check className="h-4 w-4 text-green-500" />
+                      <Check className="-ml-2 h-4 w-4 text-green-500" />
                     </div>
                   )}
                   {message.status === MessageEventType.STORED && (
-                    <Check className="h-4 w-4 text-gray-400" />
+                    <Check className="h-4 w-4 text-green-500" />
                   )}
-                  <span className="font-body text-sm text-gray-500">
+                  <span className="text-sm text-green-700">
                     {localizedStatus(message.status, locale)}
                   </span>
                 </div>
@@ -151,16 +155,16 @@ export const MessageInfoDropdown: React.FC<{
             ) : (
               message.senderName !== undefined &&
               message.senderName !== '' && (
-                <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                <div className="border-line flex items-center justify-between border-b pb-2">
                   <div className="flex items-center gap-2">
-                    <div className="bg-conveniat-green/10 flex h-8 w-8 items-center justify-center rounded-full">
+                    <div className="bg-tint flex h-8 w-8 items-center justify-center rounded-[10px]">
                       <User className="text-conveniat-green h-4 w-4" />
                     </div>
-                    <span className="font-body font-medium text-gray-700">
+                    <span className="text-[15px] font-semibold text-green-900">
                       {senderText[locale]}
                     </span>
                   </div>
-                  <span className="font-body text-sm text-gray-500">{message.senderName}</span>
+                  <span className="text-sm text-green-700">{message.senderName}</span>
                 </div>
               )
             )}

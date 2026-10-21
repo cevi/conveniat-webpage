@@ -14,8 +14,8 @@ export const SystemMessage: React.FC<{ message: ChatMessage }> = ({ message }) =
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const renderedContent = formatMessageContent(message.messagePayload, locale);
   return (
-    <div className="flex items-center justify-center p-4 text-gray-500">
-      <span className="font-body text-center text-balance" style={{ whiteSpace: 'pre-wrap' }}>
+    <div className="flex items-center justify-center px-4 py-3 text-[13px] text-green-700">
+      <span className="text-center text-balance" style={{ whiteSpace: 'pre-wrap' }}>
         {renderedContent}
       </span>
     </div>

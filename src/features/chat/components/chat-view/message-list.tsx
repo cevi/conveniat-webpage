@@ -1,4 +1,5 @@
 'use client';
+import { EmptyState } from '@/components/ui/empty-state';
 import type { ChatMessage } from '@/features/chat/api/types';
 import { MessageComponent } from '@/features/chat/components/chat-view/message';
 import { TypingIndicator } from '@/features/chat/components/chat-view/typing-indicator';
@@ -117,8 +118,8 @@ export const MessageList: React.FC<{
 
   if (isLoading || currentUser === undefined || chatDetails === undefined) {
     return (
-      <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
-        <div className="font-body text-gray-600">{loadingMessagesText[locale]}</div>
+      <div className="bg-page flex h-full flex-row items-center justify-center">
+        <div className="text-[15px] text-green-700">{loadingMessagesText[locale]}</div>
       </div>
     );
   }
@@ -155,7 +156,7 @@ export const MessageList: React.FC<{
       <div
         ref={scrollContainerReference}
         onScroll={handleScroll}
-        className={cn('flex h-full flex-col overflow-x-hidden overflow-y-auto bg-gray-50')}
+        className="bg-page flex h-full flex-col overflow-x-hidden overflow-y-auto"
       >
         {!isThread && <div className="flex-1" />}
         <div className={cn('px-2', isThread ? 'py-1' : 'py-4')}>
@@ -164,16 +165,17 @@ export const MessageList: React.FC<{
 
           {isFetchingNextPage && (
             <div className="flex w-full justify-center py-2">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              <Loader2 className="h-6 w-6 animate-spin text-green-500" aria-hidden="true" />
             </div>
           )}
 
           {!isThread && sortedMessages.length === 0 && (
-            <div className="font-body flex flex-col items-center gap-2 px-6 py-12 text-center text-gray-500">
-              <MessagesSquare className="h-10 w-10 text-gray-300" aria-hidden="true" />
-              <span className="font-semibold text-gray-700">{emptyChatTitleText[locale]}</span>
-              <span className="text-sm text-balance">{emptyChatHintText[locale]}</span>
-            </div>
+            <EmptyState
+              icon={MessagesSquare}
+              title={emptyChatTitleText[locale]}
+              description={emptyChatHintText[locale]}
+              className="mx-2 my-6"
+            />
           )}
 
           {messageDays.map((day) => (
@@ -184,11 +186,11 @@ export const MessageList: React.FC<{
                   under it instead of showing their text on both sides of the day */}
               <div
                 className={cn(
-                  'pointer-events-none sticky top-0 z-20 -mx-2 flex justify-center bg-gray-50',
+                  'bg-page pointer-events-none sticky top-0 z-20 -mx-2 flex justify-center',
                   isThread ? 'py-2' : 'py-3',
                 )}
               >
-                <h3 className="font-body rounded-full bg-white px-3 py-1 text-[11px] font-semibold tracking-wider text-gray-500 uppercase shadow-sm ring-1 ring-gray-200 backdrop-blur-sm">
+                <h3 className="border-line rounded-full border bg-white px-3 py-1 text-[11px] font-bold tracking-[0.08em] text-green-700 uppercase">
                   {formatDayLabel(day.date, locale)}
                 </h3>
               </div>
@@ -229,8 +231,8 @@ export const MessageList: React.FC<{
           onClick={scrollToBottom}
           aria-label={jumpToLatestText[locale]}
           className={cn(
-            'font-body animate-in fade-in zoom-in-95 absolute right-3 bottom-3 z-30 flex h-10 cursor-pointer items-center gap-1.5 rounded-full bg-white text-sm font-semibold text-gray-700 shadow-md ring-1 ring-gray-200 duration-150',
-            unseenCount > 0 ? 'text-cevi-blue px-4' : 'w-10 justify-center',
+            'animate-in fade-in zoom-in-95 border-line absolute right-3 bottom-3 z-30 flex h-11 cursor-pointer items-center gap-1.5 rounded-full border bg-white text-sm font-semibold text-green-900 shadow-md duration-150',
+            unseenCount > 0 ? 'text-conveniat-green px-4' : 'w-11 justify-center',
           )}
         >
           {unseenCount > 0 && (

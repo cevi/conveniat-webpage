@@ -15,7 +15,6 @@ import {
 } from '@/features/chat/components/ui/chat-dialog';
 import { useChatInviteUrl } from '@/features/chat/hooks/use-chat-invite-url';
 import { isRateLimitError } from '@/features/chat/utils/send-errors';
-import { FormSubmit } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query';
 import { QrCode } from 'lucide-react';
 
@@ -23,6 +22,12 @@ const qrCodeTitleText: StaticTranslationString = {
   de: 'Scannen lassen, um einen Chat zu starten.',
   fr: 'Faites-le scanner pour démarrer une discussion.',
   en: 'Let it be scanned to start a chat.',
+};
+
+const qrCodeButtonLabel: StaticTranslationString = {
+  de: 'Meinen QR-Code zeigen',
+  fr: 'Afficher mon code QR',
+  en: 'Show my QR code',
 };
 
 const qrCodeErrorText: StaticTranslationString = {
@@ -91,7 +96,7 @@ const ChatInviteQrCode: React.FC<{ locale: Locale }> = ({ locale }) => {
         locale={locale}
         isError={isError}
       />
-      {isError && <p className="px-2 text-center text-xs text-red-500">{errorText}</p>}
+      {isError && <p className="px-2 text-center text-[13px] text-green-700">{errorText}</p>}
     </div>
   );
 };
@@ -102,13 +107,15 @@ export const QRCodeClientComponent: React.FC = () => {
 
   return (
     <>
-      <div onClick={() => setOpen(true)}>
-        <FormSubmit
-          icon={<QrCode className="h-6 w-6 cursor-pointer" />}
-          iconPosition="left"
-          buttonStyle="tab"
-        />
-      </div>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={qrCodeButtonLabel[locale]}
+        aria-haspopup="dialog"
+        className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl"
+      >
+        <QrCode className="h-[22px] w-[22px]" aria-hidden="true" />
+      </button>
 
       <ChatDialog open={open} onOpenChange={setOpen}>
         <ChatDialogContent className="sm:max-w-md">
@@ -118,7 +125,7 @@ export const QRCodeClientComponent: React.FC = () => {
 
           <ChatInviteQrCode locale={locale} />
 
-          <h2 className="text-md mb-4 text-center font-bold select-none">
+          <h2 className="font-heading text-heading mb-4 text-center text-base font-bold select-none">
             {qrCodeTitleText[locale]}
           </h2>
         </ChatDialogContent>

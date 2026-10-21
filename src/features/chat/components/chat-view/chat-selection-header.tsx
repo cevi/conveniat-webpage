@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/buttons/button';
 import { MessageInfoDropdown } from '@/features/chat/components/chat-view/message/message-info-dropdown';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
@@ -30,6 +29,12 @@ const messageInfoText: StaticTranslationString = {
   fr: 'Infos message',
 };
 
+const cancelSelectionText: StaticTranslationString = {
+  de: 'Auswahl aufheben',
+  en: 'Cancel selection',
+  fr: 'Annuler la sélection',
+};
+
 export const ChatSelectionHeader: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { selectedMessage, setSelectedMessage, quoteMessage, replyInThread } = useChatActions();
@@ -57,50 +62,53 @@ export const ChatSelectionHeader: React.FC = () => {
 
   const canThread = chatDetails?.capabilities.includes(ChatCapability.THREADS) ?? false;
 
+  const buttonClassName =
+    'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900 hover:bg-quiet';
+
   return (
-    <div className="animate-in slide-in-from-top flex h-[60px] items-center justify-between border-b-2 border-gray-200 bg-white px-4 duration-200">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
+    <div className="animate-in slide-in-from-top border-line flex h-[60px] shrink-0 items-center justify-between border-b bg-white pr-2 pl-1 duration-200">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
           onClick={handleCancelSelection}
-          className="hover:bg-gray-100"
+          aria-label={cancelSelectionText[locale]}
+          className={buttonClassName}
         >
-          <X className="h-5 w-5 text-gray-700" />
-        </Button>
-        <span className="text-lg font-bold text-gray-900">1</span>
+          <X className="h-[22px] w-[22px]" aria-hidden="true" />
+        </button>
+        <span className="font-heading text-heading text-lg font-bold">1</span>
       </div>
 
-      <div className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
+      <div className="flex items-center">
+        <button
+          type="button"
           onClick={handleQuote}
+          aria-label={quoteText[locale]}
           title={quoteText[locale]}
-          className="hover:bg-gray-100"
+          className={buttonClassName}
         >
-          <Quote className="h-5 w-5 text-gray-700" />
-        </Button>
+          <Quote className="h-[22px] w-[22px]" aria-hidden="true" />
+        </button>
         {canThread && (
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
+            type="button"
             onClick={handleThread}
+            aria-label={replyInThreadText[locale]}
             title={replyInThreadText[locale]}
-            className="hover:bg-gray-100"
+            className={buttonClassName}
           >
-            <MessageSquare className="h-5 w-5 text-gray-700" />
-          </Button>
+            <MessageSquare className="h-[22px] w-[22px]" aria-hidden="true" />
+          </button>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
+          type="button"
           onClick={() => setShowInfo(true)}
+          aria-label={messageInfoText[locale]}
           title={messageInfoText[locale]}
-          className="hover:bg-gray-100"
+          className={buttonClassName}
         >
-          <Info className="h-5 w-5 text-gray-700" />
-        </Button>
+          <Info className="h-[22px] w-[22px]" aria-hidden="true" />
+        </button>
       </div>
 
       {showInfo && (

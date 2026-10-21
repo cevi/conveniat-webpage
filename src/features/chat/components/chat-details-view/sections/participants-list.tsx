@@ -1,6 +1,8 @@
 import { Button } from '@/components/ui/buttons/button';
 import { PersonAvatar } from '@/components/ui/person-avatar';
+import { SectionLabel } from '@/components/ui/section-label';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { Loader2, UserX, Users, X } from 'lucide-react';
 import type React from 'react';
 
@@ -49,6 +51,21 @@ const youText: StaticTranslationString = {
   fr: 'Vous',
 };
 
+const removeText: StaticTranslationString = {
+  de: '{name} entfernen',
+  en: 'Remove {name}',
+  fr: 'Retirer {name}',
+};
+
+/** What a role is called; a member is the default and gets no chip. */
+const permissionText: Record<string, StaticTranslationString | undefined> = {
+  OWNER: { de: 'Erstellt', en: 'Creator', fr: 'Créateur' },
+  ADMIN: { de: 'Admin', en: 'Admin', fr: 'Admin' },
+  GUEST: { de: 'Gast', en: 'Guest', fr: 'Invité' },
+};
+
+const chipClassName = 'shrink-0 rounded-md px-1.5 py-0.5 text-xs font-bold';
+
 export const ParticipantsList: React.FC<ParticipantsListProperties> = ({
   participants,
   currentUser,
@@ -60,79 +77,78 @@ export const ParticipantsList: React.FC<ParticipantsListProperties> = ({
   locale,
 }) => {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="font-body text-sm font-medium text-gray-600">
+    <section>
+      <div className="mb-2 flex min-h-11 items-center justify-between gap-3">
+        <SectionLabel>
           {participants.length} {participantsSectionText[locale]}
-        </div>
+        </SectionLabel>
         {isGroupChat && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onToggleManage}
-            className="h-8 gap-2 px-2 hover:bg-gray-100"
-          >
+          <Button variant="quiet" size="touch" onClick={onToggleManage} aria-pressed={isManaging}>
+            {isManaging ? <X aria-hidden="true" /> : <Users aria-hidden="true" />}
             {isManaging ? doneText[locale] : manageText[locale]}
-            {isManaging ? <X className="h-4 w-4" /> : <Users className="h-4 w-4 text-gray-600" />}
           </Button>
         )}
       </div>
 
-      <div className="space-y-3">
-        {participants.map((participant) => (
-          <div key={participant.id} className="flex items-center justify-between gap-3">
-            <div className="flex flex-1 items-center gap-3">
+      <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
+        {participants.map((participant) => {
+          const isYou = participant.id === currentUser;
+          const permission = permissionText[participant.chatPermission]?.[locale];
+          return (
+            <li key={participant.id} className="flex min-h-[64px] items-center gap-3 px-4 py-3">
               <PersonAvatar
                 seed={participant.id}
                 name={participant.name}
                 pictureUrl={participant.pictureUrl}
-                className="h-10 w-10 text-sm"
+                className="h-11 w-11 text-sm"
               />
-              <div>
-                <div className="font-body font-medium text-gray-900">
-                  {participant.name}
-                  {participant.id === currentUser && (
-                    <span className="ml-1 text-sm text-gray-500">
-                      ({youText[locale]}, {participant.chatPermission})
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                  <span className="text-[15px] leading-5 font-semibold text-green-900">
+                    {participant.name}
+                  </span>
+                  {isYou && (
+                    <span className={cn(chipClassName, 'bg-conveniat-green text-white')}>
+                      {youText[locale]}
                     </span>
                   )}
-                  {participant.id !== currentUser && (
-                    <span className="ml-1 text-sm text-gray-500">
-                      ({participant.chatPermission})
+                  {permission !== undefined && (
+                    <span className={cn(chipClassName, 'bg-chip text-green-900')}>
+                      {permission}
                     </span>
                   )}
                 </div>
                 {participant.description && (
-                  <div className="font-body text-xs text-gray-500">{participant.description}</div>
+                  <div className="mt-0.5 text-[13px] text-green-700">{participant.description}</div>
                 )}
                 {participant.funktionLine !== undefined && participant.funktionLine !== '' && (
-                  <div className="font-body text-conveniat-green text-xs font-medium">
+                  <div className="text-conveniat-green mt-0.5 text-[13px] font-semibold">
                     {participant.funktionLine}
                   </div>
                 )}
                 {participant.hofLine !== undefined && participant.hofLine !== '' && (
-                  <div className="font-body text-xs text-gray-500">{participant.hofLine}</div>
+                  <div className="mt-0.5 text-[13px] text-green-700">{participant.hofLine}</div>
                 )}
               </div>
-            </div>
-            {isManaging && participant.id !== currentUser && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onRemoveParticipant(participant.id)}
-                disabled={isRemoving}
-                className="h-8 w-8 rounded-full text-red-500 hover:bg-red-50 hover:text-red-600"
-              >
-                {isRemoving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <UserX className="h-4 w-4" />
-                )}
-              </Button>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
+              {isManaging && !isYou && (
+                <Button
+                  variant="outlined"
+                  size="touchIcon"
+                  onClick={() => onRemoveParticipant(participant.id)}
+                  disabled={isRemoving}
+                  aria-label={removeText[locale].replace('{name}', participant.name)}
+                >
+                  {isRemoving ? (
+                    <Loader2 className="animate-spin" aria-hidden="true" />
+                  ) : (
+                    <UserX aria-hidden="true" />
+                  )}
+                </Button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 };

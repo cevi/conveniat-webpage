@@ -26,11 +26,11 @@ export const TypingIndicator: React.FC<{
     )}
     <div className="flex flex-col items-start">
       {showName && (
-        <span className="mb-1 px-1.5 text-xs font-semibold text-gray-500">{typist.name}</span>
+        <span className="mb-1 px-1.5 text-xs font-semibold text-green-700">{typist.name}</span>
       )}
       {/* same box model as a one-line message bubble: an invisible text line and meta row
           give it the height the arriving message will have */}
-      <div className="font-body relative min-w-[100px] rounded-2xl rounded-bl-[4px] border border-gray-100 bg-white px-4 py-2.5 shadow-sm">
+      <div className="font-body border-line relative min-w-[100px] rounded-2xl rounded-bl-[4px] border bg-white px-4 py-2.5">
         <div aria-hidden="true" className="invisible">
           <div className="text-[0.95rem] leading-relaxed">&nbsp;</div>
           <div className="mt-1 text-[10px]">&nbsp;</div>
@@ -42,7 +42,7 @@ export const TypingIndicator: React.FC<{
           {[0, 150, 300].map((delay) => (
             <span
               key={delay}
-              className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
+              className="h-2 w-2 animate-bounce rounded-full bg-green-500"
               style={{ animationDelay: `${delay}ms` }}
             />
           ))}

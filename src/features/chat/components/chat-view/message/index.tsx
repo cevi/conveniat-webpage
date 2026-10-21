@@ -277,29 +277,29 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     if (message.isPendingOffline) {
       return (
         <span title={pendingOfflineText[locale]}>
-          <Clock className="ml-1 h-3.5 w-3.5 text-white/70 opacity-80" />
+          <Clock className="ml-1 h-3.5 w-3.5 text-white/80" />
         </span>
       );
     }
     if (message.sendFailed === true) {
-      return <AlertCircle className="ml-1 h-3.5 w-3.5 text-white" />;
+      return <AlertCircle className="ml-1 h-3.5 w-3.5 text-white" aria-hidden="true" />;
     }
     if (message.status === MessageEventType.CREATED || message.status === ('CREATED' as unknown)) {
       return (
         <span title={sendingText[locale]}>
-          <Clock className="ml-1 h-3.5 w-3.5 text-white/70" />
+          <Clock className="ml-1 h-3.5 w-3.5 text-white/80" />
         </span>
       );
     }
     switch (message.status) {
       case MessageEventType.STORED: {
-        return <Check className="ml-1 h-3.5 w-3.5 text-gray-400 opacity-60" />;
+        return <Check className="ml-1 h-3.5 w-3.5 text-white/60" />;
       }
       case MessageEventType.RECEIVED: {
-        return <DoubleCheck className="ml-1 text-gray-400 opacity-60" />;
+        return <DoubleCheck className="ml-1 text-white/60" />;
       }
       case MessageEventType.READ: {
-        return <DoubleCheck className="ml-1 text-white/80" />;
+        return <DoubleCheck className="ml-1 text-white" />;
       }
 
       default: {
@@ -350,7 +350,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         'group relative flex w-full items-end gap-2 transition-colors duration-200',
         isCurrentUser ? 'justify-end' : 'justify-start',
         isHighlighted && 'animate-message-highlight rounded-xl',
-        isSelected && (isCurrentUser ? 'bg-blue-50' : 'bg-gray-50'),
+        isSelected && 'bg-tint',
         // the swipe transform makes every bubble its own stacking context, so the reaction
         // bar's z-index only counts inside this row; lift the row over its neighbours and
         // the sticky day divider, or the next bubble covers a bar opened below
@@ -371,7 +371,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           />
           {/* the empty avatar slot is the one place a wide bubble leaves room for its time */}
           {!showMeta && isTimeRevealedOrHovered && (
-            <span className="font-body pointer-events-none absolute inset-y-0 right-0 left-2 flex items-center justify-center text-[10px] text-gray-400">
+            <span className="pointer-events-none absolute inset-y-0 right-0 left-2 flex items-center justify-center text-[10px] text-green-500">
               {formatMessageTimeOnlyRaw(message.createdAt, activeLocale)}
             </span>
           )}
@@ -385,7 +385,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         )}
       >
         {!isCurrentUser && isFirstInGroup && chatType === 'GROUP' && message.senderName && (
-          <span className="mb-1 px-1.5 text-xs font-semibold text-gray-500">
+          <span className="mb-1 px-1.5 text-xs font-semibold text-green-700">
             {message.senderName}
             {senderFunktionen !== '' && (
               <span className="text-conveniat-green font-medium"> · {senderFunktionen}</span>
@@ -441,21 +441,21 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           )}
           <div
             className={cn(
-              'font-body relative rounded-2xl px-4 py-2.5 shadow-sm transition-transform duration-150',
+              'relative rounded-2xl px-3.5 py-2 transition-transform duration-150',
               // `anywhere`, not `break-word`: only it lowers the min-content width, so a long URL
               // wraps inside the bubble instead of stretching it past the screen edge
               'max-w-full min-w-[100px] wrap-anywhere',
               isCurrentUser
-                ? 'bg-cevi-blue text-white'
-                : 'border border-gray-100 bg-white text-gray-800',
+                ? 'bg-conveniat-green text-white'
+                : 'border-line border bg-white text-green-900',
               isLastInGroup && (isCurrentUser ? 'rounded-br-[4px]' : 'rounded-bl-[4px]'),
               // pending shows as a quieter bubble and a clock, never a spinner
               message.status === MessageEventType.CREATED &&
                 message.sendFailed !== true &&
                 'opacity-80',
-              message.sendFailed === true && 'ring-2 ring-red-300',
+              message.sendFailed === true && 'ring-live ring-2',
               (isLongPressing || isSelected) && 'scale-[0.98]',
-              isSelected && 'ring-cevi-blue/30 ring-2',
+              isSelected && 'ring-conveniat-green/30 ring-2',
             )}
           >
             {/* Thread Root Label */}
@@ -467,16 +467,17 @@ export const MessageComponent: React.FC<MessageProperties> = ({
             )}
             {/* Quoted message preview */}
             {quotedMessageId && (
-              <div
+              <button
+                type="button"
                 onClick={(event_) => {
                   event_.stopPropagation();
                   scrollToMessage(quotedMessageId);
                 }}
                 className={cn(
-                  'relative mb-2 cursor-pointer border-l-[3px] py-1 pl-3 transition-colors hover:bg-black/5',
+                  'relative mb-2 block w-full cursor-pointer rounded-r-md border-l-[3px] py-1 pr-2 pl-3 text-left transition-colors',
                   isCurrentUser
-                    ? 'border-white/40 bg-white/10 text-white/80'
-                    : 'border-blue-300 bg-gray-50 text-gray-500',
+                    ? 'border-white/50 bg-white/15 text-white/90'
+                    : 'border-conveniat-green bg-quiet text-green-700',
                 )}
               >
                 <span className="line-clamp-2 text-[0.8rem] leading-snug">
@@ -484,7 +485,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                     ? quotedSnippet
                     : replyToMessageText[activeLocale]}
                 </span>
-              </div>
+              </button>
             )}
             {message.type === MessageType.IMAGE_MSG ? (
               <div className="mb-2">
@@ -504,7 +505,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                     ))}
                   </div>
                 )}
-                <div className="text-[0.95rem] leading-relaxed">{renderedContent}</div>
+                <div className="text-[15px] leading-[21px]">{renderedContent}</div>
               </>
             )}
             {/* Timestamp and status: in the bubble for the last of a block, beside it on demand
@@ -513,10 +514,10 @@ export const MessageComponent: React.FC<MessageProperties> = ({
               <div
                 className={cn(
                   'mt-1 flex items-center justify-end gap-1 text-[10px]',
-                  isCurrentUser ? 'text-white/80' : 'text-gray-400',
+                  isCurrentUser ? 'text-white/80' : 'text-green-500',
                 )}
               >
-                <span className="font-body">
+                <span className="tabular-nums">
                   {formatMessageTimeOnlyRaw(message.createdAt, activeLocale)}
                 </span>
                 {renderMessageStatus()}
@@ -526,7 +527,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
               !hasAvatarSlot && (
                 <span
                   className={cn(
-                    'font-body pointer-events-none absolute top-1/2 flex -translate-y-1/2 items-center text-[10px] whitespace-nowrap text-gray-400',
+                    'pointer-events-none absolute top-1/2 flex -translate-y-1/2 items-center text-[10px] whitespace-nowrap text-green-500',
                     isCurrentUser ? 'right-full mr-2' : 'left-full ml-2',
                   )}
                 >
@@ -568,10 +569,11 @@ export const MessageComponent: React.FC<MessageProperties> = ({
 
         {/* Thread Reply Count Indicator (Below Bubble) */}
         {!hideReplyCount && message.replyCount !== undefined && message.replyCount > 0 && (
-          <div
+          <button
+            type="button"
             className={cn(
-              'relative mt-1 flex cursor-pointer items-center gap-2 py-0.5 transition-opacity hover:opacity-85',
-              isCurrentUser ? 'justify-end pr-2' : 'justify-start pl-8',
+              'relative flex min-h-11 cursor-pointer items-center gap-2 transition-opacity hover:opacity-85',
+              isCurrentUser ? 'justify-end self-end pr-2' : 'justify-start pl-8',
             )}
             onClick={(event_) => {
               event_.preventDefault();
@@ -581,22 +583,22 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           >
             {/* Curved connection line for incoming messages */}
             {!isCurrentUser && (
-              <div className="border-l-1.5 border-b-1.5 absolute -top-2 left-3.5 h-5 w-3.5 rounded-bl-md border-gray-300" />
+              <span className="border-l-1.5 border-b-1.5 border-rail absolute -top-2 left-3.5 h-[30px] w-3.5 rounded-bl-md" />
             )}
 
-            <div className="text-cevi-blue relative flex items-center gap-1.5 text-xs font-semibold hover:text-blue-700">
-              <MessageSquare className="h-3.5 w-3.5" />
+            <span className="text-conveniat-green relative flex items-center gap-1.5 text-xs font-semibold">
+              <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
               {message.hasUnreadReplies && activeThreadId !== message.id && (
                 <span className="absolute -top-1 -left-1 flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
+                  <span className="bg-conveniat-green absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"></span>
+                  <span className="bg-conveniat-green relative inline-flex h-2 w-2 rounded-full"></span>
                 </span>
               )}
               <span className="whitespace-nowrap">
                 {repliesCountText(message.replyCount, activeLocale)}
               </span>
-            </div>
-          </div>
+            </span>
+          </button>
         )}
       </div>
 

@@ -1,4 +1,5 @@
 'use client';
+import { Button, buttonVariants } from '@/components/ui/buttons/button';
 import {
   ChatAlertDialog,
   ChatAlertDialogAction,
@@ -16,6 +17,8 @@ import { ChatMembershipPermission } from '@/lib/prisma';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
+import { Loader2, LogOut } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useState } from 'react';
@@ -91,39 +94,52 @@ export const LeaveChat: React.FC = () => {
 
   return (
     <>
-      <button
+      <Button
+        variant="outlined"
+        size="touch"
+        className="w-full"
         onClick={() => {
           leaveChatMutation.reset();
           setIsDialogOpen(true);
         }}
         disabled={leaveChatMutation.isPending}
-        className="w-full cursor-pointer rounded-md border border-red-600 px-4 py-2 text-red-600 hover:bg-red-50 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
       >
+        <LogOut aria-hidden="true" />
         {localizedLeaveChat[locale]}
-      </button>
+      </Button>
 
       <ChatAlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <ChatAlertDialogContent>
+        <ChatAlertDialogContent className="border-line rounded-[14px] shadow-xl">
           <ChatAlertDialogHeader>
-            <ChatAlertDialogTitle>{localizedLeaveChat[locale]}</ChatAlertDialogTitle>
-            <ChatAlertDialogDescription>
+            <ChatAlertDialogTitle className="font-heading text-heading font-bold">
+              {localizedLeaveChat[locale]}
+            </ChatAlertDialogTitle>
+            <ChatAlertDialogDescription className="text-[15px] text-green-700">
               {localizedLeaveChatWarning[locale]}
               {isLastOwner && ` ${localizedHandOverNotice[locale]}`}
             </ChatAlertDialogDescription>
-            {leaveChatMutation.isError && <p className="text-sm text-red-600">{errorText}</p>}
+            {leaveChatMutation.isError && (
+              <p className="text-sm font-semibold text-green-900" role="alert">
+                {errorText}
+              </p>
+            )}
           </ChatAlertDialogHeader>
-          <ChatAlertDialogFooter>
-            <ChatAlertDialogCancel>{localizedCancel[locale]}</ChatAlertDialogCancel>
+          <ChatAlertDialogFooter className="gap-2 sm:space-x-0">
+            <ChatAlertDialogCancel
+              className={cn(buttonVariants({ variant: 'outlined', size: 'touch' }), 'shadow-none')}
+            >
+              {localizedCancel[locale]}
+            </ChatAlertDialogCancel>
             <ChatAlertDialogAction
               onClick={(event) => {
                 event.preventDefault();
                 leaveChatMutation.mutate({ chatUuid: chatId });
               }}
               disabled={leaveChatMutation.isPending}
-              className="bg-red-600 text-white hover:bg-red-700"
+              className={cn(buttonVariants({ variant: 'quiet', size: 'touch' }), 'shadow-none')}
             >
               {leaveChatMutation.isPending && (
-                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <Loader2 className="animate-spin" aria-hidden="true" />
               )}
               {localizedLeaveChat[locale]}
             </ChatAlertDialogAction>

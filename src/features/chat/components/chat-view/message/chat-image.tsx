@@ -57,8 +57,8 @@ export const ChatImage: React.FC<ChatImageProperties> = ({ url, alt, caption }) 
 
   if (isS3Key && isLoading) {
     return (
-      <div className="flex h-48 w-64 items-center justify-center rounded-lg bg-gray-100">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+      <div className="bg-quiet flex h-48 w-64 items-center justify-center rounded-lg">
+        <Loader2 className="h-6 w-6 animate-spin text-green-500" aria-hidden="true" />
       </div>
     );
   }

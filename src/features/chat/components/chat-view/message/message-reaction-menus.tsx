@@ -89,10 +89,10 @@ const EmojiButton: React.FC<EmojiButtonProperties> = ({
     aria-pressed={hasReacted}
     title={emojiNames[emoji]?.[locale]}
     className={cn(
-      'flex cursor-pointer items-center justify-center rounded-full transition-transform duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 active:scale-90',
+      'focus-visible:ring-conveniat-green/40 flex cursor-pointer items-center justify-center rounded-full transition-transform duration-150 focus:outline-none focus-visible:ring-2 active:scale-90',
       // 44 px under a finger (Apple HIG), 32 px under a mouse
       size === 'touch' ? 'h-11 w-11 text-[1.6rem]' : 'h-8 w-8 text-lg hover:scale-125',
-      hasReacted ? 'bg-blue-100' : size === 'pointer' && 'hover:bg-gray-100',
+      hasReacted ? 'bg-tint' : size === 'pointer' && 'hover:bg-quiet',
     )}
   >
     {emoji}
@@ -125,7 +125,7 @@ export const ReactionBar: React.FC<ReactionBarProperties> = ({
     aria-label={reactionsText[locale]}
     onPointerDown={(event) => event.stopPropagation()}
     className={cn(
-      'animate-in fade-in zoom-in-90 absolute z-40 flex items-center gap-0.5 rounded-full bg-white p-1 shadow-lg ring-1 ring-gray-200 duration-150',
+      'animate-in fade-in zoom-in-90 border-line absolute z-40 flex items-center gap-0.5 rounded-full border bg-white p-1 shadow-lg duration-150',
       placeBelow ? 'top-full mt-2' : 'bottom-full mb-2',
       isCurrentUser ? 'right-0 origin-bottom-right' : 'left-0 origin-bottom-left',
     )}
@@ -171,7 +171,7 @@ const ToolbarAction: React.FC<{
     }}
     aria-label={label}
     title={label}
-    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-gray-500 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-35"
+    className="hover:bg-quiet focus-visible:ring-conveniat-green/40 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-green-700 transition-colors duration-150 hover:text-green-900 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-35"
   >
     {children}
   </button>
@@ -201,7 +201,7 @@ export const HoverToolbar: React.FC<HoverToolbarProperties> = ({
     <div
       role="toolbar"
       className={cn(
-        'animate-in fade-in absolute -top-5 z-40 flex items-center gap-0.5 rounded-full bg-white p-0.5 shadow-md ring-1 ring-gray-200 duration-100',
+        'animate-in fade-in border-line absolute -top-5 z-40 flex items-center gap-0.5 rounded-full border bg-white p-0.5 shadow-md duration-100',
         isCurrentUser ? 'right-2' : 'left-2',
       )}
     >
@@ -222,7 +222,7 @@ export const HoverToolbar: React.FC<HoverToolbarProperties> = ({
               <SmilePlus className="h-4 w-4" />
             </ToolbarAction>
           )}
-          <div className="mx-0.5 h-4 w-px bg-gray-200" aria-hidden="true" />
+          <div className="bg-line mx-0.5 h-4 w-px" aria-hidden="true" />
         </>
       )}
       <ToolbarAction label={quoteText[locale]} onClick={onQuote} disabled={!canQuote}>
@@ -336,10 +336,10 @@ export const ReactionBadge: React.FC<ReactionBadgeProperties> = ({
       aria-label={`${emojiNames[emoji]?.[locale] ?? emoji}: ${names}`}
       aria-pressed={hasReacted}
       className={cn(
-        'flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold shadow-2xs transition-all duration-150 hover:scale-105 focus:outline-none active:scale-95',
+        'flex min-h-8 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-all duration-150 focus:outline-none active:scale-95',
         hasReacted
-          ? 'border-blue-200 bg-blue-50 text-blue-600 hover:border-red-200 hover:bg-red-50 hover:text-red-500'
-          : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100',
+          ? 'border-tint-line bg-tint text-green-900'
+          : 'border-line hover:bg-quiet bg-white text-green-700',
       )}
       title={
         hasReacted ? `${names === '' ? '' : names + '\n'}(${clickToRemoveText[locale]})` : names

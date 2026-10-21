@@ -56,11 +56,11 @@ const noLongerMember: StaticTranslationString = {
 const ChatOfflineMessage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   return (
-    <div className="fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
+    <div className="bg-page fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
       <ChatHeaderSkeleton />
-      <div className="flex flex-1 items-center justify-center p-4 text-center text-gray-500">
+      <div className="flex flex-1 items-center justify-center p-4 text-center text-[15px] text-green-700">
         <span>
-          <b>{yourOffline[locale]}</b>
+          <b className="text-green-900">{yourOffline[locale]}</b>
           <br />
           {youMustBeOnline[locale]}
         </span>
@@ -73,11 +73,11 @@ export const ChatErrorMessage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   return (
-    <div className="fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
+    <div className="bg-page fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
       <ChatHeaderSkeleton />
-      <div className="flex flex-1 items-center justify-center p-4 text-center text-red-500">
+      <div className="flex flex-1 items-center justify-center p-4 text-center text-[15px] text-green-700">
         <span>
-          <b>{errorLoadingChat[locale]}</b>
+          <b className="text-green-900">{errorLoadingChat[locale]}</b>
           <br />
           {tryAgainLater[locale]}
         </span>
@@ -93,10 +93,10 @@ export const ChatErrorMessage: React.FC = () => {
 const ChatNotMemberMessage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   return (
-    <div className="fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
+    <div className="bg-page fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
       <ChatHeaderSkeleton />
-      <div className="flex flex-1 items-center justify-center p-4 text-center text-gray-500">
-        <b>{noLongerMember[locale]}</b>
+      <div className="flex flex-1 items-center justify-center p-4 text-center text-[15px] text-green-700">
+        <b className="text-green-900">{noLongerMember[locale]}</b>
       </div>
     </div>
   );
@@ -136,7 +136,7 @@ const ChatClientContent: React.FC = () => {
   return (
     <div
       ref={fitToVisualViewport}
-      className="fixed top-[var(--visual-viewport-top,0px)] z-[110] flex h-[var(--visual-viewport-height,100dvh)] w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]"
+      className="bg-page fixed top-[var(--visual-viewport-top,0px)] z-[110] flex h-[var(--visual-viewport-height,100dvh)] w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]"
     >
       <AppFooterController hideAppFooter />
       <ChatHeader />
@@ -146,13 +146,13 @@ const ChatClientContent: React.FC = () => {
       <div className="flex-1 overflow-hidden">
         <MessageList />
       </div>
-      <div className="border-t border-gray-200 bg-white p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="border-line border-t bg-white p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <ChatTextAreaInput />
       </div>
 
       {/* Thread View Overlay */}
       {typeof activeThreadId === 'string' && activeThreadId.length > 0 && (
-        <div className="absolute inset-0 z-[110] bg-white">
+        <div className="bg-page absolute inset-0 z-[110]">
           <ThreadView threadId={activeThreadId} onClose={() => closeThread()} />
         </div>
       )}

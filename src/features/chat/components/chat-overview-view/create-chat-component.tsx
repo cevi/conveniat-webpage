@@ -1,10 +1,12 @@
 'use client';
 import { AppFooterController } from '@/components/footer/hide-footer-context';
-import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { Button } from '@/components/ui/buttons/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { PersonAvatar } from '@/components/ui/person-avatar';
+import { SectionLabel } from '@/components/ui/section-label';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
+import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
 import { useCreateChat } from '@/features/chat/hooks/use-create-chat';
 import {
   describeContactFunktionen,
@@ -17,7 +19,7 @@ import { i18nConfig } from '@/types/types';
 import { getContactDisplayName, getContactShortName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Users, X } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Users, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -108,6 +110,24 @@ const groupChatNameLabel: StaticTranslationString = {
   fr: 'Nom du groupe',
 };
 
+const groupNameRequiredText: StaticTranslationString = {
+  de: 'Ein Gruppenchat braucht einen Namen',
+  en: 'A group chat needs a name',
+  fr: 'Un groupe a besoin d’un nom',
+};
+
+const removeContactLabel: StaticTranslationString = {
+  de: '{name} entfernen',
+  en: 'Remove {name}',
+  fr: 'Retirer {name}',
+};
+
+const backLabel: StaticTranslationString = {
+  de: 'Zurück zu den Chats',
+  en: 'Back to chats',
+  fr: 'Retour aux discussions',
+};
+
 export const CreateNewChatPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { data: allContacts, isLoading } = trpc.chat.contacts.useQuery({});
@@ -151,13 +171,10 @@ export const CreateNewChatPage: React.FC = () => {
 
   const validateGroupName = (name: string): string => {
     if (isGroupChat && name.trim().length === 0) {
-      return 'Group name is required for group chats';
+      return groupNameRequiredText[locale];
     }
-    if (name.trim().length > 0 && name.trim().length < 2) {
-      return 'Group name must be at least 2 characters';
-    }
-    if (name.trim().length > 50) {
-      return 'Group name must be less than 50 characters';
+    if (name.trim().length > 0 && (name.trim().length < 2 || name.trim().length > 50)) {
+      return groupMinMaxLength[locale];
     }
     return '';
   };
@@ -230,49 +247,35 @@ export const CreateNewChatPage: React.FC = () => {
   const hasContacts = (allContacts?.length ?? 0) > 0;
 
   return (
-    <div className="fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50/50 xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
+    <div className="bg-page fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
       <AppFooterController hideAppFooter />
 
-      {/* Modern Header */}
-      <div className="flex h-16 items-center justify-between border-b border-gray-100 bg-white/95 px-4 shadow-xs backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <Link href="/app/chat">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-full text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <h1 className="font-heading text-lg font-bold tracking-tight text-gray-900">
-            {newChat[locale]}
-          </h1>
-        </div>
-
-        <div>
-          <Button
-            onClick={handleCreateChat}
-            disabled={!isFormValid || isCreating}
-            className={cn(
-              'font-heading rounded-xl px-5 py-2 text-sm font-semibold shadow-xs transition-all',
-              isFormValid && !isCreating
-                ? 'bg-conveniat-green text-white hover:bg-green-600 hover:shadow-md'
-                : 'border border-gray-200 bg-gray-100 text-gray-400',
-            )}
-          >
-            {isCreating
-              ? creatingText[locale]
-              : `${createText[locale]} ${selectedContacts.length > 0 ? `(${selectedContacts.length})` : ''}`}
-          </Button>
-        </div>
+      <div className="border-line flex h-[60px] shrink-0 items-center gap-1 border-b bg-white pr-3 pl-1">
+        <Link
+          href="/app/chat"
+          aria-label={backLabel[locale]}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900"
+        >
+          <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
+        </Link>
+        <h1 className="font-heading text-heading min-w-0 flex-1 truncate text-xl font-extrabold">
+          {newChat[locale]}
+        </h1>
+        <Button
+          variant="primary"
+          size="touch"
+          onClick={handleCreateChat}
+          disabled={!isFormValid || isCreating}
+        >
+          {isCreating
+            ? creatingText[locale]
+            : `${createText[locale]}${selectedContacts.length > 0 ? ` (${selectedContacts.length})` : ''}`}
+        </Button>
       </div>
 
-      {/* Main Content */}
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-        <div className="mx-auto max-w-xl space-y-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-8">
+        <div className="mx-auto flex max-w-xl flex-col gap-5">
           <AnimatePresence initial={false}>
-            {/* Group Chat Name Input - App Aligned Input Styling */}
             {isGroupChat && (
               <motion.div
                 key="group-chat-name-input"
@@ -282,178 +285,165 @@ export const CreateNewChatPage: React.FC = () => {
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
                 className="overflow-hidden"
               >
-                <div className="space-y-2 rounded-2xl border border-gray-100 bg-white p-4 shadow-xs">
-                  <div className="flex items-center gap-2">
-                    <Users size={15} className="text-conveniat-green" />
-                    <label className="font-heading text-xs font-semibold tracking-wider text-gray-700 uppercase">
-                      {groupChatNameLabel[locale]} <span className="text-red-500">*</span>
-                    </label>
-                  </div>
+                <div className="flex flex-col gap-2">
+                  <SectionLabel>
+                    {groupChatNameLabel[locale]} <span aria-hidden="true">*</span>
+                  </SectionLabel>
                   <Input
                     placeholder={groupNamePlaceholder[locale]}
                     value={groupChatName}
                     onChange={(changeEvent) => handleGroupNameChange(changeEvent.target.value)}
+                    aria-label={groupChatNameLabel[locale]}
+                    aria-invalid={groupChatNameError !== ''}
                     className={cn(
-                      'font-body h-12 rounded-xl border border-gray-200 bg-gray-50/50 px-4 text-sm text-gray-900 transition-all placeholder:text-gray-400',
-                      'focus:border-conveniat-green focus:ring-conveniat-green/20 focus:bg-white focus:ring-2 focus:outline-hidden',
-                      groupChatNameError !== '' &&
-                        'border-red-300 focus:border-red-500 focus:ring-red-500/20',
+                      'border-line h-11 rounded-xl border bg-white px-4 text-[15px] text-green-900 shadow-none placeholder:text-green-500',
+                      'focus-visible:border-conveniat-green focus-visible:ring-0',
+                      groupChatNameError !== '' && 'border-green-900',
                     )}
                     required
                   />
-                  {groupChatNameError !== '' && (
-                    <p className="font-body text-xs text-red-600">{groupChatNameError}</p>
-                  )}
-                  <p className="font-body text-xs text-gray-400">{groupMinMaxLength[locale]}</p>
+                  <span
+                    aria-live="polite"
+                    className={cn(
+                      'text-[13px]',
+                      groupChatNameError === '' ? 'text-green-500' : 'font-semibold text-green-900',
+                    )}
+                  >
+                    {groupChatNameError === '' ? groupMinMaxLength[locale] : groupChatNameError}
+                  </span>
                 </div>
               </motion.div>
             )}
 
-            {/* Selected Contacts Horizontal Avatars Bar (WhatsApp / App Card Style) */}
             {selectedContacts.length > 0 && (
-              <motion.div
+              <motion.section
                 key="selected-contacts-pills"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="overflow-hidden p-0.5"
+                className="overflow-hidden"
               >
-                <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xs">
-                  <div className="border-b border-gray-100 bg-gray-50/50 px-5 py-3">
-                    <span className="font-heading text-xs font-semibold tracking-wider text-gray-500 uppercase">
-                      {selectedCountText[locale]} ({selectedContacts.length})
-                    </span>
-                  </div>
-                  <div className="flex scrollbar-none items-center gap-4 overflow-x-auto px-4 pt-3.5 pb-3">
-                    {selectedContacts.map((contact) => (
-                      <div
-                        key={contact.userId}
-                        className="group relative flex shrink-0 flex-col items-center gap-1.5 pt-1"
+                <SectionLabel>
+                  {selectedCountText[locale]} ({selectedContacts.length})
+                </SectionLabel>
+                <ul className="-mx-1 mt-2 flex scrollbar-none gap-1 overflow-x-auto pb-1">
+                  {selectedContacts.map((contact) => (
+                    <li key={contact.userId} className="shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleContactToggle(contact)}
+                        aria-label={removeContactLabel[locale].replace(
+                          '{name}',
+                          getContactDisplayName(contact),
+                        )}
+                        className="flex w-[72px] cursor-pointer flex-col items-center gap-1 rounded-xl px-1 py-1"
                       >
-                        <div className="relative">
+                        <span className="relative">
                           <PersonAvatar
                             seed={contact.userId}
                             name={contact.name}
                             pictureUrl={contact.pictureUrl}
-                            className="h-12 w-12 text-sm font-bold shadow-xs"
+                            className="h-12 w-12 text-sm"
                           />
-                          <button
-                            type="button"
-                            onClick={() => handleContactToggle(contact)}
-                            className="absolute -top-1 -right-1 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-red-500 text-white shadow-xs ring-2 ring-white transition-transform hover:scale-110 hover:bg-red-600"
-                          >
-                            <X size={12} className="stroke-[2.5]" />
-                          </button>
-                        </div>
-                        <span className="font-body max-w-[68px] truncate text-center text-xs font-medium text-gray-800">
+                          <span className="bg-heading absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full text-white ring-2 ring-white">
+                            <X className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
+                          </span>
+                        </span>
+                        <span className="max-w-full truncate text-xs font-semibold text-green-900">
                           {getContactShortName(contact)}
                         </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </motion.section>
             )}
           </AnimatePresence>
 
-          {/* Contacts List Card with Search Bar Directly Attached */}
-          <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xs">
-            {/* Search Input - Placed directly above the contact list */}
+          <section className="flex flex-col gap-3">
             {hasContacts && (
-              <div className="border-b border-gray-100 bg-gray-50/50 p-3">
-                <AppSearchBar
-                  placeholder={searchContactsPlaceholder[locale]}
-                  value={searchQuery}
-                  onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}
-                  onClear={() => setSearchQuery('')}
-                />
-              </div>
+              <ChatSearchField
+                placeholder={searchContactsPlaceholder[locale]}
+                value={searchQuery}
+                onChange={setSearchQuery}
+              />
             )}
 
-            <div className="border-b border-gray-100 px-5 py-3">
-              <h2 className="font-heading text-xs font-semibold tracking-wider text-gray-500 uppercase">
-                {selectContactsText[locale]}
-              </h2>
+            <div>
+              <SectionLabel>{selectContactsText[locale]}</SectionLabel>
               {isAtGroupLimit && (
-                <p className="font-body mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-[13px] text-green-700">
                   {groupLimitReachedText[locale].replace('{max}', String(maxGroupMembers))}
                 </p>
               )}
             </div>
 
-            <div className="min-h-[300px]">
-              {isLoading && (
-                <div className="flex items-center justify-center py-16">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="border-t-conveniat-green h-7 w-7 animate-spin rounded-full border-2 border-gray-200"></div>
-                    <p className="font-body text-sm text-gray-500">{loadingContactsText[locale]}</p>
-                  </div>
-                </div>
-              )}
+            {isLoading && (
+              <div
+                className="flex items-center justify-center gap-3 py-12 text-[15px] text-green-700"
+                role="status"
+              >
+                <Loader2 className="h-5 w-5 animate-spin text-green-500" aria-hidden="true" />
+                {loadingContactsText[locale]}
+              </div>
+            )}
 
-              {!isLoading && unselectedContacts?.length === 0 && (
-                <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-                  <div className="relative mb-4 flex items-center justify-center">
-                    <div className="absolute -inset-2 rounded-full bg-linear-to-tr from-green-500/20 via-emerald-400/15 to-blue-500/20 blur-lg" />
-                    <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-gray-100 bg-white shadow-md">
-                      <Users className="text-conveniat-green h-8 w-8" />
-                    </div>
-                  </div>
-                  <h3 className="font-heading text-base font-bold text-gray-900">
-                    {searchQuery === ''
-                      ? noContactsAvailableText[locale]
-                      : noContactsFoundText[locale]}
-                  </h3>
-                  <p className="font-body mt-1 max-w-xs text-xs leading-relaxed text-balance text-gray-500">
-                    {searchQuery === '' ? noContactsAvailableDescriptionText[locale] : ''}
-                  </p>
-                </div>
-              )}
+            {!isLoading && unselectedContacts?.length === 0 && (
+              <EmptyState
+                icon={Users}
+                title={
+                  searchQuery === '' ? noContactsAvailableText[locale] : noContactsFoundText[locale]
+                }
+                description={
+                  searchQuery === '' ? noContactsAvailableDescriptionText[locale] : undefined
+                }
+              />
+            )}
 
-              {!isLoading && (unselectedContacts?.length ?? 0) > 0 && (
-                <div className="divide-y divide-gray-50 p-2">
-                  {unselectedContacts?.map((contact) => (
-                    <div
-                      key={contact.userId}
-                      className={cn(
-                        'flex items-center space-x-3 rounded-xl p-3 transition-all',
-                        isAtGroupLimit
-                          ? 'cursor-not-allowed opacity-50'
-                          : 'cursor-pointer hover:bg-gray-50/80',
-                      )}
+            {!isLoading && (unselectedContacts?.length ?? 0) > 0 && (
+              <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
+                {unselectedContacts?.map((contact) => (
+                  <li key={contact.userId}>
+                    <button
+                      type="button"
+                      disabled={isAtGroupLimit}
                       onClick={() => handleContactToggle(contact)}
+                      className="hover:bg-page flex min-h-[64px] w-full cursor-pointer items-center gap-3 px-4 py-3 text-left disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <PersonAvatar
                         seed={contact.userId}
                         name={contact.name}
                         pictureUrl={contact.pictureUrl}
-                        className="h-10 w-10 text-sm font-bold"
+                        className="h-11 w-11 text-sm"
                       />
-                      <div className="flex-1">
-                        <p className="font-body text-sm font-medium text-gray-900">
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[15px] leading-5 font-semibold text-green-900">
                           {getContactDisplayName(contact)}
-                        </p>
+                        </span>
                         {contact.description && (
-                          <p className="font-body text-xs text-gray-500">{contact.description}</p>
+                          <span className="mt-0.5 block text-[13px] text-green-700">
+                            {contact.description}
+                          </span>
                         )}
                         {describeContactFunktionen(contact) !== '' && (
-                          <p className="font-body text-conveniat-green text-xs font-medium">
+                          <span className="text-conveniat-green mt-0.5 block text-[13px] font-semibold">
                             {describeContactFunktionen(contact)}
-                          </p>
+                          </span>
                         )}
                         {describeContactHof(contact) !== '' && (
-                          <p className="font-body text-xs text-gray-500">
+                          <span className="mt-0.5 block text-[13px] text-green-700">
                             {describeContactHof(contact)}
-                          </p>
+                          </span>
                         )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+                      </span>
+                      <Plus className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </div>
       </div>
     </div>

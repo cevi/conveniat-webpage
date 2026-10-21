@@ -30,7 +30,7 @@ export const MessageFrame: React.FC<MessageFrameProperties> = ({
   return (
     <div id={`message-${message.id}`} className="flex w-full flex-col px-2">
       {!isCurrentUser && senderName !== '' && (
-        <span className="mb-1 px-1.5 text-xs font-semibold text-gray-500">
+        <span className="mb-1 px-1.5 text-xs font-semibold text-green-700">
           {senderName}
           {senderFunktionen !== '' && (
             <span className="text-conveniat-green font-medium"> · {senderFunktionen}</span>
@@ -38,7 +38,7 @@ export const MessageFrame: React.FC<MessageFrameProperties> = ({
         </span>
       )}
       {children}
-      <span className="font-body mt-1 px-1.5 text-right text-[10px] text-gray-400">
+      <span className="mt-1 px-1.5 text-right text-[10px] text-green-500 tabular-nums">
         {formatMessageTimeOnlyRaw(message.createdAt, locale)}
       </span>
     </div>

@@ -134,7 +134,7 @@ export const ChatDetails: React.FC = () => {
   };
 
   return (
-    <div className="fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
+    <div className="bg-page fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
       <AppFooterController hideAppFooter />
 
       {/* Header */}
@@ -149,8 +149,8 @@ export const ChatDetails: React.FC = () => {
       />
 
       {/* Main Content */}
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        <div className="mx-auto max-w-2xl space-y-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-10">
+        <div className="mx-auto flex max-w-2xl flex-col gap-6">
           <ChatNameSection
             currentName={chatDetails.name}
             description={chatDetails.description}
@@ -212,17 +212,11 @@ export const ChatDetails: React.FC = () => {
             locale={locale}
           />
 
-          {/* --- Leave Chat Section --- */}
-          {canLeave && (
-            <div className="rounded-lg border border-gray-200 bg-white p-6">
-              <LeaveChat />
-            </div>
-          )}
-
-          {/* --- Archive Chat Section --- */}
-          {!isAnnouncement && (
-            <div className="rounded-lg border border-gray-200 bg-white p-6">
-              <DeleteChat />
+          {/* --- Leave and Archive --- */}
+          {(canLeave || !isAnnouncement) && (
+            <div className="flex flex-col gap-2">
+              {canLeave && <LeaveChat />}
+              {!isAnnouncement && <DeleteChat />}
             </div>
           )}
         </div>

@@ -1,7 +1,6 @@
 'use client';
 
 import { OfflineBanner } from '@/components/offline-banner';
-import { Button } from '@/components/ui/buttons/button';
 import { ChatSelectionHeader } from '@/features/chat/components/chat-view/chat-selection-header';
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
@@ -19,6 +18,18 @@ const threadTitle: StaticTranslationString = {
   de: 'Thread',
   en: 'Thread',
   fr: 'Fil de discussion',
+};
+
+const loadingThreadText: StaticTranslationString = {
+  de: 'Thread wird geladen…',
+  en: 'Loading thread…',
+  fr: 'Chargement du fil…',
+};
+
+const threadFailedText: StaticTranslationString = {
+  de: 'Der Thread konnte nicht geladen werden.',
+  en: 'Failed to load thread.',
+  fr: 'Impossible de charger le fil.',
 };
 
 const backButtonLabel: StaticTranslationString = {
@@ -89,21 +100,22 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
   }, [chatId, threadId, markThreadAsRead]);
 
   return (
-    <div className="flex h-full w-full flex-col bg-gray-50">
+    <div className="bg-page flex h-full w-full flex-col">
       {/* Thread Header; a long-pressed reply gets its quote, thread and info actions here, the
           chat header being hidden under this overlay */}
       {selectedMessage === undefined ? (
-        <div className="flex h-[60px] items-center gap-4 border-b-2 border-gray-200 bg-white px-4">
-          <Button
+        <div className="border-line flex h-[60px] shrink-0 items-center gap-1 border-b bg-white pr-2 pl-1">
+          <button
+            type="button"
             onClick={onClose}
-            variant="ghost"
-            size="icon"
-            className="-ml-2 h-8 w-8 text-gray-500 hover:text-gray-700"
+            className="hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900"
             aria-label={backButtonLabel[locale]}
           >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <span className="font-semibold text-gray-800">{threadTitle[locale]}</span>
+            <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
+          </button>
+          <span className="font-heading text-heading pl-1 text-[17px] font-bold">
+            {threadTitle[locale]}
+          </span>
         </div>
       ) : (
         <ChatSelectionHeader />
@@ -113,13 +125,13 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
       {/* Message List with Parent */}
       <div className="flex-1 overflow-hidden">
         {isLoadingParent && (
-          <div className="flex h-full items-center justify-center text-gray-400">
-            Loading thread...
+          <div className="flex h-full items-center justify-center text-[15px] text-green-700">
+            {loadingThreadText[locale]}
           </div>
         )}
         {!isLoadingParent && !parentMessage && (
-          <div className="flex h-full items-center justify-center text-red-500">
-            Failed to load thread.
+          <div className="flex h-full items-center justify-center text-[15px] text-green-700">
+            {threadFailedText[locale]}
           </div>
         )}
         {!isLoadingParent && parentMessage && (
@@ -134,7 +146,7 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-200 bg-white p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="border-line border-t bg-white p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {/* keyed: opening a thread from inside a thread must not carry over this draft */}
         <ChatTextAreaInput key={threadId} />
       </div>
