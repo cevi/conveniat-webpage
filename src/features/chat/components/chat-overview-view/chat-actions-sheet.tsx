@@ -4,6 +4,7 @@ import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { ArchiveChatConfirmDialog } from '@/features/chat/components/archive-chat-confirm-dialog';
 import { LeaveChatDialog } from '@/features/chat/components/chat-details-view/leave-chat';
 import { ChatAvatar } from '@/features/chat/components/chat-overview-view/chat-preview';
+import { SheetActionRow } from '@/features/chat/components/ui/sheet-action-row';
 import { ChatIdProvider } from '@/features/chat/context/chat-id-context';
 import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-mutation';
 import type { ChatListActions } from '@/features/chat/hooks/use-chat-list-actions';
@@ -11,8 +12,6 @@ import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types
 import { canDeleteChat } from '@/features/chat/utils/can-delete-chat';
 import { ChatType } from '@/lib/prisma/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { cn } from '@/utils/tailwindcss-override';
-import type { LucideIcon } from 'lucide-react';
 import {
   Bell,
   BellOff,
@@ -24,7 +23,6 @@ import {
   PinOff,
   Trash2,
 } from 'lucide-react';
-import Link from 'next/link';
 import type React from 'react';
 import { useState } from 'react';
 
@@ -51,22 +49,6 @@ const typeText: Record<ChatType, StaticTranslationString> = {
   [ChatType.SUPPORT_GROUP]: { de: 'Support', en: 'Support', fr: 'Support' },
   [ChatType.EMERGENCY]: { de: 'Notfall', en: 'Emergency', fr: 'Urgence' },
 };
-
-const rowClassName =
-  'hover:bg-quiet flex min-h-12 w-full cursor-pointer items-center gap-4 rounded-xl px-2 text-left text-[15px] font-medium text-green-900';
-
-const ActionRow: React.FC<{ icon: LucideIcon; label: string; onClick: () => void }> = ({
-  icon: Icon,
-  label,
-  onClick,
-}) => (
-  <li>
-    <button type="button" onClick={onClick} className={rowClassName}>
-      <Icon className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
-      {label}
-    </button>
-  </li>
-);
 
 /**
  * What a long press on a chat of the list offers: pin, mute, mark (un)read, its details, and
@@ -116,10 +98,10 @@ export const ChatActionsSheet: React.FC<{
         leading={<ChatAvatar chat={chat} />}
         showClose={false}
       >
-        <ul className="border-line -mx-5 border-t px-3 pt-2">
+        <ul className="border-line -mx-5 border-t px-2 pt-2">
           {/* a pin set for everyone from the CMS is not the user's to take away */}
           {chat.isPinnedForEveryone !== true && (
-            <ActionRow
+            <SheetActionRow
               icon={isPinnedByMe ? PinOff : Pin}
               label={isPinnedByMe ? text.unpin[locale] : text.pin[locale]}
               onClick={() => act(() => actions.pin(chat, !isPinnedByMe))}
@@ -127,43 +109,37 @@ export const ChatActionsSheet: React.FC<{
           )}
           {/* an emergency chat has to reach people */}
           {chat.chatType !== ChatType.EMERGENCY && (
-            <ActionRow
+            <SheetActionRow
               icon={isMuted ? Bell : BellOff}
               label={isMuted ? text.unmute[locale] : text.mute[locale]}
               onClick={() => act(() => actions.mute(chat, !isMuted))}
             />
           )}
-          <ActionRow
+          <SheetActionRow
             icon={isUnread ? MessageSquareText : MessageSquareDot}
             label={isUnread ? text.markRead[locale] : text.markUnread[locale]}
             onClick={() => act(() => actions.markUnread(chat, !isUnread))}
           />
-          <li>
-            <Link href={`/app/chat/${chat.id}/details`} onClick={onClose} className={rowClassName}>
-              <Info className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
-              {isGroup ? text.groupInfo[locale] : text.chatInfo[locale]}
-            </Link>
-          </li>
-          {(canLeave || canDelete) && (
-            <li className="border-line mt-2 border-t pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setConfirm({ kind: canLeave ? 'leave' : 'delete', chat });
-                  onClose();
-                }}
-                className={cn(rowClassName, 'text-danger-text')}
-              >
-                {canLeave ? (
-                  <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />
-                ) : (
-                  <Trash2 className="h-5 w-5 shrink-0" aria-hidden="true" />
-                )}
-                {canLeave ? text.leave[locale] : text.delete[locale]}
-              </button>
-            </li>
-          )}
+          <SheetActionRow
+            icon={Info}
+            label={isGroup ? text.groupInfo[locale] : text.chatInfo[locale]}
+            href={`/app/chat/${chat.id}/details`}
+            onClick={onClose}
+          />
         </ul>
+        {(canLeave || canDelete) && (
+          <ul className="border-line -mx-5 mt-2 border-t px-2 pt-2">
+            <SheetActionRow
+              icon={canLeave ? LogOut : Trash2}
+              label={canLeave ? text.leave[locale] : text.delete[locale]}
+              destructive
+              onClick={() => {
+                setConfirm({ kind: canLeave ? 'leave' : 'delete', chat });
+                onClose();
+              }}
+            />
+          </ul>
+        )}
       </BottomSheet>
     );
   }

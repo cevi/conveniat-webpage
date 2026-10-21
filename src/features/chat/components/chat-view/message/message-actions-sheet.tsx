@@ -7,12 +7,12 @@ import {
   QUICK_EMOJIS,
 } from '@/features/chat/components/chat-view/message/message-reaction-menus';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
+import { SheetActionRow } from '@/features/chat/components/ui/sheet-action-row';
 import { getDateFnsLocale } from '@/features/chat/hooks/use-format-date';
 import { MessageEventType } from '@/lib/prisma/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { format } from 'date-fns';
-import type { LucideIcon } from 'lucide-react';
 import { AlertCircle, Check, Clock, Copy, MessageSquare, Reply } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
@@ -148,21 +148,6 @@ export const MessageStatusLine: React.FC<{
   );
 };
 
-const ActionRow: React.FC<{
-  icon: LucideIcon;
-  label: string;
-  onClick: () => void;
-}> = ({ icon: Icon, label, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="hover:bg-quiet -mx-2 flex min-h-12 w-[calc(100%+1rem)] cursor-pointer items-center gap-3.5 rounded-[12px] px-2 text-left text-[15px] text-green-900"
-  >
-    <Icon className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
-    <span aria-live="polite">{label}</span>
-  </button>
-);
-
 interface MessageActionsSheetProperties {
   message: ChatMessage;
   isCurrentUser: boolean;
@@ -252,7 +237,9 @@ export const MessageActionsSheet: React.FC<MessageActionsSheetProperties> = ({
                 aria-pressed={hasReacted}
                 className={cn(
                   'flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border text-[1.5rem] transition-transform duration-150 active:scale-90',
-                  hasReacted ? 'border-tint-line bg-tint' : 'bg-quiet border-transparent',
+                  hasReacted
+                    ? 'border-tint-line bg-tint hover:bg-tint-line'
+                    : 'bg-quiet hover:bg-chip border-transparent',
                 )}
               >
                 {emoji}
@@ -263,25 +250,26 @@ export const MessageActionsSheet: React.FC<MessageActionsSheetProperties> = ({
       )}
 
       {hasActions && (
-        <div className="border-line mt-4 flex flex-col border-t pt-2">
+        <ul className="border-line -mx-5 mt-4 border-t px-2 pt-2">
           {onReply !== undefined && (
-            <ActionRow icon={Reply} label={replyText[locale]} onClick={then(onReply)} />
+            <SheetActionRow icon={Reply} label={replyText[locale]} onClick={then(onReply)} />
           )}
           {onReplyInThread !== undefined && (
-            <ActionRow
+            <SheetActionRow
               icon={MessageSquare}
               label={replyInThreadText[locale]}
               onClick={then(onReplyInThread)}
             />
           )}
           {textToCopy !== undefined && (
-            <ActionRow
+            <SheetActionRow
               icon={copyState === 'copied' ? Check : Copy}
               label={copyLabel}
               onClick={() => void copy()}
+              liveLabel
             />
           )}
-        </div>
+        </ul>
       )}
     </BottomSheet>
   );
