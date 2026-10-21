@@ -48,9 +48,10 @@ export const AppHeaderTitle: React.FC<{ inAppDesign: boolean }> = ({ inAppDesign
     );
   }
 
+  // one row, so a long title ends where the page's buttons begin instead of running under them
   return (
-    <>
-      <span className="absolute top-0 left-[60px] flex h-[60px] items-center font-['Montserrat'] text-[22px] leading-none font-extrabold xl:hidden">
+    <div className="pointer-events-none absolute top-0 right-2 left-[60px] z-[105] flex h-[60px] items-center gap-2">
+      <span className="min-w-0 flex-1 truncate font-['Montserrat'] text-[22px] leading-none font-extrabold xl:hidden">
         <DynamicAppTitleName />
       </span>
       {/* The open menu makes everything outside its dialog inert, the header included, which
@@ -58,12 +59,12 @@ export const AppHeaderTitle: React.FC<{ inAppDesign: boolean }> = ({ inAppDesign
           so a page's button keeps its state. */}
       <div
         className={cn(
-          'absolute top-0 right-2 z-[105] flex h-[60px] items-center',
+          'pointer-events-auto ml-auto flex shrink-0 items-center',
           mobileMenuOpen && 'hidden',
         )}
       >
         {actions}
       </div>
-    </>
+    </div>
   );
 };
