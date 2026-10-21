@@ -138,10 +138,7 @@ export const buildTimeline = (
     ];
   };
 
-  return [
-    ...stops.flatMap((stop): TimelineItem[] => [...transferTo(stop), stop]),
-    ...transferTo(),
-  ];
+  return [...stops.flatMap((stop): TimelineItem[] => [...transferTo(stop), stop]), ...transferTo()];
 };
 
 /** The minutes from midnight a timeline item starts at: its first slot's. */
