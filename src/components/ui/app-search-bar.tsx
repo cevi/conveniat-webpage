@@ -1,5 +1,18 @@
+'use client';
+
+import { fieldInputClassName, searchFieldClassName } from '@/components/ui/field';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Search, X } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
+import type React from 'react';
+
+const clearLabel: StaticTranslationString = {
+  de: 'Suche leeren',
+  en: 'Clear search',
+  fr: 'Effacer la recherche',
+};
 
 interface AppSearchBarProperties {
   placeholder: string;
@@ -10,12 +23,14 @@ interface AppSearchBarProperties {
   onBlur?: () => void;
   /** a name for screen readers, when the placeholder alone would not say what is searched */
   label?: string;
+  /** opened by a tap on a search button, so the keyboard comes up with it */
+  autoFocus?: boolean;
   className?: string;
 }
 
 /**
- * The app's search field: 44px, white on the page with a line around it, the magnifier in
- * front. A real search input with a label, and a clear button once there is something to clear.
+ * The app's one search field, in the shared frame of `field.ts`: the magnifier in front, a real
+ * search input with a label, and a clear button once there is something to clear.
  */
 export const AppSearchBar: React.FC<AppSearchBarProperties> = ({
   placeholder,
@@ -25,34 +40,35 @@ export const AppSearchBar: React.FC<AppSearchBarProperties> = ({
   onFocus,
   onBlur,
   label,
+  autoFocus = false,
   className,
-}) => (
-  <label
-    className={cn(
-      'border-line flex h-11 items-center gap-2.5 rounded-xl border bg-white pl-3.5 transition-colors focus-within:border-green-300',
-      className,
-    )}
-  >
-    <Search className="h-[18px] w-[18px] shrink-0 text-green-500" aria-hidden="true" />
-    <span className="sr-only">{label ?? placeholder}</span>
-    <input
-      type="search"
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-      onFocus={onFocus}
-      onBlur={onBlur}
-      className="h-full min-w-0 flex-1 bg-transparent pr-3.5 text-[15px] text-green-900 outline-hidden placeholder:text-green-500 [&::-webkit-search-cancel-button]:hidden"
-    />
-    {value !== '' && onClear !== undefined && (
-      <button
-        type="button"
-        onClick={onClear}
-        aria-label={placeholder}
-        className="-ml-3.5 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center text-green-500"
-      >
-        <X className="h-[18px] w-[18px]" />
-      </button>
-    )}
-  </label>
-);
+}) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+
+  return (
+    <label className={cn(searchFieldClassName, className)}>
+      <Search className="h-[18px] w-[18px] shrink-0 text-green-500" aria-hidden="true" />
+      <span className="sr-only">{label ?? placeholder}</span>
+      <input
+        type="search"
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        autoFocus={autoFocus}
+        className={cn(fieldInputClassName, 'pl-0')}
+      />
+      {value !== '' && onClear !== undefined && (
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label={clearLabel[locale]}
+          className="flex h-[44px] w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-[12px] text-green-500"
+        >
+          <X className="h-[18px] w-[18px]" aria-hidden="true" />
+        </button>
+      )}
+    </label>
+  );
+};

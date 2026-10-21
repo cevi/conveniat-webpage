@@ -1,21 +1,17 @@
 'use client';
 
+import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { SectionLabel } from '@/components/ui/section-label';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { format, labels } from '@/features/material/components/material-labels';
-import {
-  focusRing,
-  inputClass,
-  MaterialSheet,
-  NumberInput,
-} from '@/features/material/components/material-ui';
+import { focusRing, MaterialSheet, NumberInput } from '@/features/material/components/material-ui';
 import { useMaterialLocale } from '@/features/material/hooks/use-material';
 import { useQrScanner } from '@/features/material/hooks/use-qr-scanner';
 import { stepQuantity } from '@/features/material/utils/basket';
 import type { LoanHolder } from '@/features/material/utils/holders';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Minus, Plus, ScanLine, Search } from 'lucide-react';
+import { Minus, Plus, ScanLine } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 
@@ -211,21 +207,13 @@ export const SearchField: React.FC<{
         onSubmit?.();
       }}
     >
-      <div className="relative min-w-0 flex-1">
-        <Search
-          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-green-500"
-          aria-hidden
-        />
-        <input
-          type="search"
-          aria-label={placeholder}
-          placeholder={placeholder}
-          className={cn(inputClass, 'pl-9')}
-          value={value}
-          enterKeyHint="search"
-          onChange={(event) => onChange(event.target.value)}
-        />
-      </div>
+      <AppSearchBar
+        placeholder={placeholder}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onClear={() => onChange('')}
+        className="flex-1"
+      />
       {onScan !== undefined && (
         <>
           <button
@@ -234,7 +222,7 @@ export const SearchField: React.FC<{
             title={labels.scan[locale]}
             onClick={() => setScanning(true)}
             className={cn(
-              'bg-conveniat-green flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl text-white',
+              'bg-conveniat-green flex h-[44px] w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-[12px] text-white',
               focusRing,
             )}
           >

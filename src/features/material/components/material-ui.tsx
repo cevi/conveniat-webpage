@@ -1,6 +1,7 @@
 'use client';
 
 import { buttonVariants } from '@/components/ui/buttons/button';
+import { textInputClassName } from '@/components/ui/field';
 import { SectionLabel } from '@/components/ui/section-label';
 import { formatDay, labels } from '@/features/material/components/material-labels';
 import { useMaterialLocale } from '@/features/material/hooks/use-material';
@@ -114,8 +115,8 @@ export const Field: React.FC<{
   return <label className={cn('block', className)}>{content}</label>;
 };
 
-export const inputClass =
-  'block h-11 w-full rounded-xl border border-rail bg-white px-3 text-base text-green-900 focus:border-conveniat-green focus:ring-2 focus:ring-conveniat-green/30 focus:outline-none disabled:bg-quiet disabled:text-green-500';
+/** Material's fields are the app's form fields, see `field.ts`. */
+export const inputClass = textInputClassName;
 
 /** The focus ring of everything tappable that is not a text field. */
 export const focusRing =

@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/buttons/button';
-import { Input } from '@/components/ui/input';
+import { fieldInputClassName, formFieldClassName } from '@/components/ui/field';
 import { SectionLabel } from '@/components/ui/section-label';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -140,29 +140,27 @@ export const ChatNameSection: React.FC<ChatNameSectionProperties> = ({
       <div className="border-line rounded-[14px] border bg-white p-4">
         {isEditing ? (
           <div className="space-y-2">
-            <Input
-              value={name}
-              onChange={(event) => {
-                setName(event.target.value);
-                if (error) setError('');
-              }}
-              onKeyDown={handleKeyDown}
-              autoFocus
-              aria-label={chatNameSectionText[locale]}
-              aria-invalid={error !== ''}
-              className={cn(
-                'border-line h-11 rounded-xl border bg-white px-4 text-[15px] text-green-900 shadow-none placeholder:text-green-500',
-                'focus-visible:border-conveniat-green focus-visible:ring-0',
-                error !== '' && 'border-green-900',
-              )}
-              placeholder={chatNamePlaceholder[locale]}
-              disabled={isSaving}
-            />
+            <label className={cn(formFieldClassName, error !== '' && 'border-live')}>
+              <input
+                value={name}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  if (error) setError('');
+                }}
+                onKeyDown={handleKeyDown}
+                autoFocus
+                aria-label={chatNameSectionText[locale]}
+                aria-invalid={error !== ''}
+                className={fieldInputClassName}
+                placeholder={chatNamePlaceholder[locale]}
+                disabled={isSaving}
+              />
+            </label>
             <p
               aria-live="polite"
               className={cn(
                 'text-[13px]',
-                error === '' ? 'text-green-500' : 'font-semibold text-green-900',
+                error === '' ? 'text-green-500' : 'text-live-text font-semibold',
               )}
             >
               {error === '' ? chatNameLengthText[locale] : error}

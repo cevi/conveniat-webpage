@@ -1,7 +1,9 @@
 'use client';
 
+import { textInputClassName } from '@/components/ui/field';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
@@ -36,7 +38,7 @@ export const DescriptionInput: React.FC<DescriptionInputProperties> = ({ value, 
         onChange={(event) => onChange(event.target.value)}
         placeholder={descriptionPlaceholder[locale]}
         rows={4}
-        className="bg-quiet focus:border-conveniat-green w-full resize-none rounded-xl border border-transparent px-3.5 py-3 text-[15px] text-green-900 transition-colors placeholder:text-green-500 focus:bg-white focus:outline-none"
+        className={cn(textInputClassName, 'resize-none')}
       />
     </div>
   );
