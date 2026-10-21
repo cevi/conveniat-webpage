@@ -1,7 +1,9 @@
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import {
+  describeContact,
   describeContactFunktionen,
   describeContactHof,
+  groupContactsByLetter,
   matchesContactSearch,
 } from '@/features/chat/utils/contact-search';
 
@@ -94,5 +96,37 @@ describe('the AVP of a Hof in the address book', () => {
   it('falls back to the plain Höfe for a contact cached before the roles existed', () => {
     const cached: Contact = { ...AVP, hofRoles: undefined };
     expect(describeContactHof(cached)).toBe('Cevi Uster, Züri 11 · Quartier 3');
+  });
+});
+
+describe('describeContact', () => {
+  it('joins functions, Höfe and the description', () => {
+    expect(
+      describeContact({
+        userId: 'c',
+        name: 'Cora Test',
+        funktionen: ['Leitung Programm'],
+        hofRoles: [{ hof: 'Cevi Uster', quartier: 'Quartier 3', isAvp: true }],
+        description: 'Küche',
+      }),
+    ).toBe('Leitung Programm · AVP, Cevi Uster, Quartier 3 · Küche');
+  });
+
+  it('is empty for a contact cached before any of it existed', () => {
+    expect(describeContact(CACHED)).toBe('');
+  });
+});
+
+describe('groupContactsByLetter', () => {
+  const names = ['Zora', 'äsche', 'Bär', 'Amsel', '3D', 'biber'];
+
+  it('sorts by name and groups under the first letter, umlauts with their vowel', () => {
+    const groups = groupContactsByLetter(names, (name) => name, 'de');
+    expect(groups).toEqual([
+      { letter: 'A', contacts: ['Amsel', 'äsche'] },
+      { letter: 'B', contacts: ['Bär', 'biber'] },
+      { letter: 'Z', contacts: ['Zora'] },
+      { letter: '#', contacts: ['3D'] },
+    ]);
   });
 });
