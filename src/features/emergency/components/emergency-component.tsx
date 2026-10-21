@@ -116,7 +116,9 @@ const errorStatusText: StaticTranslationString = {
 
 export const EmergencyComponent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [showFallback, setShowFallback] = useState(true);
+  // set when the alarm could not be sent; offline and logged out are read from their own state,
+  // so the screen does not start with the call button and an error it then takes back
+  const [showFallback, setShowFallback] = useState(false);
   const [isOnline, setIsOnline] = useState(
     typeof navigator === 'undefined' ? true : navigator.onLine,
   );
@@ -159,13 +161,8 @@ export const EmergencyComponent: React.FC = () => {
     const updateStatus = (): void => {
       const online = typeof navigator === 'undefined' ? true : navigator.onLine;
       setIsOnline(online);
-      const isAuthenticated = status === 'authenticated';
-
-      if (!online || !isAuthenticated) {
-        setShowFallback(true);
-      } else {
-        setShowFallback(false);
-      }
+      // back online and logged in, a failed alarm may be tried again
+      if (online && status === 'authenticated') setShowFallback(false);
     };
 
     // Initial check
@@ -315,14 +312,16 @@ export const EmergencyComponent: React.FC = () => {
   };
 
   const isActuallyOffline = typeof navigator !== 'undefined' && !navigator.onLine;
-  const isFallbackActive =
-    showFallback || !isOnline || isActuallyOffline || status !== 'authenticated';
+  // while the session is still loading the slider shows: it falls back to the call button itself
+  // if the user turns out not to be logged in
+  const isLoggedOut = status === 'unauthenticated';
+  const isFallbackActive = showFallback || !isOnline || isActuallyOffline || isLoggedOut;
 
   // Determine fallback texts
   let fallbackMessage = offlineStatusText[locale];
-  if (isOnline && !isActuallyOffline && status !== 'authenticated') {
+  if (isOnline && !isActuallyOffline && isLoggedOut) {
     fallbackMessage = unauthenticatedStatusText[locale];
-  } else if (isOnline && !isActuallyOffline && status === 'authenticated' && showFallback) {
+  } else if (isOnline && !isActuallyOffline && showFallback) {
     // Allows distinction for API errors if showFallback is true but online+authed
     fallbackMessage = errorStatusText[locale];
   }
