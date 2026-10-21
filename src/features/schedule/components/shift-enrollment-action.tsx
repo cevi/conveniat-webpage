@@ -258,9 +258,9 @@ export const ShiftEnrollmentAction: React.FC<{
   // loading by that definition, so keep the skeleton up while its refetch is in flight too.
   if (isLoading || (isFetching && !status)) {
     return isCard ? (
-      <div className="h-9 w-28 shrink-0 animate-pulse rounded-lg bg-gray-100" />
+      <div className="bg-quiet h-11 w-28 shrink-0 animate-pulse rounded-xl" />
     ) : (
-      <div className="h-12 w-full animate-pulse rounded-lg bg-gray-200" />
+      <div className="bg-quiet h-11 w-full animate-pulse rounded-xl" />
     );
   }
 
@@ -274,7 +274,7 @@ export const ShiftEnrollmentAction: React.FC<{
       return (
         <span
           title={isOffline ? localizedOffline[locale] : localizedUnavailable[locale]}
-          className="flex shrink-0 items-center gap-1.5 text-xs text-amber-600"
+          className="flex shrink-0 items-center gap-1.5 text-[13px] text-green-700"
         >
           {isOffline ? (
             <WifiOff className="h-3.5 w-3.5" />
@@ -287,23 +287,23 @@ export const ShiftEnrollmentAction: React.FC<{
     }
 
     return isOffline ? (
-      <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-700">
-        <WifiOff className="h-5 w-5 flex-shrink-0" />
-        <span className="text-sm">{localizedOffline[locale]}</span>
+      <div className="bg-quiet flex min-h-11 items-center gap-2 rounded-[14px] px-3.5 py-2.5 text-green-700">
+        <WifiOff className="h-5 w-5 shrink-0" aria-hidden="true" />
+        <span className="text-[15px]">{localizedOffline[locale]}</span>
       </div>
     ) : (
-      <div className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-700">
+      <div className="bg-quiet flex flex-col gap-3 rounded-[14px] px-3.5 py-3 text-green-700">
         <div className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-          <span className="text-sm">{localizedUnavailable[locale]}</span>
+          <AlertTriangle className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <span className="text-[15px]">{localizedUnavailable[locale]}</span>
         </div>
         <Button
-          variant="outline"
-          size="sm"
-          className="h-8 self-start text-sm"
+          variant="outlined"
+          size="touch"
+          className="self-start"
           onClick={() => void refetch()}
         >
-          <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+          <RefreshCw aria-hidden="true" />
           {localizedRetry[locale]}
         </Button>
       </div>
@@ -344,20 +344,20 @@ export const ShiftEnrollmentAction: React.FC<{
         // cards in mixed states still lines up along one baseline
         <span
           title={localizedUnenrollClosedHint[locale]}
-          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-3.5 text-xs font-medium text-gray-500"
+          className="bg-quiet inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-[13px] font-semibold text-green-700"
         >
-          <Lock className="h-3.5 w-3.5" />
+          <Lock className="h-4 w-4" aria-hidden="true" />
           {localizedUnenrollClosedShort[locale]}
         </span>
       ) : (
         <Button
-          variant="outline"
-          size="sm"
+          variant="outlined"
+          size="touch"
           onClick={() => unenroll.mutate({ shiftId })}
           disabled={unenroll.isPending}
-          className="h-9 shrink-0 px-3.5 text-sm"
+          className="shrink-0"
         >
-          {unenroll.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+          {unenroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
           {localizedUnenroll[locale]}
         </Button>
       );
@@ -370,21 +370,21 @@ export const ShiftEnrollmentAction: React.FC<{
         inside it: the confirmation, how full the shift is, and either the way out or the reason
         there no longer is one.
       */
-      <div className="rounded-lg border border-green-200 bg-green-50/60 px-3 py-2.5">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <span className="flex items-center gap-2 text-sm font-semibold text-green-700">
-            <CheckCircle className="h-4 w-4 flex-shrink-0" />
+      <div className="border-tint-line bg-tint rounded-[14px] border px-3.5 py-2">
+        <div className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="flex items-center gap-2 text-[15px] font-semibold text-green-900">
+            <CheckCircle className="text-conveniat-green h-5 w-5 shrink-0" aria-hidden="true" />
             {localizedEnrolled[locale]}
           </span>
           {!isWithdrawalClosed && (
             <Button
-              variant="outline"
-              size="sm"
+              variant="outlined"
+              size="touch"
               onClick={() => unenroll.mutate({ shiftId })}
               disabled={unenroll.isPending}
-              className="ml-auto h-8 border-green-200 bg-white text-sm hover:bg-white"
+              className="ml-auto"
             >
-              {unenroll.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              {unenroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
               {localizedUnenroll[locale]}
             </Button>
           )}
@@ -395,10 +395,12 @@ export const ShiftEnrollmentAction: React.FC<{
           same line and wrapped into each other on a phone.
         */}
         {isWithdrawalClosed && (
-          <div className="mt-2.5 flex items-start gap-2 border-t border-green-200/70 pt-2.5">
-            <Lock className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
-            <p className="text-xs leading-relaxed text-gray-500">
-              <span className="font-semibold text-gray-700">{localizedUnenrollClosed[locale]}</span>{' '}
+          <div className="border-tint-line mt-1 mb-1 flex items-start gap-2 border-t pt-2.5">
+            <Lock className="mt-0.5 h-4 w-4 shrink-0 text-green-700" aria-hidden="true" />
+            <p className="text-[13px] leading-[18px] text-green-700">
+              <span className="font-semibold text-green-900">
+                {localizedUnenrollClosed[locale]}
+              </span>{' '}
               {localizedUnenrollClosedHint[locale]}
             </p>
           </div>
@@ -409,48 +411,42 @@ export const ShiftEnrollmentAction: React.FC<{
 
   return (
     <>
-      {isCard ? (
+      {isCard &&
         /*
-          No counts here: the badge and the rail above already say how full the shift is, and the
-          old version repeated it twice more right next to this button.
+          No counts here: the capacity line next to this button already says how full the shift
+          is, and once it is full that line says so in orange - a disabled "Ausgebucht" button
+          beside it would only repeat it.
         */
+        !isFull && (
+          <Button
+            variant={isAuthorized ? 'primary' : 'quiet'}
+            size="touch"
+            className={cn('shrink-0', enroll.isPending && 'opacity-80')}
+            disabled={enroll.isPending || !isAuthorized}
+            onClick={handleEnrolClick}
+          >
+            {enroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
+            {localizedEnroll[locale]}
+          </Button>
+        )}
+      {!isCard && (
         <Button
+          variant={isFull || !isAuthorized ? 'quiet' : 'primary'}
+          size="touch"
           className={cn(
-            'h-9 shrink-0 px-4 text-sm font-semibold transition-all duration-200 active:scale-95',
-            isFull || !isAuthorized
-              ? 'cursor-not-allowed bg-gray-200 text-gray-500'
-              : 'bg-conveniat-green hover:bg-conveniat-green-dark text-white',
+            'w-full',
+            // a full shift is a state to read, not a greyed-out control: keep its text legible
+            isFull && 'text-green-700 disabled:opacity-100',
             enroll.isPending && 'opacity-80',
           )}
           disabled={isFull || enroll.isPending || !isAuthorized}
           onClick={handleEnrolClick}
         >
-          {enroll.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-          {isFull ? localizedFull[locale] : localizedEnroll[locale]}
+          {enroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
+          {enroll.isPending && `${localizedEnroll[locale]}...`}
+          {!enroll.isPending && isFull && localizedFull[locale]}
+          {!enroll.isPending && !isFull && localizedEnroll[locale]}
         </Button>
-      ) : (
-        <div className="flex flex-col gap-3">
-          <Button
-            className={cn(
-              'h-12 text-lg font-bold transition-all duration-200 active:scale-95',
-              isFull || !isAuthorized
-                ? 'cursor-not-allowed bg-gray-200 text-gray-500'
-                : 'bg-conveniat-green hover:bg-conveniat-green-dark text-white hover:scale-[1.02]',
-              enroll.isPending && 'opacity-80',
-            )}
-            disabled={isFull || enroll.isPending || !isAuthorized}
-            onClick={handleEnrolClick}
-          >
-            {enroll.isPending && (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                {localizedEnroll[locale]}...
-              </span>
-            )}
-            {!enroll.isPending && isFull && localizedFull[locale]}
-            {!enroll.isPending && !isFull && localizedEnroll[locale]}
-          </Button>
-        </div>
       )}
 
       <ChatAlertDialog open={noWithdrawalDialogOpen} onOpenChange={setNoWithdrawalDialogOpen}>
@@ -461,8 +457,8 @@ export const ShiftEnrollmentAction: React.FC<{
               {localizedEnrolWithoutExitWarning[locale]}
             </ChatAlertDialogDescription>
           </ChatAlertDialogHeader>
-          <div className="flex w-full items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-left text-sm text-amber-800">
-            <Lock className="mt-0.5 h-4 w-4 flex-shrink-0" />
+          <div className="border-live-line bg-live-soft text-live-text flex w-full items-start gap-2 rounded-xl border p-3 text-left text-sm">
+            <Lock className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <p>{localizedUnenrollClosedHint[locale]}</p>
           </div>
           <ChatAlertDialogFooter className="gap-3 sm:gap-0">

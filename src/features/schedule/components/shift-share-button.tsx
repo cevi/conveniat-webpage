@@ -23,6 +23,15 @@ export const ShiftShareButton: React.FC<{
   shiftId: string;
   shiftTitle: string;
   locale: Locale;
-}> = ({ shiftId, shiftTitle, locale }) => (
-  <ShareLinkButton url={shareUrlForShift(shiftId)} title={shiftTitle} locale={locale} />
+  /** a round button on its own, as over the map of the detail page */
+  compact?: boolean;
+  className?: string;
+}> = ({ shiftId, shiftTitle, locale, compact = false, className = '' }) => (
+  <ShareLinkButton
+    url={shareUrlForShift(shiftId)}
+    title={shiftTitle}
+    locale={locale}
+    compact={compact}
+    className={className}
+  />
 );

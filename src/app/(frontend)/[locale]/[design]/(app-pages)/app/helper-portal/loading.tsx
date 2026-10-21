@@ -1,33 +1,33 @@
 import type React from 'react';
 
 /**
- * Skeleton loading component for the Helper Portal.
+ * Skeleton loading component for the Helper Portal: the day strip and a few shifts on the
+ * timeline, in the shapes the page settles into.
  */
 export default function HelperPortalLoading(): React.ReactNode {
   return (
     <div className="bg-page fixed top-[62px] left-0 z-30 h-[calc(100dvh-62px)] w-full overflow-y-auto xl:left-[480px] xl:w-[calc(100dvw-480px)]">
-      <section className="container mx-auto mt-8 py-6">
-        <article className="mx-auto w-full max-w-2xl space-y-6 px-4">
-          {/* Header Skeleton */}
-          <div className="space-y-2">
-            <div className="h-8 w-48 animate-pulse rounded bg-gray-200" />
-            <div className="h-4 w-full animate-pulse rounded bg-gray-200" />
-          </div>
+      <article className="mx-auto w-full max-w-2xl p-4 sm:p-6">
+        <div className="flex gap-2">
+          {[1, 2, 3, 4, 5].map((index) => (
+            <div key={index} className="bg-quiet h-[58px] w-[46px] animate-pulse rounded-2xl" />
+          ))}
+        </div>
 
-          {/* Card Skeletons */}
+        <div className="mt-4 space-y-3.5">
           {[1, 2, 3].map((index) => (
-            <div key={index} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div className="flex items-start gap-4">
-                <div className="h-10 w-10 flex-shrink-0 animate-pulse rounded-lg bg-gray-100" />
-                <div className="flex-1 space-y-3">
-                  <div className="h-5 w-32 animate-pulse rounded bg-gray-200" />
-                  <div className="h-4 w-full animate-pulse rounded bg-gray-200" />
-                </div>
+            <div key={index} className="grid grid-cols-[44px_28px_minmax(0,1fr)]">
+              <div className="bg-quiet mt-0.5 h-4 w-10 animate-pulse rounded" />
+              <div />
+              <div className="border-line space-y-2 rounded-[14px] border bg-white px-3.5 py-3">
+                <div className="bg-quiet h-3 w-24 animate-pulse rounded" />
+                <div className="bg-quiet h-5 w-3/4 animate-pulse rounded" />
+                <div className="bg-quiet h-3.5 w-1/2 animate-pulse rounded" />
               </div>
             </div>
           ))}
-        </article>
-      </section>
+        </div>
+      </article>
     </div>
   );
 }

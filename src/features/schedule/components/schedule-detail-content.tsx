@@ -1,5 +1,5 @@
 import { ChatLinkButton } from '@/components/ui/buttons/chat-link-button';
-import { IconTile } from '@/components/ui/icon-tile';
+import { FactRow } from '@/components/ui/fact-row';
 import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { SectionLabel } from '@/components/ui/section-label';
@@ -50,7 +50,6 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
-import Link from 'next/link';
 import type React from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
@@ -146,42 +145,6 @@ interface ScheduleDetailContentProperties {
   /** what the block holds for the people running it; absent for everybody else */
   leaderNotes?: LeaderNotes | null | undefined;
 }
-
-/** One row of the facts card: an icon on a soft tile, the fact and a smaller line under it. */
-const Fact: React.FC<{
-  icon: typeof Clock;
-  title?: React.ReactNode;
-  sub?: React.ReactNode;
-  href?: string;
-  children?: React.ReactNode;
-}> = ({ icon: Icon, title, sub, href, children }) => {
-  const body = (
-    <>
-      <IconTile icon={Icon} />
-      <div className="min-w-0 flex-1">
-        {title !== undefined && (
-          <div className="text-[15px] leading-5 font-semibold text-green-900">{title}</div>
-        )}
-        {sub !== undefined && (
-          <div className="mt-px text-[13px] leading-[18px] text-green-500">{sub}</div>
-        )}
-        {children}
-      </div>
-      {href !== undefined && (
-        <ChevronRight className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />
-      )}
-    </>
-  );
-  const className =
-    'relative flex min-h-[60px] items-center gap-3 px-3.5 py-2.5 not-first:before:absolute not-first:before:top-0 not-first:before:right-0 not-first:before:left-16 not-first:before:h-px not-first:before:bg-green-100';
-  return href === undefined ? (
-    <div className={className}>{body}</div>
-  ) : (
-    <Link href={href} className={className}>
-      {body}
-    </Link>
-  );
-};
 
 /** "Q5 Greif", filled when it is the user's own Quartier. */
 const QuartierChip: React.FC<{ name: string | undefined; isMine: boolean }> = ({
@@ -424,7 +387,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
             <>
               {/* When, where and who */}
               <div className="border-line overflow-hidden rounded-[14px] border bg-white">
-                <Fact
+                <FactRow
                   icon={Clock}
                   title={
                     <span className="tabular-nums">
@@ -443,7 +406,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                 />
 
                 {location !== undefined && (
-                  <Fact
+                  <FactRow
                     icon={MapPin}
                     title={location.title}
                     sub={programmeLabels.showOnMap[locale]}
@@ -452,7 +415,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                 )}
 
                 {quartiere.length > 0 && (
-                  <Fact icon={Users}>
+                  <FactRow icon={Users}>
                     <div
                       className="flex flex-wrap gap-1.5"
                       aria-label={programmeLabels.quartiere[locale]}
@@ -461,12 +424,12 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                         <QuartierChip key={id} name={name} isMine={myQuartierIds.has(id)} />
                       ))}
                     </div>
-                  </Fact>
+                  </FactRow>
                 )}
 
                 {/* Target Group */}
                 {(entry.target_group || isEditing) && (
-                  <Fact icon={Target} title={labels.targetGroup[locale]}>
+                  <FactRow icon={Target} title={labels.targetGroup[locale]}>
                     {isEditing && editData ? (
                       <MarkdownEditor
                         value={editData.targetGroup}
@@ -483,12 +446,12 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                         />
                       </div>
                     )}
-                  </Fact>
+                  </FactRow>
                 )}
 
                 {/* Max Participants (when editing) */}
                 {isEditing && editData && (
-                  <Fact icon={Users} title={labels.maxParticipants[locale]}>
+                  <FactRow icon={Users} title={labels.maxParticipants[locale]}>
                     <input
                       type="number"
                       aria-label={labels.maxParticipants[locale]}
@@ -503,7 +466,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                         Min: {courseStatus.enrolledCount} ({courseStatus.enrolledCount} angemeldet)
                       </p>
                     )}
-                  </Fact>
+                  </FactRow>
                 )}
               </div>
 

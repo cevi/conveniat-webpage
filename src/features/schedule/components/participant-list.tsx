@@ -123,10 +123,9 @@ export const ParticipantList: React.FC<ParticipantListProperties> = ({
   return (
     <div
       className={cn(
-        'space-y-3',
         isInline
-          ? 'mt-4 border-t border-gray-100 pt-3'
-          : 'rounded-2xl border border-gray-100 bg-white p-5 shadow-xs',
+          ? 'space-y-2'
+          : 'space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs',
       )}
     >
       <div className="flex items-center gap-2">
@@ -137,19 +136,20 @@ export const ParticipantList: React.FC<ParticipantListProperties> = ({
         )}
         <h3
           className={cn(
-            'font-heading font-semibold tracking-wider uppercase',
+            'uppercase',
             isInline
-              ? 'flex items-center gap-1.5 text-[11px] text-gray-500'
-              : 'text-xs text-gray-700',
+              ? 'text-xs font-bold tracking-[0.08em] text-green-700'
+              : 'font-heading text-xs font-semibold tracking-wider text-gray-700',
           )}
         >
-          {isInline && <Users className="h-3.5 w-3.5" />}
           {(isShift ? labels.shiftTitle : labels.title)[locale]} ({status.enrolledCount})
         </h3>
       </div>
 
       {participants.length === 0 ? (
-        <p className="font-body text-sm text-gray-400 italic">
+        <p
+          className={cn('font-body text-sm', isInline ? 'text-green-500' : 'text-gray-400 italic')}
+        >
           {(isShift ? labels.noShiftParticipants : labels.noParticipants)[locale]}
         </p>
       ) : (
@@ -157,7 +157,12 @@ export const ParticipantList: React.FC<ParticipantListProperties> = ({
           {participants.map((p) => (
             <div
               key={p.uuid}
-              className="font-body flex items-center gap-2 rounded-full border border-gray-100 bg-gray-50/60 px-3 py-1.5 text-sm text-gray-700"
+              className={cn(
+                'font-body flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm',
+                isInline
+                  ? 'border-rail bg-white text-green-900'
+                  : 'border-gray-100 bg-gray-50/60 text-gray-700',
+              )}
             >
               <div className="bg-conveniat-green h-2 w-2 rounded-full" />
               {p.name}

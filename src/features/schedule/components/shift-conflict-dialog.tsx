@@ -132,18 +132,18 @@ const ConflictEntry: React.FC<{
   <div
     className={
       isMuted
-        ? 'w-full rounded-lg border border-gray-200 bg-gray-50 p-3'
-        : 'border-conveniat-green/30 w-full rounded-lg border bg-green-50/50 p-3'
+        ? 'bg-quiet w-full rounded-xl p-3'
+        : 'border-tint-line bg-tint w-full rounded-xl border p-3'
     }
   >
-    <div className="font-heading text-[10px] font-bold tracking-wider text-gray-500 uppercase">
+    <div className="text-[11px] font-bold tracking-[0.08em] text-green-700 uppercase">
       {label}
       {tag !== undefined && ` · ${tag}`}
     </div>
-    <div className="mt-0.5 font-semibold text-gray-900">{entry.title}</div>
+    <div className="mt-0.5 font-semibold text-green-900">{entry.title}</div>
     {entry.timeslot !== undefined && (
-      <div className="mt-1 flex items-center gap-1.5 text-sm text-gray-600">
-        <Clock className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+      <div className="mt-1 flex items-center gap-1.5 text-[13px] text-green-700 tabular-nums">
+        <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         <span>
           {formatCampDay(entry.timeslot.date, locale)} · {entry.timeslot.time}
         </span>
@@ -223,8 +223,8 @@ export const ShiftConflictDialog: React.FC<{
             isMuted
             note={
               isSwitchBlocked ? (
-                <div className="mt-1 flex items-center gap-1.5 text-sm text-amber-700">
-                  <Lock className="h-3.5 w-3.5 shrink-0" />
+                <div className="text-live-text mt-1 flex items-center gap-1.5 text-[13px]">
+                  <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span>
                     {localizedWithdrawalClosedShort[locale]}
                     {blockedDeadline != undefined &&
@@ -235,7 +235,7 @@ export const ShiftConflictDialog: React.FC<{
             }
           />
 
-          <ArrowDown className="-my-0.5 h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+          <ArrowDown className="-my-0.5 h-4 w-4 shrink-0 text-green-500" aria-hidden="true" />
 
           <ConflictEntry
             label={localizedWouldEnrolIn[locale]}
@@ -249,18 +249,16 @@ export const ShiftConflictDialog: React.FC<{
             said what follows, in separate boxes a line apart. They are one thought.
           */}
           {(overlap !== undefined || isSwitchBlocked) && (
-            <div className="mt-1 w-full rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <div className="bg-live-soft text-live-text mt-1 w-full rounded-xl px-3 py-2 text-sm">
               {overlap !== undefined && (
                 <span className="flex items-center gap-1.5 font-medium">
-                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   {localizedOverlapLabel[locale]} {formatCampTime(overlap.start, locale)} –{' '}
                   {formatCampTime(overlap.end, locale)}
                 </span>
               )}
               {isSwitchBlocked && (
-                <span className="mt-0.5 block text-amber-700">
-                  {localizedSwitchBlockedHint[locale]}
-                </span>
+                <span className="mt-0.5 block">{localizedSwitchBlockedHint[locale]}</span>
               )}
             </div>
           )}
@@ -271,7 +269,7 @@ export const ShiftConflictDialog: React.FC<{
             <ChatLinkButton
               userId={contactOrganiser.id}
               label={localizedContactOrganiser[locale]}
-              className="h-10 w-full border-amber-200 bg-amber-100 text-amber-900 hover:bg-amber-200 hover:text-amber-900"
+              className="border-rail hover:bg-quiet h-11 w-full bg-white text-green-900 hover:text-green-900"
             />
           )}
           {!isSwitchBlocked && (

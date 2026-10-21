@@ -2,10 +2,10 @@
 
 import { ChatLinkButton } from '@/components/ui/buttons/chat-link-button';
 import { PersonAvatar } from '@/components/ui/person-avatar';
+import { SectionLabel } from '@/components/ui/section-label';
 import type { HelperShiftOrganiser } from '@/features/schedule/api/get-helper-shifts';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { formatUserFullName } from '@/utils/format-user-name';
-import { MessageCircle } from 'lucide-react';
 import type React from 'react';
 
 const contactOrganisersText: StaticTranslationString = {
@@ -18,8 +18,7 @@ const contactOrganisersText: StaticTranslationString = {
  * The organisers of a helper shift, with a shortcut into a direct chat with each of them.
  *
  * This is the shift-portal counterpart of the "Organisatoren kontaktieren" block on the
- * workshop detail page. It is laid out tighter because it sits inside a card in a scrolling
- * list rather than on a page of its own.
+ * workshop detail page: a section of the shift's page, one row per organiser.
  */
 export const ShiftOrganisers: React.FC<{
   /**
@@ -35,42 +34,32 @@ export const ShiftOrganisers: React.FC<{
   if (organisers === undefined || organisers.length === 0) return <></>;
 
   return (
-    <div className="mt-4 space-y-2 border-t border-gray-100 pt-3">
-      <h4 className="font-heading flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-gray-500 uppercase">
-        <MessageCircle className="h-3.5 w-3.5" />
-        {contactOrganisersText[locale]}
-      </h4>
-      <div className="space-y-2">
+    <section>
+      <SectionLabel>{contactOrganisersText[locale]}</SectionLabel>
+      <ul className="border-line divide-line mt-2 divide-y overflow-hidden rounded-[14px] border bg-white">
         {organisers.map((organiser) => {
           const displayName = formatUserFullName(organiser.fullName, organiser.nickname);
 
           return (
-            <div
-              key={organiser.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-2.5"
-            >
-              <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                <PersonAvatar
-                  seed={organiser.id}
-                  name={organiser.fullName}
-                  className="h-8 w-8 text-xs font-bold shadow-xs"
-                />
-                {/*
-                  The name carries the Ceviname, which is how helpers know each other; the address
-                  underneath was a second line of small grey text nobody types into anything -
-                  reaching this person is what the button next to it is for.
-                */}
-                <div className="font-body min-w-0 flex-1 text-sm leading-snug font-semibold break-words text-gray-900">
-                  {displayName}
-                </div>
+            <li key={organiser.id} className="flex min-h-[60px] items-center gap-3 px-3.5 py-2.5">
+              <PersonAvatar
+                seed={organiser.id}
+                name={organiser.fullName}
+                className="h-[38px] w-[38px] text-xs font-bold"
+              />
+              {/*
+                The name carries the Ceviname, which is how helpers know each other; the address
+                underneath was a second line of small text nobody types into anything - reaching
+                this person is what the button next to it is for.
+              */}
+              <div className="min-w-0 flex-1 text-[15px] leading-5 font-semibold break-words text-green-900">
+                {displayName}
               </div>
-              <div className="shrink-0">
-                <ChatLinkButton userId={organiser.id} />
-              </div>
-            </div>
+              <ChatLinkButton userId={organiser.id} className="shrink-0" />
+            </li>
           );
         })}
-      </div>
-    </div>
+      </ul>
+    </section>
   );
 };
