@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.37.0](https://github.com/cevi/conveniat-webpage/compare/v1.36.0...v1.37.0) (2026-10-21)
+
+
+### Features
+
+* **billing:** Anmeldenummer in the bill mail subject ([cee9c89](https://github.com/cevi/conveniat-webpage/commit/cee9c89ef4b968b3114713f2c1cd2e66faba1d44))
+* **billing:** Anmeldenummer on the participant and in the bill mail subject ([b680001](https://github.com/cevi/conveniat-webpage/commit/b680001b9e46a6ed98453eef8e446ca486be67ec))
+* **billing:** link double payments to the bill and report them ([4e7cd46](https://github.com/cevi/conveniat-webpage/commit/4e7cd46b103cfec2378465fad29ab92afa8b3def))
+* **billing:** link double payments to the bill and report them ([0193e85](https://github.com/cevi/conveniat-webpage/commit/0193e851269147feac86bb2089b06baa8a0633a0))
+* **billing:** search the billing list by QR reference ([0a5c0f0](https://github.com/cevi/conveniat-webpage/commit/0a5c0f0926ed8ecebb50f1682379463972d8854e))
+* **billing:** search the billing list by QR reference ([87259e4](https://github.com/cevi/conveniat-webpage/commit/87259e442ac54797cf5deddd743927c21f0d12ed))
+* **billing:** store the Anmeldenummer on the participant ([e527b4d](https://github.com/cevi/conveniat-webpage/commit/e527b4d08f5a064d1ffc81ed9d5d4005b8f7d351))
+
+
+### Bug Fixes
+
+* **billing:** print the MWST-Nr. on issued QR bills ([17eb1e0](https://github.com/cevi/conveniat-webpage/commit/17eb1e0fc2b82eaf16f2353a319588a25218cee9))
+* **billing:** print the MWST-Nr. on issued QR bills ([347eb09](https://github.com/cevi/conveniat-webpage/commit/347eb091b1ce1d410586b42244bdbb348e5eaa77)), closes [#1142](https://github.com/cevi/conveniat-webpage/issues/1142)
+* **billing:** review fixes for double payments ([4266b2e](https://github.com/cevi/conveniat-webpage/commit/4266b2ea7409c2f5510487c762c2c20b622fb753))
+
+
+### Performance
+
+* **billing:** write the booked bills four at a time ([e10a4e1](https://github.com/cevi/conveniat-webpage/commit/e10a4e13430d04a45824630acf17b6c4167dcf6c))
+
 ## [1.36.0](https://github.com/cevi/conveniat-webpage/compare/v1.35.0...v1.36.0) (2026-10-20)
 
 
