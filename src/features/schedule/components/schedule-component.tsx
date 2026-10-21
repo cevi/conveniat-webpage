@@ -81,6 +81,11 @@ export const ScheduleComponent: React.FC = () => {
     [effectiveScheduleEntries, scope, myQuartierIds],
   );
 
+  // "Für Leitende" is offered to the people who may read the part for Leitende
+  const { data: leaderAccess } = trpc.schedule.getLeaderAccess.useQuery(undefined, {
+    staleTime: 1000 * 60 * 5,
+  });
+
   // Get enrolled courses
   const enrollmentsQuery = trpc.schedule.getMyEnrollments.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
@@ -191,6 +196,7 @@ export const ScheduleComponent: React.FC = () => {
         availableLocations={availableLocations}
         availableCategories={availableCategories}
         view={viewToggles}
+        canFilterForLeaders={leaderAccess === true}
         shownCount={shownCount}
         isSearchOpen={isSearchOpen}
         className="mb-3"

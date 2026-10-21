@@ -27,6 +27,8 @@ export interface FilterState {
   timesOfDay: TimeOfDay[];
   /** meals, transfers and fixed points such as Anreise, on by default */
   showLogistics: boolean;
+  /** only blocks with a part for Leitende; offered to Leitende and Helfende only */
+  leadersOnly: boolean;
 }
 
 /** Nothing searched and nothing filtered: the whole day, logistics included. */
@@ -37,6 +39,7 @@ export const noFilters: FilterState = {
   starredOnly: false,
   timesOfDay: [],
   showLogistics: true,
+  leadersOnly: false,
 };
 
 /** How many filters narrow the list, the search aside: the number on the Filter chip. */
@@ -47,6 +50,7 @@ export const activeFilterCount = (filters: FilterState): number =>
     filters.starredOnly,
     filters.timesOfDay.length > 0,
     !filters.showLogistics,
+    filters.leadersOnly,
   ].filter(Boolean).length;
 
 /** The label of the button that closes the filter: "3 Einträge anzeigen", "1 Eintrag anzeigen". */

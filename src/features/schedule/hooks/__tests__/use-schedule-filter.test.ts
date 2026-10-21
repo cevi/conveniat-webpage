@@ -4,7 +4,11 @@
 
 import { useScheduleFilters } from '@/features/schedule/hooks/use-schedule-filter';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
-import { noFilters, showEntriesLabel } from '@/features/schedule/utils/schedule-filters';
+import {
+  activeFilterCount,
+  noFilters,
+  showEntriesLabel,
+} from '@/features/schedule/utils/schedule-filters';
 import { act, renderHook } from '@testing-library/react';
 
 // the lexical plaintext export is ESM only; these entries have no description to search
@@ -62,6 +66,22 @@ describe('useScheduleFilters', () => {
     act(() => result.current.clearFilters());
     expect(result.current.filters.showLogistics).toBe(true);
     expect(result.current.filteredEntries).toHaveLength(5);
+  });
+
+  it('keeps only the blocks with a part for Leitende, and counts it as a filter', () => {
+    const withNotes = [
+      { ...entry('Ballspiele', '17:00 - 17:30'), hasLeaderSection: true },
+      { ...entry('Freies Spiel', '18:15 - 19:30'), hasLeaderSection: false },
+      // a copy from before the flag existed
+      entry('Rollenspiel', '20:00 - 20:15'),
+    ];
+    const { result } = renderHook(() => useScheduleFilters(withNotes, new Set()));
+
+    act(() => result.current.handleFiltersChange({ ...noFilters, leadersOnly: true }));
+
+    expect(titlesOf(result.current.filteredEntries)).toEqual(['Ballspiele']);
+    expect(result.current.hasActiveFilters).toBe(true);
+    expect(activeFilterCount(result.current.filters)).toBe(1);
   });
 
   it('keeps the entries that start in the chosen parts of the day', () => {

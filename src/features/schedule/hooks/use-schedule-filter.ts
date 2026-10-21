@@ -99,6 +99,9 @@ export const useScheduleFilters = (
 
       if (!filters.showLogistics && isLogistics(entry)) return false;
 
+      // read defensively: an entry restored from an older copy does not know the flag
+      if (filters.leadersOnly && entry.hasLeaderSection !== true) return false;
+
       if (filters.timesOfDay.length > 0) {
         const timeOfDay = timeOfDayOf(entry);
         if (timeOfDay === undefined || !filters.timesOfDay.includes(timeOfDay)) return false;
@@ -174,7 +177,8 @@ export const useScheduleFilters = (
       filters.selectedCategory !== undefined ||
       filters.starredOnly ||
       filters.timesOfDay.length > 0 ||
-      !filters.showLogistics
+      !filters.showLogistics ||
+      filters.leadersOnly
     );
   }, [filters]);
 

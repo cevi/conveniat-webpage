@@ -67,6 +67,16 @@ export const scheduleRouter = createTRPCRouter({
       return (await getLeaderNotesOfEntry(ctx.user, input.id, ctx.locale)) ?? null;
     }),
 
+  /**
+   * Whether the logged-in user may read the part of a block for Leitende, by the same rule as
+   * `getLeaderNotes`. The programme offers the filter "Für Leitende" to them only.
+   */
+  getLeaderAccess: publicProcedure.query(async ({ ctx }) => {
+    if (!ctx.user) return false;
+    const { isLeader } = await import('./viewer');
+    return isLeader(ctx.user);
+  }),
+
   getHelperShifts: publicProcedure.query(async ({ ctx }) => {
     const { locale, prisma, user } = ctx;
     const { getHelperShifts } = await import('./get-helper-shifts');

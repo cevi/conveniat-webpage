@@ -76,4 +76,20 @@ describe('NoProgramPlaceholder', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Anreise & Essen anzeigen' }));
     expect(onFiltersChange).toHaveBeenCalledWith(noFilters);
   });
+
+  it('says no block of the day has a part for Leitende, and shows them all again', () => {
+    const onFiltersChange = jest.fn();
+    render(
+      <NoProgramPlaceholder
+        filters={{ ...noFilters, leadersOnly: true }}
+        onFiltersChange={onFiltersChange}
+      />,
+    );
+
+    expect(
+      screen.getByText('Keine Programmpunkte mit Infos für Leitende an diesem Tag'),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Alle Programmpunkte anzeigen' }));
+    expect(onFiltersChange).toHaveBeenCalledWith(noFilters);
+  });
 });

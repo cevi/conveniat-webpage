@@ -56,7 +56,7 @@ export const getQuartiereOfViewer = async (viewer?: Viewer): Promise<ViewerQuart
  * Who gets to read what a block holds for the people running it: whoever comes to the camp to
  * lead or help, by their registration in Cevi.DB, and the editors who write it.
  */
-const isLeader = async (viewer: Viewer): Promise<boolean> => {
+export const isLeader = async (viewer: Viewer): Promise<boolean> => {
   if (hasAccessToThisUser({ user: viewer, requiredRoles: EDITOR_ROLES })) return true;
 
   const payload = await getPayload({ config });

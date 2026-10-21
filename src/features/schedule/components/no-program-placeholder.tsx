@@ -7,7 +7,16 @@ import type { FilterState } from '@/features/schedule/utils/schedule-filters';
 import { noFilters } from '@/features/schedule/utils/schedule-filters';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { CalendarX, Clock, FilterX, MapPinOff, SearchX, Star, Utensils } from 'lucide-react';
+import {
+  CalendarX,
+  Clock,
+  FilterX,
+  MapPinOff,
+  SearchX,
+  Shield,
+  Star,
+  Utensils,
+} from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
@@ -70,6 +79,21 @@ const labels = {
     en: 'Show arrival & meals',
     fr: 'Afficher arrivée & repas',
   },
+  noLeaderNotes: {
+    de: 'Keine Programmpunkte mit Infos für Leitende an diesem Tag',
+    en: 'No programme blocks with information for Leitende on this day',
+    fr: 'Aucun bloc du programme avec des infos pour les Leitende ce jour-là',
+  },
+  noLeaderNotesHelp: {
+    de: 'Material, Sicherheit und Schlechtwetter stehen bei den Programmpunkten, die sie haben.',
+    en: 'Material, safety and bad weather are listed on the blocks that have them.',
+    fr: 'Le matériel, la sécurité et le mauvais temps figurent sur les blocs qui en ont.',
+  },
+  allBlocks: {
+    de: 'Alle Programmpunkte anzeigen',
+    en: 'Show all programme blocks',
+    fr: 'Afficher tous les blocs',
+  },
   allCategories: { de: 'Alle Kategorien', en: 'All categories', fr: 'Toutes les catégories' },
   noMatches: { de: 'Keine Treffer', en: 'No matches', fr: 'Aucun résultat' },
   noMatchesHelp: {
@@ -129,6 +153,7 @@ export const NoProgramPlaceholder: React.FC<{
     filters.starredOnly,
     hasTimeOfDay,
     !filters.showLogistics,
+    filters.leadersOnly,
   ].filter(Boolean).length;
 
   const action = (label: string, next: FilterState): React.ReactNode => (
@@ -165,6 +190,17 @@ export const NoProgramPlaceholder: React.FC<{
         title={labels.noFavourites[locale]}
         description={labels.noFavouritesHelp[locale]}
         action={action(labels.showAll[locale], { ...filters, starredOnly: false })}
+      />
+    );
+  }
+
+  if (filters.leadersOnly) {
+    return (
+      <EmptyState
+        icon={Shield}
+        title={labels.noLeaderNotes[locale]}
+        description={labels.noLeaderNotesHelp[locale]}
+        action={action(labels.allBlocks[locale], { ...filters, leadersOnly: false })}
       />
     );
   }

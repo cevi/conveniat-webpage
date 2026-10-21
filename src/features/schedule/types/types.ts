@@ -39,6 +39,8 @@ export interface CampScheduleEntryFrontendType {
     | null
     | undefined;
   bring?: CampScheduleEntry['bring'] | undefined;
+  /** whether the block has a part for Leitende; the part itself stays on the server */
+  hasLeaderSection?: boolean | undefined;
   steps?: CampScheduleEntry['steps'] | undefined;
   organiser?:
     | (

@@ -21,7 +21,8 @@ import {
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Check, ListFilter, Star } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { Check, ListFilter, Shield, Star } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 const labels = {
@@ -40,6 +41,12 @@ const labels = {
     de: 'Anreise & Essen anzeigen',
     en: 'Show arrival & meals',
     fr: 'Afficher arrivée & repas',
+  },
+  leadersOnly: { de: 'Für Leitende', en: 'For Leitende', fr: 'Pour les Leitende' },
+  leadersOnlyHelp: {
+    de: 'Nur Programmpunkte mit Material, Sicherheit oder Schlechtwetter',
+    en: 'Only blocks with material, safety or bad weather notes',
+    fr: 'Seulement les blocs avec matériel, sécurité ou mauvais temps',
   },
   showLogisticsHelp: {
     de: 'Logistik-Einträge in der Zeitleiste',
@@ -67,6 +74,8 @@ interface SearchFilterBarProperties {
   isProgramme?: boolean;
   /** the control for the view, own Quartier or whole camp, repeated at the top of the filter */
   view?: React.ReactNode;
+  /** whether to offer "Für Leitende": to the people who may read the part for Leitende only */
+  canFilterForLeaders?: boolean;
   /** how many entries the list shows with the filters as they are, for the closing button */
   shownCount: number;
   /** the search button in the app header opens the search field */
@@ -122,15 +131,20 @@ const OptionPill: React.FC<{
 const SwitchRow: React.FC<{
   label: string;
   hint?: string;
+  icon?: LucideIcon;
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
-}> = ({ label, hint, checked, onCheckedChange }) => {
+}> = ({ label, hint, icon: Icon, checked, onCheckedChange }) => {
   const id = useId();
   return (
     <div className="flex min-h-14 items-center gap-3 py-2">
       <div className="min-w-0 flex-1">
         {/* the label names the switch, and a tap on it flips the switch too */}
-        <label htmlFor={id} className="block cursor-pointer text-[15px] text-green-900">
+        <label
+          htmlFor={id}
+          className="flex cursor-pointer items-center gap-2 text-[15px] text-green-900"
+        >
+          {Icon !== undefined && <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />}
           {label}
         </label>
         {hint !== undefined && (
@@ -162,6 +176,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   availableCategories,
   isProgramme = true,
   view,
+  canFilterForLeaders = false,
   shownCount,
   isSearchOpen,
   className,
@@ -328,6 +343,15 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
               checked={filters.showLogistics}
               onCheckedChange={(showLogistics) => update({ showLogistics })}
             />
+            {canFilterForLeaders && (
+              <SwitchRow
+                label={labels.leadersOnly[locale]}
+                hint={labels.leadersOnlyHelp[locale]}
+                icon={Shield}
+                checked={filters.leadersOnly}
+                onCheckedChange={(leadersOnly) => update({ leadersOnly })}
+              />
+            )}
           </div>
         )}
 
