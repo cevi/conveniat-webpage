@@ -18,13 +18,19 @@ const buttonVariants = cva(
           'border border-gray-200 bg-white shadow-xs hover:bg-neutral-100 hover:text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-800 dark:hover:text-neutral-50',
         secondary:
           'rounded-sm border-2 border-solid border-green-600 bg-green-100 px-4 py-2 font-bold text-conveniat-green outline-hidden hover:bg-neutral-100/80',
+        // the website's; in the app its neutral grey hover would be a colour of no role, see `plain`
         ghost:
-          'hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-50',
+          'site:hover:bg-neutral-100 site:hover:text-neutral-900 site:dark:hover:bg-neutral-800 site:dark:hover:text-neutral-50',
         link: 'text-neutral-900 underline-offset-4 hover:underline dark:text-neutral-50',
         // the app's design language: one primary action in brand green, the others quiet
         primary: 'bg-conveniat-green font-semibold text-white hover:bg-green-700',
         quiet: 'bg-quiet font-semibold text-green-900 hover:bg-chip',
         outlined: 'border border-rail bg-white font-semibold text-green-900 hover:bg-quiet',
+        /** a button without a surface, like an icon in a row: it shows its surface on hover */
+        plain: 'text-green-700 hover:bg-quiet hover:text-green-900',
+        /** a destructive action: `outlined` in red; it asks first or can be undone right after */
+        danger:
+          'border border-danger-line bg-white font-semibold text-danger-text hover:bg-danger-soft',
       },
       size: {
         default: 'h-9 px-4 py-2',

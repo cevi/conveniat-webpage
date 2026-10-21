@@ -47,10 +47,10 @@ export const ChatLinkButton: React.FC<ChatLinkButtonProperties> = ({
 
   return (
     <Button
-      variant="outline"
-      size="sm"
+      variant="outlined"
+      size="touch"
       className={cn(
-        'h-9 gap-2 transition-all duration-200 active:scale-95',
+        'transition-all duration-200 active:scale-95',
         isBusy && 'opacity-80',
         className,
       )}

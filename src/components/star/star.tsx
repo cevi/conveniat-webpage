@@ -41,7 +41,7 @@ export const StarButton: React.FC<{
 
   return (
     <Button
-      variant="ghost"
+      variant="plain"
       size="icon"
       onClick={(event) => {
         event.preventDefault();
@@ -54,7 +54,7 @@ export const StarButton: React.FC<{
       aria-pressed={isStared}
       className={cn(
         'h-11 w-11 shrink-0 rounded-xl',
-        isLocked ? 'cursor-default opacity-80' : 'hover:bg-green-50',
+        isLocked && 'cursor-default opacity-80',
         className,
       )}
       disabled={isLocked}
