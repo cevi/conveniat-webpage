@@ -31,8 +31,10 @@ export const ShareLinkButton: React.FC<{
   locale: Locale;
   /** a round button on its own, as over the map of a detail page: no "Link kopiert" text */
   compact?: boolean;
+  /** says "Link teilen" next to the icon, for a row of labelled actions */
+  withLabel?: boolean;
   className?: string;
-}> = ({ url, title, locale, compact = false, className }) => {
+}> = ({ url, title, locale, compact = false, withLabel = false, className }) => {
   const [hasCopied, setHasCopied] = useState(false);
 
   const share = async (): Promise<void> => {
@@ -55,12 +57,16 @@ export const ShareLinkButton: React.FC<{
     setTimeout(() => setHasCopied(false), COPIED_FEEDBACK_MS);
   };
 
+  const currentLabel = hasCopied ? copiedLabel[locale] : shareLabel[locale];
+  // a labelled button is named by its text; an icon alone needs the name spelled out
+  const iconOnlyLabel = withLabel ? undefined : currentLabel;
+
   return (
     <button
       type="button"
       onClick={() => void share()}
-      aria-label={hasCopied ? copiedLabel[locale] : shareLabel[locale]}
-      title={hasCopied ? copiedLabel[locale] : shareLabel[locale]}
+      aria-label={iconOnlyLabel}
+      title={currentLabel}
       className={cn(
         'flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900',
         className,
@@ -70,11 +76,16 @@ export const ShareLinkButton: React.FC<{
         <>
           <Check className="h-5 w-5 text-green-600" />
           {!compact && (
-            <span className="text-xs font-medium text-green-600">{copiedLabel[locale]}</span>
+            <span className={cn(withLabel ? '' : 'text-xs font-medium', 'text-green-700')}>
+              {copiedLabel[locale]}
+            </span>
           )}
         </>
       ) : (
-        <Share2 className="h-5 w-5" />
+        <>
+          <Share2 className="h-5 w-5" aria-hidden="true" />
+          {withLabel && <span>{shareLabel[locale]}</span>}
+        </>
       )}
     </button>
   );

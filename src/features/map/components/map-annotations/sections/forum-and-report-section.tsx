@@ -1,11 +1,14 @@
 'use client';
 
+import { IconTile } from '@/components/ui/icon-tile';
+import { SectionLabel } from '@/components/ui/section-label';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
-import { Flag, Loader2, LogIn, MessageCircleQuestion, WifiOff } from 'lucide-react';
+import { cn } from '@/utils/tailwindcss-override';
+import { ChevronRight, Flag, Loader2, LogIn, WifiOff } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
@@ -79,18 +82,10 @@ export const AnnotationForumAndReportSection: React.FC<{
     },
   });
 
-  const getButtonIcon = (): React.ReactNode => {
-    if (isPending || isRedirecting) {
-      return <Loader2 className="animate-spin text-orange-600" size={16} />;
-    }
-    if (isOnline && isGuest) {
-      return <LogIn size={16} className="text-orange-600" />;
-    }
-    if (isOnline) {
-      return <Flag size={16} className="text-orange-600" />;
-    }
-    return <WifiOff size={16} className="text-gray-500" />;
-  };
+  let icon = Flag;
+  if (isPending || isRedirecting) icon = Loader2;
+  else if (!isOnline) icon = WifiOff;
+  else if (isGuest) icon = LogIn;
 
   let buttonText = reportIssueText;
   let buttonDescription = reportIssueDescription;
@@ -103,34 +98,41 @@ export const AnnotationForumAndReportSection: React.FC<{
   }
 
   return (
-    <div className="p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <MessageCircleQuestion size={18} className="text-conveniat-green" />
-        <h3 className="text-conveniat-green font-semibold">conveniat27 Forum</h3>
-      </div>
-      <div className="space-y-2">
-        <button
-          onClick={() => {
-            if (isGuest) {
-              handleLogin('/entrypoint');
-              return;
-            }
-            createReport({ location: coordinates });
-          }}
-          disabled={!isOnline || isPending || isRedirecting || sessionStatus === 'loading'}
-          className="flex w-full items-center gap-3 rounded-lg border border-gray-200 p-3 text-left hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {getButtonIcon()}
-          <div>
-            <div className="font-medium text-gray-900">{buttonText[locale]}</div>
-            <div className="text-sm text-gray-600">{buttonDescription[locale]}</div>
-          </div>
-        </button>
-        {/* the server words the rate limit in the user's language, with what to do instead */}
-        {reportError?.data?.code === 'TOO_MANY_REQUESTS' && (
-          <p className="text-sm text-red-600">{reportError.message}</p>
-        )}
-      </div>
-    </div>
+    <section className="space-y-2 pt-3 pb-4">
+      <SectionLabel as="h3">conveniat27 Forum</SectionLabel>
+      <button
+        type="button"
+        onClick={() => {
+          if (isGuest) {
+            handleLogin('/entrypoint');
+            return;
+          }
+          createReport({ location: coordinates });
+        }}
+        disabled={!isOnline || isPending || isRedirecting || sessionStatus === 'loading'}
+        aria-busy={isPending || isRedirecting}
+        className="border-line flex min-h-[60px] w-full cursor-pointer items-center gap-3 rounded-[14px] border bg-white px-3.5 py-2.5 text-left transition-colors hover:border-green-300 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <IconTile
+          icon={icon}
+          className={cn((isPending || isRedirecting) && '[&_svg]:animate-spin')}
+        />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] leading-5 font-semibold text-green-900">
+            {buttonText[locale]}
+          </span>
+          <span className="block text-[13px] leading-[18px] text-green-700">
+            {buttonDescription[locale]}
+          </span>
+        </span>
+        <ChevronRight className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />
+      </button>
+      {/* the server words the rate limit in the user's language, with what to do instead */}
+      {reportError?.data?.code === 'TOO_MANY_REQUESTS' && (
+        <p role="alert" className="bg-live-soft text-live-text rounded-xl px-3 py-2 text-sm">
+          {reportError.message}
+        </p>
+      )}
+    </section>
   );
 };
