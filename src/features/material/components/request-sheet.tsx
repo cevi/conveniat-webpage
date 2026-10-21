@@ -6,7 +6,6 @@ import { format, labels } from '@/features/material/components/material-labels';
 import {
   DateInput,
   Field,
-  focusRing,
   inputClass,
   MaterialButton,
   MaterialSheet,
@@ -183,7 +182,6 @@ export const RequestSheet: React.FC<{
       onClick={() => setEnd(value)}
       className={cn(
         'h-11 shrink-0 cursor-pointer rounded-full border px-4 text-sm font-semibold',
-        focusRing,
         end === value
           ? 'border-conveniat-green bg-conveniat-green text-white'
           : 'border-rail bg-white text-green-900',
@@ -253,7 +251,6 @@ export const RequestSheet: React.FC<{
                   onClick={() => onLinesChange(lines.filter((entry) => entry !== line))}
                   className={cn(
                     'hover:bg-quiet flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-green-500 hover:text-green-900',
-                    focusRing,
                   )}
                 >
                   <Trash2 className="size-4" aria-hidden />

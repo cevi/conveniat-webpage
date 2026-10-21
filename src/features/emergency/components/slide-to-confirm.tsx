@@ -228,7 +228,7 @@ export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
       <div
         ref={trackReference}
         className={cn(
-          'relative flex h-16 cursor-grab items-center rounded-full transition-all duration-500 focus-visible:ring-4 focus-visible:ring-red-300 focus-visible:outline-none',
+          'relative flex h-16 cursor-grab items-center rounded-full transition-all duration-500',
           {
             'bg-conveniat-green': isConfirmed,
             'bg-red-600 hover:bg-red-700': !isConfirmed,

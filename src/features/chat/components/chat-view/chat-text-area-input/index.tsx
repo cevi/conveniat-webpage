@@ -442,9 +442,9 @@ export const ChatTextAreaInput: React.FC = () => {
                   }}
                   disabled={isUploading}
                   aria-label={removeAttachmentText[locale]}
-                  className="absolute -top-3.5 -right-3.5 flex h-11 w-11 cursor-pointer items-center justify-center"
+                  className="group absolute -top-3.5 -right-3.5 flex h-11 w-11 cursor-pointer items-center justify-center focus-visible:outline-none"
                 >
-                  <span className="bg-heading flex h-6 w-6 items-center justify-center rounded-full text-white ring-2 ring-white">
+                  <span className="bg-heading group-focus-visible:focus-ring flex h-6 w-6 items-center justify-center rounded-full text-white ring-2 ring-white">
                     <X className="h-3.5 w-3.5" aria-hidden="true" />
                   </span>
                 </button>
@@ -489,7 +489,7 @@ export const ChatTextAreaInput: React.FC = () => {
               // px, not rem: the root font is larger on desktop, and the line has to match the
               // button, which is 44px everywhere
               className={cn(
-                'block min-w-0 flex-1 resize-none [scrollbar-width:thin] border-0 bg-transparent py-[9px] pr-[14px] text-[16px] leading-[24px] text-green-900 placeholder:truncate placeholder:text-green-500 focus:ring-0 focus:outline-none',
+                'block min-w-0 flex-1 resize-none [scrollbar-width:thin] border-0 bg-transparent py-[9px] pr-[14px] text-[16px] leading-[24px] text-green-900 outline-hidden placeholder:truncate placeholder:text-green-500',
                 canUploadPictures ? 'pl-0' : 'pl-[14px]',
               )}
               rows={1}

@@ -40,7 +40,7 @@ export const ChatFilterChips: React.FC<{
         >
           <span
             className={cn(
-              'group-focus-visible:ring-conveniat-green flex h-8 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold group-focus-visible:ring-2 group-focus-visible:ring-offset-1',
+              'group-focus-visible:focus-ring flex h-8 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold',
               isChosen
                 ? 'bg-conveniat-green border-transparent text-white'
                 : 'border-rail bg-white text-green-900',

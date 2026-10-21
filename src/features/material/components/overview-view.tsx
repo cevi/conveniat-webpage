@@ -14,7 +14,6 @@ import { MaterialQueryError } from '@/features/material/components/material-quer
 import { chip, chipTone } from '@/features/material/components/material-status-badge';
 import {
   EmptyState,
-  focusRing,
   LoadingState,
   MaterialButton,
   Panel,
@@ -286,8 +285,7 @@ const AttentionRow: React.FC<{ entry: AttentionEntry }> = ({ entry }) => (
       href={entry.href}
       className={cn(
         'hover:bg-quiet flex min-w-0 flex-1 items-center gap-3 py-3 pl-4',
-        focusRing,
-        'focus-visible:ring-inset',
+        'focus-visible:focus-ring-inset',
       )}
     >
       {entry.icon}
@@ -359,7 +357,7 @@ const TeamOverview: React.FC = () => {
       <div className="grid grid-cols-2 gap-3">
         <Link
           href="/app/material/ausgeben"
-          className={cn(buttonVariants({ variant: 'primary', size: 'touch' }), focusRing)}
+          className={buttonVariants({ variant: 'primary', size: 'touch' })}
         >
           <ArrowUpRight aria-hidden />
           {text.handOut[locale]}
@@ -371,7 +369,7 @@ const TeamOverview: React.FC = () => {
         </Link>
         <Link
           href="/app/material/zurueck"
-          className={cn(buttonVariants({ variant: 'outlined', size: 'touch' }), focusRing)}
+          className={buttonVariants({ variant: 'outlined', size: 'touch' })}
         >
           <CornerDownLeft aria-hidden />
           {text.takeBack[locale]}

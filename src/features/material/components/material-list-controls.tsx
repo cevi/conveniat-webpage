@@ -1,11 +1,7 @@
 'use client';
 
 import { format, labels } from '@/features/material/components/material-labels';
-import {
-  focusRing,
-  MaterialButton,
-  NativeSelect,
-} from '@/features/material/components/material-ui';
+import { MaterialButton, NativeSelect } from '@/features/material/components/material-ui';
 import type { Pagination } from '@/features/material/hooks/use-list-state';
 import { useMaterialLocale } from '@/features/material/hooks/use-material';
 import { PAGE_SIZES, pageLinks, type PageSize } from '@/features/material/utils/list-view';
@@ -15,7 +11,6 @@ import type React from 'react';
 
 const pageButton = cn(
   'inline-flex h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg px-2 text-sm font-semibold tabular-nums disabled:cursor-not-allowed disabled:opacity-40',
-  focusRing,
 );
 
 /**

@@ -128,7 +128,9 @@ export const ParticipantsList: React.FC<ParticipantsListProperties> = ({
   actionFor,
   locale,
 }) => {
-  const rowClassName = 'flex min-h-[64px] w-full items-center gap-3 px-4 py-2.5 text-left';
+  // a row fills its card, which clips a ring outside it
+  const rowClassName =
+    'flex min-h-[64px] w-full items-center gap-3 px-4 py-2.5 text-left focus-visible:focus-ring-inset';
   return (
     <section>
       <SectionLabel className="mb-2">{participantsText(participants.length, locale)}</SectionLabel>

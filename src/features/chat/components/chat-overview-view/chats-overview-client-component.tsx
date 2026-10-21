@@ -342,7 +342,7 @@ export const ChatsOverviewClientComponent: React.FC<{
       {createChatsEnabled === true && (
         <Link
           href="/app/chat/new"
-          className="bg-conveniat-green fixed right-4 bottom-[calc(5rem+16px)] z-30 flex h-12 items-center gap-2 rounded-2xl px-5 text-[15px] font-semibold text-white shadow-lg hover:bg-green-700 focus-visible:ring-2 focus-visible:ring-green-900 focus-visible:ring-offset-2 focus-visible:outline-none"
+          className="bg-conveniat-green fixed right-4 bottom-[calc(5rem+16px)] z-30 flex h-12 items-center gap-2 rounded-2xl px-5 text-[15px] font-semibold text-white shadow-lg hover:bg-green-700"
         >
           <MessageSquarePlus className="h-5 w-5" aria-hidden="true" />
           {newChatLabel[locale]}

@@ -21,3 +21,17 @@
   border-radius: 9999px;
   box-shadow: 0 2px 10px rgb(0 0 0 / 0.15);
 }
+
+/* MapLibre's controls focus with a blue glow and take the outline away; they get the app's focus
+   ring instead (see globals.scss), inside the button because the round group clips anything
+   outside it */
+.maplibregl-ctrl-group button:focus:focus-visible {
+  box-shadow: none;
+  outline: 2px solid #47564c;
+  outline-offset: -2px;
+}
+
+/* the map itself fills its box, which clips a ring outside it */
+.maplibregl-canvas:focus-visible {
+  outline-offset: -2px;
+}

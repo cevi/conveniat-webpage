@@ -67,7 +67,7 @@ export const MaterialNav: React.FC<{ inAppDesign: boolean }> = ({ inAppDesign })
                 className={cn(
                   // the underline sits on the nav's divider line
                   'relative -mb-px flex h-11 min-w-0 items-center justify-center border-b-2 px-0.5 text-xs font-semibold tracking-tight min-[360px]:px-1 min-[360px]:text-sm min-[360px]:tracking-normal',
-                  'focus-visible:ring-conveniat-green focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset',
+                  'focus-visible:focus-ring-inset',
                   active
                     ? 'border-conveniat-green text-green-900'
                     : 'border-transparent text-green-700 hover:text-green-900',

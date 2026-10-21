@@ -86,11 +86,12 @@ export const ShiftCard: React.FC<{
     >
       <div
         className={cn(
-          'mb-3.5 overflow-hidden rounded-[14px] border',
+          // the link fills the card, which clips it: the card shows its focus
+          'has-[>a:focus-visible]:focus-ring mb-3.5 overflow-hidden rounded-[14px] border',
           isPast ? 'bg-quiet border-transparent' : 'border-line bg-white',
         )}
       >
-        <Link href={href} className="block px-3.5 py-3">
+        <Link href={href} className="block px-3.5 py-3 focus-visible:outline-none">
           {/* the pill sits on the line above the title, which keeps its full width on a phone */}
           {(accent.label !== '' || isEnrolled) && (
             <div className="flex min-h-6 items-center justify-between gap-2">

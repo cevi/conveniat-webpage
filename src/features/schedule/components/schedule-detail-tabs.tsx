@@ -29,7 +29,8 @@ export const DetailTabBar: React.FC<{
         aria-selected={tab === active}
         onClick={() => onSelect(tab)}
         className={cn(
-          'flex h-11 shrink-0 cursor-pointer items-center gap-1 border-b-2 text-sm font-semibold',
+          // the tab row scrolls, which clips a ring outside a tab
+          'focus-visible:focus-ring-inset flex h-11 shrink-0 cursor-pointer items-center gap-1 border-b-2 text-sm font-semibold',
           tab === active
             ? 'border-conveniat-green text-green-900'
             : 'border-transparent text-green-700',

@@ -14,7 +14,6 @@ import { MaterialQueryError } from '@/features/material/components/material-quer
 import { MaterialStockBar } from '@/features/material/components/material-stock-bar';
 import {
   EmptyState,
-  focusRing,
   LoadingState,
   MaterialButton,
   NativeSelect,
@@ -311,7 +310,6 @@ const CatalogItemView: React.FC<{
         onClick={onBack}
         className={cn(
           'inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-lg text-sm font-semibold text-green-700 hover:text-green-900',
-          focusRing,
         )}
       >
         <ArrowLeft className="size-4" aria-hidden />

@@ -250,7 +250,7 @@ export const ChatPreview: React.FC<{
       href={chatDetailLink}
       // an emergency chat is the one row that may be red, so it stands out of the list
       className={cn(
-        'hover:bg-quiet block w-full bg-white select-none',
+        'hover:bg-quiet focus-visible:focus-ring-inset block w-full bg-white select-none',
         hasUnread && 'bg-tint',
         isEmergency && 'border-l-4 border-l-red-600 bg-red-50 hover:bg-red-100',
       )}

@@ -365,7 +365,7 @@ export const CreateNewGroupPage: React.FC = () => {
                       disabled={!isChosen && isAtLimit}
                       onClick={() => toggle(contact)}
                       className={cn(
-                        'flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50',
+                        'focus-visible:focus-ring-inset flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50',
                         isChosen ? 'bg-tint' : 'hover:bg-quiet',
                       )}
                     >

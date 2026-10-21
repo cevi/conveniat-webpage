@@ -13,7 +13,6 @@ import { format, formatDay, labels } from '@/features/material/components/materi
 import { MaterialQueryError } from '@/features/material/components/material-query-error';
 import {
   EmptyState,
-  focusRing,
   inputClass,
   LoadingState,
   MaterialButton,
@@ -408,7 +407,6 @@ const PreparedPickups: React.FC<{ onAdjust: (group: MaterialHolderGroup) => void
             <summary
               className={cn(
                 'flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-lg px-1 text-sm font-semibold text-green-700 [&::-webkit-details-marker]:hidden',
-                focusRing,
               )}
             >
               <ChevronRight
@@ -448,8 +446,7 @@ const PreparedPickups: React.FC<{ onAdjust: (group: MaterialHolderGroup) => void
 
 const pickButton = cn(
   'flex min-h-11 w-full cursor-pointer items-center gap-3 px-4 py-2 text-left text-[15px] text-green-900 hover:bg-quiet',
-  focusRing,
-  'focus-visible:ring-inset',
+  'focus-visible:focus-ring-inset',
 );
 
 /** "A" for "Aathal", and for "Äsch" too, so the umlauts sort in with their letter. */

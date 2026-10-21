@@ -59,7 +59,7 @@ const text = {
 
 /** An action at the head of the list: an icon tile and its label, 56px high. */
 const actionRowClassName =
-  'hover:bg-quiet flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2 text-left text-[15px] font-semibold text-green-900';
+  'hover:bg-quiet flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2 text-left text-[15px] font-semibold text-green-900 focus-visible:focus-ring-inset';
 
 /**
  * Starting a chat: a new group, scanning someone's code, or one of the contacts, listed by
@@ -202,7 +202,7 @@ export const CreateNewChatPage: React.FC = () => {
                       aria-busy={openingUserId === contact.userId}
                       // one chat opens at a time; the row that opens shows a spinner and stays still
                       disabled={openingUserId !== undefined && openingUserId !== contact.userId}
-                      className="hover:bg-quiet flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left disabled:cursor-default"
+                      className="hover:bg-quiet focus-visible:focus-ring-inset flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left disabled:cursor-default"
                     >
                       <ContactRowContent contact={contact} />
                       {openingUserId === contact.userId && (

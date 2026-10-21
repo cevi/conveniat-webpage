@@ -1,7 +1,7 @@
 'use client';
 
 import { HolderAvatar } from '@/features/material/components/counter-ui';
-import { Field, focusRing, inputClass } from '@/features/material/components/material-ui';
+import { Field, inputClass } from '@/features/material/components/material-ui';
 import { useDebouncedValue } from '@/features/material/hooks/use-debounced-value';
 import { materialQueryOptions } from '@/features/material/hooks/use-material';
 import {
@@ -39,8 +39,7 @@ const SuggestionRow: React.FC<{ person: Suggestion; onPick: (name: string) => vo
         onClick={() => onPick(person.name)}
         className={cn(
           'hover:bg-quiet flex min-h-12 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left',
-          focusRing,
-          'focus-visible:ring-inset',
+          'focus-visible:focus-ring-inset',
         )}
       >
         <HolderAvatar name={person.name} className="size-9 text-xs" />

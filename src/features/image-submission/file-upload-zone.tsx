@@ -41,7 +41,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProperties & { compact?: boo
         />
         <label
           htmlFor="images-compact"
-          className="bg-quiet hover:bg-chip peer-focus-visible:ring-conveniat-green flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl text-[15px] font-semibold text-green-900 transition-colors peer-focus-visible:ring-2"
+          className="bg-quiet hover:bg-chip peer-focus-visible:focus-ring flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl text-[15px] font-semibold text-green-900 transition-colors"
         >
           <LucideImageIcon className="h-5 w-5" aria-hidden="true" />
           <span>{selectImages[locale]}</span>
@@ -62,7 +62,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProperties & { compact?: boo
       />
       <label
         htmlFor="images"
-        className="border-rail hover:bg-quiet peer-focus-visible:ring-conveniat-green flex cursor-pointer flex-col items-center gap-3 rounded-[14px] border-2 border-dashed bg-white px-6 py-10 text-center transition-colors peer-focus-visible:ring-2"
+        className="border-rail hover:bg-quiet peer-focus-visible:focus-ring flex cursor-pointer flex-col items-center gap-3 rounded-[14px] border-2 border-dashed bg-white px-6 py-10 text-center transition-colors"
       >
         <IconTile icon={LucideImageIcon} size="lg" />
         <span className="font-heading text-heading text-lg font-bold">

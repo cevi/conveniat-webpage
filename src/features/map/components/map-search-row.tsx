@@ -1,5 +1,6 @@
 'use client';
 
+import { fieldFocusRingClassName } from '@/components/ui/field';
 import { useFitToSearchResults } from '@/features/map/hooks/use-fit-to-search-results';
 import { useLocateControl, useLocateOnArrival } from '@/features/map/hooks/use-locate-control';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
@@ -87,6 +88,7 @@ export const MapSearchRow: React.FC<{
           className={cn(
             'flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-full pl-4',
             floatingClassName,
+            fieldFocusRingClassName,
           )}
         >
           <Search className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />

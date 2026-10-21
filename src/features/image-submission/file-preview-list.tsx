@@ -89,7 +89,7 @@ const FilePreviewItem: React.FC<{
       <button
         type="button"
         onClick={() => onRemove(index)}
-        className="hover:bg-quiet focus-visible:ring-conveniat-green flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700 transition-colors focus:outline-none focus-visible:ring-2"
+        className="hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700 transition-colors"
         aria-label={`${removeLabel[locale]}: ${file.name}`}
       >
         <Trash2 className="h-5 w-5" aria-hidden="true" />

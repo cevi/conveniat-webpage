@@ -49,7 +49,7 @@ export const MaterialSheet: React.FC<{
           </div>
           {children}
           <DialogPrimitive.Close
-            className="focus-visible:ring-conveniat-green hover:bg-quiet absolute top-3 right-3 flex size-11 cursor-pointer items-center justify-center rounded-lg text-green-500 focus-visible:ring-2 focus-visible:outline-none"
+            className="hover:bg-quiet absolute top-3 right-3 flex size-11 cursor-pointer items-center justify-center rounded-lg text-green-500"
             aria-label={labels.close[locale]}
           >
             <X className="size-5" aria-hidden />
@@ -118,10 +118,6 @@ export const Field: React.FC<{
 /** Material's fields are the app's form fields, see `field.ts`. */
 export const inputClass = textInputClassName;
 
-/** The focus ring of everything tappable that is not a text field. */
-export const focusRing =
-  'focus-visible:ring-2 focus-visible:ring-conveniat-green focus-visible:ring-offset-1 focus-visible:outline-none';
-
 /** Opens the browser's own date picker where it can, which a covered input does not do alone. */
 const showPicker = (input: HTMLInputElement): void => {
   try {
@@ -174,7 +170,7 @@ export const DateInput: React.FC<{
         aria-hidden
         className={cn(
           inputClass,
-          'peer-focus-visible:border-conveniat-green peer-focus-visible:ring-conveniat-green/30 flex items-center gap-2 peer-focus-visible:ring-2',
+          'peer-focus-visible:ring-conveniat-green flex items-center gap-2 peer-focus-visible:ring-2',
           disabled && 'bg-quiet text-green-500',
           showClear && 'pr-12',
         )}
@@ -191,7 +187,6 @@ export const DateInput: React.FC<{
           onClick={() => onChange('')}
           className={cn(
             'absolute top-0 right-0 z-[2] flex size-11 cursor-pointer items-center justify-center rounded-lg text-green-500 hover:text-green-900',
-            focusRing,
           )}
         >
           <X className="size-4" aria-hidden />
@@ -275,7 +270,6 @@ export const MaterialButton: React.FC<
     className={cn(
       buttonVariants({ variant, size: 'touch' }),
       'shrink-0 disabled:cursor-not-allowed',
-      focusRing,
       className,
     )}
     disabled={loading || disabled}

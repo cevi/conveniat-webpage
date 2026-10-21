@@ -13,7 +13,6 @@ import { MaterialQrCode } from '@/features/material/components/material-qr-code'
 import { MaterialQueryError } from '@/features/material/components/material-query-error';
 import {
   EmptyState,
-  focusRing,
   inputClass,
   LoadingState,
   MaterialButton,
@@ -182,7 +181,6 @@ const ReturnLine: React.FC<{
           aria-label={`${text.loanLabel[locale]} #${loan.number}`}
           className={cn(
             'hover:bg-quiet flex h-11 shrink-0 cursor-pointer items-center gap-1 rounded-lg px-2 text-xs text-green-500 tabular-nums',
-            focusRing,
           )}
         >
           <QrCode className="size-4" aria-hidden />#{loan.number}
@@ -203,7 +201,6 @@ const ReturnLine: React.FC<{
                   onClick={() => onChange(withCondition(line, condition))}
                   className={cn(
                     'h-11 min-w-14 cursor-pointer rounded-xl border px-2.5 text-sm font-semibold',
-                    focusRing,
                     line.condition === condition
                       ? conditionTone[condition]
                       : 'border-rail bg-white text-green-700',

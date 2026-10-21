@@ -12,7 +12,6 @@ import { format, formatDay, labels } from '@/features/material/components/materi
 import {
   DateInput,
   Field,
-  focusRing,
   inputClass,
   MaterialButton,
   NativeSelect,
@@ -255,8 +254,7 @@ const ItemSearch: React.FC<{
                   onClick={() => add(item)}
                   className={cn(
                     'hover:bg-quiet flex min-h-12 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left',
-                    focusRing,
-                    'focus-visible:ring-inset',
+                    'focus-visible:focus-ring-inset',
                   )}
                 >
                   <MaterialItemImage name={item.name} imageUrl={item.imageUrl} className="size-9" />
@@ -354,7 +352,6 @@ const BasketLineRow: React.FC<{
           aria-label={`${labels.remove[locale]}: ${name}`}
           className={cn(
             'hover:bg-quiet flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-green-500 hover:text-green-900',
-            focusRing,
           )}
         >
           <Trash2 className="size-4" aria-hidden />
@@ -519,7 +516,6 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
       onClick={() => setEnd(value)}
       className={cn(
         'h-11 shrink-0 cursor-pointer rounded-full border px-4 text-sm font-semibold',
-        focusRing,
         end === value
           ? 'border-conveniat-green bg-conveniat-green text-white'
           : 'border-rail bg-white text-green-900',

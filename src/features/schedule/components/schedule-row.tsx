@@ -100,7 +100,8 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
     >
       <div
         className={cn(
-          'relative mb-3.5 overflow-hidden rounded-[14px] border',
+          // the link fills the card, which clips it: the card shows its focus
+          'has-[>a:focus-visible]:focus-ring relative mb-3.5 overflow-hidden rounded-[14px] border',
           runningLabel === undefined ? 'border-line' : 'border-live-line',
           isPast ? 'bg-quiet border-transparent' : 'bg-white',
         )}
@@ -108,7 +109,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
         <Link
           href={hrefOf(primary)}
           onClick={saveScrollPosition}
-          className="block py-3 pr-12 pl-3.5"
+          className="block py-3 pr-12 pl-3.5 focus-visible:outline-none"
         >
           {eyebrow.length > 0 && (
             <div className={cn('text-xs font-semibold', accent.text)}>{eyebrow.join(' · ')}</div>

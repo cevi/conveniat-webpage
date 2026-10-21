@@ -4,7 +4,7 @@ import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { SectionLabel } from '@/components/ui/section-label';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { format, labels } from '@/features/material/components/material-labels';
-import { focusRing, MaterialSheet, NumberInput } from '@/features/material/components/material-ui';
+import { MaterialSheet, NumberInput } from '@/features/material/components/material-ui';
 import { useMaterialLocale } from '@/features/material/hooks/use-material';
 import { useQrScanner } from '@/features/material/hooks/use-qr-scanner';
 import { stepQuantity } from '@/features/material/utils/basket';
@@ -128,7 +128,6 @@ export const Stepper: React.FC<{
   const up = stepQuantity(value, step, 1);
   const button = cn(
     'flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-rail bg-white text-green-900 hover:bg-quiet disabled:cursor-not-allowed disabled:opacity-40',
-    focusRing,
   );
   return (
     <div className="flex shrink-0 items-center gap-1" role="group" aria-label={label}>
@@ -224,7 +223,6 @@ export const SearchField: React.FC<{
             onClick={() => setScanning(true)}
             className={cn(
               'bg-conveniat-green flex h-[44px] w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-[12px] text-white',
-              focusRing,
             )}
           >
             <ScanLine className="size-5" aria-hidden />
@@ -294,7 +292,6 @@ export const FilterChip: React.FC<{
     onClick={onClick}
     className={cn(
       'inline-flex h-11 max-w-full cursor-pointer items-center gap-1.5 rounded-full border px-4 text-sm font-semibold [&_svg]:size-4',
-      focusRing,
       active
         ? 'border-conveniat-green bg-conveniat-green text-white'
         : 'border-rail bg-white text-green-900',

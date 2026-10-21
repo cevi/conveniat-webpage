@@ -13,7 +13,6 @@ import { MaterialQueryError } from '@/features/material/components/material-quer
 import { chip, chipTone } from '@/features/material/components/material-status-badge';
 import {
   EmptyState,
-  focusRing,
   LoadingState,
   MaterialButton,
   Panel,
@@ -213,8 +212,7 @@ const DueReturns: React.FC<{ onOpen: (holder: LoanHolder) => void }> = ({ onOpen
 
 const rowButton = cn(
   'flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2 text-left hover:bg-quiet',
-  focusRing,
-  'focus-visible:ring-inset',
+  'focus-visible:focus-ring-inset',
 );
 
 /** Everybody with material out, found by name, or a loan by the number on its label. */

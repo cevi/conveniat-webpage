@@ -49,7 +49,7 @@ export const ItemRow: React.FC<{
   <li
     className={cn(
       'border-line hover:bg-quiet relative flex gap-3 border-b px-4 py-3 @xl:odd:border-r',
-      'has-[a:focus-visible]:ring-conveniat-green has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-inset',
+      'has-[a:focus-visible]:focus-ring-inset',
     )}
   >
     <MaterialItemImage name={item.name} imageUrl={item.imageUrl} className="size-14" />

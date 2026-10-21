@@ -144,7 +144,7 @@ export const LeaveChatDialog: React.FC<{
 
 /** A row of the actions card at the foot of the chat details. */
 export const detailsActionRowClassName =
-  'flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left hover:bg-page disabled:cursor-not-allowed disabled:opacity-60';
+  'flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left hover:bg-page disabled:cursor-not-allowed disabled:opacity-60 focus-visible:focus-ring-inset';
 
 /**
  * Lets any member of a group chat leave it, whatever their permission: a neutral row, as

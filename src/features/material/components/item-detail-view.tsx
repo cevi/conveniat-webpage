@@ -16,7 +16,6 @@ import { MaterialStockBar, stockTone } from '@/features/material/components/mate
 import {
   EmptyState,
   Field,
-  focusRing,
   inputClass,
   LoadingState,
   MaterialButton,
@@ -192,7 +191,6 @@ const ReportDamageForm: React.FC<{
               onClick={() => setCondition(option)}
               className={cn(
                 'min-h-11 cursor-pointer rounded-lg border-2 px-1 py-1 text-sm leading-tight font-semibold break-words hyphens-auto',
-                focusRing,
                 condition === option
                   ? 'border-conveniat-green bg-conveniat-green/10 text-green-900'
                   : 'border-line text-green-700',
@@ -321,8 +319,7 @@ const WhereIsIt: React.FC<{ item: MaterialItemDetail }> = ({ item }) => {
                     href={`/app/material/zurueck?${holderSearch(group.holder)}`}
                     className={cn(
                       'hover:bg-quiet flex items-center gap-3 px-4 py-3',
-                      focusRing,
-                      'focus-visible:ring-inset',
+                      'focus-visible:focus-ring-inset',
                     )}
                   >
                     {content}
@@ -372,7 +369,6 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
         href="/app/material/inventar"
         className={cn(
           'inline-flex min-h-11 items-center gap-1 rounded-lg text-sm font-semibold text-green-700 hover:text-green-900',
-          focusRing,
         )}
       >
         <ArrowLeft className="size-4" aria-hidden />

@@ -269,7 +269,7 @@ export const ProfileAvatar: React.FC<{
               role="group"
               aria-label={labels.stage[locale]}
               {...framing.stageHandlers}
-              className="focus-visible:ring-conveniat-green relative mx-auto cursor-grab touch-none overflow-hidden rounded-[14px] bg-green-900 select-none focus-visible:ring-2 focus-visible:outline-hidden active:cursor-grabbing"
+              className="relative mx-auto cursor-grab touch-none overflow-hidden rounded-[14px] bg-green-900 select-none active:cursor-grabbing"
               style={{ width: FRAME_EDGE, height: FRAME_EDGE }}
             >
               {framing.photo ? (

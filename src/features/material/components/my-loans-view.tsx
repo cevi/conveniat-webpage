@@ -14,7 +14,6 @@ import {
   DateInput,
   EmptyState,
   Field,
-  focusRing,
   inputClass,
   LoadingState,
   MaterialButton,
@@ -547,7 +546,6 @@ export const MyLoansView: React.FC = () => {
         className={cn(
           buttonVariants({ variant: 'primary', size: 'touch' }),
           'w-full [&_svg]:size-5',
-          focusRing,
         )}
       >
         <Plus aria-hidden />
