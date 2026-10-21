@@ -1,6 +1,4 @@
-import { MenuLink } from '@/components/menu/menu-link';
-import { menuRowClassName } from '@/components/menu/menu-row-class-name';
-import { SectionLabel } from '@/components/ui/section-label';
+import { LinkComponent } from '@/components/ui/link-component';
 import { environmentVariables } from '@/config/environment-variables';
 import { getAppFeatureFlagsCached } from '@/features/payload-cms/api/cached-globals';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -9,12 +7,14 @@ import {
   Calendar,
   CalendarCheck2,
   ImageUp,
+  LucideMessageCircleQuestion,
   Map,
   MessageSquare,
   Package,
   Settings,
   Siren,
   Trophy,
+  Truck,
 } from 'lucide-react';
 import { io } from 'next/cache';
 import type React from 'react';
@@ -31,6 +31,12 @@ const chatFeatureTranslation: StaticTranslationString = {
   fr: 'Chat',
 };
 
+const qaForumFeatureTranslation: StaticTranslationString = {
+  en: 'conveniat27 Forum',
+  de: 'conveniat27 Forum',
+  fr: 'Forum conveniat27',
+};
+
 const emergencyInfoFeatureTranslation: StaticTranslationString = {
   en: 'Emergency Information',
   de: 'Notfallinformationen',
@@ -38,9 +44,9 @@ const emergencyInfoFeatureTranslation: StaticTranslationString = {
 };
 
 const campMapFeatureTranslation: StaticTranslationString = {
-  en: 'Map',
-  de: 'Karte',
-  fr: 'Carte',
+  en: 'Campsite Map',
+  de: 'Lagerplatz Karte',
+  fr: 'Carte du terrain de camp',
 };
 
 const scheduleFeatureTranslation: StaticTranslationString = {
@@ -65,6 +71,12 @@ const uploadPicturesFeatureTranslation: StaticTranslationString = {
   en: 'Upload Pictures',
   de: 'Bilder hochladen',
   fr: 'Télécharger des photos',
+};
+
+const reservationsFeatureTranslation: StaticTranslationString = {
+  en: 'Reservations',
+  de: 'Reservationen',
+  fr: 'Réservations',
 };
 
 const materialFeatureTranslation: StaticTranslationString = {
@@ -95,18 +107,16 @@ const AppFeatureMenuItem: React.FC<AppFeatureMenuItemProperties> = ({
   prefetch,
 }) => {
   return (
-    <li>
-      <MenuLink
-        href={href}
-        openInNewTab={openInNewTab}
-        {...(prefetch === undefined ? {} : { prefetch })}
-        matchNested
-        className={menuRowClassName}
-      >
-        <Icon aria-hidden="true" className="size-5 shrink-0 text-green-700" />
+    <LinkComponent
+      href={href}
+      openInNewTab={openInNewTab}
+      {...(prefetch === undefined ? {} : { prefetch })}
+    >
+      <span className="closeNavOnClick -mx-3 flex items-center gap-2 rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
+        <Icon aria-hidden="true" className="size-5" />
         {text}
-      </MenuLink>
-    </li>
+      </span>
+    </LinkComponent>
   );
 };
 
@@ -121,15 +131,23 @@ export const AppFeatures: React.FC<{
   const featureFlags = await getAppFeatureFlagsCached();
 
   return (
-    <section className="py-4">
-      <SectionLabel className="mb-1 px-3">{appFeaturesTitle[locale]}</SectionLabel>
-      <ul>
+    <>
+      <div className="py-6">
+        <h3 className="text-conveniat-green mb-2 font-bold">{appFeaturesTitle[locale]}</h3>
+
         <AppFeatureMenuItem
           href="/app/chat"
           Icon={MessageSquare}
           text={chatFeatureTranslation[locale]}
           prefetch
         />
+        {featureFlags.forumEnabled !== false && (
+          <AppFeatureMenuItem
+            href="/app/forum"
+            Icon={LucideMessageCircleQuestion}
+            text={qaForumFeatureTranslation[locale]}
+          />
+        )}
         <AppFeatureMenuItem
           href="/app/emergency"
           Icon={Siren}
@@ -169,6 +187,13 @@ export const AppFeatures: React.FC<{
             text={photoContestFeatureTranslation[locale]}
           />
         )}
+        {featureFlags.reservationsEnabled !== false && (
+          <AppFeatureMenuItem
+            href="/app/reservations"
+            Icon={Truck}
+            text={reservationsFeatureTranslation[locale]}
+          />
+        )}
         {environmentVariables.FEATURE_ENABLE_MATERIAL_MANAGEMENT && (
           <AppFeatureMenuItem
             href="/app/material"
@@ -181,7 +206,8 @@ export const AppFeatures: React.FC<{
           Icon={Settings}
           text={settingsFeatureTranslation[locale]}
         />
-      </ul>
-    </section>
+      </div>
+      <hr className="border-t-2 text-gray-100" />
+    </>
   );
 };

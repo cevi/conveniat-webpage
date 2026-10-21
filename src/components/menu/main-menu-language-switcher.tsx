@@ -1,11 +1,9 @@
 'use client';
 
-import { SectionLabel } from '@/components/ui/section-label';
-import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { languageOptions } from '@/config/language-options';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { cn } from '@/utils/tailwindcss-override';
-import { useClose } from '@headlessui/react';
+import { Disclosure, DisclosureButton, DisclosurePanel, useClose } from '@headlessui/react';
+import { ChevronDown, Languages } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import React from 'react';
 
@@ -16,9 +14,10 @@ const language: StaticTranslationString = {
 };
 
 /**
- * The language switch of the main menu, a segmented control like the one in the settings. It
- * reloads the page in the new language rather than navigating, so every server-rendered part of
- * the page follows.
+ * Simple Drop Down Menu that allows to switch between languages.
+ *
+ * This is a client component.
+ *
  */
 export const MainMenuLanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
   const pathname = usePathname();
@@ -54,22 +53,27 @@ export const MainMenuLanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale 
   };
 
   return (
-    <section className="px-3 py-4">
-      <SectionLabel className="mb-2">{language[locale]}</SectionLabel>
-      <div role="group" aria-label={language[locale]} className={segmentedTrackClassName}>
-        {languageOptions.map(({ value, label }) => (
-          <button
-            key={value}
-            type="button"
-            lang={value}
-            onClick={() => handleLanguageChange(value)}
-            aria-pressed={value === locale}
-            className={cn(segmentClassName(value === locale), 'flex-1 text-sm font-semibold')}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-    </section>
+    <div className="w-full space-y-2 py-6">
+      <Disclosure as="div" className="-mx-3">
+        <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
+          <div className="flex items-center gap-2">
+            <Languages aria-hidden="true" className="size-5" />
+            {language[locale]}
+          </div>
+          <ChevronDown aria-hidden="true" className="size-5 flex-none group-data-open:rotate-180" />
+        </DisclosureButton>
+        <DisclosurePanel className="mt-2 mb-4 space-y-2">
+          {languageOptions.map(({ value, label }) => (
+            <DisclosureButton
+              key={value}
+              onClick={() => handleLanguageChange(value)}
+              className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+            >
+              {label}
+            </DisclosureButton>
+          ))}
+        </DisclosurePanel>
+      </Disclosure>
+    </div>
   );
 };
