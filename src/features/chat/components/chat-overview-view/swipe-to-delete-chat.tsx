@@ -89,12 +89,12 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
         style={{ touchAction: 'pan-y' }}
       >
         {((): React.ReactElement => {
-          // red belongs to Notfall; past the threshold the track turns dark instead
+          // red belongs to Notfall, so a delete shows in the live orange, strong past the threshold
           let trackBg = 'bg-quiet';
           let iconColor = 'text-green-500';
           if (canDelete) {
-            trackBg = pastThreshold ? 'bg-heading' : 'bg-chip';
-            iconColor = pastThreshold ? 'text-white' : 'text-green-900';
+            trackBg = pastThreshold ? 'bg-live' : 'bg-live-soft';
+            iconColor = pastThreshold ? 'text-white' : 'text-live-text';
           }
           return (
             <div

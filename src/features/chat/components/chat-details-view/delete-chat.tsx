@@ -4,6 +4,7 @@ import {
   ArchiveChatConfirmDialog,
   localizedDeleteChat,
 } from '@/features/chat/components/archive-chat-confirm-dialog';
+import { destructiveButtonClassName } from '@/features/chat/components/ui/chat-alert-dialog';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-mutation';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
@@ -14,6 +15,7 @@ import { ChatMembershipPermission } from '@/lib/prisma';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { Trash2 } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
@@ -72,9 +74,7 @@ export const DeleteChat: React.FC = () => {
   return (
     <>
       <Button
-        variant="outlined"
-        size="touch"
-        className="w-full"
+        className={cn(destructiveButtonClassName, 'w-full')}
         onClick={() => setIsDialogOpen(true)}
         disabled={
           !canUserArchiveChat || updateChatMutation.isPending || deleteChatMutation.isPending
