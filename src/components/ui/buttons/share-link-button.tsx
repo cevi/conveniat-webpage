@@ -82,7 +82,7 @@ export const ShareLinkButton: React.FC<{
       aria-label={iconOnlyLabel}
       title={currentLabel}
       className={cn(
-        'flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900',
+        'hover:bg-quiet flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl p-2 text-green-700 transition-colors hover:text-green-900',
         className,
       )}
     >
@@ -94,7 +94,7 @@ export const ShareLinkButton: React.FC<{
       ) : (
         <>
           {feedback === 'copied' ? (
-            <Check className="h-5 w-5 text-green-600" aria-hidden="true" />
+            <Check className="h-5 w-5 text-green-700" aria-hidden="true" />
           ) : (
             <X className="text-danger-text h-5 w-5" aria-hidden="true" />
           )}

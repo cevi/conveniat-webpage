@@ -52,7 +52,9 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProperties>(
             'pointer-events-none flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-lg ring-0',
           )}
         >
-          {loading && <Loader2 className="h-3 w-3 animate-spin text-gray-400" />}
+          {loading && (
+            <Loader2 className="h-3 w-3 animate-spin text-green-500" aria-hidden="true" />
+          )}
         </motion.span>
       </button>
     );

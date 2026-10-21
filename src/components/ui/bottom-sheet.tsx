@@ -115,8 +115,8 @@ export const BottomSheet: React.FC<{
                     <DialogPrimitive.Title
                       className={
                         description === undefined && leading === undefined
-                          ? "text-heading font-['Montserrat'] text-[22px] leading-7 font-extrabold"
-                          : "text-heading truncate font-['Montserrat'] text-[17px] leading-6 font-bold"
+                          ? 'font-heading text-heading text-[22px] leading-7 font-extrabold'
+                          : 'font-heading text-heading truncate text-[17px] leading-6 font-bold'
                       }
                     >
                       {title}
@@ -130,7 +130,7 @@ export const BottomSheet: React.FC<{
                   {showClose && (
                     <DialogPrimitive.Close
                       aria-label={closeLabel[locale]}
-                      className="bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900"
+                      className="bg-quiet hover:bg-chip flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900 transition-colors"
                     >
                       <X className="h-5 w-5" aria-hidden="true" />
                     </DialogPrimitive.Close>

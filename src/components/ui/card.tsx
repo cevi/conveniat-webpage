@@ -1,39 +1,25 @@
 import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 
-interface CardProperties {
+/**
+ * The app's card: white, a 14px radius and a thin line, without a shadow. A list in a card is
+ * `divided`, its rows separated by the same line. A section's heading sits above the card as a
+ * `SectionLabel`, never as a strip inside it.
+ */
+export const Card: React.FC<{
   children: React.ReactNode;
-  title?: string;
-  className?: string;
-  contentClassName?: string;
-  headerClassName?: string;
+  /** `ul` for a list of rows, `section` for a card that is a section on its own */
+  as?: 'div' | 'section' | 'ul';
   divided?: boolean;
-  showBorder?: boolean;
-}
-
-export const Card: React.FC<CardProperties> = ({
-  children,
-  title,
-  className,
-  contentClassName,
-  headerClassName,
-  divided = false,
-  showBorder = true,
-}) => {
-  return (
-    <div className={cn('border-line overflow-hidden rounded-[14px] border bg-white', className)}>
-      {title && (
-        <h3
-          className={cn(
-            'font-heading text-heading px-4 py-3.5 text-base font-bold',
-            showBorder && 'border-line border-b',
-            headerClassName,
-          )}
-        >
-          {title}
-        </h3>
-      )}
-      <div className={cn(divided && 'divide-line divide-y', contentClassName)}>{children}</div>
-    </div>
-  );
-};
+  className?: string;
+}> = ({ children, as: Tag = 'div', divided = false, className }) => (
+  <Tag
+    className={cn(
+      'border-line overflow-hidden rounded-[14px] border bg-white',
+      divided && 'divide-line divide-y',
+      className,
+    )}
+  >
+    {children}
+  </Tag>
+);
