@@ -1,8 +1,8 @@
 import type { CampCategory, CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import type { HelperShiftFrontendType } from '@/features/schedule/api/get-helper-shifts';
-import type { FilterState } from '@/features/schedule/components/search-filter-bar';
 import { resolveCategory } from '@/features/schedule/utils/category-utils';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
+import type { FilterState } from '@/features/schedule/utils/schedule-filters';
 
 /**
  * Collects the distinct, populated categories used by the given shifts.

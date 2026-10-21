@@ -2,20 +2,14 @@
 
 import type { CampCategory, CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import type { HelperShiftFrontendType } from '@/features/schedule/api/get-helper-shifts';
-import type { FilterState } from '@/features/schedule/components/search-filter-bar';
+import type { FilterState } from '@/features/schedule/utils/schedule-filters';
+import { noFilters } from '@/features/schedule/utils/schedule-filters';
 import {
   extractShiftCategories,
   extractShiftLocations,
   filterShifts,
 } from '@/features/schedule/utils/shift-filter-utils';
 import { useCallback, useMemo, useState } from 'react';
-
-const emptyFilters: FilterState = {
-  searchText: '',
-  selectedLocations: [],
-  selectedCategory: undefined,
-  starredOnly: false,
-};
 
 /**
  * Search, category and place filtering for helper shifts.
@@ -39,7 +33,7 @@ export const useShiftFilters = (
   handleFiltersChange: (newFilters: FilterState) => void;
   clearFilters: () => void;
 } => {
-  const [filters, setFilters] = useState<FilterState>(emptyFilters);
+  const [filters, setFilters] = useState<FilterState>(noFilters);
 
   const availableCategories = useMemo(() => extractShiftCategories(allShifts), [allShifts]);
   const availableLocations = useMemo(() => extractShiftLocations(allShifts), [allShifts]);
@@ -51,7 +45,7 @@ export const useShiftFilters = (
   }, []);
 
   const clearFilters = useCallback(() => {
-    setFilters(emptyFilters);
+    setFilters(noFilters);
   }, []);
 
   const hasActiveFilters = useMemo(

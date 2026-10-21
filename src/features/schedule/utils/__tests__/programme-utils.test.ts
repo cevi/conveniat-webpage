@@ -5,7 +5,9 @@ import {
   findWhatComesNext,
   isDescriptionRedundant,
   isForQuartiere,
+  isLogistics,
   kindOf,
+  timeOfDayOf,
   withClockTimes,
 } from '@/features/schedule/utils/programme-utils';
 
@@ -211,5 +213,40 @@ describe('findWhatComesNext', () => {
       next: undefined,
       nextBlock: undefined,
     });
+  });
+});
+
+describe('timeOfDayOf', () => {
+  it.each([
+    ['00:00 - 01:00', 'morning'],
+    ['11:59 - 12:30', 'morning'],
+    ['12:00 - 13:00', 'afternoon'],
+    ['17:59 - 18:30', 'afternoon'],
+    ['18:00 - 19:00', 'evening'],
+    ['22:30 - 00:00', 'evening'],
+  ])('puts a start at %s in the %s', (time, timeOfDay) => {
+    expect(timeOfDayOf(entry('a', time))).toBe(timeOfDay);
+  });
+
+  it('reads the camp clock of the entry, whatever timezone the phone is in', () => {
+    // the date is stored at noon UTC; the time is the wall clock in Zurich and stays as written
+    expect(
+      timeOfDayOf({ timeslot: { date: '2027-07-25T22:00:00.000Z', time: '08:30 - 09:00' } }),
+    ).toBe('morning');
+  });
+
+  it('places an entry without a readable time nowhere', () => {
+    expect(timeOfDayOf(entry('a', 'später'))).toBeUndefined();
+  });
+});
+
+describe('isLogistics', () => {
+  it('counts meals, transfers and fixed points, not programme blocks', () => {
+    expect(isLogistics({ kind: 'meal' })).toBe(true);
+    expect(isLogistics({ kind: 'transfer' })).toBe(true);
+    expect(isLogistics({ kind: 'fixpoint' })).toBe(true);
+    expect(isLogistics({ kind: 'program' })).toBe(false);
+    // an entry from an older client without a kind is a block
+    expect(isLogistics({})).toBe(false);
   });
 });

@@ -2,10 +2,12 @@
 
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import type { FilterState } from '@/features/schedule/components/search-filter-bar';
+import type { TimeOfDay } from '@/features/schedule/utils/programme-utils';
+import type { FilterState } from '@/features/schedule/utils/schedule-filters';
+import { noFilters } from '@/features/schedule/utils/schedule-filters';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { CalendarX, FilterX, MapPinOff, SearchX, Star } from 'lucide-react';
+import { CalendarX, Clock, FilterX, MapPinOff, SearchX, Star, Utensils } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
@@ -48,6 +50,26 @@ const labels = {
     fr: 'Rien à ces {{count}} lieux ce jour-là',
   },
   allPlaces: { de: 'Alle Orte', en: 'All places', fr: 'Tous les lieux' },
+  nothingAtTimes: {
+    de: 'Nichts zu diesen Tageszeiten an diesem Tag',
+    en: 'Nothing at these times of day on this day',
+    fr: 'Rien à ces moments de la journée ce jour-là',
+  },
+  wholeDay: {
+    de: 'Ganzen Tag anzeigen',
+    en: 'Show the whole day',
+    fr: 'Afficher toute la journée',
+  },
+  onlyLogistics: {
+    de: 'An diesem Tag gibt es nur Anreise und Essen',
+    en: 'There is only arrival and meals on this day',
+    fr: "Il n'y a que l'arrivée et les repas ce jour-là",
+  },
+  showLogistics: {
+    de: 'Anreise & Essen anzeigen',
+    en: 'Show arrival & meals',
+    fr: 'Afficher arrivée & repas',
+  },
   allCategories: { de: 'Alle Kategorien', en: 'All categories', fr: 'Toutes les catégories' },
   noMatches: { de: 'Keine Treffer', en: 'No matches', fr: 'Aucun résultat' },
   noMatchesHelp: {
@@ -68,11 +90,22 @@ const labels = {
   },
 } satisfies Record<string, StaticTranslationString>;
 
-const noFilters: FilterState = {
-  searchText: '',
-  selectedLocations: [],
-  selectedCategory: undefined,
-  starredOnly: false,
+const nothingAtTimeOfDay: Record<TimeOfDay, StaticTranslationString> = {
+  morning: {
+    de: 'Nichts am Morgen an diesem Tag',
+    en: 'Nothing in the morning on this day',
+    fr: 'Rien le matin ce jour-là',
+  },
+  afternoon: {
+    de: 'Nichts am Nachmittag an diesem Tag',
+    en: 'Nothing in the afternoon on this day',
+    fr: "Rien l'après-midi ce jour-là",
+  },
+  evening: {
+    de: 'Nichts am Abend an diesem Tag',
+    en: 'Nothing in the evening on this day',
+    fr: 'Rien le soir ce jour-là',
+  },
 };
 
 /**
@@ -88,9 +121,15 @@ export const NoProgramPlaceholder: React.FC<{
   const hasSearch = filters.searchText.trim() !== '';
   const hasCategory = filters.selectedCategory !== undefined;
   const hasPlace = filters.selectedLocations.length > 0;
-  const activeCount = [hasSearch, hasCategory, hasPlace, filters.starredOnly].filter(
-    Boolean,
-  ).length;
+  const hasTimeOfDay = filters.timesOfDay.length > 0;
+  const activeCount = [
+    hasSearch,
+    hasCategory,
+    hasPlace,
+    filters.starredOnly,
+    hasTimeOfDay,
+    !filters.showLogistics,
+  ].filter(Boolean).length;
 
   const action = (label: string, next: FilterState): React.ReactNode => (
     <Button variant="quiet" size="touch" onClick={() => onFiltersChange(next)}>
@@ -137,6 +176,31 @@ export const NoProgramPlaceholder: React.FC<{
         title={labels.nothingFound[locale].replace('{{term}}', filters.searchText.trim())}
         description={labels.nothingFoundHelp[locale]}
         action={action(labels.clearSearch[locale], { ...filters, searchText: '' })}
+      />
+    );
+  }
+
+  if (hasTimeOfDay) {
+    const [onlyTime] = filters.timesOfDay;
+    return (
+      <EmptyState
+        icon={Clock}
+        title={
+          filters.timesOfDay.length === 1 && onlyTime !== undefined
+            ? nothingAtTimeOfDay[onlyTime][locale]
+            : labels.nothingAtTimes[locale]
+        }
+        action={action(labels.wholeDay[locale], { ...filters, timesOfDay: [] })}
+      />
+    );
+  }
+
+  if (!filters.showLogistics) {
+    return (
+      <EmptyState
+        icon={Utensils}
+        title={labels.onlyLogistics[locale]}
+        action={action(labels.showLogistics[locale], { ...filters, showLogistics: true })}
       />
     );
   }

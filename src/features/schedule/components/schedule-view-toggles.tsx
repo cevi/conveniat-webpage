@@ -15,13 +15,14 @@ export const ScheduleViewToggles: React.FC<{
   scope: ScheduleScope;
   onScopeChange: (scope: ScheduleScope) => void;
   locale: Locale;
-}> = ({ myQuartiere, scope, onScopeChange, locale }) => {
+  className?: string;
+}> = ({ myQuartiere, scope, onScopeChange, locale, className }) => {
   if (myQuartiere.length === 0) return <></>;
   return (
     <div
       role="group"
       aria-label={programmeLabels.view[locale]}
-      className={cn(segmentedTrackClassName, 'mb-3')}
+      className={cn(segmentedTrackClassName, className)}
     >
       {(['mine', 'all'] as const).map((value) => (
         <button

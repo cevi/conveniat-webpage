@@ -101,7 +101,8 @@ export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
         onFiltersChange={handleFiltersChange}
         availableCategories={availableCategories}
         availableLocations={availableLocations}
-        showStarredToggle={false}
+        isProgramme={false}
+        shownCount={currentShifts.length}
         isSearchOpen={isSearchOpen}
         className="mb-3"
       />

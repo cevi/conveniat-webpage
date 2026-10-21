@@ -4,17 +4,10 @@
 
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import { NoProgramPlaceholder } from '@/features/schedule/components/no-program-placeholder';
-import type { FilterState } from '@/features/schedule/components/search-filter-bar';
+import { noFilters } from '@/features/schedule/utils/schedule-filters';
 import { fireEvent, render, screen } from '@testing-library/react';
 
 jest.mock('next-i18n-router/client', () => ({ useCurrentLocale: (): string => 'de' }));
-
-const noFilters: FilterState = {
-  searchText: '',
-  selectedLocations: [],
-  selectedCategory: undefined,
-  starredOnly: false,
-};
 
 const spielwiese = { id: 'place-1', title: 'Spielwiese Mitte' } as CampMapAnnotation;
 
@@ -54,6 +47,33 @@ describe('NoProgramPlaceholder', () => {
     );
 
     fireEvent.click(screen.getByRole('button'));
+    expect(onFiltersChange).toHaveBeenCalledWith(noFilters);
+  });
+
+  it('names the time of day that emptied the day and offers the whole day back', () => {
+    const onFiltersChange = jest.fn();
+    render(
+      <NoProgramPlaceholder
+        filters={{ ...noFilters, timesOfDay: ['evening'] }}
+        onFiltersChange={onFiltersChange}
+      />,
+    );
+
+    expect(screen.getByText('Nichts am Abend an diesem Tag')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Ganzen Tag anzeigen' }));
+    expect(onFiltersChange).toHaveBeenCalledWith(noFilters);
+  });
+
+  it('says a day holds only logistics when they are hidden, and shows them again', () => {
+    const onFiltersChange = jest.fn();
+    render(
+      <NoProgramPlaceholder
+        filters={{ ...noFilters, showLogistics: false }}
+        onFiltersChange={onFiltersChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Anreise & Essen anzeigen' }));
     expect(onFiltersChange).toHaveBeenCalledWith(noFilters);
   });
 });

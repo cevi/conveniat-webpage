@@ -16,6 +16,7 @@ import { useScheduleFilters } from '@/features/schedule/hooks/use-schedule-filte
 import { useScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
 import { byStart, findNowAndNext, isForQuartiere } from '@/features/schedule/utils/programme-utils';
 import { dayKeyOf } from '@/features/schedule/utils/time-utils';
+import { buildTimeline } from '@/features/schedule/utils/timeline';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
@@ -107,6 +108,23 @@ export const ScheduleComponent: React.FC = () => {
 
   const currentProgram = useMemo(() => [...filteredEntries].sort(byStart), [filteredEntries]);
   const hasProgram = currentProgram.length > 0;
+  // what the list shows as entries: the slots of a block count once, and a transfer is rail
+  const shownCount = useMemo(
+    () =>
+      buildTimeline(currentProgram, { groupSlots: scope === 'all' }).filter(
+        (item) => item.type !== 'transfer',
+      ).length,
+    [currentProgram, scope],
+  );
+  const viewToggles =
+    myQuartiere.length > 0 ? (
+      <ScheduleViewToggles
+        myQuartiere={myQuartiere}
+        scope={scope}
+        onScopeChange={setScope}
+        locale={locale}
+      />
+    ) : undefined;
 
   // "Now" is about today, whichever day the list shows and whatever it is filtered by.
   const { dayKey: todayKey, minutes: minutesOfDay } = campClockOf(now);
@@ -167,18 +185,16 @@ export const ScheduleComponent: React.FC = () => {
         </button>
       </SetHeaderActions>
 
-      <ScheduleViewToggles
-        myQuartiere={myQuartiere}
-        scope={scope}
-        onScopeChange={setScope}
-        locale={locale}
-      />
+      {/* the view stays in sight above the list, and is repeated at the top of the filter */}
+      {viewToggles !== undefined && <div className="mb-3">{viewToggles}</div>}
 
       <SearchFilterBar
         filters={filters}
         onFiltersChange={handleFiltersChange}
         availableLocations={availableLocations}
         availableCategories={availableCategories}
+        view={viewToggles}
+        shownCount={shownCount}
         isSearchOpen={isSearchOpen}
         className="mb-3"
       />

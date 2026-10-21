@@ -12,6 +12,31 @@ const KINDS = new Set<string>(['program', 'fixpoint', 'meal', 'transfer']);
 export const kindOf = (entry: Pick<CampScheduleEntryFrontendType, 'kind'>): EntryKind =>
   typeof entry.kind === 'string' && KINDS.has(entry.kind) ? entry.kind : 'program';
 
+/**
+ * Whether an entry is logistics rather than programme: a meal, a transfer or a fixed point such
+ * as Anreise. The filter "Anreise & Essen anzeigen" hides these.
+ */
+export const isLogistics = (entry: Pick<CampScheduleEntryFrontendType, 'kind'>): boolean =>
+  kindOf(entry) !== 'program';
+
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening';
+
+export const TIMES_OF_DAY: readonly TimeOfDay[] = ['morning', 'afternoon', 'evening'];
+
+/**
+ * The part of the day an entry starts in: Morgen before 12:00, Nachmittag until 17:59, Abend
+ * from 18:00. The times of the programme are the camp's wall clock, Europe/Zurich, so the phone's
+ * timezone plays no part. An entry without a readable time belongs to none.
+ */
+export const timeOfDayOf = (
+  entry: Pick<CampScheduleEntryFrontendType, 'timeslot'>,
+): TimeOfDay | undefined => {
+  const start = slotOf(entry)?.start;
+  if (start === undefined) return undefined;
+  if (start < 12 * 60) return 'morning';
+  return start < 18 * 60 ? 'afternoon' : 'evening';
+};
+
 export const formLabels: Record<string, string> = { rp: 'RP', hp: 'HP', hpStar: 'HP*' };
 
 /** The Quartiere an entry names, without the dangling ones. Empty means the whole camp. */
