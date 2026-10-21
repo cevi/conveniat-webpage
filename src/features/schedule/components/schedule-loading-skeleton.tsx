@@ -61,16 +61,24 @@ export const ScheduleLoadingSkeleton: React.FC<{
       ))}
     </div>
 
-    {showScope && <div className="bg-quiet mt-4 h-11 rounded-xl" />}
-
-    <div className={cn('flex gap-2 overflow-hidden', showScope ? 'mt-3' : 'mt-4')}>
-      {chips.map((width, index) => (
-        <div
-          key={index}
-          className={cn('border-line h-11 shrink-0 rounded-full border bg-white', width)}
-        />
-      ))}
-    </div>
+    {/* the Programm: the view with the favourites and the filter beside it; Schichteinsätze:
+        the filter chips */}
+    {showScope ? (
+      <div className="mt-4 flex items-center gap-2">
+        <div className="bg-quiet h-11 flex-1 rounded-xl" />
+        <div className="border-line h-11 w-11 shrink-0 rounded-full border bg-white" />
+        <div className="border-line h-11 w-11 shrink-0 rounded-full border bg-white" />
+      </div>
+    ) : (
+      <div className="mt-4 flex gap-2 overflow-hidden">
+        {chips.map((width, index) => (
+          <div
+            key={index}
+            className={cn('border-line h-11 shrink-0 rounded-full border bg-white', width)}
+          />
+        ))}
+      </div>
+    )}
 
     <ol className="mt-5">
       {rows.map((isBlock, index) => (
