@@ -30,7 +30,7 @@ const findSuccessor = async (
 
   const lastMessage = await prisma.message.findFirst({
     where: { chatId, senderId: { in: candidates } },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { seq: 'desc' },
     select: { senderId: true },
   });
   return lastMessage?.senderId ?? candidates[0];

@@ -286,12 +286,12 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
           await prisma.$queryRaw`SELECT 1 FROM "public"."User" LIMIT 1`;
         } catch {
           payload.logger.info(
-            '[Lock Manager] Prisma tables missing. Pushing Prisma schema to Postgres...',
+            '[Lock Manager] Prisma tables missing. Applying the Prisma migrations to Postgres...',
           );
           const { execSync } = await import('node:child_process');
-          // Without --accept-data-loss: creating missing tables loses nothing, and a query that
-          // failed for another reason must not let the push drop what is there.
-          execSync('npx prisma db push', { stdio: 'inherit' });
+          // The migrations, not `db push`: they also create what the schema cannot express,
+          // like the trigger numbering chat messages, and they never drop anything.
+          execSync('npx prisma migrate deploy', { stdio: 'inherit' });
         }
       }
 

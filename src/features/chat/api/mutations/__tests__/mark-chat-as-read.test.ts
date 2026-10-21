@@ -23,7 +23,14 @@ import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 
 const CHAT_ID = '0192f3a4-0000-7000-8000-000000000001';
 const MESSAGE_ID = '0192f3a4-0000-7000-8000-000000000002';
+const OLDER_MESSAGE_ID = '0192f3a4-0000-7000-8000-000000000003';
 const READER = 'reader';
+
+/** The position of each message in the chat, see `Message.seq`. */
+const positions = new Map([
+  [OLDER_MESSAGE_ID, 4],
+  [MESSAGE_ID, 7],
+]);
 
 interface ReadEvent {
   messageId: string;
@@ -31,22 +38,43 @@ interface ReadEvent {
   type: string;
 }
 
+interface MarkerWhere {
+  userId: string;
+  chatId: string;
+  OR: [{ lastReadSeq: null }, { lastReadSeq: { lt: number } }];
+}
+
 let memberIds: string[];
 let readEvents: ReadEvent[];
+let lastReadSeq: number | null;
 /** How many membership rows the procedure made the database look at. */
 let membershipRowsRead: number;
 
 /** The chat tables, with just enough of Prisma's behaviour for this procedure. */
 const prisma = {
   message: {
-    findFirst: ({ where }: { where: { uuid: string } }): Promise<{ uuid: string } | null> =>
+    findFirst: ({ where }: { where: { uuid: string } }): Promise<{ seq: number } | null> => {
+      const seq = positions.get(where.uuid);
       // eslint-disable-next-line unicorn/no-null
-      Promise.resolve(where.uuid === MESSAGE_ID ? { uuid: MESSAGE_ID } : null),
+      return Promise.resolve(seq === undefined ? null : { seq });
+    },
   },
-  // advancing the high-water mark, which has its own SQL and is not what this file is about
-  $executeRaw: (): Promise<number> => Promise.resolve(1),
   chatMembership: {
     findUnique: (): Promise<{ userId: string }> => Promise.resolve({ userId: READER }),
+    updateMany: ({
+      where,
+      data,
+    }: {
+      where: MarkerWhere;
+      data: { lastReadSeq: number };
+    }): Promise<{ count: number }> => {
+      const below = where.OR[1].lastReadSeq.lt;
+      if (where.userId !== READER || (lastReadSeq !== null && lastReadSeq >= below)) {
+        return Promise.resolve({ count: 0 });
+      }
+      lastReadSeq = data.lastReadSeq;
+      return Promise.resolve({ count: 1 });
+    },
     count: ({ take }: { where: { chatId: string }; take?: number }): Promise<number> => {
       const counted = Math.min(memberIds.length, take ?? memberIds.length);
       membershipRowsRead += counted;
@@ -72,11 +100,27 @@ const chatWithMembers = (count: number): string[] =>
   Array.from({ length: count }, (_, index) => (index === 0 ? READER : `member-${index}`));
 
 beforeEach(() => {
+  memberIds = chatWithMembers(3);
+  // eslint-disable-next-line unicorn/no-null
+  lastReadSeq = null;
   readEvents = [];
   membershipRowsRead = 0;
 });
 
 describe('marking a chat as read', () => {
+  it('moves the read marker to the position of the message', async () => {
+    await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: MESSAGE_ID });
+
+    expect(lastReadSeq).toBe(7);
+  });
+
+  it('keeps the marker where it is when an older message is marked read late', async () => {
+    await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: MESSAGE_ID });
+    await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: OLDER_MESSAGE_ID });
+
+    expect(lastReadSeq).toBe(7);
+  });
+
   it('records a READ event for the read ticks of a small chat', async () => {
     memberIds = chatWithMembers(LARGE_CHAT_THRESHOLD - 1);
 

@@ -90,13 +90,13 @@ describe('onPayloadInit', () => {
     expect(initializationCompleted()).toBe(true);
   });
 
-  it('creates the missing Prisma tables in development without accepting data loss', async () => {
+  it('creates the missing Prisma tables in development from the migrations', async () => {
     mockedEnvironment.NODE_ENV = 'development';
     queryRaw.mockRejectedValue(new Error('relation "User" does not exist'));
 
     await onPayloadInit(payloadWith(jest.fn().mockResolvedValue({ totalDocs: 0 })));
 
-    expect(execSync).toHaveBeenCalledWith('npx prisma db push', { stdio: 'inherit' });
+    expect(execSync).toHaveBeenCalledWith('npx prisma migrate deploy', { stdio: 'inherit' });
     expect(seedDatabase).toHaveBeenCalled();
   });
 });

@@ -47,12 +47,12 @@ export const getChatList = trpcBaseProcedure
     const memberships = await prisma.chatMembership.findMany({
       where: { userId: prismaUser.uuid, hasDeleted: false },
       select: {
-        lastReadMessageId: true,
+        lastReadSeq: true,
         chatPermission: true,
         chat: {
           include: {
             messages: {
-              orderBy: { createdAt: 'desc' },
+              orderBy: { seq: 'desc' },
               take: 1,
               include: {
                 sender: { select: { name: true } },
@@ -78,60 +78,19 @@ export const getChatList = trpcBaseProcedure
     const unreadCountMap = new Map<string, number>();
 
     if (_chats.length > 0) {
-      const lastReadIds = _chats
-        .map((chat) => chat.membership.lastReadMessageId)
-        .filter((id): id is string => typeof id === 'string' && id.trim() !== '');
-
-      const lastReadMessages =
-        lastReadIds.length > 0
-          ? await prisma.message.findMany({
-              where: { uuid: { in: lastReadIds } },
-              select: { uuid: true, createdAt: true },
-            })
-          : [];
-
-      const lastReadMap = new Map<string, Date>(lastReadMessages.map((m) => [m.uuid, m.createdAt]));
-
       const unreadQueries = _chats
         .map((chat) => {
-          const lastReadId = chat.membership.lastReadMessageId;
-          const lastMessage = chat.messages[0];
+          const lastReadSeq = chat.membership.lastReadSeq;
 
-          const isReadUpToLatest =
-            Boolean(lastReadId) && Boolean(lastMessage) && lastReadId === lastMessage?.uuid;
-
-          const lastReadCreatedAt = lastReadId ? lastReadMap.get(lastReadId) : undefined;
-
-          const innerConditions: Prisma.MessageWhereInput[] = [];
-
-          if (!isReadUpToLatest) {
-            if (lastReadCreatedAt && lastReadId) {
-              innerConditions.push({
-                parentId: null,
-                OR: [
-                  { createdAt: { gt: lastReadCreatedAt } },
-                  {
-                    createdAt: lastReadCreatedAt,
-                    uuid: { gt: lastReadId },
-                  },
-                ],
-              });
-            } else {
-              innerConditions.push({
-                parentId: null,
-              });
-            }
-          }
-
-          innerConditions.push({
-            parentId: { not: null },
-            messageEvents: {
-              none: {
-                type: 'READ',
-                userId: prismaUser.uuid,
-              },
+          const innerConditions: Prisma.MessageWhereInput[] = [
+            // the chat itself counts from the read marker
+            { parentId: null, ...(lastReadSeq === null ? {} : { seq: { gt: lastReadSeq } }) },
+            // thread replies are marked read one by one, see `markThreadAsRead`
+            {
+              parentId: { not: null },
+              messageEvents: { none: { type: 'READ', userId: prismaUser.uuid } },
             },
-          });
+          ];
 
           const baseCondition: Prisma.MessageWhereInput = {
             chatId: chat.uuid,

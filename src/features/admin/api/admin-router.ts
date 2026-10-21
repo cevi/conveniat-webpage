@@ -296,7 +296,7 @@ export const adminRouter = createTRPCRouter({
             },
           },
           messages: {
-            orderBy: { createdAt: 'asc' },
+            orderBy: { seq: 'asc' },
             include: {
               messageEvents: {
                 where: { type: { in: USER_RELEVANT_MESSAGE_EVENTS } },
@@ -500,7 +500,7 @@ export const adminRouter = createTRPCRouter({
             orderBy: { uuid: 'desc' },
           },
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { seq: 'asc' },
       });
 
       const formattedMessages = messages.map((m) => {
@@ -539,8 +539,8 @@ export const adminRouter = createTRPCRouter({
 
       const lastMessage = await prisma.message.findFirst({
         where: { chatId: input.chatId },
-        orderBy: [{ createdAt: 'desc' }, { uuid: 'desc' }],
-        select: { uuid: true },
+        orderBy: { seq: 'desc' },
+        select: { uuid: true, seq: true },
       });
 
       if (lastMessage) {
@@ -551,6 +551,7 @@ export const adminRouter = createTRPCRouter({
               chatId: input.chatId,
             },
             data: {
+              lastReadSeq: lastMessage.seq,
               lastReadMessageId: lastMessage.uuid,
             },
           })
