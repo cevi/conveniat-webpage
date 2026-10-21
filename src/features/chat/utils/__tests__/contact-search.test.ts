@@ -5,6 +5,7 @@ import {
   describeContactHof,
   groupContactsByLetter,
   matchesContactSearch,
+  MIN_CONTACTS_FOR_LETTER_GROUPS,
 } from '@/features/chat/utils/contact-search';
 
 const ANNA: Contact = {
@@ -117,16 +118,41 @@ describe('describeContact', () => {
   });
 });
 
+const byName = (name: string): string => name;
+
 describe('groupContactsByLetter', () => {
-  const names = ['Zora', 'äsche', 'Bär', 'Amsel', '3D', 'biber'];
+  const names = ['Zora', 'äsche', 'Bär', 'Amsel', '3D', 'biber', 'Dachs', 'Elch', 'Fink', 'Gams'];
 
   it('sorts by name and groups under the first letter, umlauts with their vowel', () => {
-    const groups = groupContactsByLetter(names, (name) => name, 'de');
-    expect(groups).toEqual([
+    expect(groupContactsByLetter(names, byName, 'de')).toEqual([
       { letter: 'A', contacts: ['Amsel', 'äsche'] },
       { letter: 'B', contacts: ['Bär', 'biber'] },
+      { letter: 'D', contacts: ['Dachs'] },
+      { letter: 'E', contacts: ['Elch'] },
+      { letter: 'F', contacts: ['Fink'] },
+      { letter: 'G', contacts: ['Gams'] },
       { letter: 'Z', contacts: ['Zora'] },
       { letter: '#', contacts: ['3D'] },
     ]);
+  });
+
+  it(`lists fewer than ${MIN_CONTACTS_FOR_LETTER_GROUPS} contacts without letters`, () => {
+    const nine = names.slice(0, MIN_CONTACTS_FOR_LETTER_GROUPS - 1);
+    expect(groupContactsByLetter(nine, byName, 'de')).toEqual([
+      {
+        letter: undefined,
+        contacts: ['Amsel', 'äsche', 'Bär', 'biber', 'Dachs', 'Elch', 'Fink', 'Zora', '3D'],
+      },
+    ]);
+  });
+
+  it(`heads the groups with letters from ${MIN_CONTACTS_FOR_LETTER_GROUPS} contacts on`, () => {
+    const groups = groupContactsByLetter(names, byName, 'de');
+    expect(names).toHaveLength(MIN_CONTACTS_FOR_LETTER_GROUPS);
+    expect(groups.every(({ letter }) => letter !== undefined)).toBe(true);
+  });
+
+  it('has no group for no contacts', () => {
+    expect(groupContactsByLetter([], byName, 'de')).toEqual([]);
   });
 });

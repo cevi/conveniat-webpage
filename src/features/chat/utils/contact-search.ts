@@ -57,10 +57,18 @@ const letterOf = (name: string): string => {
 };
 
 /**
- * Sorts contacts by the name shown first, the Ceviname or else the real name, and groups them
- * under its first letter, "Ä" under "A"; names starting otherwise go under "#" at the end.
+ * From how many listed contacts on the letters head their groups. A short list reads at a
+ * glance, and a letter over every second row only makes it longer.
+ */
+export const MIN_CONTACTS_FOR_LETTER_GROUPS = 10;
+
+/**
+ * Sorts contacts by the name shown first, the Ceviname or else the real name. From
+ * {@link MIN_CONTACTS_FOR_LETTER_GROUPS} on they are grouped under its first letter, "Ä" under
+ * "A", names starting otherwise under "#" at the end; a shorter list is one group without a
+ * letter.
  *
- * @param contacts - the contacts to list
+ * @param contacts - the contacts to list, already filtered by the search
  * @param nameOf - the name a contact is listed by
  * @param locale - the language the names are sorted in
  */
@@ -68,7 +76,7 @@ export const groupContactsByLetter = <T>(
   contacts: readonly T[],
   nameOf: (contact: T) => string,
   locale: string,
-): { letter: string; contacts: T[] }[] => {
+): { letter: string | undefined; contacts: T[] }[] => {
   const collator = new Intl.Collator(locale, { sensitivity: 'base' });
   const sorted = [...contacts].sort((a, b) => {
     const letterA = letterOf(nameOf(a));
@@ -79,6 +87,9 @@ export const groupContactsByLetter = <T>(
     }
     return collator.compare(nameOf(a), nameOf(b));
   });
+  if (sorted.length < MIN_CONTACTS_FOR_LETTER_GROUPS) {
+    return sorted.length === 0 ? [] : [{ letter: undefined, contacts: sorted }];
+  }
   const groups: { letter: string; contacts: T[] }[] = [];
   for (const contact of sorted) {
     const letter = letterOf(nameOf(contact));
