@@ -1,5 +1,7 @@
 'use client';
 
+import { fieldFocusRingClassName } from '@/components/ui/field';
+import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 
@@ -78,7 +80,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProperties> = ({
   }, [value]);
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white">
+    <div className={cn('rounded-xl border border-gray-200 bg-white', fieldFocusRingClassName)}>
       {/* Header with label and preview toggle */}
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
         {label && (
@@ -106,7 +108,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProperties> = ({
             onChange={handleChange}
             placeholder={placeholder}
             rows={rows}
-            className="w-full resize-none border-0 bg-transparent p-0 text-sm text-gray-700 placeholder-gray-400 focus:ring-0 focus:outline-none"
+            className="w-full resize-none border-0 bg-transparent p-0 text-sm text-gray-700 placeholder-gray-400 outline-hidden"
           />
         )}
       </div>

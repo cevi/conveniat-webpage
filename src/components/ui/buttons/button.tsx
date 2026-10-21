@@ -4,8 +4,9 @@ import * as React from 'react';
 
 import { cn } from '@/utils/tailwindcss-override';
 
+// in the app, focus is the shared ring from globals.scss; `site:` keeps the website's own
 const buttonVariants = cva(
-  'cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-neutral-950 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 dark:focus-visible:ring-neutral-300',
+  'cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors site:focus-visible:outline-hidden site:focus-visible:ring-1 site:focus-visible:ring-neutral-950 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 site:dark:focus-visible:ring-neutral-300',
   {
     variants: {
       variant: {

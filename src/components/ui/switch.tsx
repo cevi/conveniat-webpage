@@ -32,7 +32,7 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProperties>(
         ref={reference}
         className={cn(
           // the track is 24px high, the hit area the 44px a thumb needs
-          "peer relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors before:absolute before:inset-x-0 before:-inset-y-2.5 before:content-[''] focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "peer site:focus-visible:ring-2 site:focus-visible:ring-gray-950 site:focus-visible:ring-offset-2 site:focus-visible:ring-offset-white site:focus-visible:outline-none relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors before:absolute before:inset-x-0 before:-inset-y-2.5 before:content-[''] disabled:cursor-not-allowed disabled:opacity-50",
           !disabled && !loading && 'cursor-pointer',
           checked ? 'bg-conveniat-green' : 'bg-chip',
           className,

@@ -12,7 +12,9 @@ import { cn } from '@/utils/tailwindcss-override';
  * - both are 44px high with the 12px radius of the scale, and both show focus as the same 2px
  *   brand-green ring, never as a changed border or the browser's outline
  */
-const focusRing = 'focus-within:ring-conveniat-green focus-within:ring-2';
+/** The focus ring of a field's frame, for a frame that cannot be one of the frames below. */
+export const fieldFocusRingClassName = 'focus-within:ring-conveniat-green focus-within:ring-2';
+const focusRing = fieldFocusRingClassName;
 
 /** The frame around a search input: an icon, the input, and a clear button. */
 export const searchFieldClassName = cn(

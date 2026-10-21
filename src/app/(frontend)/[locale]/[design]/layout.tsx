@@ -86,6 +86,8 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
         'overscroll-y-none': isInAppDesign,
       })}
       lang={locale}
+      // scopes the app's focus ring, see globals.scss
+      data-app={isInAppDesign ? '' : undefined}
       suppressHydrationWarning
     >
       <head>

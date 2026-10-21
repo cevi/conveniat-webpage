@@ -33,7 +33,7 @@ export const FactRow: React.FC<{
     </>
   );
   const className =
-    'relative flex min-h-[60px] items-center gap-3 px-3.5 py-2.5 not-first:before:absolute not-first:before:top-0 not-first:before:right-0 not-first:before:left-16 not-first:before:h-px not-first:before:bg-line';
+    'focus-visible:focus-ring-inset relative flex min-h-[60px] items-center gap-3 px-3.5 py-2.5 not-first:before:absolute not-first:before:top-0 not-first:before:right-0 not-first:before:left-16 not-first:before:h-px not-first:before:bg-line';
   return href === undefined ? (
     <div className={className}>{body}</div>
   ) : (

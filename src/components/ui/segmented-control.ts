@@ -14,6 +14,7 @@ export const segmentClassName = (isChosen: boolean): string =>
   cn(
     'relative flex min-w-0 cursor-pointer items-center justify-center rounded-[9px] transition-colors',
     'before:absolute before:-inset-y-[3px] before:inset-x-0 first:before:-left-[3px] last:before:-right-[3px]',
-    'focus-visible:ring-conveniat-green focus-visible:ring-2 focus-visible:outline-none',
+    // the track leaves 3px around a segment, too little for the ring outside it
+    'focus-visible:focus-ring-inset',
     isChosen ? 'bg-white text-green-900 shadow-xs' : 'text-green-700 hover:text-green-900',
   );
