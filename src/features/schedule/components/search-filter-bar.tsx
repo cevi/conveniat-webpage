@@ -124,11 +124,12 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
     });
   }, [onFiltersChange]);
 
+  // opened from the header, the favourites live in a toggle of their own that shows its state
   const hasActiveFilters =
     filters.searchText !== '' ||
     filters.selectedLocations.length > 0 ||
     filters.selectedCategory !== undefined ||
-    filters.starredOnly;
+    (filters.starredOnly && !isOpenedFromHeader);
 
   const hasCategoryFilter = filters.selectedCategory !== undefined;
 
@@ -263,7 +264,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
       )}
 
       {/* Active Filters / Clear */}
-      {hasActiveFilters && (
+      {(isOpenedFromHeader ? hasCategoryFilter : hasActiveFilters) && (
         <div className="flex flex-wrap items-center gap-2 pt-0.5">
           {/* Show selected category as a chip */}
           {hasCategoryFilter && filters.selectedCategory && (
@@ -280,15 +281,17 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
             </span>
           )}
 
-          {/* Clear All Filters */}
-          <button
-            type="button"
-            onClick={clearAllFilters}
-            className="font-body hover:text-conveniat-green inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-gray-500 transition-colors"
-          >
-            <X className="h-3.5 w-3.5" />
-            {clearAllText[locale]}
-          </button>
+          {/* Clear All Filters; opened from the header, the field and the chip clear themselves */}
+          {!isOpenedFromHeader && (
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="font-body hover:text-conveniat-green inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-gray-500 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+              {clearAllText[locale]}
+            </button>
+          )}
         </div>
       )}
     </div>

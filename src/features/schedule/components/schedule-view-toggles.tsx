@@ -8,7 +8,8 @@ import type React from 'react';
 
 /**
  * The row above the timeline: the user's own Quartier or the whole camp, and only the favourites.
- * Somebody without a Quartier sees the whole camp only, so the switch is left out for them.
+ * Somebody without a Quartier sees the whole camp only, so the switch is left out for them and
+ * the favourites toggle, alone in the row, says in words what it does.
  */
 export const ScheduleViewToggles: React.FC<{
   myQuartiere: { id: string; name: string }[];
@@ -53,23 +54,23 @@ export const ScheduleViewToggles: React.FC<{
           </button>
         ))}
       </div>
-    ) : (
-      <div className="flex-1" />
-    )}
+    ) : undefined}
 
     <button
       type="button"
       aria-pressed={starredOnly}
-      aria-label={programmeLabels.favouritesOnly[locale]}
+      aria-label={myQuartiere.length > 0 ? programmeLabels.favouritesOnly[locale] : undefined}
       onClick={() => onStarredOnlyChange(!starredOnly)}
       className={cn(
-        'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border transition-colors',
+        'flex h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl border transition-colors',
+        myQuartiere.length > 0 ? 'w-11' : 'px-3.5 text-sm font-semibold',
         starredOnly
           ? 'border-amber-700 bg-amber-50 text-amber-700'
           : 'border-line bg-white text-green-700',
       )}
     >
       <Star className={cn('h-5 w-5', starredOnly && 'fill-amber-700')} aria-hidden="true" />
+      {myQuartiere.length === 0 && programmeLabels.favouritesOnly[locale]}
     </button>
   </div>
 );

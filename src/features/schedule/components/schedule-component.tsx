@@ -264,18 +264,7 @@ export const ScheduleComponent: React.FC = () => {
           />
         </ScheduleStatusProvider>
       ) : (
-        <NoProgramPlaceholder
-          currentDate={currentDate}
-          hasActiveFilters={hasActiveFilters}
-          onClearFilters={() =>
-            handleFiltersChange({
-              searchText: '',
-              selectedLocations: [],
-              selectedCategory: undefined,
-              starredOnly: false,
-            })
-          }
-        />
+        <NoProgramPlaceholder filters={filters} onFiltersChange={handleFiltersChange} />
       )}
     </DateCarouselViewWrapper>
   );
