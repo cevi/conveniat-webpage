@@ -59,11 +59,13 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
         <ChevronLeft className="h-5 w-5" />
       </Button>
 
-      {/* py and -my leave room for the selected day's shadow, which the scroller would clip */}
+      {/* the padding, given back by the negative margin, leaves room for a day's focus ring,
+          which the scroller would clip at its edges; the scroll padding keeps the days snapping
+          to where they were */}
       <div
         ref={stripReference}
         onScroll={onScroll}
-        className="relative -my-2 flex min-w-0 flex-1 snap-x snap-mandatory [scrollbar-width:none] gap-1.5 overflow-x-auto overscroll-x-contain py-2 [&::-webkit-scrollbar]:hidden"
+        className="relative -m-1 flex min-w-0 flex-1 snap-x snap-mandatory scroll-px-1 [scrollbar-width:none] gap-1.5 overflow-x-auto overscroll-x-contain p-1 [&::-webkit-scrollbar]:hidden"
       >
         {allDates.map((date) => {
           const dateString = formatDate(date);

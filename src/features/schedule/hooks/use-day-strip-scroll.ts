@@ -52,8 +52,10 @@ export const useDayStripScroll = (
     const selected = strip?.querySelector<HTMLElement>('[aria-current="date"]');
     if (strip === null || selected === null || selected === undefined) return;
 
-    const start = selected.offsetLeft;
-    const end = start + selected.offsetWidth;
+    // the strip's padding, the room for a day's focus ring, stays in sight with the day
+    const padding = Number.parseFloat(getComputedStyle(strip).paddingLeft) || 0;
+    const start = selected.offsetLeft - padding;
+    const end = selected.offsetLeft + selected.offsetWidth + padding;
     let left: number | undefined;
     if (start < strip.scrollLeft) left = start;
     else if (end > strip.scrollLeft + strip.clientWidth) left = end - strip.clientWidth;
