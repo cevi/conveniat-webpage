@@ -28,6 +28,7 @@ import { getCategoryAccent } from '@/features/schedule/utils/category-utils';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
 import {
   isDescriptionRedundant,
+  isForQuartiere,
   quartiereOf,
   slotOf,
 } from '@/features/schedule/utils/programme-utils';
@@ -491,6 +492,13 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                                   · {shortQuartierName(name)} {quartierNicknameOf(name)}
                                 </span>
                               ))}
+                            {/* the way back to the user's own slot after looking at another */}
+                            {quartiereOf(other).length > 0 &&
+                              isForQuartiere(other, myQuartierIds) && (
+                                <span className="text-conveniat-green ml-auto shrink-0 text-xs font-semibold">
+                                  {programmeLabels.yourQuartier[locale]}
+                                </span>
+                              )}
                           </>,
                         )}
                       </li>

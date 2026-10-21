@@ -13,7 +13,6 @@ import { ScheduleEditHeaderActions } from '@/features/schedule/components/schedu
 import { useScheduleEdit } from '@/features/schedule/hooks/use-schedule-edit';
 import { useScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
 import {
-  byStart,
   findOtherSlots,
   findWhatComesNext,
   isForQuartiere,
@@ -59,17 +58,14 @@ interface ScheduleDetailViewProperties {
 export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id: initialId }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const router = useRouter();
-  const [currentId, setCurrentId] = useState(initialId);
+  // set once the user opens another slot or block from this page
+  const [openedId, setOpenedId] = useState<string>();
   const { myQuartierIds } = useScheduleScope();
-
-  // Use the locally tracked ID for all data fetching and display
-  const id = currentId;
 
   const trpcUtils = trpc.useUtils();
 
   // 1. Try to find the entry in the local TanStack DB cache first (offline support)
   const { entries: localEntries } = useScheduleEntries();
-  const cachedEntry = localEntries.find((entry) => entry.id === id);
 
   // 2. Also check the schedule list cache from tRPC (direct cache read + query hook)
   const { data: scheduleList } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
@@ -79,6 +75,22 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     refetchOnWindowFocus: true,
   });
   const trpcDirectEntries = trpcUtils.schedule.getScheduleEntries.getData();
+  const allEntries = scheduleList ?? trpcDirectEntries ?? localEntries;
+
+  // A link to a block, shared from another Quartier or tapped in the whole camp's list, opens
+  // on the user's own slot of it. Everything below, the facts, enrolment, the star, sharing and
+  // editing, is about that one slot.
+  const ownSlotId = useMemo(() => {
+    if (myQuartierIds.size === 0) return;
+    const opened = allEntries.find((candidate) => candidate.id === initialId);
+    if (opened === undefined) return;
+    return [opened, ...findOtherSlots(allEntries, opened)].find(
+      (candidate) => quartiereOf(candidate).length > 0 && isForQuartiere(candidate, myQuartierIds),
+    )?.id;
+  }, [allEntries, initialId, myQuartierIds]);
+  const id = openedId ?? ownSlotId ?? initialId;
+
+  const cachedEntry = localEntries.find((entry) => entry.id === id);
   const listCachedEntry =
     scheduleList?.find((entry) => entry.id === id) ??
     trpcDirectEntries?.find((entry) => entry.id === id);
@@ -131,10 +143,9 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     { enabled: !!entry, staleTime: 1000 * 60 * 5, refetchOnWindowFocus: false },
   );
 
-  // The block in all its slots: the facts are about the user's own one, the others are listed
+  // The block in all its slots: the one shown, and the others listed below it
   const { slotEntry, isOwnSlot, otherSlots, whatComesNext } = useMemo(() => {
-    const all = scheduleList ?? trpcDirectEntries ?? localEntries;
-    const self = all.find((candidate) => candidate.id === id);
+    const self = allEntries.find((candidate) => candidate.id === id);
     if (self === undefined) {
       return {
         slotEntry: undefined,
@@ -143,24 +154,19 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
         whatComesNext: { next: undefined, nextBlock: undefined },
       };
     }
-    const slots = [self, ...findOtherSlots(all, self)].sort(byStart);
-    const own = slots.find(
-      (candidate) =>
-        myQuartierIds.size > 0 &&
-        quartiereOf(candidate).length > 0 &&
-        isForQuartiere(candidate, myQuartierIds),
-    );
-    const shown = own ?? self;
     // the timeline the block sits on: the user's, or that of the Quartiere the slot is for
     const timeline =
-      myQuartierIds.size > 0 ? myQuartierIds : new Set(quartiereOf(shown).map(({ id: q }) => q));
+      myQuartierIds.size > 0 ? myQuartierIds : new Set(quartiereOf(self).map(({ id: q }) => q));
     return {
-      slotEntry: shown,
-      isOwnSlot: own !== undefined,
-      otherSlots: slots.filter((candidate) => candidate.id !== shown.id),
-      whatComesNext: findWhatComesNext(all, shown, timeline),
+      slotEntry: self,
+      isOwnSlot:
+        myQuartierIds.size > 0 &&
+        quartiereOf(self).length > 0 &&
+        isForQuartiere(self, myQuartierIds),
+      otherSlots: findOtherSlots(allEntries, self),
+      whatComesNext: findWhatComesNext(allEntries, self, timeline),
     };
-  }, [scheduleList, trpcDirectEntries, localEntries, id, myQuartierIds]);
+  }, [allEntries, id, myQuartierIds]);
 
   // 5. Use shared edit hook
   const {
@@ -180,7 +186,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
   });
 
   const navigateToEntry = useCallback((entryId: string): void => {
-    setCurrentId(entryId);
+    setOpenedId(entryId);
     // Update the URL without triggering a Next.js navigation to avoid
     // tearing down the React tree (which breaks TRPCProvider's promise chain)
     // Keep the other parameters: the date and the scope decide what "back" returns to.

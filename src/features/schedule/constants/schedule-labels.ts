@@ -59,6 +59,7 @@ export const programmeLabels = {
   until: { de: 'bis {{time}}', en: 'until {{time}}', fr: "jusqu'à {{time}}" },
   forMe: { de: 'Für mich', en: 'For me', fr: 'Pour moi' },
   otherTimeSlots: { de: 'Weitere Zeitfenster', en: 'Other time slots', fr: 'Autres créneaux' },
+  yourQuartier: { de: 'Dein Quartier', en: 'Your Quartier', fr: 'Ton Quartier' },
   ownSlot: {
     de: 'Zeitfenster deines Quartiers',
     en: "Your Quartier's time slot",
