@@ -41,8 +41,7 @@ export const ScheduleFixedRow: React.FC<{
   isPast: boolean;
   /** "Läuft · noch 12 min", when it is running */
   runningLabel?: string | undefined;
-  overlay?: React.ReactNode;
-}> = ({ stop, isPast, runningLabel, overlay }) => {
+}> = ({ stop, isPast, runningLabel }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const first = stop.slots[0];
   const slot = slotOf(first);
@@ -54,7 +53,6 @@ export const ScheduleFixedRow: React.FC<{
       isPast={isPast}
       time={<time className="text-green-700">{start}</time>}
       node={<span className="border-rail-node bg-page h-2.5 w-2.5 rounded-full border-2" />}
-      overlay={overlay}
     >
       <div className="flex items-start gap-2 pb-4">
         <FixedRowIcon entry={first} />

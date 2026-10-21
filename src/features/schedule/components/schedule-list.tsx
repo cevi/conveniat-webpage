@@ -52,7 +52,7 @@ const runningSlotOf = (
 
 /**
  * The programme of one day as a timeline. The day stays in order at any time: what is over is
- * dimmed in place, never moved, and the line of "now" runs through it on the day that is today.
+ * dimmed in place, never moved, and the line of "now" runs across it on the day that is today.
  */
 export const ScheduleList: React.FC<ScheduleListProperties> = ({
   entries,
@@ -70,28 +70,23 @@ export const ScheduleList: React.FC<ScheduleListProperties> = ({
 
   const minutes = now?.minutes;
   const nowTime = minutes === undefined ? '' : formatMinutesAsTime(minutes);
-  const nowLabel =
-    minutes === undefined
-      ? ''
-      : programmeLabels.nowAt[locale].replace('{{time}}', formatMinutesAsTime(minutes));
+  const nowLabel = programmeLabels.nowAt[locale].replace('{{time}}', nowTime);
 
-  // the line goes before the first item that has not started yet, or through the one running
+  // the line goes between items: after the last one to have started, before the next one
   const firstUpcoming =
     minutes === undefined ? -1 : items.findIndex((item) => startOfItem(item) > minutes);
   const lineIndex = firstUpcoming === -1 ? items.length : firstUpcoming;
-  const before = items[lineIndex - 1];
-  const runningBefore =
-    minutes !== undefined && before !== undefined && before.type !== 'transfer'
-      ? runningSlotOf(before, minutes, myQuartierIds)
-      : undefined;
+  const nowLine =
+    minutes === undefined ? undefined : (
+      <li>
+        <ScheduleNowLine time={nowTime} label={nowLabel} />
+      </li>
+    );
 
   return (
     <ol ref={listReference} className="pt-1">
       {items.map((item, index) => {
         const isPast = minutes !== undefined && endOfItem(item) <= minutes;
-        const standaloneLine =
-          minutes !== undefined && index === lineIndex && runningBefore === undefined;
-
         let row: React.ReactNode;
         if (item.type === 'transfer') {
           row = <ScheduleTransferRow transfer={item} isPast={isPast} />;
@@ -106,14 +101,6 @@ export const ScheduleList: React.FC<ScheduleListProperties> = ({
                   '{{duration}}',
                   formatDuration(runningSlot.end - minutes),
                 );
-          const overlay =
-            minutes !== undefined && index === lineIndex - 1 && runningSlot !== undefined ? (
-              <ScheduleNowLine
-                time={formatMinutesAsTime(minutes)}
-                label={nowLabel}
-                progress={(minutes - runningSlot.start) / (runningSlot.end - runningSlot.start)}
-              />
-            ) : undefined;
 
           row =
             item.type === 'block' ? (
@@ -126,34 +113,20 @@ export const ScheduleList: React.FC<ScheduleListProperties> = ({
                 showSlots={groupSlots}
                 isPast={isPast}
                 runningLabel={runningLabel}
-                overlay={overlay}
               />
             ) : (
-              <ScheduleFixedRow
-                stop={item}
-                isPast={isPast}
-                runningLabel={runningLabel}
-                overlay={overlay}
-              />
+              <ScheduleFixedRow stop={item} isPast={isPast} runningLabel={runningLabel} />
             );
         }
 
         return (
           <React.Fragment key={item.key}>
-            {standaloneLine && (
-              <li>
-                <ScheduleNowLine time={nowTime} label={nowLabel} />
-              </li>
-            )}
+            {index === lineIndex && nowLine}
             {row}
           </React.Fragment>
         );
       })}
-      {minutes !== undefined && lineIndex === items.length && runningBefore === undefined && (
-        <li>
-          <ScheduleNowLine time={nowTime} label={nowLabel} />
-        </li>
-      )}
+      {lineIndex === items.length && nowLine}
     </ol>
   );
 };

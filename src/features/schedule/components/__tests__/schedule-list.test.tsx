@@ -156,13 +156,17 @@ describe('ScheduleList', () => {
     );
   });
 
-  it('marks what is running and draws the line of now through it', () => {
-    renderList([entry('Ballspiele', '17:00 - 17:30')], {
-      now: { dayKey: '2027-07-25', minutes: 17 * 60 + 12 },
-    });
+  it('marks what is running and draws the line of now after it, before what comes next', () => {
+    renderList(
+      [entry('Ballspiele', '17:00 - 17:30'), entry('Essen', '17:30 - 18:00', { kind: 'meal' })],
+      { now: { dayKey: '2027-07-25', minutes: 17 * 60 + 12 } },
+    );
 
     expect(screen.getByText('Läuft · noch 18 min')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Jetzt, 17:12' })).toBeInTheDocument();
+    const items = screen.getAllByRole('listitem');
+    const lineAt = items.findIndex((item) => item.querySelector('[aria-label="Jetzt, 17:12"]'));
+    expect(items[lineAt - 1]).toHaveTextContent('Ballspiele');
+    expect(items[lineAt + 1]).toHaveTextContent('Essen');
   });
 
   it('stars the block from its card', () => {

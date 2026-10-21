@@ -36,7 +36,6 @@ interface ScheduleRowProperties {
   isPast: boolean;
   /** "Läuft · noch 18 min", when it is running */
   runningLabel?: string | undefined;
-  overlay?: React.ReactNode;
 }
 
 /** "Q5", filled when it is the user's own Quartier. */
@@ -64,7 +63,6 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
   showSlots,
   isPast,
   runningLabel,
-  overlay,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
@@ -104,7 +102,6 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
           aria-hidden="true"
         />
       }
-      overlay={overlay}
     >
       <div
         className={cn(
