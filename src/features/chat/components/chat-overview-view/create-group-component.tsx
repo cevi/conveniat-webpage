@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { fieldInputClassName, formFieldClassName } from '@/components/ui/field';
 import { PersonAvatar } from '@/components/ui/person-avatar';
+import { SectionLabel } from '@/components/ui/section-label';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import {
   contactListName,
@@ -14,7 +15,7 @@ import {
 import { newChatText } from '@/features/chat/components/chat-overview-view/create-chat-skeleton';
 import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
 import { useCreateChat } from '@/features/chat/hooks/use-create-chat';
-import { matchesContactSearch } from '@/features/chat/utils/contact-search';
+import { groupContactsByLetter, matchesContactSearch } from '@/features/chat/utils/contact-search';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -22,9 +23,12 @@ import { getContactDisplayName, getContactShortName } from '@/utils/format-user-
 import { cn } from '@/utils/tailwindcss-override';
 import { Check, Users, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useCallback, useEffect, useId, useState } from 'react';
+
+/** The search parameter of the second step, so the back button returns to the first. */
+const STEP_PARAMETER = 'step';
 
 /** The bounds `createChat` holds a group name to, see `verifyChatName`. */
 const NAME_MIN = 2;
@@ -35,11 +39,12 @@ const MIN_SELECTED = 2;
 const text = {
   nameLabel: { de: 'Gruppenname', en: 'Group name', fr: 'Nom du groupe' },
   namePlaceholder: { de: 'Name der Gruppe', en: 'Name of the group', fr: 'Nom du groupe' },
-  nameRule: {
-    de: `${NAME_MIN} bis ${NAME_MAX} Zeichen`,
-    en: `${NAME_MIN} to ${NAME_MAX} characters`,
-    fr: `${NAME_MIN} à ${NAME_MAX} caractères`,
+  nameTooShort: {
+    de: `Der Name braucht mindestens ${NAME_MIN} Zeichen.`,
+    en: `The name needs at least ${NAME_MIN} characters.`,
+    fr: `Le nom doit compter au moins ${NAME_MIN} caractères.`,
   },
+  members: { de: 'Mitglieder', en: 'Members', fr: 'Membres' },
   search: { de: 'Kontakte hinzufügen', en: 'Add contacts', fr: 'Ajouter des contacts' },
   remove: { de: '{name} entfernen', en: 'Remove {name}', fr: 'Retirer {name}' },
   chosenPeople: { de: 'Ausgewählte Personen', en: 'Selected people', fr: 'Personnes choisies' },
@@ -48,16 +53,13 @@ const text = {
     en: 'Choose at least two people.',
     fr: 'Choisis au moins deux personnes.',
   },
-  needName: {
-    de: 'Gib der Gruppe einen Namen, um sie zu erstellen.',
-    en: 'Give the group a name to create it.',
-    fr: 'Donne un nom au groupe pour le créer.',
-  },
+  pickBack: { de: 'Zurück zur Auswahl', en: 'Back to the selection', fr: 'Retour à la sélection' },
   limit: {
     de: 'Eine Gruppe hat höchstens {max} Mitglieder, dich eingeschlossen.',
     en: 'A group can have at most {max} members, including you.',
     fr: 'Un groupe compte au plus {max} membres, toi compris.',
   },
+  next: { de: 'Weiter', en: 'Next', fr: 'Suivant' },
   create: { de: 'Gruppe erstellen', en: 'Create group', fr: 'Créer le groupe' },
   creating: { de: 'Erstelle …', en: 'Creating …', fr: 'Création …' },
   loading: { de: 'Lade Kontakte …', en: 'Loading contacts …', fr: 'Chargement des contacts …' },
@@ -73,6 +75,10 @@ const text = {
   },
 } satisfies Record<string, StaticTranslationString>;
 
+/** A disabled footer button stays legible: green text on the quiet grey, not a faded green. */
+const footerButtonClassName =
+  'w-full disabled:bg-quiet disabled:text-green-700 disabled:opacity-100';
+
 /** The round mark at the end of a row: an empty ring, or brand green with a check. */
 const SelectionMark: React.FC<{ isSelected: boolean }> = ({ isSelected }) => (
   <span
@@ -87,9 +93,10 @@ const SelectionMark: React.FC<{ isSelected: boolean }> = ({ isSelected }) => (
 );
 
 /**
- * Creating a group: its name, the people chosen so far as chips and the contacts to choose
- * from, each a checkbox. "Gruppe erstellen" waits for two people and a name of 2 to 50
- * characters, the rules `createChat` holds a group to.
+ * Creating a group in two steps. First the people: the contacts as checkboxes, the chosen ones
+ * as chips, and "Weiter" once two are chosen. Then the name, 2 to 50 characters, and "Gruppe
+ * erstellen" — the rules `createChat` holds a group to. The second step has its own history
+ * entry, so going back, by the arrow or the phone's back, returns to the choice as it was.
  */
 export const CreateNewGroupPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -98,16 +105,19 @@ export const CreateNewGroupPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selected, setSelected] = useState<Contact[]>([]);
   const [groupName, setGroupName] = useState('');
+  const [hasLeftName, setHasLeftName] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const searchParameters = useSearchParams();
   const { createChat } = useCreateChat();
   const nameId = useId();
-  const nameRuleId = useId();
+  const nameErrorId = useId();
 
   const reset = useCallback((): void => {
     setSelected([]);
     setGroupName('');
+    setHasLeftName(false);
     setSearchQuery('');
     setIsCreating(false);
   }, []);
@@ -125,7 +135,11 @@ export const CreateNewGroupPage: React.FC = () => {
   const trimmedName = groupName.trim();
   const hasValidName = trimmedName.length >= NAME_MIN && trimmedName.length <= NAME_MAX;
   const hasEnoughPeople = selected.length >= MIN_SELECTED;
+  // a reload on the second step has lost the choice, so it starts over with the first
+  const isNaming = searchParameters.get(STEP_PARAMETER) === 'name' && hasEnoughPeople;
   const canCreate = hasEnoughPeople && hasValidName && !isCreating;
+  // the rule only shows once it is broken, not while the name is still being typed
+  const showNameError = hasLeftName && trimmedName.length > 0 && !hasValidName;
   const isSelected = (contact: Contact): boolean =>
     selected.some((chosen) => chosen.userId === contact.userId);
 
@@ -140,6 +154,14 @@ export const CreateNewGroupPage: React.FC = () => {
     setSearchQuery('');
   };
 
+  const goToNaming = (): void => {
+    if (!hasEnoughPeople) return;
+    const url = new URL(globalThis.location.href);
+    url.searchParams.set(STEP_PARAMETER, 'name');
+    // the native history call keeps Next's router in sync without a round trip
+    globalThis.history.pushState(undefined, '', url);
+  };
+
   const create = (): void => {
     if (!canCreate) return;
     setIsCreating(true);
@@ -150,114 +172,165 @@ export const CreateNewGroupPage: React.FC = () => {
     router.replace(`/app/chat/${chatId}`);
   };
 
-  const filteredContacts =
-    allContacts
-      ?.filter((contact) => matchesContactSearch(contact, searchQuery))
-      .sort((a, b) => contactListName(a).localeCompare(contactListName(b), locale)) ?? [];
+  const subtitle = newChatText.groupSelected[locale].replace('{n}', String(selected.length));
 
-  let helper: string | undefined;
-  if (!hasEnoughPeople) helper = text.needPeople[locale];
-  else if (!hasValidName) helper = text.needName[locale];
+  if (isNaming) {
+    return (
+      <NewChatFrame
+        title={newChatText.groupTitle[locale]}
+        subtitle={subtitle}
+        onBack={() => globalThis.history.back()}
+        backLabel={text.pickBack[locale]}
+        onWhite
+        footer={
+          <Button
+            variant="primary"
+            size="touch"
+            className={footerButtonClassName}
+            onClick={create}
+            disabled={!canCreate}
+          >
+            {isCreating ? text.creating[locale] : text.create[locale]}
+          </Button>
+        }
+      >
+        <div className="px-4 pt-4 pb-3">
+          <label htmlFor={nameId} className="block text-[13px] font-semibold text-green-900">
+            {text.nameLabel[locale]}
+          </label>
+          <div className={cn(formFieldClassName, 'mt-1.5')}>
+            <input
+              id={nameId}
+              // the step exists for the name, so the keyboard comes up with it
+              // eslint-disable-next-line jsx-a11y/no-autofocus
+              autoFocus
+              value={groupName}
+              maxLength={NAME_MAX}
+              placeholder={text.namePlaceholder[locale]}
+              onChange={(event) => setGroupName(event.target.value)}
+              onBlur={() => setHasLeftName(true)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') create();
+              }}
+              enterKeyHint="done"
+              aria-invalid={showNameError}
+              aria-describedby={showNameError ? nameErrorId : undefined}
+              className={fieldInputClassName}
+            />
+          </div>
+          <div className="mt-1 flex justify-between gap-3 text-xs text-green-700 tabular-nums">
+            <span
+              id={nameErrorId}
+              role={showNameError ? 'alert' : undefined}
+              className="text-live-text font-semibold"
+            >
+              {showNameError ? text.nameTooShort[locale] : ''}
+            </span>
+            <span aria-hidden="true" className="shrink-0">
+              {groupName.length}/{NAME_MAX}
+            </span>
+          </div>
+        </div>
+
+        <section className="border-line border-t pt-4 pb-6">
+          <SectionLabel className="px-4">
+            {text.members[locale]} ({selected.length + 1})
+          </SectionLabel>
+          <ul className="pt-2">
+            {selected.map((contact) => (
+              <li key={contact.userId} className={contactRowItemClassName}>
+                <div className="flex min-h-16 items-center gap-3 px-4 py-2.5">
+                  <ContactRowContent contact={contact} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </NewChatFrame>
+    );
+  }
+
+  const filteredContacts =
+    allContacts?.filter((contact) => matchesContactSearch(contact, searchQuery)) ?? [];
+  const groups = groupContactsByLetter(filteredContacts, contactListName, locale);
 
   return (
     <NewChatFrame
       title={newChatText.groupTitle[locale]}
-      subtitle={newChatText.groupSelected[locale].replace('{n}', String(selected.length))}
+      subtitle={subtitle}
       backHref="/app/chat/new"
-      onWhite
       backLabel={newChatText.groupBack[locale]}
-      footer={
-        <div className="flex flex-col gap-2">
-          {helper !== undefined && (
-            <p id="new-group-helper" className="text-center text-[13px] text-green-700">
-              {helper}
-            </p>
-          )}
-          <Button
-            variant="primary"
-            size="touch"
-            className="w-full"
-            onClick={create}
-            disabled={!canCreate}
-            aria-describedby={helper === undefined ? undefined : 'new-group-helper'}
-          >
-            {isCreating
-              ? text.creating[locale]
-              : `${text.create[locale]}${selected.length > 0 ? ` (${selected.length})` : ''}`}
-          </Button>
-        </div>
-      }
-    >
-      <div className="border-line border-b bg-white px-4 pt-4 pb-3">
-        <span id={nameId} className="block text-[13px] font-semibold text-green-900">
-          {text.nameLabel[locale]}
-        </span>
-        <label className={cn(formFieldClassName, 'mt-1.5')}>
-          <input
-            value={groupName}
-            maxLength={NAME_MAX}
-            placeholder={text.namePlaceholder[locale]}
-            onChange={(event) => setGroupName(event.target.value)}
-            aria-labelledby={nameId}
-            aria-describedby={nameRuleId}
-            aria-invalid={trimmedName.length > 0 && !hasValidName}
-            className={fieldInputClassName}
-          />
-        </label>
-        <div
-          id={nameRuleId}
-          className="mt-1 flex justify-between text-xs text-green-700 tabular-nums"
-        >
-          <span>{text.nameRule[locale]}</span>
-          <span aria-hidden="true">
-            {groupName.length}/{NAME_MAX}
-          </span>
-        </div>
-
-        {selected.length > 0 && (
-          <ul aria-label={text.chosenPeople[locale]} className="mt-2 flex flex-wrap gap-x-2">
-            {selected.map((contact) => (
-              <li key={contact.userId}>
-                <button
-                  type="button"
-                  onClick={() => toggle(contact)}
-                  aria-label={text.remove[locale].replace('{name}', getContactDisplayName(contact))}
-                  className="flex h-11 cursor-pointer items-center"
-                >
-                  <span className="bg-quiet flex h-9 items-center gap-2 rounded-full pr-3 pl-1">
-                    <PersonAvatar
-                      seed={contact.userId}
-                      name={contact.name}
-                      pictureUrl={contact.pictureUrl}
-                      className="h-7 w-7 text-[11px]"
-                    />
-                    <span className="text-sm font-semibold text-green-900">
-                      {getContactShortName(contact)}
-                    </span>
-                    <X className="h-4 w-4 text-green-700" aria-hidden="true" />
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="px-4 pt-3 pb-2">
+      onWhite
+      head={
         <ChatSearchField
           placeholder={text.search[locale]}
           value={searchQuery}
           onChange={setSearchQuery}
         />
-        {isAtLimit && (
-          <p className="mt-2 text-[13px] text-green-700">
-            {text.limit[locale].replace('{max}', String(maxGroupMembers))}
-          </p>
-        )}
-      </div>
+      }
+      footer={
+        <div className="flex flex-col gap-2">
+          {!hasEnoughPeople && (
+            <p id="new-group-helper" className="text-center text-[13px] text-green-700">
+              {text.needPeople[locale]}
+            </p>
+          )}
+          <Button
+            variant="primary"
+            size="touch"
+            className={footerButtonClassName}
+            onClick={goToNaming}
+            disabled={!hasEnoughPeople}
+            aria-describedby={hasEnoughPeople ? undefined : 'new-group-helper'}
+          >
+            {text.next[locale]}
+            {selected.length > 0 && ` (${selected.length})`}
+          </Button>
+        </div>
+      }
+    >
+      {(selected.length > 0 || isAtLimit) && (
+        <div className="border-line border-b px-4 pt-2 pb-2">
+          {selected.length > 0 && (
+            <ul aria-label={text.chosenPeople[locale]} className="flex flex-wrap gap-x-2">
+              {selected.map((contact) => (
+                <li key={contact.userId}>
+                  <button
+                    type="button"
+                    onClick={() => toggle(contact)}
+                    aria-label={text.remove[locale].replace(
+                      '{name}',
+                      getContactDisplayName(contact),
+                    )}
+                    className="flex h-11 cursor-pointer items-center"
+                  >
+                    <span className="bg-quiet flex h-9 items-center gap-2 rounded-full pr-3 pl-1">
+                      <PersonAvatar
+                        seed={contact.userId}
+                        name={contact.name}
+                        pictureUrl={contact.pictureUrl}
+                        className="h-7 w-7 text-[11px]"
+                      />
+                      <span className="text-sm font-semibold text-green-900">
+                        {getContactShortName(contact)}
+                      </span>
+                      <X className="h-4 w-4 text-green-700" aria-hidden="true" />
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {isAtLimit && (
+            <p className="py-1 text-[13px] text-green-700">
+              {text.limit[locale].replace('{max}', String(maxGroupMembers))}
+            </p>
+          )}
+        </div>
+      )}
 
       {isLoading && (
-        <div role="status">
+        <div role="status" className="pt-2">
           <span className="sr-only">{text.loading[locale]}</span>
           <ContactRowsSkeleton withMark />
         </div>
@@ -270,31 +343,37 @@ export const CreateNewGroupPage: React.FC = () => {
         />
       )}
 
-      {!isLoading && filteredContacts.length > 0 && (
-        <ul className="pb-6">
-          {filteredContacts.map((contact) => {
-            const isChosen = isSelected(contact);
-            return (
-              <li key={contact.userId} className={contactRowItemClassName}>
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={isChosen}
-                  disabled={!isChosen && isAtLimit}
-                  onClick={() => toggle(contact)}
-                  className={cn(
-                    'flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50',
-                    isChosen ? 'bg-tint' : 'hover:bg-quiet',
-                  )}
-                >
-                  <ContactRowContent contact={contact} />
-                  <SelectionMark isSelected={isChosen} />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      {!isLoading &&
+        groups.map(({ letter, contacts }) => (
+          <div key={letter ?? 'all'} className="pt-2 last:pb-6">
+            {letter !== undefined && (
+              <h3 className="px-4 pt-1 pb-1 text-xs font-bold text-green-700">{letter}</h3>
+            )}
+            <ul>
+              {contacts.map((contact) => {
+                const isChosen = isSelected(contact);
+                return (
+                  <li key={contact.userId} className={contactRowItemClassName}>
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={isChosen}
+                      disabled={!isChosen && isAtLimit}
+                      onClick={() => toggle(contact)}
+                      className={cn(
+                        'flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50',
+                        isChosen ? 'bg-tint' : 'hover:bg-quiet',
+                      )}
+                    >
+                      <ContactRowContent contact={contact} />
+                      <SelectionMark isSelected={isChosen} />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
     </NewChatFrame>
   );
 };

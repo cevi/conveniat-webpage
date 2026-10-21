@@ -59,7 +59,7 @@ export const CreateChatSkeleton: React.FC = () => {
   );
 };
 
-/** Neue Gruppe while it loads: the name field, the search, rows with their marks, the button. */
+/** Neue Gruppe while it loads: the search, the contact rows with their marks, "Weiter". */
 export const CreateGroupSkeleton: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   return (
@@ -69,6 +69,7 @@ export const CreateGroupSkeleton: React.FC = () => {
       backHref="/app/chat/new"
       onWhite
       backLabel={newChatText.groupBack[locale]}
+      head={<SearchSkeleton />}
       footer={
         <div className="flex flex-col gap-2" aria-hidden="true">
           <div className={`mx-auto h-[18px] w-56 rounded ${pulse}`} />
@@ -76,18 +77,9 @@ export const CreateGroupSkeleton: React.FC = () => {
         </div>
       }
     >
-      <div aria-hidden="true" className="border-line border-b bg-white px-4 pt-4 pb-3">
-        <div className={`h-[18px] w-28 rounded ${pulse}`} />
-        <div className="border-line mt-1.5 h-[44px] w-full rounded-[12px] border bg-white" />
-        <div className="mt-1 flex h-4 justify-between">
-          <div className={`h-3 w-24 rounded ${pulse}`} />
-          <div className={`h-3 w-8 rounded ${pulse}`} />
-        </div>
+      <div className="pt-2">
+        <ContactRowsSkeleton withMark />
       </div>
-      <div className="px-4 pt-3 pb-2">
-        <SearchSkeleton />
-      </div>
-      <ContactRowsSkeleton withMark />
     </NewChatFrame>
   );
 };
