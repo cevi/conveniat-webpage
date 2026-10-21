@@ -196,7 +196,8 @@ const PickupCard: React.FC<{
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-[minmax(0,1fr)_auto]">
-          <MaterialButton onClick={() => setAsking(true)}>
+          {/* quiet: every card has this action, and a view has one primary at most */}
+          <MaterialButton variant="quiet" onClick={() => setAsking(true)}>
             <PackageOpen aria-hidden />
             {text.issueAll[locale]}
           </MaterialButton>
@@ -335,14 +336,15 @@ const RequestCard: React.FC<{
       {step === 'idle' && (
         <div className="space-y-2">
           {dueToday && (
-            <MaterialButton className="w-full" onClick={() => setStep('issue')}>
+            <MaterialButton variant="quiet" className="w-full" onClick={() => setStep('issue')}>
               <PackageOpen aria-hidden />
               {text.issueNow[locale]}
             </MaterialButton>
           )}
           <div className="grid grid-cols-3 gap-2 [&>button]:min-w-0 [&>button]:px-2">
             <MaterialButton
-              variant={dueToday ? 'outlined' : 'primary'}
+              // quiet, not primary: every request card has it
+              variant={dueToday ? 'outlined' : 'quiet'}
               loading={confirm.isPending}
               onClick={() =>
                 confirm.mutate(

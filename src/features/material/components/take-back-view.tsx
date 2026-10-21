@@ -170,7 +170,8 @@ const DueCard: React.FC<{
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-[minmax(0,1fr)_auto]">
-          <MaterialButton onClick={() => setAsking(true)}>
+          {/* quiet: every card has this action, and a view has one primary at most */}
+          <MaterialButton variant="quiet" onClick={() => setAsking(true)}>
             <PackageCheck aria-hidden />
             {text.allOk[locale]}
           </MaterialButton>
