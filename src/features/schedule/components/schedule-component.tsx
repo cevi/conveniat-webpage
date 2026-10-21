@@ -6,7 +6,6 @@ import { DateCarouselViewWrapper } from '@/features/schedule/components/date-car
 import { NoProgramPlaceholder } from '@/features/schedule/components/no-program-placeholder';
 import { ScheduleList } from '@/features/schedule/components/schedule-list';
 import { ScheduleLoadingSkeleton } from '@/features/schedule/components/schedule-loading-skeleton';
-import { ScheduleNowCard } from '@/features/schedule/components/schedule-now-card';
 import { ScheduleViewToggles } from '@/features/schedule/components/schedule-view-toggles';
 import { SearchFilterBar } from '@/features/schedule/components/search-filter-bar';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
@@ -15,7 +14,6 @@ import { useNow } from '@/features/schedule/hooks/use-now';
 import { useSchedule } from '@/features/schedule/hooks/use-schedule';
 import { useScheduleFilters } from '@/features/schedule/hooks/use-schedule-filter';
 import { useScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
-import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { byStart, findNowAndNext, isForQuartiere } from '@/features/schedule/utils/programme-utils';
 import { dayKeyOf } from '@/features/schedule/utils/time-utils';
 import { useOnlineStatus } from '@/hooks/use-online-status';
@@ -26,8 +24,7 @@ import { i18nConfig } from '@/types/types';
 import { campClockOf } from '@/utils/camp-clock';
 import { Search } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import { useSearchParams } from 'next/navigation';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 const foundEventsText: StaticTranslationString = {
   en: 'Found {{count}} event{{plural}} for ',
@@ -41,7 +38,6 @@ const foundEventsText: StaticTranslationString = {
  */
 export const ScheduleComponent: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const searchParameters = useSearchParams();
   const { starredEntries, toggleStar } = useStar();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const isOnline = useOnlineStatus();
@@ -132,15 +128,6 @@ export const ScheduleComponent: React.FC = () => {
   );
   const running = nowAndNext.current ?? nowAndNext.next;
 
-  const hrefOf = useCallback(
-    (entry: CampScheduleEntryFrontendType): string => {
-      const parameters = new URLSearchParams(searchParameters.toString());
-      parameters.set('id', entry.id);
-      return `/app/schedule?${parameters.toString()}`;
-    },
-    [searchParameters],
-  );
-
   // Only entries people can enrol in have a status worth fetching
   const visibleCourseIds = useMemo(
     () => currentProgram.filter((entry) => entry.enable_enrolment === true).map(({ id }) => id),
@@ -195,10 +182,6 @@ export const ScheduleComponent: React.FC = () => {
         isSearchOpen={isSearchOpen}
         className="mb-3"
       />
-
-      {isToday && !hasActiveFilters && (
-        <ScheduleNowCard nowAndNext={nowAndNext} locale={locale} hrefOf={hrefOf} />
-      )}
 
       {/* On another day: one line that says what is on, and the way back to today */}
       {!isToday && today !== undefined && running !== undefined && (

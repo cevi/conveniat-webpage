@@ -8,11 +8,13 @@ export const NavLink: React.FC<{
   icon: React.ElementType;
   label: string;
   isActive: boolean;
+  /** the tab of the page that is shown, announced as the current page */
+  isCurrent: boolean;
   color: string | undefined;
   onClick: (href: string) => void;
   isLoading: boolean;
   loadingHref: string | undefined;
-}> = ({ href, icon: Icon, label, isActive, color, onClick, isLoading, loadingHref }) => {
+}> = ({ href, icon: Icon, label, isActive, isCurrent, color, onClick, isLoading, loadingHref }) => {
   const isCurrentlyLoading = isLoading && loadingHref === href;
 
   return (
@@ -20,6 +22,7 @@ export const NavLink: React.FC<{
       href={href}
       prefetch
       onClick={() => onClick(href)}
+      aria-current={isCurrent ? 'page' : undefined}
       className={cn('flex h-full flex-1 flex-col items-center justify-center space-y-1 py-2', {
         'text-blue-600': isActive,
       })}
