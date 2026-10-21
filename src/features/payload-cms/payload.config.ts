@@ -45,6 +45,7 @@ import { syncParticipantsTask } from '@/features/payload-cms/payload-cms/tasks/s
 import { writeBackPaymentsTask } from '@/features/payload-cms/payload-cms/tasks/write-back-payments';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import { autoCheckoutPresenceTask } from '@/features/presence/payload-cms/tasks/auto-checkout-presence';
+import { sendScheduleRemindersTask } from '@/features/schedule/payload-cms/tasks/send-schedule-reminders';
 import type { RoutableConfig } from '@/types/types';
 import { redirectsTranslations } from '@payloadcms/plugin-redirects';
 import path from 'node:path';
@@ -378,6 +379,7 @@ const jobsConfig: JobsConfig = {
       cleanupTemporaryFormFilesTask,
       syncFunktionenTask,
       autoCheckoutPresenceTask,
+      sendScheduleRemindersTask,
     ].map((task) => withActiveJobTracking(task)),
   ),
   workflows: [brevoContactWorkflow].map((workflow) => withActiveWorkflowTracking(workflow)),

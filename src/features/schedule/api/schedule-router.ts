@@ -4,6 +4,7 @@ import {
   getLeftGroupMessagePayload,
 } from '@/features/chat/api/utils/system-message-helpers'; // eslint-disable-line import/no-restricted-paths
 import { ensureOrganiserStars } from '@/features/schedule/api/organiser-entries';
+import { remindersRouter } from '@/features/schedule/api/reminders-router';
 import { assertUnenrollmentIsOpen } from '@/features/schedule/api/shift-withdrawal-guard';
 import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
@@ -914,6 +915,8 @@ export const scheduleRouter = createTRPCRouter({
 
       return { chatId: chat.uuid };
     }),
+
+  reminders: remindersRouter,
 
   star: createTRPCRouter({
     toggleStar: trpcBaseProcedure

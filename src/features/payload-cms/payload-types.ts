@@ -245,6 +245,7 @@ export interface Config {
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
       syncFunktionen: TaskSyncFunktionen;
       autoCheckoutPresence: TaskAutoCheckoutPresence;
+      sendScheduleReminders: TaskSendScheduleReminders;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -5289,6 +5290,7 @@ export interface PayloadJob {
           | 'cleanupTemporaryFormFiles'
           | 'syncFunktionen'
           | 'autoCheckoutPresence'
+          | 'sendScheduleReminders'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -5345,6 +5347,7 @@ export interface PayloadJob {
         | 'cleanupTemporaryFormFiles'
         | 'syncFunktionen'
         | 'autoCheckoutPresence'
+        | 'sendScheduleReminders'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -10285,6 +10288,14 @@ export interface TaskAutoCheckoutPresence {
   output: {
     checkedOut?: number | null;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendScheduleReminders".
+ */
+export interface TaskSendScheduleReminders {
+  input?: unknown;
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
