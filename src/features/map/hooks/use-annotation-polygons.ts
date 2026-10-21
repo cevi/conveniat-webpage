@@ -1,3 +1,4 @@
+import { SELECTED_MARKER_COLOR } from '@/features/map/components/maplibre-renderer/dynamic-lucid-icon-renderer';
 import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import { POINT_LAYER_IDS } from '@/features/map/hooks/use-annotation-point-markers';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
@@ -285,7 +286,7 @@ export const useAnnotationPolygons = (
             type: 'line',
             source: SELECTED_POLYGON_SOURCE_ID,
             paint: {
-              'line-color': '#e11d3c',
+              'line-color': SELECTED_MARKER_COLOR,
               'line-width': 4,
               'line-opacity': 0.9,
             },

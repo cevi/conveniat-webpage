@@ -1,7 +1,7 @@
 'use client';
 
+import { ShareLinkButton } from '@/components/ui/buttons/share-link-button';
 import { environmentVariables } from '@/config/environment-variables';
-import { ShareLinkButton } from '@/features/schedule/components/share-link-button';
 import type { Locale } from '@/types/types';
 import type React from 'react';
 

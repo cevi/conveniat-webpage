@@ -50,9 +50,10 @@ const MARKER_LABEL_POSITION_STYLE: React.CSSProperties = {
  * Selection used to be a white ring and a slightly larger pin - which is legible next to the
  * same marker a moment earlier, and invisible on a map full of other pins, where nobody has the
  * "before" to compare against. A colour no annotation uses answers "which one is it" at a
- * glance, the way a dropped pin does on any other map.
+ * glance, the way a dropped pin does on any other map. Near-black rather than red: red is kept
+ * for Notfall, and the Notfallzentrum is itself a red annotation.
  */
-export const SELECTED_MARKER_COLOR = '#dc2626';
+export const SELECTED_MARKER_COLOR = '#26302A';
 
 /**
  * What an annotation shows when it names no icon, or names one this renderer does not know.

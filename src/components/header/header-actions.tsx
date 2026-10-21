@@ -18,13 +18,13 @@ export const HeaderActionsProvider: React.FC<{ children: ReactNode }> = ({ child
 };
 
 /**
- * Puts buttons on the right of the app header while the page is shown. A page with actions gets
- * its title on the left, next to the menu, so the buttons have room.
+ * Puts buttons on the right of the app header while the page is shown. A page that sets them,
+ * even none, gets its title on the left next to the menu, the way the app's main pages have it.
  */
-export const SetHeaderActions: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const SetHeaderActions: React.FC<{ children?: ReactNode }> = ({ children }) => {
   const setActions = useContext(SetHeaderActionsContext);
   useEffect(() => {
-    setActions(children);
+    setActions(children ?? <></>);
   }, [children, setActions]);
   useEffect(() => (): void => setActions(undefined), [setActions]);
   return <></>;

@@ -24,7 +24,7 @@ export const AnnotationDescriptionSection: React.FC<AnnotationDescriptionSection
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   return (
-    <div className="border-b-2 border-gray-100 p-4">
+    <div className="pb-2 text-[15px] leading-normal text-green-700">
       <SafeErrorBoundary fallback={<div>{errorLoadingAnnotation[locale]}</div>}>
         <LexicalRichTextSection richTextSection={description} locale={locale} />
       </SafeErrorBoundary>

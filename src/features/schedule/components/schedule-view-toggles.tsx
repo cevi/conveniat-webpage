@@ -1,7 +1,7 @@
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import type { ScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
-import { shortQuartierName } from '@/features/schedule/utils/programme-utils';
 import type { Locale } from '@/types/types';
+import { shortQuartierName } from '@/utils/quartier-names';
 import { cn } from '@/utils/tailwindcss-override';
 import { Star } from 'lucide-react';
 import type React from 'react';

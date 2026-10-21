@@ -8,16 +8,12 @@ import { useScrollRestoration } from '@/features/schedule/hooks/use-scroll-resto
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { getCategoryAccent } from '@/features/schedule/utils/category-utils';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
-import {
-  isForQuartiere,
-  quartiereOf,
-  shortQuartierName,
-  slotOf,
-} from '@/features/schedule/utils/programme-utils';
+import { isForQuartiere, quartiereOf, slotOf } from '@/features/schedule/utils/programme-utils';
 import { formatDuration } from '@/features/schedule/utils/time-utils';
 import type { TimelineStop } from '@/features/schedule/utils/timeline';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { shortQuartierName } from '@/utils/quartier-names';
 import { cn } from '@/utils/tailwindcss-override';
 import { CheckCircle, Clock, MapPin } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';

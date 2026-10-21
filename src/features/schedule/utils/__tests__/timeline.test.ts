@@ -1,7 +1,8 @@
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
-import { formatQuartierRange, isForQuartiere } from '@/features/schedule/utils/programme-utils';
+import { isForQuartiere } from '@/features/schedule/utils/programme-utils';
 import type { TimelineItem } from '@/features/schedule/utils/timeline';
 import { buildTimeline } from '@/features/schedule/utils/timeline';
+import { formatQuartierRange } from '@/utils/quartier-names';
 
 const emptyRichText = {
   root: { type: 'root', format: '', indent: 0, version: 1, children: [] },

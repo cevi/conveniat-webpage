@@ -1,53 +1,136 @@
-import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
+'use client';
+
 import type { CampScheduleEntry } from '@/features/map/types/types';
-import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
+import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import { Calendar } from 'lucide-react';
+import { campClockOf } from '@/utils/camp-clock';
+import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import React from 'react';
+import type React from 'react';
+import { useMemo, useState } from 'react';
 
 const scheduleTableTitle: StaticTranslationString = {
-  de: 'Programme an diesem Ort',
-  en: 'Programs at this location',
-  fr: 'Programmes à cet endroit',
+  de: 'Programm an diesem Ort',
+  en: 'Programme at this place',
+  fr: 'Programme à cet endroit',
 };
 
-const errorLoadingEntry: StaticTranslationString = {
-  de: 'Fehler beim Laden der Programm-Details.',
-  en: 'Error loading schedule entry.',
-  fr: "Erreur lors du chargement de l'entrée du programme.",
+interface ScheduleRow {
+  entry: CampScheduleEntry;
+  dayKey: string;
+  start: string;
+  end: string;
+}
+
+const quartierIdsOf = (entry: CampScheduleEntry): string[] =>
+  (entry.quartiere ?? []).flatMap((quartier) => {
+    if (typeof quartier === 'string') return [quartier];
+    return quartier === null ? [] : [quartier.id];
+  });
+
+/**
+ * The programme at a place, one row per block and day: the slot of the user's own Quartier
+ * where the Quartiere take turns, else the first. What is still to come leads, in order; what is
+ * over follows. Meals and walks are left out, they have no page to open.
+ */
+const rowsOf = (
+  schedule: readonly CampScheduleEntry[],
+  myQuartierIds: ReadonlySet<string>,
+  now: { dayKey: string; time: string },
+): ScheduleRow[] => {
+  const blocks = new Map<string, ScheduleRow>();
+  for (const entry of schedule) {
+    if (typeof entry.kind === 'string' && entry.kind !== 'program') continue;
+    const dayKey = String(entry.timeslot.date).slice(0, 10);
+    const [start = '', end = ''] = entry.timeslot.time.split(' - ');
+    const key = `${dayKey}|${entry.title}`;
+    const isMine = quartierIdsOf(entry).some((id) => myQuartierIds.has(id));
+    const current = blocks.get(key);
+    const currentIsMine =
+      current !== undefined && quartierIdsOf(current.entry).some((id) => myQuartierIds.has(id));
+    if (
+      current === undefined ||
+      (isMine && !currentIsMine) ||
+      (!currentIsMine && start < current.start)
+    ) {
+      blocks.set(key, { entry, dayKey, start, end });
+    }
+  }
+
+  const isOver = (row: ScheduleRow): boolean =>
+    row.dayKey < now.dayKey || (row.dayKey === now.dayKey && row.end <= now.time);
+  return [...blocks.values()].sort(
+    (a, b) =>
+      Number(isOver(a)) - Number(isOver(b)) ||
+      a.dayKey.localeCompare(b.dayKey) ||
+      a.start.localeCompare(b.start),
+  );
 };
+
+/** "Sa 24." for the day column, without the dot and comma of the long form. */
+const dayLabelOf = (dayKey: string, locale: Locale): string =>
+  new Date(`${dayKey}T12:00:00Z`)
+    .toLocaleDateString(locale, { weekday: 'short', day: 'numeric', timeZone: 'UTC' })
+    .replace(/\.,/, '')
+    .replace(',', '');
 
 export const AnnotationScheduleTableComponent: React.FC<{
   schedule: CampScheduleEntry[] | undefined;
   locale: Locale;
 }> = ({ schedule, locale }) => {
-  if (!schedule || schedule.length === 0) return <></>;
+  const { data: myQuartiere } = trpc.schedule.getMyQuartiere.useQuery(undefined, {
+    staleTime: 1000 * 60 * 5,
+  });
+  // the persisted query cache may hold anything an older version stored under this key
+  const myQuartierIds = useMemo(
+    () =>
+      new Set(
+        (Array.isArray(myQuartiere) ? myQuartiere : [])
+          .map((quartier) => quartier.id)
+          .filter((id) => typeof id === 'string'),
+      ),
+    [myQuartiere],
+  );
+  const [now] = useState(() => {
+    const clock = campClockOf(new Date());
+    const time = `${String(Math.floor(clock.minutes / 60)).padStart(2, '0')}:${String(clock.minutes % 60).padStart(2, '0')}`;
+    return { dayKey: clock.dayKey, time };
+  });
+  const rows = useMemo(
+    () => rowsOf(schedule ?? [], myQuartierIds, now),
+    [schedule, myQuartierIds, now],
+  );
+
+  if (rows.length === 0) return <></>;
 
   return (
-    <div className="border-b-2 border-gray-100 p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <Calendar className="h-4 w-4 text-gray-500" />
-        <h3 className="font-semibold text-gray-900">{scheduleTableTitle[locale]}</h3>
-      </div>
-      <div className="space-y-3">
-        {schedule.map((entry) => (
-          <div key={entry.id} className="cursor-pointer rounded-lg border-2 border-gray-200 p-3">
-            <Link href={`/app/schedule?id=${entry.id}`}>
-              <h4 className="font-medium text-gray-900">{entry.title}</h4>
-              <div className="mt-1 text-sm text-gray-700">
-                <SafeErrorBoundary fallback={<span>{errorLoadingEntry[locale]}</span>}>
-                  <LexicalRichTextSection
-                    richTextSection={entry.description as SerializedEditorState}
-                    locale={locale}
-                  />
-                </SafeErrorBoundary>
-              </div>
+    <section className="pt-3 pb-4">
+      <h3 className="text-xs font-bold tracking-[0.08em] text-green-700 uppercase">
+        {scheduleTableTitle[locale]}
+      </h3>
+      <ul className="mt-1">
+        {rows.map(({ entry, dayKey, start }) => (
+          <li key={entry.id} className="border-b border-green-100 last:border-b-0">
+            <Link
+              href={`/app/schedule?date=${dayKey}&id=${entry.id}`}
+              className="flex min-h-[52px] items-center gap-2.5 py-1.5"
+            >
+              <span className="w-16 shrink-0">
+                <span className="block text-xs font-medium text-green-500">
+                  {dayLabelOf(dayKey, locale)}
+                </span>
+                <span className="block text-[15px] font-bold text-green-900 tabular-nums">
+                  {start}
+                </span>
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-green-900">
+                {entry.title}
+              </span>
+              <ChevronRight className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />
             </Link>
-          </div>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </section>
   );
 };

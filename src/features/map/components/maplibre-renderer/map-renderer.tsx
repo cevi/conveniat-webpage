@@ -2,10 +2,10 @@
 
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { AnnotationDetailsDrawer } from '@/features/map/components/map-annotations/annotation-details-drawer';
+import { MapSearchRow } from '@/features/map/components/map-search-row';
 import { MapUnavailableFallback } from '@/features/map/components/map-unavailable-fallback';
 import { MapContextProvider } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import { MaplibreMap } from '@/features/map/components/maplibre-renderer/maplibre-map';
-import { SearchBar } from '@/features/map/components/search-bar';
 import { useMapInitialization } from '@/features/map/hooks/use-map-initialization';
 import { useMapUrlSync } from '@/features/map/hooks/use-map-url-sync';
 import type {
@@ -30,6 +30,17 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
  * Used by the `useCeviLogoMarkers` hook.
  * @returns a DOM element with the Cevi Logo SVG
  */
+/** Whether a place answers a search: by its own name, or by the name of its Quartier. */
+const matchesSearch = (
+  annotation: { title: string; quartierName?: string | undefined },
+  searchTerm: string,
+): boolean => {
+  const term = searchTerm.toLowerCase();
+  return [annotation.title, annotation.quartierName ?? ''].some((name) =>
+    name.toLowerCase().includes(term),
+  );
+};
+
 export const ceviLogoMarkerElementFactory = (): HTMLElement =>
   reactToDomElement(<CeviLogo className="h-5 w-5" />);
 
@@ -213,20 +224,14 @@ export const MapLibreRenderer = ({
     if (searchTerm === '') {
       return visibleAnnotationPoints;
     }
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return visibleAnnotationPoints.filter((annotation) =>
-      annotation.title.toLowerCase().includes(lowerCaseSearchTerm),
-    );
+    return visibleAnnotationPoints.filter((annotation) => matchesSearch(annotation, searchTerm));
   }, [visibleAnnotationPoints, searchTerm]);
 
   const filteredAnnotationPolygons = useMemo(() => {
     if (searchTerm === '') {
       return visibleAnnotationPolygons;
     }
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return visibleAnnotationPolygons.filter((annotation) =>
-      annotation.title.toLowerCase().includes(lowerCaseSearchTerm),
-    );
+    return visibleAnnotationPolygons.filter((annotation) => matchesSearch(annotation, searchTerm));
   }, [visibleAnnotationPolygons, searchTerm]);
 
   const handleSearch = useCallback(
@@ -260,14 +265,17 @@ export const MapLibreRenderer = ({
         />
       )}
       <div className="h-full w-full" ref={(element) => setMapContainer(element ?? undefined)} />
-      {enableSearch && <SearchBar onSearch={handleSearch} />}
+      {enableSearch && <MapSearchRow onSearch={handleSearch} />}
       <MaplibreMap
         openAnnotation={openAnnotation}
         setOpenAnnotation={setOpenAnnotation}
         campMapAnnotationPoints={filteredAnnotationPoints}
         campMapAnnotationPolygons={filteredAnnotationPolygons}
         ceviLogoMarkers={ceviLogoMarkers}
-        mapControlOptions={mapControlOptions}
+        // the search row brings its own locate button
+        mapControlOptions={
+          enableSearch ? { ...mapControlOptions, showGeolocate: false } : mapControlOptions
+        }
         disableFlyTo={disableFlyTo}
       />
     </MapContextProvider>

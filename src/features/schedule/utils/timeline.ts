@@ -4,9 +4,9 @@ import {
   isSameBlock,
   kindOf,
   quartiereOf,
-  quartierNumberOf,
   slotOf,
 } from '@/features/schedule/utils/programme-utils';
+import { quartierNumberOf } from '@/utils/quartier-names';
 
 type Entry = CampScheduleEntryFrontendType;
 

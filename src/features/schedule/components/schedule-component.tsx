@@ -17,12 +17,13 @@ import { useScheduleFilters } from '@/features/schedule/hooks/use-schedule-filte
 import { useScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { byStart, findNowAndNext, isForQuartiere } from '@/features/schedule/utils/programme-utils';
-import { campClockOf, dayKeyOf } from '@/features/schedule/utils/time-utils';
+import { dayKeyOf } from '@/features/schedule/utils/time-utils';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { campClockOf } from '@/utils/camp-clock';
 import { cn } from '@/utils/tailwindcss-override';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';

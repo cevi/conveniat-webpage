@@ -27,12 +27,11 @@ import { resolveLocation } from '@/features/schedule/utils/location-utils';
 import {
   isDescriptionRedundant,
   quartiereOf,
-  quartierNicknameOf,
-  shortQuartierName,
   slotOf,
 } from '@/features/schedule/utils/programme-utils';
 import { formatDuration } from '@/features/schedule/utils/time-utils';
 import { useOnlineStatus } from '@/hooks/use-online-status';
+import { quartierNicknameOf, shortQuartierName } from '@/utils/quartier-names';
 
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';

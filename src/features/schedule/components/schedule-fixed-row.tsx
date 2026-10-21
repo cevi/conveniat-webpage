@@ -2,16 +2,12 @@ import { ScheduleTimelineItem } from '@/features/schedule/components/schedule-ti
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
-import {
-  formatQuartierRange,
-  kindOf,
-  quartiereOf,
-  slotOf,
-} from '@/features/schedule/utils/programme-utils';
+import { kindOf, quartiereOf, slotOf } from '@/features/schedule/utils/programme-utils';
 import { formatDuration } from '@/features/schedule/utils/time-utils';
 import type { TimelineStop, TimelineTransfer } from '@/features/schedule/utils/timeline';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { formatQuartierRange } from '@/utils/quartier-names';
 import { cn } from '@/utils/tailwindcss-override';
 import { ArrowDown, Clock, Moon, Sunrise, Utensils } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';

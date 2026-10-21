@@ -3,3 +3,12 @@
   width: 40px !important;
   height: 40px !important;
 }
+
+/* The page draws its own locate button next to the search, which takes the top of the map. */
+.map-has-own-locate-button .maplibregl-ctrl-group:has(> .maplibregl-ctrl-geolocate) {
+  display: none;
+}
+
+.map-has-own-locate-button .maplibregl-ctrl-top-right {
+  top: 56px;
+}
