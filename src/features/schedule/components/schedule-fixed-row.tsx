@@ -54,7 +54,7 @@ export const ScheduleFixedRow: React.FC<{
     <ScheduleTimelineItem
       className={cn(isPast && 'opacity-55')}
       time={<time className="text-green-700">{start}</time>}
-      node={<span className="h-2.5 w-2.5 rounded-full border-2 border-[#8F9A92] bg-[#f8fafc]" />}
+      node={<span className="border-rail-node bg-page h-2.5 w-2.5 rounded-full border-2" />}
       overlay={overlay}
     >
       <div className="flex items-start gap-2 pb-4">
@@ -78,8 +78,8 @@ export const ScheduleFixedRow: React.FC<{
             </div>
           )}
           {runningLabel !== undefined && (
-            <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-[#FFF1E8] px-2 py-0.5 text-xs font-semibold text-[#9A3412]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#C2410C]" />
+            <span className="bg-live-soft text-live-text mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold">
+              <span className="bg-live h-1.5 w-1.5 rounded-full" />
               {runningLabel}
             </span>
           )}

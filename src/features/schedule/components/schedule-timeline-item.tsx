@@ -26,7 +26,7 @@ export const ScheduleTimelineItem: React.FC<{
           'absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 group-first/item:top-2.5 group-last/item:bottom-auto group-last/item:h-2.5',
           dashed
             ? 'bg-[repeating-linear-gradient(to_bottom,#C3CBC5_0_4px,transparent_4px_8px)]'
-            : 'bg-[#D5DBD6]',
+            : 'bg-rail',
         )}
       />
       {node !== undefined && <span className="relative mt-[5px] flex">{node}</span>}
@@ -58,10 +58,10 @@ export const ScheduleNowLine: React.FC<{
     )}
     style={progress === undefined ? undefined : { top: `${Math.round(progress * 100)}%` }}
   >
-    <span className="-ml-1 justify-self-start rounded-md bg-[#C2410C] px-1 py-px text-[11px] leading-4 font-bold text-white tabular-nums">
+    <span className="bg-live -ml-1 justify-self-start rounded-md px-1 py-px text-[11px] leading-4 font-bold text-white tabular-nums">
       {time}
     </span>
-    <span className="h-2.5 w-2.5 justify-self-center rounded-full bg-[#C2410C]" />
-    <span className="h-0.5 bg-[#C2410C]" />
+    <span className="bg-live h-2.5 w-2.5 justify-self-center rounded-full" />
+    <span className="bg-live h-0.5" />
   </div>
 );

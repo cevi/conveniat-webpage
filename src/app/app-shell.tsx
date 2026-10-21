@@ -38,6 +38,7 @@ export const AppShell: React.FC<AppShellProperties> = ({
   children,
   header,
   footer,
+  inAppDesign,
   locale,
   navigationMode = 'side-nav',
 }) => {
@@ -55,8 +56,8 @@ export const AppShell: React.FC<AppShellProperties> = ({
                 <HeaderActionsProvider>
                   <HeaderClientWrapper>{header}</HeaderClientWrapper>
 
-                  {/* Background Logo */}
-                  {!hideBackgroundLogo && (
+                  {/* Background Logo, on the website only: in the app it shows through the content */}
+                  {!hideBackgroundLogo && !inAppDesign && (
                     <div
                       className={cn(
                         'absolute top-0 z-[-999] h-screen w-full p-[56px]',

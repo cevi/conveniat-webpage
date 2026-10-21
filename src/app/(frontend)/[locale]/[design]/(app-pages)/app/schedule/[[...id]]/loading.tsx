@@ -9,7 +9,7 @@ import type React from 'react';
  */
 export default function ScheduleLoading(): React.ReactNode {
   return (
-    <div className="fixed top-[62px] left-0 z-30 h-[calc(100dvh-62px)] w-full overflow-y-auto bg-[#f8fafc] xl:left-[480px] xl:w-[calc(100dvw-480px)]">
+    <div className="bg-page fixed top-[62px] left-0 z-30 h-[calc(100dvh-62px)] w-full overflow-y-auto xl:left-[480px] xl:w-[calc(100dvw-480px)]">
       <article className="mx-auto w-full max-w-2xl px-4 py-8">
         {/* DateCarousel Skeleton */}
         <div className="flex w-full items-center justify-between gap-1 rounded-xl bg-gray-100 p-1">

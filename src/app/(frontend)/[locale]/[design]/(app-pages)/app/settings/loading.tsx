@@ -6,7 +6,7 @@ import type React from 'react';
  */
 export default function SettingsLoading(): React.ReactNode {
   return (
-    <div className="fixed top-[62px] left-0 z-30 h-[calc(100dvh-62px)] w-full overflow-y-auto bg-[#f8fafc] xl:left-[480px] xl:w-[calc(100dvw-480px)]">
+    <div className="bg-page fixed top-[62px] left-0 z-30 h-[calc(100dvh-62px)] w-full overflow-y-auto xl:left-[480px] xl:w-[calc(100dvw-480px)]">
       <section className="container mx-auto mt-6 mb-6 pt-6 pb-12">
         <div className="mx-auto w-full max-w-2xl space-y-6 px-8">
           {/* Profile Details Skeleton */}

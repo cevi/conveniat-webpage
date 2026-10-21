@@ -47,7 +47,7 @@ const QuartierChip: React.FC<{ name: string | undefined; isMine: boolean }> = ({
   <span
     className={cn(
       'rounded-md px-1.5 py-0.5 text-xs font-bold',
-      isMine ? 'bg-conveniat-green text-white' : 'bg-[#E0E6E1] text-green-900',
+      isMine ? 'bg-conveniat-green text-white' : 'bg-chip text-green-900',
     )}
   >
     {shortQuartierName(name)}
@@ -98,7 +98,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
       time={<time className="font-bold text-green-900">{start}</time>}
       node={
         <span
-          className={cn('h-3 w-3 rounded-full ring-2 ring-[#f8fafc]', accent.bar)}
+          className={cn('ring-page h-3 w-3 rounded-full ring-2', accent.bar)}
           aria-hidden="true"
         />
       }
@@ -107,7 +107,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
       <div
         className={cn(
           'relative mb-3.5 overflow-hidden rounded-[14px] border bg-white',
-          runningLabel === undefined ? 'border-green-100' : 'border-[#F2C6A8]',
+          runningLabel === undefined ? 'border-line' : 'border-live-line',
         )}
       >
         <Link
@@ -150,8 +150,8 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
             </span>
           )}
           {runningLabel !== undefined && (
-            <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#FFF1E8] px-2.5 py-0.5 text-xs font-semibold text-[#9A3412]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#C2410C]" />
+            <span className="bg-live-soft text-live-text mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold">
+              <span className="bg-live h-1.5 w-1.5 rounded-full" />
               {runningLabel}
             </span>
           )}
@@ -175,7 +175,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
                     onClick={saveScrollPosition}
                     className={cn(
                       'flex min-h-11 items-center gap-1 rounded-[10px] border px-2.5',
-                      mine ? 'border-[#D3DDD5] bg-[#EEF3EE]' : 'border-transparent',
+                      mine ? 'border-tint-line bg-tint' : 'border-transparent',
                     )}
                   >
                     {quartiereOf(entry).map(({ id, name }) => (
@@ -192,7 +192,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
         )}
 
         {primary.enable_enrolment === true && (
-          <div className="border-t border-green-100 px-3.5 py-2.5">
+          <div className="border-line border-t px-3.5 py-2.5">
             <EnrollmentAction courseId={primary.id} />
           </div>
         )}

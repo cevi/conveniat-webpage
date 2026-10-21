@@ -21,19 +21,19 @@ export const Card: React.FC<CardProperties> = ({
   showBorder = true,
 }) => {
   return (
-    <div className={cn('overflow-hidden rounded-xl bg-white shadow-sm', className)}>
+    <div className={cn('border-line overflow-hidden rounded-[14px] border bg-white', className)}>
       {title && (
         <h3
           className={cn(
-            'px-6 py-4 text-lg font-semibold text-gray-900',
-            showBorder && 'border-b border-gray-100',
+            'font-heading text-heading px-4 py-3.5 text-base font-bold',
+            showBorder && 'border-line border-b',
             headerClassName,
           )}
         >
           {title}
         </h3>
       )}
-      <div className={cn(divided && 'divide-y divide-gray-100', contentClassName)}>{children}</div>
+      <div className={cn(divided && 'divide-line divide-y', contentClassName)}>{children}</div>
     </div>
   );
 };

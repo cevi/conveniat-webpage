@@ -136,7 +136,7 @@ export const AnnotationDetailsDrawer: React.FC<{
             onTouchStart={handleTouchStart}
           >
             <div className="absolute top-[-16px] right-0 left-0 z-30 flex h-4 cursor-ns-resize items-center justify-center bg-white pt-2">
-              <div className="mt-2 mb-4 h-1 w-9 rounded-full bg-[#C3CBC5]"></div>
+              <div className="bg-rail-dash mt-2 mb-4 h-1 w-9 rounded-full"></div>
             </div>
 
             <AnnotationDrawerHeader

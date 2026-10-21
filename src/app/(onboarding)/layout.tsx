@@ -42,7 +42,7 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
       </head>
       <body
         suppressHydrationWarning
-        className="flex h-svh w-screen flex-col overflow-x-hidden overflow-y-hidden overscroll-y-none bg-[#f8fafc]"
+        className="bg-page flex h-svh w-screen flex-col overflow-x-hidden overflow-y-hidden overscroll-y-none"
       >
         {/*
           Early capture script for native push notification clicks on cold start.

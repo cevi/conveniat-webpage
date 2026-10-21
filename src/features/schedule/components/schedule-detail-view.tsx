@@ -45,7 +45,7 @@ const floatingButtonClassName =
 
 /** above the bottom navigation, which is `h-20` */
 const containerClassName =
-  'fixed inset-x-0 top-0 bottom-20 z-[110] flex flex-col overflow-hidden bg-[#f8fafc]';
+  'fixed inset-x-0 top-0 bottom-20 z-[110] flex flex-col overflow-hidden bg-page';
 
 interface ScheduleDetailViewProperties {
   id: string;

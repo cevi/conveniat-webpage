@@ -1,5 +1,6 @@
 'use client';
 
+import { SectionLabel } from '@/components/ui/section-label';
 import type { CampScheduleEntry } from '@/features/map/types/types';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -105,12 +106,10 @@ export const AnnotationScheduleTableComponent: React.FC<{
 
   return (
     <section className="pt-3 pb-4">
-      <h3 className="text-xs font-bold tracking-[0.08em] text-green-700 uppercase">
-        {scheduleTableTitle[locale]}
-      </h3>
+      <SectionLabel as="h3">{scheduleTableTitle[locale]}</SectionLabel>
       <ul className="mt-1">
         {rows.map(({ entry, dayKey, start }) => (
-          <li key={entry.id} className="border-b border-green-100 last:border-b-0">
+          <li key={entry.id} className="border-line border-b last:border-b-0">
             <Link
               href={`/app/schedule?date=${dayKey}&id=${entry.id}`}
               className="flex min-h-[52px] items-center gap-2.5 py-1.5"

@@ -132,7 +132,7 @@ const SideNavHeader: React.FC<{
               </LinkComponent>
             )}
 
-            <AppHeaderTitle />
+            <AppHeaderTitle inAppDesign={inAppDesign} />
 
             <React.Suspense fallback={<div className="h-[60px] xl:hidden" />}>
               <NavComponent showDesktopSidePanel locale={locale}>

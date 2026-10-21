@@ -23,7 +23,7 @@ export const ScheduleViewToggles: React.FC<{
       <div
         role="group"
         aria-label={programmeLabels.view[locale]}
-        className="flex h-11 min-w-0 flex-1 rounded-xl bg-[#EEF1EE] p-[3px]"
+        className="bg-quiet flex h-11 min-w-0 flex-1 rounded-xl p-[3px]"
       >
         {(['mine', 'all'] as const).map((value) => (
           <button
@@ -66,7 +66,7 @@ export const ScheduleViewToggles: React.FC<{
         'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border transition-colors',
         starredOnly
           ? 'border-amber-700 bg-amber-50 text-amber-700'
-          : 'border-green-100 bg-white text-green-700',
+          : 'border-line bg-white text-green-700',
       )}
     >
       <Star className={cn('h-5 w-5', starredOnly && 'fill-amber-700')} aria-hidden="true" />

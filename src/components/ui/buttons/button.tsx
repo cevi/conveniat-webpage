@@ -20,12 +20,19 @@ const buttonVariants = cva(
         ghost:
           'hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-50',
         link: 'text-neutral-900 underline-offset-4 hover:underline dark:text-neutral-50',
+        // the app's design language: one primary action in brand green, the others quiet
+        primary: 'bg-conveniat-green font-semibold text-white hover:bg-green-700',
+        quiet: 'bg-quiet font-semibold text-green-900 hover:bg-chip',
+        outlined: 'border border-rail bg-white font-semibold text-green-900 hover:bg-quiet',
       },
       size: {
         default: 'h-9 px-4 py-2',
         sm: 'h-8 rounded-md px-3 text-xs',
         lg: 'h-10 rounded-md px-8',
         icon: 'h-9 w-9',
+        /** at least 44px high, the smallest a thumb hits reliably */
+        touch: 'h-11 rounded-xl px-4 text-[15px]',
+        touchIcon: 'h-11 w-11 rounded-full [&_svg]:size-5',
       },
     },
     defaultVariants: {

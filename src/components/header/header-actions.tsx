@@ -30,11 +30,14 @@ export const SetHeaderActions: React.FC<{ children?: ReactNode }> = ({ children 
   return <></>;
 };
 
-/** The title of the app header, centred, or on the left with the page's buttons on the right. */
-export const AppHeaderTitle: React.FC = () => {
+/**
+ * The title of the header: in the app on the left, next to the menu, with the page's buttons on
+ * the right; on the website centred, unless a page brings buttons.
+ */
+export const AppHeaderTitle: React.FC<{ inAppDesign: boolean }> = ({ inAppDesign }) => {
   const actions = useContext(HeaderActionsContext);
 
-  if (actions === undefined) {
+  if (actions === undefined && !inAppDesign) {
     return (
       <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:hidden">
         <DynamicAppTitleName />

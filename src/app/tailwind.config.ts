@@ -62,6 +62,25 @@ module.exports = {
 
       'conveniat-green': '#47564C',
 
+      // The app's design language, by role. Each one is used across screens; a colour for a
+      // single place stays where it is used.
+      /** the background of an app page */
+      page: '#F8FAFC',
+      /** the border of cards and the line between rows */
+      line: '#E1E6E2',
+      /** a heading in Montserrat, a shade darker than the text */
+      heading: '#2F3B33',
+      /** the rail of the programme's timeline, solid and dashed */
+      rail: { DEFAULT: '#D5DBD6', dash: '#C3CBC5', node: '#8F9A92' },
+      /** soft brand green: icon tiles and the user's own slot */
+      tint: { DEFAULT: '#EEF3EE', line: '#D3DDD5' },
+      /** the background of a Quartier chip that is not the user's */
+      chip: '#E0E6E1',
+      /** neutral grey: secondary buttons, soft cards such as "Danach" */
+      quiet: '#EEF1EE',
+      /** what is running now: the line of now and the "Läuft" badge */
+      live: { DEFAULT: '#C2410C', soft: '#FFF1E8', text: '#9A3412', line: '#F2C6A8' },
+
       red: {
         50: '#FFF1F1',
         100: '#FFE4E4',

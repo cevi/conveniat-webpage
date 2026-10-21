@@ -21,7 +21,7 @@ const quartierLabel: StaticTranslationString = {
 };
 
 const outlinedButtonClassName =
-  'h-11 w-11 rounded-full border border-[#D5DBD6] bg-white p-0 text-green-700 hover:bg-white';
+  'h-11 w-11 rounded-full border border-rail bg-white p-0 text-green-700 hover:bg-white';
 
 interface AnnotationDrawerHeaderProperties {
   closeDrawer: () => void;
@@ -40,7 +40,7 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
   return (
     <div className="flex items-start gap-2 pb-3">
       <div className="min-w-0 flex-1 pt-1">
-        <h2 className="font-heading text-[22px] leading-tight font-extrabold text-[#2F3B33]">
+        <h2 className="font-heading text-heading text-[22px] leading-tight font-extrabold">
           {annotation.title}
         </h2>
         {annotation.quartierName !== undefined && annotation.quartierName !== '' && (
@@ -65,7 +65,7 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
       />
       <button
         type="button"
-        className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#EEF1EE] text-green-900"
+        className="bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900"
         onClick={closeDrawer}
         aria-label={closeAriaLabel[locale]}
       >

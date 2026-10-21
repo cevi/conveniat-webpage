@@ -1,6 +1,8 @@
 import { ChatLinkButton } from '@/components/ui/buttons/chat-link-button';
+import { IconTile } from '@/components/ui/icon-tile';
 import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { PersonAvatar } from '@/components/ui/person-avatar';
+import { SectionLabel } from '@/components/ui/section-label';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { CampScheduleEntry, User } from '@/features/payload-cms/payload-types';
 import type { LeaderNotes } from '@/features/schedule/api/viewer';
@@ -155,9 +157,7 @@ const Fact: React.FC<{
 }> = ({ icon: Icon, title, sub, href, children }) => {
   const body = (
     <>
-      <span className="text-conveniat-green flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] bg-[#EEF3EE]">
-        <Icon className="h-5 w-5" aria-hidden="true" />
-      </span>
+      <IconTile icon={Icon} />
       <div className="min-w-0 flex-1">
         {title !== undefined && (
           <div className="text-[15px] leading-5 font-semibold text-green-900">{title}</div>
@@ -191,7 +191,7 @@ const QuartierChip: React.FC<{ name: string | undefined; isMine: boolean }> = ({
   <span
     className={cn(
       'inline-flex h-7 items-center gap-1 rounded-lg px-2 text-[13px]',
-      isMine ? 'bg-conveniat-green text-white' : 'bg-[#E0E6E1] text-green-900',
+      isMine ? 'bg-conveniat-green text-white' : 'bg-chip text-green-900',
     )}
   >
     <b className="font-bold">{shortQuartierName(name)}</b>
@@ -213,7 +213,7 @@ const WhatComesNextCard: React.FC<{
   /** wraps the card in a link to the next block, or leaves it as it is */
   link: (content: React.ReactNode, className: string) => React.ReactNode;
 }> = ({ next, nextBlock, locale, link }) => {
-  const className = 'mt-2 flex min-h-16 items-center gap-3 rounded-[14px] bg-[#EEF1EE] px-3.5 py-3';
+  const className = 'mt-2 flex min-h-16 items-center gap-3 rounded-[14px] bg-quiet px-3.5 py-3';
   const content = (
     <>
       <div className="min-w-0 flex-1">
@@ -341,7 +341,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
 
         <div
           className={cn(
-            'relative space-y-4 bg-[#f8fafc] px-4 pb-4 sm:px-6',
+            'bg-page relative space-y-4 px-4 pb-4 sm:px-6',
             // without a map, the floating buttons sit over the panel and need the room
             hasMap ? '-mt-4 rounded-t-[18px] pt-5' : 'pt-[72px]',
           )}
@@ -375,7 +375,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                 {label.join(' · ')}
               </div>
             )}
-            <h1 className="font-heading text-[28px] leading-[1.15] font-extrabold text-[#2F3B33]">
+            <h1 className="font-heading text-heading text-[28px] leading-[1.15] font-extrabold">
               {entry.title}
             </h1>
             {isEditing && editData ? (
@@ -423,7 +423,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
           {activeTab === 'overview' && (
             <>
               {/* When, where and who */}
-              <div className="overflow-hidden rounded-[14px] border border-green-100 bg-white">
+              <div className="border-line overflow-hidden rounded-[14px] border bg-white">
                 <Fact
                   icon={Clock}
                   title={
@@ -510,15 +510,13 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
               {/* The same block for the other Quartiere */}
               {otherSlots.length > 0 && !isEditing && (
                 <section>
-                  <h2 className="text-xs font-bold tracking-[0.08em] text-green-700 uppercase">
-                    {programmeLabels.otherTimeSlots[locale]}
-                  </h2>
+                  <SectionLabel>{programmeLabels.otherTimeSlots[locale]}</SectionLabel>
                   <ul className="mt-2 space-y-1.5">
                     {otherSlots.map((other) => (
                       <li key={other.id}>
                         {entryLink(
                           other,
-                          'flex min-h-11 items-center gap-1.5 rounded-xl bg-[#EEF1EE] px-3.5 py-2 text-sm text-green-900',
+                          'flex min-h-11 items-center gap-1.5 rounded-xl bg-quiet px-3.5 py-2 text-sm text-green-900',
                           <>
                             <b className="font-semibold tabular-nums">
                               {other.timeslot.time.replace(' - ', '–')}
@@ -540,14 +538,12 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
 
               {bring.length > 0 && !isEditing && (
                 <section>
-                  <h2 className="text-xs font-bold tracking-[0.08em] text-green-700 uppercase">
-                    {programmeLabels.bring[locale]}
-                  </h2>
+                  <SectionLabel>{programmeLabels.bring[locale]}</SectionLabel>
                   <ul className="mt-2 flex flex-wrap gap-2">
                     {bring.map(({ id, item }, index) => (
                       <li
                         key={id ?? index}
-                        className="flex items-center gap-1.5 rounded-full border border-[#D5DBD6] bg-white px-3 py-1.5 text-sm text-green-900"
+                        className="border-rail flex items-center gap-1.5 rounded-full border bg-white px-3 py-1.5 text-sm text-green-900"
                       >
                         <Check
                           className="text-conveniat-green h-4 w-4 shrink-0"

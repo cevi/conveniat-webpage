@@ -7,7 +7,7 @@ export const ScheduleDetailSkeleton: React.FC = () => {
     <div className="mx-auto w-full max-w-xl">
       <Skeleton className="h-[220px] w-full rounded-none" />
 
-      <div className="relative -mt-4 flex flex-col gap-4 rounded-t-[18px] bg-[#f8fafc] p-4 sm:p-6">
+      <div className="bg-page relative -mt-4 flex flex-col gap-4 rounded-t-[18px] p-4 sm:p-6">
         <div className="flex flex-col gap-2">
           <Skeleton className="h-3 w-28" />
           <Skeleton className="h-7 w-3/4" />

@@ -135,7 +135,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   return (
     <div className={cn('space-y-2', className)}>
       {isOpenedFromHeader && (isSearchOpen || filters.searchText !== '') && (
-        <label className="flex h-11 items-center gap-2.5 rounded-xl border border-green-100 bg-white pl-3.5 focus-within:border-green-300">
+        <label className="border-line flex h-11 items-center gap-2.5 rounded-xl border bg-white pl-3.5 focus-within:border-green-300">
           <Search className="h-[18px] w-[18px] shrink-0 text-green-500" aria-hidden="true" />
           <span className="sr-only">{searchPlaceholder[locale]}</span>
           <input

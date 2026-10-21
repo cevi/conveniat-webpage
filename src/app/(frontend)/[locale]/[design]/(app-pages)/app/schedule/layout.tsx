@@ -1,4 +1,3 @@
-import { SetHideBackgroundLogo } from '@/components/ui/hide-background-logo-context';
 import type React from 'react';
 
 interface ScheduleLayoutProperties {
@@ -6,16 +5,10 @@ interface ScheduleLayoutProperties {
 }
 
 /**
- * Layout for the schedule pages. The blurred background mark stays off here: the timeline is
- * drawn on the bare page, and the mark would show through between its rows.
+ * Simple layout for schedule pages.
  */
 const ScheduleLayout: React.FC<ScheduleLayoutProperties> = ({ children }) => {
-  return (
-    <>
-      <SetHideBackgroundLogo value />
-      {children}
-    </>
-  );
+  return <>{children}</>;
 };
 
 export default ScheduleLayout;
