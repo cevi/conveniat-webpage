@@ -79,6 +79,36 @@ export const billingSyncHandler: PayloadHandler = async (request) => {
 };
 
 /**
+ * POST /api/confidential/billing/sync-single – Sync one participant from Cevi.DB
+ *
+ * Runs in the request rather than as a queued job: it reads one event's list and one
+ * participation's answers, which takes seconds, and the operator waits for the result.
+ */
+export const billingSyncSingleHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (hasAccess !== true) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const bodyJson = (await (request as unknown as Request).json()) as unknown;
+    const parseResult = ParticipantIdSchema.safeParse(bodyJson);
+    if (!parseResult.success) {
+      return Response.json(
+        { error: parseResult.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 },
+      );
+    }
+
+    const { syncSingleParticipant } = await import('@/features/billing/services/sync-service');
+    const summary = await syncSingleParticipant(request.payload, parseResult.data.participantId);
+    return Response.json({ success: true, ...summary });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Single participant sync failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
+
+/**
  * POST /api/confidential/billing/generate – Generate QR Bill PDFs
  */
 export const billingGenerateHandler: PayloadHandler = async (request) => {

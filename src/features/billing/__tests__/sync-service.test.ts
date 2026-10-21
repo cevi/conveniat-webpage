@@ -19,7 +19,10 @@ import type {
   JobProgressReporter,
   JobProgressUpdate,
 } from '@/features/billing/services/job-progress-reporter';
-import { syncParticipantsUseCase } from '@/features/billing/services/sync-service';
+import {
+  syncParticipantsUseCase,
+  syncSingleParticipantUseCase,
+} from '@/features/billing/services/sync-service';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
 import { SessionExpiredError } from '@/lib/hitobito/errors';
 
@@ -971,6 +974,93 @@ describe('Sync Service', () => {
 
       expect(mockParticipantRepo.update).not.toHaveBeenCalled();
       expect(summary.errors).toHaveLength(1);
+    });
+  });
+
+  const syncOne = (): ReturnType<typeof syncSingleParticipantUseCase> =>
+    syncSingleParticipantUseCase(
+      'doc-1',
+      mockParticipantRepo,
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+  describe('syncing a single participant', () => {
+    const others = ['part-2', 'part-3'].map((id) =>
+      externalParticipant({ participationId: id, participantId: `user-${id}` }),
+    );
+
+    beforeEach(() => {
+      mockParticipantRepo.findById.mockResolvedValue(
+        billedRow({ status: 'pflichtangaben_missing', invoiceNumber: null, billCreatedDate: null }),
+      );
+      mockParticipantRepo.findByParticipationUuid.mockImplementation((uuid) =>
+        Promise.resolve(
+          uuid === 'part-1'
+            ? billedRow({
+                status: 'pflichtangaben_missing',
+                invoiceNumber: null,
+                billCreatedDate: null,
+              })
+            : null,
+        ),
+      );
+      mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(completeAnswers);
+    });
+
+    it('updates the row from its participation and reads no one else’s answers', async () => {
+      mockHitobitoService.fetchParticipations.mockResolvedValue([
+        ...others,
+        externalParticipant({ town: 'Uster' }),
+      ]);
+
+      const summary = await syncOne();
+
+      expect(mockHitobitoService.fetchParticipations).toHaveBeenCalledWith('group-1', 'event-1');
+      expect(mockHitobitoService.fetchParticipationAnswers).toHaveBeenCalledTimes(1);
+      expect(mockParticipantRepo.update).toHaveBeenCalledTimes(1);
+      const update = updateOf(mockParticipantRepo.update, 'doc-1');
+      expect(update?.status).toBe('new');
+      expect(update?.town).toBe('Uster');
+      expect(mockParticipantRepo.create).not.toHaveBeenCalled();
+      expect(summary).toMatchObject({ changedCount: 1, errors: [] });
+    });
+
+    it('leaves a row the Cevi.DB no longer lists as it is and says so', async () => {
+      mockHitobitoService.fetchParticipations.mockResolvedValue(others);
+
+      const summary = await syncOne();
+
+      expect(mockParticipantRepo.update).not.toHaveBeenCalled();
+      expect(mockParticipantRepo.create).not.toHaveBeenCalled();
+      expect(summary.removedCount).toBe(0);
+      expect(summary.errors[0]).toContain('nicht mehr vorhanden');
+    });
+
+    it('refuses a row whose event no Hof carries any more', async () => {
+      mockSettingsRepo.getHofEvents.mockResolvedValue([
+        { eventId: 'event-2', eventName: 'Other', groupId: 'group-2' },
+      ]);
+
+      const summary = await syncOne();
+
+      expect(mockHitobitoService.fetchParticipations).not.toHaveBeenCalled();
+      expect(summary.relatedDocuments).toEqual(['hoefe']);
+      expect(summary.errors).toHaveLength(1);
+    });
+
+    it('writes nothing when the Cevi.DB session is gone', async () => {
+      mockHitobitoService.fetchParticipations.mockResolvedValue([externalParticipant()]);
+      mockHitobitoService.fetchParticipationAnswers.mockRejectedValue(
+        new SessionExpiredError('https://db.cevi.ch/groups/7/events/42/participations/900/edit'),
+      );
+
+      const summary = await syncOne();
+
+      expect(summary.errors).toEqual([CEVIDB_SESSION_EXPIRED_MESSAGE]);
+      expect(summary.relatedDocuments).toEqual(['registrationManagement']);
+      expect(mockParticipantRepo.update).not.toHaveBeenCalled();
     });
   });
 });
