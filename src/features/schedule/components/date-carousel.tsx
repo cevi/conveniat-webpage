@@ -1,7 +1,9 @@
 import { Button } from '@/components/ui/buttons/button';
+import { useDayStripSwipe } from '@/features/schedule/hooks/use-day-strip-swipe';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
@@ -43,6 +45,7 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const visibleDates = allDates.slice(startIndex, startIndex + maxVisible);
   const formattedCurrentDate = formatDate(currentDate);
+  const swipe = useDayStripSwipe({ visibleDays: maxVisible, onPrevious, onNext });
 
   return (
     <div className="flex w-full items-center justify-between gap-1.5">
@@ -57,7 +60,13 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
         <ChevronLeft className="h-5 w-5" />
       </Button>
 
-      <div className="flex flex-1 items-center gap-1.5">
+      <motion.div
+        {...swipe}
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.2}
+        className="flex flex-1 touch-pan-y items-center gap-1.5"
+      >
         {visibleDates.map((date) => {
           const dateString = formatDate(date);
           const isSelected = formattedCurrentDate === dateString;
@@ -96,7 +105,7 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
             </button>
           );
         })}
-      </div>
+      </motion.div>
 
       <Button
         variant="ghost"
