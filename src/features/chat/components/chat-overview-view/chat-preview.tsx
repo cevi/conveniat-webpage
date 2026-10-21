@@ -161,7 +161,7 @@ const SentStatus: React.FC<{ status: MessageEventType; locale: Locale }> = ({ st
   } else if (status === MessageEventType.STORED) {
     icon = <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />;
   } else {
-    icon = <DoubleCheck className={status === MessageEventType.READ ? 'text-emerald-600' : ''} />;
+    icon = <DoubleCheck className={status === MessageEventType.READ ? 'text-read' : ''} />;
   }
   return (
     <span role="img" aria-label={label} className="mr-1 inline-flex align-[-2px] text-green-500">

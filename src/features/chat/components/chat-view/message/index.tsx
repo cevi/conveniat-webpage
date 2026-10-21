@@ -287,7 +287,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
       }
       case MessageEventType.READ: {
         // 6:1 on the bubble, and a colour of its own beside the faint white of delivered
-        return <DoubleCheck className="ml-1 text-emerald-200" />;
+        return <DoubleCheck className="text-read-on-brand ml-1" />;
       }
 
       default: {
