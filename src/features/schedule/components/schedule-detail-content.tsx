@@ -415,6 +415,10 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                   />
                 )}
 
+                {/* a block that names no Quartier is for everybody, and says so */}
+                {quartiere.length === 0 && (
+                  <FactRow icon={Users} title={programmeLabels.wholeCamp[locale]} />
+                )}
                 {quartiere.length > 0 && (
                   <FactRow icon={Users}>
                     <div

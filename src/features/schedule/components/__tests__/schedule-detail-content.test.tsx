@@ -181,6 +181,12 @@ describe('ScheduleDetailContent tabs', () => {
     expect(screen.queryByRole('tablist')).toBeNull();
   });
 
+  it('says a block that names no Quartier is for the Gesamtlager', () => {
+    render(<ScheduleDetailContent entry={entryWith([])} locale="de" />);
+
+    expect(screen.getByText('Gesamtlager')).toBeInTheDocument();
+  });
+
   it('lists when the other Quartiere have the same block', () => {
     const other: CampScheduleEntryFrontendType = {
       id: 'entry-2',

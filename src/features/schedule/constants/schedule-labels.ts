@@ -22,7 +22,7 @@ export const scheduleLabels = {
 } as const satisfies Record<string, StaticTranslationString>;
 
 export const programmeLabels = {
-  wholeCamp: { de: 'Ganzes Lager', en: 'Whole camp', fr: 'Tout le camp' },
+  wholeCamp: { de: 'Gesamtlager', en: 'Whole camp', fr: 'Tout le camp' },
   now: { de: 'Jetzt', en: 'Now', fr: 'Maintenant' },
   upNext: { de: 'Als Nächstes', en: 'Up next', fr: 'Ensuite' },
   inMinutes: { de: 'in {{duration}}', en: 'in {{duration}}', fr: 'dans {{duration}}' },
