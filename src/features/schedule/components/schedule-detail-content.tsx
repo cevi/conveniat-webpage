@@ -6,6 +6,7 @@ import { SectionLabel } from '@/components/ui/section-label';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { CampScheduleEntry, User } from '@/features/payload-cms/payload-types';
 import type { LeaderNotes } from '@/features/schedule/api/viewer';
+import { BringChecklist } from '@/features/schedule/components/bring-checklist';
 import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
 import { ParticipantList } from '@/features/schedule/components/participant-list';
 import { ScheduleDetailActions } from '@/features/schedule/components/schedule-detail-actions';
@@ -41,7 +42,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
-import { AlertTriangle, Check, ChevronRight, Clock, MapPin, Target, Users } from 'lucide-react';
+import { AlertTriangle, ChevronRight, Clock, MapPin, Target, Users } from 'lucide-react';
 import type React from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
@@ -519,23 +520,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
               )}
 
               {bring.length > 0 && !isEditing && (
-                <section>
-                  <SectionLabel>{programmeLabels.bring[locale]}</SectionLabel>
-                  <ul className="mt-2 flex flex-wrap gap-2">
-                    {bring.map(({ id, item }, index) => (
-                      <li
-                        key={id ?? index}
-                        className="border-rail flex items-center gap-1.5 rounded-full border bg-white px-3 py-1.5 text-sm text-green-900"
-                      >
-                        <Check
-                          className="text-conveniat-green h-4 w-4 shrink-0"
-                          aria-hidden="true"
-                        />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </section>
+                <BringChecklist entryId={entry.id} items={bring} locale={locale} />
               )}
 
               {/* Admin Actions (when admin & not editing) */}
