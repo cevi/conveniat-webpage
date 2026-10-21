@@ -6,6 +6,7 @@ import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-sett
 import { RedisJobProgressAdapter } from '@/features/billing/adapters/redis-job-progress.adapter';
 import { S3StorageAdapter } from '@/features/billing/adapters/s3-storage.adapter';
 import type { BillingJobProgress } from '@/features/billing/ports/job-progress.port';
+import { NEEDS_MANUAL_REVIEW, statusAfterReview } from '@/features/billing/services/billing-status';
 import { describeActor } from '@/features/billing/services/describe-actor';
 import {
   buildLatestJobWhere,
@@ -44,6 +45,14 @@ const RemoveParticipantSchema = ParticipantIdSchema.extend({
     .trim()
     .min(1, 'Bitte gib einen Grund für die Stornierung an.')
     .max(1000, 'Der Grund darf höchstens 1000 Zeichen lang sein.'),
+});
+
+const ResolveReviewSchema = ParticipantIdSchema.extend({
+  comment: z
+    .string()
+    .trim()
+    .min(1, 'Bitte gib einen Kommentar zur Prüfung an.')
+    .max(1000, 'Der Kommentar darf höchstens 1000 Zeichen lang sein.'),
 });
 
 const SyncStatusQuerySchema = z.object({
@@ -282,6 +291,71 @@ export const billingRemoveParticipantHandler: PayloadHandler = async (request) =
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     request.payload.logger.error({ err: error }, `Manual removal failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
+
+/**
+ * POST /api/confidential/billing/resolve-review – close a manual review by hand.
+ *
+ * The operator has looked at a row parked in "Manuelle Prüfung nötig" and found the bill
+ * still good. Without this, the only ways out were reissuing the bill or cancelling the
+ * registration, and both are wrong for a bill nothing is wrong with. The bill is left as it
+ * is, the row goes back to the state that bill is in, and the comment is kept in the history
+ * next to who resolved it.
+ */
+export const billingResolveReviewHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (hasAccess !== true) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const bodyJson = (await (request as unknown as Request).json()) as unknown;
+    const parseResult = ResolveReviewSchema.safeParse(bodyJson);
+    if (!parseResult.success) {
+      return Response.json(
+        { error: parseResult.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 },
+      );
+    }
+
+    const participantRepo = new PayloadParticipantRepositoryAdapter(request.payload);
+    const participant = await participantRepo.findById(parseResult.data.participantId);
+    if (participant === null)
+      return Response.json({ error: 'Teilnehmer nicht gefunden.' }, { status: 404 });
+
+    if (participant.status !== NEEDS_MANUAL_REVIEW) {
+      return Response.json(
+        { error: 'Diese Anmeldung wartet nicht auf eine manuelle Prüfung.' },
+        { status: 409 },
+      );
+    }
+
+    const actor = describeActor(request.user);
+    const now = new Date().toISOString();
+    const history = Array.isArray(participant.syncHistory) ? participant.syncHistory : [];
+    const status = statusAfterReview(participant);
+
+    await participantRepo.update(participant.id, {
+      status,
+      syncHistory: [
+        ...history,
+        {
+          date: now,
+          action: 'manual_review_resolved',
+          diff: { status: { from: NEEDS_MANUAL_REVIEW, to: status } },
+          reviewReason: `Geprüft durch ${actor}. Kommentar: ${parseResult.data.comment}`,
+        },
+      ],
+    });
+
+    request.payload.logger.info(
+      `Manual review of participant ${String(participant.id)} resolved by ${actor}; status ${status}.`,
+    );
+
+    return Response.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Resolving manual review failed: ${message}`);
     return Response.json({ error: message }, { status: 500 });
   }
 };

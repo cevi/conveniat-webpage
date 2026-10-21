@@ -95,9 +95,24 @@ export interface SyncStatusInput {
   isRoleOk: boolean;
   /** Whether a mandatory master-data field or registration answer is missing. */
   isMissingMandatoryData: boolean;
-  /** Whether any synced field differs from what is on file. */
-  hasChanges: boolean;
+  /** The synced fields that differ from what is on file, by their field name. */
+  changedFields: readonly string[];
 }
+
+/**
+ * The synced fields an issued bill depends on, with the name the review reason gives them.
+ *
+ * The role sets the fee and the birthday decides whether MWST is owed. A participation that
+ * stops being active is no longer one the bill is for. Everything else the sync reads, such
+ * as the address, the name or the invoice email, is kept up to date on the row and logged in
+ * its history, but it does not change what the participant owes. A bill already out does
+ * not get wrong because someone moved house, so it is not parked for review.
+ */
+export const BILLING_RELEVANT_FIELDS: Readonly<Record<string, string>> = {
+  roleType: 'Rolle',
+  birthday: 'Geburtsdatum',
+  active: 'Teilnahme aktiv',
+};
 
 export interface SyncStatusDecision {
   status: BillingStatus;
@@ -112,8 +127,10 @@ export interface SyncStatusDecision {
 const REVIEW_REASONS = {
   roleUnpriced: 'Rollentyp ist in den Rechnungs-Einstellungen nicht mehr konfiguriert.',
   mandatoryDataMissing: 'Pflichtangaben fehlen neu in der Cevi.DB.',
-  dataChanged: 'Angaben in der Cevi.DB haben sich nach der Rechnungsstellung geändert.',
 } as const;
+
+const describeChangedBillingData = (fields: readonly string[]): string =>
+  `Für die Rechnung massgebliche Angaben in der Cevi.DB haben sich nach der Rechnungsstellung geändert: ${fields.join(', ')}.`;
 
 /**
  * Decides the status a synced participation should end up in.
@@ -121,6 +138,8 @@ const REVIEW_REASONS = {
  * For a row that has never been billed this is the rule the sync always had: an unpriced
  * role or a missing Pflichtangabe blocks it, fixing either releases it back to `new`, and
  * anything else that changed marks it `updated`.
+ *
+ * A billed row is only parked when what changed is in {@link BILLING_RELEVANT_FIELDS}.
  *
  * For a row that *has* been billed, every one of those branches would previously have
  * thrown the billed state away — and the path `bill_sent → invalid_anmeldeangaben → new`
@@ -133,7 +152,7 @@ export const resolveSyncStatus = ({
   hasBill,
   isRoleOk,
   isMissingMandatoryData,
-  hasChanges,
+  changedFields,
 }: SyncStatusInput): SyncStatusDecision => {
   // A participation that comes back under the same id. `re_added` already exists for the
   // case where Cevi.DB issues a *new* participation id, and this is the same event from
@@ -165,8 +184,15 @@ export const resolveSyncStatus = ({
       return { status: NEEDS_MANUAL_REVIEW, reviewReason: REVIEW_REASONS.roleUnpriced };
     if (isMissingMandatoryData)
       return { status: NEEDS_MANUAL_REVIEW, reviewReason: REVIEW_REASONS.mandatoryDataMissing };
-    if (hasChanges)
-      return { status: NEEDS_MANUAL_REVIEW, reviewReason: REVIEW_REASONS.dataChanged };
+    const relevantChanges = changedFields.flatMap((field) => {
+      const label = BILLING_RELEVANT_FIELDS[field];
+      return label === undefined ? [] : [label];
+    });
+    if (relevantChanges.length > 0)
+      return {
+        status: NEEDS_MANUAL_REVIEW,
+        reviewReason: describeChangedBillingData(relevantChanges),
+      };
     return { status: currentStatus as BillingStatus };
   }
 
@@ -174,9 +200,22 @@ export const resolveSyncStatus = ({
   if (isMissingMandatoryData) return { status: 'pflichtangaben_missing' };
   if (currentStatus === 'pflichtangaben_missing' || currentStatus === 'invalid_anmeldeangaben')
     return { status: 'new' };
-  if (hasChanges) return { status: 'updated' };
+  if (changedFields.length > 0) return { status: 'updated' };
   return { status: currentStatus as BillingStatus };
 };
+
+/**
+ * Where a row goes once an operator has looked at it and found the bill still good.
+ *
+ * The bill stays exactly as it is, so the row goes back to the state the bill is actually in.
+ * That comes from the date the mail left, not from the status before the review: a bill whose
+ * mail never left was parked from `bill_mail_pending`, and calling it sent would make the next
+ * sync tell the Cevi.DB "Rechnung gestellt" for a bill the participant does not have.
+ */
+export const statusAfterReview = (participant: {
+  billSentDate?: string | null;
+}): 'bill_sent' | 'bill_created' =>
+  (participant.billSentDate ?? '').trim() === '' ? 'bill_created' : 'bill_sent';
 
 /**
  * What each status is called in German — the wording the admin panel shows.

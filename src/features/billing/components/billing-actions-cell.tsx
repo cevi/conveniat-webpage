@@ -80,6 +80,13 @@ const BillingActionsMenu: React.FC<{ participant: BillingActionsParticipant }> =
           >
             {billingActionLabels.sync[locale]}
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(): void => actions.request('resolve')}
+            disabled={!actions.canResolveReview}
+            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            {billingActionLabels.resolve[locale]}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={(): void => actions.request('regenerate')}
