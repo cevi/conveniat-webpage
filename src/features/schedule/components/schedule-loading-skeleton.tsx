@@ -1,5 +1,30 @@
+import { SetHeaderActions } from '@/components/header/header-actions';
 import { cn } from '@/utils/tailwindcss-override';
+import { ListFilter, Search } from 'lucide-react';
 import type React from 'react';
+
+/**
+ * A 44px icon in the app header of the Programm and the Schichteinsätze, like the buttons other
+ * pages put there. Here rather than with the buttons, so the route's loading screen, a server
+ * component, can draw the same icons.
+ */
+export const headerButtonClassName =
+  'hover:bg-quiet relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-green-900 transition-colors';
+
+/**
+ * The search and the filter in the app header while the page loads, where and as they will be,
+ * so they do not pop in with the list.
+ */
+export const SearchFilterHeaderPlaceholder: React.FC = () => (
+  <SetHeaderActions>
+    <span aria-hidden="true" className={cn(headerButtonClassName, 'cursor-default')}>
+      <Search className="h-[22px] w-[22px]" />
+    </span>
+    <span aria-hidden="true" className={cn(headerButtonClassName, 'cursor-default')}>
+      <ListFilter className="h-[22px] w-[22px]" />
+    </span>
+  </SetHeaderActions>
+);
 
 const pulse = 'animate-pulse bg-quiet';
 

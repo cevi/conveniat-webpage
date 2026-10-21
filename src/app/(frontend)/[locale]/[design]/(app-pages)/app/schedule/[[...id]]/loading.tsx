@@ -1,5 +1,7 @@
-import { ScheduleLoadingSkeleton } from '@/features/schedule/components/schedule-loading-skeleton';
-import { SearchFilterHeaderPlaceholder } from '@/features/schedule/components/search-filter-bar';
+import {
+  ScheduleLoadingSkeleton,
+  SearchFilterHeaderPlaceholder,
+} from '@/features/schedule/components/schedule-loading-skeleton';
 import type React from 'react';
 
 /**

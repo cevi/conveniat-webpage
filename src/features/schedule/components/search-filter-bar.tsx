@@ -3,13 +3,13 @@
 import type React from 'react';
 import { useCallback, useId } from 'react';
 
-import { SetHeaderActions } from '@/components/header/header-actions';
 import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/buttons/button';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Switch } from '@/components/ui/switch';
 import type { CampCategory, CampMapAnnotation } from '@/features/payload-cms/payload-types';
+import { headerButtonClassName } from '@/features/schedule/components/schedule-loading-skeleton';
 import type { TimeOfDay } from '@/features/schedule/utils/programme-utils';
 import { TIMES_OF_DAY } from '@/features/schedule/utils/programme-utils';
 import type { FilterState } from '@/features/schedule/utils/schedule-filters';
@@ -91,10 +91,6 @@ interface SearchFilterBarProperties {
   className?: string;
 }
 
-/** a 44px icon in the app header, like the buttons other pages put there */
-const headerButtonClassName =
-  'hover:bg-quiet relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-green-900 transition-colors';
-
 /** The search as a 44px icon in the app header; it opens the field over the list. */
 export const SearchHeaderButton: React.FC<{
   label: string;
@@ -110,21 +106,6 @@ export const SearchHeaderButton: React.FC<{
   >
     <Search className="h-[22px] w-[22px]" aria-hidden="true" />
   </button>
-);
-
-/**
- * The search and the filter in the app header while the page loads, where and as they will be,
- * so they do not pop in with the list.
- */
-export const SearchFilterHeaderPlaceholder: React.FC = () => (
-  <SetHeaderActions>
-    <span aria-hidden="true" className={cn(headerButtonClassName, 'cursor-default')}>
-      <Search className="h-[22px] w-[22px]" />
-    </span>
-    <span aria-hidden="true" className={cn(headerButtonClassName, 'cursor-default')}>
-      <ListFilter className="h-[22px] w-[22px]" />
-    </span>
-  </SetHeaderActions>
 );
 
 /** how many filters are on, as a small green count */
