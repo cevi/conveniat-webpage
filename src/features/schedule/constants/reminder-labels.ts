@@ -37,20 +37,6 @@ export const reminderLabels = {
   },
   yesRemove: { de: 'Ja, entfernen', en: 'Yes, remove', fr: 'Oui, supprimer' },
   keep: { de: 'Behalten', en: 'Keep', fr: 'Garder' },
-  settingsTitle: { de: 'Erinnerungen', en: 'Reminders', fr: 'Rappels' },
-  before: { de: 'Vorher', en: 'Before', fr: 'Avant' },
-  off: { de: 'Aus', en: 'Off', fr: 'Désactivé' },
-  atStart: { de: 'Beim Start', en: 'At the start', fr: 'Au début' },
-  minutesBefore: {
-    de: '{{minutes}} min vorher',
-    en: '{{minutes}} min before',
-    fr: '{{minutes}} min avant',
-  },
-  settingsExplanation: {
-    de: 'Für Blöcke und Schichteinsätze mit Erinnerung, und für alle, bei denen du angemeldet bist.',
-    en: 'For blocks and shifts with a reminder, and for every one you are enrolled in.',
-    fr: 'Pour les blocs et services avec un rappel, et pour tous ceux auxquels tu es inscrit·e.',
-  },
   pushLead: {
     de: '{{title}} beginnt in {{minutes}} min',
     en: '{{title}} starts in {{minutes}} min',

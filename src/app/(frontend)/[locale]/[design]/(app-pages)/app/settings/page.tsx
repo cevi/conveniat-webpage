@@ -7,6 +7,7 @@ import { LanguageSettings } from '@/features/settings/language-settings';
 import { OfflineContentSettings } from '@/features/settings/offline-content-settings';
 import { LogoutSection, ProfileDetails } from '@/features/settings/profile-details';
 import { PushNotificationSettings } from '@/features/settings/push-notification-settings';
+import { ReminderSettings } from '@/features/settings/reminder-settings';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
 import React from 'react';
@@ -49,6 +50,8 @@ const Settings: React.FC<{ params: Promise<{ locale: Locale }> }> = async ({ par
           <SectionLabel className="mb-2 px-1">{appTitle[locale]}</SectionLabel>
           <SettingsCard>
             <PushNotificationSettings locale={locale} />
+            {/* renders nothing for a visitor who is not logged in */}
+            <ReminderSettings locale={locale} />
             {/* renders nothing on a deployment without PostHog */}
             <AnalyticsSettings locale={locale} />
             <LanguageSettings locale={locale} />
