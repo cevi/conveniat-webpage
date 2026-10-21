@@ -80,6 +80,22 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
     return `/app/schedule?${parameters.toString()}`;
   };
 
+  /**
+   * Opens the block on this same page, without the router. The page draws the block from the
+   * programme already on the phone, but a router navigation to it with another `id` still waited
+   * for the server before showing anything, a pause on every tap over camp wifi. `pushState`
+   * updates `useSearchParams` all the same, and back returns to the list where it was.
+   * A click that asks for a new tab or window keeps the link's own behaviour.
+   */
+  const openBlock = (event: React.MouseEvent<HTMLAnchorElement>): void => {
+    saveScrollPosition();
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+    event.preventDefault();
+    globalThis.history.pushState(undefined, '', event.currentTarget.href);
+  };
+
   const meta = [
     location?.title,
     !isGrouped && slot !== undefined && slot.end > slot.start
@@ -110,7 +126,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
       >
         <Link
           href={hrefOf(primary)}
-          onClick={saveScrollPosition}
+          onClick={openBlock}
           className="block py-3 pr-12 pl-3.5 focus-visible:outline-none"
         >
           {eyebrow.length > 0 && (
@@ -167,7 +183,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
                 <li key={entry.id}>
                   <Link
                     href={hrefOf(entry)}
-                    onClick={saveScrollPosition}
+                    onClick={openBlock}
                     // px, not rem: the root font is larger on desktop. The Quartiere of a slot
                     // are one chip, so the row keeps to one line beside its time.
                     className={cn(
