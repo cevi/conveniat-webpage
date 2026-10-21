@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import { QuartierBadge } from '@/components/quartier/quartier-badge';
+import { QuartierBadge, QuartierGroupBadge } from '@/components/quartier/quartier-badge';
 import { render, screen } from '@testing-library/react';
 
 describe('QuartierBadge', () => {
@@ -29,5 +29,35 @@ describe('QuartierBadge', () => {
 
     expect(screen.getByText('Q9')).toBeInTheDocument();
     expect(container.querySelector('svg')).toBeNull();
+  });
+});
+
+const q = (
+  number: number,
+  rufname: string,
+): { id: string; name: string; number: number; rufname: string } => ({
+  id: `q${number}`,
+  name: `Quartier ${number} - ${rufname}`,
+  number,
+  rufname,
+});
+
+describe('QuartierGroupBadge', () => {
+  it('shows the Quartiere of a slot as their icons and one range, on one chip', () => {
+    const { container } = render(
+      <QuartierGroupBadge
+        quartiere={[q(4, 'Kitsune'), q(5, 'Greif'), q(6, 'Cerberus')]}
+        myQuartierIds={new Set()}
+      />,
+    );
+
+    expect(screen.getByText('Q4–Q6')).toBeInTheDocument();
+    expect(container.querySelectorAll('svg')).toHaveLength(3);
+  });
+
+  it('is a plain chip for a single Quartier', () => {
+    render(<QuartierGroupBadge quartiere={[q(7, 'Phoenix')]} myQuartierIds={new Set()} />);
+
+    expect(screen.getByText('Q7')).toBeInTheDocument();
   });
 });

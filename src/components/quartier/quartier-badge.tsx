@@ -1,6 +1,6 @@
 import { quartierHouseOf } from '@/components/quartier/quartier-houses';
 import type { QuartierLabel } from '@/utils/quartier-names';
-import { shortQuartierName } from '@/utils/quartier-names';
+import { formatQuartierRange, shortQuartierName } from '@/utils/quartier-names';
 import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 
@@ -49,7 +49,7 @@ export const QuartierDot: React.FC<{
 export const QuartierBadge: React.FC<{
   quartier: QuartierLabel;
   isMine?: boolean;
-  className?: string;
+  className?: string | undefined;
 }> = ({ quartier, isMine = false, className }) => {
   const hasDot = quartierHouseOf(quartier) !== undefined;
   return (
@@ -63,6 +63,48 @@ export const QuartierBadge: React.FC<{
     >
       <QuartierDot quartier={quartier} size="sm" />
       {shortQuartierName(quartier)}
+    </span>
+  );
+};
+
+/**
+ * Several Quartiere as one chip that keeps to one line: their dots overlapping and the range,
+ * "Q4–Q6", filled brand green when the user's own Quartier is among them. A single Quartier is
+ * the plain `QuartierBadge`.
+ */
+export const QuartierGroupBadge: React.FC<{
+  quartiere: readonly (QuartierLabel & { id: string })[];
+  myQuartierIds: ReadonlySet<string>;
+  className?: string;
+}> = ({ quartiere, myQuartierIds, className }) => {
+  const isMine = quartiere.some(({ id }) => myQuartierIds.has(id));
+  const [only] = quartiere;
+  if (quartiere.length === 1 && only !== undefined) {
+    return <QuartierBadge quartier={only} isMine={isMine} className={className} />;
+  }
+  return (
+    <span
+      className={cn(
+        'inline-flex min-w-0 items-center gap-1 rounded-md py-0.5 pr-1.5 pl-0.5 text-xs font-bold',
+        isMine ? 'bg-conveniat-green text-white' : 'bg-chip text-green-900',
+        className,
+      )}
+    >
+      <span className="flex shrink-0">
+        {quartiere.map((quartier, index) => (
+          // each dot overlaps the one before it, ringed in the chip's colour to stay apart
+          <QuartierDot
+            key={quartier.id}
+            quartier={quartier}
+            className={cn(
+              'ring-2',
+              isMine ? 'ring-conveniat-green' : 'ring-chip',
+              index > 0 && '-ml-[8px]',
+            )}
+          />
+        ))}
+      </span>
+      <span className="truncate">{formatQuartierRange(quartiere)}</span>
     </span>
   );
 };

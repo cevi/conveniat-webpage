@@ -1,6 +1,6 @@
 'use client';
 
-import { QuartierBadge } from '@/components/quartier/quartier-badge';
+import { QuartierGroupBadge } from '@/components/quartier/quartier-badge';
 import { StarButton } from '@/components/star/star';
 import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
 import {
@@ -130,14 +130,8 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
             </p>
           )}
           {showSlots && !isGrouped && quartiereOf(primary).length > 0 && (
-            <span className="mt-2 flex flex-wrap gap-1">
-              {quartiereOf(primary).map((quartier) => (
-                <QuartierBadge
-                  key={quartier.id}
-                  quartier={quartier}
-                  isMine={myQuartierIds.has(quartier.id)}
-                />
-              ))}
+            <span className="mt-2 flex">
+              <QuartierGroupBadge quartiere={quartiereOf(primary)} myQuartierIds={myQuartierIds} />
             </span>
           )}
           {runningLabel !== undefined && (
@@ -171,21 +165,18 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
                   <Link
                     href={hrefOf(entry)}
                     onClick={saveScrollPosition}
-                    // px, not rem: the root font is larger on desktop. The chips wrap in their
-                    // own group, so the time keeps its room at the right however many there are.
+                    // px, not rem: the root font is larger on desktop. The Quartiere of a slot
+                    // are one chip, so the row keeps to one line beside its time.
                     className={cn(
                       'flex min-h-[44px] items-center gap-[12px] rounded-[10px] border px-[10px] py-[6px]',
                       mine ? 'border-tint-line bg-tint' : 'border-transparent',
                     )}
                   >
-                    <span className="flex min-w-0 flex-1 flex-wrap gap-[6px]">
-                      {quartiereOf(entry).map((quartier) => (
-                        <QuartierBadge
-                          key={quartier.id}
-                          quartier={quartier}
-                          isMine={myQuartierIds.has(quartier.id)}
-                        />
-                      ))}
+                    <span className="flex min-w-0 flex-1">
+                      <QuartierGroupBadge
+                        quartiere={quartiereOf(entry)}
+                        myQuartierIds={myQuartierIds}
+                      />
                     </span>
                     <span className="shrink-0 text-[13px] font-semibold whitespace-nowrap text-green-900 tabular-nums">
                       {entry.timeslot.time.replace(' - ', '–')}
