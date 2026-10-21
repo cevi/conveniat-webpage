@@ -15,11 +15,7 @@ export const useSchedule = <T extends { timeslot: { date: string } }>(
   hasProgram: boolean;
   expandedEntries: Set<string>;
   starredEntries: Set<string>;
-  carouselStartIndex: number;
-  maxVisibleDays: number;
   actions: {
-    handleCarouselPrevious: () => void;
-    handleCarouselNext: () => void;
     handleDateSelect: (date: Date) => void;
     toggleExpanded: (entryId: string) => void;
     toggleStarred: (entryId: string) => void;
@@ -82,7 +78,6 @@ export const useSchedule = <T extends { timeslot: { date: string } }>(
 
   const [expandedEntries, setExpandedEntries] = useState(new Set<string>());
   const [starredEntries, setStarredEntries] = useState(new Set<string>());
-  const [carouselStartIndex, setCarouselStartIndex] = useState(0);
 
   useEffect(() => {
     // Only sync date to URL if we are on schedule or helper-portal page
@@ -115,17 +110,8 @@ export const useSchedule = <T extends { timeslot: { date: string } }>(
     return programs;
   }, [allDates, scheduleEntries]);
 
-  const maxVisibleDays = 5;
   const formattedDate = formatDate(currentDate);
   const currentProgram = dailyPrograms[formattedDate] ?? [];
-
-  const handleCarouselPrevious = (): void =>
-    setCarouselStartIndex((previous) => Math.max(0, previous - 1));
-
-  const handleCarouselNext = (): void =>
-    setCarouselStartIndex((previous) =>
-      Math.min(previous + 1, Math.max(0, allDates.length - maxVisibleDays)),
-    );
 
   const handleDateSelect = (date: Date): void => {
     setSelectedDate(date);
@@ -158,11 +144,7 @@ export const useSchedule = <T extends { timeslot: { date: string } }>(
     hasProgram: currentProgram.length > 0,
     expandedEntries,
     starredEntries,
-    carouselStartIndex,
-    maxVisibleDays,
     actions: {
-      handleCarouselPrevious,
-      handleCarouselNext,
       handleDateSelect,
       toggleExpanded,
       toggleStarred,

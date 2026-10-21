@@ -93,8 +93,6 @@ export const ScheduleComponent: React.FC = () => {
     currentDate,
     allDates,
     currentProgram: rawCurrentProgram,
-    carouselStartIndex,
-    maxVisibleDays,
     actions,
   } = useSchedule(scopedEntries);
 
@@ -164,12 +162,8 @@ export const ScheduleComponent: React.FC = () => {
     <DateCarouselViewWrapper
       allDates={allDates}
       currentDate={currentDate}
-      carouselStartIndex={carouselStartIndex}
-      maxVisibleDays={maxVisibleDays}
       locale={locale}
       onDateSelect={actions.handleDateSelect}
-      onCarouselPrevious={actions.handleCarouselPrevious}
-      onCarouselNext={actions.handleCarouselNext}
     >
       {myQuartiere.length > 0 && (
         <ScheduleScopeSwitch

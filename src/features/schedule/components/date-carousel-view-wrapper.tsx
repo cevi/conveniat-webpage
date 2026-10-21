@@ -21,12 +21,8 @@ const previousDayLabel: StaticTranslationString = {
 interface DateCarouselViewWrapperProperties {
   allDates: Date[];
   currentDate: Date;
-  carouselStartIndex: number;
-  maxVisibleDays: number;
   locale: Locale;
   onDateSelect: (date: Date) => void;
-  onCarouselPrevious: () => void;
-  onCarouselNext: () => void;
   children: React.ReactNode;
 }
 
@@ -55,12 +51,8 @@ const slideVariants = {
 export const DateCarouselViewWrapper: React.FC<DateCarouselViewWrapperProperties> = ({
   allDates,
   currentDate,
-  carouselStartIndex,
-  maxVisibleDays,
   locale,
   onDateSelect,
-  onCarouselPrevious,
-  onCarouselNext,
   children,
 }) => {
   const [previousDate, setPreviousDate] = React.useState(currentDate);
@@ -86,15 +78,7 @@ export const DateCarouselViewWrapper: React.FC<DateCarouselViewWrapperProperties
 
   return (
     <article className="mx-auto w-full max-w-2xl p-4 sm:p-6">
-      <DateCarousel
-        allDates={allDates}
-        currentDate={currentDate}
-        startIndex={carouselStartIndex}
-        maxVisible={maxVisibleDays}
-        onDateSelect={onDateSelect}
-        onPrevious={onCarouselPrevious}
-        onNext={onCarouselNext}
-      />
+      <DateCarousel allDates={allDates} currentDate={currentDate} onDateSelect={onDateSelect} />
 
       <div className="relative mt-4 min-h-[300px]">
         <AnimatePresence initial={false} mode="wait" custom={direction}>
@@ -116,14 +100,8 @@ export const DateCarouselViewWrapper: React.FC<DateCarouselViewWrapperProperties
               const threshold = 50;
               if (info.offset.x < -threshold && nextDate) {
                 onDateSelect(nextDate);
-                if (currentIndex + 1 >= carouselStartIndex + maxVisibleDays) {
-                  onCarouselNext();
-                }
               } else if (info.offset.x > threshold && currentIndex > 0 && previousDay) {
                 onDateSelect(previousDay);
-                if (currentIndex - 1 < carouselStartIndex) {
-                  onCarouselPrevious();
-                }
               }
             }}
             className="h-full touch-pan-y"

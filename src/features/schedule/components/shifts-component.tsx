@@ -46,14 +46,7 @@ export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
     refetchOnWindowFocus: false,
   });
 
-  const {
-    currentDate,
-    allDates,
-    currentProgram: shiftsOfDay,
-    carouselStartIndex,
-    maxVisibleDays,
-    actions,
-  } = useSchedule(shifts ?? []);
+  const { currentDate, allDates, currentProgram: shiftsOfDay, actions } = useSchedule(shifts ?? []);
 
   const {
     filters,
@@ -76,12 +69,8 @@ export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
     <DateCarouselViewWrapper
       allDates={allDates}
       currentDate={currentDate}
-      carouselStartIndex={carouselStartIndex}
-      maxVisibleDays={maxVisibleDays}
       locale={locale}
       onDateSelect={actions.handleDateSelect}
-      onCarouselPrevious={actions.handleCarouselPrevious}
-      onCarouselNext={actions.handleCarouselNext}
     >
       {/* Search and Filter Bar */}
       <div className="mb-3">
