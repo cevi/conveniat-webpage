@@ -378,3 +378,26 @@ describe('generateBillsUseCase with Aufbau- or Abbaulager participant', () => {
     );
   });
 });
+
+describe('generateBillsUseCase stores the Anmeldenummer', () => {
+  it('keeps the number the PDF prints on the row', async () => {
+    const { participantRepo, settingsRepo, hitobitoService, logger } = buildDependencies([
+      participant({ roleType: 'Event::Role::Leader' }),
+    ]);
+    const settings = await settingsRepo.getBillSettings();
+    settingsRepo.getBillSettings.mockResolvedValue({
+      ...settings,
+      creditorStreet: 'Lagerstrasse',
+      creditorBuildingNumber: '1',
+      creditorZip: '8000',
+      creditorCity: 'Zürich',
+      customReferenceTemplate: '{{event-id}}-{{participation-id}}',
+    });
+
+    await generateBillsUseCase(participantRepo, settingsRepo, hitobitoService, logger);
+
+    const [, update] = participantRepo.update.mock.calls.at(-1) ?? [];
+    expect(update?.status).toBe('bill_created');
+    expect(update?.registrationNumber).toBe('1234-9012');
+  });
+});

@@ -689,6 +689,8 @@ export async function generateBillsUseCase(
         billCreatedDate: new Date().toISOString(),
         referenceNumber,
         invoiceNumber,
+        // eslint-disable-next-line unicorn/no-null -- clears the number of an earlier bill
+        registrationNumber: customReference ?? null,
         invoiceAmount: vat.totalAmount,
         netAmount: vat.netAmount,
         vatExempt: vat.isExempt,

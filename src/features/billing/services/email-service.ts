@@ -272,12 +272,13 @@ async function sendBillsLocked(
         continue;
       }
 
-      // The Anmeldenummer is not stored on the row, so it is filled again from the template
-      // the PDF was printed with.
+      // A bill created before the row stored its Anmeldenummer gets it from the template,
+      // which for those bills has not changed since.
       const registrationNumber =
-        typeof settings.customReferenceTemplate === 'string'
+        document_.registrationNumber ??
+        (typeof settings.customReferenceTemplate === 'string'
           ? fillBillNumberTemplate(settings.customReferenceTemplate, document_)
-          : '';
+          : '');
       const fillMailTemplate = (template: string): string =>
         template
           .replaceAll('{{firstName}}', firstName)

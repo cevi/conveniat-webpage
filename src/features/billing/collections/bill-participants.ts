@@ -44,6 +44,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     hideAPIURL: true,
     group: AdminPanelDashboardGroups.BackofficeBilling.label,
     useAsTitle: 'fullName',
+    listSearchableFields: ['fullName', 'registrationNumber'],
     groupBy: true,
     defaultColumns: [
       'fullName',
@@ -541,6 +542,28 @@ export const BillParticipantsCollection: CollectionConfig = {
       },
       admin: {
         disableGroupBy: true,
+      },
+    },
+    {
+      // Filled from the Anmeldenummer template when the bill is created and kept, so the
+      // mail and the list search use the number the PDF printed, even after the template
+      // changes.
+      name: 'registrationNumber',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      index: true,
+      label: {
+        en: 'Registration Number',
+        de: 'Anmeldenummer',
+        fr: "Numéro d'inscription",
+      },
+      admin: {
+        disableGroupBy: true,
+        description: {
+          en: 'The Registration Number printed on the bill PDF.',
+          de: 'Die Anmeldenummer, die auf dem Rechnungs-PDF steht.',
+          fr: "Le numéro d'inscription imprimé sur le PDF de la facture.",
+        },
       },
     },
     {

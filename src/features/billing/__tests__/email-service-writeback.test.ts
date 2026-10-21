@@ -273,9 +273,10 @@ describe('sendBills hands a bulk run to the outgoing mail queue', () => {
 /** The mail a bulk run queues for the one participant, under the given bill settings. */
 const queuedBillMail = async (
   billSettings: Record<string, unknown>,
+  row: Record<string, unknown> = participantRow(),
 ): Promise<{ subject: string; text: string }> => {
   (queueBackgroundEmail as jest.Mock).mockClear();
-  const { payload } = payloadDouble(participantRow(), 'cookie', billSettings);
+  const { payload } = payloadDouble(row, 'cookie', billSettings);
 
   await sendBills(payload, undefined, {
     hitobitoService: hitobitoDouble(jest.fn().mockResolvedValue({ changed: false })),
@@ -289,7 +290,19 @@ const queuedBillMail = async (
 };
 
 describe('sendBills names the Anmeldenummer in the bill mail', () => {
-  it('fills it into the subject and the body from the template the PDF prints', async () => {
+  it('uses the number stored with the bill, even after the template changed', async () => {
+    const mail = await queuedBillMail(
+      {
+        customReferenceTemplate: '{{year}}-{{participation-id}}',
+        invoiceEmailSubject: 'conveniat27 – Rechnung {{registrationNumber}}',
+      },
+      participantRow({ registrationNumber: 'event-1-part-1' }),
+    );
+
+    expect(mail.subject).toBe('conveniat27 – Rechnung event-1-part-1');
+  });
+
+  it('fills it from the template for a bill created before the number was stored', async () => {
     const mail = await queuedBillMail({
       customReferenceTemplate: '{{event-id}}-{{participation-id}}',
       invoiceEmailSubject: 'conveniat27 – Rechnung {{registrationNumber}}',
