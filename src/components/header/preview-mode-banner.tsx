@@ -94,7 +94,10 @@ export const PreviewModeBanner: React.FC<PreviewModeBannerProperties> = ({
   };
 
   return (
-    <div className="relative z-[200] flex h-[32px] items-center justify-between overflow-hidden bg-gray-900 px-4 md:px-8">
+    <div
+      data-preview-banner
+      className="relative z-[200] flex h-(--preview-banner-height) items-center justify-between overflow-hidden bg-gray-900 px-4 md:px-8"
+    >
       <span className="flex items-center text-xs text-gray-100">
         <span className="text-gray-300 max-sm:hidden">
           {staticTranslationStrings.account[locale]}

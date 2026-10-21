@@ -290,7 +290,7 @@ export const DesktopNav: React.FC<{
       {(hasActiveSubMenu || isOverflowOpen) && (
         <div
           ref={flyoutReference}
-          className="animate-in fade-in-0 slide-in-from-top-1 fixed top-16 right-0 left-0 z-50 w-full border-b-2 border-gray-200 bg-white/98 backdrop-blur-2xl transition-all duration-200"
+          className="animate-in fade-in-0 slide-in-from-top-1 fixed top-[calc(4rem+var(--preview-banner-height))] right-0 left-0 z-50 w-full border-b-2 border-gray-200 bg-white/98 backdrop-blur-2xl transition-all duration-200"
           onClick={closeOnLinkClick}
         >
           <div className="w-full px-6 py-8 xl:px-12">
