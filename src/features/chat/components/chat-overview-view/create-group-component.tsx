@@ -2,15 +2,16 @@
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { fieldInputClassName, formFieldClassName } from '@/components/ui/field';
-import { PersonAvatar } from '@/components/ui/person-avatar';
 import { SectionLabel } from '@/components/ui/section-label';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import {
+  ChosenPeople,
   contactListName,
   ContactRowContent,
   contactRowItemClassName,
   ContactRowsSkeleton,
   NewChatFrame,
+  SelectionMark,
 } from '@/features/chat/components/chat-overview-view/contact-row';
 import { newChatText } from '@/features/chat/components/chat-overview-view/create-chat-skeleton';
 import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
@@ -19,9 +20,8 @@ import { groupContactsByLetter, matchesContactSearch } from '@/features/chat/uti
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { getContactDisplayName, getContactShortName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
-import { Check, Users, X } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type React from 'react';
@@ -49,9 +49,6 @@ const text = {
     en: 'In the group with you',
     fr: 'Avec toi dans le groupe',
   },
-  search: { de: 'Kontakte hinzufügen', en: 'Add contacts', fr: 'Ajouter des contacts' },
-  remove: { de: '{name} entfernen', en: 'Remove {name}', fr: 'Retirer {name}' },
-  chosenPeople: { de: 'Ausgewählte Personen', en: 'Selected people', fr: 'Personnes choisies' },
   needPeople: {
     de: 'Wähle mindestens zwei Personen aus.',
     en: 'Choose at least two people.',
@@ -82,19 +79,6 @@ const text = {
 /** A disabled footer button stays legible: green text on the quiet grey, not a faded green. */
 const footerButtonClassName =
   'w-full disabled:bg-quiet disabled:text-green-700 disabled:opacity-100';
-
-/** The round mark at the end of a row: an empty ring, or brand green with a check. */
-const SelectionMark: React.FC<{ isSelected: boolean }> = ({ isSelected }) => (
-  <span
-    aria-hidden="true"
-    className={cn(
-      'flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
-      isSelected ? 'bg-conveniat-green text-white' : 'border-rail-node border-2',
-    )}
-  >
-    {isSelected && <Check className="h-4 w-4" strokeWidth={3} />}
-  </span>
-);
 
 /**
  * Creating a group in two steps. First the people: the contacts as checkboxes, the chosen ones
@@ -267,61 +251,28 @@ export const CreateNewGroupPage: React.FC = () => {
       onWhite
       head={
         <ChatSearchField
-          placeholder={text.search[locale]}
+          placeholder={newChatText.search[locale]}
           value={searchQuery}
           onChange={setSearchQuery}
         />
       }
       footer={
         <div className="flex flex-col gap-2">
-          {/* the chosen people sit down here, not above the list: a strip appearing over the
-              list would push every row down under the finger that is about to tap the next one.
-              They share one line with the hint, so the footer keeps its height as well. */}
-          <div className="-mx-4 flex h-11 [scrollbar-width:none] items-center gap-x-2 overflow-x-auto px-4">
-            {selected.length > 0 && (
-              <ul aria-label={text.chosenPeople[locale]} className="flex shrink-0 gap-x-2">
-                {selected.map((contact) => (
-                  <li key={contact.userId}>
-                    <button
-                      type="button"
-                      onClick={() => toggle(contact)}
-                      aria-label={text.remove[locale].replace(
-                        '{name}',
-                        getContactDisplayName(contact),
-                      )}
-                      className="group flex h-11 cursor-pointer items-center focus-visible:outline-none"
-                    >
-                      <span className="bg-quiet group-focus-visible:focus-ring flex h-9 items-center gap-2 rounded-full pr-3 pl-1">
-                        <PersonAvatar
-                          seed={contact.userId}
-                          name={contact.name}
-                          pictureUrl={contact.pictureUrl}
-                          className="h-7 w-7 text-[11px]"
-                        />
-                        <span className="text-sm font-semibold whitespace-nowrap text-green-900">
-                          {getContactShortName(contact)}
-                        </span>
-                        <X className="h-4 w-4 text-green-700" aria-hidden="true" />
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {(isAtLimit || !hasEnoughPeople) && (
-              <p
-                id="new-group-helper"
-                className={cn(
-                  'shrink-0 text-[13px] whitespace-nowrap text-green-700',
-                  selected.length === 0 && 'mx-auto',
-                )}
-              >
-                {isAtLimit
-                  ? text.limit[locale].replace('{max}', String(maxGroupMembers))
-                  : text.needPeople[locale]}
-              </p>
-            )}
-          </div>
+          <ChosenPeople
+            people={selected}
+            onRemove={toggle}
+            hint={
+              isAtLimit || !hasEnoughPeople
+                ? {
+                    id: 'new-group-helper',
+                    text: isAtLimit
+                      ? text.limit[locale].replace('{max}', String(maxGroupMembers))
+                      : text.needPeople[locale],
+                  }
+                : undefined
+            }
+            locale={locale}
+          />
           <Button
             variant="primary"
             size="touch"

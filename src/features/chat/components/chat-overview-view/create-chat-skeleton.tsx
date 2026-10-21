@@ -15,6 +15,12 @@ export const newChatText = {
   title: { de: 'Neuer Chat', en: 'New chat', fr: 'Nouveau chat' },
   back: { de: 'Zurück zu den Chats', en: 'Back to chats', fr: 'Retour aux discussions' },
   contacts: { de: 'Kontakte', en: 'Contacts', fr: 'Contacts' },
+  /** what a contact is found by, see `matchesContactSearch` */
+  search: {
+    de: 'Name, Ceviname oder Hof',
+    en: 'Name, Cevi name or Hof',
+    fr: 'Nom, nom Cevi ou Hof',
+  },
   groupTitle: { de: 'Neue Gruppe', en: 'New group', fr: 'Nouveau groupe' },
   groupSelected: { de: '{n} ausgewählt', en: '{n} selected', fr: '{n} sélectionné(s)' },
   groupBack: {
@@ -24,10 +30,8 @@ export const newChatText = {
   },
 } satisfies Record<string, StaticTranslationString>;
 
-const pulse = 'bg-quiet animate-pulse';
-
 const SearchSkeleton: React.FC = () => (
-  <div className={`h-[44px] w-full rounded-[12px] ${pulse}`} />
+  <div className="bg-quiet h-[44px] w-full animate-pulse rounded-[12px]" />
 );
 
 /** Neuer Chat while it loads: the search, the two actions and the contact rows. */
@@ -44,8 +48,8 @@ export const CreateChatSkeleton: React.FC = () => {
       <div aria-hidden="true" className="border-quiet border-b-8 bg-white">
         {[1, 2].map((index) => (
           <div key={index} className="flex min-h-14 items-center gap-3 px-4 py-2">
-            <div className={`h-[38px] w-[38px] rounded-[10px] ${pulse}`} />
-            <div className={`h-4 w-32 rounded ${pulse}`} />
+            <div className="bg-quiet h-[38px] w-[38px] animate-pulse rounded-[10px]" />
+            <div className="bg-quiet h-4 w-32 animate-pulse rounded" />
           </div>
         ))}
       </div>
@@ -72,8 +76,10 @@ export const CreateGroupSkeleton: React.FC = () => {
       head={<SearchSkeleton />}
       footer={
         <div className="flex flex-col gap-2" aria-hidden="true">
-          <div className={`mx-auto h-[18px] w-56 rounded ${pulse}`} />
-          <div className={`h-11 w-full rounded-xl ${pulse}`} />
+          <div className="flex h-11 items-center">
+            <div className="bg-quiet mx-auto h-[18px] w-56 animate-pulse rounded" />
+          </div>
+          <div className="bg-quiet h-11 w-full animate-pulse rounded-xl" />
         </div>
       }
     >

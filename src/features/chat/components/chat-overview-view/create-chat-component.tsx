@@ -27,11 +27,6 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 
 const text = {
-  search: {
-    de: 'Name, Pfadiname oder Quartier',
-    en: 'Name, Cevi name or Quartier',
-    fr: 'Nom, nom Cevi ou Quartier',
-  },
   newGroup: { de: 'Neue Gruppe', en: 'New group', fr: 'Nouveau groupe' },
   scanCode: { de: 'QR-Code scannen', en: 'Scan QR code', fr: 'Scanner un code QR' },
   loading: { de: 'Lade Kontakte …', en: 'Loading contacts …', fr: 'Chargement des contacts …' },
@@ -127,7 +122,7 @@ export const CreateNewChatPage: React.FC = () => {
         // also while loading, so the field is in place before the contacts arrive
         hasContacts || isLoading ? (
           <ChatSearchField
-            placeholder={text.search[locale]}
+            placeholder={newChatText.search[locale]}
             value={searchQuery}
             onChange={setSearchQuery}
           />

@@ -6,9 +6,10 @@ import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { PersonName } from '@/features/chat/components/ui/person-name';
 import { describeContact } from '@/features/chat/utils/contact-search';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
-import { getContactDisplayName } from '@/utils/format-user-name';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { getContactDisplayName, getContactShortName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
 
@@ -40,12 +41,98 @@ export const ContactRowContent: React.FC<{ contact: Contact }> = ({ contact }) =
   );
 };
 
+/** The round mark at the end of a row one can pick: an empty ring, or brand green with a check. */
+export const SelectionMark: React.FC<{ isSelected: boolean }> = ({ isSelected }) => (
+  <span
+    aria-hidden="true"
+    className={cn(
+      'flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
+      isSelected ? 'bg-conveniat-green text-white' : 'border-rail-node border-2',
+    )}
+  >
+    {isSelected && <Check className="h-4 w-4" strokeWidth={3} />}
+  </span>
+);
+
+const removeText: StaticTranslationString = {
+  de: '{name} entfernen',
+  en: 'Remove {name}',
+  fr: 'Retirer {name}',
+};
+
+const chosenPeopleText: StaticTranslationString = {
+  de: 'Ausgewählte Personen',
+  en: 'Selected people',
+  fr: 'Personnes choisies',
+};
+
+/**
+ * The people picked so far, one line at the foot of a picker, each removed by a tap, with a hint
+ * on the same line. They sit down there, not above the list: a strip appearing over the list
+ * would push every row down under the finger that is about to tap the next one, and sharing the
+ * line with the hint keeps the footer at its height.
+ */
+export const ChosenPeople: React.FC<{
+  people: Contact[];
+  onRemove: (contact: Contact) => void;
+  hint?: { id: string; text: string } | undefined;
+  locale: Locale;
+  /** pulls the strip out to the edges of what it sits in, `-mx-4 px-4` by default */
+  className?: string;
+}> = ({ people, onRemove, hint, locale, className }) => (
+  <div
+    className={cn(
+      '-mx-4 flex h-11 [scrollbar-width:none] items-center gap-x-2 overflow-x-auto px-4',
+      className,
+    )}
+  >
+    {people.length > 0 && (
+      <ul aria-label={chosenPeopleText[locale]} className="flex shrink-0 gap-x-2">
+        {people.map((contact) => (
+          <li key={contact.userId}>
+            <button
+              type="button"
+              onClick={() => onRemove(contact)}
+              aria-label={removeText[locale].replace('{name}', getContactDisplayName(contact))}
+              className="group flex h-11 cursor-pointer items-center focus-visible:outline-none"
+            >
+              <span className="bg-quiet group-hover:bg-chip group-focus-visible:focus-ring flex h-9 items-center gap-2 rounded-full pr-3 pl-1">
+                <PersonAvatar
+                  seed={contact.userId}
+                  name={contact.name}
+                  pictureUrl={contact.pictureUrl}
+                  className="h-7 w-7 text-[11px]"
+                />
+                <span className="text-sm font-semibold whitespace-nowrap text-green-900">
+                  {getContactShortName(contact)}
+                </span>
+                <X className="h-4 w-4 text-green-700" aria-hidden="true" />
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    )}
+    {hint !== undefined && (
+      <p
+        id={hint.id}
+        className={cn(
+          'shrink-0 text-[13px] whitespace-nowrap text-green-700',
+          people.length === 0 && 'mx-auto',
+        )}
+      >
+        {hint.text}
+      </p>
+    )}
+  </div>
+);
+
 /** The row of a contact list; the line between rows starts at the text, as on the chat list. */
 export const contactRowItemClassName =
   'after:bg-line relative after:absolute after:right-0 after:bottom-0 after:left-[72px] after:h-px last:after:hidden';
 
 const backButtonClassName =
-  'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900';
+  'hover:bg-quiet flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900';
 
 /**
  * The full-screen frame of starting a chat: a back arrow, the title with an optional line
@@ -99,11 +186,11 @@ export const NewChatFrame: React.FC<{
           </button>
         )}
         <div className="min-w-0 flex-1">
-          <h1 className="font-heading text-heading truncate text-xl leading-6 font-extrabold">
+          <h1 className="font-heading text-heading truncate text-[17px] leading-tight font-bold">
             {title}
           </h1>
           {subtitle !== undefined && (
-            <p aria-live="polite" className="text-[13px] leading-4 text-green-700">
+            <p aria-live="polite" className="mt-0.5 truncate text-[13px] text-green-700">
               {subtitle}
             </p>
           )}
@@ -138,7 +225,7 @@ export const ContactRowsSkeleton: React.FC<{ count?: number; withMark?: boolean 
             <div className="bg-quiet h-4 w-44 animate-pulse rounded" />
             <div className="bg-quiet h-3 w-56 max-w-full animate-pulse rounded" />
           </div>
-          {withMark && <div className="border-rail h-6 w-6 shrink-0 rounded-full border-2" />}
+          {withMark && <SelectionMark isSelected={false} />}
         </div>
       </li>
     ))}
