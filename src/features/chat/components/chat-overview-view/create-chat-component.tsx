@@ -122,6 +122,7 @@ export const CreateNewChatPage: React.FC = () => {
       title={newChatText.title[locale]}
       backHref="/app/chat"
       backLabel={newChatText.back[locale]}
+      onWhite
       head={
         // also while loading, so the field is in place before the contacts arrive
         hasContacts || isLoading ? (

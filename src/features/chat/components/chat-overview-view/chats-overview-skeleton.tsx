@@ -43,6 +43,6 @@ export const ChatsOverviewSkeleton: React.FC = () => (
 export const NewChatButtonSkeleton: React.FC = () => (
   <div
     aria-hidden="true"
-    className={`fixed right-4 bottom-[96px] z-30 h-12 w-[148px] rounded-2xl ${pulse}`}
+    className={`fixed right-4 bottom-[calc(5rem+16px)] z-30 h-12 w-[148px] rounded-2xl ${pulse}`}
   />
 );

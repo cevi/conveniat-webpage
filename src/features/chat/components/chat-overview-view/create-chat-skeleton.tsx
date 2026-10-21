@@ -38,6 +38,7 @@ export const CreateChatSkeleton: React.FC = () => {
       title={newChatText.title[locale]}
       backHref="/app/chat"
       backLabel={newChatText.back[locale]}
+      onWhite
       head={<SearchSkeleton />}
     >
       <div aria-hidden="true" className="border-quiet border-b-8 bg-white">
