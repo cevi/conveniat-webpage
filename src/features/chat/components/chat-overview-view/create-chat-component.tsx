@@ -19,7 +19,7 @@ import { groupContactsByLetter, matchesContactSearch } from '@/features/chat/uti
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { QrCode, UserPlus, Users } from 'lucide-react';
+import { Loader2, QrCode, UserPlus, Users } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -45,6 +45,11 @@ const text = {
     en: 'You have no contacts yet. Scan someone’s QR code to chat with them.',
     fr: 'Tu n’as pas encore de contacts. Scanne le code QR d’une personne pour discuter avec elle.',
   },
+  openFailed: {
+    de: 'Chat konnte nicht geöffnet werden. Versuche es nochmals.',
+    en: 'The chat could not be opened. Please try again.',
+    fr: 'Le chat n’a pas pu être ouvert. Réessaie.',
+  },
   noMatch: {
     de: 'Keine Kontakte für deine Suche gefunden',
     en: 'No contacts found matching your search',
@@ -66,6 +71,7 @@ export const CreateNewChatPage: React.FC = () => {
   const { data: allContacts, isLoading } = trpc.chat.contacts.useQuery({});
   const [searchQuery, setSearchQuery] = useState('');
   const [openingUserId, setOpeningUserId] = useState<string | undefined>();
+  const [hasOpenFailed, setHasOpenFailed] = useState(false);
   const [isQrOpen, setIsQrOpen] = useState(false);
   const [qrTab, setQrTab] = useState<ChatQrTab>('scan');
   const router = useRouter();
@@ -78,17 +84,26 @@ export const CreateNewChatPage: React.FC = () => {
     if (isOnRoute) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSearchQuery('');
+    // the chat has opened: nothing here stays busy for the next visit
     setOpeningUserId(undefined);
+    setHasOpenFailed(false);
   }, [isOnRoute]);
 
   const openChatWith = (contact: Contact): void => {
     if (openingUserId !== undefined) return;
     setOpeningUserId(contact.userId);
-    // The id is chosen client-side, so the chat opens straight away; for someone the user
-    // already chats with, the server answers with that chat and the view follows it.
-    const chatId = createChat({ chatName: undefined, members: [contact] });
-    // `replace`: going back from the chat belongs to the list, not to this screen
-    router.replace(`/app/chat/${chatId}`);
+    setHasOpenFailed(false);
+    try {
+      // The id is chosen client-side, so the chat opens straight away; for someone the user
+      // already chats with, the server answers with that chat and the view follows it.
+      const chatId = createChat({ chatName: undefined, members: [contact] });
+      // `replace`: going back from the chat belongs to the list, not to this screen
+      router.replace(`/app/chat/${chatId}`);
+    } catch (error) {
+      console.error('Opening the chat failed', error);
+      setOpeningUserId(undefined);
+      setHasOpenFailed(true);
+    }
   };
 
   const openScanner = (): void => {
@@ -140,6 +155,15 @@ export const CreateNewChatPage: React.FC = () => {
         </ul>
       )}
 
+      {hasOpenFailed && (
+        <p
+          role="alert"
+          className="text-live-text bg-live-soft mx-4 mt-4 rounded-xl px-4 py-3 text-sm"
+        >
+          {text.openFailed[locale]}
+        </p>
+      )}
+
       {isLoading && (
         <div role="status" className="pt-4">
           <span className="sr-only">{text.loading[locale]}</span>
@@ -175,9 +199,17 @@ export const CreateNewChatPage: React.FC = () => {
                       type="button"
                       onClick={() => openChatWith(contact)}
                       aria-busy={openingUserId === contact.userId}
-                      className="hover:bg-quiet flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left aria-busy:animate-pulse"
+                      // one chat opens at a time; the row that opens shows a spinner and stays still
+                      disabled={openingUserId !== undefined && openingUserId !== contact.userId}
+                      className="hover:bg-quiet flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left disabled:cursor-default"
                     >
                       <ContactRowContent contact={contact} />
+                      {openingUserId === contact.userId && (
+                        <Loader2
+                          className="h-5 w-5 shrink-0 animate-spin text-green-500"
+                          aria-hidden="true"
+                        />
+                      )}
                     </button>
                   </li>
                 ))}

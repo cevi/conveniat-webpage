@@ -10,7 +10,7 @@ import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/t
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatType } from '@prisma/client';
 import type { LucideIcon } from 'lucide-react';
-import { CalendarDays, LifeBuoy, Megaphone, Pin, Siren, Users } from 'lucide-react';
+import { CalendarDays, LifeBuoy, Loader2, Megaphone, Pin, Siren, Users } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link, { useLinkStatus } from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -43,20 +43,42 @@ const unreadText = (count: number, isLarge: boolean, locale: Locale): string => 
   return `${count} unread messages`;
 };
 
-/**
- * The row of a chat, pulsing from the tap until the chat has opened, so a tap that takes a
- * while, as it does offline, is not mistaken for one that did nothing.
- */
+const openingText: StaticTranslationString = {
+  de: 'Wird geöffnet …',
+  en: 'Opening …',
+  fr: 'Ouverture …',
+};
+
+/** The row of a chat; busy from the tap until the chat has opened. */
 const ChatPreviewRow: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { pending } = useLinkStatus();
   return (
-    <div
-      aria-busy={pending}
-      className={cn('flex min-h-[72px] items-center gap-3 px-4 py-3', pending && 'animate-pulse')}
-    >
+    <div aria-busy={pending} className="flex min-h-[72px] items-center gap-3 px-4 py-3">
       {children}
     </div>
   );
+};
+
+/**
+ * The date of the last message, or a small spinner in its place from the tap until the chat
+ * has opened, so a tap that takes a while, as it does offline, is not mistaken for one that did
+ * nothing. The row itself stays still.
+ */
+const ChatTimestamp: React.FC<{ timestamp: string; className: string; locale: Locale }> = ({
+  timestamp,
+  className,
+  locale,
+}) => {
+  const { pending } = useLinkStatus();
+  if (pending) {
+    return (
+      <span className={cn(className, 'flex items-center')}>
+        <Loader2 className="h-4 w-4 animate-spin text-green-500" aria-hidden="true" />
+        <span className="sr-only">{openingText[locale]}</span>
+      </span>
+    );
+  }
+  return <span className={className}>{timestamp}</span>;
 };
 
 /** The round picture at the start of a row: the partner, or what kind of chat it is. */
@@ -177,15 +199,15 @@ export const ChatPreview: React.FC<{
                 role="img"
               />
             )}
-            <span
+            <ChatTimestamp
+              timestamp={timestamp}
+              locale={locale}
               className={cn(
                 'ml-auto shrink-0 pl-1 text-xs whitespace-nowrap text-green-700 tabular-nums',
                 hasUnread && 'text-conveniat-green font-semibold',
                 isEmergency && 'text-red-700',
               )}
-            >
-              {timestamp}
-            </span>
+            />
           </div>
 
           <div className="mt-0.5 flex items-center gap-2">
