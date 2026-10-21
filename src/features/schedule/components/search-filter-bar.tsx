@@ -58,6 +58,11 @@ const labels = {
   places: { de: '{{count}} Orte', en: '{{count}} places', fr: '{{count}} lieux' },
   timeOfDay: { de: 'Tageszeit', en: 'Time of day', fr: 'Moment de la journée' },
   reset: { de: 'Zurücksetzen', en: 'Reset', fr: 'Réinitialiser' },
+  withoutLogistics: {
+    de: 'Ohne Anreise & Essen',
+    en: 'Without arrival & meals',
+    fr: 'Sans arrivée & repas',
+  },
 } satisfies Record<string, StaticTranslationString>;
 
 type Section = 'category' | 'place';
@@ -74,8 +79,14 @@ interface SearchFilterBarProperties {
   isProgramme?: boolean;
   /** the control for the view, own Quartier or whole camp, at the top of the filter sheet */
   view?: React.ReactNode;
-  /** the view as it is, named on the filter button instead of "Filter" */
+  /** the view as it is: named on the filter button, or leading the line of what applies */
   viewSummary?: React.ReactNode;
+  /**
+   * Given together, the filter button sits in the app header (see `FilterHeaderButton`) and
+   * the bar shows, instead of its row, one quiet line of what applies.
+   */
+  isFilterOpen?: boolean;
+  onFilterOpenChange?: (isOpen: boolean) => void;
   /** whether to offer "Für Leitende": to the people who may read the part for Leitende only */
   canFilterForLeaders?: boolean;
   /** how many entries the list shows with the filters as they are, for the closing button */
@@ -98,6 +109,40 @@ const CountBadge: React.FC<{ count: number }> = ({ count }) => (
     {count}
   </span>
 );
+
+/**
+ * The filter as a 44px icon in the app header, with the count of filters that are on, for a
+ * page that shows `SearchFilterBar` with `isFilterOpen`.
+ */
+export const FilterHeaderButton: React.FC<{
+  filters: FilterState;
+  isOpen: boolean;
+  onOpen: () => void;
+  locale: Locale;
+}> = ({ filters, isOpen, onOpen, locale }) => {
+  const count = activeFilterCount(filters);
+  const countText =
+    count === 1
+      ? labels.activeFilter[locale]
+      : labels.activeFilters[locale].replace('{{count}}', String(count));
+  return (
+    <button
+      type="button"
+      aria-haspopup="dialog"
+      aria-expanded={isOpen}
+      aria-label={count > 0 ? `${labels.filter[locale]}, ${countText}` : labels.filter[locale]}
+      onClick={onOpen}
+      className="relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl"
+    >
+      <ListFilter className="h-[22px] w-[22px]" aria-hidden="true" />
+      {count > 0 && (
+        <span className="absolute top-0.5 right-0.5">
+          <CountBadge count={count} />
+        </span>
+      )}
+    </button>
+  );
+};
 
 const chipClassName = (isActive: boolean): string =>
   cn(
@@ -179,13 +224,18 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   isProgramme = true,
   view,
   viewSummary,
+  isFilterOpen,
+  onFilterOpenChange,
   canFilterForLeaders = false,
   shownCount,
   isSearchOpen,
   className,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const [isOpen, setIsOpen] = useState(false);
+  const [ownIsOpen, setOwnIsOpen] = useState(false);
+  const isInHeader = isFilterOpen !== undefined && onFilterOpenChange !== undefined;
+  const isOpen = isInHeader ? isFilterOpen : ownIsOpen;
+  const setIsOpen = isInHeader ? onFilterOpenChange : setOwnIsOpen;
   const [focusedSection, setFocusedSection] = useState<Section>();
 
   const update = useCallback(
@@ -228,6 +278,21 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
         )
       : undefined;
 
+  // the filters that are on, in words, for the line under the days
+  const [onlyPlace] = filters.selectedLocations;
+  const placesText =
+    filters.selectedLocations.length > 1
+      ? labels.places[locale].replace('{{count}}', String(filters.selectedLocations.length))
+      : onlyPlace?.title;
+  const appliedFilters = [
+    filters.selectedCategory?.title,
+    placesText,
+    ...filters.timesOfDay.map((timeOfDay) => timeOfDayLabels[timeOfDay][locale]),
+    filters.starredOnly ? labels.favouritesOnly[locale] : undefined,
+    filters.leadersOnly ? labels.leadersOnly[locale] : undefined,
+    filters.showLogistics ? undefined : labels.withoutLogistics[locale],
+  ].filter((part): part is string => part !== undefined && part !== '');
+
   const footer = (
     <div className="flex items-center gap-4">
       <button
@@ -263,54 +328,82 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
         />
       )}
 
-      {/*
-        One row: the filter button, which names the view and counts the filters that are on, and
-        the favourites. The view, Kategorie, Ort and Tageszeit are chosen in its sheet.
-      */}
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded={isOpen}
-          onClick={() => openAt()}
-          className={cn(chipClassName(false), 'min-w-0')}
-        >
-          <ListFilter className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
-          {/* read out as "Filter: Greif, 2 aktive Filter"; the view's name is what is seen */}
-          {viewSummary === undefined ? (
-            labels.filter[locale]
-          ) : (
-            <>
-              <span className="sr-only">{labels.filter[locale]}: </span>
-              {viewSummary}
-            </>
-          )}
-          {activeCountText !== undefined && (
-            <>
-              <span className="sr-only">, {activeCountText}</span>
-              <CountBadge count={activeCount} />
-            </>
-          )}
-        </button>
-
-        {isProgramme && (
+      {isInHeader ? (
+        // what the list shows, in words, under the days; a tap opens the filter to change it
+        (viewSummary !== undefined || appliedFilters.length > 0) && (
           <button
             type="button"
-            aria-pressed={filters.starredOnly}
-            aria-label={labels.favouritesOnly[locale]}
-            onClick={() => update({ starredOnly: !filters.starredOnly })}
-            className={cn(
-              roundButtonClassName,
-              filters.starredOnly && 'border-amber-700 bg-amber-50 text-amber-700',
-            )}
+            aria-haspopup="dialog"
+            aria-expanded={isOpen}
+            onClick={() => openAt()}
+            className="flex min-h-[32px] w-full min-w-0 cursor-pointer items-center gap-1.5 text-left text-[13px] text-green-700"
           >
-            <Star
-              className={cn('h-5 w-5', filters.starredOnly && 'fill-amber-700')}
-              aria-hidden="true"
-            />
+            <span className="sr-only">{labels.filter[locale]}: </span>
+            {viewSummary !== undefined && (
+              <span className="flex shrink-0 items-center gap-1.5 font-semibold text-green-900">
+                {viewSummary}
+              </span>
+            )}
+            {appliedFilters.length > 0 && (
+              <span className="truncate">
+                {viewSummary !== undefined && '· '}
+                {appliedFilters.join(' · ')}
+              </span>
+            )}
           </button>
-        )}
-      </div>
+        )
+      ) : (
+        <>
+          {/*
+          One row: the filter button, which names the view and counts the filters that are on, and
+          the favourites. The view, Kategorie, Ort and Tageszeit are chosen in its sheet.
+        */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded={isOpen}
+              onClick={() => openAt()}
+              className={cn(chipClassName(false), 'min-w-0')}
+            >
+              <ListFilter className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+              {/* read out as "Filter: Greif, 2 aktive Filter"; the view's name is what is seen */}
+              {viewSummary === undefined ? (
+                labels.filter[locale]
+              ) : (
+                <>
+                  <span className="sr-only">{labels.filter[locale]}: </span>
+                  {viewSummary}
+                </>
+              )}
+              {activeCountText !== undefined && (
+                <>
+                  <span className="sr-only">, {activeCountText}</span>
+                  <CountBadge count={activeCount} />
+                </>
+              )}
+            </button>
+
+            {isProgramme && (
+              <button
+                type="button"
+                aria-pressed={filters.starredOnly}
+                aria-label={labels.favouritesOnly[locale]}
+                onClick={() => update({ starredOnly: !filters.starredOnly })}
+                className={cn(
+                  roundButtonClassName,
+                  filters.starredOnly && 'border-amber-700 bg-amber-50 text-amber-700',
+                )}
+              >
+                <Star
+                  className={cn('h-5 w-5', filters.starredOnly && 'fill-amber-700')}
+                  aria-hidden="true"
+                />
+              </button>
+            )}
+          </div>
+        </>
+      )}
 
       <BottomSheet
         open={isOpen}

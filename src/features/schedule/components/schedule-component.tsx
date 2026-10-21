@@ -10,7 +10,10 @@ import {
   ScheduleViewSummary,
   ScheduleViewToggles,
 } from '@/features/schedule/components/schedule-view-toggles';
-import { SearchFilterBar } from '@/features/schedule/components/search-filter-bar';
+import {
+  FilterHeaderButton,
+  SearchFilterBar,
+} from '@/features/schedule/components/search-filter-bar';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import { ScheduleStatusProvider } from '@/features/schedule/context/schedule-status-context';
 import { useNow } from '@/features/schedule/hooks/use-now';
@@ -44,6 +47,7 @@ export const ScheduleComponent: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { starredEntries, toggleStar } = useStar();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const isOnline = useOnlineStatus();
   const now = useNow();
   const { syncFromServer, entries: localEntries } = useScheduleEntries();
@@ -191,6 +195,12 @@ export const ScheduleComponent: React.FC = () => {
         >
           <Search className="h-[22px] w-[22px]" aria-hidden="true" />
         </button>
+        <FilterHeaderButton
+          filters={filters}
+          isOpen={isFilterOpen}
+          onOpen={() => setIsFilterOpen(true)}
+          locale={locale}
+        />
       </SetHeaderActions>
 
       <SearchFilterBar
@@ -206,6 +216,8 @@ export const ScheduleComponent: React.FC = () => {
         }
         canFilterForLeaders={leaderAccess === true}
         shownCount={shownCount}
+        isFilterOpen={isFilterOpen}
+        onFilterOpenChange={setIsFilterOpen}
         isSearchOpen={isSearchOpen}
         className="mb-3"
       />
