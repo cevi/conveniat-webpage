@@ -380,7 +380,7 @@ export const ChatTextAreaInput: React.FC = () => {
         </div>
       )}
 
-      <div className="border-line focus-within:border-rail-node flex flex-col rounded-[26px] border bg-white">
+      <div className="border-line focus-within:border-rail-node flex flex-col rounded-[16px] border bg-white">
         {/* Staged attachment sits above the text it will be sent with */}
         {stagedImage !== undefined && (
           <div className="flex items-end gap-3 px-3 pt-3">
@@ -417,7 +417,8 @@ export const ChatTextAreaInput: React.FC = () => {
           </div>
         )}
         {/* One inset on every side, and a line of text exactly as tall as the 44px buttons: a
-            single line sits on the buttons' centre, and as the field grows they stay at its foot. */}
+            single line sits on the buttons' centre, and as the field grows they stay at its foot.
+            The corners are concentric: the buttons' 12px is the field's 16px less the 4px inset. */}
         <div className="flex items-end gap-[4px] p-[4px]">
           {canUploadPictures && (
             <div>
@@ -433,7 +434,7 @@ export const ChatTextAreaInput: React.FC = () => {
                 aria-label={attachImageText[locale]}
                 size="icon"
                 variant="ghost"
-                className="h-[44px] w-[44px] shrink-0 cursor-pointer rounded-full text-green-700 hover:bg-transparent [&_svg]:size-5"
+                className="h-[44px] w-[44px] shrink-0 cursor-pointer rounded-[12px] text-green-700 hover:bg-transparent [&_svg]:size-5"
               >
                 <Paperclip aria-hidden="true" />
               </Button>
@@ -467,7 +468,7 @@ export const ChatTextAreaInput: React.FC = () => {
               <Button
                 onClick={() => void handleSplitAndSend()}
                 size="sm"
-                className="bg-live h-[44px] shrink-0 rounded-full px-4 font-semibold text-white"
+                className="bg-live h-[44px] shrink-0 rounded-[12px] px-4 font-semibold text-white"
               >
                 {splitAndSendText[locale]}
               </Button>
@@ -477,7 +478,7 @@ export const ChatTextAreaInput: React.FC = () => {
                 size="icon"
                 variant="ghost"
                 aria-label={sendLabel[locale]}
-                className="bg-conveniat-green disabled:bg-quiet h-[44px] w-[44px] shrink-0 rounded-full text-white hover:bg-green-700 disabled:text-green-500 disabled:opacity-100 [&_svg]:size-5"
+                className="bg-conveniat-green disabled:bg-quiet h-[44px] w-[44px] shrink-0 rounded-[12px] text-white hover:bg-green-700 disabled:text-green-500 disabled:opacity-100 [&_svg]:size-5"
                 disabled={stagedImage === undefined ? isSendButtonDisabled : isUploading}
               >
                 <Send aria-hidden="true" />
