@@ -77,6 +77,38 @@ const createdByText: StaticTranslationString = {
   fr: 'créé par {name}',
 };
 
+const createdOnText: StaticTranslationString = {
+  de: 'am {date}',
+  en: 'on {date}',
+  fr: 'le {date}',
+};
+
+const createdText: StaticTranslationString = {
+  de: 'erstellt am {date}',
+  en: 'created on {date}',
+  fr: 'créé le {date}',
+};
+
+const creationDateOptions: Intl.DateTimeFormatOptions = {
+  timeZone: 'Europe/Zurich',
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+};
+
+const creationDateFormats = {
+  de: new Intl.DateTimeFormat('de-CH', creationDateOptions),
+  en: new Intl.DateTimeFormat('en-US', creationDateOptions),
+  fr: new Intl.DateTimeFormat('fr-CH', creationDateOptions),
+} as const;
+
+/** "21. Okt. 2026" on the camp's calendar; empty for a date a stale cache cannot give. */
+const formatCreationDate = (createdAt: Date | string | undefined, locale: Locale): string => {
+  if (createdAt === undefined) return '';
+  const date = new Date(createdAt);
+  return Number.isNaN(date.getTime()) ? '' : creationDateFormats[locale].format(date);
+};
+
 const heroTileClassName = 'h-[72px] w-[72px] rounded-full [&_svg]:h-8 [&_svg]:w-8';
 
 /** The big picture of the chat: the other person, or an icon for what kind of chat it is. */
@@ -180,12 +212,18 @@ export const ChatDetails: React.FC = () => {
     (p) => p.chatPermission === ChatMembershipPermission.OWNER,
   );
   let meta = chatTypeText[chatDetails.type]?.[locale] ?? '';
+  const createdOn = formatCreationDate(chatDetails.createdAt, locale);
   if (isGroup && owner !== undefined) {
     const createdBy =
       owner.id === currentUser
         ? createdByYouText[locale]
         : createdByText[locale].replace('{name}', splitDisplayName(owner.name).primary);
-    meta = `${meta} · ${createdBy}`;
+    meta =
+      createdOn === ''
+        ? `${meta} · ${createdBy}`
+        : `${meta} · ${createdBy} ${createdOnText[locale].replace('{date}', createdOn)}`;
+  } else if (createdOn !== '') {
+    meta = `${meta} · ${createdText[locale].replace('{date}', createdOn)}`;
   }
 
   const handleToggleContactSelection = (contact: Contact): void => {

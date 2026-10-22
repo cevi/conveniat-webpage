@@ -14,13 +14,14 @@ import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date';
+import { isMessageDeleted } from '@/features/chat/utils/message-deletion';
 import { formatDayLabel } from '@/features/chat/utils/message-grouping';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { ArrowLeft, ChevronRight, MessageSquareOff } from 'lucide-react';
+import { ArrowLeft, Ban, ChevronRight, MessageSquareOff } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect } from 'react';
 
@@ -40,6 +41,12 @@ const youSuffixText: StaticTranslationString = {
   de: '(du)',
   en: '(you)',
   fr: '(toi)',
+};
+
+const deletedMessageText: StaticTranslationString = {
+  de: 'Diese Nachricht wurde gelöscht',
+  en: 'This message was deleted',
+  fr: 'Ce message a été supprimé',
 };
 
 const showInChatText: StaticTranslationString = {
@@ -97,14 +104,13 @@ const ThreadRoot: React.FC<{
   message: ChatMessage;
   currentUserId: string | undefined;
   pictureUrl: string | undefined;
-  participantName: string | undefined;
   locale: Locale;
   onShowInChat: (() => void) | undefined;
-}> = ({ message, currentUserId, pictureUrl, participantName, locale, onShowInChat }) => {
-  // `getMessage` leaves out the sender's name; the chat's members have it
-  const senderName = message.senderName ?? participantName ?? '';
+}> = ({ message, currentUserId, pictureUrl, locale, onShowInChat }) => {
+  const senderName = message.senderName ?? '';
   const createdAt = new Date(message.createdAt);
-  const images = extractMessageImages(message.messagePayload, locale);
+  const isDeleted = isMessageDeleted(message);
+  const images = isDeleted ? [] : extractMessageImages(message.messagePayload, locale);
   return (
     <article className="border-line border-b bg-white px-4 pt-4 pb-1">
       <div className="flex items-center gap-3">
@@ -135,9 +141,16 @@ const ThreadRoot: React.FC<{
           ))}
         </div>
       )}
-      <div className="mt-3 text-[17px] leading-[25px] wrap-anywhere text-green-900">
-        {formatMessageContent(message.messagePayload, locale)}
-      </div>
+      {isDeleted ? (
+        <p className="mt-3 flex items-center gap-1.5 text-[15px] text-green-700">
+          <Ban className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className="italic">{deletedMessageText[locale]}</span>
+        </p>
+      ) : (
+        <div className="mt-3 text-[17px] leading-[25px] wrap-anywhere text-green-900">
+          {formatMessageContent(message.messagePayload, locale)}
+        </div>
+      )}
       {onShowInChat === undefined ? (
         <div className="h-3" />
       ) : (
@@ -261,7 +274,6 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
                 message={parentMessage}
                 currentUserId={currentUserId}
                 pictureUrl={rootSender?.pictureUrl}
-                participantName={rootSender?.name}
                 locale={locale}
                 // a thread opened from a thread has its message in that thread, not the chat
                 onShowInChat={

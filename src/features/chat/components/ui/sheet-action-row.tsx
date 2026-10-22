@@ -21,10 +21,25 @@ export const SheetActionRow: React.FC<{
   destructive?: boolean;
   /** announces a label that changes after the tap, like "Kopiert" */
   liveLabel?: boolean;
-}> = ({ icon: Icon, label, href, onClick, destructive = false, liveLabel = false }) => {
+  /** a row that cannot be used right now, e.g. offline; `hint` says why */
+  disabled?: boolean;
+  /** a second line under the label, e.g. why the row is disabled */
+  hint?: string | undefined;
+}> = ({
+  icon: Icon,
+  label,
+  href,
+  onClick,
+  destructive = false,
+  liveLabel = false,
+  disabled = false,
+  hint,
+}) => {
   const className = cn(
     rowClassName,
     destructive ? 'text-danger-text hover:bg-danger-soft' : 'hover:bg-quiet text-green-900',
+    hint !== undefined && 'py-2',
+    disabled && 'cursor-not-allowed opacity-60 hover:bg-transparent',
   );
   const body = (
     <>
@@ -32,13 +47,20 @@ export const SheetActionRow: React.FC<{
         className={cn('h-5 w-5 shrink-0', !destructive && 'text-green-700')}
         aria-hidden="true"
       />
-      <span aria-live={liveLabel ? 'polite' : undefined}>{label}</span>
+      {hint === undefined ? (
+        <span aria-live={liveLabel ? 'polite' : undefined}>{label}</span>
+      ) : (
+        <span className="flex flex-col">
+          <span aria-live={liveLabel ? 'polite' : undefined}>{label}</span>
+          <span className="text-[13px] font-normal text-green-700">{hint}</span>
+        </span>
+      )}
     </>
   );
   return (
     <li>
       {href === undefined ? (
-        <button type="button" onClick={onClick} className={className}>
+        <button type="button" onClick={onClick} disabled={disabled} className={className}>
           {body}
         </button>
       ) : (

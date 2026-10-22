@@ -9,6 +9,7 @@ import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import { generateMessageId } from '@/features/chat/utils';
+import { isMessageDeleted } from '@/features/chat/utils/message-deletion';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
@@ -120,6 +121,12 @@ const cancelQuoteText: StaticTranslationString = {
   de: 'Antwort abbrechen',
   en: 'Cancel reply',
   fr: 'Annuler la réponse',
+};
+
+const deletedQuoteText: StaticTranslationString = {
+  de: 'Gelöschte Nachricht',
+  en: 'Deleted message',
+  fr: 'Message supprimé',
 };
 
 const messageNotFoundText: StaticTranslationString = {
@@ -547,11 +554,11 @@ const QuotedMessagePreview: React.FC<{
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { data: message, isLoading } = trpc.chat.getMessage.useQuery({ messageId });
   const { data: currentUser } = trpc.chat.user.useQuery({});
-  const { data: chatDetails } = useChatDetail(useChatId());
 
   const getSnippet = (): string => {
     if (isLoading) return '…';
     if (!message) return messageNotFoundText[locale];
+    if (isMessageDeleted(message)) return deletedQuoteText[locale];
 
     const payload = message.messagePayload;
     if (typeof payload === 'string') return payload;
@@ -565,12 +572,8 @@ const QuotedMessagePreview: React.FC<{
   let title = replyingText[locale];
   if (message !== undefined && message.senderId === currentUser) {
     title = replyingToYourselfText[locale];
-  } else {
-    // `getMessage` leaves out the sender's name; the chat's members have it
-    const senderName = chatDetails?.participants.find((p) => p.id === message?.senderId)?.name;
-    if (senderName !== undefined && senderName !== '') {
-      title = replyingToText[locale].replace('{name}', splitDisplayName(senderName).primary);
-    }
+  } else if (message?.senderName !== undefined && message.senderName !== '') {
+    title = replyingToText[locale].replace('{name}', splitDisplayName(message.senderName).primary);
   }
 
   return (

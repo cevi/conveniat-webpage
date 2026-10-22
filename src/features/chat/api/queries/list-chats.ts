@@ -160,6 +160,8 @@ export const getChatList = trpcBaseProcedure
 
           const baseCondition: Prisma.MessageWhereInput = {
             chatId: chat.uuid,
+            // a deleted message has nothing left to read
+            deletedAt: null,
             AND: [
               {
                 OR: [

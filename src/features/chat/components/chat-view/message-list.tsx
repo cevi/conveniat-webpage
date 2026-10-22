@@ -1,7 +1,6 @@
 'use client';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SectionLabel } from '@/components/ui/section-label';
-import type { ChatMessage } from '@/features/chat/api/types';
 import { MessageComponent } from '@/features/chat/components/chat-view/message';
 import { TypingIndicator } from '@/features/chat/components/chat-view/typing-indicator';
 import { useChatId } from '@/features/chat/context/chat-id-context';
@@ -62,29 +61,6 @@ import {
 } from '@/features/chat/utils/message-grouping';
 import type { Typist } from '@/features/chat/utils/typing-store';
 
-/**
- * The first message the reader has not seen yet: counted back from the newest by the unread
- * count the chat list had when the chat opened, over the messages that count as unread there,
- * those of others and of the system. Undefined when nothing is unread.
- */
-const findFirstUnreadMessage = (
-  messages: ChatMessage[],
-  unreadCount: number,
-  currentUser: string,
-): { id: string; count: number } | undefined => {
-  if (unreadCount <= 0) return undefined;
-  let counted = 0;
-  let first: string | undefined;
-  for (let index = messages.length - 1; index >= 0 && counted < unreadCount; index--) {
-    const message = messages[index];
-    if (message === undefined || message.senderId === currentUser) continue;
-    if (message.isPendingOffline === true || message.sendFailed === true) continue;
-    counted++;
-    first = message.id;
-  }
-  return first === undefined ? undefined : { id: first, count: counted };
-};
-
 export const MessageList: React.FC<{
   parentId?: string;
   hideReplyCount?: boolean;
@@ -124,24 +100,40 @@ export const MessageList: React.FC<{
     currentUser,
   });
 
-  // How many messages were unread when the chat opened, read before reading them zeroes it.
-  // A chat opened by a link, before the list was ever loaded, has no count and no line.
-  const trpcUtils = trpc.useUtils();
-  const [unreadAtOpen] = React.useState((): number => {
-    if (isThread) return 0;
-    const chat = trpcUtils.chat.chats.getData({})?.find((entry) => entry.id === chatId);
-    // a large chat counts at most one, which says nothing about where its unread part starts
-    if (chat === undefined || chat.isLarge === true) return 0;
-    return Number.isFinite(chat.unreadCount) ? chat.unreadCount : 0;
-  });
-  // decided once, with the first messages, so the line stays where it was while new ones come
+  // Where the reader stopped, from the server's read state, asked once when the chat opens and
+  // never kept: an answer from the cache would put the line where it was days ago.
+  const unreadMarker = trpc.chat.getUnreadMarker.useQuery(
+    { chatId },
+    {
+      enabled: !isThread && chatId !== '',
+      staleTime: Infinity,
+      gcTime: 0,
+      retry: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      meta: { persist: false },
+    },
+  );
+  // Decided once, with the first messages and the marker, so the line stays before the same
+  // message while new ones come and the reader reads them. Offline the marker fails, and the
+  // chat opens without a line.
   const [firstUnread, setFirstUnread] = React.useState<
     { decided: true; message: { id: string; count: number } | undefined } | undefined
   >();
-  if (firstUnread === undefined && sortedMessages.length > 0 && currentUser !== undefined) {
+  const isMarkerSettled = isThread || unreadMarker.isFetchedAfterMount || unreadMarker.isError;
+  if (
+    firstUnread === undefined &&
+    isMarkerSettled &&
+    sortedMessages.length > 0 &&
+    currentUser !== undefined
+  ) {
+    const markerId = isThread ? undefined : unreadMarker.data?.firstUnreadMessageId;
     setFirstUnread({
       decided: true,
-      message: findFirstUnreadMessage(sortedMessages, unreadAtOpen, currentUser),
+      message:
+        markerId === undefined
+          ? undefined
+          : { id: markerId, count: unreadMarker.data?.unreadCount ?? 0 },
     });
   }
   const unreadDividerReference = React.useRef<HTMLDivElement>(null);
@@ -166,13 +158,16 @@ export const MessageList: React.FC<{
     currentUserId: currentUser,
     typingCount: typists.length,
     initialAnchorReference: unreadDividerReference,
+    isInitialAnchorDecided: firstUnread !== undefined,
   });
 
+  // Reading waits for the line: a receipt that reached the server first would leave nothing
+  // unread to mark.
   useMessageReadStatus({
     chatId,
     currentUser,
     sortedMessages,
-    isAtBottom,
+    isAtBottom: isAtBottom && firstUnread !== undefined,
   });
 
   if (isLoading || currentUser === undefined || chatDetails === undefined) {

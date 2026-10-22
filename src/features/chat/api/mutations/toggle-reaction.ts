@@ -55,6 +55,11 @@ export const toggleReaction = trpcBaseProcedure
       });
     }
 
+    // a deleted message has nothing left to react to, see `deleteMessage`
+    if (message.deletedAt instanceof Date) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'This message was deleted.' });
+    }
+
     // 2. Fetch the chat details and the user's membership
     const chat = await prisma.chat.findUnique({
       where: { uuid: message.chatId },

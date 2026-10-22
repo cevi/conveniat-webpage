@@ -56,6 +56,9 @@ const SUPPORT_CHAT_ID = '0190a5b2-0000-7000-8000-000000000003';
 
 let chatCapabilities: string[];
 
+/** Keys of images whose message its sender deleted. */
+const deletedImageKeys = new Set<string>();
+
 /** One chat with one member; the capability lookup reads the chat through the shared client. */
 const prisma = {
   chat: {
@@ -64,6 +67,12 @@ const prisma = {
         capabilities: chatCapabilities,
         type: where.uuid === SUPPORT_CHAT_ID ? 'SUPPORT_GROUP' : 'ONE_TO_ONE',
       }),
+    ),
+  },
+  messageContent: {
+    findFirst: jest.fn(({ where }: { where: { payload: { equals: string } } }) =>
+      // eslint-disable-next-line unicorn/no-null
+      Promise.resolve(deletedImageKeys.has(where.payload.equals) ? { uuid: 'content-1' } : null),
     ),
   },
   chatMembership: {
@@ -114,6 +123,7 @@ const pngUpload = { chatId: CHAT_ID, contentType: 'image/png', contentLength: 20
 
 beforeEach(() => {
   chatCapabilities = ['PICTURE_UPLOAD'];
+  deletedImageKeys.clear();
 });
 
 describe('chat image downloads', () => {
@@ -163,6 +173,14 @@ describe('chat image downloads', () => {
     await expect(callerAs(member).getDownloadUrl({ chatId: CHAT_ID, key })).rejects.toMatchObject({
       code: 'FORBIDDEN',
     });
+  });
+
+  it('no longer signs an image whose message was deleted', async () => {
+    deletedImageKeys.add(ownImage);
+
+    await expect(
+      callerAs(member).getDownloadUrl({ chatId: CHAT_ID, key: ownImage }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('refuses an admin a key outside the chat as well', async () => {

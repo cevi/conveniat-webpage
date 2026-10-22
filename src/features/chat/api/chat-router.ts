@@ -3,6 +3,7 @@ import { archiveChat } from '@/features/chat/api/mutations/archive-chat';
 import { createChat } from '@/features/chat/api/mutations/create-chat';
 import { createChatInvite } from '@/features/chat/api/mutations/create-chat-invite';
 import { createMessage } from '@/features/chat/api/mutations/create-message';
+import { deleteMessage } from '@/features/chat/api/mutations/delete-message';
 import { getUploadUrl } from '@/features/chat/api/mutations/get-upload-url';
 import { leaveChat } from '@/features/chat/api/mutations/leave-chat';
 import { markChatAsRead } from '@/features/chat/api/mutations/mark-chat-as-read';
@@ -24,6 +25,7 @@ import { getDownloadUrl } from '@/features/chat/api/queries/get-download-url';
 import { getFeatureFlags } from '@/features/chat/api/queries/get-feature-flags';
 import { getGroupMemberLimit } from '@/features/chat/api/queries/get-group-member-limit';
 import { getMessage } from '@/features/chat/api/queries/get-message';
+import { getUnreadMarker } from '@/features/chat/api/queries/get-unread-marker';
 import { getUser } from '@/features/chat/api/queries/get-user';
 import { getChatList } from '@/features/chat/api/queries/list-chats';
 import { listContacts } from '@/features/chat/api/queries/list-contacts';
@@ -54,6 +56,8 @@ export const chatRouter = createTRPCRouter({
   toggleReaction,
   infiniteMessages: getChatMessages,
   getMessage: getMessage,
+  getUnreadMarker,
+  deleteMessage,
   updateMessageContent: updateMessageContent,
   reportProblem: reportProblem,
   getUploadUrl: getUploadUrl,

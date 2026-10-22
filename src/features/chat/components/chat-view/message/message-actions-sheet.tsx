@@ -1,6 +1,8 @@
 'use client';
 
+import { destructiveButtonClassName } from '@/components/ui/alert-dialog';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { Button } from '@/components/ui/buttons/button';
 import type { ChatMessage } from '@/features/chat/api/types';
 import {
   emojiNames,
@@ -8,12 +10,24 @@ import {
 } from '@/features/chat/components/chat-view/message/message-reaction-menus';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { SheetActionRow } from '@/features/chat/components/ui/sheet-action-row';
+import { useChatId } from '@/features/chat/context/chat-id-context';
+import { useDeleteMessage } from '@/features/chat/hooks/use-delete-message';
 import { getDateFnsLocale } from '@/features/chat/hooks/use-format-date';
+import { useOnlineStatus } from '@/hooks/use-online-status';
 import { MessageEventType } from '@/lib/prisma/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { format } from 'date-fns';
-import { AlertCircle, Check, Clock, Copy, MessageSquare, Reply } from 'lucide-react';
+import {
+  AlertCircle,
+  Check,
+  Clock,
+  Copy,
+  Loader2,
+  MessageSquare,
+  Reply,
+  Trash2,
+} from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 
@@ -77,6 +91,48 @@ const failedText: StaticTranslationString = {
   de: 'Nicht gesendet',
   en: 'Not sent',
   fr: 'Non envoyé',
+};
+
+const deleteText: StaticTranslationString = {
+  de: 'Löschen',
+  en: 'Delete',
+  fr: 'Supprimer',
+};
+
+const deleteOfflineHintText: StaticTranslationString = {
+  de: 'Zum Löschen brauchst du eine Verbindung',
+  en: 'You need a connection to delete',
+  fr: 'Il te faut une connexion pour supprimer',
+};
+
+const deleteConfirmTitleText: StaticTranslationString = {
+  de: 'Nachricht für alle löschen?',
+  en: 'Delete message for everyone?',
+  fr: 'Supprimer le message pour tout le monde ?',
+};
+
+const deleteConfirmDescriptionText: StaticTranslationString = {
+  de: 'Alle im Chat sehen danach nur noch «Diese Nachricht wurde gelöscht». Text, Bild und Reaktionen sind weg. Das lässt sich nicht rückgängig machen.',
+  en: 'Everyone in the chat will only see "This message was deleted". The text, image and reactions are gone. This cannot be undone.',
+  fr: 'Tout le monde dans le chat ne verra plus que « Ce message a été supprimé ». Le texte, l’image et les réactions disparaissent. Cette action est irréversible.',
+};
+
+const deleteForEveryoneText: StaticTranslationString = {
+  de: 'Für alle löschen',
+  en: 'Delete for everyone',
+  fr: 'Supprimer pour tout le monde',
+};
+
+const deleteFailedText: StaticTranslationString = {
+  de: 'Die Nachricht konnte nicht gelöscht werden. Bitte versuche es erneut.',
+  en: 'The message could not be deleted. Please try again.',
+  fr: "Le message n'a pas pu être supprimé. Veuillez réessayer.",
+};
+
+const cancelText: StaticTranslationString = {
+  de: 'Abbrechen',
+  en: 'Cancel',
+  fr: 'Annuler',
 };
 
 /** Long enough to read "Kopiert" on the row before the sheet goes. */
@@ -161,6 +217,8 @@ interface MessageActionsSheetProperties {
   onReplyInThread?: (() => void) | undefined;
   /** The text "Kopieren" puts on the clipboard; absent for a message without any. */
   textToCopy?: string | undefined;
+  /** Offers "Löschen": only on the user's own messages the server has stored. */
+  canDelete?: boolean;
 }
 
 /**
@@ -178,8 +236,12 @@ export const MessageActionsSheet: React.FC<MessageActionsSheetProperties> = ({
   onReply,
   onReplyInThread,
   textToCopy,
+  canDelete = false,
 }) => {
   const [copyState, setCopyState] = useState<'copied' | 'failed'>();
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const isOnline = useOnlineStatus();
+  const deleteMutation = useDeleteMessage({ chatId: useChatId(), parentId: message.parentId });
 
   const then = (action: () => void) => (): void => {
     action();
@@ -203,73 +265,121 @@ export const MessageActionsSheet: React.FC<MessageActionsSheetProperties> = ({
   if (copyState === 'failed') copyLabel = copyFailedText[locale];
 
   const hasActions =
-    onReply !== undefined || onReplyInThread !== undefined || textToCopy !== undefined;
+    onReply !== undefined || onReplyInThread !== undefined || textToCopy !== undefined || canDelete;
 
   return (
     <BottomSheet
       open
       onOpenChange={(open) => !open && onClose()}
-      title={messageText[locale]}
-      hideTitle
+      // the same sheet asks before it deletes, see `MemberActionsSheet`
+      title={isConfirmingDelete ? deleteConfirmTitleText[locale] : messageText[locale]}
+      hideTitle={!isConfirmingDelete}
       showClose={false}
     >
-      <div
-        className={cn('flex flex-col gap-1.5 pt-1', isCurrentUser ? 'items-end' : 'items-start')}
-      >
-        {preview}
-        <MessageStatusLine message={message} isCurrentUser={isCurrentUser} locale={locale} />
-      </div>
-
-      {reactions !== undefined && (
-        <div
-          role="group"
-          aria-label={reactionsText[locale]}
-          className="mt-4 flex items-center justify-between"
-        >
-          {QUICK_EMOJIS.map((emoji) => {
-            const hasReacted = reactions.reactedEmojis.has(emoji);
-            return (
-              <button
-                key={emoji}
-                type="button"
-                onClick={then(() => reactions.onReact(emoji))}
-                aria-label={emojiNames[emoji]?.[locale] ?? emoji}
-                aria-pressed={hasReacted}
-                className={cn(
-                  'flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border text-[1.5rem] transition-transform duration-150 active:scale-90',
-                  hasReacted
-                    ? 'border-tint-line bg-tint hover:bg-tint-line'
-                    : 'bg-quiet hover:bg-chip border-transparent',
-                )}
-              >
-                {emoji}
-              </button>
-            );
-          })}
+      {isConfirmingDelete ? (
+        // Deleting cannot wait in the offline queue like a send: it asks the server, and only
+        // once it answered does the bubble change for everyone.
+        <div className="flex flex-col gap-3 pt-1">
+          <p className="text-[15px] text-green-900">{deleteConfirmDescriptionText[locale]}</p>
+          {deleteMutation.isError && (
+            <p className="text-danger-text text-sm font-semibold" role="alert">
+              {deleteFailedText[locale]}
+            </p>
+          )}
+          <div className="flex flex-col gap-2">
+            <Button
+              className={cn(destructiveButtonClassName, 'w-full')}
+              disabled={deleteMutation.isPending || !isOnline}
+              onClick={() =>
+                deleteMutation.mutate({ messageId: message.id }, { onSuccess: onClose })
+              }
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="animate-spin" aria-hidden="true" />
+              ) : (
+                <Trash2 aria-hidden="true" />
+              )}
+              {deleteForEveryoneText[locale]}
+            </Button>
+            <Button variant="quiet" size="touch" onClick={() => setIsConfirmingDelete(false)}>
+              {cancelText[locale]}
+            </Button>
+          </div>
         </div>
-      )}
+      ) : (
+        <>
+          <div
+            className={cn(
+              'flex flex-col gap-1.5 pt-1',
+              isCurrentUser ? 'items-end' : 'items-start',
+            )}
+          >
+            {preview}
+            <MessageStatusLine message={message} isCurrentUser={isCurrentUser} locale={locale} />
+          </div>
 
-      {hasActions && (
-        <ul className="border-line -mx-5 mt-4 border-t px-2 pt-2">
-          {onReply !== undefined && (
-            <SheetActionRow icon={Reply} label={replyText[locale]} onClick={then(onReply)} />
+          {reactions !== undefined && (
+            <div
+              role="group"
+              aria-label={reactionsText[locale]}
+              className="mt-4 flex items-center justify-between"
+            >
+              {QUICK_EMOJIS.map((emoji) => {
+                const hasReacted = reactions.reactedEmojis.has(emoji);
+                return (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={then(() => reactions.onReact(emoji))}
+                    aria-label={emojiNames[emoji]?.[locale] ?? emoji}
+                    aria-pressed={hasReacted}
+                    className={cn(
+                      'flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border text-[1.5rem] transition-transform duration-150 active:scale-90',
+                      hasReacted
+                        ? 'border-tint-line bg-tint hover:bg-tint-line'
+                        : 'bg-quiet hover:bg-chip border-transparent',
+                    )}
+                  >
+                    {emoji}
+                  </button>
+                );
+              })}
+            </div>
           )}
-          {onReplyInThread !== undefined && (
-            <SheetActionRow
-              icon={MessageSquare}
-              label={replyInThreadText[locale]}
-              onClick={then(onReplyInThread)}
-            />
+
+          {hasActions && (
+            <ul className="border-line -mx-5 mt-4 border-t px-2 pt-2">
+              {onReply !== undefined && (
+                <SheetActionRow icon={Reply} label={replyText[locale]} onClick={then(onReply)} />
+              )}
+              {onReplyInThread !== undefined && (
+                <SheetActionRow
+                  icon={MessageSquare}
+                  label={replyInThreadText[locale]}
+                  onClick={then(onReplyInThread)}
+                />
+              )}
+              {textToCopy !== undefined && (
+                <SheetActionRow
+                  icon={copyState === 'copied' ? Check : Copy}
+                  label={copyLabel}
+                  onClick={() => void copy()}
+                  liveLabel
+                />
+              )}
+              {canDelete && (
+                <SheetActionRow
+                  icon={Trash2}
+                  label={deleteText[locale]}
+                  destructive
+                  disabled={!isOnline}
+                  hint={isOnline ? undefined : deleteOfflineHintText[locale]}
+                  onClick={() => setIsConfirmingDelete(true)}
+                />
+              )}
+            </ul>
           )}
-          {textToCopy !== undefined && (
-            <SheetActionRow
-              icon={copyState === 'copied' ? Check : Copy}
-              label={copyLabel}
-              onClick={() => void copy()}
-              liveLabel
-            />
-          )}
-        </ul>
+        </>
       )}
     </BottomSheet>
   );

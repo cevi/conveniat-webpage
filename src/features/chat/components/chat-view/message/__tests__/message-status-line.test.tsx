@@ -17,6 +17,9 @@ jest.mock('@/lib/prisma/client', () => ({
   },
 }));
 
+// the sheet in the same module deletes through tRPC, which this line never touches
+jest.mock('@/features/chat/hooks/use-delete-message', () => ({ useDeleteMessage: jest.fn() }));
+
 import type { ChatMessage } from '@/features/chat/api/types';
 import { MessageStatusLine } from '@/features/chat/components/chat-view/message/message-actions-sheet';
 import { render } from '@testing-library/react';

@@ -22,6 +22,7 @@ import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date';
 import { useLongPress } from '@/features/chat/hooks/use-long-press';
+import { isMessageDeleted } from '@/features/chat/utils/message-deletion';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { MessageEventType, MessageType } from '@/lib/prisma/client';
@@ -29,7 +30,7 @@ import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { AlertCircle, Check, Clock, Ellipsis } from 'lucide-react';
+import { AlertCircle, Ban, Check, Clock, Ellipsis } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 
 const replyToMessageText: StaticTranslationString = {
@@ -37,6 +38,25 @@ const replyToMessageText: StaticTranslationString = {
   en: 'Replying to a message',
   fr: 'Répondre à un message',
 };
+
+const deletedMessageText: StaticTranslationString = {
+  de: 'Diese Nachricht wurde gelöscht',
+  en: 'This message was deleted',
+  fr: 'Ce message a été supprimé',
+};
+
+const deletedQuoteText: StaticTranslationString = {
+  de: 'Gelöschte Nachricht',
+  en: 'Deleted message',
+  fr: 'Message supprimé',
+};
+
+/** What a person writes themselves and can delete again, see `deleteMessage`. */
+const DELETABLE_TYPES: ReadonlySet<string> = new Set([
+  MessageType.TEXT_MSG,
+  MessageType.IMAGE_MSG,
+  MessageType.LOCATION_MSG,
+]);
 
 const youText: StaticTranslationString = {
   de: 'Du',
@@ -203,11 +223,23 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     typeof payload['quotedMessageId'] === 'string' ? payload['quotedMessageId'] : undefined;
   const quotedSnippet =
     typeof payload['quotedSnippet'] === 'string' ? payload['quotedSnippet'] : undefined;
+  // a quoted message outside the loaded pages is read on its own, for its author's name
+  const { data: fetchedQuotedMessage } = trpc.chat.getMessage.useQuery(
+    { messageId: quotedMessageId ?? '' },
+    {
+      enabled:
+        quotedMessageId !== undefined &&
+        quotedMessage === undefined &&
+        message.quotedMessageDeleted !== true,
+    },
+  );
+  const quotedSource = quotedMessage ?? fetchedQuotedMessage;
+  const isQuoteDeleted = message.quotedMessageDeleted === true || isMessageDeleted(quotedSource);
   let quotedAuthor: string | undefined;
-  if (quotedMessage === undefined) quotedAuthor = undefined;
-  else if (quotedMessage.senderId === currentUserId) quotedAuthor = youText[activeLocale];
-  else if (quotedMessage.senderName !== undefined)
-    quotedAuthor = splitDisplayName(quotedMessage.senderName).primary;
+  if (quotedSource === undefined || isQuoteDeleted) quotedAuthor = undefined;
+  else if (quotedSource.senderId === currentUserId) quotedAuthor = youText[activeLocale];
+  else if (quotedSource.senderName !== undefined)
+    quotedAuthor = splitDisplayName(quotedSource.senderName).primary;
 
   const openActions = (): void => {
     // the finger that held the bubble may still move; that is no swipe any more
@@ -310,6 +342,81 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     );
   }
 
+  const senderNameLine = !isCurrentUser &&
+    isFirstInGroup &&
+    chatType === 'GROUP' &&
+    message.senderName && (
+      <span className="mb-1 max-w-full truncate px-1.5 text-[13px] text-green-700">
+        <span className={cn('font-semibold', avatarTextColorOf(message.senderId ?? ''))}>
+          {splitDisplayName(message.senderName).primary}
+        </span>
+        {senderFunktionen !== '' && ` · ${senderFunktionen}`}
+      </span>
+    );
+
+  // the thread hangs on its message, not between it and the next one
+  const threadSummary = !hideReplyCount &&
+    message.replyCount !== undefined &&
+    message.replyCount > 0 && (
+      <ThreadSummary
+        message={message}
+        replyCount={message.replyCount}
+        hasUnreadReplies={message.hasUnreadReplies === true && activeThreadId !== message.id}
+        locale={activeLocale}
+        onOpen={() => replyInThread(message.id)}
+      />
+    );
+
+  // A deleted message keeps its place, its sender, its time and its thread, and nothing else:
+  // no content, no reactions, and no actions.
+  if (isMessageDeleted(message)) {
+    return (
+      <div
+        id={`message-${message.id}`}
+        className={cn(
+          'relative flex w-full items-end gap-2 transition-colors duration-200',
+          isCurrentUser ? 'justify-end' : 'justify-start',
+          isHighlighted && 'animate-message-highlight rounded-xl',
+        )}
+      >
+        {hasAvatarSlot && typeof message.senderId === 'string' && (
+          <div className="relative pl-2">
+            <SenderAvatar
+              senderId={message.senderId}
+              name={message.senderName ?? ''}
+              pictureUrl={senderPictureUrl}
+              hidden={!isLastInGroup}
+            />
+          </div>
+        )}
+        <div
+          className={cn(
+            'relative flex max-w-[85%] flex-col',
+            isCurrentUser ? 'items-end pr-2' : 'items-start',
+            !isCurrentUser && chatType !== 'GROUP' && 'pl-2',
+          )}
+        >
+          {senderNameLine}
+          <div
+            className={cn(
+              'border-line flex items-center gap-1.5 rounded-[16px] border bg-white px-3.5 py-2 text-[15px] leading-[21px] text-green-700',
+              bubbleCornerClassName(isCurrentUser, isFirstInGroup, isLastInGroup),
+            )}
+          >
+            <Ban className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span className="italic">{deletedMessageText[activeLocale]}</span>
+            {showMeta && (
+              <span className="ml-2 self-end text-[11px] leading-[19px] tabular-nums">
+                {formatMessageTimeOnlyRaw(message.createdAt, activeLocale)}
+              </span>
+            )}
+          </div>
+          {threadSummary}
+        </div>
+      </div>
+    );
+  }
+
   const frameProperties = {
     message,
     isCurrentUser,
@@ -376,11 +483,17 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           {quotedAuthor}
         </span>
       )}
-      <span className="line-clamp-2 text-[13px] leading-snug">
-        {typeof quotedSnippet === 'string' && quotedSnippet.length > 0
-          ? quotedSnippet
-          : replyToMessageText[activeLocale]}
-      </span>
+      {isQuoteDeleted ? (
+        <span className="line-clamp-2 text-[13px] leading-snug italic">
+          {deletedQuoteText[activeLocale]}
+        </span>
+      ) : (
+        <span className="line-clamp-2 text-[13px] leading-snug">
+          {typeof quotedSnippet === 'string' && quotedSnippet.length > 0
+            ? quotedSnippet
+            : replyToMessageText[activeLocale]}
+        </span>
+      )}
     </button>
   );
   // the bubble's content without its time, for the top of the actions sheet
@@ -445,14 +558,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           !isCurrentUser && chatType !== 'GROUP' && 'pl-2',
         )}
       >
-        {!isCurrentUser && isFirstInGroup && chatType === 'GROUP' && message.senderName && (
-          <span className="mb-1 max-w-full truncate px-1.5 text-[13px] text-green-700">
-            <span className={cn('font-semibold', avatarTextColorOf(message.senderId ?? ''))}>
-              {splitDisplayName(message.senderName).primary}
-            </span>
-            {senderFunktionen !== '' && ` · ${senderFunktionen}`}
-          </span>
-        )}
+        {senderNameLine}
         {/* a long press, a right click or the context-menu key opens the message's actions */}
         <div
           onPointerDown={handlePointerDown}
@@ -605,16 +711,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           <FailedMessageActions message={message} locale={activeLocale} />
         )}
 
-        {/* the thread hangs on its message, not between it and the next one */}
-        {!hideReplyCount && message.replyCount !== undefined && message.replyCount > 0 && (
-          <ThreadSummary
-            message={message}
-            replyCount={message.replyCount}
-            hasUnreadReplies={message.hasUnreadReplies === true && activeThreadId !== message.id}
-            locale={activeLocale}
-            onOpen={() => replyInThread(message.id)}
-          />
-        )}
+        {threadSummary}
       </div>
 
       {showReactors && (
@@ -651,6 +748,12 @@ export const MessageComponent: React.FC<MessageProperties> = ({
               : undefined
           }
           textToCopy={textOf(message.messagePayload)}
+          canDelete={
+            isCurrentUser &&
+            isSent &&
+            currentUserParticipant !== undefined &&
+            DELETABLE_TYPES.has(message.type)
+          }
         />
       )}
     </div>

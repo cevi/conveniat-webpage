@@ -510,7 +510,9 @@ export const adminRouter = createTRPCRouter({
         return {
           id: m.uuid,
           createdAt: m.createdAt,
-          messagePayload: m.contentVersions[0]?.payload ?? {},
+          // the admin sees that a message was deleted, never what it said
+          messagePayload: m.deletedAt === null ? (m.contentVersions[0]?.payload ?? {}) : {},
+          ...(m.deletedAt instanceof Date ? { deletedAt: m.deletedAt } : {}),
           senderId,
           senderName: m.sender?.name,
           type: m.type,

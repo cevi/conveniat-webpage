@@ -194,6 +194,12 @@ model Message {
   replies   Message[]         @relation("Thread")
   reactions MessageReaction[]
 
+  /// when the sender deleted the message for everyone, null while it stands; the row stays so
+  /// its replies and the quotes of it keep their place, but its content is never served again
+  deletedAt   DateTime?
+  /// who deleted it, so far always the sender
+  deletedById String?
+
   @@index([chatId, createdAt(sort: Asc)])
   @@index([parentId])
 }

@@ -15,6 +15,11 @@ interface ChatScrollManagerProperties {
    * message; empty when there is no such place.
    */
   initialAnchorReference?: React.RefObject<HTMLElement | null>;
+  /**
+   * Whether it is known yet if there is such a place. Until then the list waits at the bottom
+   * and goes to the anchor once it is decided. Defaults to decided.
+   */
+  isInitialAnchorDecided?: boolean;
 }
 
 /** Room left above an anchor for the sticky day label. */
@@ -35,6 +40,7 @@ export const useChatScrollManager = ({
   currentUserId,
   typingCount,
   initialAnchorReference,
+  isInitialAnchorDecided = true,
 }: ChatScrollManagerProperties): {
   scrollContainerReference: React.RefObject<HTMLDivElement | null>;
   messagesEndReference: React.RefObject<HTMLDivElement | null>;
@@ -104,6 +110,10 @@ export const useChatScrollManager = ({
     previousLastIdReference.current = sortedMessages.at(-1)?.id;
 
     if (!hasScrolledReference.current) {
+      if (!isInitialAnchorDecided) {
+        messagesEndReference.current?.scrollIntoView({ behavior: 'instant' });
+        return;
+      }
       hasScrolledReference.current = true;
       const anchor = initialAnchorReference?.current;
       const container = scrollContainerReference.current;
@@ -142,7 +152,7 @@ export const useChatScrollManager = ({
       return;
     }
     setUnseenCount((count) => count + appended.length);
-  }, [sortedMessages, currentUserId, initialAnchorReference]);
+  }, [sortedMessages, currentUserId, initialAnchorReference, isInitialAnchorDecided]);
 
   // Dots appearing at the bottom are followed like a message; above the fold they are not
   // news, so they neither scroll nor count
