@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.41.2](https://github.com/cevi/conveniat-webpage/compare/v1.41.1...v1.41.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* client navigation between CMS pages shows the page, not the homepage ([94f5af4](https://github.com/cevi/conveniat-webpage/commit/94f5af402237997cef6164e60f48320e1ea46884))
+* client navigation between CMS pages shows the page, not the homepage ([8d0dfe9](https://github.com/cevi/conveniat-webpage/commit/8d0dfe91adbee9657cff135a8f8532fea5bc031f))
+
 ## [1.41.1](https://github.com/cevi/conveniat-webpage/compare/v1.41.0...v1.41.1) (2026-10-22)
 
 
