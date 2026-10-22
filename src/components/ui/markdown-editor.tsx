@@ -1,9 +1,21 @@
 'use client';
 
 import { fieldFocusRingClassName } from '@/components/ui/field';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useCallback, useState } from 'react';
+
+const labels = {
+  edit: { de: 'Bearbeiten', en: 'Edit', fr: 'Modifier' },
+  preview: { de: 'Vorschau', en: 'Preview', fr: 'Aperçu' },
+  formatting: { de: 'Formatierung:', en: 'Formatting:', fr: 'Mise en forme :' },
+  bold: { de: '**fett**', en: '**bold**', fr: '**gras**' },
+  italic: { de: '*kursiv*', en: '*italic*', fr: '*italique*' },
+  listItem: { de: '- Listenpunkt', en: '- list item', fr: '- élément' },
+} satisfies Record<string, StaticTranslationString>;
 
 interface MarkdownEditorProperties {
   value: string;
@@ -20,10 +32,11 @@ interface MarkdownEditorProperties {
 export const MarkdownEditor: React.FC<MarkdownEditorProperties> = ({
   value,
   onChange,
-  placeholder = 'Enter text...',
+  placeholder,
   rows = 4,
   label,
 }) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const [showPreview, setShowPreview] = useState(false);
 
   const handleChange = useCallback(
@@ -79,27 +92,31 @@ export const MarkdownEditor: React.FC<MarkdownEditorProperties> = ({
     return processedLines.join('');
   }, [value]);
 
+  const code = 'bg-quiet rounded px-1 text-green-700';
+
+  // the frame of a form field from field.ts, with a head for the label and the preview switch
   return (
-    <div className={cn('rounded-xl border border-gray-200 bg-white', fieldFocusRingClassName)}>
-      {/* Header with label and preview toggle */}
-      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
-        {label && (
-          <span className="text-xs font-bold tracking-wider text-gray-400 uppercase">{label}</span>
+    <div className={cn('border-line rounded-[12px] border bg-white', fieldFocusRingClassName)}>
+      <div className="border-line flex items-center justify-between border-b pl-3.5">
+        {label !== undefined && label !== '' && (
+          <span className="text-xs font-bold tracking-[0.08em] text-green-700 uppercase">
+            {label}
+          </span>
         )}
         <button
           type="button"
+          aria-pressed={showPreview}
           onClick={() => setShowPreview(!showPreview)}
-          className="text-xs font-medium text-gray-500 transition-colors hover:text-gray-700"
+          className="ml-auto flex min-h-[44px] cursor-pointer items-center px-3.5 text-[13px] font-semibold text-green-700 transition-colors hover:text-green-900"
         >
-          {showPreview ? 'Edit' : 'Preview'}
+          {showPreview ? labels.edit[locale] : labels.preview[locale]}
         </button>
       </div>
 
-      {/* Content area */}
-      <div className="p-3">
+      <div className="px-3.5 py-2.5">
         {showPreview ? (
           <div
-            className="prose prose-sm min-h-[100px] max-w-none text-gray-700"
+            className="prose prose-sm min-h-[100px] max-w-none text-[15px] text-green-900"
             dangerouslySetInnerHTML={{ __html: renderPreview() }}
           />
         ) : (
@@ -108,18 +125,17 @@ export const MarkdownEditor: React.FC<MarkdownEditorProperties> = ({
             onChange={handleChange}
             placeholder={placeholder}
             rows={rows}
-            className="w-full resize-none border-0 bg-transparent p-0 text-sm text-gray-700 placeholder-gray-400 outline-hidden"
+            className="w-full resize-none border-0 bg-transparent p-0 text-[15px] leading-[22px] text-green-900 outline-hidden placeholder:text-green-500"
           />
         )}
       </div>
 
-      {/* Formatting hint */}
       {!showPreview && (
-        <div className="border-t border-gray-100 px-4 py-2">
-          <p className="text-xs text-gray-400">
-            Formatting: <code className="rounded bg-gray-100 px-1">**bold**</code>,{' '}
-            <code className="rounded bg-gray-100 px-1">*italic*</code>,{' '}
-            <code className="rounded bg-gray-100 px-1">- list item</code>
+        <div className="border-line border-t px-3.5 py-2">
+          <p className="text-xs text-green-500">
+            {labels.formatting[locale]} <code className={code}>{labels.bold[locale]}</code>,{' '}
+            <code className={code}>{labels.italic[locale]}</code>,{' '}
+            <code className={code}>{labels.listItem[locale]}</code>
           </p>
         </div>
       )}
