@@ -6,13 +6,13 @@ import * as React from 'react';
 
 import { buttonVariants } from '@/components/ui/buttons/button';
 
-const ChatAlertDialog = AlertDialogPrimitive.Root;
+const AlertDialog = AlertDialogPrimitive.Root;
 
-const ChatAlertDialogTrigger = AlertDialogPrimitive.Trigger;
+const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 
-const ChatAlertDialogPortal = AlertDialogPrimitive.Portal;
+const AlertDialogPortal = AlertDialogPrimitive.Portal;
 
-const ChatAlertDialogOverlay = React.forwardRef<
+const AlertDialogOverlay = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>
 >(({ className, ...props }, reference) => (
@@ -25,14 +25,14 @@ const ChatAlertDialogOverlay = React.forwardRef<
     {...props}
   />
 ));
-ChatAlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
+AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
 
-const ChatAlertDialogContent = React.forwardRef<
+const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
 >(({ className, ...props }, reference) => (
-  <ChatAlertDialogPortal>
-    <ChatAlertDialogOverlay />
+  <AlertDialogPortal>
+    <AlertDialogOverlay />
     <AlertDialogPrimitive.Content
       ref={reference}
       className={cn(
@@ -41,19 +41,19 @@ const ChatAlertDialogContent = React.forwardRef<
       )}
       {...props}
     />
-  </ChatAlertDialogPortal>
+  </AlertDialogPortal>
 ));
-ChatAlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName;
+AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName;
 
-const ChatAlertDialogHeader = ({
+const AlertDialogHeader = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>): React.ReactElement => (
   <div className={cn('flex flex-col gap-2 text-left', className)} {...props} />
 );
-ChatAlertDialogHeader.displayName = 'ChatAlertDialogHeader';
+AlertDialogHeader.displayName = 'AlertDialogHeader';
 
-const ChatAlertDialogFooter = ({
+const AlertDialogFooter = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>): React.ReactElement => (
@@ -65,9 +65,9 @@ const ChatAlertDialogFooter = ({
     {...props}
   />
 );
-ChatAlertDialogFooter.displayName = 'ChatAlertDialogFooter';
+AlertDialogFooter.displayName = 'AlertDialogFooter';
 
-const ChatAlertDialogTitle = React.forwardRef<
+const AlertDialogTitle = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Title>
 >(({ className, ...props }, reference) => (
@@ -77,9 +77,9 @@ const ChatAlertDialogTitle = React.forwardRef<
     {...props}
   />
 ));
-ChatAlertDialogTitle.displayName = AlertDialogPrimitive.Title.displayName;
+AlertDialogTitle.displayName = AlertDialogPrimitive.Title.displayName;
 
-const ChatAlertDialogDescription = React.forwardRef<
+const AlertDialogDescription = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Description>
 >(({ className, ...props }, reference) => (
@@ -89,7 +89,7 @@ const ChatAlertDialogDescription = React.forwardRef<
     {...props}
   />
 ));
-ChatAlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayName;
+AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayName;
 
 /**
  * What sets a destructive button apart from an ordinary `outlined` one: red. For the confirm in a
@@ -104,7 +104,7 @@ export const destructiveButtonClassName = cn(
  * The confirming button: `primary` by default. A confirm that destroys something, like leaving
  * a chat, is `destructive` and names the action in its label; Cancel stays the default focus.
  */
-const ChatAlertDialogAction = React.forwardRef<
+const AlertDialogAction = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Action>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action> & {
     variant?: 'primary' | 'outlined' | 'destructive';
@@ -121,9 +121,9 @@ const ChatAlertDialogAction = React.forwardRef<
     {...props}
   />
 ));
-ChatAlertDialogAction.displayName = AlertDialogPrimitive.Action.displayName;
+AlertDialogAction.displayName = AlertDialogPrimitive.Action.displayName;
 
-const ChatAlertDialogCancel = React.forwardRef<
+const AlertDialogCancel = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Cancel>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel>
 >(({ className, ...props }, reference) => (
@@ -133,18 +133,18 @@ const ChatAlertDialogCancel = React.forwardRef<
     {...props}
   />
 ));
-ChatAlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName;
+AlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName;
 
 export {
-  ChatAlertDialog,
-  ChatAlertDialogAction,
-  ChatAlertDialogCancel,
-  ChatAlertDialogContent,
-  ChatAlertDialogDescription,
-  ChatAlertDialogFooter,
-  ChatAlertDialogHeader,
-  ChatAlertDialogOverlay,
-  ChatAlertDialogPortal,
-  ChatAlertDialogTitle,
-  ChatAlertDialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  AlertDialogPortal,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 };

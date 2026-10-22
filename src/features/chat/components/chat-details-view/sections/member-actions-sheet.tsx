@@ -1,10 +1,10 @@
 'use client';
 
+import { destructiveButtonClassName } from '@/components/ui/alert-dialog';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/buttons/button';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import type { DetailsParticipant } from '@/features/chat/components/chat-details-view/sections/participants-list';
-import { destructiveButtonClassName } from '@/features/chat/components/ui/chat-alert-dialog';
 import { SheetActionRow } from '@/features/chat/components/ui/sheet-action-row';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import type { Locale, StaticTranslationString } from '@/types/types';

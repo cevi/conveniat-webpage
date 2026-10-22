@@ -1,17 +1,16 @@
 'use client';
 
-import { Button } from '@/components/ui/buttons/button';
-/* eslint-disable import/no-restricted-paths -- alert dialog shared component used across features */
 import {
-  ChatAlertDialog,
-  ChatAlertDialogAction,
-  ChatAlertDialogCancel,
-  ChatAlertDialogContent,
-  ChatAlertDialogDescription,
-  ChatAlertDialogFooter,
-  ChatAlertDialogHeader,
-  ChatAlertDialogTitle,
-} from '@/features/chat/components/ui/chat-alert-dialog';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/buttons/button';
 /* eslint-enable import/no-restricted-paths */
 import { ShiftConflictDialog } from '@/features/schedule/components/shift-conflict-dialog';
 import { useShiftStatus } from '@/features/schedule/hooks/use-shift-status';
@@ -450,20 +449,20 @@ export const ShiftEnrollmentAction: React.FC<{
         </Button>
       )}
 
-      <ChatAlertDialog open={noWithdrawalDialogOpen} onOpenChange={setNoWithdrawalDialogOpen}>
-        <ChatAlertDialogContent>
-          <ChatAlertDialogHeader>
-            <ChatAlertDialogTitle>{localizedUnenrollClosed[locale]}</ChatAlertDialogTitle>
-            <ChatAlertDialogDescription>
+      <AlertDialog open={noWithdrawalDialogOpen} onOpenChange={setNoWithdrawalDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{localizedUnenrollClosed[locale]}</AlertDialogTitle>
+            <AlertDialogDescription>
               {localizedEnrolWithoutExitWarning[locale]}
-            </ChatAlertDialogDescription>
-          </ChatAlertDialogHeader>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
           <div className="border-danger-line bg-danger-soft text-danger-text flex w-full items-start gap-2 rounded-xl border p-3 text-left text-sm">
             <Lock className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <p>{localizedUnenrollClosedHint[locale]}</p>
           </div>
-          <ChatAlertDialogFooter className="gap-3 sm:gap-0">
-            <ChatAlertDialogAction
+          <AlertDialogFooter className="gap-3 sm:gap-0">
+            <AlertDialogAction
               className="bg-conveniat-green w-full text-white hover:bg-green-700"
               onClick={(event: React.MouseEvent) => {
                 event.preventDefault();
@@ -480,13 +479,13 @@ export const ShiftEnrollmentAction: React.FC<{
               ) : (
                 localizedEnrolAnyway[locale]
               )}
-            </ChatAlertDialogAction>
-            <ChatAlertDialogCancel disabled={enroll.isPending} className="w-full">
+            </AlertDialogAction>
+            <AlertDialogCancel disabled={enroll.isPending} className="w-full">
               {localizedCancel[locale]}
-            </ChatAlertDialogCancel>
-          </ChatAlertDialogFooter>
-        </ChatAlertDialogContent>
-      </ChatAlertDialog>
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <ShiftConflictDialog
         open={conflictDialogOpen}

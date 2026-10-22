@@ -1,16 +1,15 @@
 'use client';
 
-/* eslint-disable import/no-restricted-paths -- alert dialog shared component used across features */
 import {
-  ChatAlertDialog,
-  ChatAlertDialogAction,
-  ChatAlertDialogCancel,
-  ChatAlertDialogContent,
-  ChatAlertDialogDescription,
-  ChatAlertDialogFooter,
-  ChatAlertDialogHeader,
-  ChatAlertDialogTitle,
-} from '@/features/chat/components/ui/chat-alert-dialog';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 /* eslint-enable import/no-restricted-paths */
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -73,11 +72,11 @@ export const CopyrightModal: React.FC<CopyrightModalProperties> = ({
   };
 
   return (
-    <ChatAlertDialog open={open} onOpenChange={onOpenChange}>
-      <ChatAlertDialogContent className="bg-white">
-        <ChatAlertDialogHeader>
-          <ChatAlertDialogTitle>{requiredConfirmations[locale]}</ChatAlertDialogTitle>
-          <ChatAlertDialogDescription asChild>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="bg-white">
+        <AlertDialogHeader>
+          <AlertDialogTitle>{requiredConfirmations[locale]}</AlertDialogTitle>
+          <AlertDialogDescription asChild>
             <div className="pt-4 text-left">
               <label
                 htmlFor="rights-modal"
@@ -102,13 +101,11 @@ export const CopyrightModal: React.FC<CopyrightModalProperties> = ({
                 </span>
               </label>
             </div>
-          </ChatAlertDialogDescription>
-        </ChatAlertDialogHeader>
-        <ChatAlertDialogFooter>
-          <ChatAlertDialogCancel disabled={isUploading}>
-            {cancelButton[locale]}
-          </ChatAlertDialogCancel>
-          <ChatAlertDialogAction
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isUploading}>{cancelButton[locale]}</AlertDialogCancel>
+          <AlertDialogAction
             onClick={handleConfirm}
             disabled={!rightsTransferred || isUploading}
             className="bg-conveniat-green hover:bg-conveniat-green-dark text-white"
@@ -121,9 +118,9 @@ export const CopyrightModal: React.FC<CopyrightModalProperties> = ({
             ) : (
               confirmButton[locale]
             )}
-          </ChatAlertDialogAction>
-        </ChatAlertDialogFooter>
-      </ChatAlertDialogContent>
-    </ChatAlertDialog>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };

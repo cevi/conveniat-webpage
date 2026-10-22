@@ -1,14 +1,14 @@
 'use client';
 import {
-  ChatAlertDialog,
-  ChatAlertDialogAction,
-  ChatAlertDialogCancel,
-  ChatAlertDialogContent,
-  ChatAlertDialogDescription,
-  ChatAlertDialogFooter,
-  ChatAlertDialogHeader,
-  ChatAlertDialogTitle,
-} from '@/features/chat/components/ui/chat-alert-dialog';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useLeaveChatMutation } from '@/features/chat/hooks/use-leave-chat-mutation';
@@ -94,7 +94,7 @@ export const LeaveChatDialog: React.FC<{
       : localizedLeaveFailed[locale];
 
   return (
-    <ChatAlertDialog
+    <AlertDialog
       open={open}
       onOpenChange={(next) => {
         // a later opening starts without the error of this one
@@ -102,22 +102,22 @@ export const LeaveChatDialog: React.FC<{
         onOpenChange(next);
       }}
     >
-      <ChatAlertDialogContent>
-        <ChatAlertDialogHeader>
-          <ChatAlertDialogTitle>{localizedLeaveChat[locale]}</ChatAlertDialogTitle>
-          <ChatAlertDialogDescription>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{localizedLeaveChat[locale]}</AlertDialogTitle>
+          <AlertDialogDescription>
             {localizedLeaveChatWarning[locale]}
             {isLastOwner && ` ${localizedHandOverNotice[locale]}`}
-          </ChatAlertDialogDescription>
+          </AlertDialogDescription>
           {leaveChatMutation.isError && (
             <p className="text-danger-text text-sm font-semibold" role="alert">
               {errorText}
             </p>
           )}
-        </ChatAlertDialogHeader>
-        <ChatAlertDialogFooter>
-          <ChatAlertDialogCancel>{localizedCancel[locale]}</ChatAlertDialogCancel>
-          <ChatAlertDialogAction
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{localizedCancel[locale]}</AlertDialogCancel>
+          <AlertDialogAction
             onClick={(event) => {
               event.preventDefault();
               leaveChatMutation.mutate(
@@ -135,10 +135,10 @@ export const LeaveChatDialog: React.FC<{
               <LogOut aria-hidden="true" />
             )}
             {localizedLeaveChat[locale]}
-          </ChatAlertDialogAction>
-        </ChatAlertDialogFooter>
-      </ChatAlertDialogContent>
-    </ChatAlertDialog>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };
 

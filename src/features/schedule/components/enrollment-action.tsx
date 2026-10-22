@@ -1,16 +1,15 @@
 'use client';
 
-/* eslint-disable import/no-restricted-paths -- alert dialog shared component used across features */
 import {
-  ChatAlertDialog,
-  ChatAlertDialogAction,
-  ChatAlertDialogCancel,
-  ChatAlertDialogContent,
-  ChatAlertDialogDescription,
-  ChatAlertDialogFooter,
-  ChatAlertDialogHeader,
-  ChatAlertDialogTitle,
-} from '@/features/chat/components/ui/chat-alert-dialog';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 /* eslint-enable import/no-restricted-paths */
 import { Button } from '@/components/ui/buttons/button';
 import { useCourseStatus } from '@/features/schedule/context/schedule-status-context';
@@ -393,16 +392,16 @@ export const EnrollmentAction: React.FC<{
       </div>
 
       {/* Time Conflict Alert Dialog */}
-      <ChatAlertDialog open={conflictDialogOpen} onOpenChange={setConflictDialogOpen}>
-        <ChatAlertDialogContent>
-          <ChatAlertDialogHeader>
-            <ChatAlertDialogTitle>{localizedConflict[locale]}</ChatAlertDialogTitle>
-            <ChatAlertDialogDescription>
+      <AlertDialog open={conflictDialogOpen} onOpenChange={setConflictDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{localizedConflict[locale]}</AlertDialogTitle>
+            <AlertDialogDescription>
               {conflictType === 'shift'
                 ? localizedConflictDescShift[locale]
                 : localizedConflictDescWorkshop[locale]}
-            </ChatAlertDialogDescription>
-          </ChatAlertDialogHeader>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
           <div className="flex flex-col items-center justify-center space-y-4">
             <div className="bg-quiet w-full rounded-[14px] p-4 text-center">
               <div className="font-heading text-heading text-[17px] font-bold">
@@ -421,8 +420,8 @@ export const EnrollmentAction: React.FC<{
               </p>
             )}
           </div>
-          <ChatAlertDialogFooter className="gap-3 sm:gap-0">
-            <ChatAlertDialogAction
+          <AlertDialogFooter className="gap-3 sm:gap-0">
+            <AlertDialogAction
               className="bg-conveniat-green w-full text-white hover:bg-green-700"
               onClick={(event) => {
                 event.preventDefault();
@@ -444,13 +443,13 @@ export const EnrollmentAction: React.FC<{
               ) : (
                 localizedSwitchWorkshop[locale]
               )}
-            </ChatAlertDialogAction>
-            <ChatAlertDialogCancel disabled={switchEnrollment.isPending} className="w-full">
+            </AlertDialogAction>
+            <AlertDialogCancel disabled={switchEnrollment.isPending} className="w-full">
               {localizedCancel[locale]}
-            </ChatAlertDialogCancel>
-          </ChatAlertDialogFooter>
-        </ChatAlertDialogContent>
-      </ChatAlertDialog>
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

@@ -2,8 +2,8 @@
  * Simple toast utility that logs to console.
  * Error messages are shown using console.error.
  *
- * Note: For user-facing error messages, consider using the ChatAlertDialog
- * from @/features/chat/components/ui/chat-alert-dialog.tsx instead.
+ * Note: For user-facing error messages, consider using the AlertDialog
+ * from @/components/ui/alert-dialog instead.
  */
 export const toast = {
   /**

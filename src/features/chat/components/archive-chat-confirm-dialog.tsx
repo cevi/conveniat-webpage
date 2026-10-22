@@ -1,14 +1,14 @@
 'use client';
 import {
-  ChatAlertDialog,
-  ChatAlertDialogAction,
-  ChatAlertDialogCancel,
-  ChatAlertDialogContent,
-  ChatAlertDialogDescription,
-  ChatAlertDialogFooter,
-  ChatAlertDialogHeader,
-  ChatAlertDialogTitle,
-} from '@/features/chat/components/ui/chat-alert-dialog';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Loader2, Trash2 } from 'lucide-react';
@@ -77,19 +77,19 @@ export const ArchiveChatConfirmDialog: React.FC<ArchiveChatConfirmDialogProperti
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   return (
-    <ChatAlertDialog open={open} onOpenChange={onOpenChange}>
-      <ChatAlertDialogContent>
-        <ChatAlertDialogHeader>
-          <ChatAlertDialogTitle>{localizedDeleteChat[locale]}</ChatAlertDialogTitle>
-          <ChatAlertDialogDescription>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{localizedDeleteChat[locale]}</AlertDialogTitle>
+          <AlertDialogDescription>
             {archivesForEveryone
               ? localizedArchiveForEveryoneWarning[locale]
               : localizedRemoveFromViewWarning[locale]}
-          </ChatAlertDialogDescription>
-        </ChatAlertDialogHeader>
-        <ChatAlertDialogFooter>
-          <ChatAlertDialogCancel>{localizedCancel[locale]}</ChatAlertDialogCancel>
-          <ChatAlertDialogAction
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{localizedCancel[locale]}</AlertDialogCancel>
+          <AlertDialogAction
             onClick={(event) => {
               event.preventDefault();
               onConfirm();
@@ -103,9 +103,9 @@ export const ArchiveChatConfirmDialog: React.FC<ArchiveChatConfirmDialogProperti
               <Trash2 aria-hidden="true" />
             )}
             {localizedDeleteChat[locale]}
-          </ChatAlertDialogAction>
-        </ChatAlertDialogFooter>
-      </ChatAlertDialogContent>
-    </ChatAlertDialog>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };

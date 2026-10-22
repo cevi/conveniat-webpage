@@ -1,16 +1,15 @@
 'use client';
 
-/* eslint-disable import/no-restricted-paths -- the chat dialog is the app's only bottom-anchored alert dialog */
 import {
-  ChatAlertDialog,
-  ChatAlertDialogAction,
-  ChatAlertDialogCancel,
-  ChatAlertDialogContent,
-  ChatAlertDialogDescription,
-  ChatAlertDialogFooter,
-  ChatAlertDialogHeader,
-  ChatAlertDialogTitle,
-} from '@/features/chat/components/ui/chat-alert-dialog';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/utils/tailwindcss-override';
 /* eslint-enable import/no-restricted-paths */
 import { ChatLinkButton } from '@/components/ui/buttons/chat-link-button';
@@ -206,14 +205,12 @@ export const ShiftConflictDialog: React.FC<{
   const contactOrganiser = conflictingEntry?.organisers[0];
 
   return (
-    <ChatAlertDialog open={open} onOpenChange={onOpenChange}>
-      <ChatAlertDialogContent>
-        <ChatAlertDialogHeader>
-          <ChatAlertDialogTitle>{localizedConflict[locale]}</ChatAlertDialogTitle>
-          <ChatAlertDialogDescription>
-            {localizedConflictDescription[locale]}
-          </ChatAlertDialogDescription>
-        </ChatAlertDialogHeader>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{localizedConflict[locale]}</AlertDialogTitle>
+          <AlertDialogDescription>{localizedConflictDescription[locale]}</AlertDialogDescription>
+        </AlertDialogHeader>
 
         <div className="flex flex-col items-center gap-1">
           <ConflictEntry
@@ -271,7 +268,7 @@ export const ShiftConflictDialog: React.FC<{
           )}
         </div>
 
-        <ChatAlertDialogFooter className="gap-3 sm:gap-0">
+        <AlertDialogFooter className="gap-3 sm:gap-0">
           {isSwitchBlocked && contactOrganiser !== undefined && (
             <ChatLinkButton
               userId={contactOrganiser.id}
@@ -280,7 +277,7 @@ export const ShiftConflictDialog: React.FC<{
             />
           )}
           {!isSwitchBlocked && (
-            <ChatAlertDialogAction
+            <AlertDialogAction
               className="bg-conveniat-green w-full text-white hover:bg-green-700"
               onClick={(event: React.MouseEvent) => {
                 event.preventDefault();
@@ -296,14 +293,14 @@ export const ShiftConflictDialog: React.FC<{
               ) : (
                 localizedSwitchToThis[locale]
               )}
-            </ChatAlertDialogAction>
+            </AlertDialogAction>
           )}
           {/* with nothing left to confirm, the way out stops being a cancel and becomes a close */}
-          <ChatAlertDialogCancel disabled={isSwitching} className="w-full">
+          <AlertDialogCancel disabled={isSwitching} className="w-full">
             {isSwitchBlocked ? localizedClose[locale] : localizedCancel[locale]}
-          </ChatAlertDialogCancel>
-        </ChatAlertDialogFooter>
-      </ChatAlertDialogContent>
-    </ChatAlertDialog>
+          </AlertDialogCancel>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };
