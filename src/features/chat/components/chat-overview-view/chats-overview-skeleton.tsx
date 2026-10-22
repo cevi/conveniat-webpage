@@ -1,30 +1,49 @@
+import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 
+const pulse = 'bg-quiet animate-pulse';
+
 /**
- * Placeholder rows for the chat overview.
+ * The chat list while it loads: the search, the filter pills and rows divided by a line from the text on, as the
+ * loaded list.
  *
- * Shared between the route level `loading.tsx` and the client component so
- * that both show the exact same list shape and no layout shift occurs when
- * the cached chats are rendered.
+ * Shared between the route level `loading.tsx` and the client component so that both show
+ * the exact same shape and nothing jumps when the cached chats are rendered.
  */
 export const ChatsOverviewSkeleton: React.FC = () => (
-  <div className="space-y-3">
-    {[1, 2, 3, 4, 5].map((index) => (
-      <div key={index} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center gap-3">
-          {/* Avatar */}
-          <div className="h-12 w-12 flex-shrink-0 animate-pulse rounded-full bg-gray-200" />
-
-          {/* Chat info */}
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
-              <div className="h-3 w-16 animate-pulse rounded bg-gray-200" />
-            </div>
-            <div className="h-3 w-48 animate-pulse rounded bg-gray-200" />
-          </div>
-        </div>
+  <div className="flex flex-col gap-4" aria-hidden="true">
+    <div className="flex flex-col gap-3">
+      <div className={cn(pulse, 'h-[44px] w-full rounded-[12px]')} />
+      <div className="flex h-8 gap-2">
+        {['w-14', 'w-28', 'w-[84px]'].map((width) => (
+          <div key={width} className={cn(pulse, 'h-8 rounded-full', width)} />
+        ))}
       </div>
-    ))}
+    </div>
+    <ul className="border-line -mx-4 border-t bg-white sm:mx-0">
+      {[1, 2, 3, 4, 5].map((index) => (
+        <li
+          key={index}
+          className="after:bg-line relative flex min-h-[72px] items-center gap-3 px-4 py-3 after:absolute after:right-0 after:bottom-0 after:left-[72px] after:h-px last:after:hidden"
+        >
+          <div className={cn(pulse, 'h-11 w-11 shrink-0 rounded-full')} />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className={cn(pulse, 'h-4 w-40 rounded')} />
+              <div className={cn(pulse, 'h-3 w-10 rounded')} />
+            </div>
+            <div className={cn(pulse, 'h-3.5 w-56 max-w-full rounded')} />
+          </div>
+        </li>
+      ))}
+    </ul>
   </div>
+);
+
+/** Where "Neuer Chat" floats, while it is not yet known whether the user may start a chat. */
+export const NewChatButtonSkeleton: React.FC = () => (
+  <div
+    aria-hidden="true"
+    className={cn(pulse, 'fixed right-4 bottom-[calc(5rem+16px)] z-30 h-12 w-[148px] rounded-2xl')}
+  />
 );

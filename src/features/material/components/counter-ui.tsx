@@ -1,19 +1,17 @@
 'use client';
 
+import { AppSearchBar } from '@/components/ui/app-search-bar';
+import { SectionLabel } from '@/components/ui/section-label';
+import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { format, labels } from '@/features/material/components/material-labels';
-import {
-  focusRing,
-  inputClass,
-  MaterialSheet,
-  NumberInput,
-} from '@/features/material/components/material-ui';
+import { MaterialSheet, NumberInput } from '@/features/material/components/material-ui';
 import { useMaterialLocale } from '@/features/material/hooks/use-material';
-import { useQrScanner } from '@/features/material/hooks/use-qr-scanner';
 import { stepQuantity } from '@/features/material/utils/basket';
 import type { LoanHolder } from '@/features/material/utils/holders';
+import { useQrScanner } from '@/hooks/use-qr-scanner';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Camera, Minus, Plus, ScanLine, Search } from 'lucide-react';
+import { Minus, Plus, ScanLine } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 
@@ -56,11 +54,11 @@ export const holderInitials = (name: string): string => {
   return initials === '' ? '?' : initials.toUpperCase();
 };
 
-/** "Wolldecke 40 · Zelttuch 60", what a holder takes or has. */
+/** "40 × Wolldecke · 60 × Zelttuch", what a holder takes or has. */
 export const loanSummary = (
   loans: readonly { quantity: number; issuedQuantity: number | null; item: { name: string } }[],
 ): string =>
-  loans.map((loan) => `${loan.item.name} ${loan.issuedQuantity ?? loan.quantity}`).join(' · ');
+  loans.map((loan) => `${loan.issuedQuantity ?? loan.quantity} × ${loan.item.name}`).join(' · ');
 
 /** "3 Positionen" or "1 Position". */
 export const positionCount = (count: number, locale: Locale): string =>
@@ -76,7 +74,7 @@ export const HolderAvatar: React.FC<{ name: string; alert?: boolean; className?:
     aria-hidden
     className={cn(
       'flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white',
-      alert ? 'bg-red-600' : 'bg-conveniat-green',
+      alert ? 'bg-danger' : 'bg-conveniat-green',
       className,
     )}
   >
@@ -84,20 +82,15 @@ export const HolderAvatar: React.FC<{ name: string; alert?: boolean; className?:
   </span>
 );
 
-/**
- * The heading above each part of a counter screen, in the same type as a card's title: one
- * style of heading, not a second one in spaced capitals.
- */
+/** The heading above each part of a counter screen, "HEUTE FÄLLIG · 6", the app's section label. */
 export const SectionTitle: React.FC<{ children: React.ReactNode; count?: number }> = ({
   children,
   count,
 }) => (
-  <h2 className="mb-2 px-1 text-sm font-semibold text-gray-700">
+  <SectionLabel className="mb-2 px-1">
     {children}
-    {count !== undefined && (
-      <span className="font-normal text-gray-500 tabular-nums"> · {count}</span>
-    )}
-  </h2>
+    {count !== undefined && <span className="tabular-nums"> · {count}</span>}
+  </SectionLabel>
 );
 
 /**
@@ -110,7 +103,7 @@ export const StickyAction: React.FC<{ children: React.ReactNode; className?: str
 }) => (
   <div
     className={cn(
-      'sticky bottom-20 z-20 -mx-4 mt-4 border-t border-gray-200 bg-gray-50/95 px-4 pt-3 pb-3 backdrop-blur',
+      'border-line bg-page/95 sticky bottom-20 z-20 -mx-4 mt-4 border-t px-4 pt-3 pb-3 backdrop-blur',
       className,
     )}
   >
@@ -134,8 +127,7 @@ export const Stepper: React.FC<{
   const down = stepQuantity(value, step, -1);
   const up = stepQuantity(value, step, 1);
   const button = cn(
-    'flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40',
-    focusRing,
+    'flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-rail bg-white text-green-900 hover:bg-quiet disabled:cursor-not-allowed disabled:opacity-40',
   );
   return (
     <div className="flex shrink-0 items-center gap-1" role="group" aria-label={label}>
@@ -175,8 +167,8 @@ const ScannerView: React.FC<{ onResult: (value: string) => boolean }> = ({ onRes
   const { state, videoReference } = useQrScanner(onResult);
   if (state === 'unsupported' || state === 'denied') {
     return (
-      <div className="flex flex-col items-center gap-2 p-6 text-center text-sm text-gray-600">
-        <ScanLine className="size-10 text-gray-300" aria-hidden />
+      <div className="flex flex-col items-center gap-2 p-6 text-center text-sm text-green-700">
+        <ScanLine className="text-rail-node size-10" aria-hidden />
         {state === 'denied' ? text.denied[locale] : text.unsupported[locale]}
       </div>
     );
@@ -193,7 +185,7 @@ const ScannerView: React.FC<{ onResult: (value: string) => boolean }> = ({ onRes
 };
 
 /**
- * A search field with the camera at its end: the scanner lives where the code would be typed,
+ * A search field with the scanner next to it: the scanner lives where the code would be typed,
  * not on a page of its own. `onScan` answers whether it used the code; the sheet closes then.
  */
 export const SearchField: React.FC<{
@@ -208,24 +200,19 @@ export const SearchField: React.FC<{
   return (
     <form
       role="search"
-      className="relative"
+      className="flex gap-2"
       onSubmit={(event) => {
         event.preventDefault();
         onSubmit?.();
       }}
     >
-      <Search
-        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400"
-        aria-hidden
-      />
-      <input
-        type="search"
-        aria-label={placeholder}
+      <AppSearchBar
         placeholder={placeholder}
-        className={cn(inputClass, 'h-12 rounded-xl pl-9', onScan !== undefined && 'pr-14')}
         value={value}
-        enterKeyHint="search"
         onChange={(event) => onChange(event.target.value)}
+        onClear={() => onChange('')}
+        onPage
+        className="flex-1"
       />
       {onScan !== undefined && (
         <>
@@ -235,11 +222,10 @@ export const SearchField: React.FC<{
             title={labels.scan[locale]}
             onClick={() => setScanning(true)}
             className={cn(
-              'bg-conveniat-green absolute top-1/2 right-0.5 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-white',
-              focusRing,
+              'bg-conveniat-green flex h-[44px] w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-[12px] text-white',
             )}
           >
-            <Camera className="size-5" aria-hidden />
+            <ScanLine className="size-5" aria-hidden />
           </button>
           <MaterialSheet open={scanning} onOpenChange={setScanning} title={labels.scan[locale]}>
             {scanning && (
@@ -273,7 +259,7 @@ export const Segmented = <Value extends string>({
   <div
     role="radiogroup"
     aria-label={label}
-    className="grid auto-cols-fr grid-flow-col gap-1 rounded-xl bg-gray-200/70 p-1"
+    className={cn(segmentedTrackClassName, 'grid auto-cols-fr grid-flow-col')}
   >
     {options.map((option) => (
       <button
@@ -283,9 +269,8 @@ export const Segmented = <Value extends string>({
         aria-checked={value === option.value}
         onClick={() => onChange(option.value)}
         className={cn(
-          'flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg px-2 text-sm font-semibold [&_svg]:size-4',
-          focusRing,
-          value === option.value ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600',
+          segmentClassName(value === option.value),
+          'gap-2 px-2 text-sm font-semibold [&_svg]:size-4',
         )}
       >
         {option.icon}
@@ -307,10 +292,9 @@ export const FilterChip: React.FC<{
     onClick={onClick}
     className={cn(
       'inline-flex h-11 max-w-full cursor-pointer items-center gap-1.5 rounded-full border px-4 text-sm font-semibold [&_svg]:size-4',
-      focusRing,
       active
         ? 'border-conveniat-green bg-conveniat-green text-white'
-        : 'border-gray-300 bg-white text-gray-800',
+        : 'border-rail bg-white text-green-900',
     )}
   >
     <span className="truncate">{children}</span>

@@ -32,10 +32,11 @@ export const markChatAsRead = trpcBaseProcedure
 
     // 2. Advance the high-water mark in one statement, so concurrent calls cannot move it
     // backwards: it only moves when unset or when the stored message is not newer than this one
-    // (a stored id pointing at a deleted message counts as unset).
+    // (a stored id pointing at a deleted message counts as unset). Reading the chat also takes
+    // away the caller's own unread mark.
     const updatedRows = await prisma.$executeRaw`
       UPDATE "ChatMembership" AS membership
-      SET "lastReadMessageId" = ${lastMessageId}
+      SET "lastReadMessageId" = ${lastMessageId}, "markedUnread" = false
       WHERE membership."userId" = ${user.uuid}
         AND membership."chatId" = ${chatId}
         AND NOT EXISTS (
@@ -48,13 +49,22 @@ export const markChatAsRead = trpcBaseProcedure
     if (updatedRows === 0) {
       const membership = await prisma.chatMembership.findUnique({
         where: { userId_chatId: { userId: user.uuid, chatId: chatId } },
-        select: { userId: true },
+        select: { markedUnread: true },
       });
 
       if (!membership) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'You are not a member of this chat.',
+        });
+      }
+
+      // The mark goes away as well when an older message is read, which does not move the
+      // high-water mark.
+      if (membership.markedUnread) {
+        await prisma.chatMembership.update({
+          where: { userId_chatId: { userId: user.uuid, chatId: chatId } },
+          data: { markedUnread: false },
         });
       }
     }

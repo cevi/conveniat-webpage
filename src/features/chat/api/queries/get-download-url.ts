@@ -34,6 +34,20 @@ export const getDownloadUrl = trpcBaseProcedure
       throw new TRPCError({ code: 'FORBIDDEN', message: 'This is not an image of this chat.' });
     }
 
+    // The object stays in the bucket, but a deleted image is not signed again for anyone who
+    // still holds its key, see `deleteMessage`.
+    const deletedImage = await ctx.prisma.messageContent.findFirst({
+      where: {
+        payload: { path: ['url'], equals: key },
+        // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
+        message: { chatId, deletedAt: { not: null } },
+      },
+      select: { uuid: true },
+    });
+    if (deletedImage !== null) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'This image was deleted.' });
+    }
+
     return {
       url: await createPresignedDownloadUrl(key),
     };

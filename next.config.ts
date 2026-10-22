@@ -76,6 +76,12 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 
   experimental: {
+    /**
+     * Lets the `instant()` e2e tests (e2e/instant-*.spec.ts) pause a navigation of a production
+     * build at what was prefetched. Only a test build sets EXPOSE_TESTING_API=1, see
+     * instant-nav.rig.md; the Dockerfile and the konekta build never do, so no deployment exposes it.
+     */
+    exposeTestingApiInProductionBuild: process.env['EXPOSE_TESTING_API'] === '1',
     useOffline: true,
     optimizePackageImports: [
       'lucide-react',

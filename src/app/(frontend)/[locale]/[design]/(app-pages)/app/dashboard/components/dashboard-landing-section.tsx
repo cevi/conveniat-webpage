@@ -1,33 +1,31 @@
 'use client';
 
-import { DashboardAppFeatures } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-app-features';
-import {
-  DashboardAppFeaturesSkeleton,
-  DashboardTitleSkeleton,
-} from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-app-features-skeleton';
+import { DashboardQuickAccess } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-quick-access';
+import { QuickAccessSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
-import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import type React from 'react';
 
 /**
- * Title and action cards of the dashboard.
+ * Title and Schnellzugriff of the dashboard. The CMS title is the app header's title; the CMS
+ * switch "Aktionskarten anzeigen" decides whether the Schnellzugriff is shown, and its feature
+ * flags which tiles it has.
  *
  * The data is fetched client side through the persisted react-query cache:
  * when navigating back to the dashboard the previously loaded content is
  * rendered immediately (also while offline) and silently replaced once the
- * background revalidation finishes. This avoids the loading skeleton that a
- * server rendered (and therefore uncached) section would show on every
- * navigation.
+ * background revalidation finishes.
  *
- * `children` holds the server rendered welcome content blocks which are
- * displayed between the title and the action cards.
+ * `children` holds the greeting, the server rendered welcome content blocks and "Jetzt",
+ * which are displayed above the Schnellzugriff.
  */
 export const DashboardLandingSection: React.FC<{
   locale: Locale;
+  materialEnabled: boolean;
+  supportEmail: string;
   children?: React.ReactNode;
-}> = ({ locale, children }) => {
+}> = ({ locale, materialEnabled, supportEmail, children }) => {
   const { data: dashboardConfig } = trpc.appContent.getDashboardConfig.useQuery(
     { locale },
     {
@@ -43,9 +41,8 @@ export const DashboardLandingSection: React.FC<{
   if (dashboardConfig === undefined) {
     return (
       <>
-        <DashboardTitleSkeleton />
         {children}
-        <DashboardAppFeaturesSkeleton />
+        <QuickAccessSkeleton />
       </>
     );
   }
@@ -53,10 +50,19 @@ export const DashboardLandingSection: React.FC<{
   return (
     <>
       <SetDynamicPageTitle newTitle={dashboardConfig.title} />
-      <HeadlineH1 className="mb-4">{dashboardConfig.title}</HeadlineH1>
       {children}
       {dashboardConfig.showActionCards && (
-        <DashboardAppFeatures locale={locale} featureFlags={dashboardConfig.featureFlags} />
+        <DashboardQuickAccess
+          locale={locale}
+          supportEmail={supportEmail}
+          flags={{
+            // guarded: a phone may restore a configuration cached before the flags existed
+            imageUploadEnabled:
+              (dashboardConfig.featureFlags as { imageUploadEnabled?: boolean } | undefined)
+                ?.imageUploadEnabled !== false,
+            materialEnabled,
+          }}
+        />
       )}
     </>
   );

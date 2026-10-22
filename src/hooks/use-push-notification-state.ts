@@ -26,6 +26,8 @@ const notificationsIncognitoText: Record<Locale, string> = {
 };
 
 interface PushNotificationState {
+  /** whether the browser's support and subscription were read; before, nothing is known */
+  isChecked: boolean;
   isSupported: boolean;
   isSubscribed: boolean;
   isLoading: boolean;
@@ -59,6 +61,7 @@ function getSubscriptionErrorMessage(error: unknown, locale: Locale): string {
 }
 
 interface UsePushNotificationStateResult {
+  isChecked: boolean;
   isSupported: boolean;
   isSubscribed: boolean;
   isLoading: boolean;
@@ -76,6 +79,7 @@ export function usePushNotificationState(
 ): UsePushNotificationStateResult {
   const { registrationSource, locale } = props;
   const [state, setState] = useState<PushNotificationState>({
+    isChecked: false,
     isSupported: false,
     isSubscribed: false,
     isLoading: false,
@@ -97,6 +101,7 @@ export function usePushNotificationState(
       if (!supported) {
         if (mounted) {
           updateState({
+            isChecked: true,
             isSupported: false,
             isSubscribed: false,
             isLoading: false,
@@ -115,6 +120,7 @@ export function usePushNotificationState(
       if (swError) {
         if (mounted) {
           updateState({
+            isChecked: true,
             isSupported: true,
             isSubscribed: false,
             isLoading: false,
@@ -130,6 +136,7 @@ export function usePushNotificationState(
         const sub = await getPushSubscription();
         if (mounted) {
           updateState({
+            isChecked: true,
             isSupported: true,
             isSubscribed: !!sub,
             isLoading: false,
@@ -140,6 +147,7 @@ export function usePushNotificationState(
         console.warn('Failed to check push subscription:', error);
         if (mounted) {
           updateState({
+            isChecked: true,
             isSupported: true,
             isSubscribed: false,
             isLoading: false,
@@ -205,6 +213,7 @@ export function usePushNotificationState(
   }, [state.isSubscribed, subscribeToPush, unsubscribeFromPush]);
 
   return {
+    isChecked: state.isChecked,
     isSupported: state.isSupported,
     isSubscribed: state.isSubscribed,
     isLoading: state.isLoading,

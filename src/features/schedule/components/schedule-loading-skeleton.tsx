@@ -1,100 +1,98 @@
+import { SetHeaderActions } from '@/components/header/header-actions';
+import { cn } from '@/utils/tailwindcss-override';
+import { ListFilter, Search } from 'lucide-react';
 import type React from 'react';
 
 /**
- * Skeleton loading component for the Schedule List.
- * Matches the layout of ScheduleComponent including:
- * - DateCarousel
- * - SearchFilterBar
- * - ScheduleList with timeline
+ * A 44px icon in the app header of the Programm and the Schichteinsätze, like the buttons other
+ * pages put there. Here rather than with the buttons, so the route's loading screen, a server
+ * component, can draw the same icons.
  */
-export const ScheduleLoadingSkeleton: React.FC = () => {
-  return (
-    <article className="mx-auto w-full max-w-2xl px-4 py-8">
-      {/* DateCarousel Skeleton */}
-      <div className="flex w-full items-center justify-between gap-1 rounded-xl bg-gray-100 p-1">
-        {/* Left arrow */}
-        <div className="h-10 w-8 shrink-0 animate-pulse rounded-lg bg-gray-200" />
+export const headerButtonClassName =
+  'hover:bg-quiet relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-green-900 transition-colors';
 
-        {/* Date pills container */}
-        <div className="flex flex-1 items-center justify-around gap-1">
-          {[1, 2, 3, 4, 5].map((index) => (
-            <div key={index} className="h-10 min-w-0 flex-1 animate-pulse rounded-lg bg-gray-200" />
-          ))}
-        </div>
+/**
+ * The search and the filter in the app header while the page loads, where and as they will be,
+ * so they do not pop in with the list.
+ */
+export const SearchFilterHeaderPlaceholder: React.FC = () => (
+  <SetHeaderActions>
+    <span aria-hidden="true" className={cn(headerButtonClassName, 'cursor-default')}>
+      <Search className="h-[22px] w-[22px]" />
+    </span>
+    <span aria-hidden="true" className={cn(headerButtonClassName, 'cursor-default')}>
+      <ListFilter className="h-[22px] w-[22px]" />
+    </span>
+  </SetHeaderActions>
+);
 
-        {/* Right arrow */}
-        <div className="h-10 w-8 shrink-0 animate-pulse rounded-lg bg-gray-200" />
+const pulse = 'animate-pulse bg-quiet';
+
+/** a row of the timeline: the time column, the rail, and what sits on it */
+const TimelineRow: React.FC<{ isBlock: boolean }> = ({ isBlock }) => (
+  <li className="grid grid-cols-[44px_28px_minmax(0,1fr)]">
+    <div className={cn('mt-0.5 h-4 w-10 rounded', pulse)} />
+    <div className="relative flex justify-center">
+      <span aria-hidden="true" className="bg-rail absolute inset-y-0 w-0.5" />
+      <span
+        className={cn(
+          'bg-page relative mt-[5px] rounded-full',
+          isBlock ? 'bg-rail h-3 w-3' : 'border-rail-node h-2.5 w-2.5 border-2',
+        )}
+      />
+    </div>
+    {isBlock ? (
+      <div className="border-line mb-3.5 rounded-[14px] border bg-white px-3.5 py-3">
+        <div className={cn('h-3 w-32 rounded', pulse)} />
+        <div className={cn('mt-2 h-5 w-2/3 rounded', pulse)} />
+        <div className={cn('mt-2 h-3.5 w-40 rounded', pulse)} />
+        <div className={cn('mt-1.5 h-3.5 w-28 rounded', pulse)} />
       </div>
-
-      {/* SearchFilterBar Skeleton */}
-      <div className="mt-6 mb-4">
-        <div className="flex items-center gap-2">
-          {/* Search input */}
-          <div className="relative flex-1">
-            <div className="h-12 w-full animate-pulse rounded-lg bg-gray-200" />
-          </div>
-
-          {/* Filter button */}
-          <div className="h-12 w-12 shrink-0 animate-pulse rounded-lg bg-gray-200" />
-
-          {/* Star button */}
-          <div className="h-12 w-12 shrink-0 animate-pulse rounded-lg bg-gray-200" />
-        </div>
+    ) : (
+      <div className="flex items-center justify-between gap-3 pb-4">
+        <div className={cn('h-4 w-36 rounded', pulse)} />
+        <div className={cn('h-3.5 w-14 rounded', pulse)} />
       </div>
+    )}
+  </li>
+);
 
-      {/* ScheduleList Skeleton with Timeline */}
-      <div className="relative min-h-[300px]">
-        <div className="relative space-y-6">
-          {/* Timeline line */}
-          <div className="absolute top-4 bottom-4 left-[23px] w-0.5 bg-gray-200" />
+/**
+ * The Programm while it loads, in the layout it loads into: the seven days, the line that
+ * names the view, and a timeline of logistics rows and blocks. The route's loading screen shows
+ * the same, so nothing jumps when the data arrives. The Schichteinsätze share the layout without
+ * that line, which they only show while a filter is on, and with shifts only.
+ */
+export const ScheduleLoadingSkeleton: React.FC<{
+  showScope?: boolean;
+  /** `true` for a card on the timeline, `false` for a logistics row */
+  rows?: boolean[];
+}> = ({ showScope = true, rows = [false, false, false, true, false, true, true] }) => (
+  <article className="mx-auto w-full max-w-2xl p-4 sm:p-6" aria-hidden="true">
+    <div className="flex gap-1.5">
+      {[1, 2, 3, 4, 5, 6, 7].map((index) => (
+        <div
+          key={index}
+          className={cn(
+            'h-[58px] min-w-0 flex-1 rounded-xl border',
+            index === 1 ? 'border-transparent bg-green-200' : 'border-line bg-white',
+          )}
+        />
+      ))}
+    </div>
 
-          {/* Schedule item groups */}
-          {[1, 2, 3].map((groupIndex) => (
-            <div key={groupIndex} className="relative flex gap-4">
-              {/* Timeline Time Marker */}
-              <div className="z-10 flex w-12 shrink-0 flex-col items-center">
-                <div className="flex h-12 w-12 animate-pulse items-center justify-center rounded-full border border-gray-200 bg-gray-100" />
-              </div>
-
-              {/* Schedule item cards for this time slot */}
-              <div className="min-w-0 flex-1 space-y-3 pt-1">
-                {[1, 2].slice(0, groupIndex === 2 ? 1 : 2).map((itemIndex) => (
-                  <div
-                    key={itemIndex}
-                    className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
-                  >
-                    <div className="p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          {/* Category badge */}
-                          <div className="mb-2 flex flex-wrap items-center gap-2">
-                            <div className="h-5 w-16 animate-pulse rounded-full bg-gray-200" />
-                          </div>
-
-                          {/* Title */}
-                          <div className="mb-2 h-5 w-3/4 animate-pulse rounded bg-gray-200" />
-
-                          {/* Time & Location info */}
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                            <div className="h-4 w-12 animate-pulse rounded bg-gray-200" />
-                            <div className="h-4 w-20 animate-pulse rounded bg-gray-200" />
-                          </div>
-                        </div>
-
-                        {/* Right side: Star and chevron placeholders */}
-                        <div className="flex items-center gap-1">
-                          <div className="h-8 w-8 animate-pulse rounded-full bg-gray-100" />
-                          <div className="h-5 w-5 animate-pulse rounded bg-gray-100" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+    {/* the line that names the view; the search and the filter sit in the header */}
+    {showScope && (
+      <div className="mt-4 flex h-8 items-center gap-1.5">
+        <div className={cn('h-6 w-6 rounded-full', pulse)} />
+        <div className={cn('h-3.5 w-16 rounded', pulse)} />
       </div>
-    </article>
-  );
-};
+    )}
+
+    <ol className="mt-4">
+      {rows.map((isBlock, index) => (
+        <TimelineRow key={index} isBlock={isBlock} />
+      ))}
+    </ol>
+  </article>
+);

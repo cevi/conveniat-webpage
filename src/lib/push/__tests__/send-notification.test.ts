@@ -7,6 +7,26 @@ jest.mock('@/lib/push/push-queue', () => ({
   enqueuePushNotification: (...args: unknown[]): unknown => mockEnqueue(...args),
 }));
 
+/** chat id -> the people who muted it */
+let mutedMembers: Map<string, string[]>;
+jest.mock('@/lib/db/prisma', () => ({
+  __esModule: true,
+  default: {
+    chatMembership: {
+      findMany: ({
+        where,
+      }: {
+        where: { chatId: string; userId: { in: string[] } };
+      }): Promise<{ userId: string }[]> =>
+        Promise.resolve(
+          (mutedMembers.get(where.chatId) ?? [])
+            .filter((userId) => where.userId.in.includes(userId))
+            .map((userId) => ({ userId })),
+        ),
+    },
+  },
+}));
+
 jest.mock('@/utils/get-app-short-name', () => ({
   getAppShortName: (): Promise<string> => Promise.resolve('conveniat27'),
 }));
@@ -22,7 +42,10 @@ const lastQueuedPush = (): Record<string, unknown> =>
   (mockEnqueue.mock.calls as unknown[][]).at(-1)?.[0] as Record<string, unknown>;
 
 describe('sendNotification', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mutedMembers = new Map();
+  });
 
   it('queues a chat message titled with the chat and signed by its sender', async () => {
     await sendNotification('Wer hat die Blachen?', ['anna', 'ben'], 'chat-1', 'message-1', {
@@ -75,5 +98,37 @@ describe('sendNotification', () => {
     await expect(
       sendNotification('Hallo', ['anna'], 'chat-1', undefined, { kind: 'CHAT' }),
     ).resolves.toEqual({ success: false, error: 'Failed to send notification' });
+  });
+
+  it('leaves out the people who muted the chat', async () => {
+    mutedMembers.set('chat-1', ['ben']);
+    mutedMembers.set('chat-2', ['anna']);
+
+    await sendNotification('Znacht ist parat', ['anna', 'ben'], 'chat-1', 'message-1', {
+      kind: 'CHAT',
+    });
+
+    expect(lastQueuedPush()['recipientUserIds']).toEqual(['anna']);
+  });
+
+  it('queues nothing when everybody muted the chat', async () => {
+    mutedMembers.set('chat-1', ['anna', 'ben']);
+
+    await sendNotification('Znacht ist parat', ['anna', 'ben'], 'chat-1', 'message-1', {
+      kind: 'ANNOUNCEMENT',
+    });
+
+    expect(mockEnqueue).not.toHaveBeenCalled();
+  });
+
+  it('reaches people in an emergency even when they muted the chat', async () => {
+    mutedMembers.set('chat-1', ['anna', 'ben']);
+
+    await sendNotification('Notfall', ['anna', 'ben'], 'chat-1', 'message-1', {
+      kind: 'EMERGENCY',
+      notificationType: 'emergency',
+    });
+
+    expect(lastQueuedPush()['recipientUserIds']).toEqual(['anna', 'ben']);
   });
 });

@@ -1,80 +1,101 @@
+'use client';
+
 import { getImageAltInLocale } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import type { Image as ImagePayloadDocumentType } from '@/features/payload-cms/payload-types';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { X } from 'lucide-react';
 import Image from 'next/image';
-import React, { Suspense, useEffect, useState } from 'react'; // Import useEffect
+import type React from 'react';
+import { useState } from 'react';
+
+const closeText: StaticTranslationString = {
+  de: 'Bild schliessen',
+  en: 'Close image',
+  fr: "Fermer l'image",
+};
+
+const openText: StaticTranslationString = {
+  de: 'Bild öffnen: {{alt}}',
+  en: 'Open image: {{alt}}',
+  fr: "Ouvrir l'image : {{alt}}",
+};
 
 interface AnnotationImagesSectionProperties {
   images: ImagePayloadDocumentType[];
   locale: Locale;
 }
 
+/**
+ * The pictures of a place as a row of thumbnails that scrolls sideways; a tap opens one across
+ * the whole screen, which a tap anywhere, its ✕ or Escape closes again.
+ */
 export const AnnotationImagesSection: React.FC<AnnotationImagesSectionProperties> = ({
   images,
   locale,
 }) => {
   const [selectedImage, setSelectedImage] = useState<ImagePayloadDocumentType | undefined>();
 
-  useEffect(() => {
-    document.body.style.overflow = selectedImage ? 'hidden' : '';
-    return (): void => {
-      document.body.style.overflow = '';
-    };
-  }, [selectedImage]);
-
   if (images.length === 0) {
     return <></>;
   }
 
   return (
-    <div className="border-b-2 border-gray-100 p-4">
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {images.map((image, index) => (
-          <Suspense key={index} fallback={<div className="h-24 w-24 rounded-lg bg-gray-200" />}>
+    <section className="pt-1 pb-3">
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+        {images.map((image) => (
+          <button
+            key={image.id}
+            type="button"
+            onClick={() => setSelectedImage(image)}
+            aria-label={openText[locale].replace('{{alt}}', getImageAltInLocale(locale, image))}
+            className="focus-visible:focus-ring-inset h-24 w-24 shrink-0 cursor-pointer overflow-hidden rounded-[10px]"
+          >
             <Image
               src={image.url ?? ''}
-              alt={getImageAltInLocale(locale, image)}
+              alt=""
               width={96}
               height={96}
-              className="h-24 w-24 cursor-pointer rounded-lg object-cover"
-              onClick={() => setSelectedImage(image)}
+              className="h-full w-full object-cover"
             />
-          </Suspense>
+          </button>
         ))}
       </div>
 
-      {selectedImage && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          onClick={() => setSelectedImage(undefined)}
-        >
-          <div
-            className="bg-opacity-50 absolute inset-0 bg-black"
-            style={{ backdropFilter: 'blur(8px)' }}
-          ></div>
-
-          <div
-            className="relative z-10 max-h-full max-w-full"
-            onClick={(event) => event.stopPropagation()}
+      <DialogPrimitive.Root
+        open={selectedImage !== undefined}
+        onOpenChange={(open) => !open && setSelectedImage(undefined)}
+      >
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-[1000] bg-green-900/90" />
+          <DialogPrimitive.Content
+            aria-describedby={undefined}
+            onClick={() => setSelectedImage(undefined)}
+            className="fixed inset-0 z-[1000] flex items-center justify-center p-4 pt-[max(3.5rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] focus:outline-none"
           >
-            <button
-              className="absolute top-4 right-4 z-20 text-3xl font-bold text-white"
-              onClick={() => setSelectedImage(undefined)}
+            {selectedImage !== undefined && (
+              <>
+                <DialogPrimitive.Title className="sr-only">
+                  {getImageAltInLocale(locale, selectedImage)}
+                </DialogPrimitive.Title>
+                <Image
+                  src={selectedImage.url ?? ''}
+                  alt={getImageAltInLocale(locale, selectedImage)}
+                  width={1000}
+                  height={800}
+                  className="max-h-full w-auto max-w-full object-contain"
+                />
+              </>
+            )}
+            <DialogPrimitive.Close
+              aria-label={closeText[locale]}
+              className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-white"
             >
-              &times;
-            </button>
-            <Image
-              src={selectedImage.url ?? ''}
-              alt={getImageAltInLocale(locale, selectedImage)}
-              layout="intrinsic"
-              width={1000}
-              height={800}
-              objectFit="contain"
-              className="max-h-screen max-w-screen"
-            />
-          </div>
-        </div>
-      )}
-    </div>
+              <X className="h-6 w-6" aria-hidden="true" />
+            </DialogPrimitive.Close>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+    </section>
   );
 };

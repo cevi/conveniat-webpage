@@ -50,9 +50,10 @@ const MARKER_LABEL_POSITION_STYLE: React.CSSProperties = {
  * Selection used to be a white ring and a slightly larger pin - which is legible next to the
  * same marker a moment earlier, and invisible on a map full of other pins, where nobody has the
  * "before" to compare against. A colour no annotation uses answers "which one is it" at a
- * glance, the way a dropped pin does on any other map.
+ * glance, the way a dropped pin does on any other map. Near-black rather than red: red is kept
+ * for Notfall, and the Notfallzentrum is itself a red annotation.
  */
-export const SELECTED_MARKER_COLOR = '#dc2626';
+export const SELECTED_MARKER_COLOR = '#26302A';
 
 /**
  * What an annotation shows when it names no icon, or names one this renderer does not know.
@@ -105,19 +106,23 @@ const LocationPin = ({
   label?: string | undefined;
 }): React.JSX.Element => (
   <div className="relative flex w-fit flex-col items-center">
+    {/* A white outline and a white dot: the dark pin then stands out on dark buildings as well
+        as on pale meadows, which a shadow alone did not manage. */}
     <svg
-      width="30"
-      height="40"
-      viewBox="0 0 24 32"
+      width="34"
+      height="45"
+      viewBox="-2 -2 28 36"
       aria-hidden="true"
-      style={{ filter: 'drop-shadow(0 2px 3px rgb(0 0 0 / 0.35))' }}
+      style={{ filter: 'drop-shadow(0 2px 4px rgb(0 0 0 / 0.4))' }}
     >
       <path
         d="M12 0C5.373 0 0 5.373 0 12c0 8.4 10.5 18.7 11.4 19.6a.85.85 0 0 0 1.2 0C13.5 30.7 24 20.4 24 12 24 5.373 18.627 0 12 0Z"
         fill={color}
+        stroke="white"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
       />
-      {/* the darker hole, which is what keeps the pin from reading as a solid blob */}
-      <circle cx="12" cy="11.5" r="4.2" fill="rgb(0 0 0 / 0.28)" />
+      <circle cx="12" cy="11.5" r="4.2" fill="white" />
     </svg>
 
     {label !== undefined && label !== '' && (

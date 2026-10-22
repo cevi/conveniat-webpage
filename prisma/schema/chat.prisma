@@ -133,6 +133,17 @@ model ChatMembership {
 
   chatPermission ChatMembershipPermission @default(MEMBER)
 
+  /// when this person pinned the chat to the top of their own chat list, null if not pinned;
+  /// the global `Chat.pinned` still sorts above it
+  pinnedAt DateTime?
+
+  /// when this person muted the chat, null if not muted; a muted chat sends them no push,
+  /// except an emergency chat, which cannot be muted
+  mutedAt DateTime?
+
+  /// set when this person marked the chat as unread, cleared once they read it again
+  markedUnread Boolean @default(false)
+
   @@id([userId, chatId])
   @@index([userId])
   @@index([chatId])
@@ -182,6 +193,12 @@ model Message {
   parent    Message?          @relation("Thread", fields: [parentId], references: [uuid], onDelete: Cascade)
   replies   Message[]         @relation("Thread")
   reactions MessageReaction[]
+
+  /// when the sender deleted the message for everyone, null while it stands; the row stays so
+  /// its replies and the quotes of it keep their place, but its content is never served again
+  deletedAt   DateTime?
+  /// who deleted it, so far always the sender
+  deletedById String?
 
   @@index([chatId, createdAt(sort: Asc)])
   @@index([parentId])

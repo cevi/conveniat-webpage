@@ -48,29 +48,31 @@ export function getCategoryDisplayData(category: string | CampCategory | null | 
 }
 
 /**
- * A solid colour per theme, for the colour bar and the category name of the compact programme
- * list. Written as arbitrary values because the app's Tailwind palette has no purple, indigo,
+ * A solid colour per theme, for the timeline dot and the category name of the programme list,
+ * and a light tint of it for the category chip behind that name. Written as arbitrary values because the app's Tailwind palette has no purple, indigo,
  * rose or cyan, so the named classes for those themes compile to nothing.
  */
-const colorThemeAccentMap: Record<string, { bar: string; text: string }> = {
-  purple: { bar: 'bg-[#7e22ce]', text: 'text-[#7e22ce]' },
-  green: { bar: 'bg-[#15803d]', text: 'text-[#15803d]' },
-  blue: { bar: 'bg-[#1d4ed8]', text: 'text-[#1d4ed8]' },
-  gray: { bar: 'bg-[#6d6e76]', text: 'text-[#4c4d52]' },
-  indigo: { bar: 'bg-[#4338ca]', text: 'text-[#4338ca]' },
-  amber: { bar: 'bg-[#b45309]', text: 'text-[#b45309]' },
-  rose: { bar: 'bg-[#be123c]', text: 'text-[#be123c]' },
-  cyan: { bar: 'bg-[#0e7490]', text: 'text-[#0e7490]' },
-  orange: { bar: 'bg-[#c2410c]', text: 'text-[#c2410c]' },
+const colorThemeAccentMap: Record<string, { bar: string; text: string; tint: string }> = {
+  purple: { bar: 'bg-[#7e22ce]', text: 'text-[#7e22ce]', tint: 'bg-[#f3e8fb]' },
+  green: { bar: 'bg-[#15803d]', text: 'text-[#15803d]', tint: 'bg-[#e3f4e8]' },
+  blue: { bar: 'bg-[#1d4ed8]', text: 'text-[#1d4ed8]', tint: 'bg-[#e8eefc]' },
+  gray: { bar: 'bg-[#6d6e76]', text: 'text-[#4c4d52]', tint: 'bg-[#ededee]' },
+  indigo: { bar: 'bg-[#4338ca]', text: 'text-[#4338ca]', tint: 'bg-[#ecebfb]' },
+  amber: { bar: 'bg-[#b45309]', text: 'text-[#b45309]', tint: 'bg-[#fbf0e3]' },
+  // pink, not rose: red is kept for Notfall, so a category never reads as an emergency
+  rose: { bar: 'bg-[#be185d]', text: 'text-[#be185d]', tint: 'bg-[#fce7f3]' },
+  cyan: { bar: 'bg-[#0e7490]', text: 'text-[#0e7490]', tint: 'bg-[#e2f3f7]' },
+  orange: { bar: 'bg-[#c2410c]', text: 'text-[#c2410c]', tint: 'bg-[#fcece3]' },
 };
 
-const defaultAccent = { bar: 'bg-[#6d6e76]', text: 'text-[#4c4d52]' };
+const defaultAccent = { bar: 'bg-[#6d6e76]', text: 'text-[#4c4d52]', tint: 'bg-[#ededee]' };
 
 /** Title and accent colours of an entry's category; the gray default for an entry without one. */
 export function getCategoryAccent(category: string | CampCategory | null | undefined): {
   label: string;
   bar: string;
   text: string;
+  tint: string;
 } {
   const resolved = resolveCategory(category);
   if (resolved === undefined) return { label: '', ...defaultAccent };

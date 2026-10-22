@@ -1,10 +1,10 @@
 'use client';
 
+import { cn } from '@/utils/tailwindcss-override';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 import * as React from 'react';
 
 import { buttonVariants } from '@/components/ui/buttons/button';
-import { cn } from '@/utils/tailwindcss-override';
 
 const AlertDialog = AlertDialogPrimitive.Root;
 
@@ -17,12 +17,12 @@ const AlertDialogOverlay = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>
 >(({ className, ...props }, reference) => (
   <AlertDialogPrimitive.Overlay
+    ref={reference}
     className={cn(
-      'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/80',
+      'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-[2147483647] bg-green-900/30',
       className,
     )}
     {...props}
-    ref={reference}
   />
 ));
 AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
@@ -36,7 +36,7 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogPrimitive.Content
       ref={reference}
       className={cn(
-        'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] fixed top-[50%] left-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border p-6 shadow-lg duration-200 sm:rounded-lg',
+        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 border-line fixed top-[50%] left-[50%] z-[2147483647] grid w-[calc(100%-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] gap-5 rounded-[16px] border bg-white p-5 shadow-xl duration-200',
         className,
       )}
       {...props}
@@ -49,7 +49,7 @@ const AlertDialogHeader = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>): React.ReactElement => (
-  <div className={cn('flex flex-col space-y-2 text-center sm:text-left', className)} {...props} />
+  <div className={cn('flex flex-col gap-2 text-left', className)} {...props} />
 );
 AlertDialogHeader.displayName = 'AlertDialogHeader';
 
@@ -58,7 +58,10 @@ const AlertDialogFooter = ({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>): React.ReactElement => (
   <div
-    className={cn('flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2', className)}
+    className={cn(
+      'flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2',
+      className,
+    )}
     {...props}
   />
 );
@@ -70,7 +73,7 @@ const AlertDialogTitle = React.forwardRef<
 >(({ className, ...props }, reference) => (
   <AlertDialogPrimitive.Title
     ref={reference}
-    className={cn('text-lg font-semibold', className)}
+    className={cn('font-heading text-heading text-lg leading-snug font-bold', className)}
     {...props}
   />
 ));
@@ -82,19 +85,39 @@ const AlertDialogDescription = React.forwardRef<
 >(({ className, ...props }, reference) => (
   <AlertDialogPrimitive.Description
     ref={reference}
-    className={cn('text-muted-foreground text-sm', className)}
+    className={cn('text-[15px] text-green-700', className)}
     {...props}
   />
 ));
 AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayName;
 
+/**
+ * What sets a destructive button apart from an ordinary `outlined` one: red. For the confirm in a
+ * dialog and for the button that opens it.
+ */
+export const destructiveButtonClassName = cn(
+  buttonVariants({ variant: 'outlined', size: 'touch' }),
+  'border-danger-line text-danger-text hover:bg-danger-soft',
+);
+
+/**
+ * The confirming button: `primary` by default. A confirm that destroys something, like leaving
+ * a chat, is `destructive` and names the action in its label; Cancel stays the default focus.
+ */
 const AlertDialogAction = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Action>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action>
->(({ className, ...props }, reference) => (
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action> & {
+    variant?: 'primary' | 'outlined' | 'destructive';
+  }
+>(({ className, variant = 'primary', ...props }, reference) => (
   <AlertDialogPrimitive.Action
     ref={reference}
-    className={cn(buttonVariants(), className)}
+    className={cn(
+      variant === 'destructive'
+        ? destructiveButtonClassName
+        : buttonVariants({ variant, size: 'touch' }),
+      className,
+    )}
     {...props}
   />
 ));
@@ -106,7 +129,7 @@ const AlertDialogCancel = React.forwardRef<
 >(({ className, ...props }, reference) => (
   <AlertDialogPrimitive.Cancel
     ref={reference}
-    className={cn(buttonVariants({ variant: 'outline' }), 'mt-2 sm:mt-0', className)}
+    className={cn(buttonVariants({ variant: 'outlined', size: 'touch' }), className)}
     {...props}
   />
 ));

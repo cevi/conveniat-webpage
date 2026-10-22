@@ -1,5 +1,6 @@
 'use client';
 
+import { Card } from '@/components/ui/card';
 import {
   holderInitials,
   SearchField,
@@ -12,7 +13,6 @@ import { format, formatDay, labels } from '@/features/material/components/materi
 import {
   DateInput,
   Field,
-  focusRing,
   inputClass,
   MaterialButton,
   NativeSelect,
@@ -241,7 +241,7 @@ const ItemSearch: React.FC<{
         }}
       />
       {matches.length > 0 && (
-        <ul className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white">
+        <Card as="ul" divided>
           {matches.map((item) => {
             const cap = basketLineCap({
               available: item.stock.available,
@@ -254,19 +254,18 @@ const ItemSearch: React.FC<{
                   type="button"
                   onClick={() => add(item)}
                   className={cn(
-                    'flex min-h-12 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left hover:bg-gray-50',
-                    focusRing,
-                    'focus-visible:ring-inset',
+                    'hover:bg-quiet flex min-h-12 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left',
+                    'focus-visible:focus-ring-inset',
                   )}
                 >
                   <MaterialItemImage name={item.name} imageUrl={item.imageUrl} className="size-9" />
-                  <span className="min-w-0 flex-1 truncate font-semibold text-gray-900">
+                  <span className="min-w-0 flex-1 truncate font-semibold text-green-900">
                     {item.name}
                   </span>
                   <span
                     className={cn(
                       'shrink-0 text-xs tabular-nums',
-                      cap === 0 ? 'font-semibold text-red-700' : 'text-gray-500',
+                      cap === 0 ? 'text-danger-text font-semibold' : 'text-green-500',
                     )}
                   >
                     {cap === 0
@@ -280,7 +279,7 @@ const ItemSearch: React.FC<{
               </li>
             );
           })}
-        </ul>
+        </Card>
       )}
     </div>
   );
@@ -341,10 +340,10 @@ const BasketLineRow: React.FC<{
           className="size-10"
         />
         <div className="min-w-0 flex-1">
-          <div className="truncate font-semibold text-gray-900" title={name}>
+          <div className="truncate font-semibold text-green-900" title={name}>
             {name}
           </div>
-          <div className="truncate text-xs text-gray-500 tabular-nums">
+          <div className="truncate text-xs text-green-500 tabular-nums">
             {format(text.freeMax, locale, { free, max })}
           </div>
         </div>
@@ -353,8 +352,7 @@ const BasketLineRow: React.FC<{
           onClick={onRemove}
           aria-label={`${labels.remove[locale]}: ${name}`}
           className={cn(
-            'flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-red-700',
-            focusRing,
+            'hover:bg-quiet flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-500 hover:text-green-900',
           )}
         >
           <Trash2 className="size-4" aria-hidden />
@@ -362,7 +360,7 @@ const BasketLineRow: React.FC<{
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 pl-13">
         {item?.isConsumable === true ? (
-          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-gray-700">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-green-700">
             <input
               type="checkbox"
               className="accent-conveniat-green size-5"
@@ -385,12 +383,12 @@ const BasketLineRow: React.FC<{
         />
       </div>
       {line.quantity > cap && (
-        <p role="alert" className="text-xs font-semibold text-red-700">
+        <p role="alert" className="text-danger-text text-xs font-semibold">
           {cap === 0 ? text.noneFreeInPeriod[locale] : format(text.onlyFree, locale, { n: cap })}
         </p>
       )}
       {preparing && item?.isReservable === false && (
-        <p className="text-xs font-semibold text-amber-800">{text.counterOnly[locale]}</p>
+        <p className="text-danger-text text-xs font-semibold">{text.counterOnly[locale]}</p>
       )}
     </li>
   );
@@ -519,10 +517,9 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
       onClick={() => setEnd(value)}
       className={cn(
         'h-11 shrink-0 cursor-pointer rounded-full border px-4 text-sm font-semibold',
-        focusRing,
         end === value
           ? 'border-conveniat-green bg-conveniat-green text-white'
-          : 'border-gray-300 bg-white text-gray-800',
+          : 'border-rail bg-white text-green-900',
       )}
     >
       {label}
@@ -542,14 +539,14 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
     <div className="space-y-4">
       <div className="flex items-center gap-1">
         <MaterialButton
-          variant="ghost"
+          variant="quiet"
           className="w-11 px-0"
           aria-label={labels.back[locale]}
           onClick={onClose}
         >
           <ChevronLeft aria-hidden />
         </MaterialButton>
-        <h1 className="text-conveniat-green text-lg font-bold">
+        <h1 className="font-heading text-heading text-xl font-extrabold">
           {adjusting
             ? (answersRequest ? text.adjustRequest : text.adjustTitle)[locale]
             : labels.navHandOut[locale]}
@@ -567,13 +564,13 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
               {holderInitials(start.holder.name)}
             </span>
             <div className="min-w-0 flex-1">
-              <div className="truncate font-bold text-gray-900">{start.holder.name}</div>
-              <div className="text-xs text-gray-500">
+              <div className="truncate font-bold text-green-900">{start.holder.name}</div>
+              <div className="text-xs text-green-500">
                 {start.holder.kind === 'HOF' ? labels.hof[locale] : labels.person[locale]}
               </div>
             </div>
             {!adjusting && (
-              <MaterialButton variant="ghost" onClick={onClose}>
+              <MaterialButton variant="quiet" onClick={onClose}>
                 {labels.change[locale]}
               </MaterialButton>
             )}
@@ -610,11 +607,11 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
 
       <Panel>
         {lines.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-gray-500">
+          <p className="px-4 py-6 text-center text-sm text-green-500">
             {adjusting ? text.removedAll[locale] : text.emptyBasket[locale]}
           </p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-line divide-y">
             {lines.map((line) => (
               <BasketLineRow
                 key={line.itemId}
@@ -647,7 +644,7 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
               />
             </div>
           </Field>
-          <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-white p-3">
+          <label className="border-line flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border bg-white p-3">
             <input
               type="checkbox"
               className="accent-conveniat-green mt-0.5 size-5 shrink-0"
@@ -655,8 +652,8 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
               onChange={(event) => setPreparing(event.target.checked)}
             />
             <span className="min-w-0">
-              <span className="block font-semibold text-gray-900">{text.prepare[locale]}</span>
-              <span className="block text-xs text-gray-500">{text.prepareHint[locale]}</span>
+              <span className="block font-semibold text-green-900">{text.prepare[locale]}</span>
+              <span className="block text-xs text-green-500">{text.prepareHint[locale]}</span>
             </span>
           </label>
           {preparing && (
@@ -670,7 +667,7 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
             </Field>
           )}
           {periodReversed && (
-            <p className="text-sm font-semibold text-red-700">{text.periodInvalid[locale]}</p>
+            <p className="text-danger-text text-sm font-semibold">{text.periodInvalid[locale]}</p>
           )}
           <Field label={text.comment[locale]}>
             <input
@@ -685,7 +682,7 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
 
       <StickyAction>
         <MaterialButton
-          className="h-12 w-full text-base"
+          className="w-full"
           variant={cancelsAll ? 'danger' : 'primary'}
           loading={book.isPending}
           disabled={!canSubmit || (lines.length === 0 && !cancelsAll)}
@@ -695,7 +692,7 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
           <span className="truncate">{buttonLabel}</span>
         </MaterialButton>
         {!cancelsAll && endDate !== undefined && (
-          <p className="mt-1 text-center text-xs text-gray-500">
+          <p className="mt-1 text-center text-xs text-green-500">
             {text.returnBy[locale]} {formatDay(endDate, locale)}
           </p>
         )}

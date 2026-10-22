@@ -1,12 +1,45 @@
 'use client';
 
 import type { CampCategory, CampMapAnnotation } from '@/features/payload-cms/payload-types';
-import type { FilterState } from '@/features/schedule/components/search-filter-bar';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
+import { isLogistics, timeOfDayOf } from '@/features/schedule/utils/programme-utils';
+import type { FilterState } from '@/features/schedule/utils/schedule-filters';
+import { noFilters } from '@/features/schedule/utils/schedule-filters';
 import { convertLexicalToPlaintext } from '@payloadcms/richtext-lexical/plaintext';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
 
+/**
+ * Hiding Anreise and the meals is a standing preference, not a question of the moment like a
+ * category, so the phone remembers it across visits. Only the way out of the default is stored.
+ */
+const logisticsStorageKey = 'schedule-hide-logistics';
+const logisticsListeners = new Set<() => void>();
+
+const subscribeToLogistics = (onChange: () => void): (() => void) => {
+  logisticsListeners.add(onChange);
+  globalThis.addEventListener('storage', onChange);
+  return (): void => {
+    logisticsListeners.delete(onChange);
+    globalThis.removeEventListener('storage', onChange);
+  };
+};
+const readHidesLogistics = (): boolean =>
+  globalThis.localStorage.getItem(logisticsStorageKey) === 'true';
+// the server has no stored choice, and the default shows the logistics
+const readNoChoice = (): boolean => false;
+
+const storeHidesLogistics = (hide: boolean): void => {
+  if (hide) globalThis.localStorage.setItem(logisticsStorageKey, 'true');
+  else globalThis.localStorage.removeItem(logisticsStorageKey);
+  // the storage event only reaches other tabs
+  for (const listener of logisticsListeners) listener();
+};
+
+/**
+ * The search and the filters of the programme, applied to the entries of one day. The options
+ * come from `allEntries`, so they stay put from day to day.
+ */
 export const useScheduleFilters = (
   entries: CampScheduleEntryFrontendType[],
   starredIds: Set<string>,
@@ -20,12 +53,16 @@ export const useScheduleFilters = (
   handleFiltersChange: (newFilters: FilterState) => void;
   clearFilters: () => void;
 } => {
-  const [filters, setFilters] = useState<FilterState>({
-    searchText: '',
-    selectedLocations: [],
-    selectedCategory: undefined,
-    starredOnly: false,
-  });
+  const [chosenFilters, setChosenFilters] = useState<FilterState>(noFilters);
+  const hidesLogistics = useSyncExternalStore(
+    subscribeToLogistics,
+    readHidesLogistics,
+    readNoChoice,
+  );
+  const filters = useMemo(
+    () => ({ ...chosenFilters, showLogistics: !hidesLogistics }),
+    [chosenFilters, hidesLogistics],
+  );
 
   // Extract unique locations and categories from all entries (not just the selected day's),
   // so the filter options stay stable on days whose entries carry no category or location
@@ -60,9 +97,20 @@ export const useScheduleFilters = (
         return false;
       }
 
+      if (!filters.showLogistics && isLogistics(entry)) return false;
+
+      // read defensively: an entry restored from an older copy does not know the flag
+      if (filters.leadersOnly && entry.hasLeaderSection !== true) return false;
+
+      if (filters.timesOfDay.length > 0) {
+        const timeOfDay = timeOfDayOf(entry);
+        if (timeOfDay === undefined || !filters.timesOfDay.includes(timeOfDay)) return false;
+      }
+
       // Text search in title and description
-      if (filters.searchText !== '') {
-        const searchLower = filters.searchText.toLowerCase();
+      // a search of only spaces is no search
+      const searchLower = filters.searchText.trim().toLowerCase();
+      if (searchLower !== '') {
         const titleMatch = entry.title.toLowerCase().includes(searchLower);
 
         // Search in description (assuming it's a rich text object)
@@ -108,25 +156,29 @@ export const useScheduleFilters = (
     });
   }, [entries, filters, starredIds]);
 
-  const handleFiltersChange = useCallback((newFilters: FilterState) => {
-    setFilters(newFilters);
-  }, []);
+  const handleFiltersChange = useCallback(
+    (newFilters: FilterState) => {
+      setChosenFilters(newFilters);
+      if (newFilters.showLogistics === hidesLogistics)
+        storeHidesLogistics(!newFilters.showLogistics);
+    },
+    [hidesLogistics],
+  );
 
   const clearFilters = useCallback(() => {
-    setFilters({
-      searchText: '',
-      selectedLocations: [],
-      selectedCategory: undefined,
-      starredOnly: false,
-    });
+    setChosenFilters(noFilters);
+    storeHidesLogistics(false);
   }, []);
 
   const hasActiveFilters = useMemo(() => {
     return (
-      filters.searchText !== '' ||
+      filters.searchText.trim() !== '' ||
       filters.selectedLocations.length > 0 ||
       filters.selectedCategory !== undefined ||
-      filters.starredOnly
+      filters.starredOnly ||
+      filters.timesOfDay.length > 0 ||
+      !filters.showLogistics ||
+      filters.leadersOnly
     );
   }, [filters]);
 

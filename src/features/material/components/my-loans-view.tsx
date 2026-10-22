@@ -1,15 +1,19 @@
 'use client';
 
+import { buttonVariants } from '@/components/ui/buttons/button';
 import { SectionTitle, Stepper } from '@/features/material/components/counter-ui';
 import { MaterialItemImage } from '@/features/material/components/material-item-image';
 import { format, formatDay, labels } from '@/features/material/components/material-labels';
 import { MaterialQueryError } from '@/features/material/components/material-query-error';
-import { LoanStatusBadge } from '@/features/material/components/material-status-badge';
+import {
+  chip,
+  chipTone,
+  LoanStatusBadge,
+} from '@/features/material/components/material-status-badge';
 import {
   DateInput,
   EmptyState,
   Field,
-  focusRing,
   inputClass,
   LoadingState,
   MaterialButton,
@@ -161,7 +165,7 @@ const EditRequestSheet: React.FC<{ loan: MyLoan; onClose: () => void }> = ({ loa
     >
       <Field as="group" label={labels.quantity[locale]}>
         <div className="flex items-center justify-between gap-3">
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-green-500">
             {format(text.freeForDays, locale, {
               n: availability.data?.available ?? '…',
               max: loan.item.maxLoanQuantity,
@@ -178,7 +182,7 @@ const EditRequestSheet: React.FC<{ loan: MyLoan; onClose: () => void }> = ({ loa
           />
         </div>
         {!onStep && (
-          <p className="text-right text-xs font-semibold text-red-700">
+          <p className="text-danger-text text-right text-xs font-semibold">
             {format(labels.offStep, locale, { n: step })}
           </p>
         )}
@@ -246,36 +250,37 @@ const MyLoanRow: React.FC<{ loan: MyLoan; onEdit: (loan: MyLoan) => void }> = ({
   }
 
   return (
-    <li className={cn('space-y-2 px-4 py-3', status === 'OVERDUE' && 'bg-red-50')}>
-      <div className="flex items-center gap-3">
+    <li className={cn('space-y-2 px-4 py-3', status === 'OVERDUE' && 'bg-danger-soft')}>
+      {/* the badge drops below rather than squeezing the name: it can be wide */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <MaterialItemImage
           name={loan.item.name}
           imageUrl={loan.item.imageUrl}
           className="size-11"
         />
-        <div className="min-w-0 flex-1">
-          <div className="truncate font-semibold text-gray-900">
+        <div className="min-w-36 flex-1">
+          <div className="line-clamp-2 font-semibold break-words text-green-900">
             <span className="tabular-nums">{quantityOf(loan)} ×</span> {loan.item.name}
           </div>
           <div
             className={cn(
-              'truncate text-sm',
-              status === 'OVERDUE' ? 'font-semibold text-red-700' : 'text-gray-500',
+              'text-sm',
+              status === 'OVERDUE' ? 'text-danger-text font-semibold' : 'text-green-700',
             )}
           >
             {out ? when : `#${loan.number}`}
           </div>
         </div>
-        {announced === undefined ? (
-          <LoanStatusBadge status={status} locale={locale} />
-        ) : (
-          <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800 ring-1 ring-blue-600/30">
-            {labels.returnAnnounced[locale]}
-          </span>
-        )}
+        <span className="ml-auto">
+          {announced === undefined ? (
+            <LoanStatusBadge status={status} locale={locale} />
+          ) : (
+            <span className={cn(chip, chipTone.ready)}>{labels.returnAnnounced[locale]}</span>
+          )}
+        </span>
       </div>
       {rejected && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-900">
+        <p className="bg-danger-soft text-danger-text rounded-[10px] px-3 py-2 text-sm">
           {loan.rejectionReason === '' || loan.rejectionReason === null
             ? text.rejectedNoReason[locale]
             : format(text.rejectedBecause, locale, { reason: loan.rejectionReason })}
@@ -283,10 +288,10 @@ const MyLoanRow: React.FC<{ loan: MyLoan; onEdit: (loan: MyLoan) => void }> = ({
       )}
       {asking && (
         <div className="flex items-center justify-end gap-2">
-          <span className="mr-auto text-sm font-semibold text-gray-800">
+          <span className="mr-auto text-sm font-semibold text-green-900">
             {text.cancelAsk[locale]}
           </span>
-          <MaterialButton variant="ghost" onClick={() => setAsking(false)}>
+          <MaterialButton variant="quiet" onClick={() => setAsking(false)}>
             {labels.back[locale]}
           </MaterialButton>
           <MaterialButton
@@ -313,21 +318,21 @@ const MyLoanRow: React.FC<{ loan: MyLoan; onEdit: (loan: MyLoan) => void }> = ({
       {!asking && (isPending(loan) || (out && announced === undefined)) && (
         <div className="flex flex-wrap justify-end gap-2">
           {loan.status === 'REQUESTED' && (
-            <MaterialButton variant="secondary" onClick={() => onEdit(loan)}>
+            <MaterialButton variant="outlined" onClick={() => onEdit(loan)}>
               <Pencil aria-hidden />
               {labels.edit[locale]}
             </MaterialButton>
           )}
           {isPending(loan) && (
             // asks before it cancels; the red belongs to "yes, cancel", not to every row
-            <MaterialButton variant="ghost" onClick={() => setAsking(true)}>
+            <MaterialButton variant="quiet" onClick={() => setAsking(true)}>
               <X aria-hidden />
               {text.cancel[locale]}
             </MaterialButton>
           )}
           {out && announced === undefined && (
             <MaterialButton
-              variant="secondary"
+              variant="outlined"
               loading={announce.isPending}
               onClick={() =>
                 announce.mutate(
@@ -365,23 +370,23 @@ const OutCard: React.FC<{
   const open = loans.filter((loan) => announcedAt(loan) === undefined).map((loan) => loan.id);
   return (
     <Panel>
-      <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
+      <div className="border-line flex items-center gap-2 border-b px-4 py-3">
         {icon}
-        <h2 className="min-w-0 flex-1 truncate font-bold text-gray-900">{title}</h2>
+        <h2 className="font-heading text-heading min-w-0 flex-1 truncate font-bold">{title}</h2>
       </div>
       {loans.length === 0 ? (
         <EmptyState text={text.nothingOut[locale]} />
       ) : (
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-line divide-y">
           {loans.map((loan) => (
             <MyLoanRow key={loan.id} loan={loan} onEdit={onEdit} />
           ))}
         </ul>
       )}
       {open.length > 1 && (
-        <div className="border-t border-gray-100 p-3">
+        <div className="border-line border-t p-3">
           <MaterialButton
-            variant="secondary"
+            variant="outlined"
             className="w-full"
             loading={announce.isPending}
             onClick={() =>
@@ -459,17 +464,17 @@ const ScannedLoanSheet: React.FC<{ number: number; onClose: () => void }> = ({
               className="size-14"
             />
             <div className="min-w-0 flex-1">
-              <div className="font-semibold text-gray-900">
+              <div className="font-semibold text-green-900">
                 {data.issuedQuantity ?? data.quantity} × {data.item.name}
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-green-500">
                 {format(text.until, locale, { day: formatDay(data.endDate, locale) })}
               </div>
             </div>
             <LoanStatusBadge status={getLoanDisplayStatus(data, now)} locale={locale} />
           </div>
           {data.item.returnInstructions !== '' && (
-            <p className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+            <p className="bg-quiet rounded-[10px] px-3 py-2 text-sm text-green-700">
               <span className="font-semibold">{labels.returnInstructions[locale]}: </span>
               {data.item.returnInstructions}
             </p>
@@ -535,12 +540,12 @@ export const MyLoansView: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      <p className="px-1 text-sm text-gray-600">{text.intro[locale]}</p>
+      <p className="px-1 text-sm text-green-700">{text.intro[locale]}</p>
       <Link
         href="/app/material/katalog"
         className={cn(
-          'bg-conveniat-green flex h-14 items-center justify-center gap-2 rounded-2xl text-base font-semibold text-white [&_svg]:size-5',
-          focusRing,
+          buttonVariants({ variant: 'primary', size: 'touch' }),
+          'w-full [&_svg]:size-5',
         )}
       >
         <Plus aria-hidden />
@@ -555,10 +560,10 @@ export const MyLoansView: React.FC = () => {
               const first = group.loans[0];
               return (
                 <Panel key={group.key}>
-                  <div className="border-b border-gray-100 px-4 py-3">
-                    <h3 className="truncate font-bold text-gray-900">{group.title}</h3>
+                  <div className="border-line border-b px-4 py-3">
+                    <h3 className="font-heading text-heading truncate font-bold">{group.title}</h3>
                     {first !== undefined && (
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-green-500">
                         {format(text.pickupReturn, locale, {
                           start: formatDay(first.startDate, locale),
                           end: formatDay(first.endDate, locale),
@@ -566,7 +571,7 @@ export const MyLoansView: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  <ul className="divide-y divide-gray-100">
+                  <ul className="divide-line divide-y">
                     {group.loans.map((loan) => (
                       <MyLoanRow key={loan.id} loan={loan} onEdit={setEditing} />
                     ))}
@@ -582,7 +587,7 @@ export const MyLoansView: React.FC = () => {
         <OutCard
           key={hof.id}
           title={`${text.ourHof[locale]} · ${hof.name}`}
-          icon={<Building2 className="size-4 shrink-0 text-gray-500" aria-hidden />}
+          icon={<Building2 className="size-4 shrink-0 text-green-500" aria-hidden />}
           loans={hof.loans.filter((loan) => isOut(loan))}
           onEdit={setEditing}
         />
@@ -590,12 +595,12 @@ export const MyLoansView: React.FC = () => {
       {(hoefe.length === 0 || mine.some((loan) => isOut(loan))) && (
         <OutCard
           title={text.withMe[locale]}
-          icon={<User className="size-4 shrink-0 text-gray-500" aria-hidden />}
+          icon={<User className="size-4 shrink-0 text-green-500" aria-hidden />}
           loans={mine.filter((loan) => isOut(loan))}
           onEdit={setEditing}
         />
       )}
-      {hoefe.length === 0 && <p className="px-1 text-sm text-gray-500">{text.noHof[locale]}</p>}
+      {hoefe.length === 0 && <p className="px-1 text-sm text-green-500">{text.noHof[locale]}</p>}
 
       {editing !== undefined && (
         <EditRequestSheet loan={editing} onClose={() => setEditing(undefined)} />

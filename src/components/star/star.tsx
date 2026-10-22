@@ -30,7 +30,8 @@ export const StarButton: React.FC<{
   toggleStar: (id: string) => void;
   /** When true, the star is locked (enrolled items can't be un-starred) */
   isLocked?: boolean;
-}> = ({ id, isStared, toggleStar, isLocked = false }) => {
+  className?: string | undefined;
+}> = ({ id, isStared, toggleStar, isLocked = false, className }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   let ariaLabel: string = enrolledStarredText[locale];
@@ -40,7 +41,7 @@ export const StarButton: React.FC<{
 
   return (
     <Button
-      variant="ghost"
+      variant="plain"
       size="icon"
       onClick={(event) => {
         event.preventDefault();
@@ -50,13 +51,18 @@ export const StarButton: React.FC<{
         }
       }}
       aria-label={ariaLabel}
-      className={cn('h-8 w-8', isLocked ? 'cursor-default opacity-80' : 'hover:bg-gray-100')}
+      aria-pressed={isStared}
+      className={cn(
+        'h-11 w-11 shrink-0 rounded-full',
+        isLocked && 'cursor-default opacity-80',
+        className,
+      )}
       disabled={isLocked}
     >
       <Star
         className={cn(
-          'h-4 w-4 transition-all duration-200',
-          isStared ? 'scale-110 fill-red-400 text-red-700' : 'text-gray-400 hover:scale-105',
+          'h-5 w-5 transition-transform duration-200',
+          isStared ? 'fill-amber-700 text-amber-700' : 'text-green-500',
         )}
       />
     </Button>

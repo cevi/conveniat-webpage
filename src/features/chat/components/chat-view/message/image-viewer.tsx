@@ -51,7 +51,7 @@ export const ImageViewer: React.FC<ImageViewerProperties> = ({
         )}
         <DialogPrimitive.Close
           aria-label={closeText[locale]}
-          className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus-visible:outline-white"
         >
           <X className="h-6 w-6" />
         </DialogPrimitive.Close>

@@ -6,10 +6,6 @@
     "base_v1.0.0": {
       "url": "https://vectortiles.geo.admin.ch/tiles/ch.swisstopo.base.vt/v1.0.0/tiles.json",
       "type": "vector"
-    },
-    "relief_v1.0.0": {
-      "url": "https://vectortiles.geo.admin.ch/tiles/ch.swisstopo.relief.vt/v1.0.0/tiles.json",
-      "type": "vector"
     }
   },
   "layers": [
@@ -17,32 +13,7 @@
       "id": "background",
       "type": "background",
       "paint": {
-        "background-color": "#F6EFE0",
-        "background-pattern": "camp-paper"
-      }
-    },
-    {
-      "id": "hillshade-shadow",
-      "type": "fill",
-      "source": "relief_v1.0.0",
-      "source-layer": "hillshade",
-      "filter": ["<", ["get", "luminosity"], 0],
-      "paint": {
-        "fill-color": "#7a6650",
-        "fill-opacity": ["interpolate", ["linear"], ["get", "luminosity"], -15, 0.36, -1, 0.04],
-        "fill-antialias": false
-      }
-    },
-    {
-      "id": "hillshade-light",
-      "type": "fill",
-      "source": "relief_v1.0.0",
-      "source-layer": "hillshade",
-      "filter": [">", ["get", "luminosity"], 0],
-      "paint": {
-        "fill-color": "#fffdf6",
-        "fill-opacity": 0.35,
-        "fill-antialias": false
+        "background-color": "#F6F7F2"
       }
     },
     {
@@ -52,7 +23,7 @@
       "source-layer": "landcover",
       "filter": ["match", ["get", "class"], ["forest", "wood"], true, false],
       "paint": {
-        "fill-color": "#CFE0BC"
+        "fill-color": "#D6E5C9"
       }
     },
     {
@@ -61,7 +32,20 @@
       "source": "base_v1.0.0",
       "source-layer": "water",
       "paint": {
-        "fill-color": "#A7CFE3"
+        "fill-color": "#B7D6E6"
+      }
+    },
+    {
+      "id": "contour",
+      "type": "line",
+      "source": "base_v1.0.0",
+      "source-layer": "contour_line",
+      "minzoom": 13,
+      "filter": ["!", ["has", "lake_depth"]],
+      "paint": {
+        "line-color": "#CDBFA3",
+        "line-opacity": ["interpolate", ["linear"], ["zoom"], 13, 0.5, 17, 0.8],
+        "line-width": ["match", ["%", ["to-number", ["get", "ele"], 0], 50], 0, 1.1, 0.5]
       }
     },
     {
@@ -70,7 +54,7 @@
       "source": "base_v1.0.0",
       "source-layer": "waterway",
       "paint": {
-        "line-color": "#A7CFE3",
+        "line-color": "#B7D6E6",
         "line-width": [
           "interpolate",
           ["linear"],
@@ -89,8 +73,8 @@
       "source-layer": "building",
       "minzoom": 13.5,
       "paint": {
-        "fill-color": "#E6D9C2",
-        "fill-outline-color": "#D8C8AC"
+        "fill-color": "#E5E3DB",
+        "fill-outline-color": "#D4D0C4"
       }
     },
     {
@@ -110,7 +94,7 @@
         "line-join": "round"
       },
       "paint": {
-        "line-color": "#E3D3B8",
+        "line-color": "#DED9CC",
         "line-width": [
           "interpolate",
           ["linear"],
@@ -171,7 +155,7 @@
       "minzoom": 15,
       "filter": ["match", ["get", "class"], ["path", "track", "footway"], true, false],
       "paint": {
-        "line-color": "#E3D3B8",
+        "line-color": "#C3BBA8",
         "line-width": 1,
         "line-dasharray": [2, 2]
       }
@@ -183,7 +167,7 @@
       "source-layer": "transportation",
       "filter": ["==", ["get", "class"], "rail"],
       "paint": {
-        "line-color": "#9B8C79",
+        "line-color": "#998F7E",
         "line-width": 1.6,
         "line-dasharray": [3, 2]
       }
@@ -234,8 +218,8 @@
         "text-rotation-alignment": "map"
       },
       "paint": {
-        "text-color": "#7d6a55",
-        "text-halo-color": "#F6EFE0",
+        "text-color": "#6B6352",
+        "text-halo-color": "#F6F7F2",
         "text-halo-width": 1.5
       },
       "filter": ["all", ["!=", "class", "via_ferrata"], ["==", "$type", "LineString"]]
@@ -357,8 +341,8 @@
         ]
       },
       "paint": {
-        "text-color": "#5A3E22",
-        "text-halo-color": "#F6EFE0",
+        "text-color": "#2F3B33",
+        "text-halo-color": "#F6F7F2",
         "text-halo-width": 1.5
       },
       "filter": ["in", "class", "town", "village"]

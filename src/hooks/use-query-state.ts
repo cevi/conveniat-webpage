@@ -31,7 +31,9 @@ export const useQueryState = (
     const currentValue = url.searchParams.get(key);
     const newValue = value;
 
-    if (newValue === currentValue) return;
+    // an absent parameter is `null` here and `undefined` in the value: both mean none. Unequal,
+    // they rewrote an unchanged address on every mount, which cancelled a tab tapped meanwhile.
+    if ((newValue ?? '') === (currentValue ?? '')) return;
 
     if (newValue !== undefined && newValue !== '') {
       url.searchParams.set(key, newValue);

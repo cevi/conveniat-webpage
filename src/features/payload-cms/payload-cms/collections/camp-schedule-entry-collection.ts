@@ -35,10 +35,30 @@ export const hideLeaderNotes: CollectionAfterReadHook<CampScheduleEntry> = ({ do
   if (req.context[LEADER_NOTES_CONTEXT] === true) return doc;
   if (req.user !== null && hasAdminOrWebAccess({ req })) return doc;
 
-  const publicPart = { ...doc };
+  const publicPart: CampScheduleEntry & { hasLeaderSection?: boolean } = { ...doc };
+  // Whether there is a part for Leitende at all, for the programme's filter "Für Leitende".
+  // Only a yes or no, so everybody may have it, and the cached list stays the same for all.
+  // A read that did not select the notes cannot tell, so it says nothing.
+  if ('leaders' in doc) publicPart.hasLeaderSection = hasLeaderNotes(doc.leaders);
   delete publicPart.leaders;
   return publicPart;
 };
+
+const hasText = (value: string | null | undefined): boolean =>
+  typeof value === 'string' && value.trim() !== '';
+
+/**
+ * Whether a block has anything written for Leitende: material, attachments, or a note on
+ * safety, PSA or bad weather, i.e. whether its page shows them a leader tab.
+ */
+export const hasLeaderNotes = (leaders: CampScheduleEntry['leaders'] | null): boolean =>
+  leaders !== null &&
+  leaders !== undefined &&
+  ((leaders.materials ?? []).length > 0 ||
+    (leaders.attachments ?? []).length > 0 ||
+    hasText(leaders.safety) ||
+    hasText(leaders.safeguarding) ||
+    hasText(leaders.badWeather));
 
 export const CampScheduleEntryCollection: CollectionConfig = {
   slug: 'camp-schedule-entry',

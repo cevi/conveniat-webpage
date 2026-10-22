@@ -8,13 +8,14 @@ import type React from 'react';
  * The colour of each part of an article's stock, the same in the bar, its legend and the
  * figures above it, so a colour means one thing everywhere. Soft on purpose: the numbers carry
  * the message, the colours only tell the parts apart. Only colours from the app's palette
- * exist, see `tailwind.config.ts`.
+ * exist, see `tailwind.config.ts`; the live orange marks the broken pieces as the one part that
+ * wants a hand.
  */
 export const stockTone = {
   free: 'bg-conveniat-green',
   reserved: 'bg-blue-300',
-  issued: 'bg-amber-400',
-  broken: 'bg-red-400',
+  issued: 'bg-green-300',
+  broken: 'bg-danger',
 } as const;
 
 interface Segment {
@@ -65,7 +66,7 @@ export const MaterialStockBar: React.FC<{
     <div className="w-full min-w-0">
       <div
         className={cn(
-          'flex w-full gap-px overflow-hidden rounded-full bg-gray-100',
+          'bg-quiet flex w-full gap-px overflow-hidden rounded-full',
           size === 'lg' ? 'h-2' : 'h-1',
         )}
         role="img"
@@ -83,13 +84,13 @@ export const MaterialStockBar: React.FC<{
       </div>
       <div
         className={cn(
-          'mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-gray-500 tabular-nums',
+          'mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-green-500 tabular-nums',
           size === 'lg' ? 'text-sm' : 'text-xs',
         )}
       >
         {free !== undefined && (
           <span>
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-green-900">
               {free.value} {free.label}
             </span>{' '}
             {format(labels.ofTotal, locale, { n: totalQuantity, unit })}

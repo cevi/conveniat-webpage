@@ -1,14 +1,14 @@
 'use client';
 import {
-  ChatAlertDialog,
-  ChatAlertDialogAction,
-  ChatAlertDialogCancel,
-  ChatAlertDialogContent,
-  ChatAlertDialogDescription,
-  ChatAlertDialogFooter,
-  ChatAlertDialogHeader,
-  ChatAlertDialogTitle,
-} from '@/features/chat/components/ui/chat-alert-dialog';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useLeaveChatMutation } from '@/features/chat/hooks/use-leave-chat-mutation';
@@ -16,6 +16,7 @@ import { ChatMembershipPermission } from '@/lib/prisma';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { Loader2, LogOut } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useState } from 'react';
@@ -63,13 +64,16 @@ const localizedCancel: StaticTranslationString = {
 };
 
 /**
- * Lets any member of a group chat leave it, whatever their permission.
+ * The question before leaving a group chat, and the leaving. Reads the chat from the
+ * surrounding `ChatIdProvider`, so the details and the chat list's actions ask the same.
  */
-export const LeaveChat: React.FC = () => {
+export const LeaveChatDialog: React.FC<{
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}> = ({ open, onOpenChange }) => {
   const chatId = useChatId();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const leaveChatMutation = useLeaveChatMutation();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const { data: currentUser } = trpc.chat.user.useQuery({});
   const { data: chatDetails } = useChatDetail(chatId);
@@ -90,46 +94,79 @@ export const LeaveChat: React.FC = () => {
       : localizedLeaveFailed[locale];
 
   return (
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        // a later opening starts without the error of this one
+        if (!next) leaveChatMutation.reset();
+        onOpenChange(next);
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{localizedLeaveChat[locale]}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {localizedLeaveChatWarning[locale]}
+            {isLastOwner && ` ${localizedHandOverNotice[locale]}`}
+          </AlertDialogDescription>
+          {leaveChatMutation.isError && (
+            <p className="text-danger-text text-sm font-semibold" role="alert">
+              {errorText}
+            </p>
+          )}
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{localizedCancel[locale]}</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(event) => {
+              event.preventDefault();
+              leaveChatMutation.mutate(
+                { chatUuid: chatId },
+                // the details navigate away; the chat list stays, so the question has to close
+                { onSuccess: () => onOpenChange(false) },
+              );
+            }}
+            disabled={leaveChatMutation.isPending}
+            variant="destructive"
+          >
+            {leaveChatMutation.isPending ? (
+              <Loader2 className="animate-spin" aria-hidden="true" />
+            ) : (
+              <LogOut aria-hidden="true" />
+            )}
+            {localizedLeaveChat[locale]}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
+
+/** A row of the actions card at the foot of the chat details. */
+export const detailsActionRowClassName =
+  'flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left hover:bg-quiet disabled:cursor-not-allowed disabled:opacity-60 focus-visible:focus-ring-inset';
+
+/**
+ * Lets any member of a group chat leave it, whatever their permission: a neutral row, as
+ * leaving can be undone by an admin adding them again.
+ */
+export const LeaveChat: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  return (
     <>
       <button
-        onClick={() => {
-          leaveChatMutation.reset();
-          setIsDialogOpen(true);
-        }}
-        disabled={leaveChatMutation.isPending}
-        className="w-full cursor-pointer rounded-md border border-red-600 px-4 py-2 text-red-600 hover:bg-red-50 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
+        type="button"
+        className={detailsActionRowClassName}
+        onClick={() => setIsDialogOpen(true)}
       >
-        {localizedLeaveChat[locale]}
+        <LogOut className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
+        <span className="text-[15px] font-semibold text-green-900">
+          {localizedLeaveChat[locale]}
+        </span>
       </button>
-
-      <ChatAlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <ChatAlertDialogContent>
-          <ChatAlertDialogHeader>
-            <ChatAlertDialogTitle>{localizedLeaveChat[locale]}</ChatAlertDialogTitle>
-            <ChatAlertDialogDescription>
-              {localizedLeaveChatWarning[locale]}
-              {isLastOwner && ` ${localizedHandOverNotice[locale]}`}
-            </ChatAlertDialogDescription>
-            {leaveChatMutation.isError && <p className="text-sm text-red-600">{errorText}</p>}
-          </ChatAlertDialogHeader>
-          <ChatAlertDialogFooter>
-            <ChatAlertDialogCancel>{localizedCancel[locale]}</ChatAlertDialogCancel>
-            <ChatAlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                leaveChatMutation.mutate({ chatUuid: chatId });
-              }}
-              disabled={leaveChatMutation.isPending}
-              className="bg-red-600 text-white hover:bg-red-700"
-            >
-              {leaveChatMutation.isPending && (
-                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              )}
-              {localizedLeaveChat[locale]}
-            </ChatAlertDialogAction>
-          </ChatAlertDialogFooter>
-        </ChatAlertDialogContent>
-      </ChatAlertDialog>
+      <LeaveChatDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
     </>
   );
 };

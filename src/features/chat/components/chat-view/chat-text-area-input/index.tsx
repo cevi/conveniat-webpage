@@ -1,5 +1,6 @@
 // hooks/use-message-input-logic.ts
 import { Button } from '@/components/ui/buttons/button';
+import { formFieldClassName } from '@/components/ui/field';
 import { useMessageInput } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-message-input';
 import { useStagedImage } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-staged-image';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
@@ -8,22 +9,46 @@ import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import { generateMessageId } from '@/features/chat/utils';
+import { isMessageDeleted } from '@/features/chat/utils/message-deletion';
+import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatMembershipPermission, ChatType } from '@prisma/client';
-import { Megaphone, Paperclip, Send, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  Archive,
+  Lock,
+  Megaphone,
+  MessageSquareOff,
+  Paperclip,
+  Reply,
+  Send,
+  X,
+} from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const MAX_MESSAGE_LENGTH = 2000;
 
+const messageToPlaceholder: StaticTranslationString = {
+  de: 'Nachricht an {name}',
+  en: 'Message {name}',
+  fr: 'Message à {name}',
+};
+
 const messagePlaceholder: StaticTranslationString = {
-  de: 'Nachricht eingeben...',
-  en: 'Type a message...',
-  fr: 'Tapez un message...',
+  de: 'Nachricht schreiben',
+  en: 'Write a message',
+  fr: 'Écrire un message',
+};
+
+const threadReplyPlaceholder: StaticTranslationString = {
+  de: 'Im Thread antworten',
+  en: 'Reply in thread',
+  fr: 'Répondre dans le fil',
 };
 
 const enterToSendHint: StaticTranslationString = {
@@ -53,19 +78,19 @@ const attachImageText: StaticTranslationString = {
 const chatIsArchivedMessage: StaticTranslationString = {
   de: 'Dieser Chat ist archiviert. Du kannst keine Nachrichten senden.',
   en: 'This chat is archived. You cannot send messages.',
-  fr: 'Ce chat est archivé. Vous ne pouvez pas envoyer de messages.',
+  fr: 'Ce chat est archivé. Tu ne peux pas envoyer de messages.',
 };
 
 const isGuestMessage: StaticTranslationString = {
   de: 'Du bist ein Gast in diesem Chat. Du kannst keine Nachrichten senden.',
   en: 'You are a guest in this chat. You cannot send messages.',
-  fr: 'Vous êtes un invité dans ce chat. Vous ne pouvez pas envoyer de messages.',
+  fr: 'Tu es invité·e dans ce chat. Tu ne peux pas envoyer de messages.',
 };
 
 const isAnnouncementChannelMessage: StaticTranslationString = {
   de: 'Dies ist ein Ankündigungskanal. Du kannst hier keine Nachrichten senden.',
   en: 'This is an announcement channel. You cannot send messages here.',
-  fr: "Il s'agit d'un canal d'annonces. Vous ne pouvez pas envoyer de messages ici.",
+  fr: "Il s'agit d'un canal d'annonces. Tu ne peux pas envoyer de messages ici.",
 };
 
 const messageTooLongText: StaticTranslationString = {
@@ -86,10 +111,46 @@ const messagingDisabledText: StaticTranslationString = {
   fr: 'La messagerie est actuellement désactivée.',
 };
 
+const sendLabel: StaticTranslationString = {
+  de: 'Senden',
+  en: 'Send',
+  fr: 'Envoyer',
+};
+
+const cancelQuoteText: StaticTranslationString = {
+  de: 'Antwort abbrechen',
+  en: 'Cancel reply',
+  fr: 'Annuler la réponse',
+};
+
+const deletedQuoteText: StaticTranslationString = {
+  de: 'Gelöschte Nachricht',
+  en: 'Deleted message',
+  fr: 'Message supprimé',
+};
+
+const messageNotFoundText: StaticTranslationString = {
+  de: 'Nachricht nicht gefunden',
+  en: 'Message not found',
+  fr: 'Message introuvable',
+};
+
 const replyingToText: StaticTranslationString = {
-  de: 'Antwort auf',
-  en: 'Replying to',
-  fr: 'En réponse à',
+  de: 'Antwort an {name}',
+  en: 'Replying to {name}',
+  fr: 'Réponse à {name}',
+};
+
+const replyingToYourselfText: StaticTranslationString = {
+  de: 'Antwort auf deine Nachricht',
+  en: 'Replying to your message',
+  fr: 'Réponse à ton message',
+};
+
+const replyingText: StaticTranslationString = {
+  de: 'Antwort',
+  en: 'Reply',
+  fr: 'Réponse',
 };
 
 const chatLockedText: StaticTranslationString = {
@@ -287,47 +348,44 @@ export const ChatTextAreaInput: React.FC = () => {
   };
 
   if (isGuest && !isAllowedGuestThreadReplies) {
-    if (chatDetails?.type === ChatType.ANNOUNCEMENT) {
-      return (
-        <div className="flex w-full items-center justify-center gap-3 rounded-xl bg-gray-50 p-4 text-center">
-          <Megaphone className="h-5 w-5 shrink-0 text-gray-400" />
-          <span className="font-body text-sm font-medium text-balance text-gray-500">
-            {isAnnouncementChannelMessage[locale]}
-          </span>
-        </div>
-      );
-    }
-    return <div className="text-balance text-gray-500">{isGuestMessage[locale]}</div>;
-  }
-
-  if (chatDetails?.archivedAt !== null) {
-    return <div className="text-balance text-gray-500">{chatIsArchivedMessage[locale]}</div>;
-  }
-
-  if (isGlobalMessagingDisabled) {
-    return (
-      <div className="flex w-full items-center justify-center rounded-lg bg-gray-100 p-4 text-center text-sm text-gray-500">
-        {messagingDisabledText[locale]}
-      </div>
+    return chatDetails?.type === ChatType.ANNOUNCEMENT ? (
+      <ComposerNotice icon={Megaphone} text={isAnnouncementChannelMessage[locale]} />
+    ) : (
+      <ComposerNotice icon={Lock} text={isGuestMessage[locale]} />
     );
   }
 
+  if (chatDetails?.archivedAt !== null) {
+    return <ComposerNotice icon={Archive} text={chatIsArchivedMessage[locale]} />;
+  }
+
+  if (isGlobalMessagingDisabled) {
+    return <ComposerNotice icon={MessageSquareOff} text={messagingDisabledText[locale]} />;
+  }
+
   if (!canSendMessagesInChat) {
-    const isEmergency = chatDetails.type === ChatType.EMERGENCY;
-    return (
-      <div className="flex w-full items-center justify-center rounded-lg border border-red-100 bg-red-50 p-4 text-center text-sm text-red-600">
-        {isEmergency ? emergencyLockedText[locale] : chatLockedText[locale]}
-      </div>
+    // red belongs to Notfall, so only the locked emergency chat keeps it
+    return chatDetails.type === ChatType.EMERGENCY ? (
+      <ComposerNotice icon={Lock} text={emergencyLockedText[locale]} isEmergency />
+    ) : (
+      <ComposerNotice icon={Lock} text={chatLockedText[locale]} />
     );
   }
 
   const localizedError = getLocalizedError(sendError);
+  let placeholder = messagePlaceholder[locale];
+  if (activeThreadId !== undefined) placeholder = threadReplyPlaceholder[locale];
+  else if (chatDetails.name !== '')
+    placeholder = messageToPlaceholder[locale].replace('{name}', chatDetails.name);
 
   return (
-    <div className="group flex flex-col gap-1">
+    <div className="group flex flex-col gap-2">
       {/* Error message when sending fails */}
       {localizedError !== undefined && localizedError !== '' && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+        <div
+          className="bg-danger-soft text-danger-text rounded-[12px] px-3 py-2 text-sm font-semibold"
+          role="alert"
+        >
           {localizedError}
         </div>
       )}
@@ -340,70 +398,77 @@ export const ChatTextAreaInput: React.FC = () => {
       {/* Character count warning */}
       {isNearLimit && (
         <div
-          className={`text-right text-xs ${isTooLong ? 'font-semibold text-red-500' : 'text-orange-500'}`}
+          className={cn(
+            'px-2 text-right text-xs',
+            // a count while it fits, an error once it does not
+            isTooLong ? 'text-danger-text font-semibold' : 'text-green-700',
+          )}
         >
           {messageLength}/{MAX_MESSAGE_LENGTH}
           {isTooLong && ` - ${messageTooLongText[locale]}`}
         </div>
       )}
 
-      <div className="flex flex-col rounded-[24px] border border-gray-200 bg-white shadow-sm focus-within:border-gray-300 focus-within:ring-0">
-        {/* Staged attachment sits above the text it will be sent with */}
-        {stagedImage !== undefined && (
-          <div className="flex items-end gap-3 px-3 pt-3">
-            <div className="relative">
-              <img
-                src={stagedImage.previewUrl}
-                alt=""
-                className={cn(
-                  'h-20 w-20 rounded-xl object-cover ring-1 ring-gray-200',
-                  isUploading && 'opacity-60',
-                  hasUploadFailed && 'ring-2 ring-red-300',
-                )}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setHasUploadFailed(false);
-                  clearStagedImage();
-                }}
-                disabled={isUploading}
-                aria-label={removeAttachmentText[locale]}
-                className="absolute -top-2 -right-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-gray-700 text-white shadow-sm ring-2 ring-white"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            {hasUploadFailed && (
-              <span className="font-body pb-1 text-xs text-red-600">
-                {uploadFailedText[locale]}
-              </span>
-            )}
-          </div>
-        )}
-        <div className="flex items-end">
-          {canUploadPictures && (
-            <div className="mb-1 ml-1 pb-1">
-              <input
-                type="file"
-                ref={fileInputReference}
-                className="hidden"
-                accept="image/*"
-                onChange={handleFileSelect}
-              />
-              <Button
-                onClick={() => fileInputReference.current?.click()}
-                aria-label={attachImageText[locale]}
-                size="icon"
-                variant="ghost"
-                className="h-10 w-10 shrink-0 cursor-pointer rounded-full text-gray-500 hover:bg-transparent"
-              >
-                <Paperclip size={20} />
-              </Button>
+      {/* The field has the frame of every form field in field.ts; the send button stands
+          beside it, at the foot of its last line however tall the field grows. A single line of
+          text inside the 1px border is 42px, so field and button are both 44px high. */}
+      <div className="flex items-end gap-2">
+        <div className={cn(formFieldClassName, 'flex-1 flex-col items-stretch')}>
+          {/* Staged attachment sits above the text it will be sent with */}
+          {stagedImage !== undefined && (
+            <div className="flex items-end gap-3 px-3 pt-3">
+              <div className="relative">
+                <img
+                  src={stagedImage.previewUrl}
+                  alt=""
+                  className={cn(
+                    'ring-line h-20 w-20 rounded-xl object-cover ring-1',
+                    isUploading && 'opacity-60',
+                    hasUploadFailed && 'ring-danger ring-2',
+                  )}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHasUploadFailed(false);
+                    clearStagedImage();
+                  }}
+                  disabled={isUploading}
+                  aria-label={removeAttachmentText[locale]}
+                  className="group absolute -top-3.5 -right-3.5 flex h-11 w-11 cursor-pointer items-center justify-center focus-visible:outline-none"
+                >
+                  <span className="bg-heading group-focus-visible:focus-ring flex h-6 w-6 items-center justify-center rounded-full text-white ring-2 ring-white">
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                  </span>
+                </button>
+              </div>
+              {hasUploadFailed && (
+                <span className="text-danger-text pb-1 text-xs font-semibold">
+                  {uploadFailedText[locale]}
+                </span>
+              )}
             </div>
           )}
-          {/* Input box */}
-          <div className="flex-1">
+          <div className="flex items-end">
+            {canUploadPictures && (
+              <div>
+                <input
+                  type="file"
+                  ref={fileInputReference}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputReference.current?.click()}
+                  aria-label={attachImageText[locale]}
+                  className="flex h-[42px] w-[42px] shrink-0 cursor-pointer items-center justify-center rounded-[11px] text-green-700 hover:text-green-900"
+                >
+                  <Paperclip className="h-5 w-5" aria-hidden="true" />
+                </button>
+              </div>
+            )}
             <textarea
               {...textareaProps}
               onKeyDown={(event) => {
@@ -412,58 +477,88 @@ export const ChatTextAreaInput: React.FC = () => {
                   void sendWithAttachment();
                 }
               }}
-              placeholder={messagePlaceholder[locale]}
-              className="font-body w-full resize-none border-0 bg-transparent px-3 py-3 text-base placeholder:text-gray-500 focus:ring-0 focus:outline-none"
+              placeholder={placeholder}
+              // px, not rem: the root font is larger on desktop, and the line has to match the
+              // button, which is 44px everywhere
+              className={cn(
+                'block min-w-0 flex-1 resize-none [scrollbar-width:thin] border-0 bg-transparent py-[9px] pr-[14px] text-[16px] leading-[24px] text-green-900 outline-hidden placeholder:truncate placeholder:text-green-500',
+                canUploadPictures ? 'pl-0' : 'pl-[14px]',
+              )}
               rows={1}
               enterKeyHint="send"
               // five lines, then the textarea scrolls instead of eating the conversation
-              style={{ minHeight: '48px', maxHeight: '144px' }}
-              aria-label={messagePlaceholder[locale]}
+              style={{ minHeight: '42px', maxHeight: '138px' }}
+              aria-label={placeholder}
             />
           </div>
-
-          {/* Send button - sticky at bottom */}
-          <div className="mr-1 mb-1 pb-1">
-            {isTooLong ? (
-              <Button
-                onClick={() => void handleSplitAndSend()}
-                size="sm"
-                className="mb-1 h-8 shrink-0 rounded-[16px] bg-orange-500 px-4 text-white shadow-sm hover:bg-orange-600"
-              >
-                {splitAndSendText[locale]}
-              </Button>
-            ) : (
-              <Button
-                onClick={() => void sendWithAttachment()}
-                size="icon"
-                variant="ghost"
-                className="text-cevi-blue h-10 w-10 shrink-0 rounded-full hover:bg-transparent hover:text-blue-700 disabled:bg-transparent disabled:text-gray-300"
-                disabled={stagedImage === undefined ? isSendButtonDisabled : isUploading}
-              >
-                <Send size={20} />
-              </Button>
-            )}
-          </div>
         </div>
+
+        {isTooLong ? (
+          // the one way on from a message that is too long, so it takes the send button's place
+          <Button
+            onClick={() => void handleSplitAndSend()}
+            variant="primary"
+            className="h-[44px] shrink-0 rounded-[12px] px-4 text-[15px]"
+          >
+            {splitAndSendText[locale]}
+          </Button>
+        ) : (
+          <Button
+            onClick={() => void sendWithAttachment()}
+            variant="primary"
+            aria-label={sendLabel[locale]}
+            className="disabled:bg-quiet h-[44px] w-[44px] shrink-0 rounded-[12px] p-0 disabled:text-green-500 disabled:opacity-100 [&_svg]:size-5"
+            disabled={stagedImage === undefined ? isSendButtonDisabled : isUploading}
+          >
+            <Send aria-hidden="true" />
+          </Button>
+        )}
       </div>
 
-      {/* keyboard hint only where there is a keyboard, and only while typing */}
-      <p className="font-body hidden px-4 text-[11px] text-gray-400 pointer-fine:group-focus-within:block">
+      {/* keyboard hint only where there is a keyboard, and only while typing; its line is kept
+          when hidden, so focusing the field does not push the conversation up */}
+      <p className="invisible hidden px-4 text-[11px] text-green-500 pointer-fine:block pointer-fine:group-focus-within:visible">
         {enterToSendHint[locale]}
       </p>
     </div>
   );
 };
+/**
+ * Why the composer is not there: a neutral notice with an icon, red only in a locked Notfall chat.
+ */
+const ComposerNotice: React.FC<{ icon: LucideIcon; text: string; isEmergency?: boolean }> = ({
+  icon: Icon,
+  text,
+  isEmergency = false,
+}) => (
+  <div
+    className={cn(
+      'flex w-full items-center gap-3 rounded-[14px] px-4 py-3 text-sm text-balance',
+      isEmergency ? 'bg-red-50 text-red-700' : 'bg-quiet text-green-700',
+    )}
+    data-allow-red={isEmergency ? '' : undefined}
+  >
+    <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+    <span>{text}</span>
+  </div>
+);
+
+/**
+ * What the next message answers, above the composer: whom, a line of what they wrote, and a way
+ * to drop it.
+ */
 const QuotedMessagePreview: React.FC<{
   messageId: string;
   onCancel: () => void;
 }> = ({ messageId, onCancel }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { data: message, isLoading } = trpc.chat.getMessage.useQuery({ messageId });
+  const { data: currentUser } = trpc.chat.user.useQuery({});
 
   const getSnippet = (): string => {
-    if (isLoading) return '...';
-    if (!message) return 'Message not found';
+    if (isLoading) return '…';
+    if (!message) return messageNotFoundText[locale];
+    if (isMessageDeleted(message)) return deletedQuoteText[locale];
 
     const payload = message.messagePayload;
     if (typeof payload === 'string') return payload;
@@ -471,27 +566,30 @@ const QuotedMessagePreview: React.FC<{
     if ('text' in textPayload) {
       return String(textPayload['text']);
     }
-    return '...';
+    return '…';
   };
 
-  const snippet = getSnippet();
-  const truncatedSnippet = snippet.length > 100 ? snippet.slice(0, 100) + '...' : snippet;
+  let title = replyingText[locale];
+  if (message !== undefined && message.senderId === currentUser) {
+    title = replyingToYourselfText[locale];
+  } else if (message?.senderName !== undefined && message.senderName !== '') {
+    title = replyingToText[locale].replace('{name}', splitDisplayName(message.senderName).primary);
+  }
 
   return (
-    <div className="flex items-center justify-between rounded-t-xl border border-b-0 border-gray-200 bg-gray-50/80 px-4 py-2 text-xs backdrop-blur-sm">
-      <div className="border-cevi-blue flex flex-1 items-center gap-3 overflow-hidden border-l-[3px] pl-3">
-        <div className="flex flex-col overflow-hidden">
-          <span className="text-cevi-blue text-[10px] font-bold tracking-tight uppercase">
-            {replyingToText[locale]}
-          </span>
-          <span className="truncate text-gray-600 italic">{truncatedSnippet}</span>
-        </div>
+    <div className="bg-quiet flex items-center gap-3 rounded-[12px] py-1 pr-0.5 pl-3">
+      <Reply className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-[13px] font-semibold text-green-900">{title}</span>
+        <span className="truncate text-[13px] text-green-700">{getSnippet()}</span>
       </div>
       <button
+        type="button"
         onClick={onCancel}
-        className="ml-4 shrink-0 rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600"
+        aria-label={cancelQuoteText[locale]}
+        className="hover:bg-chip flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700"
       >
-        <X className="h-4 w-4" />
+        <X className="h-5 w-5" aria-hidden="true" />
       </button>
     </div>
   );

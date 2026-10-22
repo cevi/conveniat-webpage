@@ -38,7 +38,7 @@ export const MaterialQueryError: React.FC<{
 
   if (kind === 'signedOut') {
     return (
-      <div className="flex flex-col items-center gap-3 px-4 py-8 text-center text-sm text-gray-600">
+      <div className="flex flex-col items-center gap-3 px-4 py-8 text-center text-sm text-green-700">
         {labels.notSignedIn[locale]}
         <MaterialButton onClick={login}>
           <LogIn aria-hidden />

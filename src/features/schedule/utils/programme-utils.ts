@@ -12,15 +12,59 @@ const KINDS = new Set<string>(['program', 'fixpoint', 'meal', 'transfer']);
 export const kindOf = (entry: Pick<CampScheduleEntryFrontendType, 'kind'>): EntryKind =>
   typeof entry.kind === 'string' && KINDS.has(entry.kind) ? entry.kind : 'program';
 
+/**
+ * Whether an entry is logistics rather than programme: a meal, a transfer or a fixed point such
+ * as Anreise. The filter "Anreise & Essen anzeigen" hides these.
+ */
+export const isLogistics = (entry: Pick<CampScheduleEntryFrontendType, 'kind'>): boolean =>
+  kindOf(entry) !== 'program';
+
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening';
+
+export const TIMES_OF_DAY: readonly TimeOfDay[] = ['morning', 'afternoon', 'evening'];
+
+/**
+ * The part of the day an entry starts in: Morgen before 12:00, Nachmittag until 17:59, Abend
+ * from 18:00. The times of the programme are the camp's wall clock, Europe/Zurich, so the phone's
+ * timezone plays no part. An entry without a readable time belongs to none.
+ */
+export const timeOfDayOf = (
+  entry: Pick<CampScheduleEntryFrontendType, 'timeslot'>,
+): TimeOfDay | undefined => {
+  const start = slotOf(entry)?.start;
+  if (start === undefined) return undefined;
+  if (start < 12 * 60) return 'morning';
+  return start < 18 * 60 ? 'afternoon' : 'evening';
+};
+
 export const formLabels: Record<string, string> = { rp: 'RP', hp: 'HP', hpStar: 'HP*' };
+
+/** A Quartier an entry names: its name, number and Rufname are absent while it is unpopulated. */
+export interface EntryQuartier {
+  id: string;
+  name: string | undefined;
+  number: number | undefined;
+  rufname: string | undefined;
+}
 
 /** The Quartiere an entry names, without the dangling ones. Empty means the whole camp. */
 export const quartiereOf = (
   entry: Pick<CampScheduleEntryFrontendType, 'quartiere'>,
-): { id: string; name: string | undefined }[] =>
-  (entry.quartiere ?? []).flatMap((quartier): { id: string; name: string | undefined }[] => {
-    if (typeof quartier === 'string') return [{ id: quartier, name: undefined }];
-    return quartier === null ? [] : [{ id: quartier.id, name: quartier.name }];
+): EntryQuartier[] =>
+  (entry.quartiere ?? []).flatMap((quartier): EntryQuartier[] => {
+    if (typeof quartier === 'string') {
+      return [{ id: quartier, name: undefined, number: undefined, rufname: undefined }];
+    }
+    if (quartier === null) return [];
+    return [
+      {
+        id: quartier.id,
+        name: quartier.name,
+        // read defensively: a phone restores yesterday's copy, from before these fields
+        number: typeof quartier.number === 'number' ? quartier.number : undefined,
+        rufname: typeof quartier.rufname === 'string' ? quartier.rufname : undefined,
+      },
+    ];
   });
 
 /** Whether an entry concerns one of the given Quartiere: it names one, or it names none. */
@@ -125,22 +169,89 @@ export const withClockTimes = (
   });
 };
 
+const relationIdOf = (value: string | { id: string } | null | undefined): string | undefined =>
+  typeof value === 'string' ? value : (value?.id ?? undefined);
+
 /**
- * The other slots of the same block on the same day: the Quartiere take turns, so "Kennenlernspiel"
- * runs once at 13:45 and once at 15:45. Matched by title, which is how the programme names a block.
+ * Whether two entries are slots of the same block: the Quartiere take turns, so "Ballspiele" runs
+ * at 17:00 for Q4–Q6 and again for Q7–Q8. There is no block field; a block is the same programme
+ * title at the same place in the same category on the same day.
  */
+export const isSameBlock = (
+  a: Pick<CampScheduleEntryFrontendType, 'title' | 'timeslot' | 'kind' | 'location' | 'category'>,
+  b: Pick<CampScheduleEntryFrontendType, 'title' | 'timeslot' | 'kind' | 'location' | 'category'>,
+): boolean =>
+  kindOf(a) === 'program' &&
+  kindOf(b) === 'program' &&
+  a.title === b.title &&
+  a.timeslot.date === b.timeslot.date &&
+  relationIdOf(a.location) === relationIdOf(b.location) &&
+  relationIdOf(a.category) === relationIdOf(b.category);
+
+/** The other slots of the same block on the same day, in order. */
 export const findOtherSlots = <
-  T extends Pick<CampScheduleEntryFrontendType, 'id' | 'title' | 'timeslot' | 'kind'>,
+  T extends Pick<
+    CampScheduleEntryFrontendType,
+    'id' | 'title' | 'timeslot' | 'kind' | 'location' | 'category'
+  >,
 >(
   entries: readonly T[],
   entry: T,
 ): T[] =>
-  entries
+  entries.filter((other) => other.id !== entry.id && isSameBlock(entry, other)).sort(byStart);
+
+const normalizedText = (text: string): string =>
+  text
+    .toLowerCase()
+    .replaceAll(/\s+/g, ' ')
+    .trim()
+    .replace(/[.!?…:;,]+$/, '')
+    .trim();
+
+/** The words of a Lexical rich text, whatever shape a draft left it in. */
+const textOfRichText = (node: unknown): string => {
+  if (typeof node !== 'object' || node === null) return '';
+  const { text, children, root } = node as { text?: unknown; children?: unknown; root?: unknown };
+  if (typeof text === 'string') return text;
+  if (root !== undefined) return textOfRichText(root);
+  return Array.isArray(children) ? children.map((child) => textOfRichText(child)).join(' ') : '';
+};
+
+/**
+ * Whether a block's description says nothing the title does not: empty, or the title again, as
+ * in "Ballspiele." under "Ballspiele". Drafts skip validation, so a description in any shape is
+ * read for its words, and one without any counts as empty.
+ */
+export const isDescriptionRedundant = (description: unknown, title: string): boolean => {
+  const normalized = normalizedText(textOfRichText(description));
+  return normalized === '' || normalized === normalizedText(title);
+};
+
+/** Whether rich text holds any words: a draft can save an empty document. */
+export const hasRichText = (value: unknown): boolean =>
+  normalizedText(textOfRichText(value)) !== '';
+
+/**
+ * What comes after a block on its own timeline, the one of the Quartiere it is for: the next
+ * stop, often a meal, and the next block, which has a page to open.
+ */
+export const findWhatComesNext = <
+  T extends Pick<CampScheduleEntryFrontendType, 'id' | 'kind' | 'timeslot' | 'quartiere'>,
+>(
+  entries: readonly T[],
+  current: T,
+  quartierIds: ReadonlySet<string>,
+): { next: T | undefined; nextBlock: T | undefined } => {
+  const end = slotOf(current)?.end ?? 0;
+  const later = entries
     .filter(
-      (other) =>
-        other.id !== entry.id &&
-        kindOf(other) === 'program' &&
-        other.title === entry.title &&
-        other.timeslot.date === entry.timeslot.date,
+      (entry) =>
+        entry.id !== current.id &&
+        kindOf(entry) !== 'transfer' &&
+        entry.timeslot.date === current.timeslot.date &&
+        (slotOf(entry)?.start ?? -1) >= end &&
+        isForQuartiere(entry, quartierIds),
     )
     .sort(byStart);
+  return { next: later[0], nextBlock: later.find((entry) => kindOf(entry) === 'program') };
+};

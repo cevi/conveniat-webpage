@@ -1,10 +1,6 @@
-import { DialogDescription } from '@/components/ui/dialog';
-import {
-  ChatDialog,
-  ChatDialogContent,
-  ChatDialogHeader,
-  ChatDialogTitle,
-} from '@/features/chat/components/ui/chat-dialog';
+'use client';
+
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type React from 'react';
 
@@ -14,16 +10,10 @@ const reactionsText: StaticTranslationString = {
   fr: 'Réactions',
 };
 
-const descriptionText: StaticTranslationString = {
-  de: 'Wer wie auf die Nachricht reagiert hat',
-  en: 'Who reacted to the message, and how',
-  fr: 'Qui a réagi au message, et comment',
-};
-
 const youText: StaticTranslationString = {
   de: 'Du',
   en: 'You',
-  fr: 'Vous',
+  fr: 'Toi',
 };
 
 export interface ReactionGroup {
@@ -41,27 +31,18 @@ export const ReactionDetailsDialog: React.FC<{
   locale: Locale;
   onClose: () => void;
 }> = ({ groups, currentUserId, locale, onClose }) => (
-  <ChatDialog open onOpenChange={(open) => !open && onClose()}>
-    <ChatDialogContent className="sm:max-w-md">
-      <ChatDialogHeader>
-        <ChatDialogTitle>{reactionsText[locale]}</ChatDialogTitle>
-        <DialogDescription className="sr-only">{descriptionText[locale]}</DialogDescription>
-      </ChatDialogHeader>
-      <ul className="max-h-[60vh] space-y-2 overflow-y-auto">
-        {groups.flatMap((group) =>
-          group.users.map((reactor) => (
-            <li
-              key={`${group.emoji}-${reactor.id}`}
-              className="flex items-center gap-3 border-b border-gray-100 pb-2"
-            >
-              <span className="text-xl">{group.emoji}</span>
-              <span className="font-body flex-1 text-sm text-gray-700">
-                {reactor.id === currentUserId ? youText[locale] : reactor.name}
-              </span>
-            </li>
-          )),
-        )}
-      </ul>
-    </ChatDialogContent>
-  </ChatDialog>
+  <BottomSheet open onOpenChange={(open) => !open && onClose()} title={reactionsText[locale]}>
+    <ul className="divide-line divide-y">
+      {groups.flatMap((group) =>
+        group.users.map((reactor) => (
+          <li key={`${group.emoji}-${reactor.id}`} className="flex min-h-12 items-center gap-3">
+            <span className="text-xl">{group.emoji}</span>
+            <span className="flex-1 text-[15px] text-green-900">
+              {reactor.id === currentUserId ? youText[locale] : reactor.name}
+            </span>
+          </li>
+        )),
+      )}
+    </ul>
+  </BottomSheet>
 );

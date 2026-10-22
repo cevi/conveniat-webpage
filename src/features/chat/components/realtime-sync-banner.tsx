@@ -52,15 +52,15 @@ export const RealtimeSyncBanner: React.FC<RealtimeSyncBannerProperties> = ({
       onClick={onReconnect}
       aria-live="polite"
       className={cn(
-        'font-body flex w-full items-center gap-2 bg-red-50 px-4 py-2 text-left text-xs text-red-700',
-        'border-y border-red-200 transition-colors hover:bg-red-100',
+        'bg-danger-soft text-danger-text flex min-h-11 w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-[13px]',
+        'border-danger-line border-y',
         className,
       )}
     >
-      <WifiOff className="h-4 w-4 shrink-0" />
+      <WifiOff className="h-4 w-4 shrink-0" aria-hidden="true" />
       <span className="flex-1">{notLiveText[locale]}</span>
       <span className="flex shrink-0 items-center gap-1 font-semibold underline">
-        <RefreshCw className="h-3 w-3" />
+        <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
         {reconnectText[locale]}
       </span>
     </button>

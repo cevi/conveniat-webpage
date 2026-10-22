@@ -15,6 +15,33 @@
   --preview-banner-height: 32px;
 }
 
+/* Keyboard focus in the app looks one way: a 2px brand-green outline, 2px off the element so it
+   still shows around a filled green button. It is `:focus-visible` only, so a tap leaves nothing
+   behind. Text fields draw the same ring on their frame instead, see `src/components/ui/field.ts`.
+
+   - an element whose ring would be clipped, like a row in a card, uses `focus-ring-inset`
+   - a control whose hit area is larger than what it shows, like a filter chip, puts the ring on
+     the visible part with `group-focus-visible:focus-ring` and drops its own
+
+   The website keeps its own focus styles; `site:` marks them so they stay out of the app. */
+@custom-variant site (&:where(:not([data-app] *)));
+
+@utility focus-ring {
+  outline: 2px solid theme('colors.conveniat-green');
+  outline-offset: 2px;
+}
+
+@utility focus-ring-inset {
+  outline: 2px solid theme('colors.conveniat-green');
+  outline-offset: -2px;
+}
+
+@layer base {
+  [data-app] :focus-visible {
+    @apply focus-ring;
+  }
+}
+
 /* Adjust Size for Desktop */
 @media (min-width: 1024px) {
   // tailwind lg <= x < xl

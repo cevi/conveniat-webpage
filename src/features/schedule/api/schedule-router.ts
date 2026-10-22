@@ -4,6 +4,7 @@ import {
   getLeftGroupMessagePayload,
 } from '@/features/chat/api/utils/system-message-helpers'; // eslint-disable-line import/no-restricted-paths
 import { ensureOrganiserStars } from '@/features/schedule/api/organiser-entries';
+import { remindersRouter } from '@/features/schedule/api/reminders-router';
 import { assertUnenrollmentIsOpen } from '@/features/schedule/api/shift-withdrawal-guard';
 import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
@@ -38,23 +39,6 @@ export const scheduleRouter = createTRPCRouter({
     return getScheduleEntries({}, locale);
   }),
 
-  /**
-   * Lightweight variant of `getScheduleEntries` used by the dashboard.
-   *
-   * Skips heavy fields (organiser, description, target_group) as the dashboard
-   * only renders title, time, location and category.
-   *
-   * The locale is an explicit input (instead of being read from the cookie via
-   * the context) so that the persisted client cache is scoped per locale.
-   */
-  getScheduleEntriesForDashboard: publicProcedure
-    .input(z.object({ locale: z.enum(['en', 'de', 'fr']) }))
-    .query(async ({ input }) => {
-      const { locale } = input;
-      const { getScheduleEntriesForDashboard } = await import('./get-schedule-entries');
-      return getScheduleEntriesForDashboard(locale);
-    }),
-
   getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input, ctx }) => {
     const { locale } = ctx;
     const { getById } = await import('./get-by-id');
@@ -82,6 +66,16 @@ export const scheduleRouter = createTRPCRouter({
       // eslint-disable-next-line unicorn/no-null
       return (await getLeaderNotesOfEntry(ctx.user, input.id, ctx.locale)) ?? null;
     }),
+
+  /**
+   * Whether the logged-in user may read the part of a block for Leitende, by the same rule as
+   * `getLeaderNotes`. The programme offers the filter "Für Leitende" to them only.
+   */
+  getLeaderAccess: publicProcedure.query(async ({ ctx }) => {
+    if (!ctx.user) return false;
+    const { isLeader } = await import('./viewer');
+    return isLeader(ctx.user);
+  }),
 
   getHelperShifts: publicProcedure.query(async ({ ctx }) => {
     const { locale, prisma, user } = ctx;
@@ -931,6 +925,8 @@ export const scheduleRouter = createTRPCRouter({
 
       return { chatId: chat.uuid };
     }),
+
+  reminders: remindersRouter,
 
   star: createTRPCRouter({
     toggleStar: trpcBaseProcedure

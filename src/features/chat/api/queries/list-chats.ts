@@ -19,6 +19,26 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 /**
+ * Puts the chats pinned for everyone first, then the ones the caller pinned, the latest pin
+ * first, then the rest. Within the first and the last group the chats keep the order they
+ * came in, most recent first.
+ */
+const sortChatList = <T extends { pinned: boolean; membership: { pinnedAt: Date | null } }>(
+  chats: T[],
+): T[] => {
+  const ownPinTime = (chat: T): number =>
+    chat.pinned ? 0 : (chat.membership.pinnedAt?.getTime() ?? 0);
+  const rank = (chat: T): number => {
+    if (chat.pinned) return 0;
+    return chat.membership.pinnedAt === null ? 2 : 1;
+  };
+  return chats.toSorted((a, b) => {
+    const byRank = rank(a) - rank(b);
+    return byRank === 0 ? ownPinTime(b) - ownPinTime(a) : byRank;
+  });
+};
+
+/**
  * The chat list of the caller.
  *
  * Every open client refetches this list when its stream resyncs, so its cost must not grow with
@@ -49,6 +69,9 @@ export const getChatList = trpcBaseProcedure
       select: {
         lastReadMessageId: true,
         chatPermission: true,
+        pinnedAt: true,
+        mutedAt: true,
+        markedUnread: true,
         chat: {
           include: {
             messages: {
@@ -72,7 +95,9 @@ export const getChatList = trpcBaseProcedure
       },
       orderBy: { chat: { lastUpdate: 'desc' } },
     });
-    const _chats = memberships.map(({ chat, ...membership }) => ({ ...chat, membership }));
+    const _chats = sortChatList(
+      memberships.map(({ chat, ...membership }) => ({ ...chat, membership })),
+    );
 
     // 1. Prepare unread count conditions for all chats and fetch them in a single batch groupBy query
     const unreadCountMap = new Map<string, number>();
@@ -135,6 +160,8 @@ export const getChatList = trpcBaseProcedure
 
           const baseCondition: Prisma.MessageWhereInput = {
             chatId: chat.uuid,
+            // a deleted message has nothing left to read
+            deletedAt: null,
             AND: [
               {
                 OR: [
@@ -205,7 +232,11 @@ export const getChatList = trpcBaseProcedure
       const isLarge = chat._count.chatMemberships >= LARGE_CHAT_THRESHOLD;
 
       const rawCount = unreadCountMap.get(chat.uuid) ?? 0;
-      const unreadCount = isLarge && rawCount > 0 ? 1 : rawCount;
+      const messageUnreadCount = isLarge && rawCount > 0 ? 1 : rawCount;
+      // a chat the user marked unread counts as one unread message until they open it
+      const unreadCount =
+        chat.membership.markedUnread && messageUnreadCount === 0 ? 1 : messageUnreadCount;
+      const isPinnedByMe = chat.membership.pinnedAt !== null;
 
       return {
         unreadCount,
@@ -232,7 +263,11 @@ export const getChatList = trpcBaseProcedure
         id: chat.uuid,
         messageCount: chat._count.messages,
         isLarge,
-        isPinned: chat.pinned,
+        isPinned: chat.pinned || isPinnedByMe,
+        isPinnedForEveryone: chat.pinned,
+        isPinnedByMe,
+        isMuted: chat.membership.mutedAt !== null,
+        isMarkedUnread: chat.membership.markedUnread,
         lastMessage: {
           id: lastMessage?.uuid ?? chat.uuid,
           createdAt: chat.lastUpdate,

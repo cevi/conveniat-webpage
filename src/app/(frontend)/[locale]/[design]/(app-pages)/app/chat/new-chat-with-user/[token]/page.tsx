@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/buttons/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { trpc } from '@/trpc/server';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
@@ -5,6 +7,8 @@ import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
+import type { LucideIcon } from 'lucide-react';
+import { LogIn, MessageSquareOff, QrCode } from 'lucide-react';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -121,77 +125,43 @@ const NewChatWithUserPage: React.FC<{
     redirect(result.url);
   }
 
-  if (result === 'notLoggedIn') {
-    return (
-      <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
-        <div className="font-body text-center text-gray-600">
-          {labels.mustBeLoggedIn[locale]}
-          <br />
-          <Link href="/app/chat" className="underline">
-            {labels.goBackToChats[locale]}
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (result === 'cannotCreateChat') {
-    return (
-      <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
-        <div className="font-body text-center text-gray-600">
-          {labels.chatCreationPaused[locale]}
-          <br />
-          <Link href="/app/chat" className="underline">
-            {labels.goBackToChats[locale]}
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (result === 'invalidInvite') {
-    return (
-      <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
-        <div className="font-body text-center text-gray-600">
-          <h2 className="mb-2 text-xl font-semibold text-gray-800">
-            {labels.invalidInvite[locale]}
-          </h2>
-          <p className="mb-4">{labels.askForNewInvite[locale]}</p>
-          <Link href="/app/chat" className="text-conveniat-blue font-medium underline">
-            {labels.goBackToChats[locale]}
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (result === 'failedToCreate') {
-    return (
-      <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
-        <div className="font-body text-center text-gray-600">
-          <h2 className="mb-2 text-xl font-semibold text-gray-800">
-            {labels.failedToCreateChat[locale]}
-          </h2>
-          <p className="mb-4">{labels.pleaseTryAgain[locale]}</p>
-          <Link href="/app/chat" className="text-conveniat-blue font-medium underline">
-            {labels.goBackToChats[locale]}
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const messages: Record<
+    Exclude<typeof result, object>,
+    { icon: LucideIcon; title: string; description?: string }
+  > = {
+    notLoggedIn: { icon: LogIn, title: labels.mustBeLoggedIn[locale] },
+    cannotCreateChat: { icon: MessageSquareOff, title: labels.chatCreationPaused[locale] },
+    invalidInvite: {
+      icon: QrCode,
+      title: labels.invalidInvite[locale],
+      description: labels.askForNewInvite[locale],
+    },
+    failedToCreate: {
+      icon: MessageSquareOff,
+      title: labels.failedToCreateChat[locale],
+      description: labels.pleaseTryAgain[locale],
+    },
+    error: {
+      icon: MessageSquareOff,
+      title: labels.unexpectedError[locale],
+      description: labels.tryAgainLater[locale],
+    },
+  };
+  const message = messages[result];
 
   return (
-    <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
-      <div className="font-body text-center text-gray-600">
-        <h2 className="mb-2 text-xl font-semibold text-red-600">
-          {labels.unexpectedError[locale]}
-        </h2>
-        <p className="mb-4">{labels.tryAgainLater[locale]}</p>
-        <Link href="/app/chat" className="underline">
-          {labels.goBackToChats[locale]}
-        </Link>
-      </div>
+    <div className="bg-page flex min-h-[70dvh] items-center justify-center px-4 py-8">
+      <EmptyState
+        icon={message.icon}
+        title={message.title}
+        description={message.description}
+        className="w-full max-w-md"
+        action={
+          <Button variant="quiet" size="touch" asChild>
+            <Link href="/app/chat">{labels.goBackToChats[locale]}</Link>
+          </Button>
+        }
+      />
     </div>
   );
 };

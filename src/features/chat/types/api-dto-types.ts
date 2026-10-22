@@ -31,8 +31,23 @@ export interface ChatWithMessagePreview {
    */
   isLarge?: boolean;
   userChatPermission: ChatMembershipPermission;
-  /** Optional because chat lists persisted before this field existed are restored without it. */
+  /**
+   * Whether the chat sits in the pinned group at the top of the list: pinned for everyone
+   * (announcement channels, from the CMS) or by the user. Optional because chat lists
+   * persisted before this field existed are restored without it.
+   */
   isPinned?: boolean;
+  /** Pinned for everyone from the CMS; the user cannot unpin it. Optional for old caches. */
+  isPinnedForEveryone?: boolean;
+  /** Pinned by the user themselves, see `pinChat`. Optional for old caches. */
+  isPinnedByMe?: boolean;
+  /** Muted by the user, so it sends them no push, see `muteChat`. Optional for old caches. */
+  isMuted?: boolean;
+  /**
+   * Marked unread by the user, see `markChatUnread`; already counted in `unreadCount`.
+   * Optional for old caches.
+   */
+  isMarkedUnread?: boolean;
   /** Optional because chat lists persisted before this field existed are restored without it. */
   isArchived?: boolean;
   /**

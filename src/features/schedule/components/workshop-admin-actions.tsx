@@ -1,17 +1,17 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
+import { SectionLabel } from '@/components/ui/section-label';
 import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { Loader2, MessageSquare, Settings } from 'lucide-react';
+import { Loader2, MessageSquare } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
 
 const labels = {
   admin: { de: 'Administration', en: 'Administration', fr: 'Administration' },
-  management: { de: 'Verwaltung', en: 'Management', fr: 'Gestion' },
   createChat: {
     de: 'Gruppenchat erstellen',
     en: 'Create Group Chat',
@@ -81,48 +81,37 @@ export const WorkshopAdminActions: React.FC<WorkshopAdminActionsProperties> = ({
 
   const hasChatCreated = Boolean(status.chatId);
 
+  // The roster itself lives in `ParticipantList`, rendered as its own section on the detail page.
   return (
-    <div className="mt-10 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      {/* Header */}
-      <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-gray-900">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
-          <Settings className="h-4 w-4" />
-        </div>
-        {labels.admin[locale]}
-      </h2>
-
-      <div className="space-y-5">
-        {/* Management Section. The roster itself lives in `ParticipantList`, rendered as its
-            own section on the detail page rather than buried in this admin card. */}
-        <div>
-          <h3 className="mb-2 text-xs font-semibold text-gray-500">{labels.management[locale]}</h3>
-          {hasChatCreated ? (
-            <Button variant="outline" size="sm" className="gap-2" asChild>
-              <Link href={`/app/chat/${status.chatId}`}>
-                <MessageSquare className="h-4 w-4" />
-                {labels.viewChat[locale]}
-              </Link>
-            </Button>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={() => {
-                createChat.mutate({ courseId, chatName: `Workshop: ${courseTitle}` });
-              }}
-              disabled={createChat.isPending}
-            >
-              {createChat.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <MessageSquare className="h-4 w-4" />
-              )}
-              {labels.createChat[locale]}
-            </Button>
-          )}
-        </div>
+    <section>
+      <SectionLabel>{labels.admin[locale]}</SectionLabel>
+      <div className="mt-2">
+        {hasChatCreated ? (
+          <Button variant="outlined" size="touch" className="gap-2" asChild>
+            <Link href={`/app/chat/${status.chatId}`}>
+              <MessageSquare aria-hidden="true" />
+              {labels.viewChat[locale]}
+            </Link>
+          </Button>
+        ) : (
+          <Button
+            variant="outlined"
+            size="touch"
+            className="gap-2"
+            onClick={() => {
+              createChat.mutate({ courseId, chatName: `Workshop: ${courseTitle}` });
+            }}
+            disabled={createChat.isPending}
+          >
+            {createChat.isPending ? (
+              <Loader2 className="animate-spin" aria-hidden="true" />
+            ) : (
+              <MessageSquare aria-hidden="true" />
+            )}
+            {labels.createChat[locale]}
+          </Button>
+        )}
       </div>
-    </div>
+    </section>
   );
 };

@@ -1,6 +1,5 @@
 'use client';
 
-import { environmentVariables } from '@/config/environment-variables';
 import { AnnotationDrawerHeader } from '@/features/map/components/map-annotations/drawer-header';
 import { AnnotationScheduleTableComponent } from '@/features/map/components/map-annotations/sections/annotation-schedule-table-component';
 import { AnnotationDescriptionSection } from '@/features/map/components/map-annotations/sections/description-section';
@@ -13,32 +12,9 @@ import type {
   CampScheduleEntry,
 } from '@/features/map/types/types';
 import { ANNOTATION_DRAWER_ATTRIBUTE } from '@/features/map/utils/annotation-focus';
-import type { Locale, StaticTranslationString } from '@/types/types';
+import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-
-const shareLocationError: StaticTranslationString = {
-  de: 'Dein Gerät unterstützt die Web Share API nicht.',
-  en: 'Your device does not support the web share api.',
-  fr: "Votre appareil ne prend pas en charge l'API de partage web.",
-};
-
-const shareLocationCallback = async (
-  locale: Locale,
-  annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon,
-): Promise<void> => {
-  const data: ShareData = {
-    url: environmentVariables.NEXT_PUBLIC_APP_HOST_URL + '/app/map?locationId=' + annotation.id,
-    title: 'conveniat27 - ' + annotation.title,
-    text: annotation.title,
-  };
-  try {
-    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function')
-      await navigator.share(data);
-  } catch {
-    console.error(shareLocationError[locale]);
-  }
-};
 
 const snapPoints = [20, 50, 80]; // Snap points in vh
 const CLOSE_THRESHOLD = 15; // If height is less than 15vh on release, close the drawer
@@ -155,19 +131,18 @@ export const AnnotationDetailsDrawer: React.FC<{
       >
         <div className="relative">
           <div
-            className="sticky top-0 border-b-2 border-gray-100 bg-white pt-4"
+            className="sticky top-0 z-20 bg-white pt-4"
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
           >
             <div className="absolute top-[-16px] right-0 left-0 z-30 flex h-4 cursor-ns-resize items-center justify-center bg-white pt-2">
-              <div className="mt-2 mb-4 h-1 w-20 rounded-full bg-gray-300"></div>
+              <div className="bg-rail-dash mt-2 mb-4 h-1 w-9 rounded-full"></div>
             </div>
 
             <AnnotationDrawerHeader
               closeDrawer={closeDrawer}
               annotation={annotation}
               locale={locale}
-              shareLocationCallback={shareLocationCallback}
             />
           </div>
 

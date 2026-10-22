@@ -269,11 +269,18 @@ export const createMessage = trpcBaseProcedure
       }
     }
 
-    // Fetch quoted message content if quotedMessageId is provided
+    // Fetch quoted message content if quotedMessageId is provided. Only from this chat, and
+    // not from a deleted message: a send queued offline may quote one deleted since, and its
+    // text must not come back as the snippet.
     let quotedSnippet: string | undefined;
     if (validatedMessage.quotedMessageId) {
-      const quotedMessage = await prisma.message.findUnique({
-        where: { uuid: validatedMessage.quotedMessageId },
+      const quotedMessage = await prisma.message.findFirst({
+        where: {
+          uuid: validatedMessage.quotedMessageId,
+          chatId: validatedMessage.chatId,
+          // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
+          deletedAt: null,
+        },
         include: { contentVersions: { take: 1, orderBy: { revision: 'desc' } } },
       });
       if (quotedMessage?.contentVersions[0]?.payload) {
