@@ -1,5 +1,47 @@
 # Changelog
 
+## [1.41.0](https://github.com/cevi/conveniat-webpage/compare/v1.40.0...v1.41.0) (2026-10-22)
+
+
+### Features
+
+* **app:** one design language across the app ([467d781](https://github.com/cevi/conveniat-webpage/commit/467d781b0d7f527baaa3a5230fe8cffa3c144d1f))
+* **chat:** delete own messages for everyone, and read the chat's state from the server ([c2f016e](https://github.com/cevi/conveniat-webpage/commit/c2f016e85d93dea7ee8c478644ed5262ac823b0f))
+* **ui:** a read token for the double tick ([2ac7d03](https://github.com/cevi/conveniat-webpage/commit/2ac7d03df06487979975649c09bade390b169d25))
+* **ui:** plain and danger button variants, the website's ghost hover stays on the website ([9749647](https://github.com/cevi/conveniat-webpage/commit/9749647cb94c9f2d736a84ebac7f82ac949fb60d))
+
+
+### Bug Fixes
+
+* **app:** Home builds again, its programme read waits for the provider instead of throwing ([d07a544](https://github.com/cevi/conveniat-webpage/commit/d07a5445cd66ccc7309071109de1347a63427eb4))
+* **app:** the day arrows, star, search clear and linked fact rows get the app's hover ([6d91b02](https://github.com/cevi/conveniat-webpage/commit/6d91b02794ae7fcd7414ef12718ed668246c7614))
+* **app:** the error screen is an empty state like the 404 ([d19f110](https://github.com/cevi/conveniat-webpage/commit/d19f11091e5a46b7d7b79de6036f611f2793159d))
+* **app:** the menu button shows the keyboard focus ring ([c4582ee](https://github.com/cevi/conveniat-webpage/commit/c4582eea63d1aa03f8cff67f225d4f4a27f76abe))
+* **chat:** adding people to a group picks them as Neue Gruppe does, the chosen ones in the footer ([6a8411b](https://github.com/cevi/conveniat-webpage/commit/6a8411b36bcd31815bcc1e8da929d8ba8cf78e78))
+* **chat:** emergency questions and answers take the app's look, the number a red call link ([e247183](https://github.com/cevi/conveniat-webpage/commit/e247183775ce74d9bbda537dcd0a7b6c97b2af76))
+* **chat:** hover, radii and error colours of the chat list, QR sheet and details; drop the unused ChatDialog ([ed83bc0](https://github.com/cevi/conveniat-webpage/commit/ed83bc06618c98c249237c71c4dfdca3b42e8fb5))
+* **chat:** the conversation's notices, send button and empty states follow the app's language ([38fb7e4](https://github.com/cevi/conveniat-webpage/commit/38fb7e4a783abcca7818697e1aa137d625551eaa))
+* **chat:** the read ticks take the read colour token ([dd6ce33](https://github.com/cevi/conveniat-webpage/commit/dd6ce334cb775ba996ef44ec09160277fe7c796b))
+* **emergency:** danger tokens, section labels without colons, one skeleton for page and route ([43ceddc](https://github.com/cevi/conveniat-webpage/commit/43ceddc5cb3d1db2951aacdb927b827c9357af34))
+* **home:** the notice has its icon, the tiles wait for the session instead of reflowing ([8db0ea7](https://github.com/cevi/conveniat-webpage/commit/8db0ea70efd174bd59624169269d37712eafab6f))
+* **map:** the Karte's search, sheet and loading speak the app's design language ([db8b40b](https://github.com/cevi/conveniat-webpage/commit/db8b40be0949c13ae2f5e9237b0b9728234b9f0f))
+* **map:** the offline banner no longer covers the map's search ([aba1c84](https://github.com/cevi/conveniat-webpage/commit/aba1c848627731eb945586561ddab65e18f91b50))
+* **offline:** the offline download includes the own Quartier, leader access and reminders ([83e636b](https://github.com/cevi/conveniat-webpage/commit/83e636b0b3c98ccdfd3c321024594b204dd148fa))
+* **schedule:** a block's page lists Quartiere, slots and organisers as the rest of the app does ([0c9aec4](https://github.com/cevi/conveniat-webpage/commit/0c9aec488181af4ccab2c5758652e6c093055470))
+* **schedule:** leaving a block or a shift is red, and tabs and attachments show hover ([c965e81](https://github.com/cevi/conveniat-webpage/commit/c965e812a93eb47bd7a5c7c4b94eeff748e3d78d))
+* **schedule:** taking the star off a card asks about the reminder, as the block's page does ([490a7c8](https://github.com/cevi/conveniat-webpage/commit/490a7c81141c08c9bb9064ea44eb5d7c7412b66e))
+* **schedule:** the block editor's text field takes the app's frame and speaks three languages ([57b2f5c](https://github.com/cevi/conveniat-webpage/commit/57b2f5c39bb0ae41a4530f34c97ae82e3bb57522))
+* **schedule:** the first and last day of the strip show their whole focus ring ([f7f8a33](https://github.com/cevi/conveniat-webpage/commit/f7f8a3385075c5d3fd55907f3b8bd04a12d58ddb))
+* **schedule:** the header's search and filter are there while Programm and Schichteinsätze load ([d7289a8](https://github.com/cevi/conveniat-webpage/commit/d7289a8d9ac1ad689f0fd82259f545b7e5724db6))
+* **schedule:** the loading screens take the header icons from a server module ([98fdc88](https://github.com/cevi/conveniat-webpage/commit/98fdc88c0a6e8a89debe5f86a324dbc30a98a84a))
+* **settings:** the Quartier shows its house, the push row keeps its height ([98fd347](https://github.com/cevi/conveniat-webpage/commit/98fd347cf2c3cfbffdef039efb28883dc4471ce9))
+
+
+### Performance
+
+* **chat:** a chat opens from the shell every chat shares, not behind the list's skeleton ([8bc8b48](https://github.com/cevi/conveniat-webpage/commit/8bc8b48cb0564e5759f80c087f02f94f1eb8941e))
+* **schedule:** a block opens on the Programm page itself, without waiting for the server ([e30365a](https://github.com/cevi/conveniat-webpage/commit/e30365a9f78ed157122cc979a9ad3787108ef01d))
+
 ## [1.40.0](https://github.com/cevi/conveniat-webpage/compare/v1.39.0...v1.40.0) (2026-10-21)
 
 
