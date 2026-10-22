@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.41.1](https://github.com/cevi/conveniat-webpage/compare/v1.41.0...v1.41.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* **docker:** bump Node to 24.22 for the October 2026 security release ([879eba3](https://github.com/cevi/conveniat-webpage/commit/879eba3a36b80dbd53b83b33f111c9ebd252e1a4))
+* **docker:** bump Node to 24.22 for the October 2026 security release ([edf11e8](https://github.com/cevi/conveniat-webpage/commit/edf11e8e63df05aab24a607e9d8a42b836083772))
+
 ## [1.41.0](https://github.com/cevi/conveniat-webpage/compare/v1.40.0...v1.41.0) (2026-10-22)
 
 
