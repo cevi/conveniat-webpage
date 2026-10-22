@@ -1,7 +1,7 @@
 'use client';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
 
 const formatDate = (date: Date): string => date.toISOString().split('T')[0] ?? '';
 
@@ -15,17 +15,12 @@ export const useSchedule = <T extends { timeslot: { date: string } }>(
   hasProgram: boolean;
   expandedEntries: Set<string>;
   starredEntries: Set<string>;
-  carouselStartIndex: number;
-  maxVisibleDays: number;
   actions: {
-    handleCarouselPrevious: () => void;
-    handleCarouselNext: () => void;
     handleDateSelect: (date: Date) => void;
     toggleExpanded: (entryId: string) => void;
     toggleStarred: (entryId: string) => void;
   };
 } => {
-  const router = useRouter();
   const searchParameters = useSearchParams();
 
   const pathname = usePathname();
@@ -82,23 +77,6 @@ export const useSchedule = <T extends { timeslot: { date: string } }>(
 
   const [expandedEntries, setExpandedEntries] = useState(new Set<string>());
   const [starredEntries, setStarredEntries] = useState(new Set<string>());
-  const [carouselStartIndex, setCarouselStartIndex] = useState(0);
-
-  useEffect(() => {
-    // Only sync date to URL if we are on schedule or helper-portal page
-    if (!/\/(schedule|helper-portal)\/?$/.test(pathname)) {
-      return;
-    }
-
-    const currentUrlDate = searchParameters.get('date');
-    const formattedCurrentDate = formatDate(currentDate);
-
-    if (currentUrlDate !== formattedCurrentDate) {
-      const parameters = new URLSearchParams(searchParameters.toString());
-      parameters.set('date', formattedCurrentDate);
-      router.replace(`${pathname}?${parameters.toString()}`);
-    }
-  }, [currentDate, router, searchParameters, pathname]);
 
   const dailyPrograms = useMemo(() => {
     const programs: Record<string, T[]> = {};
@@ -115,20 +93,17 @@ export const useSchedule = <T extends { timeslot: { date: string } }>(
     return programs;
   }, [allDates, scheduleEntries]);
 
-  const maxVisibleDays = 5;
   const formattedDate = formatDate(currentDate);
   const currentProgram = dailyPrograms[formattedDate] ?? [];
 
-  const handleCarouselPrevious = (): void =>
-    setCarouselStartIndex((previous) => Math.max(0, previous - 1));
-
-  const handleCarouselNext = (): void =>
-    setCarouselStartIndex((previous) =>
-      Math.min(previous + 1, Math.max(0, allDates.length - maxVisibleDays)),
-    );
-
   const handleDateSelect = (date: Date): void => {
     setSelectedDate(date);
+    // The chosen day goes into the address, so back from a block and a reload return to it. Only
+    // here, on the tap: written from an effect once the programme had loaded, it cancelled a tab
+    // the user had tapped meanwhile. Only the address changes, so it is no navigation.
+    const parameters = new URLSearchParams(globalThis.location.search);
+    parameters.set('date', formatDate(date));
+    globalThis.history.replaceState(undefined, '', `${pathname}?${parameters.toString()}`);
     setExpandedEntries(new Set()); // Reset expanded state on date change
   };
 
@@ -158,11 +133,7 @@ export const useSchedule = <T extends { timeslot: { date: string } }>(
     hasProgram: currentProgram.length > 0,
     expandedEntries,
     starredEntries,
-    carouselStartIndex,
-    maxVisibleDays,
     actions: {
-      handleCarouselPrevious,
-      handleCarouselNext,
       handleDateSelect,
       toggleExpanded,
       toggleStarred,

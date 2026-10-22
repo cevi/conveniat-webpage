@@ -1,12 +1,9 @@
 'use client';
 
+import { buttonVariants } from '@/components/ui/buttons/button';
+import { IconTile } from '@/components/ui/icon-tile';
 import type { MaterialStockAlert } from '@/features/material/api/material-router';
-import {
-  holderName,
-  loanSummary,
-  positionCount,
-  SectionTitle,
-} from '@/features/material/components/counter-ui';
+import { holderName, loanSummary, positionCount } from '@/features/material/components/counter-ui';
 import {
   conditionLabel,
   format,
@@ -14,13 +11,12 @@ import {
   labels,
 } from '@/features/material/components/material-labels';
 import { MaterialQueryError } from '@/features/material/components/material-query-error';
+import { chip, chipTone } from '@/features/material/components/material-status-badge';
 import {
   EmptyState,
-  focusRing,
   LoadingState,
   MaterialButton,
   Panel,
-  StatTile,
 } from '@/features/material/components/material-ui';
 import { MyLoansView } from '@/features/material/components/my-loans-view';
 import {
@@ -30,12 +26,7 @@ import {
   useInvalidateMaterial,
   useMaterialLocale,
 } from '@/features/material/hooks/use-material';
-import {
-  groupByHolder,
-  holderOf,
-  holderSearch,
-  isAnnounced,
-} from '@/features/material/utils/holders';
+import { groupByHolder, holderSearch, isAnnounced } from '@/features/material/utils/holders';
 import { itemPath } from '@/features/material/utils/scan';
 import { trpc, type RouterOutputs } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -43,6 +34,7 @@ import { cn } from '@/utils/tailwindcss-override';
 import {
   AlertTriangle,
   ArrowUpRight,
+  Box,
   Clock,
   CornerDownLeft,
   Inbox,
@@ -55,16 +47,13 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 const text = {
-  outToday: { de: 'Heute raus', en: 'Out today', fr: 'Sorties du jour' },
-  backToday: { de: 'Heute zurück', en: 'Back today', fr: 'Retours du jour' },
+  outToday: { de: 'heute raus', en: 'out today', fr: 'sorties' },
+  backToday: { de: 'heute zurück', en: 'back today', fr: 'retours' },
+  overdueStat: { de: 'überfällig', en: 'overdue', fr: 'en retard' },
+  availableStat: { de: 'verfügbar', en: 'available', fr: 'libres' },
+  dayFigures: { de: 'Der Tag in Zahlen', en: 'The day in figures', fr: 'La journée en chiffres' },
   overdue: { de: 'Überfällig', en: 'Overdue', fr: 'En retard' },
-  available: { de: 'Verfügbar', en: 'Available', fr: 'Disponible' },
-  holders: {
-    de: 'bei {n} Höfen/Personen',
-    en: 'with {n} Hofs/people',
-    fr: 'chez {n} Hofs/personnes',
-  },
-  articles: { de: '{n} Artikel', en: '{n} items', fr: '{n} articles' },
+  since: { de: 'seit {day}', en: 'since {day}', fr: 'depuis {day}' },
   handOut: { de: 'Ausgeben', en: 'Hand out', fr: 'Remettre' },
   takeBack: { de: 'Zurücknehmen', en: 'Take back', fr: 'Reprendre' },
   attention: {
@@ -85,10 +74,10 @@ const text = {
     en: 'requested for {day}',
     fr: 'demandé pour {day}',
   },
-  preparedFrom: {
-    de: 'vorbereitet ab {day}',
-    en: 'prepared from {day}',
-    fr: 'préparé dès {day}',
+  readyFrom: {
+    de: 'bereit ab {day}',
+    en: 'ready from {day}',
+    fr: 'prêt dès {day}',
   },
   resolve: { de: 'Erledigt', en: 'Done', fr: 'Traité' },
   lowStock: { de: 'Knapp', en: 'Low', fr: 'Bas' },
@@ -124,9 +113,19 @@ interface AttentionEntry {
   action?: React.ReactNode;
 }
 
-const ATTENTION_STEP = 8;
+/**
+ * The colour of a kind of attention, on its tile and its pill, so the list reads at a glance:
+ * red for what is overdue; a pickup waiting, stock running low and repairs are neutral, told
+ * apart by their icon and pill.
+ */
+const attentionTone = {
+  overdue: { tile: 'bg-danger-soft text-danger', pill: 'bg-danger-soft text-danger-text' },
+  pickup: { tile: 'bg-quiet text-green-700', pill: 'bg-chip text-green-900' },
+  low: { tile: 'bg-quiet text-green-700', pill: 'bg-chip text-green-900' },
+  repair: { tile: 'bg-quiet text-green-700', pill: 'bg-quiet text-green-700' },
+} as const;
 
-const iconTile = 'flex size-11 shrink-0 items-center justify-center rounded-xl [&_svg]:size-5';
+const ATTENTION_STEP = 8;
 
 const stockAlertLine = (alert: MaterialStockAlert, locale: Locale): string => {
   switch (alert.kind) {
@@ -154,7 +153,7 @@ const ResolveButton: React.FC<{ id: string }> = ({ id }) => {
   const resolve = trpc.material.resolveIncident.useMutation();
   return (
     <MaterialButton
-      variant="secondary"
+      variant="outlined"
       loading={resolve.isPending}
       // stays off until the refetch removes the row; a second tap would only repeat it
       disabled={resolve.isSuccess}
@@ -170,81 +169,67 @@ const ResolveButton: React.FC<{ id: string }> = ({ id }) => {
   );
 };
 
+/** "1 Position · bereit ab Do., 1. Okt." for a group waiting at the counter. */
+const groupLine = (
+  group: Dashboard['pickups'][number],
+  line: StaticTranslationString,
+  locale: Locale,
+): string => {
+  const first = group.loans[0];
+  return [
+    positionCount(group.loans.length, locale),
+    first === undefined ? '' : format(line, locale, { day: formatDay(first.startDate, locale) }),
+  ]
+    .filter((part) => part !== '')
+    .join(' · ');
+};
+
 /** Everything on the dashboard that wants a person, the most urgent first. */
 const buildAttention = (data: Dashboard, locale: Locale): AttentionEntry[] => {
   const entries: AttentionEntry[] = [];
+  for (const group of groupByHolder(data.overdue)) {
+    for (const loan of group.loans) {
+      entries.push({
+        key: `overdue-${loan.id}`,
+        icon: <IconTile icon={AlertTriangle} className={attentionTone.overdue.tile} />,
+        title: holderName(group, locale),
+        subtitle: `${loan.issuedQuantity ?? loan.quantity} × ${loan.item.name} · ${format(
+          text.since,
+          locale,
+          { day: formatDay(loan.endDate, locale) },
+        )}`,
+        badge: { label: text.overdue[locale], tone: attentionTone.overdue.pill },
+        href: `/app/material/zurueck?${holderSearch(group.holder)}`,
+      });
+    }
+  }
   for (const group of data.requests) {
-    const first = group.loans[0];
     entries.push({
       key: `request-${group.key}`,
-      icon: (
-        <span className={cn(iconTile, 'bg-amber-50 text-amber-700')}>
-          <Inbox aria-hidden />
-        </span>
-      ),
-      title: `${holderName(group, locale)} · ${positionCount(group.loans.length, locale)}`,
-      subtitle:
-        first === undefined
-          ? ''
-          : format(text.requestedFor, locale, { day: formatDay(first.startDate, locale) }),
-      badge: {
-        label: text.request[locale],
-        tone: 'bg-amber-50 text-amber-800 ring-1 ring-amber-600/30',
-      },
+      icon: <IconTile icon={Inbox} />,
+      title: holderName(group, locale),
+      subtitle: groupLine(group, text.requestedFor, locale),
+      badge: { label: text.request[locale], tone: chipTone.neutral },
       href: '/app/material/ausgeben',
     });
   }
   for (const group of data.announced) {
     entries.push({
       key: `announced-${group.key}`,
-      icon: (
-        <span className={cn(iconTile, 'bg-blue-50 text-blue-700')}>
-          <CornerDownLeft aria-hidden />
-        </span>
-      ),
+      icon: <IconTile icon={CornerDownLeft} />,
       title: holderName(group, locale),
       subtitle: loanSummary(group.loans.filter((loan) => isAnnounced(loan))),
-      badge: {
-        label: labels.returnAnnounced[locale],
-        tone: 'bg-blue-50 text-blue-800 ring-1 ring-blue-600/30',
-      },
+      badge: { label: labels.returnAnnounced[locale], tone: chipTone.ready },
       href: `/app/material/zurueck?${holderSearch(group.holder)}`,
     });
   }
-  for (const group of groupByHolder(data.overdue)) {
-    for (const loan of group.loans) {
-      entries.push({
-        key: `overdue-${loan.id}`,
-        icon: (
-          <span className={cn(iconTile, 'bg-red-50 text-red-700')}>
-            <AlertTriangle aria-hidden />
-          </span>
-        ),
-        title: `${holderName(group, locale)} · ${loan.issuedQuantity ?? loan.quantity} × ${loan.item.name}`,
-        subtitle: format(labels.overdueSince, locale, { day: formatDay(loan.endDate, locale) }),
-        badge: { label: text.overdue[locale], tone: 'bg-red-600 text-white' },
-        href: `/app/material/zurueck?${holderSearch(group.holder)}`,
-      });
-    }
-  }
   for (const group of data.pickups) {
-    const first = group.loans[0];
     entries.push({
       key: `pickup-${group.key}`,
-      icon: (
-        <span className={cn(iconTile, 'bg-blue-50 text-blue-700')}>
-          <Clock aria-hidden />
-        </span>
-      ),
-      title: `${holderName(group, locale)} · ${positionCount(group.loans.length, locale)}`,
-      subtitle:
-        first === undefined
-          ? ''
-          : format(text.preparedFrom, locale, { day: formatDay(first.startDate, locale) }),
-      badge: {
-        label: text.pickUp[locale],
-        tone: 'bg-blue-50 text-blue-800 ring-1 ring-blue-600/30',
-      },
+      icon: <IconTile icon={Clock} className={attentionTone.pickup.tile} />,
+      title: holderName(group, locale),
+      subtitle: groupLine(group, text.readyFrom, locale),
+      badge: { label: text.pickUp[locale], tone: attentionTone.pickup.pill },
       href: '/app/material/ausgeben',
     });
   }
@@ -253,15 +238,13 @@ const buildAttention = (data: Dashboard, locale: Locale): AttentionEntry[] => {
       key: `incident-${incident.id}`,
       icon:
         incident.photoUrl === null ? (
-          <span className={cn(iconTile, 'bg-amber-50 text-amber-700')}>
-            <PackageMinus aria-hidden />
-          </span>
+          <IconTile icon={PackageMinus} className={attentionTone.overdue.tile} />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element -- presigned bucket URL
           <img
             src={incident.photoUrl}
             alt=""
-            className="size-11 shrink-0 rounded-xl object-cover"
+            className="size-[38px] shrink-0 rounded-[10px] object-cover"
           />
         ),
       title: `${incident.item.name} · ${incident.quantity} × ${conditionLabel[incident.condition][locale]}`,
@@ -277,25 +260,19 @@ const buildAttention = (data: Dashboard, locale: Locale): AttentionEntry[] => {
     });
   }
   for (const alert of data.stockAlerts) {
-    const repair = alert.kind === 'DAMAGED' || alert.kind === 'IN_REPAIR';
+    const tone =
+      alert.kind === 'DAMAGED' || alert.kind === 'IN_REPAIR'
+        ? attentionTone.repair
+        : attentionTone.low;
     entries.push({
       key: `stock-${alert.kind}-${alert.itemCode}`,
-      icon: (
-        <span className={cn(iconTile, 'bg-gray-100 text-gray-700')}>
-          {repair ? <Wrench aria-hidden /> : <PackageMinus aria-hidden />}
-        </span>
-      ),
+      icon: <IconTile icon={tone === attentionTone.repair ? Wrench : Box} className={tone.tile} />,
       title: alert.itemName,
       subtitle: stockAlertLine(alert, locale),
-      badge: repair
-        ? {
-            label: text.repair[locale],
-            tone: 'bg-amber-50 text-amber-800 ring-1 ring-amber-600/30',
-          }
-        : {
-            label: text.lowStock[locale],
-            tone: 'bg-amber-50 text-amber-800 ring-1 ring-amber-600/30',
-          },
+      badge: {
+        label: tone === attentionTone.repair ? text.repair[locale] : text.lowStock[locale],
+        tone: tone.pill,
+      },
       href: itemPath(alert.itemCode),
     });
   }
@@ -307,35 +284,53 @@ const AttentionRow: React.FC<{ entry: AttentionEntry }> = ({ entry }) => (
     <Link
       href={entry.href}
       className={cn(
-        'flex min-w-0 flex-1 items-center gap-3 py-3 pl-4 hover:bg-gray-50',
-        focusRing,
-        'focus-visible:ring-inset',
+        'hover:bg-quiet flex min-w-0 flex-1 items-center gap-3 py-3 pl-4',
+        'focus-visible:focus-ring-inset',
       )}
     >
       {entry.icon}
       <span className="min-w-0 flex-1">
-        <span className="line-clamp-2 font-semibold text-gray-900" title={entry.title}>
+        <span className="block truncate font-semibold text-green-900" title={entry.title}>
           {entry.title}
         </span>
         {entry.subtitle !== '' && (
-          <span className="block truncate text-sm text-gray-500" title={entry.subtitle}>
+          <span className="line-clamp-2 text-[13px] text-green-700" title={entry.subtitle}>
             {entry.subtitle}
           </span>
         )}
       </span>
       {entry.badge !== undefined && (
-        <span
-          className={cn(
-            'shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap',
-            entry.badge.tone,
-          )}
-        >
-          {entry.badge.label}
-        </span>
+        <span className={cn(chip, entry.badge.tone)}>{entry.badge.label}</span>
       )}
     </Link>
     {entry.action}
   </li>
+);
+
+/** One figure of the day: the number large, what it counts small under it. */
+const DayFigure: React.FC<{
+  label: string;
+  value: React.ReactNode;
+  live?: boolean;
+}> = ({ label, value, live = false }) => (
+  <div className="flex min-w-0 flex-col items-center px-1 py-3 text-center">
+    <dt
+      className={cn(
+        'order-2 text-xs leading-tight break-words hyphens-auto',
+        live ? 'text-danger-text font-semibold' : 'text-green-700',
+      )}
+    >
+      {label}
+    </dt>
+    <dd
+      className={cn(
+        'font-heading order-1 text-xl font-extrabold tabular-nums',
+        live ? 'text-danger' : 'text-heading',
+      )}
+    >
+      {value}
+    </dd>
+  </div>
 );
 
 const TeamOverview: React.FC = () => {
@@ -356,82 +351,67 @@ const TeamOverview: React.FC = () => {
   if (!dashboard.data) return <MaterialQueryError error={dashboard.error} />;
   const data = dashboard.data;
   const attention = buildAttention(data, locale);
-  const pickupLines = data.pickups.reduce((sum, group) => sum + group.loans.length, 0);
-  const overdueHolders = new Set(
-    data.overdue.map((loan) => {
-      const holder = holderOf(loan);
-      return holder === undefined ? loan.id : `${holder.kind}:${holder.id}`;
-    }),
-  ).size;
-  const bigButton =
-    'flex h-14 items-center justify-center gap-2 rounded-2xl text-base font-semibold [&_svg]:size-5';
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile
-          label={text.outToday[locale]}
-          value={data.pickups.length}
-          hint={positionCount(pickupLines, locale)}
-        />
-        <StatTile
-          label={text.backToday[locale]}
-          value={data.dueToday.holders}
-          hint={positionCount(data.dueToday.lines, locale)}
-        />
-        <StatTile
-          label={text.overdue[locale]}
-          value={data.overdue.length}
-          hint={format(text.holders, locale, { n: overdueHolders })}
-          tone={data.overdue.length > 0 ? 'red' : 'default'}
-        />
-        <StatTile
-          label={text.available[locale]}
-          value={data.available.toLocaleString(`${locale}-CH`)}
-          hint={format(text.articles, locale, { n: data.articles })}
-          tone="green"
-        />
-      </div>
-
       <div className="grid grid-cols-2 gap-3">
         <Link
           href="/app/material/ausgeben"
-          className={cn(bigButton, 'bg-conveniat-green text-white', focusRing)}
+          className={buttonVariants({ variant: 'primary', size: 'touch' })}
         >
           <ArrowUpRight aria-hidden />
           {text.handOut[locale]}
           {data.requests.length > 0 && (
-            <span className="rounded-full bg-amber-400 px-2 py-0.5 text-xs font-bold text-gray-900 tabular-nums">
+            <span className={cn(chip, 'bg-white text-green-900 tabular-nums')}>
               {data.requests.length}
             </span>
           )}
         </Link>
         <Link
           href="/app/material/zurueck"
-          className={cn(bigButton, 'border border-gray-300 bg-white text-gray-900', focusRing)}
+          className={buttonVariants({ variant: 'outlined', size: 'touch' })}
         >
           <CornerDownLeft aria-hidden />
           {text.takeBack[locale]}
         </Link>
       </div>
 
-      <Panel>
-        <div className="px-4 pt-4">
-          <SectionTitle count={attention.length}>{text.attention[locale]}</SectionTitle>
-        </div>
+      <dl
+        aria-label={text.dayFigures[locale]}
+        className="border-line divide-line grid grid-cols-4 divide-x rounded-[14px] border bg-white"
+      >
+        <DayFigure label={text.outToday[locale]} value={data.pickups.length} />
+        <DayFigure label={text.backToday[locale]} value={data.dueToday.holders} />
+        <DayFigure
+          label={text.overdueStat[locale]}
+          value={data.overdue.length}
+          live={data.overdue.length > 0}
+        />
+        <DayFigure
+          label={text.availableStat[locale]}
+          value={
+            <>
+              {data.availableArticles}
+              <span className="text-sm font-bold text-green-500">/{data.articles}</span>
+            </>
+          }
+        />
+      </dl>
+
+      <Panel title={text.attention[locale]} count={attention.length}>
         {attention.length === 0 ? (
           <EmptyState text={text.allClear[locale]} />
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-line divide-y">
             {attention.slice(0, shown).map((entry) => (
               <AttentionRow key={entry.key} entry={entry} />
             ))}
           </ul>
         )}
         {attention.length > shown && (
-          <div className="border-t border-gray-100 p-3">
+          <div className="border-line border-t p-3">
             <MaterialButton
-              variant="secondary"
+              variant="outlined"
               className="w-full"
               onClick={() => setShown(attention.length)}
             >

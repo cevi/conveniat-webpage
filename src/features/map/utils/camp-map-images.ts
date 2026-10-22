@@ -10,9 +10,6 @@ import { renderToString } from 'react-dom/server';
  * extra has to be cached for offline use.
  */
 
-/** Paper texture the camp style paints its background with, see `camp_style.json`. */
-export const PAPER_IMAGE_ID = 'camp-paper';
-
 /** Stretchable plate drawn behind the names of areas. */
 export const LABEL_PLATE_IMAGE_ID = 'camp-label-plate';
 
@@ -21,21 +18,10 @@ export const BADGE_SIZE = { regular: 32, small: 21 } as const;
 
 export type BadgeSize = keyof typeof BADGE_SIZE;
 
-const PAPER_COLOR = '#f6efe0';
-const PAPER_FIBRE_COLOR = '#b89b74';
 const BADGE_RING_COLOR = '#fffdf6';
 const STARRED_GLOW_COLOR = 'rgba(250, 204, 21, 0.9)';
 
 const pixelRatio = (): number => Math.min(3, Math.max(1, Math.round(globalThis.devicePixelRatio)));
-
-/** A small deterministic random generator, so the paper looks the same on every load. */
-const seededRandom = (seed: number): (() => number) => {
-  let state = seed;
-  return (): number => {
-    state = (state * 16_807) % 2_147_483_647;
-    return (state - 1) / 2_147_483_646;
-  };
-};
 
 const createCanvas = (
   width: number,
@@ -53,28 +39,6 @@ const createCanvas = (
 
 const imageData = (canvas: HTMLCanvasElement, context: CanvasRenderingContext2D): ImageData =>
   context.getImageData(0, 0, canvas.width, canvas.height);
-
-/**
- * Adds the paper texture: the background colour with faint fibres, tiled across the map.
- * @param map the map to add the image to
- */
-export const addPaperImage = (map: MapLibreMap): void => {
-  if (map.hasImage(PAPER_IMAGE_ID)) return;
-  const size = 128;
-  const ratio = pixelRatio();
-  const { canvas, context } = createCanvas(size, size, ratio);
-  const random = seededRandom(3);
-
-  context.fillStyle = PAPER_COLOR;
-  context.fillRect(0, 0, size, size);
-  context.fillStyle = PAPER_FIBRE_COLOR;
-  for (let index = 0; index < 260; index++) {
-    context.globalAlpha = 0.05 + random() * 0.08;
-    context.fillRect(random() * size, random() * size, 1 + random() * 1.5, 1 + random() * 1.5);
-  }
-
-  map.addImage(PAPER_IMAGE_ID, imageData(canvas, context), { pixelRatio: ratio });
-};
 
 /**
  * Adds the rounded plate area names sit on. It stretches with the text through `icon-text-fit`.

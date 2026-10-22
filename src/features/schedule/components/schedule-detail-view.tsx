@@ -1,22 +1,30 @@
 'use client';
 
 import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
-import { AppFooterController } from '@/components/footer/hide-footer-context';
 import { SetHideHeader } from '@/components/header/hide-header-context';
 import { Button } from '@/components/ui/buttons/button';
+import { ShareLinkButton } from '@/components/ui/buttons/share-link-button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { environmentVariables } from '@/config/environment-variables';
 import { useScheduleEntries } from '@/context/schedule-entries-context';
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
 import { ScheduleDetailContent } from '@/features/schedule/components/schedule-detail-content';
 import { ScheduleDetailSkeleton } from '@/features/schedule/components/schedule-detail-skeleton';
 import { ScheduleEditHeaderActions } from '@/features/schedule/components/schedule-edit-header-actions';
-import { useAdjacentEntries } from '@/features/schedule/hooks/use-adjacent-entries';
+import { floatingButtonClassName } from '@/features/schedule/components/schedule-mini-map';
 import { useScheduleEdit } from '@/features/schedule/hooks/use-schedule-edit';
-import { findOtherSlots } from '@/features/schedule/utils/programme-utils';
+import { useScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
+import {
+  findOtherSlots,
+  findWhatComesNext,
+  isForQuartiere,
+  quartiereOf,
+} from '@/features/schedule/utils/programme-utils';
 import { trpc } from '@/trpc/client';
-import type { Locale, StaticTranslationString } from '@/types/types';
+import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '@/utils/tailwindcss-override';
+import { AlertTriangle, ArrowLeft, CalendarX } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -32,58 +40,30 @@ const labels = {
   },
 } as const;
 
-const previousEntryLabel: StaticTranslationString = {
-  de: 'Vorheriger Eintrag',
-  en: 'Previous entry',
-  fr: 'Entrée précédente',
-};
-
-const nextEntryLabel: StaticTranslationString = {
-  de: 'Nächster Eintrag',
-  en: 'Next entry',
-  fr: 'Entrée suivante',
-};
+/** below the preview banner, when there is one, and above the bottom navigation, which is `h-20` */
+const containerClassName =
+  'fixed inset-x-0 top-(--preview-banner-height) bottom-20 z-[110] flex flex-col overflow-hidden bg-page';
 
 interface ScheduleDetailViewProperties {
   id: string;
 }
 
-const SWIPE_THRESHOLD = 60;
-
-const slideVariants = {
-  enter: (direction: number): { x: string; opacity: number } => ({
-    x: direction > 0 ? '30%' : '-30%',
-    opacity: 0,
-  }),
-  center: {
-    x: '0%',
-    opacity: 1,
-  },
-  exit: (direction: number): { x: string; opacity: number } => ({
-    x: direction > 0 ? '-30%' : '30%',
-    opacity: 0,
-  }),
-};
-
 /**
- * Full-screen schedule detail view with swipe navigation.
- * Fetches data via tRPC with offline support from TanStack DB cache.
- * Swipe left/right to navigate between schedule entries.
+ * The page of one block: its place on a map at the top, with the way back, sharing and the star
+ * floating over it, and below everything the block holds. Fetches through tRPC and falls back
+ * to the offline copies, so a block once seen opens without signal.
  */
 export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id: initialId }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const router = useRouter();
-  const [currentId, setCurrentId] = useState(initialId);
-  const [slideDirection, setSlideDirection] = useState(0);
-
-  // Use the locally tracked ID for all data fetching and display
-  const id = currentId;
+  // set once the user opens another slot or block from this page
+  const [openedId, setOpenedId] = useState<string>();
+  const { myQuartierIds } = useScheduleScope();
 
   const trpcUtils = trpc.useUtils();
 
   // 1. Try to find the entry in the local TanStack DB cache first (offline support)
   const { entries: localEntries } = useScheduleEntries();
-  const cachedEntry = localEntries.find((entry) => entry.id === id);
 
   // 2. Also check the schedule list cache from tRPC (direct cache read + query hook)
   const { data: scheduleList } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
@@ -93,6 +73,22 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     refetchOnWindowFocus: true,
   });
   const trpcDirectEntries = trpcUtils.schedule.getScheduleEntries.getData();
+  const allEntries = scheduleList ?? trpcDirectEntries ?? localEntries;
+
+  // A link to a block, shared from another Quartier or tapped in the whole camp's list, opens
+  // on the user's own slot of it. Everything below, the facts, enrolment, the star, sharing and
+  // editing, is about that one slot.
+  const ownSlotId = useMemo(() => {
+    if (myQuartierIds.size === 0) return;
+    const opened = allEntries.find((candidate) => candidate.id === initialId);
+    if (opened === undefined) return;
+    return [opened, ...findOtherSlots(allEntries, opened)].find(
+      (candidate) => quartiereOf(candidate).length > 0 && isForQuartiere(candidate, myQuartierIds),
+    )?.id;
+  }, [allEntries, initialId, myQuartierIds]);
+  const id = openedId ?? ownSlotId ?? initialId;
+
+  const cachedEntry = localEntries.find((entry) => entry.id === id);
   const listCachedEntry =
     scheduleList?.find((entry) => entry.id === id) ??
     trpcDirectEntries?.find((entry) => entry.id === id);
@@ -145,12 +141,30 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     { enabled: !!entry, staleTime: 1000 * 60 * 5, refetchOnWindowFocus: false },
   );
 
-  // The same block in the slots of the other Quartiere
-  const otherSlots = useMemo(() => {
-    const all = scheduleList ?? trpcDirectEntries ?? localEntries;
-    const self = all.find((candidate) => candidate.id === id);
-    return self === undefined ? [] : findOtherSlots(all, self);
-  }, [scheduleList, trpcDirectEntries, localEntries, id]);
+  // The block in all its slots: the one shown, and the others listed below it
+  const { slotEntry, isOwnSlot, otherSlots, whatComesNext } = useMemo(() => {
+    const self = allEntries.find((candidate) => candidate.id === id);
+    if (self === undefined) {
+      return {
+        slotEntry: undefined,
+        isOwnSlot: false,
+        otherSlots: [],
+        whatComesNext: { next: undefined, nextBlock: undefined },
+      };
+    }
+    // the timeline the block sits on: the user's, or that of the Quartiere the slot is for
+    const timeline =
+      myQuartierIds.size > 0 ? myQuartierIds : new Set(quartiereOf(self).map(({ id: q }) => q));
+    return {
+      slotEntry: self,
+      isOwnSlot:
+        myQuartierIds.size > 0 &&
+        quartiereOf(self).length > 0 &&
+        isForQuartiere(self, myQuartierIds),
+      otherSlots: findOtherSlots(allEntries, self),
+      whatComesNext: findWhatComesNext(allEntries, self, timeline),
+    };
+  }, [allEntries, id, myQuartierIds]);
 
   // 5. Use shared edit hook
   const {
@@ -169,12 +183,8 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     courseStatus: courseStatus ?? undefined,
   });
 
-  // 6. Adjacent entries for swipe navigation
-  const { previous, next } = useAdjacentEntries(id);
-
-  const navigateToEntry = useCallback((entryId: string, direction: number): void => {
-    setSlideDirection(direction);
-    setCurrentId(entryId);
+  const navigateToEntry = useCallback((entryId: string): void => {
+    setOpenedId(entryId);
     // Update the URL without triggering a Next.js navigation to avoid
     // tearing down the React tree (which breaks TRPCProvider's promise chain)
     // Keep the other parameters: the date and the scope decide what "back" returns to.
@@ -183,24 +193,39 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     globalThis.history.replaceState(undefined, '', `/app/schedule?${parameters.toString()}`);
   }, []);
 
-  const handleDragEnd = useCallback(
-    (_: unknown, info: { offset: { x: number }; velocity: { x: number } }): void => {
-      // Don't allow swiping while editing
-      if (isEditing) return;
+  // The block was the first page this document loaded, from a shared link or a push: there is
+  // nothing in the app to go back to.
+  const [isEntryPage] = useState(
+    () =>
+      typeof performance !== 'undefined' &&
+      performance.getEntriesByType('navigation')[0]?.name === globalThis.location.href,
+  );
 
-      const swipe = info.offset.x;
-      const velocity = Math.abs(info.velocity.x);
+  /**
+   * Back to where the block was opened from, the list or a place on the Karte. Where the block
+   * is the entry page, `router.back()` would leave the app or land on a blank page, so it goes to
+   * the day's list instead.
+   */
+  const goBack = (): void => {
+    if (!isEntryPage) {
+      router.back();
+      return;
+    }
+    const parameters = new URLSearchParams(globalThis.location.search);
+    parameters.delete('id');
+    const query = parameters.toString();
+    router.replace(query === '' ? '/app/schedule' : `/app/schedule?${query}`);
+  };
 
-      // Swipe left → next entry
-      if (swipe < -SWIPE_THRESHOLD && next && velocity > 50) {
-        navigateToEntry(next.id, 1);
-      }
-      // Swipe right → previous entry
-      else if (swipe > SWIPE_THRESHOLD && previous && velocity > 50) {
-        navigateToEntry(previous.id, -1);
-      }
-    },
-    [isEditing, next, previous, navigateToEntry],
+  const backButton = (
+    <button
+      type="button"
+      onClick={goBack}
+      className={floatingButtonClassName}
+      aria-label={labels.back[locale]}
+    >
+      <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
+    </button>
   );
 
   // Loading state (only when fetching and no cache)
@@ -208,19 +233,8 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     return (
       <>
         <SetHideHeader value />
-        <AppFooterController hideAppFooter />
-        <div className="fixed inset-0 z-[110] flex flex-col overflow-hidden bg-gray-50">
-          <header className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="rounded-lg p-2 transition-colors hover:bg-gray-100"
-              aria-label={labels.back[locale]}
-            >
-              <ChevronLeft className="h-5 w-5 text-gray-700" />
-            </button>
-            <div className="h-6 w-48 animate-pulse rounded bg-gray-200" />
-          </header>
+        <div className={containerClassName}>
+          <div className="absolute inset-x-0 top-0 z-20 flex p-3">{backButton}</div>
           <div className="flex-1 overflow-y-auto">
             <ScheduleDetailSkeleton />
           </div>
@@ -234,10 +248,16 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     return (
       <>
         <SetHideHeader value />
-        <AppFooterController hideAppFooter />
-        <div className="fixed inset-0 z-[110] flex flex-col items-center justify-center bg-gray-50 p-8 text-center">
-          <p className="mb-4 text-gray-500">{labels.notFound[locale]}</p>
-          <Button onClick={() => router.back()}>{labels.back[locale]}</Button>
+        <div className={cn(containerClassName, 'items-center justify-center')}>
+          <EmptyState
+            icon={CalendarX}
+            title={labels.notFound[locale]}
+            action={
+              <Button variant="quiet" size="touch" onClick={goBack}>
+                {labels.back[locale]}
+              </Button>
+            }
+          />
         </div>
       </>
     );
@@ -248,9 +268,11 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     return (
       <>
         <SetHideHeader value />
-        <AppFooterController hideAppFooter />
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-gray-50">
-          <div className="text-gray-400">Loading...</div>
+        <div className={containerClassName}>
+          <div className="absolute inset-x-0 top-0 z-20 flex p-3">{backButton}</div>
+          <div className="flex-1 overflow-y-auto">
+            <ScheduleDetailSkeleton />
+          </div>
         </div>
       </>
     );
@@ -259,27 +281,12 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
   return (
     <>
       <SetHideHeader value />
-      <AppFooterController hideAppFooter />
 
-      {/* Full-screen container */}
-      <div className="fixed inset-0 z-[110] flex flex-col overflow-hidden bg-gray-50">
-        {/* Header */}
-        <header className="flex h-16 items-center justify-between gap-3 border-b border-gray-100 bg-white/95 px-4 backdrop-blur-md">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="cursor-pointer rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
-              aria-label={labels.back[locale]}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <div className="min-w-0 flex-1">
-              <h1 className="font-heading truncate text-lg font-bold text-gray-900">
-                {entry.title}
-              </h1>
-            </div>
-          </div>
+      {/* Fills the screen above the bottom navigation, which stays */}
+      <div className={containerClassName}>
+        {/* Floating over the map: the way back on the left, sharing and the star on the right */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between p-3 [&>*]:pointer-events-auto">
+          {backButton}
           <ScheduleEditHeaderActions
             entryId={entry.id}
             locale={locale}
@@ -289,85 +296,54 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
             onStartEdit={handleStartEdit}
             onCancelEdit={handleCancelEdit}
             onSave={handleSave}
+            buttonClassName={floatingButtonClassName}
+            before={
+              <ShareLinkButton
+                url={`${environmentVariables.NEXT_PUBLIC_APP_HOST_URL}/app/schedule?id=${entry.id}`}
+                title={entry.title}
+                locale={locale}
+                compact
+                className={floatingButtonClassName}
+              />
+            }
           />
-        </header>
+        </div>
 
-        {/* Swipeable Content */}
-        <AnimatePresence initial={false} mode="wait" custom={slideDirection}>
-          <motion.div
-            key={id}
-            custom={slideDirection}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{
-              duration: 0.2,
-              ease: 'easeOut',
-            }}
-            drag={isEditing ? false : 'x'}
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.15}
-            onDragEnd={handleDragEnd}
-            className="flex-1 touch-pan-y overflow-x-hidden overflow-y-auto"
-          >
-            <SafeErrorBoundary
-              fallback={
-                <div className="flex h-full flex-col items-center justify-center p-8 text-center text-gray-500">
-                  <p>{labels.errorLoading[locale]}</p>
-                  <Button onClick={() => globalThis.location.reload()} className="mt-4">
+        {/* keyed by the entry, so another slot or the next block opens at the top */}
+        <div key={id} className="flex-1 overflow-x-hidden overflow-y-auto">
+          <SafeErrorBoundary
+            fallback={
+              <EmptyState
+                icon={AlertTriangle}
+                title={labels.errorLoading[locale]}
+                className="h-full justify-center"
+                action={
+                  <Button variant="quiet" size="touch" onClick={() => globalThis.location.reload()}>
                     {labels.retry[locale]}
                   </Button>
-                </div>
-              }
-            >
-              <ScheduleDetailContent
-                entry={entry}
-                locale={locale}
-                isEditing={isEditing}
-                isAdmin={isAdmin}
-                courseStatus={courseStatus ?? undefined}
-                editData={editData}
-                onEditDataChange={setEditData}
-                editError={editError}
-                otherSlots={otherSlots}
-                leaderNotes={leaderNotes}
+                }
               />
-            </SafeErrorBoundary>
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Navigation Footer */}
-        {!isEditing && (previous || next) && (
-          <nav className="relative z-20 flex items-center justify-between border-t border-gray-100 bg-white/95 px-4 py-2.5 backdrop-blur-md">
-            {previous ? (
-              <button
-                type="button"
-                onClick={() => navigateToEntry(previous.id, -1)}
-                className="flex max-w-[45%] min-w-0 cursor-pointer items-center gap-1.5 rounded-xl border border-gray-100 bg-white px-3 py-1.5 text-left text-xs font-semibold text-gray-600 shadow-2xs transition-all hover:border-gray-200 hover:bg-gray-50 hover:text-gray-900"
-                aria-label={previousEntryLabel[locale]}
-              >
-                <ChevronLeft className="text-conveniat-green h-4 w-4 shrink-0" />
-                <span className="truncate">{previous.title}</span>
-              </button>
-            ) : (
-              <div />
-            )}
-            {next ? (
-              <button
-                type="button"
-                onClick={() => navigateToEntry(next.id, 1)}
-                className="flex max-w-[45%] min-w-0 cursor-pointer items-center gap-1.5 rounded-xl border border-gray-100 bg-white px-3 py-1.5 text-right text-xs font-semibold text-gray-600 shadow-2xs transition-all hover:border-gray-200 hover:bg-gray-50 hover:text-gray-900"
-                aria-label={nextEntryLabel[locale]}
-              >
-                <span className="truncate">{next.title}</span>
-                <ChevronRight className="text-conveniat-green h-4 w-4 shrink-0" />
-              </button>
-            ) : (
-              <div />
-            )}
-          </nav>
-        )}
+            }
+          >
+            <ScheduleDetailContent
+              entry={entry}
+              locale={locale}
+              isEditing={isEditing}
+              isAdmin={isAdmin}
+              courseStatus={courseStatus ?? undefined}
+              editData={editData}
+              onEditDataChange={setEditData}
+              editError={editError}
+              slotEntry={slotEntry}
+              isOwnSlot={isOwnSlot}
+              myQuartierIds={myQuartierIds}
+              otherSlots={otherSlots}
+              whatComesNext={whatComesNext}
+              onOpenEntry={navigateToEntry}
+              leaderNotes={leaderNotes}
+            />
+          </SafeErrorBoundary>
+        </div>
       </div>
     </>
   );

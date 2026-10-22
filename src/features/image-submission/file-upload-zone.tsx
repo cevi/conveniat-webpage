@@ -1,4 +1,5 @@
 'use client';
+import { IconTile } from '@/components/ui/icon-tile';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
 import { Image as LucideImageIcon } from 'lucide-react';
@@ -36,13 +37,13 @@ export const FileUploadZone: React.FC<FileUploadZoneProperties & { compact?: boo
           multiple
           accept="image/*"
           onChange={onFileSelect}
-          className="sr-only"
+          className="peer sr-only"
         />
         <label
           htmlFor="images-compact"
-          className="flex cursor-pointer items-center justify-center gap-2 rounded-full bg-gray-200/50 py-3.5 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-200 hover:text-gray-900 active:scale-[0.98]"
+          className="bg-quiet hover:bg-chip peer-focus-visible:focus-ring flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl text-[15px] font-semibold text-green-900 transition-colors"
         >
-          <LucideImageIcon className="h-5 w-5" />
+          <LucideImageIcon className="h-5 w-5" aria-hidden="true" />
           <span>{selectImages[locale]}</span>
         </label>
       </div>
@@ -50,33 +51,25 @@ export const FileUploadZone: React.FC<FileUploadZoneProperties & { compact?: boo
   }
 
   return (
-    <div className="space-y-4">
-      <label className="block text-lg font-semibold text-gray-800">
-        {selectImages[locale]} <span className="text-cevi-red">*</span>
+    <div className="relative">
+      <input
+        id="images"
+        type="file"
+        multiple
+        accept="image/*"
+        onChange={onFileSelect}
+        className="peer sr-only"
+      />
+      <label
+        htmlFor="images"
+        className="border-rail hover:bg-quiet peer-focus-visible:focus-ring flex cursor-pointer flex-col items-center gap-3 rounded-[14px] border-2 border-dashed bg-white px-6 py-10 text-center transition-colors"
+      >
+        <IconTile icon={LucideImageIcon} size="lg" />
+        <span className="font-heading text-heading text-lg font-bold">
+          {selectImages[locale]} <span className="text-danger">*</span>
+        </span>
+        <span className="text-[13px] text-green-700">{fileTypeText[locale]}</span>
       </label>
-      <div className="group relative overflow-hidden rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 p-10 text-center transition-all hover:border-blue-400/50 hover:bg-blue-50/50 hover:shadow-lg">
-        <input
-          id="images"
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={onFileSelect}
-          className="sr-only"
-        />
-        <label htmlFor="images" className="flex cursor-pointer flex-col items-center gap-4 py-4">
-          <div className="rounded-full bg-white p-4 shadow-sm transition-transform group-hover:scale-110 group-hover:shadow-md">
-            <LucideImageIcon className="h-10 w-10 text-gray-400 group-hover:text-blue-500" />
-          </div>
-          <div className="space-y-1">
-            <span className="block text-base font-medium text-gray-700 group-hover:text-blue-600">
-              {selectImages[locale]}
-            </span>
-            <span className="block text-xs tracking-wide text-gray-400 uppercase">
-              {fileTypeText[locale]}
-            </span>
-          </div>
-        </label>
-      </div>
     </div>
   );
 };

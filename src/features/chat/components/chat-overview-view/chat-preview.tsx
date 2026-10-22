@@ -1,14 +1,30 @@
 'use client';
 import { PersonAvatar } from '@/components/ui/person-avatar';
+import { DoubleCheck } from '@/features/chat/components/ui/double-check';
+import { PersonName } from '@/features/chat/components/ui/person-name';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
-import { useFormatDate } from '@/features/chat/hooks/use-format-date';
+import { useLongPress } from '@/features/chat/hooks/use-long-press';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
+import { formatChatListDate } from '@/features/chat/utils/format-chat-list-date';
 import { previewSenderPrefix } from '@/features/chat/utils/preview-sender-prefix';
+import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { ChatType } from '@prisma/client';
-import { Megaphone, Pin, Siren, Users } from 'lucide-react';
+import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
+import type { LucideIcon } from 'lucide-react';
+import {
+  BellOff,
+  CalendarDays,
+  Check,
+  Clock,
+  LifeBuoy,
+  Loader2,
+  Megaphone,
+  Pin,
+  Siren,
+  Users,
+} from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link, { useLinkStatus } from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -41,29 +57,132 @@ const unreadText = (count: number, isLarge: boolean, locale: Locale): string => 
   return `${count} unread messages`;
 };
 
-/**
- * The row of a chat, pulsing from the tap until the chat has opened, so a tap that takes a
- * while, as it does offline, is not mistaken for one that did nothing.
- */
+const openingText: StaticTranslationString = {
+  de: 'Wird geöffnet …',
+  en: 'Opening …',
+  fr: 'Ouverture …',
+};
+
+/** The row of a chat; busy from the tap until the chat has opened. */
 const ChatPreviewRow: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { pending } = useLinkStatus();
   return (
-    <li
-      aria-busy={pending}
-      className={cn(
-        'relative flex items-center space-x-4 rounded-lg p-4 transition-all duration-200',
-        'hover:shadow-sm',
-        pending && 'animate-pulse',
-      )}
-    >
+    <div aria-busy={pending} className="flex min-h-[72px] items-center gap-3 px-4 py-3">
       {children}
-    </li>
+    </div>
   );
+};
+
+/**
+ * The date of the last message, or a small spinner in its place from the tap until the chat
+ * has opened, so a tap that takes a while, as it does offline, is not mistaken for one that did
+ * nothing. The row itself stays still.
+ */
+const ChatTimestamp: React.FC<{ timestamp: string; className: string; locale: Locale }> = ({
+  timestamp,
+  className,
+  locale,
+}) => {
+  const { pending } = useLinkStatus();
+  if (pending) {
+    return (
+      <span className={cn(className, 'flex items-center')}>
+        <Loader2 className="h-4 w-4 animate-spin text-green-500" aria-hidden="true" />
+        <span className="sr-only">{openingText[locale]}</span>
+      </span>
+    );
+  }
+  return <span className={className}>{timestamp}</span>;
+};
+
+/** The round picture at the start of a row: the partner, or what kind of chat it is. */
+export const ChatAvatar: React.FC<{ chat: ChatWithMessagePreview }> = ({ chat }) => {
+  if (chat.chatType === ChatType.ONE_TO_ONE) {
+    return (
+      <PersonAvatar
+        seed={chat.partner?.userId ?? chat.id}
+        name={chat.name}
+        pictureUrl={chat.partner?.pictureUrl}
+        className="h-11 w-11 text-sm"
+      />
+    );
+  }
+  if (chat.chatType === ChatType.GROUP) {
+    // a group gets its initials like a person, marked as a group by a small badge
+    return (
+      <span className="relative shrink-0">
+        <PersonAvatar seed={chat.id} name={chat.name} className="h-11 w-11 text-sm" />
+        <span className="ring-line absolute -right-0.5 -bottom-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-white ring-1">
+          <Users className="h-3 w-3 text-green-700" aria-hidden="true" />
+        </span>
+      </span>
+    );
+  }
+  if (chat.chatType === ChatType.EMERGENCY) {
+    return (
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-50 ring-2 ring-red-500">
+        <Siren className="h-5 w-5 text-red-600" aria-hidden="true" />
+      </span>
+    );
+  }
+  const icons: Partial<Record<ChatType, LucideIcon>> = {
+    [ChatType.SUPPORT_GROUP]: LifeBuoy,
+    [ChatType.ANNOUNCEMENT]: Megaphone,
+    [ChatType.COURSE_GROUP]: CalendarDays,
+  };
+  const Icon = icons[chat.chatType] ?? Users;
+  return (
+    <span className="text-conveniat-green bg-tint flex h-11 w-11 shrink-0 items-center justify-center rounded-full">
+      <Icon className="h-5 w-5" aria-hidden="true" />
+    </span>
+  );
+};
+
+const groupCreatedText: StaticTranslationString = {
+  de: 'Du hast die Gruppe erstellt',
+  en: 'You created the group',
+  fr: 'Tu as créé le groupe',
+};
+
+const sentStatusText: Partial<Record<MessageEventType, StaticTranslationString>> = {
+  [MessageEventType.CREATED]: { de: 'Wird gesendet', en: 'Sending', fr: 'Envoi' },
+  [MessageEventType.STORED]: { de: 'Gesendet', en: 'Sent', fr: 'Envoyé' },
+  [MessageEventType.RECEIVED]: { de: 'Zugestellt', en: 'Delivered', fr: 'Distribué' },
+  [MessageEventType.READ]: { de: 'Gelesen', en: 'Read', fr: 'Lu' },
+};
+
+/** The tick in front of the user's own last message, as its bubble shows it. */
+const SentStatus: React.FC<{ status: MessageEventType; locale: Locale }> = ({ status, locale }) => {
+  const label = sentStatusText[status]?.[locale];
+  if (label === undefined) return <></>;
+  let icon: React.ReactNode;
+  if (status === MessageEventType.CREATED) {
+    icon = <Clock className="h-3.5 w-3.5" aria-hidden="true" />;
+  } else if (status === MessageEventType.STORED) {
+    icon = <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />;
+  } else {
+    icon = <DoubleCheck className={status === MessageEventType.READ ? 'text-read' : ''} />;
+  }
+  return (
+    <span role="img" aria-label={label} className="mr-1 inline-flex align-[-2px] text-green-500">
+      {icon}
+    </span>
+  );
+};
+
+const mutedText: StaticTranslationString = {
+  de: 'Stummgeschaltet',
+  en: 'Muted',
+  fr: 'En sourdine',
 };
 
 export const ChatPreview: React.FC<{
   chat: ChatWithMessagePreview;
-}> = ({ chat }) => {
+  /** opens the chat's actions on a long press, a right click or the context-menu key */
+  onOpenActions?: (chat: ChatWithMessagePreview) => void;
+  /** the element that tells a screen reader how to reach those actions */
+  actionsHintId?: string;
+}> = ({ chat, onOpenActions, actionsHintId }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
   const trpcUtils = trpc.useUtils();
@@ -95,11 +214,13 @@ export const ChatPreview: React.FC<{
     chatDetailLink += `?${params.toString()}`;
   }
 
-  const hasUnread = chat.unreadCount > 0;
-  const { formatMessageTime } = useFormatDate();
+  const longPress = useLongPress(() => onOpenActions?.(chat));
+  const hasUnread = chat.unreadCount > 0 || chat.isMarkedUnread === true;
+  // a chat marked unread counts as one, also in a cached list from before the mark existed
+  const unreadCount = Math.max(chat.unreadCount, hasUnread ? 1 : 0);
 
   const messageDate = chat.lastMessage?.createdAt ?? chat.lastUpdate;
-  const timestamp = formatMessageTime(new Date(messageDate));
+  const timestamp = formatChatListDate(messageDate, locale, new Date());
 
   const rawPreview = chat.lastMessage?.messagePreview;
   let previewText = '';
@@ -108,100 +229,127 @@ export const ChatPreview: React.FC<{
   } else if (rawPreview) {
     previewText = rawPreview[locale];
   }
-  const senderPrefix = previewSenderPrefix(chat.lastMessage, chat.chatType, currentUserId, locale);
+  let senderPrefix = previewSenderPrefix(chat.lastMessage, chat.chatType, currentUserId, locale);
+  const isOwnMessage = currentUserId !== undefined && chat.lastMessage?.senderId === currentUserId;
+
+  // a group with nothing but its creation message, seen by the one who created it
+  const isFreshOwnGroup =
+    chat.chatType === ChatType.GROUP &&
+    chat.lastMessage?.senderId === SYSTEM_SENDER_ID &&
+    chat.messageCount <= 1 &&
+    chat.userChatPermission === ChatMembershipPermission.OWNER;
+  if (isFreshOwnGroup) {
+    previewText = groupCreatedText[locale];
+    senderPrefix = '';
+  }
+
+  const isEmergency = chat.chatType === ChatType.EMERGENCY;
 
   return (
-    <Link href={chatDetailLink} className="block w-full" onMouseEnter={handlePrefetch}>
+    <Link
+      href={chatDetailLink}
+      // an emergency chat is the one row that may be red, so it stands out of the list
+      className={cn(
+        'hover:bg-quiet focus-visible:focus-ring-inset block w-full bg-white select-none',
+        hasUnread && 'bg-tint',
+        isEmergency && 'border-l-4 border-l-red-600 bg-red-50 hover:bg-red-100',
+      )}
+      data-allow-red={isEmergency ? '' : undefined}
+      onMouseEnter={handlePrefetch}
+      aria-describedby={onOpenActions === undefined ? undefined : actionsHintId}
+      // a held finger opens the actions, not the phone's own menu or a text selection
+      style={{ WebkitTouchCallout: 'none' }}
+      {...(onOpenActions === undefined ? {} : longPress)}
+    >
       <ChatPreviewRow>
-        <div className="shrink-0">
-          {chat.chatType === ChatType.GROUP && (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 shadow-sm">
-              <Users size={20} className="text-gray-600" />
-            </div>
-          )}
-          {chat.chatType === ChatType.ONE_TO_ONE && (
-            <PersonAvatar
-              seed={chat.partner?.userId ?? chat.id}
-              name={chat.name}
-              pictureUrl={chat.partner?.pictureUrl}
-              className="h-12 w-12 text-sm shadow-sm"
-            />
-          )}
-          {chat.chatType === ChatType.EMERGENCY && (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-md ring-2 ring-red-500">
-              <Siren size={20} className="text-red-500" />
-            </div>
-          )}
-          {chat.chatType === ChatType.SUPPORT_GROUP && (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 shadow-sm">
-              <Siren size={20} className="text-blue-500" />
-            </div>
-          )}
-          {chat.chatType === ChatType.ANNOUNCEMENT && (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 shadow-md ring-2 ring-rose-500">
-              <Megaphone size={20} className="text-rose-500" />
-            </div>
-          )}
-        </div>
+        <ChatAvatar chat={chat} />
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between">
-            <div className="flex min-w-0 flex-1 flex-col pr-2">
-              <div className="flex items-center gap-2">
-                <p
-                  className={cn('font-heading truncate text-sm font-semibold', {
-                    'text-gray-900': hasUnread,
-                    'text-gray-800': !hasUnread,
-                    'text-red-500': chat.chatType === ChatType.EMERGENCY,
-                    'text-rose-600': chat.chatType === ChatType.ANNOUNCEMENT,
-                  })}
-                >
-                  {chat.name}
-                </p>
-                {chat.isPinned === true && (
-                  <Pin
-                    size={14}
-                    className="shrink-0 text-gray-400"
-                    aria-label={pinnedText[locale]}
-                    role="img"
-                  />
+          <div className="flex items-center gap-1.5">
+            {/* a private chat is named after the partner, in the one way every screen names people */}
+            {chat.chatType === ChatType.ONE_TO_ONE ? (
+              <PersonName
+                name={chat.name}
+                className="min-w-0 text-[15px] leading-5"
+                primaryClassName={hasUnread ? 'font-bold' : undefined}
+              />
+            ) : (
+              <p
+                className={cn(
+                  'min-w-0 truncate text-[15px] leading-5 text-green-900',
+                  hasUnread ? 'font-bold' : 'font-semibold',
+                  isEmergency && 'text-red-700',
                 )}
-                {chat.caseNumber != undefined && chat.caseNumber !== '' && (
-                  <span className="shrink-0 rounded bg-red-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-red-700">
-                    {chat.caseNumber}
-                  </span>
+              >
+                {chat.name}
+              </p>
+            )}
+            {/* the state of the chat sits with its time at the right edge, whatever the name's length */}
+            <span className="ml-auto flex shrink-0 items-center gap-1.5 pl-1">
+              {chat.isPinned === true && (
+                <Pin
+                  className="h-3.5 w-3.5 shrink-0 text-green-500"
+                  aria-label={pinnedText[locale]}
+                  role="img"
+                />
+              )}
+              {chat.isMuted === true && (
+                <BellOff
+                  className="h-3.5 w-3.5 shrink-0 text-green-500"
+                  aria-label={mutedText[locale]}
+                  role="img"
+                />
+              )}
+              <ChatTimestamp
+                timestamp={timestamp}
+                locale={locale}
+                className={cn(
+                  'text-xs whitespace-nowrap text-green-700 tabular-nums',
+                  hasUnread && 'font-bold text-green-900',
+                  isEmergency && 'text-red-700',
                 )}
-              </div>
-            </div>
-            <span
-              className={cn('font-body shrink-0 text-xs whitespace-nowrap text-gray-500', {
-                'text-red-500': chat.chatType === ChatType.EMERGENCY,
-              })}
+              />
+            </span>
+          </div>
+
+          <div className="mt-0.5 flex items-center gap-2">
+            {chat.caseNumber != undefined && chat.caseNumber !== '' && (
+              <span
+                className={cn(
+                  'shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold',
+                  isEmergency ? 'bg-white text-red-700' : 'bg-chip text-green-900',
+                )}
+              >
+                {chat.caseNumber}
+              </span>
+            )}
+            <p
+              className={cn(
+                'min-w-0 flex-1 truncate text-sm leading-5 text-green-700',
+                hasUnread && 'font-semibold text-green-900',
+              )}
             >
-              {timestamp}
-            </span>
+              {isOwnMessage && chat.lastMessage !== undefined && (
+                <SentStatus status={chat.lastMessage.status} locale={locale} />
+              )}
+              {senderPrefix}
+              {previewText}
+            </p>
+            {hasUnread && (
+              <span
+                className={cn(
+                  'flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-xs font-bold text-white tabular-nums',
+                  isEmergency ? 'bg-red-600' : 'bg-conveniat-green',
+                )}
+              >
+                <span aria-hidden="true">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                <span className="sr-only">
+                  {unreadText(unreadCount, chat.isLarge === true, locale)}
+                </span>
+              </span>
+            )}
           </div>
-
-          <p
-            className={cn('font-body mt-1 truncate text-sm', {
-              'font-medium text-gray-700': hasUnread,
-              'text-gray-500': !hasUnread,
-              'text-red-500': chat.chatType === ChatType.EMERGENCY,
-            })}
-          >
-            {senderPrefix}
-            {previewText}
-          </p>
         </div>
-
-        {hasUnread && (
-          <div className="bg-conveniat-green font-body flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white shadow-sm">
-            <span aria-hidden="true">{chat.unreadCount > 99 ? '99+' : chat.unreadCount}</span>
-            <span className="sr-only">
-              {unreadText(chat.unreadCount, chat.isLarge === true, locale)}
-            </span>
-          </div>
-        )}
       </ChatPreviewRow>
     </Link>
   );

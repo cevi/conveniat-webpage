@@ -1,6 +1,9 @@
+import { avatarTextColorOf } from '@/components/ui/person-avatar';
 import type { ChatMessage } from '@/features/chat/api/types';
 import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date';
+import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import type { Locale } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 
 interface MessageFrameProperties {
@@ -30,15 +33,15 @@ export const MessageFrame: React.FC<MessageFrameProperties> = ({
   return (
     <div id={`message-${message.id}`} className="flex w-full flex-col px-2">
       {!isCurrentUser && senderName !== '' && (
-        <span className="mb-1 px-1.5 text-xs font-semibold text-gray-500">
-          {senderName}
-          {senderFunktionen !== '' && (
-            <span className="text-conveniat-green font-medium"> · {senderFunktionen}</span>
-          )}
+        <span className="mb-1 truncate px-1.5 text-[13px] text-green-700">
+          <span className={cn('font-semibold', avatarTextColorOf(message.senderId ?? ''))}>
+            {splitDisplayName(senderName).primary}
+          </span>
+          {senderFunktionen !== '' && ` · ${senderFunktionen}`}
         </span>
       )}
       {children}
-      <span className="font-body mt-1 px-1.5 text-right text-[10px] text-gray-400">
+      <span className="mt-1 px-1.5 text-right text-[11px] text-green-700 tabular-nums">
         {formatMessageTimeOnlyRaw(message.createdAt, locale)}
       </span>
     </div>

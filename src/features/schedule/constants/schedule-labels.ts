@@ -22,7 +22,7 @@ export const scheduleLabels = {
 } as const satisfies Record<string, StaticTranslationString>;
 
 export const programmeLabels = {
-  wholeCamp: { de: 'Ganzes Lager', en: 'Whole camp', fr: 'Tout le camp' },
+  wholeCamp: { de: 'Gesamtlager', en: 'Whole camp', fr: 'Tout le camp' },
   now: { de: 'Jetzt', en: 'Now', fr: 'Maintenant' },
   upNext: { de: 'Als Nächstes', en: 'Up next', fr: 'Ensuite' },
   inMinutes: { de: 'in {{duration}}', en: 'in {{duration}}', fr: 'dans {{duration}}' },
@@ -56,6 +56,65 @@ export const programmeLabels = {
   },
   badWeather: { de: 'Schlechtwetter', en: 'Bad weather', fr: 'Mauvais temps' },
   showOnMap: { de: 'Auf der Karte zeigen', en: 'Show on the map', fr: 'Afficher sur la carte' },
+  until: { de: 'bis {{time}}', en: 'until {{time}}', fr: "jusqu'à {{time}}" },
+  forMe: { de: 'Für mich', en: 'For me', fr: 'Pour moi' },
+  otherTimeSlots: { de: 'Weitere Zeitfenster', en: 'Other time slots', fr: 'Autres créneaux' },
+  yourQuartier: { de: 'Dein Quartier', en: 'Your Quartier', fr: 'Ton Quartier' },
+  ownSlot: {
+    de: 'Zeitfenster deines Quartiers',
+    en: "Your Quartier's time slot",
+    fr: 'Créneau de ton Quartier',
+  },
+  thenNext: { de: 'dann {{title}}', en: 'then {{title}}', fr: 'puis {{title}}' },
+  quartiere: { de: 'Quartiere', en: 'Quartiere', fr: 'Quartiere' },
+  allQuartiere: { de: 'Alle Quartiere', en: 'All Quartiere', fr: 'Tous les Quartiere' },
+  view: { de: 'Ansicht', en: 'View', fr: 'Affichage' },
+  favouritesOnly: { de: 'Nur Favoriten', en: 'Favourites only', fr: 'Favoris seulement' },
+  search: {
+    de: 'Programm durchsuchen',
+    en: 'Search the programme',
+    fr: 'Rechercher dans le programme',
+  },
+  filter: { de: 'Nach Kategorie filtern', en: 'Filter by category', fr: 'Filtrer par catégorie' },
+  running: {
+    de: 'Läuft · noch {{duration}}',
+    en: 'Running · {{duration}} left',
+    fr: 'En cours · encore {{duration}}',
+  },
+  nowAt: { de: 'Jetzt, {{time}}', en: 'Now, {{time}}', fr: 'Maintenant, {{time}}' },
+  transfer: {
+    de: '{{duration}} Verschiebung',
+    en: '{{duration}} transfer',
+    fr: '{{duration}} de déplacement',
+  },
+  transferTo: {
+    de: '{{duration}} Verschiebung → {{place}}',
+    en: '{{duration}} transfer → {{place}}',
+    fr: '{{duration}} de déplacement → {{place}}',
+  },
+  // the transfer on the rail, short: the route icon says it is a walk
+  transferShortTo: {
+    de: '{{minutes}}′ → {{place}}',
+    en: '{{minutes}}′ → {{place}}',
+    fr: '{{minutes}}′ → {{place}}',
+  },
+  transferShort: { de: '{{minutes}}′', en: '{{minutes}}′', fr: '{{minutes}}′' },
+  transferPerQuartierTo: {
+    de: '→ {{place}} · je nach Quartier',
+    en: '→ {{place}} · depending on the Quartier',
+    fr: '→ {{place}} · selon le Quartier',
+  },
+  freeTime: { de: '{{minutes}}′ frei', en: '{{minutes}}′ free', fr: '{{minutes}}′ libre' },
+  freeTimeLong: {
+    de: '{{duration}} frei bis zum nächsten Programmpunkt',
+    en: '{{duration}} free before the next block',
+    fr: '{{duration}} de libre avant le prochain bloc',
+  },
+  transferPerQuartier: {
+    de: 'Verschiebung, je nach Quartier',
+    en: 'Transfer, depending on the Quartier',
+    fr: 'Déplacement, selon le Quartier',
+  },
   otherSlots: {
     de: 'Dieser Block zu anderen Zeiten',
     en: 'This block at other times',

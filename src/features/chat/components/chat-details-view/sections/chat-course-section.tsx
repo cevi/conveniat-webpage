@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/buttons/button';
+import { SectionLabel } from '@/components/ui/section-label';
 import type { Locale } from '@/types/types';
 import { Calendar } from 'lucide-react';
 import Link from 'next/link';
@@ -29,16 +30,17 @@ interface ChatCourseSectionProperties {
 
 export const ChatCourseSection: React.FC<ChatCourseSectionProperties> = ({ courseId, locale }) => {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
-      <h2 className="mb-2 text-lg font-semibold text-gray-900">{labels.sectionTitle[locale]}</h2>
-      <p className="mb-4 text-sm text-gray-500">{labels.description[locale]}</p>
-
-      <Button variant="outline" className="w-full justify-start gap-2" asChild>
-        <Link href={`/app/schedule?id=${courseId}`}>
-          <Calendar className="h-4 w-4" />
-          {labels.courseLink[locale]}
-        </Link>
-      </Button>
-    </div>
+    <section>
+      <SectionLabel>{labels.sectionTitle[locale]}</SectionLabel>
+      <div className="border-line mt-2 rounded-[14px] border bg-white p-4">
+        <p className="mb-3 text-[15px] text-green-700">{labels.description[locale]}</p>
+        <Button variant="outlined" size="touch" className="w-full" asChild>
+          <Link href={`/app/schedule?id=${courseId}`}>
+            <Calendar aria-hidden="true" />
+            {labels.courseLink[locale]}
+          </Link>
+        </Button>
+      </div>
+    </section>
   );
 };

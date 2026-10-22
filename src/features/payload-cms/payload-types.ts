@@ -245,6 +245,7 @@ export interface Config {
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
       syncFunktionen: TaskSyncFunktionen;
       autoCheckoutPresence: TaskAutoCheckoutPresence;
+      sendScheduleReminders: TaskSendScheduleReminders;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -704,9 +705,17 @@ export interface Hof {
 export interface Quartier {
   id: string;
   /**
-   * Shown next to the Hof, e.g. "Quartier 3".
+   * The full name, shown next to the Hof, e.g. "Quartier 5 - Greif".
    */
   name: string;
+  /**
+   * Shown as "Q5" on chips; it also picks the Quartier's icon and colour in the app.
+   */
+  number: number;
+  /**
+   * The name people call the Quartier by, e.g. "Greif".
+   */
+  rufname?: string | null;
   /**
    * The area of this Quartier, drawn as a polygon on the camp map.
    */
@@ -5289,6 +5298,7 @@ export interface PayloadJob {
           | 'cleanupTemporaryFormFiles'
           | 'syncFunktionen'
           | 'autoCheckoutPresence'
+          | 'sendScheduleReminders'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -5345,6 +5355,7 @@ export interface PayloadJob {
         | 'cleanupTemporaryFormFiles'
         | 'syncFunktionen'
         | 'autoCheckoutPresence'
+        | 'sendScheduleReminders'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -7209,6 +7220,8 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
  */
 export interface QuartiereSelect<T extends boolean = true> {
   name?: T;
+  number?: T;
+  rufname?: T;
   mapAnnotation?: T;
   hoefe?: T;
   updatedAt?: T;
@@ -10285,6 +10298,14 @@ export interface TaskAutoCheckoutPresence {
   output: {
     checkedOut?: number | null;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendScheduleReminders".
+ */
+export interface TaskSendScheduleReminders {
+  input?: unknown;
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

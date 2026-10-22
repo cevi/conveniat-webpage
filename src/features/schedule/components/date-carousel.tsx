@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/buttons/button';
+import { useDayStripScroll } from '@/features/schedule/hooks/use-day-strip-scroll';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -21,44 +22,52 @@ const nextDayAriaLabel: StaticTranslationString = {
   fr: 'Jour suivant',
 };
 
+// a phone swipes the strip; the arrows are for wider screens, where seven days leave them room
+const arrowClassName =
+  'hidden h-[58px] w-7 shrink-0 cursor-pointer rounded-lg p-0 text-green-500 hover:bg-transparent hover:text-green-900 disabled:pointer-events-none disabled:opacity-25 sm:flex';
+
 interface DateCarouselProperties {
   allDates: Date[];
   currentDate: Date;
-  startIndex: number;
-  maxVisible: number;
   onDateSelect: (date: Date) => void;
-  onPrevious: () => void;
-  onNext: () => void;
 }
 
+/**
+ * Every day of the camp in one strip that scrolls sideways under the finger and snaps to whole
+ * days, seven at a time. The arrows scroll it by a day for those without a touch screen.
+ */
 export const DateCarousel: React.FC<DateCarouselProperties> = ({
   allDates,
   currentDate,
-  startIndex,
-  maxVisible,
   onDateSelect,
-  onPrevious,
-  onNext,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const visibleDates = allDates.slice(startIndex, startIndex + maxVisible);
   const formattedCurrentDate = formatDate(currentDate);
+  const { stripReference, canScrollBack, canScrollForward, onScroll, scrollByDays } =
+    useDayStripScroll(formattedCurrentDate, allDates.length);
 
   return (
-    <div className="flex w-full items-center justify-between gap-1 rounded-xl bg-gray-100 p-1">
+    <div className="flex w-full items-center gap-1.5">
       <Button
-        variant="ghost"
+        variant="plain"
         size="sm"
-        onClick={onPrevious}
-        disabled={startIndex <= 0}
+        onClick={() => scrollByDays(-1)}
+        disabled={!canScrollBack}
         aria-label={previousDayAriaLabel[locale]}
-        className="h-10 w-8 shrink-0 cursor-pointer rounded-lg p-0 text-gray-500 hover:bg-white/60 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-20"
+        className={arrowClassName}
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeft className="h-5 w-5" />
       </Button>
 
-      <div className="flex flex-1 items-center justify-around gap-1">
-        {visibleDates.map((date) => {
+      {/* the padding, given back by the negative margin, leaves room for a day's focus ring,
+          which the scroller would clip at its edges; the scroll padding keeps the days snapping
+          to where they were */}
+      <div
+        ref={stripReference}
+        onScroll={onScroll}
+        className="relative -m-1 flex min-w-0 flex-1 snap-x snap-mandatory scroll-px-1 [scrollbar-width:none] gap-1.5 overflow-x-auto overscroll-x-contain p-1 [&::-webkit-scrollbar]:hidden"
+      >
+        {allDates.map((date) => {
           const dateString = formatDate(date);
           const isSelected = formattedCurrentDate === dateString;
           const weekday = date.toLocaleDateString(locale, { weekday: 'short' });
@@ -68,30 +77,30 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
             <button
               key={dateString}
               type="button"
-              aria-pressed={isSelected}
+              aria-current={isSelected ? 'date' : undefined}
               onClick={() => onDateSelect(date)}
               className={cn(
-                'flex min-w-0 flex-1 cursor-pointer flex-col items-center justify-center rounded-lg py-1.5 transition-all select-none',
+                'flex h-[58px] w-[calc((100%-6*0.375rem)/7)] shrink-0 cursor-pointer snap-start flex-col items-center justify-center gap-1 rounded-xl border transition-colors select-none',
                 isSelected
-                  ? 'bg-white font-semibold shadow-xs'
-                  : 'text-gray-600 hover:bg-white/50 hover:text-gray-900',
+                  ? 'bg-conveniat-green border-conveniat-green'
+                  : 'border-line bg-white hover:border-green-200',
               )}
             >
               <span
                 className={cn(
-                  'font-heading text-[10px] leading-tight tracking-wider uppercase',
-                  isSelected ? 'text-conveniat-green font-bold' : 'font-medium text-gray-400',
+                  'text-[11px] leading-none font-semibold tracking-wide uppercase',
+                  isSelected ? 'text-white/80' : 'text-green-500',
                 )}
               >
                 {weekday}
               </span>
               <span
                 className={cn(
-                  'font-heading mt-0.5 text-xs leading-none font-bold',
-                  isSelected ? 'text-gray-900' : 'text-gray-700',
+                  'font-heading text-lg leading-none font-bold tabular-nums',
+                  isSelected ? 'text-white' : 'text-green-900',
                 )}
               >
-                {dayNumber}.
+                {dayNumber}
               </span>
             </button>
           );
@@ -99,14 +108,14 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
       </div>
 
       <Button
-        variant="ghost"
+        variant="plain"
         size="sm"
-        onClick={onNext}
-        disabled={startIndex >= allDates.length - maxVisible}
+        onClick={() => scrollByDays(1)}
+        disabled={!canScrollForward}
         aria-label={nextDayAriaLabel[locale]}
-        className="h-10 w-8 shrink-0 cursor-pointer rounded-lg p-0 text-gray-500 hover:bg-white/60 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-20"
+        className={arrowClassName}
       >
-        <ChevronRight className="h-4 w-4" />
+        <ChevronRight className="h-5 w-5" />
       </Button>
     </div>
   );

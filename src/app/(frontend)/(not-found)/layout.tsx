@@ -22,7 +22,7 @@ const Layout: React.FC<{ children: ReactNode }> = async ({ children }) => {
       lang={locale}
     >
       <body
-        className={cn('flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc]', {
+        className={cn('bg-page flex h-dvh w-dvw flex-col overflow-x-hidden', {
           'overscroll-y-none': isInAppDesign,
         })}
       >

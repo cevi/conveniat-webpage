@@ -1,8 +1,10 @@
 import { Button } from '@/components/ui/buttons/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import { unstable_rethrow } from 'next/navigation';
 import React, { useEffect } from 'react';
 import type { FallbackProps } from 'react-error-boundary';
 
@@ -34,6 +36,8 @@ const tryAgain: StaticTranslationString = {
  * A user-friendly error fallback component for the App Shell.
  */
 export const AppErrorFallback: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) => {
+  // notFound() and redirect() throw to reach Next.js; caught here they looked like a crash
+  unstable_rethrow(error);
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   useEffect(() => {
@@ -44,35 +48,37 @@ export const AppErrorFallback: React.FC<FallbackProps> = ({ error, resetErrorBou
   }, [error]);
 
   return (
-    <div className="flex min-h-[400px] w-full flex-col items-center justify-center p-6 text-center">
-      <div className="mb-6 rounded-full bg-red-50 p-4">
-        <AlertTriangle className="h-12 w-12 text-red-500" />
-      </div>
-      <h2 className="font-heading mb-2 text-2xl font-bold text-gray-900">{title[locale]}</h2>
-      <p className="font-body mb-8 max-w-md text-gray-600">{description[locale]}</p>
-
-      {/* eslint-disable-next-line n/no-process-env */}
-      {process.env.NODE_ENV === 'development' && error instanceof Error && (
-        <div className="mb-8 w-full max-w-2xl overflow-auto rounded-lg bg-gray-100 p-4 text-left">
-          <p className="mb-2 font-mono text-xs font-bold text-red-700">Error: {error.message}</p>
-          <pre className="font-mono text-[10px] text-gray-700">{error.stack}</pre>
-        </div>
-      )}
-
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Button
-          variant="default"
-          size="lg"
-          className="gap-2 bg-red-600 hover:bg-red-700"
-          onClick={() => globalThis.location.reload()}
-        >
-          <RefreshCw className="h-5 w-5" />
-          {reloadPage[locale]}
-        </Button>
-        <Button variant="outline" size="lg" onClick={resetErrorBoundary}>
-          {tryAgain[locale]}
-        </Button>
-      </div>
+    <div className="flex w-full justify-center px-4 py-6">
+      <EmptyState
+        icon={AlertTriangle}
+        title={title[locale]}
+        description={description[locale]}
+        className="w-full max-w-md"
+        action={
+          <div className="flex w-full flex-col items-center gap-5">
+            {/* eslint-disable-next-line n/no-process-env */}
+            {process.env.NODE_ENV === 'development' && error instanceof Error && (
+              <div className="bg-quiet max-h-60 w-full overflow-auto rounded-[14px] p-3.5 text-left">
+                <p className="font-mono text-xs font-bold break-words text-green-900">
+                  Error: {error.message}
+                </p>
+                <pre className="mt-2 font-mono text-[11px] leading-snug break-all whitespace-pre-wrap text-green-700">
+                  {error.stack}
+                </pre>
+              </div>
+            )}
+            <div className="flex w-64 max-w-full flex-col gap-2.5">
+              <Button variant="primary" size="touch" onClick={() => globalThis.location.reload()}>
+                <RefreshCw aria-hidden="true" />
+                {reloadPage[locale]}
+              </Button>
+              <Button variant="outlined" size="touch" onClick={resetErrorBoundary}>
+                {tryAgain[locale]}
+              </Button>
+            </div>
+          </div>
+        }
+      />
     </div>
   );
 };

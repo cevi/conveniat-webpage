@@ -3,6 +3,7 @@ import {
   hasAccessToThisUser,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { LEADER_NOTES_CONTEXT } from '@/features/payload-cms/payload-cms/collections/camp-schedule-entry-collection';
+import type { HofQuartier } from '@/features/payload-cms/payload-cms/utils/hof-directory';
 import { getHofDirectory } from '@/features/payload-cms/payload-cms/utils/hof-directory';
 import {
   hasLeadingRegistration,
@@ -20,10 +21,7 @@ interface Viewer {
   group_ids?: number[];
 }
 
-export interface ViewerQuartier {
-  id: string;
-  name: string;
-}
+export type ViewerQuartier = HofQuartier;
 
 /**
  * The Quartiere of the logged-in user, through the Höfe of their registration. Empty for a
@@ -58,7 +56,7 @@ export const getQuartiereOfViewer = async (viewer?: Viewer): Promise<ViewerQuart
  * Who gets to read what a block holds for the people running it: whoever comes to the camp to
  * lead or help, by their registration in Cevi.DB, and the editors who write it.
  */
-const isLeader = async (viewer: Viewer): Promise<boolean> => {
+export const isLeader = async (viewer: Viewer): Promise<boolean> => {
   if (hasAccessToThisUser({ user: viewer, requiredRoles: EDITOR_ROLES })) return true;
 
   const payload = await getPayload({ config });

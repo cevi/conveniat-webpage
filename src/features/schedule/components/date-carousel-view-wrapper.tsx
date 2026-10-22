@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/buttons/button';
 import { DateCarousel } from '@/features/schedule/components/date-carousel';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -8,28 +7,27 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import React from 'react';
 
 const nextDayLabel: StaticTranslationString = {
-  en: 'Go to next day',
-  de: 'Zum nächsten Tag',
-  fr: 'Aller au jour suivant',
+  en: 'Next day',
+  de: 'Nächster Tag',
+  fr: 'Jour suivant',
 };
 
 const previousDayLabel: StaticTranslationString = {
-  en: 'Go to previous day',
-  de: 'Zum vorherigen Tag',
-  fr: 'Aller au jour précédent',
+  en: 'Previous day',
+  de: 'Vorheriger Tag',
+  fr: 'Jour précédent',
 };
 
 interface DateCarouselViewWrapperProperties {
   allDates: Date[];
   currentDate: Date;
-  carouselStartIndex: number;
-  maxVisibleDays: number;
   locale: Locale;
   onDateSelect: (date: Date) => void;
-  onCarouselPrevious: () => void;
-  onCarouselNext: () => void;
   children: React.ReactNode;
 }
+
+const dayLinkClassName =
+  'flex h-13 w-full cursor-pointer items-center gap-1.5 rounded-[14px] border border-line bg-white px-4 text-left text-[15px] text-green-700 transition-colors hover:border-rail';
 
 const slideVariants = {
   enter: (direction_: number): { x: number; opacity: number } => ({
@@ -53,12 +51,8 @@ const slideVariants = {
 export const DateCarouselViewWrapper: React.FC<DateCarouselViewWrapperProperties> = ({
   allDates,
   currentDate,
-  carouselStartIndex,
-  maxVisibleDays,
   locale,
   onDateSelect,
-  onCarouselPrevious,
-  onCarouselNext,
   children,
 }) => {
   const [previousDate, setPreviousDate] = React.useState(currentDate);
@@ -84,15 +78,7 @@ export const DateCarouselViewWrapper: React.FC<DateCarouselViewWrapperProperties
 
   return (
     <article className="mx-auto w-full max-w-2xl p-4 sm:p-6">
-      <DateCarousel
-        allDates={allDates}
-        currentDate={currentDate}
-        startIndex={carouselStartIndex}
-        maxVisible={maxVisibleDays}
-        onDateSelect={onDateSelect}
-        onPrevious={onCarouselPrevious}
-        onNext={onCarouselNext}
-      />
+      <DateCarousel allDates={allDates} currentDate={currentDate} onDateSelect={onDateSelect} />
 
       <div className="relative mt-4 min-h-[300px]">
         <AnimatePresence initial={false} mode="wait" custom={direction}>
@@ -114,14 +100,8 @@ export const DateCarouselViewWrapper: React.FC<DateCarouselViewWrapperProperties
               const threshold = 50;
               if (info.offset.x < -threshold && nextDate) {
                 onDateSelect(nextDate);
-                if (currentIndex + 1 >= carouselStartIndex + maxVisibleDays) {
-                  onCarouselNext();
-                }
               } else if (info.offset.x > threshold && currentIndex > 0 && previousDay) {
                 onDateSelect(previousDay);
-                if (currentIndex - 1 < carouselStartIndex) {
-                  onCarouselPrevious();
-                }
               }
             }}
             className="h-full touch-pan-y"
@@ -131,35 +111,44 @@ export const DateCarouselViewWrapper: React.FC<DateCarouselViewWrapperProperties
 
               {/* Navigation Links */}
               {(previousDay ?? nextDate) && (
-                <div className="flex flex-col space-y-3 pt-4">
+                <div className="flex flex-col space-y-3 pt-2">
                   {/* Prev Day Link */}
                   {previousDay && (
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2 border-dashed text-gray-500 hover:text-gray-900"
+                    <button
+                      type="button"
+                      className={dayLinkClassName}
                       onClick={() => onDateSelect(previousDay)}
                     >
-                      <ArrowLeft className="h-4 w-4" />
+                      <ArrowLeft
+                        className="text-conveniat-green h-5 w-5 shrink-0"
+                        aria-hidden="true"
+                      />
                       <span>{previousDayLabel[locale]}</span>
-                      <span className="font-semibold text-gray-900">
-                        {previousDay.toLocaleDateString(locale, { weekday: 'long' })}
+                      <span className="font-semibold text-green-900">
+                        {previousDay.toLocaleDateString(locale, {
+                          weekday: 'long',
+                          day: 'numeric',
+                        })}
                       </span>
-                    </Button>
+                    </button>
                   )}
 
                   {/* Next Day Link */}
                   {nextDate && (
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2 border-dashed text-gray-500 hover:text-gray-900"
+                    <button
+                      type="button"
+                      className={dayLinkClassName}
                       onClick={() => onDateSelect(nextDate)}
                     >
                       <span>{nextDayLabel[locale]}</span>
-                      <span className="font-semibold text-gray-900">
-                        {nextDate.toLocaleDateString(locale, { weekday: 'long' })}
+                      <span className="font-semibold text-green-900">
+                        {nextDate.toLocaleDateString(locale, { weekday: 'long', day: 'numeric' })}
                       </span>
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
+                      <ArrowRight
+                        className="text-conveniat-green ml-auto h-5 w-5 shrink-0"
+                        aria-hidden="true"
+                      />
+                    </button>
                   )}
                 </div>
               )}

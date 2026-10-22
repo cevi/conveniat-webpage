@@ -89,6 +89,7 @@ export const useMessageReadStatus = ({
             return {
               ...chat,
               unreadCount: 0,
+              isMarkedUnread: false,
             };
           }
           return chat;
@@ -105,6 +106,31 @@ export const useMessageReadStatus = ({
       trpcUtils.chat.chats.invalidate().catch(console.error);
     },
   });
+
+  // "Als ungelesen markieren" is undone by opening the chat. The read receipt cannot do it
+  // alone: the chat may already be read up to its newest message in this session, or end in
+  // the reader's own message, and then no receipt goes out.
+  const { mutate: markChatUnread } = trpc.chat.markChatUnread.useMutation({
+    retry: false,
+    onMutate: () => {
+      trpcUtils.chat.chats.setData({}, (oldChats: ChatWithMessagePreview[] | undefined) =>
+        oldChats?.map((chat) =>
+          chat.id === chatId ? { ...chat, isMarkedUnread: false, unreadCount: 0 } : chat,
+        ),
+      );
+    },
+    onError: () => {
+      trpcUtils.chat.chats.invalidate().catch(console.error);
+    },
+  });
+  const isMarkedUnread =
+    trpc.chat.chats.useQuery({}, { enabled: false }).data?.find((chat) => chat.id === chatId)
+      ?.isMarkedUnread === true;
+
+  useEffect(() => {
+    if (!isVisible || !isAtBottom || !isMarkedUnread) return;
+    markChatUnread({ chatId, unread: false });
+  }, [chatId, isAtBottom, isMarkedUnread, isVisible, markChatUnread]);
 
   useEffect(() => {
     if (!isVisible || !isAtBottom || currentUser === undefined) return;

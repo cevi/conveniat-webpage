@@ -2,14 +2,18 @@ import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/ty
 import {
   findNowAndNext,
   findOtherSlots,
+  findWhatComesNext,
+  isDescriptionRedundant,
   isForQuartiere,
+  isLogistics,
   kindOf,
+  timeOfDayOf,
   withClockTimes,
 } from '@/features/schedule/utils/programme-utils';
 
 type Entry = Pick<
   CampScheduleEntryFrontendType,
-  'id' | 'title' | 'timeslot' | 'kind' | 'quartiere'
+  'id' | 'title' | 'timeslot' | 'kind' | 'quartiere' | 'location' | 'category'
 >;
 
 const entry = (
@@ -23,6 +27,8 @@ const entry = (
   timeslot: { date: '2027-07-25T12:00:00.000Z', time },
   kind,
   quartiere,
+  location: 'spielwiese-mitte',
+  category: 'lagersport',
 });
 
 const at = (time: string): number => {
@@ -140,9 +146,107 @@ describe('findOtherSlots', () => {
       timeslot: { date: '2027-07-26T12:00:00.000Z', time: '13:45 - 15:45' },
     };
     const lunch = { ...entry('4', '12:30 - 13:00', 'meal'), title: 'Kennenlernspiel' };
+    const elsewhere = {
+      ...entry('5', '13:45 - 15:45', 'program'),
+      title: 'Kennenlernspiel',
+      location: 'buehne',
+    };
 
-    expect(findOtherSlots([first, second, otherDay, lunch], second).map(({ id }) => id)).toEqual([
-      '1',
-    ]);
+    expect(
+      findOtherSlots([first, second, otherDay, lunch, elsewhere], second).map(({ id }) => id),
+    ).toEqual(['1']);
+  });
+});
+
+const richText = (text: string): unknown => ({
+  root: {
+    type: 'root',
+    version: 1,
+    children: [{ type: 'paragraph', version: 1, children: [{ type: 'text', version: 1, text }] }],
+  },
+});
+
+describe('isDescriptionRedundant', () => {
+  it('hides a description that only repeats the title', () => {
+    expect(isDescriptionRedundant(richText('Ballspiele.'), 'Ballspiele')).toBe(true);
+    expect(isDescriptionRedundant(richText('  ballspiele  '), 'Ballspiele')).toBe(true);
+  });
+
+  it('hides an empty or unreadable description', () => {
+    expect(isDescriptionRedundant(richText(''), 'Ballspiele')).toBe(true);
+    // a draft skips validation and can leave the description empty
+    // eslint-disable-next-line unicorn/no-null
+    expect(isDescriptionRedundant(null, 'Ballspiele')).toBe(true);
+  });
+
+  it('keeps a description that says more', () => {
+    expect(isDescriptionRedundant(richText('Ballspiele für alle Stufen.'), 'Ballspiele')).toBe(
+      false,
+    );
+  });
+});
+
+describe('findWhatComesNext', () => {
+  const mine = new Set(['q5']);
+  const ballspiele = entry('ballspiele', '17:00 - 17:30', 'program', [{ id: 'q5', name: 'Q5' }]);
+
+  it('names the meal that follows and the block after it, on the own timeline', () => {
+    const { next, nextBlock } = findWhatComesNext(
+      [
+        ballspiele,
+        entry('walk', '17:45 - 18:00', 'transfer', [{ id: 'q5', name: 'Q5' }]),
+        entry('essen-q1', '17:30 - 18:00', 'meal', [{ id: 'q1', name: 'Q1' }]),
+        entry('essen', '18:00 - 18:30', 'meal', [{ id: 'q5', name: 'Q5' }]),
+        entry('freies-spiel', '18:45 - 19:30', 'program', [{ id: 'q5', name: 'Q5' }]),
+        entry('feier', '20:15 - 21:45', 'program'),
+      ],
+      ballspiele,
+      mine,
+    );
+
+    expect(next?.id).toBe('essen');
+    expect(nextBlock?.id).toBe('freies-spiel');
+  });
+
+  it('has nothing to say after the last stop of the day', () => {
+    expect(findWhatComesNext([ballspiele], ballspiele, mine)).toEqual({
+      next: undefined,
+      nextBlock: undefined,
+    });
+  });
+});
+
+describe('timeOfDayOf', () => {
+  it.each([
+    ['00:00 - 01:00', 'morning'],
+    ['11:59 - 12:30', 'morning'],
+    ['12:00 - 13:00', 'afternoon'],
+    ['17:59 - 18:30', 'afternoon'],
+    ['18:00 - 19:00', 'evening'],
+    ['22:30 - 00:00', 'evening'],
+  ])('puts a start at %s in the %s', (time, timeOfDay) => {
+    expect(timeOfDayOf(entry('a', time))).toBe(timeOfDay);
+  });
+
+  it('reads the camp clock of the entry, whatever timezone the phone is in', () => {
+    // the date is stored at noon UTC; the time is the wall clock in Zurich and stays as written
+    expect(
+      timeOfDayOf({ timeslot: { date: '2027-07-25T22:00:00.000Z', time: '08:30 - 09:00' } }),
+    ).toBe('morning');
+  });
+
+  it('places an entry without a readable time nowhere', () => {
+    expect(timeOfDayOf(entry('a', 'später'))).toBeUndefined();
+  });
+});
+
+describe('isLogistics', () => {
+  it('counts meals, transfers and fixed points, not programme blocks', () => {
+    expect(isLogistics({ kind: 'meal' })).toBe(true);
+    expect(isLogistics({ kind: 'transfer' })).toBe(true);
+    expect(isLogistics({ kind: 'fixpoint' })).toBe(true);
+    expect(isLogistics({ kind: 'program' })).toBe(false);
+    // an entry from an older client without a kind is a block
+    expect(isLogistics({})).toBe(false);
   });
 });

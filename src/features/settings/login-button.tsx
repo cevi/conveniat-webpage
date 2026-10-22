@@ -1,6 +1,8 @@
 'use client';
+import { Button } from '@/components/ui/buttons/button';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { LogIn } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
@@ -15,13 +17,16 @@ export const LoginButton: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   return (
-    <button
+    <Button
+      variant="primary"
+      size="touch"
+      className="w-full"
       onClick={() => {
         void signIn('cevi-db', { callbackUrl: '/entrypoint' });
       }}
-      className="font-heading bg-conveniat-green mt-10 w-full cursor-pointer rounded-[8px] px-8 py-3 text-center text-lg leading-normal font-bold text-green-100 duration-100 hover:bg-green-700"
     >
+      <LogIn aria-hidden="true" />
       {loginText[locale]}
-    </button>
+    </Button>
   );
 };

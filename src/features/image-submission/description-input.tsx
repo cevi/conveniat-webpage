@@ -1,7 +1,9 @@
 'use client';
 
+import { textInputClassName } from '@/components/ui/field';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
@@ -26,9 +28,9 @@ export const DescriptionInput: React.FC<DescriptionInputProperties> = ({ value, 
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   return (
-    <div className="space-y-4">
-      <label htmlFor="description" className="block text-sm font-semibold text-gray-700">
-        {imageDescription[locale]} <span className="text-red-500">*</span>
+    <div className="space-y-2">
+      <label htmlFor="description" className="block text-[13px] font-semibold text-green-900">
+        {imageDescription[locale]} <span className="text-danger">*</span>
       </label>
       <textarea
         id="description"
@@ -36,7 +38,7 @@ export const DescriptionInput: React.FC<DescriptionInputProperties> = ({ value, 
         onChange={(event) => onChange(event.target.value)}
         placeholder={descriptionPlaceholder[locale]}
         rows={4}
-        className="focus:border-conveniat-green/50 w-full resize-none rounded-2xl border-2 border-transparent bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:bg-white focus:outline-none"
+        className={cn(textInputClassName, 'resize-none')}
       />
     </div>
   );

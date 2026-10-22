@@ -2,6 +2,11 @@ import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of
 import { USER_RELEVANT_MESSAGE_EVENTS } from '@/features/chat/api/definitions';
 import type { ChatDetails } from '@/features/chat/api/types';
 import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
+import {
+  findDeletedQuotedMessageIds,
+  visiblePayloadOf,
+  withoutDeletedQuote,
+} from '@/features/chat/api/utils/deleted-messages';
 import { findCmsUserNames } from '@/features/chat/api/utils/find-cms-user-names';
 import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
@@ -78,6 +83,11 @@ export const getChat = trpcBaseProcedure
             include: { user: true },
           });
 
+    const deletedQuotedIds = await findDeletedQuotedMessageIds(
+      prisma,
+      messages.map((message) => message.contentVersions[0]?.payload),
+    );
+
     // Only a one-to-one chat is named after a person.
     const cmsUsersMap = await findCmsUserNames(
       chat.type === ChatType.ONE_TO_ONE ? chatMemberships.map((m) => m.userId) : [],
@@ -101,6 +111,7 @@ export const getChat = trpcBaseProcedure
       ),
       id: chat.uuid,
       archivedAt: chat.archivedAt,
+      createdAt: chat.createdAt,
       type: chat.type,
       status: chat.status,
       caseNumber: formatCaseNumber(chat.caseNumber),
@@ -108,10 +119,16 @@ export const getChat = trpcBaseProcedure
       // Reverse to chronological order (we fetched in desc to get newest 25)
       messages: [...messages].reverse().map((message) => {
         const isReadByAdmin = chat.adminReadAt !== null && message.createdAt <= chat.adminReadAt;
+        const { payload, quotedMessageDeleted } = withoutDeletedQuote(
+          visiblePayloadOf(message),
+          deletedQuotedIds,
+        );
         return {
           id: message.uuid,
           createdAt: message.createdAt,
-          messagePayload: message.contentVersions[0]?.payload ?? {},
+          messagePayload: payload,
+          ...(message.deletedAt instanceof Date ? { deletedAt: message.deletedAt } : {}),
+          ...(quotedMessageDeleted ? { quotedMessageDeleted } : {}),
           senderId: message.senderId ?? undefined,
           ...(message.sender?.name ? { senderName: message.sender.name } : {}),
           status: isReadByAdmin

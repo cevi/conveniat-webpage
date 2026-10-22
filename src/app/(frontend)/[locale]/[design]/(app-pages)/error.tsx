@@ -1,9 +1,11 @@
 'use client';
-import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import { TeaserText } from '@/components/ui/typography/teaser-text';
+import { Button } from '@/components/ui/buttons/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { attemptStaleBundleRecovery } from '@/utils/chunk-error-recovery';
+import { retryButtonTranslation } from '@/utils/shared-translations';
+import { AlertTriangle, RefreshCw, WifiOff } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -232,35 +234,48 @@ const ErrorPage: React.FC<{
   const lang = (locale ?? 'de') as Locale;
 
   return (
-    <main className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
-      <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
-        <HeadlineH1 className="cursor-pointer select-none" onClick={handleTitleClick}>
-          {isActuallyOffline
+    // like every other "nothing to show" of the app, on the page and without a frame; tapping it
+    // five times copies the details for the support, as the fifth retry does
+    <main
+      className="flex min-h-[60vh] w-full items-center justify-center px-4 py-6 select-none"
+      onClick={handleTitleClick}
+    >
+      <EmptyState
+        icon={isActuallyOffline ? WifiOff : AlertTriangle}
+        title={
+          isActuallyOffline
             ? offlineMessage[lang] || offlineMessage.de
-            : errorMessage[lang] || errorMessage.de}
-        </HeadlineH1>
-        <div className="mt-4">
-          <TeaserText>
+            : errorMessage[lang] || errorMessage.de
+        }
+        description={
+          <>
             {isActuallyOffline
               ? offlineDescription[lang] || offlineDescription.de
               : errorDescription[lang] || errorDescription.de}
-          </TeaserText>
-        </div>
-        {copiedDebug && (
-          <div className="bg-conveniat-green/10 text-conveniat-green mt-4 inline-block rounded-md px-4 py-2 text-sm font-medium transition-all">
-            {debugCopiedMessage[lang] || debugCopiedMessage.de}
-          </div>
-        )}
-        <div className="mt-8 flex justify-center">
-          <button
-            className="bg-conveniat-green hover:bg-conveniat-green/90 cursor-pointer rounded-lg px-6 py-3 font-semibold text-white transition active:scale-95"
-            onClick={handleRetry}
-            type="button"
+            {copiedDebug && (
+              <span className="bg-quiet mt-4 block rounded-[14px] px-3 py-2 text-[13px] font-semibold text-green-900">
+                {debugCopiedMessage[lang] || debugCopiedMessage.de}
+              </span>
+            )}
+          </>
+        }
+        className="w-full max-w-md"
+        action={
+          <Button
+            variant="primary"
+            size="touch"
+            className="w-64 max-w-full"
+            onClick={(event) => {
+              // a retry is not one of the five taps
+              event.stopPropagation();
+              handleRetry();
+            }}
           >
-            Erneut versuchen
-          </button>
-        </div>
-      </article>
+            <RefreshCw aria-hidden="true" />
+            {retryButtonTranslation[lang]}
+          </Button>
+        }
+      />
     </main>
   );
 };

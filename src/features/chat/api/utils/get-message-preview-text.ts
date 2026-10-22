@@ -7,6 +7,13 @@ import { SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import type { StaticTranslationString } from '@/types/types';
 import { stripMarkdownFormatting } from '@/utils/strip-markdown-formatting';
 
+/** The preview of a message its sender deleted, in the chat list. */
+export const deletedMessagePreviewText: StaticTranslationString = {
+  de: 'Nachricht gelöscht',
+  en: 'Message deleted',
+  fr: 'Message supprimé',
+};
+
 const locationSharedText: StaticTranslationString = {
   de: '📍 Standort geteilt',
   en: '📍 Location shared',
@@ -24,11 +31,16 @@ const locationSharedText: StaticTranslationString = {
  * `[label](url)`) would otherwise leak through verbatim - a link even showing
  * its whole URL instead of the label the reader sees in the bubble.
  *
+ * A message its sender deleted previews as "Nachricht gelöscht", without its content.
+ *
  * @param lastMessage
  */
 export const getMessagePreviewText = (lastMessage: {
   contentVersions: { payload: unknown }[];
+  deletedAt?: Date | null | undefined;
 }): string | StaticTranslationString => {
+  if (lastMessage.deletedAt instanceof Date) return deletedMessagePreviewText;
+
   const payload = lastMessage.contentVersions[0]?.payload;
 
   if (payload === undefined || payload === null || typeof payload !== 'object') {

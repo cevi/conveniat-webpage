@@ -81,7 +81,3 @@ export const dayKeyOf = (date: Date | string): string => {
   const parsed = typeof date === 'string' ? new Date(date) : date;
   return Number.isNaN(parsed.getTime()) ? '' : (parsed.toISOString().split('T')[0] ?? '');
 };
-
-/** The day it is for the reader, as `YYYY-MM-DD` in their own timezone. */
-export const todayKeyOf = (now: Date): string =>
-  `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;

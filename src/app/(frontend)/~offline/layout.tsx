@@ -11,7 +11,7 @@ import type { ReactNode } from 'react';
 export default function OfflineLayout({ children }: { children: ReactNode }): React.ReactNode {
   return (
     <html className={sharedFontClassName} lang="de" suppressHydrationWarning>
-      <body className={cn('flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc]')}>
+      <body className={cn('bg-page flex h-dvh w-dvw flex-col overflow-x-hidden')}>
         <ServiceWorkerManager>{children}</ServiceWorkerManager>
       </body>
     </html>

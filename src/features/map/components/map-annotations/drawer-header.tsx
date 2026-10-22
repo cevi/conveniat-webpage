@@ -1,79 +1,84 @@
-import { StarButton } from '@/components/star/star';
-import { LinkComponent } from '@/components/ui/link-component';
+import { QuartierDot } from '@/components/quartier/quartier-badge';
+import { ShareLinkButton } from '@/components/ui/buttons/share-link-button';
+import { environmentVariables } from '@/config/environment-variables';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 import { useStar } from '@/hooks/use-star';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { Share2, X } from 'lucide-react';
+import { cn } from '@/utils/tailwindcss-override';
+import { Star, X } from 'lucide-react';
 import React from 'react';
 
-const closeAriaLabel: StaticTranslationString = {
-  de: 'Schliessen',
-  en: 'Close',
-  fr: 'Fermer',
-};
+const labels = {
+  close: { de: 'Schliessen', en: 'Close', fr: 'Fermer' },
+  favourite: { de: 'Favorit', en: 'Favourite', fr: 'Favori' },
+} satisfies Record<string, StaticTranslationString>;
+
+/** a labelled action under the name of the place */
+const actionClassName =
+  'flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border border-line bg-white px-4 text-[15px] font-semibold text-green-900 transition-colors hover:border-green-300 hover:bg-white';
 
 interface AnnotationDrawerHeaderProperties {
   closeDrawer: () => void;
   annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon;
   locale: Locale;
-  shareLocationCallback: (
-    locale: Locale,
-    annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon,
-  ) => Promise<void>;
 }
 
+/**
+ * The name of the place with the way to close the sheet beside it, the Quartier it belongs to,
+ * and below them what can be done with the place, each action named in words: the name gets the
+ * width of the sheet rather than sharing it with a row of icons.
+ */
 export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> = ({
   closeDrawer,
   annotation,
   locale,
-  shareLocationCallback,
 }) => {
   const { isStarred, toggleStar } = useStar();
-
-  const toggleStarHandler = (): void => {
-    toggleStar(annotation.id);
-  };
+  const starred = isStarred(annotation.id);
 
   return (
-    <>
-      {/* Absolute positioned flex container for action icons */}
-      <div className="absolute top-3 right-2 flex items-center space-x-2">
-        {/* Heart Icon to star the annotation */}
-        <StarButton
-          id={annotation.id}
-          toggleStar={toggleStarHandler}
-          isStared={isStarred(annotation.id)}
-        />
-
-        {/* Share Icon */}
-        {typeof navigator.share === 'function' && (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-50 text-green-600 hover:bg-gray-200 hover:text-gray-800">
-            <LinkComponent
-              href=""
-              hideExternalIcon={false}
-              onClick={(event) => {
-                event.preventDefault();
-                void shareLocationCallback(locale, annotation);
-              }}
-            >
-              <Share2 aria-hidden="true" className="size-4" />
-            </LinkComponent>
-          </div>
-        )}
-
-        {/* Close Button */}
+    <div className="pb-3">
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1 pt-1.5">
+          <h2 className="font-heading text-heading text-[22px] leading-tight font-extrabold">
+            {annotation.title}
+          </h2>
+          {/* read defensively: a phone can restore a map from before the Quartier was an object */}
+          {typeof annotation.quartier?.name === 'string' && annotation.quartier.name !== '' && (
+            <p className="mt-1 flex items-center gap-1.5 text-[13px] text-green-700">
+              <QuartierDot quartier={annotation.quartier} />
+              {annotation.quartier.name}
+            </p>
+          )}
+        </div>
         <button
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-gray-200 hover:text-gray-800"
+          type="button"
+          className="bg-quiet hover:bg-chip flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900 transition-colors"
           onClick={closeDrawer}
-          aria-label={closeAriaLabel[locale]}
+          aria-label={labels.close[locale]}
         >
-          <X size={20} />
+          <X className="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
 
-      <h2 className="text-conveniat-green max-w-[calc(100%-72px)] p-4 pt-0.5 pr-8 text-xl font-bold">
-        {annotation.title}
-      </h2>
-    </>
+      <div className="mt-3 flex gap-2">
+        <button
+          type="button"
+          aria-pressed={starred}
+          onClick={() => toggleStar(annotation.id)}
+          className={cn(actionClassName, starred && 'border-amber-700 bg-amber-50 text-amber-700')}
+        >
+          <Star className={cn('h-5 w-5', starred && 'fill-amber-700')} aria-hidden="true" />
+          {labels.favourite[locale]}
+        </button>
+        <ShareLinkButton
+          url={`${environmentVariables.NEXT_PUBLIC_APP_HOST_URL}/app/map?locationId=${annotation.id}`}
+          title={annotation.title}
+          locale={locale}
+          withLabel
+          className={actionClassName}
+        />
+      </div>
+    </div>
   );
 };

@@ -431,6 +431,19 @@ async function deliverNextBatch(lane: PushQueueLane): Promise<DrainSummary | und
         }),
       ]);
       const notificationById = new Map(notifications.map((row) => [row.id, row]));
+      // A message deleted while its push waited must not reach a lock screen after all.
+      const messageIds = [
+        ...new Set(notifications.flatMap((row) => (row.messageId === null ? [] : [row.messageId]))),
+      ];
+      const deletedMessages =
+        messageIds.length === 0
+          ? []
+          : await prisma.message.findMany({
+              // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
+              where: { uuid: { in: messageIds }, deletedAt: { not: null } },
+              select: { uuid: true },
+            });
+      const deletedMessageIds = new Set(deletedMessages.map((message) => message.uuid));
       const subscriptionById = new Map(
         subscriptions.map((subscription) => [subscription.id, subscription]),
       );
@@ -477,6 +490,11 @@ async function deliverNextBatch(lane: PushQueueLane): Promise<DrainSummary | und
           // Only a row whose workers kept stopping mid-send gets here: a failed send gives up
           // on its own. Something about this row stops the process, so it must not go again.
           drop(row, notification.kind, 'attempts_exhausted', 'Abandoned by its workers too often');
+        } else if (
+          notification.messageId !== null &&
+          deletedMessageIds.has(notification.messageId)
+        ) {
+          drop(row, notification.kind, 'message_deleted', 'The message was deleted');
         } else if (notification.expiresAt <= now) {
           drop(row, notification.kind, 'expired', 'Expired before it could be sent');
         } else if (subscription === undefined) {

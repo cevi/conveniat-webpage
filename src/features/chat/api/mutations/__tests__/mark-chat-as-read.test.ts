@@ -32,6 +32,10 @@ interface ReadEvent {
 }
 
 let memberIds: string[];
+/** The reader's own unread mark, see `markChatUnread`. */
+let markedUnread: boolean;
+/** Whether the read message is newer than the stored high-water mark, so the mark moves. */
+let readsNewerMessage: boolean;
 let readEvents: ReadEvent[];
 /** How many membership rows the procedure made the database look at. */
 let membershipRowsRead: number;
@@ -43,10 +47,20 @@ const prisma = {
       // eslint-disable-next-line unicorn/no-null
       Promise.resolve(where.uuid === MESSAGE_ID ? { uuid: MESSAGE_ID } : null),
   },
-  // advancing the high-water mark, which has its own SQL and is not what this file is about
-  $executeRaw: (): Promise<number> => Promise.resolve(1),
+  // Advancing the high-water mark has its own SQL; this stands in for what that statement
+  // writes besides the mark.
+  $executeRaw: (sql: TemplateStringsArray): Promise<number> => {
+    if (!readsNewerMessage) return Promise.resolve(0);
+    if (sql.join('?').includes('"markedUnread" = false')) markedUnread = false;
+    return Promise.resolve(1);
+  },
   chatMembership: {
-    findUnique: (): Promise<{ userId: string }> => Promise.resolve({ userId: READER }),
+    findUnique: (): Promise<{ userId: string; markedUnread: boolean }> =>
+      Promise.resolve({ userId: READER, markedUnread }),
+    update: ({ data }: { data: { markedUnread?: boolean } }): Promise<unknown> => {
+      if (data.markedUnread !== undefined) markedUnread = data.markedUnread;
+      return Promise.resolve({});
+    },
     count: ({ take }: { where: { chatId: string }; take?: number }): Promise<number> => {
       const counted = Math.min(memberIds.length, take ?? memberIds.length);
       membershipRowsRead += counted;
@@ -74,6 +88,9 @@ const chatWithMembers = (count: number): string[] =>
 beforeEach(() => {
   readEvents = [];
   membershipRowsRead = 0;
+  markedUnread = false;
+  readsNewerMessage = true;
+  memberIds = chatWithMembers(2);
 });
 
 describe('marking a chat as read', () => {
@@ -99,5 +116,25 @@ describe('marking a chat as read', () => {
     await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: MESSAGE_ID });
 
     expect(membershipRowsRead).toBeLessThanOrEqual(LARGE_CHAT_THRESHOLD);
+  });
+});
+
+describe('reading a chat the reader marked unread', () => {
+  it('takes the mark away when the read moves the high-water mark', async () => {
+    markedUnread = true;
+
+    await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: MESSAGE_ID });
+
+    expect(markedUnread).toBe(false);
+  });
+
+  // A message older than the stored high-water mark, read late on a slow connection.
+  it('takes the mark away when the high-water mark stays', async () => {
+    markedUnread = true;
+    readsNewerMessage = false;
+
+    await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: MESSAGE_ID });
+
+    expect(markedUnread).toBe(false);
   });
 });

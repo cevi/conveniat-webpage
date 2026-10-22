@@ -1,30 +1,37 @@
 'use client';
 
+import { SetHeaderActions } from '@/components/header/header-actions';
 import { useScheduleEntries } from '@/context/schedule-entries-context';
 import { DateCarouselViewWrapper } from '@/features/schedule/components/date-carousel-view-wrapper';
 import { NoProgramPlaceholder } from '@/features/schedule/components/no-program-placeholder';
 import { ScheduleList } from '@/features/schedule/components/schedule-list';
 import { ScheduleLoadingSkeleton } from '@/features/schedule/components/schedule-loading-skeleton';
-import { ScheduleNowCard } from '@/features/schedule/components/schedule-now-card';
-import { ScheduleScopeSwitch } from '@/features/schedule/components/schedule-scope-switch';
-import { SearchFilterBar } from '@/features/schedule/components/search-filter-bar';
+import {
+  ScheduleViewSummary,
+  ScheduleViewToggles,
+} from '@/features/schedule/components/schedule-view-toggles';
+import {
+  FilterHeaderButton,
+  SearchFilterBar,
+  SearchHeaderButton,
+} from '@/features/schedule/components/search-filter-bar';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import { ScheduleStatusProvider } from '@/features/schedule/context/schedule-status-context';
 import { useNow } from '@/features/schedule/hooks/use-now';
 import { useSchedule } from '@/features/schedule/hooks/use-schedule';
 import { useScheduleFilters } from '@/features/schedule/hooks/use-schedule-filter';
 import { useScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
-import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { byStart, findNowAndNext, isForQuartiere } from '@/features/schedule/utils/programme-utils';
-import { dayKeyOf, todayKeyOf } from '@/features/schedule/utils/time-utils';
+import { dayKeyOf } from '@/features/schedule/utils/time-utils';
+import { buildTimeline } from '@/features/schedule/utils/timeline';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { campClockOf } from '@/utils/camp-clock';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import { useSearchParams } from 'next/navigation';
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 const foundEventsText: StaticTranslationString = {
   en: 'Found {{count}} event{{plural}} for ',
@@ -38,8 +45,9 @@ const foundEventsText: StaticTranslationString = {
  */
 export const ScheduleComponent: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const searchParameters = useSearchParams();
-  const { starredEntries } = useStar();
+  const { starredEntries, toggleStar } = useStar();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const isOnline = useOnlineStatus();
   const now = useNow();
   const { syncFromServer, entries: localEntries } = useScheduleEntries();
@@ -80,6 +88,11 @@ export const ScheduleComponent: React.FC = () => {
     [effectiveScheduleEntries, scope, myQuartierIds],
   );
 
+  // "Für Leitende" is offered to the people who may read the part for Leitende
+  const { data: leaderAccess } = trpc.schedule.getLeaderAccess.useQuery(undefined, {
+    staleTime: 1000 * 60 * 5,
+  });
+
   // Get enrolled courses
   const enrollmentsQuery = trpc.schedule.getMyEnrollments.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
@@ -93,8 +106,6 @@ export const ScheduleComponent: React.FC = () => {
     currentDate,
     allDates,
     currentProgram: rawCurrentProgram,
-    carouselStartIndex,
-    maxVisibleDays,
     actions,
   } = useSchedule(scopedEntries);
 
@@ -109,10 +120,26 @@ export const ScheduleComponent: React.FC = () => {
 
   const currentProgram = useMemo(() => [...filteredEntries].sort(byStart), [filteredEntries]);
   const hasProgram = currentProgram.length > 0;
+  // what the list shows as entries: the slots of a block count once, and a transfer is rail
+  const shownCount = useMemo(
+    () =>
+      buildTimeline(currentProgram, { groupSlots: scope === 'all' }).filter(
+        (item) => item.type !== 'transfer',
+      ).length,
+    [currentProgram, scope],
+  );
+  const viewToggles =
+    myQuartiere.length > 0 ? (
+      <ScheduleViewToggles
+        myQuartiere={myQuartiere}
+        scope={scope}
+        onScopeChange={setScope}
+        locale={locale}
+      />
+    ) : undefined;
 
   // "Now" is about today, whichever day the list shows and whatever it is filtered by.
-  const minutesOfDay = now.getHours() * 60 + now.getMinutes();
-  const todayKey = todayKeyOf(now);
+  const { dayKey: todayKey, minutes: minutesOfDay } = campClockOf(now);
   const today = allDates.find((date) => dayKeyOf(date) === todayKey);
   const isToday = dayKeyOf(currentDate) === todayKey;
   // In the view of the whole camp several Quartiere have something on at once, so "now" stays
@@ -131,15 +158,6 @@ export const ScheduleComponent: React.FC = () => {
   );
   const running = nowAndNext.current ?? nowAndNext.next;
 
-  const hrefOf = useCallback(
-    (entry: CampScheduleEntryFrontendType): string => {
-      const parameters = new URLSearchParams(searchParameters.toString());
-      parameters.set('id', entry.id);
-      return `/app/schedule?${parameters.toString()}`;
-    },
-    [searchParameters],
-  );
-
   // Only entries people can enrol in have a status worth fetching
   const visibleCourseIds = useMemo(
     () => currentProgram.filter((entry) => entry.enable_enrolment === true).map(({ id }) => id),
@@ -155,51 +173,67 @@ export const ScheduleComponent: React.FC = () => {
     pluralSuffix = totalEventsCount === 1 ? '' : 's';
   }
 
+  // the header keeps its buttons while the list loads, so they do not pop in with it
+  const headerActions = (
+    <SetHeaderActions>
+      <SearchHeaderButton
+        label={programmeLabels.search[locale]}
+        isOpen={isSearchOpen}
+        onToggle={() => setIsSearchOpen((open) => !open)}
+      />
+      <FilterHeaderButton
+        filters={filters}
+        isOpen={isFilterOpen}
+        onOpen={() => setIsFilterOpen(true)}
+        locale={locale}
+      />
+    </SetHeaderActions>
+  );
+
   // Show loading skeleton while fetching data
   if (isLoading && effectiveScheduleEntries.length === 0) {
-    return <ScheduleLoadingSkeleton />;
+    return (
+      <>
+        {headerActions}
+        <ScheduleLoadingSkeleton />
+      </>
+    );
   }
 
   return (
     <DateCarouselViewWrapper
       allDates={allDates}
       currentDate={currentDate}
-      carouselStartIndex={carouselStartIndex}
-      maxVisibleDays={maxVisibleDays}
       locale={locale}
       onDateSelect={actions.handleDateSelect}
-      onCarouselPrevious={actions.handleCarouselPrevious}
-      onCarouselNext={actions.handleCarouselNext}
     >
-      {myQuartiere.length > 0 && (
-        <ScheduleScopeSwitch
-          myQuartiere={myQuartiere}
-          scope={scope}
-          onScopeChange={setScope}
-          locale={locale}
-        />
-      )}
+      {headerActions}
 
-      {/* Search and Filter Bar */}
-      <div className="mb-3">
-        <SearchFilterBar
-          filters={filters}
-          onFiltersChange={handleFiltersChange}
-          availableLocations={availableLocations}
-          availableCategories={availableCategories}
-        />
-      </div>
-
-      {isToday && !hasActiveFilters && (
-        <ScheduleNowCard nowAndNext={nowAndNext} locale={locale} hrefOf={hrefOf} />
-      )}
+      <SearchFilterBar
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        availableLocations={availableLocations}
+        availableCategories={availableCategories}
+        view={viewToggles}
+        viewSummary={
+          myQuartiere.length > 0 ? (
+            <ScheduleViewSummary myQuartiere={myQuartiere} scope={scope} locale={locale} />
+          ) : undefined
+        }
+        canFilterForLeaders={leaderAccess === true}
+        shownCount={shownCount}
+        isFilterOpen={isFilterOpen}
+        onFilterOpenChange={setIsFilterOpen}
+        isSearchOpen={isSearchOpen}
+        className="mb-3"
+      />
 
       {/* On another day: one line that says what is on, and the way back to today */}
       {!isToday && today !== undefined && running !== undefined && (
         <button
           type="button"
           onClick={() => actions.handleDateSelect(today)}
-          className="mb-3 flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-left text-xs text-gray-600"
+          className="bg-quiet hover:bg-chip mb-3 flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3.5 py-2 text-left text-[13px] text-green-700 transition-colors"
         >
           <span className="min-w-0 truncate">
             {programmeLabels[nowAndNext.current === undefined ? 'upNext' : 'now'][locale]}:{' '}
@@ -213,7 +247,7 @@ export const ScheduleComponent: React.FC = () => {
 
       {/* Results Summary */}
       {hasActiveFilters && hasProgram && (
-        <div className="mb-3 text-xs font-medium text-gray-500">
+        <div className="mb-3 text-[13px] font-medium text-green-700">
           <span>
             {foundEventsText[locale]
               .replace('{{count}}', String(totalEventsCount))
@@ -233,24 +267,14 @@ export const ScheduleComponent: React.FC = () => {
             entries={currentProgram}
             enrolledIds={enrolledIds}
             starredIds={starredEntries}
-            minutesOfToday={isToday ? minutesOfDay : undefined}
-            currentId={isToday ? nowAndNext.current?.id : undefined}
-            quartierChips={scope === 'all' ? myQuartierIds : undefined}
+            onToggleStar={toggleStar}
+            myQuartierIds={myQuartierIds}
+            groupSlots={scope === 'all'}
+            now={isToday ? { dayKey: todayKey, minutes: minutesOfDay } : undefined}
           />
         </ScheduleStatusProvider>
       ) : (
-        <NoProgramPlaceholder
-          currentDate={currentDate}
-          hasActiveFilters={hasActiveFilters}
-          onClearFilters={() =>
-            handleFiltersChange({
-              searchText: '',
-              selectedLocations: [],
-              selectedCategory: undefined,
-              starredOnly: false,
-            })
-          }
-        />
+        <NoProgramPlaceholder filters={filters} onFiltersChange={handleFiltersChange} />
       )}
     </DateCarouselViewWrapper>
   );

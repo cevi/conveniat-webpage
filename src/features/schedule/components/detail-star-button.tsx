@@ -1,36 +1,30 @@
 'use client';
 
-import { StarButton } from '@/components/star/star';
+import { ProgrammeStarButton } from '@/features/schedule/components/programme-star-button';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
 import type React from 'react';
 import { useMemo } from 'react';
 
-interface DetailStarButtonProperties {
-  entryId: string;
-}
-
-/**
- * Client component for starring schedule entries from the detail page.
- * Handles enrollment check to determine if the star is locked.
- */
-export const DetailStarButton: React.FC<DetailStarButtonProperties> = ({ entryId }) => {
+/** The star on a block's page, locked while the user is enrolled in it. */
+export const DetailStarButton: React.FC<{ entryId: string; className?: string }> = ({
+  entryId,
+  className,
+}) => {
   const { isStarred, toggleStar } = useStar();
 
-  // Get enrolled courses to check if this entry is enrolled
   const { data: myEnrollments } = trpc.schedule.getMyEnrollments.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
   });
   const enrolledIds = useMemo(() => new Set(myEnrollments ?? []), [myEnrollments]);
-  const isEnrolled = enrolledIds.has(entryId);
-  const currentlyStarred = isStarred(entryId);
 
   return (
-    <StarButton
-      id={entryId}
-      isStared={currentlyStarred}
-      toggleStar={toggleStar}
-      isLocked={isEnrolled}
+    <ProgrammeStarButton
+      entryId={entryId}
+      isStarred={isStarred(entryId)}
+      onToggle={() => toggleStar(entryId)}
+      isLocked={enrolledIds.has(entryId)}
+      className={className}
     />
   );
 };

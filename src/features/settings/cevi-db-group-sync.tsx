@@ -9,7 +9,7 @@ import {
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { RefreshCw, ShieldCheck } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
@@ -25,8 +25,16 @@ const syncButton: StaticTranslationString = {
   fr: 'Recharger depuis la Cevi.DB',
 };
 
-const subtitles: Record<Exclude<CeviDatabaseGroupSyncState, 'failed'>, StaticTranslationString> = {
-  idle: syncButton,
+const reloadLabel: StaticTranslationString = {
+  de: 'Neu laden',
+  en: 'Reload',
+  fr: 'Recharger',
+};
+
+const subtitles: Record<
+  Exclude<CeviDatabaseGroupSyncState, 'failed' | 'idle'>,
+  StaticTranslationString
+> = {
   syncing: {
     de: 'Wird aus der Cevi.DB geladen …',
     en: 'Loading from Cevi.DB …',
@@ -55,21 +63,20 @@ export const CeviDatabaseGroupSync: React.FC = () => {
 
   return (
     <SettingsRow
-      icon={ShieldCheck}
       title={title[locale]}
-      subtitle={state === 'failed' ? undefined : subtitles[state][locale]}
+      subtitle={state === 'failed' || state === 'idle' ? undefined : subtitles[state][locale]}
       error={state === 'failed' ? failedText[locale] : undefined}
       action={
         <Button
-          variant="ghost"
-          size="icon"
+          variant="quiet"
+          size="touch"
+          className="px-3 text-[13px]"
           onClick={() => void sync()}
           disabled={state === 'syncing'}
           title={syncButton[locale]}
-          aria-label={syncButton[locale]}
-          className="h-8 w-8 text-gray-400 hover:text-blue-600"
         >
-          <RefreshCw className={cn('h-4 w-4', state === 'syncing' && 'animate-spin')} />
+          <RefreshCw className={cn(state === 'syncing' && 'animate-spin')} aria-hidden="true" />
+          {reloadLabel[locale]}
         </Button>
       }
     />

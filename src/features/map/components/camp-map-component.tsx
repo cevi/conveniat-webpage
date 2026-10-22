@@ -1,19 +1,12 @@
 import { AppAdvertisement } from '@/components/app-advertisement';
 import { environmentVariables } from '@/config/environment-variables';
+import { loadMapAnnotations } from '@/features/map/api/load-map-annotations';
 import { MapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
-import type {
-  CampMapAnnotationPoint,
-  CampMapAnnotationPolygon,
-  CampScheduleEntry,
-  InitialMapPose,
-} from '@/features/map/types/types';
-import { resolveLinksInArray } from '@/features/payload-cms/payload-cms/utils/resolve-rich-text-links';
-import type { CampMapAnnotation as CampMapAnnotationPayloadDocumentType } from '@/features/payload-cms/payload-types';
+import type { InitialMapPose } from '@/features/map/types/types';
 import type { Locale } from '@/types/types';
-import { formatHexColor } from '@/utils/format-hex-color';
 import config from '@payload-config';
 import { cacheLife, cacheTag } from 'next/cache';
-import { getPayload, type PaginatedDocs } from 'payload';
+import { getPayload } from 'payload';
 import type React from 'react';
 import 'server-only';
 
@@ -58,97 +51,12 @@ const CampMapComponentCached: React.FC<{
 
   const payload = await getPayload({ config });
 
-  const annotations: PaginatedDocs<CampMapAnnotationPayloadDocumentType> = await payload.find({
-    collection: 'camp-map-annotations',
-    limit: 100,
-    depth: 1,
-  });
-
-  const scheduleEntries = await payload.find({
-    collection: 'camp-schedule-entry',
-    limit: 100,
-    depth: 1,
-  });
-
-  // Resolve links in annotations and schedule entries
-  await resolveLinksInArray(annotations.docs, payload, locale);
-  await resolveLinksInArray(scheduleEntries.docs, payload, locale);
-
-  const simplifiedScheduleEntries = scheduleEntries.docs as CampScheduleEntry[];
-
-  const schedulesPerAnnotations: { [id: string]: CampScheduleEntry[] } = {};
-
-  for (const annotation of annotations.docs) {
-    const annotationID: string = annotation.id;
-    schedulesPerAnnotations[annotationID] = simplifiedScheduleEntries.filter(
-      (scheduleEntry: CampScheduleEntry) =>
-        (scheduleEntry.location as { id?: string } | null | undefined)?.id === annotation.id ||
-        (scheduleEntry.location as unknown as string) === annotation.id,
-    );
-  }
-
-  const campMapAnnotationPoints: CampMapAnnotationPoint[] = annotations.docs
-    .filter((document_) => document_.annotationType === 'marker')
-    // order by latitude, to avoid overlapping markers
-    .sort((a, b) => {
-      if (!a.geometry || !b.geometry) return 0;
-      const aGeom = a.geometry;
-      const bGeom = b.geometry;
-      if (typeof aGeom[1] !== 'number' || typeof bGeom[1] !== 'number') return 0;
-      if (aGeom[1] < bGeom[1]) return 1;
-      if (aGeom[1] > bGeom[1]) return -1;
-      return 0;
-    })
-    .map(
-      (document_) =>
-        ({
-          id: document_.id,
-          title: document_.title,
-          description: document_.description,
-          geometry: {
-            coordinates: document_.geometry,
-          },
-          icon: document_.icon ?? 'MapPin',
-          openingHours: document_.openingHours,
-          images: document_.images ?? [],
-          color: formatHexColor(document_.color) ?? '#47564c',
-          importance: document_.importance,
-          enableSupportChat: document_.enableSupportChat ?? true,
-          hiddenOnDefaultMap: document_.hiddenOnDefaultMap ?? false,
-          showLabel: document_.showLabel ?? true,
-        }) as CampMapAnnotationPoint,
-    );
-
-  const campMapAnnotationPolygons: CampMapAnnotationPolygon[] = annotations.docs
-    .filter((document_) => document_.annotationType === 'polygon')
-    .map((document_) => {
-      const isInteractive = (document_ as { isInteractive?: boolean }).isInteractive ?? true;
-      const rawCoords = document_.polygonCoordinates as unknown as
-        { longitude: number; latitude: number }[] | undefined;
-      return {
-        id: document_.id,
-        title: document_.title,
-        description: isInteractive ? document_.description : undefined,
-        geometry: {
-          coordinates:
-            rawCoords?.map(
-              (coordinate) => [coordinate.longitude, coordinate.latitude] as [number, number],
-            ) ?? [],
-        },
-        icon: document_.icon ?? 'Tent',
-        openingHours: isInteractive ? document_.openingHours : undefined,
-        images: isInteractive ? (document_.images ?? []) : [],
-        color: formatHexColor(document_.color) ?? '#47564c',
-        isInteractive,
-        importance: document_.importance,
-        enableSupportChat: isInteractive ? (document_.enableSupportChat ?? true) : false,
-        hiddenOnDefaultMap: document_.hiddenOnDefaultMap ?? false,
-      } as CampMapAnnotationPolygon;
-    });
+  const { campMapAnnotationPoints, campMapAnnotationPolygons, schedules } =
+    await loadMapAnnotations(payload, locale);
 
   return (
     <>
-      <div className="fixed top-(--app-header-height) left-0 h-[calc(100dvh-var(--app-header-height))] w-full pb-20 xl:left-[480px] xl:w-[calc(100vw-480px)]">
+      <div className="fixed top-[calc(var(--app-header-height)+var(--offline-banner-height,0px))] left-0 h-[calc(100dvh-var(--app-header-height)-var(--offline-banner-height,0px))] w-full pb-20 xl:left-[480px] xl:w-[calc(100vw-480px)]">
         <MapLibreRenderer
           initialMapPose={initialMapPoseObergoms}
           ceviLogoMarkers={[]}
@@ -156,7 +64,7 @@ const CampMapComponentCached: React.FC<{
           campMapAnnotationPolygons={campMapAnnotationPolygons}
           validateStyle={environmentVariables.NODE_ENV !== 'production'}
           mapStyle="/vector-map/camp_style.json"
-          schedules={schedulesPerAnnotations}
+          schedules={schedules}
           enableSearch
         />
       </div>

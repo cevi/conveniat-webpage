@@ -1,6 +1,7 @@
 import type { InitialMapPose } from '@/features/map/types/types';
-import { addPaperImage, PAPER_IMAGE_ID } from '@/features/map/utils/camp-map-images';
+import { mapLibreLocaleOf } from '@/features/map/utils/maplibre-locale';
 import { configureMapLibreWorker } from '@/lib/maplibre-worker';
+import type { Locale } from '@/types/types';
 import { AttributionControl, Map as MapLibre } from 'maplibre-gl';
 
 import { useEffect, useState } from 'react';
@@ -41,11 +42,13 @@ export const useMapInitialization = (
     validateStyle: boolean;
     /** URL of the MapLibre style, the swisstopo base map by default. */
     style?: string;
+    /** the language of MapLibre's own labels */
+    locale: Locale;
   },
 ): MapInitialization => {
   const [map, setMap] = useState<MapLibre | undefined>();
   const [initializationFailed, setInitializationFailed] = useState(false);
-  const { initialMapPose, limitUsage, validateStyle, style = BASE_MAP_STYLE } = options;
+  const { initialMapPose, limitUsage, validateStyle, style = BASE_MAP_STYLE, locale } = options;
 
   useEffect(() => {
     if (!mapContainer || map) return;
@@ -70,13 +73,10 @@ export const useMapInitialization = (
         bearing: initialMapPose.bearing ?? 0,
         minZoom: minZoomLevelForSwitzerland,
         attributionControl: false,
+        locale: mapLibreLocaleOf(locale),
       });
 
       mapInstance.addControl(new AttributionControl({ compact: true }));
-      // the camp style paints its background with a texture drawn at runtime
-      mapInstance.on('styleimagemissing', ({ id }) => {
-        if (id === PAPER_IMAGE_ID) addPaperImage(mapInstance);
-      });
     } catch (error) {
       console.warn('Failed to initialize the map, rendering fallback instead:', error);
       // eslint-disable-next-line react-hooks/set-state-in-effect

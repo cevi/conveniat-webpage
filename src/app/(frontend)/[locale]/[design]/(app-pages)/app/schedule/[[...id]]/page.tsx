@@ -3,8 +3,18 @@
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { ScheduleComponent } from '@/features/schedule/components/schedule-component';
 import { ScheduleDetailView } from '@/features/schedule/components/schedule-detail-view';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import { useParams, useSearchParams } from 'next/navigation';
 import type React from 'react';
+
+// the same words as the tab that opens it
+const pageTitle: StaticTranslationString = {
+  de: 'Programm',
+  en: 'Program',
+  fr: 'Programme',
+};
 
 /**
  * Unified schedule page that handles both list and detail views.
@@ -14,6 +24,7 @@ import type React from 'react';
  * All data is fetched client-side via tRPC for offline support.
  */
 const SchedulePage: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const params = useParams();
   const searchParameters = useSearchParams();
   const idParameter = params['id'];
@@ -30,7 +41,7 @@ const SchedulePage: React.FC = () => {
   // Otherwise show the schedule list
   return (
     <>
-      <SetDynamicPageTitle newTitle="Programm" />
+      <SetDynamicPageTitle newTitle={pageTitle[locale]} />
       <ScheduleComponent />
     </>
   );

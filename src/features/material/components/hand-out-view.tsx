@@ -2,7 +2,6 @@
 
 import { BasketEditor, type BasketStart } from '@/features/material/components/basket-editor';
 import {
-  HolderAvatar,
   holderName,
   loanSummary,
   positionCount,
@@ -14,7 +13,6 @@ import { format, formatDay, labels } from '@/features/material/components/materi
 import { MaterialQueryError } from '@/features/material/components/material-query-error';
 import {
   EmptyState,
-  focusRing,
   inputClass,
   LoadingState,
   MaterialButton,
@@ -35,7 +33,7 @@ import { summariseBulk } from '@/features/material/utils/list-view';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Building2, ChevronRight, PackageOpen, SlidersHorizontal, User } from 'lucide-react';
+import { Check, ChevronRight, PackageOpen, User } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
@@ -92,8 +90,8 @@ const text = {
     en: 'Who gets the material?',
     fr: 'Qui reçoit le matériel ?',
   },
-  searchHof: { de: 'Hof suchen …', en: 'Search Hof …', fr: 'Chercher un Hof …' },
-  searchPerson: { de: 'Name suchen …', en: 'Search name …', fr: 'Chercher un nom …' },
+  searchHof: { de: 'Hof suchen', en: 'Search Hof', fr: 'Chercher un Hof' },
+  searchPerson: { de: 'Name suchen', en: 'Search name', fr: 'Chercher un nom' },
   typeName: {
     de: 'Tippe einen Namen, um die Person zu finden.',
     en: 'Type a name to find the person.',
@@ -123,6 +121,26 @@ const basketStart = (group: MaterialHolderGroup, locale: Locale): BasketStart =>
   };
 };
 
+/** Who a card at the counter is for, what they take, and the line under it. */
+const HolderHead: React.FC<{
+  group: MaterialHolderGroup;
+  details: React.ReactNode;
+}> = ({ group, details }) => {
+  const locale = useMaterialLocale();
+  return (
+    <div className="min-w-0">
+      <div className="flex items-center gap-1.5 font-bold text-green-900">
+        {group.holder.kind === 'PERSON' && (
+          <User className="size-4 shrink-0 text-green-500" aria-hidden />
+        )}
+        <span className="truncate">{holderName(group, locale)}</span>
+      </div>
+      <p className="line-clamp-2 text-sm text-green-700">{loanSummary(group.loans)}</p>
+      {details}
+    </div>
+  );
+};
+
 /** One prepared pickup: what it holds, and the two ways out of it at the counter. */
 const PickupCard: React.FC<{
   group: MaterialHolderGroup;
@@ -132,7 +150,6 @@ const PickupCard: React.FC<{
   const invalidate = useInvalidateMaterial();
   const issue = trpc.material.issueLoanList.useMutation();
   const [asking, setAsking] = useState(false);
-  const name = holderName(group, locale);
   const first = group.loans[0];
   const lines = positionCount(group.loans.length, locale);
 
@@ -157,18 +174,11 @@ const PickupCard: React.FC<{
   };
 
   return (
-    <Panel className="space-y-3 p-3">
-      <div className="flex items-start gap-3">
-        <HolderAvatar name={name} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 font-bold text-gray-900">
-            {group.holder.kind === 'PERSON' && (
-              <User className="size-4 shrink-0 text-gray-500" aria-hidden />
-            )}
-            <span className="truncate">{name}</span>
-          </div>
-          <p className="line-clamp-2 text-sm text-gray-600">{loanSummary(group.loans)}</p>
-          <p className="text-xs text-gray-500">
+    <Panel className="space-y-3 p-4">
+      <HolderHead
+        group={group}
+        details={
+          <p className="text-xs text-green-500">
             {[
               first === undefined
                 ? ''
@@ -178,15 +188,15 @@ const PickupCard: React.FC<{
               .filter((part) => part !== '')
               .join(' · ')}
           </p>
-        </div>
-      </div>
+        }
+      />
       {asking ? (
-        <div className="space-y-2 rounded-xl bg-gray-50 p-2">
-          <p className="px-1 text-sm font-semibold text-gray-800">
+        <div className="bg-quiet space-y-2 rounded-xl p-2">
+          <p className="px-1 text-sm font-semibold text-green-900">
             {format(text.issueAllAsk, locale, { lines })}
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <MaterialButton variant="ghost" onClick={() => setAsking(false)}>
+            <MaterialButton variant="outlined" onClick={() => setAsking(false)}>
               {labels.cancel[locale]}
             </MaterialButton>
             <MaterialButton loading={issue.isPending} onClick={issueAll}>
@@ -196,12 +206,12 @@ const PickupCard: React.FC<{
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-[minmax(0,1fr)_auto]">
+          {/* primary on every card: each prepared pickup is its own task at the counter */}
           <MaterialButton onClick={() => setAsking(true)}>
-            <PackageOpen aria-hidden />
+            <Check aria-hidden />
             {text.issueAll[locale]}
           </MaterialButton>
-          <MaterialButton variant="secondary" onClick={() => onAdjust(group)}>
-            <SlidersHorizontal aria-hidden />
+          <MaterialButton variant="outlined" onClick={() => onAdjust(group)}>
             {text.adjust[locale]}
           </MaterialButton>
         </div>
@@ -227,7 +237,6 @@ const RequestCard: React.FC<{
   const issue = trpc.material.issueLoanList.useMutation();
   const [step, setStep] = useState<'idle' | 'reject' | 'issue'>('idle');
   const [reason, setReason] = useState('');
-  const name = holderName(group, locale);
   const first = group.loans[0];
   const lines = positionCount(group.loans.length, locale);
   const ids = group.loans.map((loan) => loan.id);
@@ -243,32 +252,27 @@ const RequestCard: React.FC<{
   };
 
   return (
-    <Panel className="space-y-3 p-3">
-      <div className="flex items-start gap-3">
-        <HolderAvatar name={name} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 font-bold text-gray-900">
-            {group.holder.kind === 'PERSON' && (
-              <User className="size-4 shrink-0 text-gray-500" aria-hidden />
+    <Panel className="space-y-3 p-4">
+      <HolderHead
+        group={group}
+        details={
+          <>
+            {first !== undefined && (
+              <p className="text-xs text-green-500">
+                {format(text.pickupReturn, locale, {
+                  start: formatDay(first.startDate, locale),
+                  end: formatDay(first.endDate, locale),
+                })}
+              </p>
             )}
-            <span className="truncate">{name}</span>
-          </div>
-          <p className="line-clamp-2 text-sm text-gray-600">{loanSummary(group.loans)}</p>
-          {first !== undefined && (
-            <p className="text-xs text-gray-500">
-              {format(text.pickupReturn, locale, {
-                start: formatDay(first.startDate, locale),
-                end: formatDay(first.endDate, locale),
-              })}
-            </p>
-          )}
-          {notes.length > 0 && (
-            <p className="mt-1 line-clamp-2 text-xs text-gray-500 italic">{notes.join(' · ')}</p>
-          )}
-        </div>
-      </div>
+            {notes.length > 0 && (
+              <p className="mt-1 line-clamp-2 text-xs text-green-500 italic">{notes.join(' · ')}</p>
+            )}
+          </>
+        }
+      />
       {step === 'reject' && (
-        <div className="space-y-2 rounded-xl bg-gray-50 p-2">
+        <div className="bg-quiet space-y-2 rounded-xl p-2">
           <input
             className={inputClass}
             aria-label={text.rejectReason[locale]}
@@ -278,7 +282,7 @@ const RequestCard: React.FC<{
             onChange={(event) => setReason(event.target.value)}
           />
           <div className="grid grid-cols-2 gap-2">
-            <MaterialButton variant="ghost" onClick={() => setStep('idle')}>
+            <MaterialButton variant="outlined" onClick={() => setStep('idle')}>
               {labels.cancel[locale]}
             </MaterialButton>
             <MaterialButton
@@ -297,12 +301,12 @@ const RequestCard: React.FC<{
         </div>
       )}
       {step === 'issue' && (
-        <div className="space-y-2 rounded-xl bg-gray-50 p-2">
-          <p className="px-1 text-sm font-semibold text-gray-800">
+        <div className="bg-quiet space-y-2 rounded-xl p-2">
+          <p className="px-1 text-sm font-semibold text-green-900">
             {format(text.issueAllAsk, locale, { lines })}
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <MaterialButton variant="ghost" onClick={() => setStep('idle')}>
+            <MaterialButton variant="outlined" onClick={() => setStep('idle')}>
               {labels.cancel[locale]}
             </MaterialButton>
             <MaterialButton
@@ -335,14 +339,15 @@ const RequestCard: React.FC<{
       {step === 'idle' && (
         <div className="space-y-2">
           {dueToday && (
-            <MaterialButton className="w-full" onClick={() => setStep('issue')}>
+            <MaterialButton variant="quiet" className="w-full" onClick={() => setStep('issue')}>
               <PackageOpen aria-hidden />
               {text.issueNow[locale]}
             </MaterialButton>
           )}
           <div className="grid grid-cols-3 gap-2 [&>button]:min-w-0 [&>button]:px-2">
             <MaterialButton
-              variant={dueToday ? 'secondary' : 'primary'}
+              // quiet, not primary: every request card has it
+              variant={dueToday ? 'outlined' : 'quiet'}
               loading={confirm.isPending}
               onClick={() =>
                 confirm.mutate(
@@ -356,10 +361,10 @@ const RequestCard: React.FC<{
             >
               <span className="truncate">{text.confirm[locale]}</span>
             </MaterialButton>
-            <MaterialButton variant="secondary" onClick={() => onAdjust(group)}>
+            <MaterialButton variant="outlined" onClick={() => onAdjust(group)}>
               <span className="truncate">{text.adjust[locale]}</span>
             </MaterialButton>
-            <MaterialButton variant="danger" onClick={() => setStep('reject')}>
+            <MaterialButton variant="outlined" onClick={() => setStep('reject')}>
               <span className="truncate">{text.reject[locale]}</span>
             </MaterialButton>
           </div>
@@ -369,9 +374,14 @@ const RequestCard: React.FC<{
   );
 };
 
-const PreparedPickups: React.FC<{ onAdjust: (group: MaterialHolderGroup) => void }> = ({
-  onAdjust,
-}) => {
+/**
+ * Today's pickups and the open requests, then `children`: the rest of the screen waits for the
+ * queue, because the pickups arrive above it in any number and would push it down.
+ */
+const PreparedPickups: React.FC<{
+  onAdjust: (group: MaterialHolderGroup) => void;
+  children: React.ReactNode;
+}> = ({ onAdjust, children }) => {
   const locale = useMaterialLocale();
   const dayEnd = useDayEnd();
   const queue = trpc.material.getCounterQueue.useQuery(
@@ -379,13 +389,56 @@ const PreparedPickups: React.FC<{ onAdjust: (group: MaterialHolderGroup) => void
     { ...materialQueryOptions, refetchInterval: MATERIAL_POLL_INTERVAL_MS },
   );
   if (queue.isLoading) return <LoadingState text={labels.loading[locale]} />;
-  if (!queue.data) return <MaterialQueryError error={queue.error} />;
+  if (!queue.data) {
+    return (
+      <>
+        <MaterialQueryError error={queue.error} />
+        {children}
+      </>
+    );
+  }
   const { requests, pickups, later } = queue.data;
 
   return (
-    <section className="space-y-3">
+    <>
+      <section className="space-y-3">
+        <SectionTitle count={pickups.length}>{text.preparedToday[locale]}</SectionTitle>
+        {pickups.length === 0 ? (
+          <Panel>
+            <EmptyState text={text.nothingPrepared[locale]} />
+          </Panel>
+        ) : (
+          <div className="grid gap-3 lg:grid-cols-2">
+            {pickups.map((group) => (
+              <PickupCard key={group.key} group={group} onAdjust={onAdjust} />
+            ))}
+          </div>
+        )}
+        {later.length > 0 && (
+          <details className="group">
+            <summary
+              className={cn(
+                'flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-lg px-1 text-sm font-semibold text-green-700 [&::-webkit-details-marker]:hidden',
+              )}
+            >
+              <ChevronRight
+                className="size-4 transition-transform group-open:rotate-90"
+                aria-hidden
+              />
+              {format(text.later, locale, { n: later.length })}
+            </summary>
+            <div className="mt-2 grid gap-3 lg:grid-cols-2">
+              {later.map((group) => (
+                <PickupCard key={group.key} group={group} onAdjust={onAdjust} />
+              ))}
+            </div>
+          </details>
+        )}
+      </section>
+      {/* requests wait for a decision, not at the counter: under today's pickups, and the
+          overview lists each of them under "Braucht Aufmerksamkeit" */}
       {requests.length > 0 && (
-        <>
+        <section className="space-y-3">
           <SectionTitle count={requests.length}>{text.requests[locale]}</SectionTitle>
           <div className="grid gap-3 lg:grid-cols-2">
             {requests.map((group) => (
@@ -397,89 +450,77 @@ const PreparedPickups: React.FC<{ onAdjust: (group: MaterialHolderGroup) => void
               />
             ))}
           </div>
-          <div className="h-3" />
-        </>
+        </section>
       )}
-      <SectionTitle count={pickups.length}>{text.preparedToday[locale]}</SectionTitle>
-      {pickups.length === 0 ? (
-        <Panel>
-          <EmptyState text={text.nothingPrepared[locale]} />
-        </Panel>
-      ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
-          {pickups.map((group) => (
-            <PickupCard key={group.key} group={group} onAdjust={onAdjust} />
-          ))}
-        </div>
-      )}
-      {later.length > 0 && (
-        <details className="group">
-          <summary
-            className={cn(
-              'flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-lg px-1 text-sm font-semibold text-gray-700 [&::-webkit-details-marker]:hidden',
-              focusRing,
-            )}
-          >
-            <ChevronRight
-              className="size-4 transition-transform group-open:rotate-90"
-              aria-hidden
-            />
-            {format(text.later, locale, { n: later.length })}
-          </summary>
-          <div className="mt-2 grid gap-3 lg:grid-cols-2">
-            {later.map((group) => (
-              <PickupCard key={group.key} group={group} onAdjust={onAdjust} />
-            ))}
-          </div>
-        </details>
-      )}
-    </section>
+      {children}
+    </>
   );
 };
 
 const pickButton = cn(
-  'flex min-h-14 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left hover:bg-gray-50',
-  focusRing,
-  'focus-visible:ring-inset',
+  'flex min-h-11 w-full cursor-pointer items-center gap-3 px-4 py-2 text-left text-[15px] text-green-900 hover:bg-quiet',
+  'focus-visible:focus-ring-inset',
 );
 
-/** Any Hof, found by name; the list is short enough to show whole. */
+/** "A" for "Aathal", and for "Äsch" too, so the umlauts sort in with their letter. */
+const initialOf = (name: string): string =>
+  name
+    .normalize('NFD')
+    .charAt(0)
+    .toUpperCase()
+    .replace(/[^A-Z]/, '#');
+
+/** Any Hof, found by name; the list is short enough to show whole, by letter. */
 const HofChoice: React.FC<{ onPick: (start: BasketStart) => void }> = ({ onPick }) => {
   const locale = useMaterialLocale();
   const [query, setQuery] = useState('');
   const holders = trpc.material.getHolderList.useQuery(undefined, materialQueryOptions);
   const needle = query.trim().toLowerCase();
-  const hoefe = (holders.data?.hoefe ?? []).filter((hof) =>
-    hof.name.toLowerCase().includes(needle),
-  );
+  const hoefe = (holders.data?.hoefe ?? [])
+    .filter((hof) => hof.name.toLowerCase().includes(needle))
+    .toSorted((a, b) => a.name.localeCompare(b.name, locale));
+  // by hand, not Map.groupBy: older phones at the counter do not have it yet
+  const letters = new Map<string, typeof hoefe>();
+  for (const hof of hoefe) {
+    const letter = initialOf(hof.name);
+    letters.set(letter, [...(letters.get(letter) ?? []), hof]);
+  }
   return (
     <div className="space-y-2">
       <SearchField value={query} onChange={setQuery} placeholder={text.searchHof[locale]} />
       <Panel>
         {holders.isLoading && <LoadingState text={labels.loading[locale]} />}
         {!holders.isLoading && hoefe.length === 0 && <EmptyState text={labels.empty[locale]} />}
-        <ul className="divide-y divide-gray-100">
-          {hoefe.map((hof) => (
-            <li key={hof.id}>
-              <button
-                type="button"
-                className={pickButton}
-                onClick={() => onPick({ holder: { kind: 'HOF', id: hof.id, name: hof.name } })}
-              >
-                <HolderAvatar name={hof.name} />
-                <span className="min-w-0 flex-1 truncate font-semibold text-gray-900">
-                  {hof.name}
-                </span>
-                {hof.out > 0 && (
-                  <span className="shrink-0 text-xs text-gray-500">
-                    {format(text.out, locale, { n: hof.out })}
-                  </span>
-                )}
-                <ChevronRight className="size-4 shrink-0 text-gray-400" aria-hidden />
-              </button>
-            </li>
-          ))}
-        </ul>
+        {[...letters].map(([letter, group]) => (
+          <section
+            key={letter}
+            aria-label={letter}
+            className="border-line border-t first:border-t-0"
+          >
+            <p className="px-4 pt-3 pb-1 text-xs font-bold text-green-700" aria-hidden>
+              {letter}
+            </p>
+            <ul className="divide-line divide-y">
+              {group.map((hof) => (
+                <li key={hof.id}>
+                  <button
+                    type="button"
+                    className={pickButton}
+                    onClick={() => onPick({ holder: { kind: 'HOF', id: hof.id, name: hof.name } })}
+                  >
+                    <span className="min-w-0 flex-1 truncate">{hof.name}</span>
+                    {hof.out > 0 && (
+                      <span className="shrink-0 text-xs text-green-500">
+                        {format(text.out, locale, { n: hof.out })}
+                      </span>
+                    )}
+                    <ChevronRight className="size-4 shrink-0 text-green-500" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
       </Panel>
     </div>
   );
@@ -503,7 +544,7 @@ const PersonChoice: React.FC<{ onPick: (start: BasketStart) => void }> = ({ onPi
         {debounced !== '' && people.data?.length === 0 && (
           <EmptyState text={labels.empty[locale]} />
         )}
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-line divide-y">
           {debounced !== '' &&
             people.data?.map((person) => (
               <li key={person.uuid}>
@@ -514,11 +555,8 @@ const PersonChoice: React.FC<{ onPick: (start: BasketStart) => void }> = ({ onPi
                     onPick({ holder: { kind: 'PERSON', id: person.uuid, name: person.name } })
                   }
                 >
-                  <HolderAvatar name={person.name} />
-                  <span className="min-w-0 flex-1 truncate font-semibold text-gray-900">
-                    {person.name}
-                  </span>
-                  <ChevronRight className="size-4 shrink-0 text-gray-400" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate">{person.name}</span>
+                  <ChevronRight className="size-4 shrink-0 text-green-500" aria-hidden />
                 </button>
               </li>
             ))}
@@ -529,8 +567,9 @@ const PersonChoice: React.FC<{ onPick: (start: BasketStart) => void }> = ({ onPi
 };
 
 /**
- * The hand-out screen. On top, the requests to answer and the pickups the material team prepared for today, each out in
- * one tap or adjusted in the basket; below, a new hand-out starts by choosing whom it goes to.
+ * The hand-out screen. On top, the pickups the material team prepared for today, each out in one
+ * tap or adjusted in the basket, then the requests to answer; below, a new hand-out starts by
+ * choosing whom it goes to.
  * The basket opens as its own history entry, so the back gesture closes it.
  */
 const HandOutScreen: React.FC = () => {
@@ -553,20 +592,21 @@ const HandOutScreen: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <PreparedPickups onAdjust={(group) => open(basketStart(group, locale))} />
-      <section className="space-y-3">
-        <SectionTitle>{text.newHandOut[locale]}</SectionTitle>
-        <Segmented
-          label={text.whom[locale]}
-          value={kind}
-          onChange={setKind}
-          options={[
-            { value: 'HOF', label: labels.hof[locale], icon: <Building2 aria-hidden /> },
-            { value: 'PERSON', label: labels.person[locale], icon: <User aria-hidden /> },
-          ]}
-        />
-        {kind === 'HOF' ? <HofChoice onPick={open} /> : <PersonChoice onPick={open} />}
-      </section>
+      <PreparedPickups onAdjust={(group) => open(basketStart(group, locale))}>
+        <section className="space-y-3">
+          <SectionTitle>{text.newHandOut[locale]}</SectionTitle>
+          <Segmented
+            label={text.whom[locale]}
+            value={kind}
+            onChange={setKind}
+            options={[
+              { value: 'HOF', label: labels.hof[locale] },
+              { value: 'PERSON', label: labels.person[locale] },
+            ]}
+          />
+          {kind === 'HOF' ? <HofChoice onPick={open} /> : <PersonChoice onPick={open} />}
+        </section>
+      </PreparedPickups>
     </div>
   );
 };

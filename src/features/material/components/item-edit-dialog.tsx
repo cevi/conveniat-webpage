@@ -276,7 +276,7 @@ export const ItemEditDialog: React.FC<{
           <label key={key} className="flex items-center gap-3">
             <input
               type="checkbox"
-              className="size-5 accent-[#47564c]"
+              className="accent-conveniat-green size-5"
               checked={form[key]}
               onChange={(event) => set(key, event.target.checked)}
             />

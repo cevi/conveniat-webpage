@@ -34,11 +34,16 @@ const ChatPage: React.FC<{
 
   return (
     <>
-      <article className="container mx-auto mt-8 mb-20 px-3 py-6 sm:px-6 md:px-8">
-        <div className="mx-auto w-full max-w-2xl">
-          <ChatsOverviewClientComponent qrCodeButton={qrCodeButton} />
-        </div>
-      </article>
+      {/* The screen is white like the design, so the grey search contrasts, from the header
+          down to the tab bar however few chats there are, and across the full width. The
+          bottom room keeps the last row clear of the tab bar and the "Neuer Chat" button. */}
+      <div className="min-h-[calc(100dvh-var(--app-content-top))] bg-white">
+        <article className="container mx-auto px-4 pt-4 pb-[168px] sm:px-6 md:px-8">
+          <div className="mx-auto w-full max-w-2xl">
+            <ChatsOverviewClientComponent qrCodeButton={qrCodeButton} />
+          </div>
+        </article>
+      </div>
       {design !== DesignCodes.APP_DESIGN && <AppAdvertisement locale={locale} type="chat" />}
     </>
   );

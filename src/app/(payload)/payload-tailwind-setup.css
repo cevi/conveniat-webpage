@@ -74,4 +74,7 @@
   --color-orange-500: #ffa500;
 }
 
+/* the admin panel is never the app, so shared components keep their `site:` focus styles here,
+   see globals.scss */
+@custom-variant site (&);
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));

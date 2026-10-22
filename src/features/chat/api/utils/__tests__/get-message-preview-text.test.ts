@@ -69,3 +69,14 @@ describe('getMessagePreviewText markdown stripping', () => {
     );
   });
 });
+
+describe('getMessagePreviewText of a deleted message', () => {
+  it('says the message was deleted instead of what it said', () => {
+    expect(
+      getMessagePreviewText({
+        contentVersions: [{ payload: { text: 'Das Passwort ist 1234' } }],
+        deletedAt: new Date(),
+      }),
+    ).toEqual({ de: 'Nachricht gelöscht', en: 'Message deleted', fr: 'Message supprimé' });
+  });
+});

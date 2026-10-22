@@ -195,8 +195,8 @@ const prisma = {
     },
     count: ({ where }: { where: { userId: string } }): Promise<number> =>
       Promise.resolve(reactions.filter((r) => r.userId === where.userId).length),
-    create: record('messageReaction.create'),
-    delete: record('messageReaction.delete'),
+    createMany: record('messageReaction.createMany'),
+    deleteMany: record('messageReaction.deleteMany'),
   },
 };
 
@@ -452,7 +452,7 @@ describe('reactions', () => {
 
     await as(ANNA).toggleReaction({ messageId: THREAD_ID, emoji: '👍' });
 
-    expect(writes.map((write) => write.operation)).toEqual(['messageReaction.delete']);
+    expect(writes.map((write) => write.operation)).toEqual(['messageReaction.deleteMany']);
   });
 
   it('count every person on their own', async () => {

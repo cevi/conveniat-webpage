@@ -1,6 +1,9 @@
 import { USER_RELEVANT_MESSAGE_EVENTS } from '@/features/chat/api/definitions';
 import type { ChatMessage } from '@/features/chat/api/types';
+import { findDeletedQuotedMessageIds } from '@/features/chat/api/utils/deleted-messages';
 import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
+import { findThreadSummaries } from '@/features/chat/api/utils/thread-summaries';
+import { toChatMessage } from '@/features/chat/api/utils/to-chat-message';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { createLogger } from '@/utils/server-logger';
 import { MessageEventType } from '@prisma/client';
@@ -109,27 +112,26 @@ export const getChatMessages = trpcBaseProcedure
         'chat.next_cursor': nextCursor,
       });
 
+      const [deletedQuotedIds, threadSummaries] = await Promise.all([
+        findDeletedQuotedMessageIds(
+          prisma,
+          messages.map((message) => message.contentVersions[0]?.payload),
+        ),
+        findThreadSummaries(
+          prisma,
+          messages.filter((message) => message._count.replies > 0).map((message) => message.uuid),
+        ),
+      ]);
+
       const mappedMessages = messages.map((message) => {
         const isReadByAdmin = chat.adminReadAt !== null && message.createdAt <= chat.adminReadAt;
-        return {
-          id: message.uuid,
-          createdAt: message.createdAt,
-          messagePayload: message.contentVersions[0]?.payload ?? {},
-          senderId: message.senderId ?? undefined,
-          ...(message.sender?.name ? { senderName: message.sender.name } : {}),
+        return toChatMessage(message, {
           status: isReadByAdmin
             ? MessageEventType.READ
             : getStatusFromMessageEvents(message.messageEvents),
-          type: message.type,
-          replyCount: message._count.replies,
-          parentId: message.parentId ?? undefined,
-          hasUnreadReplies: message.replies.length > 0,
-          reactions: message.reactions.map((r) => ({
-            emoji: r.emoji,
-            userId: r.userId,
-            userName: r.user.name,
-          })),
-        };
+          deletedQuotedIds,
+          threadSummaries,
+        });
       });
 
       return {

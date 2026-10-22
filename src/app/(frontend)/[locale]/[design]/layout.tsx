@@ -86,6 +86,8 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
         'overscroll-y-none': isInAppDesign,
       })}
       lang={locale}
+      // scopes the app's focus ring, see globals.scss
+      data-app={isInAppDesign ? '' : undefined}
       suppressHydrationWarning
     >
       <head>
@@ -94,7 +96,7 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
         )}
       </head>
       <body
-        className={cn('flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc]', {
+        className={cn('bg-page flex h-dvh w-dvw flex-col overflow-x-hidden', {
           'overscroll-y-none': isInAppDesign,
         })}
         suppressHydrationWarning

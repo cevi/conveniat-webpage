@@ -1,12 +1,12 @@
 'use client';
 
+import { Card } from '@/components/ui/card';
 import { Segmented, Stepper } from '@/features/material/components/counter-ui';
 import { MaterialItemImage } from '@/features/material/components/material-item-image';
 import { format, labels } from '@/features/material/components/material-labels';
 import {
   DateInput,
   Field,
-  focusRing,
   inputClass,
   MaterialButton,
   MaterialSheet,
@@ -183,10 +183,9 @@ export const RequestSheet: React.FC<{
       onClick={() => setEnd(value)}
       className={cn(
         'h-11 shrink-0 cursor-pointer rounded-full border px-4 text-sm font-semibold',
-        focusRing,
         end === value
           ? 'border-conveniat-green bg-conveniat-green text-white'
-          : 'border-gray-300 bg-white text-gray-800',
+          : 'border-rail bg-white text-green-900',
       )}
     >
       {label}
@@ -219,11 +218,11 @@ export const RequestSheet: React.FC<{
           </div>
         </Field>
         {!periodValid && (
-          <p className="text-sm font-semibold text-red-700">{text.periodInvalid[locale]}</p>
+          <p className="text-danger-text text-sm font-semibold">{text.periodInvalid[locale]}</p>
         )}
       </div>
 
-      <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200">
+      <Card as="ul" divided>
         {lines.map((line) => {
           const item = byId.get(line.itemId);
           const name = item?.name ?? '…';
@@ -238,8 +237,8 @@ export const RequestSheet: React.FC<{
                   className="size-10"
                 />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-semibold text-gray-900">{name}</div>
-                  <div className="truncate text-xs text-gray-500 tabular-nums">
+                  <div className="truncate font-semibold text-green-900">{name}</div>
+                  <div className="truncate text-xs text-green-500 tabular-nums">
                     {format(text.freeForDays, locale, {
                       n: item?.availableForPeriod ?? 0,
                       max: item?.maxLoanQuantity ?? 0,
@@ -252,8 +251,7 @@ export const RequestSheet: React.FC<{
                   aria-label={`${labels.remove[locale]}: ${name}`}
                   onClick={() => onLinesChange(lines.filter((entry) => entry !== line))}
                   className={cn(
-                    'flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-red-700',
-                    focusRing,
+                    'hover:bg-quiet flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-500 hover:text-green-900',
                   )}
                 >
                   <Trash2 className="size-4" aria-hidden />
@@ -274,19 +272,19 @@ export const RequestSheet: React.FC<{
                 />
               </div>
               {line.quantity > cap && (
-                <p className="text-right text-xs font-semibold text-red-700">
+                <p className="text-danger-text text-right text-xs font-semibold">
                   {format(text.tooMany, locale, { n: cap })}
                 </p>
               )}
               {!isOnOrderStep(line.quantity, step) && (
-                <p className="text-right text-xs font-semibold text-red-700">
+                <p className="text-danger-text text-right text-xs font-semibold">
                   {format(labels.offStep, locale, { n: step })}
                 </p>
               )}
             </li>
           );
         })}
-      </ul>
+      </Card>
 
       <Field as="group" label={text.forWhom[locale]}>
         {whomOptions.length <= 3 ? (
@@ -328,7 +326,7 @@ export const RequestSheet: React.FC<{
       </Field>
       <SheetFooter>
         <MaterialButton
-          className="h-12 w-full text-base"
+          className="w-full"
           loading={send.isPending}
           disabled={!canSend}
           onClick={submit}

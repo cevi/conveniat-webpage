@@ -1,18 +1,25 @@
+import { AppSearchBar } from '@/components/ui/app-search-bar';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/buttons/button';
-import { Input } from '@/components/ui/input';
-import { PersonAvatar } from '@/components/ui/person-avatar';
+import { EmptyState } from '@/components/ui/empty-state';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import {
-  describeContactFunktionen,
-  describeContactHof,
-} from '@/features/chat/utils/contact-search';
+  ChosenPeople,
+  ContactRowContent,
+  contactRowItemClassName,
+  ContactRowsSkeleton,
+  SelectionMark,
+} from '@/features/chat/components/chat-overview-view/contact-row';
+import { newChatText } from '@/features/chat/components/chat-overview-view/create-chat-skeleton';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { getContactDisplayName, getContactShortName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
-import { Check, Loader2, Search, UserPlus, X } from 'lucide-react';
+import { Loader2, UserPlus, Users } from 'lucide-react';
 import type React from 'react';
+import { useId } from 'react';
 
 interface AddParticipantsProperties {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   selectedContacts: Contact[];
@@ -31,38 +38,38 @@ interface AddParticipantsProperties {
 
 const addParticipantsText: StaticTranslationString = {
   de: 'Teilnehmende hinzufügen',
-  en: 'Add Participants',
-  fr: 'Ajouter des participants',
-};
-
-const searchContactsPlaceholder: StaticTranslationString = {
-  de: 'Kontakte suchen...',
-  en: 'Search contacts to add...',
-  fr: 'Rechercher des contacts à ajouter...',
+  en: 'Add participants',
+  fr: 'Ajouter des participant·es',
 };
 
 const noContactsToAddText: StaticTranslationString = {
-  de: 'Keine Kontakte hinzuzufügen.',
-  en: 'No contacts to add.',
-  fr: 'Aucun contact à ajouter.',
+  de: 'Alle deine Kontakte sind schon dabei',
+  en: 'All your contacts are already in',
+  fr: 'Tous tes contacts en font déjà partie',
 };
 
 const noContactsFoundText: StaticTranslationString = {
-  de: 'Keine Kontakte gefunden, die deiner Suche entsprechen',
+  de: 'Keine Kontakte für deine Suche gefunden',
   en: 'No contacts found matching your search',
-  fr: 'Aucun contact trouvé correspondant à votre recherche',
+  fr: 'Aucun contact trouvé pour ta recherche',
 };
 
 const loadingContactsText: StaticTranslationString = {
-  de: 'Kontakte werden geladen...',
-  en: 'Loading contacts...',
-  fr: 'Chargement des contacts...',
+  de: 'Lade Kontakte …',
+  en: 'Loading contacts …',
+  fr: 'Chargement des contacts …',
 };
 
 const addingText: StaticTranslationString = {
-  de: 'Hinzufügen...',
-  en: 'Adding...',
-  fr: 'Ajout...',
+  de: 'Hinzufügen …',
+  en: 'Adding …',
+  fr: 'Ajout …',
+};
+
+const chooseHintText: StaticTranslationString = {
+  de: 'Wähle aus, wen du hinzufügen möchtest.',
+  en: 'Choose whom to add.',
+  fr: 'Choisis qui ajouter.',
 };
 
 const groupLimitReachedText: StaticTranslationString = {
@@ -71,13 +78,24 @@ const groupLimitReachedText: StaticTranslationString = {
   fr: 'Un groupe compte au plus {max} membres.',
 };
 
-const addSelectedText: StaticTranslationString = {
-  de: 'Ausgewählte hinzufügen',
-  en: 'Add Selected',
-  fr: 'Ajouter la sélection',
+const addCountText = (count: number, locale: Locale): string => {
+  if (count === 0) {
+    if (locale === 'de') return 'Hinzufügen';
+    if (locale === 'fr') return 'Ajouter';
+    return 'Add';
+  }
+  if (locale === 'de') return `${count} hinzufügen`;
+  if (locale === 'fr') return `Ajouter ${count}`;
+  return `Add ${count}`;
 };
 
+/**
+ * The sheet to add people to a group: a search over the contacts, the people picked so far,
+ * and one button that adds them all.
+ */
 export const AddParticipants: React.FC<AddParticipantsProperties> = ({
+  open,
+  onOpenChange,
   searchQuery,
   onSearchChange,
   selectedContacts,
@@ -91,130 +109,102 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
   maxGroupMembers,
   locale,
 }) => {
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
-      <h3 className="font-heading mb-4 text-lg font-semibold text-gray-900">
-        {addParticipantsText[locale]}
-      </h3>
+  const hintId = useId();
+  let hint: string | undefined = selectedContacts.length === 0 ? chooseHintText[locale] : undefined;
+  if (isAtGroupLimit && maxGroupMembers !== undefined) {
+    hint = groupLimitReachedText[locale].replace('{max}', String(maxGroupMembers));
+  }
 
-      {/* Search Input */}
-      <div className="relative mb-4">
-        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <Input
-          placeholder={searchContactsPlaceholder[locale]}
-          className="font-body focus:border-conveniat-green focus:ring-conveniat-green border-gray-300 pl-10"
+  return (
+    <BottomSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={addParticipantsText[locale]}
+      footer={
+        <div className="flex flex-col gap-2">
+          {/* in the footer, like Neue Gruppe: a strip over the list would move it under the finger */}
+          <ChosenPeople
+            people={selectedContacts}
+            onRemove={onToggleSelection}
+            hint={hint === undefined ? undefined : { id: hintId, text: hint }}
+            locale={locale}
+            className="-mx-5 px-5"
+          />
+          {addError !== undefined && (
+            <p className="text-danger-text text-sm font-semibold" role="alert">
+              {addError}
+            </p>
+          )}
+          <Button
+            variant="primary"
+            size="touch"
+            className="w-full"
+            onClick={onAddParticipants}
+            disabled={selectedContacts.length === 0 || isAdding}
+          >
+            {isAdding ? (
+              <Loader2 className="animate-spin" aria-hidden="true" />
+            ) : (
+              <UserPlus aria-hidden="true" />
+            )}
+            {isAdding ? addingText[locale] : addCountText(selectedContacts.length, locale)}
+          </Button>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-1 pt-1">
+        {/* on the white sheet, so the filled field */}
+        <AppSearchBar
+          placeholder={newChatText.search[locale]}
           value={searchQuery}
           onChange={(event) => onSearchChange(event.target.value)}
+          onClear={() => onSearchChange('')}
         />
-      </div>
 
-      {/* Selected Contacts Chips */}
-      {selectedContacts.length > 0 && (
-        <div className="mb-4 space-y-2">
-          <div className="font-body text-sm font-medium text-gray-700">
-            Selected: {selectedContacts.length}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {selectedContacts.map((contact) => (
-              <div
-                key={contact.userId}
-                className="font-body text-conveniat-green flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm"
-              >
-                <span>{getContactShortName(contact)}</span>
-                <button
-                  onClick={() => onToggleSelection(contact)}
-                  className="rounded-full p-0.5 hover:bg-green-200"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {isAtGroupLimit && maxGroupMembers !== undefined && (
-        <p className="font-body mb-2 text-xs text-gray-500">
-          {groupLimitReachedText[locale].replace('{max}', String(maxGroupMembers))}
-        </p>
-      )}
-
-      {/* Contacts List */}
-      <div className="mb-4 space-y-1 rounded-md border p-2">
         {isLoadingContacts && (
-          <div className="flex h-full items-center justify-center text-sm text-gray-500">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {loadingContactsText[locale]}
+          // the skeleton's rows have 16px of their own, the sheet's rows 20px
+          <div role="status" className="-mx-4">
+            <span className="sr-only">{loadingContactsText[locale]}</span>
+            <ContactRowsSkeleton count={4} withMark />
           </div>
         )}
-        {!isLoadingContacts &&
-          (addableContacts.length === 0 ? (
-            <div className="flex h-full items-center justify-center text-sm text-gray-500">
-              {searchQuery === '' ? noContactsToAddText[locale] : noContactsFoundText[locale]}
-            </div>
-          ) : (
-            addableContacts.map((contact) => {
+        {!isLoadingContacts && addableContacts.length === 0 && (
+          <EmptyState
+            icon={Users}
+            title={searchQuery === '' ? noContactsToAddText[locale] : noContactsFoundText[locale]}
+            className="py-8"
+          />
+        )}
+        {!isLoadingContacts && addableContacts.length > 0 && (
+          // rows on the white sheet, divided by a line from the text on, as in Neue Gruppe
+          <ul className="-mx-5">
+            {addableContacts.map((contact) => {
               const isSelected = selectedContacts.some((c) => c.userId === contact.userId);
               return (
-                <div
+                <li
                   key={contact.userId}
-                  className={cn(
-                    'flex cursor-pointer items-center justify-between space-x-3 rounded-lg p-3 transition-colors',
-                    isSelected && 'text-conveniat-green bg-green-100',
-                    !isSelected && !isAtGroupLimit && 'hover:bg-gray-100',
-                    !isSelected && isAtGroupLimit && 'cursor-not-allowed opacity-50',
-                  )}
-                  onClick={() => onToggleSelection(contact)}
+                  className={cn(contactRowItemClassName, 'after:left-[76px]')}
                 >
-                  <div className="flex items-center gap-3">
-                    <PersonAvatar
-                      seed={contact.userId}
-                      name={contact.name}
-                      pictureUrl={contact.pictureUrl}
-                      className="h-8 w-8 text-xs"
-                    />
-                    <div className="flex flex-col">
-                      <span className="font-body text-sm font-medium text-gray-900">
-                        {getContactDisplayName(contact)}
-                      </span>
-                      {contact.description && (
-                        <span className="font-body text-xs text-gray-500">
-                          {contact.description}
-                        </span>
-                      )}
-                      {describeContactFunktionen(contact) !== '' && (
-                        <span className="font-body text-conveniat-green text-xs font-medium">
-                          {describeContactFunktionen(contact)}
-                        </span>
-                      )}
-                      {describeContactHof(contact) !== '' && (
-                        <span className="font-body text-xs text-gray-500">
-                          {describeContactHof(contact)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {isSelected && (
-                    <div className="bg-conveniat-green flex h-5 w-5 items-center justify-center rounded-full">
-                      <Check className="h-3 w-3 text-white" />
-                    </div>
-                  )}
-                </div>
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={isSelected}
+                    onClick={() => onToggleSelection(contact)}
+                    disabled={!isSelected && isAtGroupLimit}
+                    className={cn(
+                      'focus-visible:focus-ring-inset flex min-h-16 w-full cursor-pointer items-center gap-3 px-5 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50',
+                      isSelected ? 'bg-tint' : 'hover:bg-quiet',
+                    )}
+                  >
+                    <ContactRowContent contact={contact} />
+                    <SelectionMark isSelected={isSelected} />
+                  </button>
+                </li>
               );
-            })
-          ))}
+            })}
+          </ul>
+        )}
       </div>
-
-      {addError !== undefined && <p className="font-body mb-2 text-xs text-red-600">{addError}</p>}
-
-      {/* Add Button */}
-      <Button
-        onClick={onAddParticipants}
-        disabled={selectedContacts.length === 0 || isAdding}
-        className="bg-conveniat-green font-body w-full hover:bg-green-600 disabled:bg-gray-300"
-      >
-        <UserPlus className="mr-2 h-4 w-4" />
-        {isAdding ? addingText[locale] : `${addSelectedText[locale]} (${selectedContacts.length})`}
-      </Button>
-    </div>
+    </BottomSheet>
   );
 };

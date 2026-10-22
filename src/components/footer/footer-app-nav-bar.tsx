@@ -63,6 +63,7 @@ export const FooterAppNavBar: React.FC<FooterAppNavBarProperties> = ({ locale, i
               icon={IconComponent}
               label={item.label}
               isActive={isActive}
+              isCurrent={longestMatch === item.href}
               color={item.color}
               onClick={handleNavClick}
               isLoading={isPending}

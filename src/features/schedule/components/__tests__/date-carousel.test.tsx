@@ -9,92 +9,75 @@ jest.mock('next-i18n-router/client', () => ({
   useCurrentLocale: (): string => 'de',
 }));
 
+const dates = [25, 26, 27, 28, 29, 30].map((day) => new Date(Date.UTC(2027, 6, day, 12)));
+
+// jsdom lays nothing out: give every day 60 px and the strip room for five of them
+const dayWidth = 60;
+const scrollTo = jest.fn();
+const scrollBy = jest.fn();
+
+beforeAll(() => {
+  Object.defineProperties(HTMLElement.prototype, {
+    offsetWidth: { configurable: true, get: (): number => dayWidth },
+    offsetLeft: {
+      configurable: true,
+      get(this: HTMLElement): number {
+        return [...(this.parentElement?.children ?? [])].indexOf(this) * dayWidth;
+      },
+    },
+    clientWidth: { configurable: true, get: (): number => 5 * dayWidth },
+    scrollWidth: {
+      configurable: true,
+      get(this: HTMLElement): number {
+        return this.children.length * dayWidth;
+      },
+    },
+  });
+  Object.assign(HTMLElement.prototype, { scrollTo, scrollBy });
+});
+
+beforeEach(() => {
+  scrollTo.mockClear();
+  scrollBy.mockClear();
+});
+
+const renderCarousel = (currentDate: Date, onDateSelect = jest.fn()): void => {
+  render(<DateCarousel allDates={dates} currentDate={currentDate} onDateSelect={onDateSelect} />);
+};
+
 describe('DateCarousel', () => {
-  const date0 = new Date('2027-07-25T12:00:00.000Z');
-  const date1 = new Date('2027-07-26T12:00:00.000Z');
-  const date2 = new Date('2027-07-27T12:00:00.000Z');
-  const date3 = new Date('2027-07-28T12:00:00.000Z');
-  const date4 = new Date('2027-07-29T12:00:00.000Z');
-  const date5 = new Date('2027-07-30T12:00:00.000Z');
-  const dates = [date0, date1, date2, date3, date4, date5];
+  it('renders every day, so a swipe brings in days that are already there', () => {
+    renderCarousel(dates[1] as Date);
 
-  it('renders visible dates and indicates selected date', () => {
-    const handleDateSelect = jest.fn();
-    const handlePrevious = jest.fn();
-    const handleNext = jest.fn();
-
-    render(
-      <DateCarousel
-        allDates={dates}
-        currentDate={date1}
-        startIndex={0}
-        maxVisible={5}
-        onDateSelect={handleDateSelect}
-        onPrevious={handlePrevious}
-        onNext={handleNext}
-      />,
-    );
-
-    const buttons = screen.getAllByRole('button');
-    // Index 0 is Previous, buttons 1..5 are dates, Index 6 is Next
-    expect(buttons).toHaveLength(7);
-
-    // Selected date (date1 -> button 2) should have aria-pressed="true"
-    expect(buttons[2]).toHaveAttribute('aria-pressed', 'true');
-    expect(buttons[1]).toHaveAttribute('aria-pressed', 'false');
-
-    // Click an unselected date
-    const targetButton = buttons[3];
-    expect(targetButton).toBeDefined();
-    if (targetButton) {
-      fireEvent.click(targetButton);
-    }
-    expect(handleDateSelect).toHaveBeenCalledWith(date2);
+    const days = screen.getAllByRole('button').filter((button) => button.textContent !== '');
+    expect(days).toHaveLength(6);
+    expect(days.filter((day) => day.getAttribute('aria-current') === 'date')).toEqual([days[1]]);
+    expect(days[1]).toHaveTextContent('26');
+    expect(screen.getByText('30')).toBeInTheDocument();
   });
 
-  it('handles navigation buttons and disabled states', () => {
-    const handleDateSelect = jest.fn();
-    const handlePrevious = jest.fn();
-    const handleNext = jest.fn();
+  it('selects the day that is tapped', () => {
+    const onDateSelect = jest.fn();
+    renderCarousel(dates[1] as Date, onDateSelect);
 
-    const { rerender } = render(
-      <DateCarousel
-        allDates={dates}
-        currentDate={date0}
-        startIndex={0}
-        maxVisible={5}
-        onDateSelect={handleDateSelect}
-        onPrevious={handlePrevious}
-        onNext={handleNext}
-      />,
-    );
+    fireEvent.click(screen.getByText('27'));
+    expect(onDateSelect).toHaveBeenCalledWith(dates[2]);
+  });
 
-    const previousButton = screen.getByLabelText('Vorheriger Tag');
-    const nextButton = screen.getByLabelText('Nächster Tag');
+  it('scrolls by one day with the arrows, and only where there is more to see', () => {
+    renderCarousel(dates[0] as Date);
 
-    expect(previousButton).toBeDisabled();
-    expect(nextButton).not.toBeDisabled();
+    expect(screen.getByLabelText('Vorheriger Tag')).toBeDisabled();
+    const next = screen.getByLabelText('Nächster Tag');
+    expect(next).not.toBeDisabled();
 
-    fireEvent.click(nextButton);
-    expect(handleNext).toHaveBeenCalledTimes(1);
+    fireEvent.click(next);
+    expect(scrollBy).toHaveBeenCalledWith({ left: dayWidth, behavior: 'smooth' });
+  });
 
-    // Rerender at the end of the list
-    rerender(
-      <DateCarousel
-        allDates={dates}
-        currentDate={date5}
-        startIndex={1}
-        maxVisible={5}
-        onDateSelect={handleDateSelect}
-        onPrevious={handlePrevious}
-        onNext={handleNext}
-      />,
-    );
+  it('opens on a selected day that lies beyond the first five, without sliding there', () => {
+    renderCarousel(dates[5] as Date);
 
-    expect(previousButton).not.toBeDisabled();
-    expect(nextButton).toBeDisabled();
-
-    fireEvent.click(previousButton);
-    expect(handlePrevious).toHaveBeenCalledTimes(1);
+    expect(scrollTo).toHaveBeenCalledWith({ left: dayWidth, behavior: 'instant' });
   });
 });

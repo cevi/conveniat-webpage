@@ -1,461 +1,221 @@
 'use client';
-import { AppFooterController } from '@/components/footer/hide-footer-context';
-import { AppSearchBar } from '@/components/ui/app-search-bar';
-import { Button } from '@/components/ui/buttons/button';
-import { Input } from '@/components/ui/input';
-import { PersonAvatar } from '@/components/ui/person-avatar';
+import { EmptyState } from '@/components/ui/empty-state';
+import { IconTile } from '@/components/ui/icon-tile';
+import { SectionLabel } from '@/components/ui/section-label';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
-import { useCreateChat } from '@/features/chat/hooks/use-create-chat';
 import {
-  describeContactFunktionen,
-  describeContactHof,
-  matchesContactSearch,
-} from '@/features/chat/utils/contact-search';
+  contactListName,
+  ContactRowContent,
+  contactRowItemClassName,
+  ContactRowsSkeleton,
+  NewChatFrame,
+} from '@/features/chat/components/chat-overview-view/contact-row';
+import { newChatText } from '@/features/chat/components/chat-overview-view/create-chat-skeleton';
+import type { ChatQrTab } from '@/features/chat/components/qr-component';
+import { ChatQrSheet } from '@/features/chat/components/qr-component';
+import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
+import { useCreateChat } from '@/features/chat/hooks/use-create-chat';
+import { groupContactsByLetter, matchesContactSearch } from '@/features/chat/utils/contact-search';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { getContactDisplayName, getContactShortName } from '@/utils/format-user-name';
-import { cn } from '@/utils/tailwindcss-override';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Users, X } from 'lucide-react';
+import { Loader2, QrCode, UserPlus, Users } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-const groupNamePlaceholder: StaticTranslationString = {
-  de: 'Gruppennamen eingeben (erforderlich)',
-  en: 'Enter group name (required)',
-  fr: 'Entrez le nom du groupe (obligatoire)',
-};
+const text = {
+  newGroup: { de: 'Neue Gruppe', en: 'New group', fr: 'Nouveau groupe' },
+  scanCode: { de: 'QR-Code scannen', en: 'Scan QR code', fr: 'Scanner un code QR' },
+  loading: { de: 'Lade Kontakte …', en: 'Loading contacts …', fr: 'Chargement des contacts …' },
+  noContacts: {
+    de: 'Keine Kontakte verfügbar',
+    en: 'No contacts available',
+    fr: 'Aucun contact disponible',
+  },
+  noContactsDescription: {
+    de: 'Du hast noch keine Kontakte. Scanne den QR-Code einer Person, um mit ihr zu chatten.',
+    en: 'You have no contacts yet. Scan someone’s QR code to chat with them.',
+    fr: 'Tu n’as pas encore de contacts. Scanne le code QR d’une personne pour discuter avec elle.',
+  },
+  openFailed: {
+    de: 'Chat konnte nicht geöffnet werden. Versuche es nochmals.',
+    en: 'The chat could not be opened. Please try again.',
+    fr: 'Le chat n’a pas pu être ouvert. Réessaie.',
+  },
+  noMatch: {
+    de: 'Keine Kontakte für deine Suche gefunden',
+    en: 'No contacts found matching your search',
+    fr: 'Aucun contact trouvé pour votre recherche',
+  },
+} satisfies Record<string, StaticTranslationString>;
 
-const searchContactsPlaceholder: StaticTranslationString = {
-  de: 'Kontakte suchen...',
-  en: 'Search contacts...',
-  fr: 'Rechercher des contacts...',
-};
+/** An action at the head of the list: an icon tile and its label, 56px high. */
+const actionRowClassName =
+  'hover:bg-quiet flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2 text-left text-[15px] font-semibold text-green-900 focus-visible:focus-ring-inset';
 
-const creatingText: StaticTranslationString = {
-  en: 'Creating...',
-  de: 'Erstelle...',
-  fr: 'Création en cours...',
-};
-
-const createText: StaticTranslationString = {
-  en: 'Create',
-  de: 'Erstellen',
-  fr: 'Créer',
-};
-
-const newChat: StaticTranslationString = {
-  en: 'New Chat',
-  de: 'Neuer Chat',
-  fr: 'Nouveau chat',
-};
-
-const selectContactsText: StaticTranslationString = {
-  en: 'Select Contacts',
-  de: 'Kontakte auswählen',
-  fr: 'Sélectionner des contacts',
-};
-
-const loadingContactsText: StaticTranslationString = {
-  en: 'Loading contacts...',
-  de: 'Lade Kontakte...',
-  fr: 'Chargement des contacts...',
-};
-
-const groupMinMaxLength: StaticTranslationString = {
-  en: 'Group name must be between 2-50 characters',
-  de: 'Gruppenname muss zwischen 2 und 50 Zeichen liegen',
-  fr: 'Le nom du groupe doit comporter entre 2 et 50 caractères',
-};
-
-const noContactsAvailableText: StaticTranslationString = {
-  de: 'Keine Kontakte verfügbar',
-  en: 'No contacts available',
-  fr: 'Aucun contact disponible',
-};
-
-const noContactsAvailableDescriptionText: StaticTranslationString = {
-  de: 'Du hast aktuell noch keine Kontakte in deiner Liste. Lade neue Mitglieder ein oder scanne einen QR-Code.',
-  en: 'You currently have no contacts in your list. Invite new members or scan a QR code.',
-  fr: "Vous n'avez actuellement aucun contact dans votre liste. Invitez de nouveaux membres ou scannez un code QR.",
-};
-
-const noContactsFoundText: StaticTranslationString = {
-  de: 'Keine Kontakte für deine Suche gefunden',
-  en: 'No contacts found matching your search',
-  fr: 'Aucun contact trouvé pour votre recherche',
-};
-
-const selectedCountText: StaticTranslationString = {
-  de: 'Ausgewählt',
-  en: 'Selected',
-  fr: 'Sélectionné',
-};
-
-const groupLimitReachedText: StaticTranslationString = {
-  de: 'Eine Gruppe hat höchstens {max} Mitglieder, dich eingeschlossen.',
-  en: 'A group can have at most {max} members, including you.',
-  fr: 'Un groupe compte au plus {max} membres, toi compris.',
-};
-
-const groupChatNameLabel: StaticTranslationString = {
-  de: 'Gruppen-Name',
-  en: 'Group Chat Name',
-  fr: 'Nom du groupe',
-};
-
+/**
+ * Starting a chat: a new group, scanning someone's code, or one of the contacts, listed by
+ * Ceviname under its letter. A tap on a contact opens the private chat with them, the one
+ * already there or a new one.
+ */
 export const CreateNewChatPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { data: allContacts, isLoading } = trpc.chat.contacts.useQuery({});
-  const { data: maxGroupMembers } = trpc.chat.getGroupMemberLimit.useQuery();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
-  const [groupChatName, setGroupChatName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
+  const [openingUserId, setOpeningUserId] = useState<string | undefined>();
+  const [hasOpenFailed, setHasOpenFailed] = useState(false);
+  const [isQrOpen, setIsQrOpen] = useState(false);
+  const [qrTab, setQrTab] = useState<ChatQrTab>('scan');
   const router = useRouter();
   const pathname = usePathname();
-  const [groupChatNameError, setGroupChatNameError] = useState('');
-
   const { createChat } = useCreateChat();
 
-  const resetForm = useCallback((): void => {
-    setSelectedContacts([]);
-    setGroupChatName('');
-    setGroupChatNameError('');
-    setSearchQuery('');
-    setIsCreating(false);
-  }, []);
-
-  // The draft belongs to *this* visit of /app/chat/new. Leaving the screen - by creating
-  // the chat, by going back or by any other navigation - discards it, so coming back here
-  // always starts from an empty selection instead of resurrecting the abandoned draft.
-  const isOnCreateChatRoute = /\/app\/chat\/new\/?$/.test(pathname);
+  // The route stays mounted, hidden, after leaving it; coming back starts from a clean screen.
+  const isOnRoute = /\/app\/chat\/new\/?$/.test(pathname);
   useEffect(() => {
-    if (isOnCreateChatRoute) return;
+    if (isOnRoute) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    resetForm();
-  }, [isOnCreateChatRoute, resetForm]);
+    setSearchQuery('');
+    // the chat has opened: nothing here stays busy for the next visit
+    setOpeningUserId(undefined);
+    setHasOpenFailed(false);
+  }, [isOnRoute]);
 
-  const isGroupChat = selectedContacts.length > 1;
-  // the creator is a member too
-  const isAtGroupLimit =
-    maxGroupMembers !== undefined && selectedContacts.length + 1 >= maxGroupMembers;
-
-  const filteredContacts = allContacts?.filter((contact) =>
-    matchesContactSearch(contact, searchQuery),
-  );
-
-  const validateGroupName = (name: string): string => {
-    if (isGroupChat && name.trim().length === 0) {
-      return 'Group name is required for group chats';
-    }
-    if (name.trim().length > 0 && name.trim().length < 2) {
-      return 'Group name must be at least 2 characters';
-    }
-    if (name.trim().length > 50) {
-      return 'Group name must be less than 50 characters';
-    }
-    return '';
-  };
-
-  const isFormValid =
-    selectedContacts.length > 0 &&
-    (!isGroupChat || (groupChatName.trim().length >= 2 && groupChatName.trim().length <= 50));
-
-  const handleContactToggle = (contact: Contact): void => {
-    setSelectedContacts((previous) => {
-      const isSelected = previous.some((c) => c.userId === contact.userId);
-      if (isSelected) return previous.filter((c) => c.userId !== contact.userId);
-      if (maxGroupMembers !== undefined && previous.length + 1 >= maxGroupMembers) return previous;
-      return [...previous, contact];
-    });
-    // the search found this contact; the next one is most likely someone else
-    const isAdded =
-      !selectedContacts.some((c) => c.userId === contact.userId) &&
-      (maxGroupMembers === undefined || selectedContacts.length + 1 < maxGroupMembers);
-    if (isAdded) setSearchQuery('');
-  };
-
-  const handleCreateChat = (): void => {
-    if (selectedContacts.length === 0 || isCreating) {
-      return;
-    }
-
-    const nameError = validateGroupName(groupChatName);
-    if (nameError !== '') {
-      setGroupChatNameError(nameError);
-      return;
-    }
-
+  const openChatWith = (contact: Contact): void => {
+    if (openingUserId !== undefined) return;
+    setOpeningUserId(contact.userId);
+    setHasOpenFailed(false);
     try {
-      setIsCreating(true);
-      const chatName: string | undefined =
-        selectedContacts.length > 1 && groupChatName.trim() !== ''
-          ? groupChatName.trim()
-          : undefined;
-
-      // The id is chosen client-side, so the chat can be opened straight away - the
-      // creation may still be in flight, or queued in the outbox while offline.
-      const chatId = createChat({ chatName, members: selectedContacts });
-
-      resetForm();
-      // `replace`, not `push`: going back from the new chat belongs to the overview, not
-      // to the form that created it.
+      // The id is chosen client-side, so the chat opens straight away; for someone the user
+      // already chats with, the server answers with that chat and the view follows it.
+      const chatId = createChat({ chatName: undefined, members: [contact] });
+      // `replace`: going back from the chat belongs to the list, not to this screen
       router.replace(`/app/chat/${chatId}`);
     } catch (error) {
-      console.error(error);
-      setIsCreating(false);
+      console.error('Opening the chat failed', error);
+      setOpeningUserId(undefined);
+      setHasOpenFailed(true);
     }
   };
 
-  const handleGroupNameChange = (value: string): void => {
-    setGroupChatName(value);
-    // Clear error when user starts typing
-    if (groupChatNameError !== '') {
-      setGroupChatNameError('');
-    }
-    // Validate on change for real-time feedback
-    const error = validateGroupName(value);
-    setGroupChatNameError(error);
+  const openScanner = (): void => {
+    setQrTab('scan');
+    setIsQrOpen(true);
   };
 
-  const unselectedContacts = filteredContacts?.filter(
-    (contact) => !selectedContacts.some((selected) => selected.userId === contact.userId),
-  );
-
+  const filteredContacts =
+    allContacts?.filter((contact) => matchesContactSearch(contact, searchQuery)) ?? [];
+  const groups = groupContactsByLetter(filteredContacts, contactListName, locale);
   const hasContacts = (allContacts?.length ?? 0) > 0;
+  const isSearching = searchQuery.trim() !== '';
 
   return (
-    <div className="fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden bg-gray-50/50 xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
-      <AppFooterController hideAppFooter />
-
-      {/* Modern Header */}
-      <div className="flex h-16 items-center justify-between border-b border-gray-100 bg-white/95 px-4 shadow-xs backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <Link href="/app/chat">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-full text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+    <NewChatFrame
+      title={newChatText.title[locale]}
+      backHref="/app/chat"
+      backLabel={newChatText.back[locale]}
+      onWhite
+      head={
+        // also while loading, so the field is in place before the contacts arrive
+        hasContacts || isLoading ? (
+          <ChatSearchField
+            placeholder={newChatText.search[locale]}
+            value={searchQuery}
+            onChange={setSearchQuery}
+          />
+        ) : undefined
+      }
+    >
+      {!isSearching && (
+        <ul className="border-quiet border-b-8 bg-white">
+          <li>
+            <Link href="/app/chat/new/group" className={actionRowClassName}>
+              <IconTile icon={UserPlus} />
+              {text.newGroup[locale]}
+            </Link>
+          </li>
+          <li>
+            <button
+              type="button"
+              onClick={openScanner}
+              aria-haspopup="dialog"
+              className={actionRowClassName}
             >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <h1 className="font-heading text-lg font-bold tracking-tight text-gray-900">
-            {newChat[locale]}
-          </h1>
-        </div>
+              <IconTile icon={QrCode} />
+              {text.scanCode[locale]}
+            </button>
+          </li>
+        </ul>
+      )}
 
-        <div>
-          <Button
-            onClick={handleCreateChat}
-            disabled={!isFormValid || isCreating}
-            className={cn(
-              'font-heading rounded-xl px-5 py-2 text-sm font-semibold shadow-xs transition-all',
-              isFormValid && !isCreating
-                ? 'bg-conveniat-green text-white hover:bg-green-600 hover:shadow-md'
-                : 'border border-gray-200 bg-gray-100 text-gray-400',
-            )}
-          >
-            {isCreating
-              ? creatingText[locale]
-              : `${createText[locale]} ${selectedContacts.length > 0 ? `(${selectedContacts.length})` : ''}`}
-          </Button>
-        </div>
-      </div>
+      {hasOpenFailed && (
+        <p
+          role="alert"
+          className="text-danger-text bg-danger-soft mx-4 mt-4 rounded-xl px-4 py-3 text-sm"
+        >
+          {text.openFailed[locale]}
+        </p>
+      )}
 
-      {/* Main Content */}
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-        <div className="mx-auto max-w-xl space-y-4">
-          <AnimatePresence initial={false}>
-            {/* Group Chat Name Input - App Aligned Input Styling */}
-            {isGroupChat && (
-              <motion.div
-                key="group-chat-name-input"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="overflow-hidden"
-              >
-                <div className="space-y-2 rounded-2xl border border-gray-100 bg-white p-4 shadow-xs">
-                  <div className="flex items-center gap-2">
-                    <Users size={15} className="text-conveniat-green" />
-                    <label className="font-heading text-xs font-semibold tracking-wider text-gray-700 uppercase">
-                      {groupChatNameLabel[locale]} <span className="text-red-500">*</span>
-                    </label>
-                  </div>
-                  <Input
-                    placeholder={groupNamePlaceholder[locale]}
-                    value={groupChatName}
-                    onChange={(changeEvent) => handleGroupNameChange(changeEvent.target.value)}
-                    className={cn(
-                      'font-body h-12 rounded-xl border border-gray-200 bg-gray-50/50 px-4 text-sm text-gray-900 transition-all placeholder:text-gray-400',
-                      'focus:border-conveniat-green focus:ring-conveniat-green/20 focus:bg-white focus:ring-2 focus:outline-hidden',
-                      groupChatNameError !== '' &&
-                        'border-red-300 focus:border-red-500 focus:ring-red-500/20',
-                    )}
-                    required
-                  />
-                  {groupChatNameError !== '' && (
-                    <p className="font-body text-xs text-red-600">{groupChatNameError}</p>
-                  )}
-                  <p className="font-body text-xs text-gray-400">{groupMinMaxLength[locale]}</p>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Selected Contacts Horizontal Avatars Bar (WhatsApp / App Card Style) */}
-            {selectedContacts.length > 0 && (
-              <motion.div
-                key="selected-contacts-pills"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
-                className="overflow-hidden p-0.5"
-              >
-                <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xs">
-                  <div className="border-b border-gray-100 bg-gray-50/50 px-5 py-3">
-                    <span className="font-heading text-xs font-semibold tracking-wider text-gray-500 uppercase">
-                      {selectedCountText[locale]} ({selectedContacts.length})
-                    </span>
-                  </div>
-                  <div className="flex scrollbar-none items-center gap-4 overflow-x-auto px-4 pt-3.5 pb-3">
-                    {selectedContacts.map((contact) => (
-                      <div
-                        key={contact.userId}
-                        className="group relative flex shrink-0 flex-col items-center gap-1.5 pt-1"
-                      >
-                        <div className="relative">
-                          <PersonAvatar
-                            seed={contact.userId}
-                            name={contact.name}
-                            pictureUrl={contact.pictureUrl}
-                            className="h-12 w-12 text-sm font-bold shadow-xs"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleContactToggle(contact)}
-                            className="absolute -top-1 -right-1 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-red-500 text-white shadow-xs ring-2 ring-white transition-transform hover:scale-110 hover:bg-red-600"
-                          >
-                            <X size={12} className="stroke-[2.5]" />
-                          </button>
-                        </div>
-                        <span className="font-body max-w-[68px] truncate text-center text-xs font-medium text-gray-800">
-                          {getContactShortName(contact)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Contacts List Card with Search Bar Directly Attached */}
-          <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xs">
-            {/* Search Input - Placed directly above the contact list */}
-            {hasContacts && (
-              <div className="border-b border-gray-100 bg-gray-50/50 p-3">
-                <AppSearchBar
-                  placeholder={searchContactsPlaceholder[locale]}
-                  value={searchQuery}
-                  onChange={(changeEvent) => setSearchQuery(changeEvent.target.value)}
-                  onClear={() => setSearchQuery('')}
-                />
-              </div>
-            )}
-
-            <div className="border-b border-gray-100 px-5 py-3">
-              <h2 className="font-heading text-xs font-semibold tracking-wider text-gray-500 uppercase">
-                {selectContactsText[locale]}
-              </h2>
-              {isAtGroupLimit && (
-                <p className="font-body mt-1 text-xs text-gray-500">
-                  {groupLimitReachedText[locale].replace('{max}', String(maxGroupMembers))}
-                </p>
-              )}
-            </div>
-
-            <div className="min-h-[300px]">
-              {isLoading && (
-                <div className="flex items-center justify-center py-16">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="border-t-conveniat-green h-7 w-7 animate-spin rounded-full border-2 border-gray-200"></div>
-                    <p className="font-body text-sm text-gray-500">{loadingContactsText[locale]}</p>
-                  </div>
-                </div>
-              )}
-
-              {!isLoading && unselectedContacts?.length === 0 && (
-                <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-                  <div className="relative mb-4 flex items-center justify-center">
-                    <div className="absolute -inset-2 rounded-full bg-linear-to-tr from-green-500/20 via-emerald-400/15 to-blue-500/20 blur-lg" />
-                    <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-gray-100 bg-white shadow-md">
-                      <Users className="text-conveniat-green h-8 w-8" />
-                    </div>
-                  </div>
-                  <h3 className="font-heading text-base font-bold text-gray-900">
-                    {searchQuery === ''
-                      ? noContactsAvailableText[locale]
-                      : noContactsFoundText[locale]}
-                  </h3>
-                  <p className="font-body mt-1 max-w-xs text-xs leading-relaxed text-balance text-gray-500">
-                    {searchQuery === '' ? noContactsAvailableDescriptionText[locale] : ''}
-                  </p>
-                </div>
-              )}
-
-              {!isLoading && (unselectedContacts?.length ?? 0) > 0 && (
-                <div className="divide-y divide-gray-50 p-2">
-                  {unselectedContacts?.map((contact) => (
-                    <div
-                      key={contact.userId}
-                      className={cn(
-                        'flex items-center space-x-3 rounded-xl p-3 transition-all',
-                        isAtGroupLimit
-                          ? 'cursor-not-allowed opacity-50'
-                          : 'cursor-pointer hover:bg-gray-50/80',
-                      )}
-                      onClick={() => handleContactToggle(contact)}
-                    >
-                      <PersonAvatar
-                        seed={contact.userId}
-                        name={contact.name}
-                        pictureUrl={contact.pictureUrl}
-                        className="h-10 w-10 text-sm font-bold"
-                      />
-                      <div className="flex-1">
-                        <p className="font-body text-sm font-medium text-gray-900">
-                          {getContactDisplayName(contact)}
-                        </p>
-                        {contact.description && (
-                          <p className="font-body text-xs text-gray-500">{contact.description}</p>
-                        )}
-                        {describeContactFunktionen(contact) !== '' && (
-                          <p className="font-body text-conveniat-green text-xs font-medium">
-                            {describeContactFunktionen(contact)}
-                          </p>
-                        )}
-                        {describeContactHof(contact) !== '' && (
-                          <p className="font-body text-xs text-gray-500">
-                            {describeContactHof(contact)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+      {isLoading && (
+        <div role="status" className="pt-4">
+          <span className="sr-only">{text.loading[locale]}</span>
+          <SectionLabel className="px-4">{newChatText.contacts[locale]}</SectionLabel>
+          <div className="pt-2">
+            <ContactRowsSkeleton />
           </div>
         </div>
-      </div>
-    </div>
+      )}
+
+      {!isLoading && filteredContacts.length === 0 && (
+        <EmptyState
+          icon={Users}
+          title={isSearching ? text.noMatch[locale] : text.noContacts[locale]}
+          description={isSearching ? undefined : text.noContactsDescription[locale]}
+        />
+      )}
+
+      {!isLoading && filteredContacts.length > 0 && (
+        <section aria-labelledby="new-chat-contacts" className="pt-4 pb-8">
+          <SectionLabel className="px-4">
+            <span id="new-chat-contacts">{newChatText.contacts[locale]}</span>
+          </SectionLabel>
+          {groups.map(({ letter, contacts }) => (
+            <div key={letter ?? 'all'} className={letter === undefined ? 'pt-2' : undefined}>
+              {letter !== undefined && (
+                <h3 className="px-4 pt-3 pb-1 text-xs font-bold text-green-700">{letter}</h3>
+              )}
+              <ul>
+                {contacts.map((contact) => (
+                  <li key={contact.userId} className={contactRowItemClassName}>
+                    <button
+                      type="button"
+                      onClick={() => openChatWith(contact)}
+                      aria-busy={openingUserId === contact.userId}
+                      // one chat opens at a time; the row that opens shows a spinner and stays still
+                      disabled={openingUserId !== undefined && openingUserId !== contact.userId}
+                      className="hover:bg-quiet focus-visible:focus-ring-inset flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left disabled:cursor-default"
+                    >
+                      <ContactRowContent contact={contact} />
+                      {openingUserId === contact.userId && (
+                        <Loader2
+                          className="h-5 w-5 shrink-0 animate-spin text-green-500"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
+
+      <ChatQrSheet open={isQrOpen} onOpenChange={setIsQrOpen} tab={qrTab} onTabChange={setQrTab} />
+    </NewChatFrame>
   );
 };
