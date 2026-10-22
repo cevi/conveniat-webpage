@@ -1,6 +1,6 @@
 # To use this Dockerfile, you have to set output: 'standalone' in your next.config.mjs file.
 # From https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
-FROM node:24.15-alpine AS base
+FROM node:24.22-alpine AS base
 
 # libc6-compat for native libs. sharp needs no system libvips: it ships its own in the
 # prebuilt @img/sharp-libvips-linuxmusl-x64 package.
