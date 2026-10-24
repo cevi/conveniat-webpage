@@ -117,6 +117,7 @@
     "js-cookie": "^3.0.8",
     "json-schema": "^0.4.0",
     "jsonwebtoken": "^9.0.3",
+    "jsqr": "^1.4.0",
     "lucide-react": "^0.540.0",
     "mailparser": "^3.12.4",
     "maplibre-gl": "^6.15.0",
