@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, jsonify, send_from_directory
 import os
 import time
-import uuid
 
 app = Flask(__name__)
 
@@ -79,14 +78,17 @@ def build_custom_user(first_name, last_name, email, nickname, selected_group_ids
         if group["id"] in chosen_ids
     ]
 
+    custom_user_id = next_custom_user_id()
     display_name = (first_name or "Custom").strip() or "Custom"
     family_name = (last_name or "User").strip() or "User"
-    user_email = (email or f"{(nickname or display_name).lower().replace(' ', '-')}@conveniat27.ch").strip()
+    base_email = (email or f"{(nickname or display_name).lower().replace(' ', '-')}@conveniat27.ch").strip()
+    email_local, email_domain = base_email.rsplit("@", 1) if "@" in base_email else (base_email, "conveniat27.ch")
+    unique_email = f"{email_local}+custom-{custom_user_id}@{email_domain}"
     display_nickname = (nickname or f"{display_name} {family_name[:1]}".strip()).strip() or "CustomUser"
 
     return {
-        "id": uuid.uuid4().hex,
-        "email": user_email,
+        "id": custom_user_id,
+        "email": unique_email,
         "first_name": display_name,
         "last_name": family_name,
         "nickname": display_nickname,
@@ -239,6 +241,14 @@ FAKE_USERS = [
 # Store issued tokens
 ACTIVE_TOKENS = {}
 CUSTOM_USERS = {}
+_CUSTOM_LOGIN_COUNTER = 2000000
+
+
+def next_custom_user_id():
+    """Create a numeric Cevi.DB-style id that is unique for every custom login."""
+    global _CUSTOM_LOGIN_COUNTER
+    _CUSTOM_LOGIN_COUNTER += 1
+    return str(_CUSTOM_LOGIN_COUNTER)
 
 
 def resolve_user_by_id(user_id):
