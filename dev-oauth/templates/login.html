@@ -10,31 +10,99 @@
     />
   </head>
   <body class="bg-light">
-    <div class="container mt-5">
-      <h2 class="mb-4 text-center">Select a user to log into the Conveniat Dev Page</h2>
-      <form method="POST" action="/login">
-        <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}" />
+    <div class="container mt-5 mb-5">
+      <h2 class="mb-4 text-center">Select a user or build a custom Cevi.DB login</h2>
 
-        <div class="row justify-content-center">
-          <div class="col-md-6">
-            {% for user in users %}
-            <div class="card mb-3 shadow-xs">
-              <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                  <h5 class="card-title mb-1">
-                    {{ user.first_name }} {{ user.last_name }} v/o {{ user.nickname }}
-                  </h5>
-                  <p class="card-text text-muted">{{ user.comment }}</p>
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <div class="card mb-4 shadow-sm">
+            <div class="card-body">
+              <h4 class="card-title mb-3">Custom login</h4>
+              <form method="POST" action="/login">
+                <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}" />
+                <input type="hidden" name="custom_login" value="true" />
+
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label" for="first_name">First name</label>
+                    <input class="form-control" id="first_name" name="first_name" value="Custom" />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="last_name">Last name</label>
+                    <input class="form-control" id="last_name" name="last_name" value="User" />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="email">Email</label>
+                    <input
+                      class="form-control"
+                      id="email"
+                      name="email"
+                      value="custom@conveniat27.ch"
+                    />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="nickname">Nickname</label>
+                    <input class="form-control" id="nickname" name="nickname" value="CustomLogin" />
+                  </div>
                 </div>
-                <button type="submit" class="btn btn-primary" name="user_id" value="{{ user.id }}">
-                  Login
-                </button>
+
+                <label class="form-label">Cevi.DB groups to include</label>
+                <div class="row row-cols-1 row-cols-md-2 g-3 mb-3">
+                  {% for group in selectable_groups %}
+                  <div class="col">
+                    <div class="form-check h-100 rounded border p-3">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        name="group_ids"
+                        id="group-{{ group.id }}"
+                        value="{{ group.id }}"
+                      />
+                      <label class="form-check-label ms-2" for="group-{{ group.id }}">
+                        <strong>{{ group.group_name }}</strong> ({{ group.id }})
+                      </label>
+                      <div class="small text-muted mt-1">{{ group.description }}</div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+
+                <button type="submit" class="btn btn-primary">Login with selected groups</button>
+              </form>
+            </div>
+          </div>
+
+          <form method="POST" action="/login">
+            <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}" />
+
+            <div class="row justify-content-center">
+              <div class="col-12">
+                <h4 class="mb-3">Preset users</h4>
+                {% for user in users %}
+                <div class="card mb-3 shadow-sm">
+                  <div class="card-body d-flex justify-content-between align-items-center gap-3">
+                    <div>
+                      <h5 class="card-title mb-1">
+                        {{ user.first_name }} {{ user.last_name }} v/o {{ user.nickname }}
+                      </h5>
+                      <p class="card-text text-muted mb-0">{{ user.comment }}</p>
+                    </div>
+                    <button
+                      type="submit"
+                      class="btn btn-primary"
+                      name="user_id"
+                      value="{{ user.id }}"
+                    >
+                      Login
+                    </button>
+                  </div>
+                </div>
+                {% endfor %}
               </div>
             </div>
-            {% endfor %}
-          </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
