@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.41.3](https://github.com/cevi/conveniat-webpage/compare/v1.41.2...v1.41.3) (2026-10-24)
+
+
+### Bug Fixes
+
+* **chat:** back gesture closes the full-screen image, not the chat ([22aca22](https://github.com/cevi/conveniat-webpage/commit/22aca224e16caa6e1100934ce1229628a925e517))
+* **chat:** back gesture closes the full-screen image, which now uses the page surface ([19a032f](https://github.com/cevi/conveniat-webpage/commit/19a032fd00f351076d74e1ed9f7a9546314b9bff))
+* **chat:** show the full-screen image on the page surface, not black ([16e26dd](https://github.com/cevi/conveniat-webpage/commit/16e26dda806f492175be607b3b29cc8e9d4006d2))
+* **logging:** log lines no longer abort a page prerender ([89bee43](https://github.com/cevi/conveniat-webpage/commit/89bee439e6794ae045aee61c9be61095c9e8eebb))
+
 ## [1.41.2](https://github.com/cevi/conveniat-webpage/compare/v1.41.1...v1.41.2) (2026-10-22)
 
 
