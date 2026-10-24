@@ -3,12 +3,13 @@
 
 import { ImageViewer } from '@/features/chat/components/chat-view/message/image-viewer';
 import { useChatId } from '@/features/chat/context/chat-id-context';
+import { useImageViewerHistory } from '@/features/chat/hooks/use-image-viewer-history';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Loader2 } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useState } from 'react';
+import type React from 'react';
 
 const imageText: StaticTranslationString = {
   de: 'Bild',
@@ -37,12 +38,13 @@ interface ChatImageProperties {
  *
  * Images uploaded through the chat live in a private bucket and are addressed by their S3
  * key, so they need a pre-signed URL; images attached to an announcement come from the CMS
- * and are already served under a public URL. A tap opens the image full screen.
+ * and are already served under a public URL. A tap opens the image full screen, and
+ * the back gesture closes it again.
  */
 export const ChatImage: React.FC<ChatImageProperties> = ({ url, alt, caption }) => {
   const chatId = useChatId();
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const viewer = useImageViewerHistory(url);
   const isS3Key = url.startsWith(S3_KEY_PREFIX);
 
   const { data: downloadData, isLoading } = trpc.chat.getDownloadUrl.useQuery(
@@ -74,7 +76,7 @@ export const ChatImage: React.FC<ChatImageProperties> = ({ url, alt, caption }) 
         onClick={(event) => {
           // the bubble would otherwise toggle its time
           event.stopPropagation();
-          setIsViewerOpen(true);
+          viewer.open();
         }}
       >
         <img src={displayUrl} alt={altText} className="h-auto w-full object-cover" loading="lazy" />
@@ -82,13 +84,13 @@ export const ChatImage: React.FC<ChatImageProperties> = ({ url, alt, caption }) 
       {caption !== undefined && caption !== '' && (
         <figcaption className="mt-1 text-[0.7rem] leading-snug opacity-80">{caption}</figcaption>
       )}
-      {isViewerOpen && (
+      {viewer.isOpen && (
         <ImageViewer
           src={displayUrl}
           alt={altText}
           caption={caption}
           locale={locale}
-          onClose={() => setIsViewerOpen(false)}
+          onClose={viewer.close}
         />
       )}
     </figure>
