@@ -1,8 +1,110 @@
 from flask import Flask, render_template, request, redirect, jsonify, send_from_directory
 import os
 import time
+import uuid
 
 app = Flask(__name__)
+
+
+def get_env_int(name, fallback):
+    """Read a numeric Cevi.DB group id from the environment, with a dev fallback."""
+    raw_value = os.environ.get(name)
+    if raw_value is None or raw_value == "":
+        raw_value = str(fallback)
+    try:
+        return int(raw_value)
+    except (TypeError, ValueError):
+        return fallback
+
+
+SELECTABLE_GROUPS = [
+    {
+        "id": get_env_int("CEVIDB_GROUP_FULL_ADMIN", 541),
+        "group_name": "Full Admin",
+        "role_name": "Admin",
+        "role_class": "admin",
+        "description": "Full admin access in the admin panel and other app areas.",
+    },
+    {
+        "id": get_env_int("CEVIDB_GROUP_WEB_CORE_TEAM", 105),
+        "group_name": "Web Core Team",
+        "role_name": "Web Core",
+        "role_class": "editor",
+        "description": "Content and support access for web work.",
+    },
+    {
+        "id": get_env_int("CEVIDB_GROUP_TRANSLATION_TEAM", 106),
+        "group_name": "Translation Team",
+        "role_name": "Translation Team",
+        "role_class": "editor",
+        "description": "Translation and editorial content access.",
+    },
+    {
+        "id": get_env_int("CEVIDB_GROUP_PROGRAM_TEAM", 107),
+        "group_name": "Program Team",
+        "role_name": "Program Team",
+        "role_class": "editor",
+        "description": "Program-related content access.",
+    },
+    {
+        "id": get_env_int("BILLING_ADMIN_GROUP_ID", 540),
+        "group_name": "Billing Team",
+        "role_name": "Billing",
+        "role_class": "billing",
+        "description": "Billing admin access only.",
+    },
+    {
+        "id": get_env_int("CEVIDB_GROUP_MATERIAL_TEAM", 108),
+        "group_name": "Material Team",
+        "role_name": "Material Team",
+        "role_class": "editor",
+        "description": "Runs the material depot in the app.",
+    },
+    {
+        "id": get_env_int("CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS", 109),
+        "group_name": "Hof Dashboard Reviewers",
+        "role_name": "Hof Dashboard",
+        "role_class": "editor",
+        "description": "Reviews Hof dashboard submissions without full admin access.",
+    },
+]
+
+
+def build_custom_user(first_name, last_name, email, nickname, selected_group_ids):
+    """Create a fake user profile from the selected Cevi.DB group IDs."""
+    chosen_ids = {int(group_id) for group_id in selected_group_ids if group_id}
+    selected_groups = [
+        group
+        for group in SELECTABLE_GROUPS
+        if group["id"] in chosen_ids
+    ]
+
+    display_name = (first_name or "Custom").strip() or "Custom"
+    family_name = (last_name or "User").strip() or "User"
+    user_email = (email or f"{(nickname or display_name).lower().replace(' ', '-')}@conveniat27.ch").strip()
+    display_nickname = (nickname or f"{display_name} {family_name[:1]}".strip()).strip() or "CustomUser"
+
+    return {
+        "id": uuid.uuid4().hex,
+        "email": user_email,
+        "first_name": display_name,
+        "last_name": family_name,
+        "nickname": display_nickname,
+        "roles": [
+            {
+                "group_id": group["id"],
+                "group_name": group["group_name"],
+                "role_name": group["role_name"],
+                "role_class": group["role_class"],
+            }
+            for group in selected_groups
+        ],
+        "comment": (
+            "Custom login built in the OAuth tester. "
+            f"Selected groups: {', '.join(str(group['id']) for group in selected_groups) if selected_groups else 'None'}"
+        ),
+    }
+
 
 # Fake users in HitobitoProfile format
 FAKE_USERS = [
@@ -136,6 +238,14 @@ FAKE_USERS = [
 
 # Store issued tokens
 ACTIVE_TOKENS = {}
+CUSTOM_USERS = {}
+
+
+def resolve_user_by_id(user_id):
+    """Look up both the preset fake users and any custom login created in the tester."""
+    if user_id is None:
+        return None
+    return next((u for u in FAKE_USERS if u["id"] == user_id), CUSTOM_USERS.get(user_id))
 
 @app.route('/favicon.ico')
 def favicon():
@@ -146,47 +256,74 @@ def favicon():
 @app.route("/")
 def home():
     """Homepage with a fake login screen"""
-    return render_template("login.html", users=FAKE_USERS)
+    return render_template(
+        "login.html",
+        users=FAKE_USERS,
+        selectable_groups=SELECTABLE_GROUPS,
+        redirect_uri="",
+    )
 
 @app.route("/oauth/authorize")
 def authorize():
     """OAuth2 Authorization Endpoint - User selects an account"""
-    redirect_uri = request.args.get("redirect_uri")
+    redirect_uri = request.args.get("redirect_uri") or ""
 
-    return render_template("login.html", users=FAKE_USERS, redirect_uri=redirect_uri)
+    return render_template(
+        "login.html",
+        users=FAKE_USERS,
+        selectable_groups=SELECTABLE_GROUPS,
+        redirect_uri=redirect_uri,
+    )
 
 @app.route("/login", methods=["POST"])
 def login():
     """Handles login and redirects to the given redirect_uri with a fake code"""
-    user_id = request.form.get("user_id")
-    redirect_uri = request.form.get("redirect_uri")
+    redirect_uri = request.form.get("redirect_uri") or ""
+    if redirect_uri == "None":
+        redirect_uri = ""
+    explicit_login = request.form.get("custom_login") == "true"
 
-    user = next((u for u in FAKE_USERS if u["id"] == user_id), None)
-    if not user:
-        return "User not found", 400
+    if explicit_login:
+        first_name = request.form.get("first_name", "Custom").strip() or "Custom"
+        last_name = request.form.get("last_name", "User").strip() or "User"
+        email = request.form.get("email", "").strip()
+        nickname = request.form.get("nickname", "").strip()
+        selected_group_ids = [
+            int(group_id)
+            for group_id in request.form.getlist("group_ids")
+            if group_id
+        ]
+        user = build_custom_user(first_name, last_name, email, nickname, selected_group_ids)
+        CUSTOM_USERS[user["id"]] = user
+    else:
+        user_id = request.form.get("user_id")
+        user = resolve_user_by_id(user_id)
+        if not user:
+            return "User not found", 400
 
     fake_auth_code = f"fake-auth-code-{user['id']}"
-    return redirect(f"{redirect_uri}?code={fake_auth_code}")
+    target_url = redirect_uri or "http://localhost:3000"
+    separator = "&" if "?" in target_url else "?"
+    return redirect(f"{target_url}{separator}code={fake_auth_code}")
 
 @app.route("/oauth/token", methods=["POST"])
 def token():
     """OAuth2 Token Exchange - Returns a fake access token"""
-    grant_type = request.form.get("grant_type")
+    grant_type = request.form.get("grant_type") or request.args.get("grant_type")
 
     if grant_type == "refresh_token":
-        refresh_token = request.form.get("refresh_token")
+        refresh_token = request.form.get("refresh_token") or request.args.get("refresh_token")
         if not refresh_token:
-             return jsonify({"error": "invalid_request", "error_description": "Missing refresh token"}), 400
-        
-        # Simple extraction
+            return jsonify({"error": "invalid_request", "error_description": "Missing refresh token"}), 400
+
         user_id = refresh_token.replace("fake-refresh-token-", "")
-        user = next((u for u in FAKE_USERS if u["id"] == user_id), None)
+        user = resolve_user_by_id(user_id)
         if not user:
             return jsonify({"error": "invalid_grant", "error_description": "Invalid refresh token user"}), 400
-            
+
         access_token = f"fake-token-{user['id']}"
         ACTIVE_TOKENS[access_token] = user
-        
+
         return jsonify({
             "access_token": access_token,
             "token_type": "bearer",
@@ -195,27 +332,27 @@ def token():
             "created_at": int(time.time()),
         })
 
-    auth_code = request.form.get("code")
+    if grant_type not in (None, "authorization_code"):
+        return jsonify({"error": "unsupported_grant_type", "error_description": f"Unsupported grant type: {grant_type}"}), 400
+
+    auth_code = request.form.get("code") or request.args.get("code")
     if not auth_code:
         return jsonify({"error": "invalid_request", "error_description": "Missing authorization code"}), 400
 
-    # Extract user ID from fake auth code
     try:
         user_id = auth_code.replace("fake-auth-code-", "")
     except ValueError:
         return jsonify({"error": "invalid_request", "error_description": "Invalid authorization code"}), 400
 
-    user = next((u for u in FAKE_USERS if u["id"] == user_id), None)
+    user = resolve_user_by_id(user_id)
     if not user:
         return jsonify({"error": "invalid_grant", "error_description": "Invalid user"}), 400
 
-    # Generate a fake access token and store it
     access_token = f"fake-token-{user['id']}"
     ACTIVE_TOKENS[access_token] = user
-    
+
     refresh_token = f"fake-refresh-token-{user['id']}"
 
-    # Simulate OAuth2 token response
     response = {
         "access_token": access_token,
         "token_type": "bearer",
