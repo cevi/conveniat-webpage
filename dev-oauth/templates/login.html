@@ -33,7 +33,12 @@
                   </div>
                   <div class="col-md-6">
                     <label class="form-label" for="email">Email</label>
-                    <input class="form-control" id="email" name="email" value="custom@conveniat27.ch" />
+                    <input
+                      class="form-control"
+                      id="email"
+                      name="email"
+                      value="custom@conveniat27.ch"
+                    />
                   </div>
                   <div class="col-md-6">
                     <label class="form-label" for="nickname">Nickname</label>
@@ -45,7 +50,7 @@
                 <div class="row row-cols-1 row-cols-md-2 g-3 mb-3">
                   {% for group in selectable_groups %}
                   <div class="col">
-                    <div class="form-check border rounded p-3 h-100">
+                    <div class="form-check h-100 rounded border p-3">
                       <input
                         class="form-check-input"
                         type="checkbox"
@@ -82,7 +87,12 @@
                       </h5>
                       <p class="card-text text-muted mb-0">{{ user.comment }}</p>
                     </div>
-                    <button type="submit" class="btn btn-primary" name="user_id" value="{{ user.id }}">
+                    <button
+                      type="submit"
+                      class="btn btn-primary"
+                      name="user_id"
+                      value="{{ user.id }}"
+                    >
                       Login
                     </button>
                   </div>
