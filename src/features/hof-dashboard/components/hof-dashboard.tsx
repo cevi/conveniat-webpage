@@ -39,9 +39,10 @@ import { flushPersonalData } from '@/lib/flush-personal-data';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { startCeviDatabaseLogin } from '@/utils/login-handler';
 import { TabGroup, TabPanel, TabPanels } from '@headlessui/react';
 import { LogOut } from 'lucide-react';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
@@ -75,7 +76,7 @@ const Message: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 // it cannot load its providers, a second tap during the first redirect for one, so there is no
 // response to read a URL from.
 const signInWithCeviDatabase = async (): Promise<void> => {
-  await signIn('cevi-db', { callbackUrl: globalThis.location.href });
+  await startCeviDatabaseLogin(globalThis.location.href);
 };
 
 /** Where every form stands today, by form id. */

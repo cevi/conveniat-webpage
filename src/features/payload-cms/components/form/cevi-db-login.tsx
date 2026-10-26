@@ -12,9 +12,10 @@ import { flushPersonalData } from '@/lib/flush-personal-data';
 import { PERSISTER_THROTTLE_MS } from '@/trpc/query-persistence';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
+import { startCeviDatabaseLogin } from '@/utils/login-handler';
 import { cn } from '@/utils/tailwindcss-override';
 import { useQueryClient } from '@tanstack/react-query';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect } from 'react';
 import type { FieldError, FieldErrorsImpl, FieldValues, Merge } from 'react-hook-form';
@@ -72,7 +73,7 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
     if (typeof callbackUrl === 'string' && callbackUrl !== '') {
       signInOptions.callbackUrl = callbackUrl;
     }
-    void signIn('cevi-db', signInOptions);
+    void startCeviDatabaseLogin(signInOptions.callbackUrl);
   };
 
   const handleChangeUser = (): void => {
@@ -102,7 +103,7 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
         // stored blob outlives the flush and the next account restores this one's data.
         await new Promise((resolve) => setTimeout(resolve, PERSISTER_THROTTLE_MS + 200));
         flushPersonalData({ clearCachedPages: true });
-        void signIn('cevi-db', signInOptions);
+        void startCeviDatabaseLogin(signInOptions.callbackUrl);
       })
       .catch((switchError: unknown) => {
         console.warn('Switching the Cevi.DB login failed', switchError);

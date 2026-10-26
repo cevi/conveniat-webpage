@@ -7,6 +7,7 @@ import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-n
 import { HeaderActionsProvider } from '@/components/header/header-actions';
 import { HeaderClientWrapper } from '@/components/header/header-client-wrapper';
 import { HideHeaderProvider } from '@/components/header/hide-header-context';
+import { LoginHistoryRewind } from '@/components/login-history-rewind';
 import { NativePushProvider } from '@/components/native-push-provider';
 import { OfflineBanner } from '@/components/offline-banner';
 import { useHideBackgroundLogo } from '@/components/ui/hide-background-logo-context';
@@ -50,6 +51,7 @@ export const AppShell: React.FC<AppShellProperties> = ({
       <TRPCProvider>
         <ClientProviders>
           <OfflineQueueSync />
+          <LoginHistoryRewind />
           <NativePushProvider>
             <HideHeaderProvider>
               <DynamicAppTitleProvider>

@@ -2,8 +2,8 @@
 import { Button } from '@/components/ui/buttons/button';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { startCeviDatabaseLogin } from '@/utils/login-handler';
 import { LogIn } from 'lucide-react';
-import { signIn } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
@@ -22,7 +22,7 @@ export const LoginButton: React.FC = () => {
       size="touch"
       className="w-full"
       onClick={() => {
-        void signIn('cevi-db', { callbackUrl: '/entrypoint' });
+        void startCeviDatabaseLogin('/entrypoint');
       }}
     >
       <LogIn aria-hidden="true" />

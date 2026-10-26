@@ -1,7 +1,17 @@
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import { Cookie } from '@/types/types';
+import { rememberHistoryBeforeLogin } from '@/utils/login-history';
 import Cookies from 'js-cookie';
 import { signIn, signOut } from 'next-auth/react';
+
+/**
+ * Hands the browser to Cevi.DB for login and comes back to `callbackUrl`. Every login of the app
+ * goes through here, so the Cevi.DB pages are taken out of the back stack afterwards.
+ */
+export const startCeviDatabaseLogin = async (callbackUrl?: string): Promise<void> => {
+  rememberHistoryBeforeLogin();
+  await signIn('cevi-db', callbackUrl === undefined ? undefined : { callbackUrl });
+};
 
 /**
  * Initiates the OAuth login flow with Cevi.DB (Hitobito).
@@ -9,7 +19,7 @@ import { signIn, signOut } from 'next-auth/react';
  * won't actually complete - the browser navigates away.
  */
 export const handleLogin = (callbackUrl?: string): void => {
-  signIn('cevi-db', callbackUrl ? { callbackUrl } : undefined)
+  startCeviDatabaseLogin(callbackUrl === '' ? undefined : callbackUrl)
     .then(() => {
       console.log('Logged in successfully!');
       Cookies.set(Cookie.HAS_LOGGED_IN, 'true', {
