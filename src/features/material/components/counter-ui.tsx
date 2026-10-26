@@ -22,9 +22,9 @@ const text = {
     fr: 'Vise l’étiquette QR avec la caméra.',
   },
   unsupported: {
-    de: 'Dieser Browser kann keine QR-Codes lesen. Tippe den Code ins Suchfeld oder scanne das Etikett mit der Kamera-App.',
-    en: 'This browser cannot read QR codes. Type the code into the search or scan the label with the camera app.',
-    fr: 'Ce navigateur ne lit pas les codes QR. Saisis le code dans la recherche ou scanne l’étiquette avec l’app caméra.',
+    de: 'Hier lässt sich die Kamera nicht öffnen. Tippe den Code ins Suchfeld oder scanne das Etikett mit der Kamera-App.',
+    en: 'The camera cannot be opened here. Type the code into the search or scan the label with the camera app.',
+    fr: 'Impossible d’ouvrir la caméra ici. Saisis le code dans la recherche ou scanne l’étiquette avec l’app caméra.',
   },
   denied: {
     de: 'Kein Zugriff auf die Kamera. Tippe den Code ins Suchfeld.',
