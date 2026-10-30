@@ -6,12 +6,12 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { SetHideBackgroundLogo } from '@/components/ui/hide-background-logo-context';
 import { LinkComponent } from '@/components/ui/link-component';
 import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import { handleLogin } from '@/utils/login-handler';
 import { LogIn } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import { useParams } from 'next/navigation';
 import type React from 'react';
 

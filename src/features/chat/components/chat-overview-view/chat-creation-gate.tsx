@@ -1,12 +1,12 @@
 'use client';
 
 import { EmptyState } from '@/components/ui/empty-state';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { MessageSquareOff } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
 const chatCreationPausedText: StaticTranslationString = {

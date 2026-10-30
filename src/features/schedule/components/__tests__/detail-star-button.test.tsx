@@ -8,7 +8,7 @@ const toggleStar = jest.fn();
 const setReminder = jest.fn();
 let reminder = { isOn: true, isAutomatic: false };
 
-jest.mock('next-i18n-router/client', () => ({ useCurrentLocale: (): string => 'de' }));
+jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
 jest.mock('@/hooks/use-star', () => ({
   useStar: (): unknown => ({ isStarred: (): boolean => true, toggleStar }),
 }));

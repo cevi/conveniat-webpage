@@ -11,6 +11,7 @@ import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import { generateMessageId } from '@/features/chat/utils';
 import { isMessageDeleted } from '@/features/chat/utils/message-deletion';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -28,7 +29,6 @@ import {
   Send,
   X,
 } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const MAX_MESSAGE_LENGTH = 2000;

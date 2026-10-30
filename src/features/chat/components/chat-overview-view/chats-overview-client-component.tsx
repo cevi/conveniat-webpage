@@ -6,6 +6,7 @@ import { PullToRefresh } from '@/components/ui/pull-to-refresh';
 import { ChatActionsSheet } from '@/features/chat/components/chat-overview-view/chat-actions-sheet';
 import { ChatFilterChips } from '@/features/chat/components/chat-overview-view/chat-filter-chips';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
+import { ChatSearchContacts } from '@/features/chat/components/chat-overview-view/chat-search-contacts';
 import {
   ChatsOverviewSkeleton,
   NewChatButtonSkeleton,
@@ -16,14 +17,15 @@ import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field
 import { useChatListActions } from '@/features/chat/hooks/use-chat-list-actions';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChats } from '@/features/chat/hooks/use-chats';
+import { useSearchClearedOnLeave } from '@/features/chat/hooks/use-search-cleared-on-leave';
 import type { ChatListFilter } from '@/features/chat/utils/chat-list-filter';
 import { matchesChatListFilter } from '@/features/chat/utils/chat-list-filter';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { CheckCheck, MessageSquare, MessageSquarePlus, Users, X } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
 import { useId, useMemo, useState } from 'react';
@@ -56,6 +58,12 @@ const adjustingSearchTermsText: StaticTranslationString = {
   en: 'Try adjusting your search terms',
   de: 'Versuche, deine Suchbegriffe anzupassen',
   fr: "Essayez d'ajuster vos termes de recherche",
+};
+
+const nobodyInAddressBookText: StaticTranslationString = {
+  de: 'Auch im Adressbuch passt niemand zu deiner Suche.',
+  en: 'Nobody in the address book matches your search either.',
+  fr: 'Personne dans le carnet d’adresses ne correspond non plus à ta recherche.',
 };
 
 const clearSearchText: StaticTranslationString = {
@@ -119,8 +127,18 @@ const EmptyChatsState: React.FC<{
   onClearSearch: () => void;
   /** Without it there is no way to start a chat, so the empty state offers none. */
   canCreateChats: boolean;
+  /** whether the search also went through the address book, see `ChatSearchContacts` */
+  hasSearchedContacts: boolean;
   locale: Locale;
-}> = ({ searchQuery, listFilter, onShowAll, onClearSearch, canCreateChats, locale }) => {
+}> = ({
+  searchQuery,
+  listFilter,
+  onShowAll,
+  onClearSearch,
+  canCreateChats,
+  hasSearchedContacts,
+  locale,
+}) => {
   if (listFilter !== 'all' && searchQuery === '') {
     return (
       <EmptyState
@@ -139,7 +157,9 @@ const EmptyChatsState: React.FC<{
       <EmptyState
         icon={MessageSquare}
         title={noChatsFoundText[locale]}
-        description={adjustingSearchTermsText[locale]}
+        description={
+          (hasSearchedContacts ? nobodyInAddressBookText : adjustingSearchTermsText)[locale]
+        }
         action={
           <Button variant="quiet" size="touch" onClick={onClearSearch}>
             {clearSearchText[locale]}
@@ -205,8 +225,8 @@ export const ChatsOverviewClientComponent: React.FC<{
     await trpcUtils.chat.chats.invalidate();
   };
 
-  const [searchQuery, setSearchQuery] = useState('');
-  // kept while the route stays mounted, so coming back from a chat keeps the chosen chip
+  const [searchQuery, setSearchQuery] = useSearchClearedOnLeave();
+  // unlike the search, kept while the route stays mounted: coming back from a chat keeps the chip
   const [listFilter, setListFilter] = useState<ChatListFilter>('all');
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
@@ -239,12 +259,28 @@ export const ChatsOverviewClientComponent: React.FC<{
   const isInitialLoad = chats === undefined && !isError;
 
   const hasChats = (chats?.length ?? 0) > 0 || searchQuery !== '';
+  // a chip narrows the chats, not the people one could start a chat with
+  const searchesContacts =
+    createChatsEnabled === true && listFilter === 'all' && searchQuery.trim() !== '';
   const unreadChats = chats?.filter((chat) => matchesChatListFilter(chat, 'unread')).length ?? 0;
   const listActions = useChatListActions();
   const [actionsChatId, setActionsChatId] = useState<string | undefined>();
   // read from the list, so the sheet follows an optimistic change and closes if the chat goes
   const actionsChat = chats?.find((chat) => chat.id === actionsChatId);
   const actionsHintId = useId();
+
+  const emptyState =
+    filteredChats.length === 0 ? (
+      <EmptyChatsState
+        searchQuery={searchQuery}
+        listFilter={listFilter}
+        onShowAll={() => setListFilter('all')}
+        onClearSearch={() => setSearchQuery('')}
+        canCreateChats={createChatsEnabled === true}
+        hasSearchedContacts={searchesContacts}
+        locale={locale}
+      />
+    ) : undefined;
 
   return (
     <div className="flex flex-col gap-4">
@@ -306,7 +342,7 @@ export const ChatsOverviewClientComponent: React.FC<{
       {/* Chat List */}
       {!isInitialLoad && (
         <PullToRefresh onRefresh={handleRefresh}>
-          {filteredChats.length > 0 ? (
+          {filteredChats.length > 0 && (
             <ul className="border-line -mx-4 border-t bg-white sm:mx-0">
               {filteredChats.map((chat) => (
                 <li
@@ -324,15 +360,17 @@ export const ChatsOverviewClientComponent: React.FC<{
                 </li>
               ))}
             </ul>
-          ) : (
-            <EmptyChatsState
+          )}
+          {/* the people one could start a chat with come last, under every chat found */}
+          {searchesContacts ? (
+            <ChatSearchContacts
               searchQuery={searchQuery}
-              listFilter={listFilter}
-              onShowAll={() => setListFilter('all')}
-              onClearSearch={() => setSearchQuery('')}
-              canCreateChats={createChatsEnabled === true}
+              foundChats={filteredChats}
+              fallback={emptyState}
               locale={locale}
             />
+          ) : (
+            emptyState
           )}
         </PullToRefresh>
       )}

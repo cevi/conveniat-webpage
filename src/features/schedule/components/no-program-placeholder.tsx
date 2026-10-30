@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import type { TimeOfDay } from '@/features/schedule/utils/programme-utils';
 import type { FilterState } from '@/features/schedule/utils/schedule-filters';
 import { noFilters } from '@/features/schedule/utils/schedule-filters';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import {
@@ -17,7 +18,6 @@ import {
   Star,
   Utensils,
 } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
 const labels = {

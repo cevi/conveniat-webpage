@@ -17,12 +17,12 @@ import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date'
 import { isMessageDeleted } from '@/features/chat/utils/message-deletion';
 import { formatDayLabel } from '@/features/chat/utils/message-grouping';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ArrowLeft, Ban, ChevronRight, MessageSquareOff } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect } from 'react';
 
 const threadTitle: StaticTranslationString = {

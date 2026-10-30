@@ -172,7 +172,8 @@ Most defects here are correct on the one path someone tried. Walk this list and 
 applied.
 
 **Locales.** All three, in the same commit. Server components read the locale with
-`getLocaleFromCookies()`, client components with `useCurrentLocale(i18nConfig)`.
+`getLocaleFromCookies()`, client components with `useCurrentLocale(i18nConfig)` from
+`@/hooks/use-current-locale`.
 
 **Both deployments.** konekta serves German and French with its own flags. A change gated on
 nothing ships to both.

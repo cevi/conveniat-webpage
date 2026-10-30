@@ -13,11 +13,11 @@ import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { fitToVisualViewport } from '@/features/chat/utils/fit-to-visual-viewport';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import type { LucideIcon } from 'lucide-react';
 import { AlertCircle, UserX, WifiOff } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const yourOffline: StaticTranslationString = {

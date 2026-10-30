@@ -3,9 +3,9 @@
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { ScheduleComponent } from '@/features/schedule/components/schedule-component';
 import { ScheduleDetailView } from '@/features/schedule/components/schedule-detail-view';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import { useParams, useSearchParams } from 'next/navigation';
 import type React from 'react';
 

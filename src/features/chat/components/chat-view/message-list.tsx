@@ -6,12 +6,12 @@ import { TypingIndicator } from '@/features/chat/components/chat-view/typing-ind
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { describeContactFunktionen } from '@/features/chat/utils/contact-search';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ArrowDown, Loader2, MessagesSquare } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const loadingMessagesText: StaticTranslationString = {

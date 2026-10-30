@@ -13,9 +13,9 @@ import { isForQuartiere, quartiereOf, slotOf } from '@/features/schedule/utils/p
 import { formatDuration, formatMinutesAsTime } from '@/features/schedule/utils/time-utils';
 import type { TimelineItem } from '@/features/schedule/utils/timeline';
 import { buildTimeline, endOfItem, startOfItem } from '@/features/schedule/utils/timeline';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useMemo, useRef } from 'react';
 
 type Entry = CampScheduleEntryFrontendType;

@@ -1,12 +1,12 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useReleasePushSubscriptions } from '@/hooks/use-release-push-subscriptions';
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Loader2 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useState } from 'react';
 
 const logoutText: StaticTranslationString = {

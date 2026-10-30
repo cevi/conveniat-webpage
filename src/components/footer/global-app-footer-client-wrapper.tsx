@@ -2,6 +2,7 @@
 
 import { AppAdvertisement } from '@/components/app-advertisement';
 import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { usePathname } from 'next/navigation';
 import React from 'react';
 
@@ -23,7 +24,10 @@ export const GlobalAppFooterClientWrapper: React.FC<Properties> = ({
   isAppMode,
 }) => {
   const pathname = usePathname();
-  const isAppPath = pathname.split('/').includes('app');
+  // `/app/...` after an optional locale prefix. A CMS page may carry `app` further down its slug,
+  // and that one keeps its footer.
+  const [first, second] = pathname.split('/').filter((segment) => segment !== '');
+  const isAppPath = (i18nConfig.locales.includes(first ?? '') ? second : first) === 'app';
 
   // If we are in real app mode, the Navbar is always visible globally
   if (isAppMode) {
@@ -39,12 +43,9 @@ export const GlobalAppFooterClientWrapper: React.FC<Properties> = ({
       type = 'chat';
     }
 
-    return (
-      <>
-        <AppAdvertisement locale={locale} type={type} />
-        {copyrightArea}
-      </>
-    );
+    // No copyright area on app pages. Decided from the path rather than from state a page sets
+    // after mounting: the server and the browser then agree on what this streamed footer holds.
+    return <AppAdvertisement locale={locale} type={type} />;
   }
 
   // Otherwise, render normal browser CMS footer

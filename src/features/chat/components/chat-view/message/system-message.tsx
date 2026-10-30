@@ -2,8 +2,8 @@ import type { ChatMessage } from '@/features/chat/api/types';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
 import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { i18nConfig, type Locale } from '@/types/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 /** What `createNewChat` stores as the first message, in the creator's language. */

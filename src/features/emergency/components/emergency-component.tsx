@@ -10,6 +10,8 @@ import { ConfirmationSlider } from '@/features/emergency/components/slide-to-con
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { withLocaleParameter } from '@/features/payload-cms/payload-cms/utils/document-download-name';
 import type { EmergencyCard } from '@/features/payload-cms/payload-types';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { useOnlineStatus } from '@/hooks/use-online-status';
 import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -20,7 +22,6 @@ import { Accordion } from '@radix-ui/react-accordion';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BriefcaseMedical, Download, FileText, ImageIcon, SearchX } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import type { ChangeEvent } from 'react';
 import React, { useEffect, useState } from 'react';
@@ -120,9 +121,9 @@ export const EmergencyComponent: React.FC = () => {
   // set when the alarm could not be sent; offline and logged out are read from their own state,
   // so the screen does not start with the call button and an error it then takes back
   const [showFallback, setShowFallback] = useState(false);
-  const [isOnline, setIsOnline] = useState(
-    typeof navigator === 'undefined' ? true : navigator.onLine,
-  );
+  // not `navigator.onLine` read while rendering: Node has a `navigator` without it, so the server
+  // rendered the offline text and hydration failed
+  const isOnline = useOnlineStatus();
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const router = useRouter();
@@ -161,7 +162,6 @@ export const EmergencyComponent: React.FC = () => {
   useEffect(() => {
     const updateStatus = (): void => {
       const online = typeof navigator === 'undefined' ? true : navigator.onLine;
-      setIsOnline(online);
       // back online and logged in, a failed alarm may be tried again
       if (online && status === 'authenticated') setShowFallback(false);
     };
@@ -312,17 +312,16 @@ export const EmergencyComponent: React.FC = () => {
     }
   };
 
-  const isActuallyOffline = typeof navigator !== 'undefined' && !navigator.onLine;
   // while the session is still loading the slider shows: it falls back to the call button itself
   // if the user turns out not to be logged in
   const isLoggedOut = status === 'unauthenticated';
-  const isFallbackActive = showFallback || !isOnline || isActuallyOffline || isLoggedOut;
+  const isFallbackActive = showFallback || !isOnline || isLoggedOut;
 
   // Determine fallback texts
   let fallbackMessage = offlineStatusText[locale];
-  if (isOnline && !isActuallyOffline && isLoggedOut) {
+  if (isOnline && isLoggedOut) {
     fallbackMessage = unauthenticatedStatusText[locale];
-  } else if (isOnline && !isActuallyOffline && showFallback) {
+  } else if (isOnline && showFallback) {
     // Allows distinction for API errors if showFallback is true but online+authed
     fallbackMessage = errorStatusText[locale];
   }
