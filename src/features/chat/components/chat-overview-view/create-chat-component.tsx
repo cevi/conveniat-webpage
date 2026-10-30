@@ -2,7 +2,6 @@
 import { EmptyState } from '@/components/ui/empty-state';
 import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
-import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import {
   contactListName,
   ContactRowContent,
@@ -14,7 +13,10 @@ import { newChatText } from '@/features/chat/components/chat-overview-view/creat
 import type { ChatQrTab } from '@/features/chat/components/qr-component';
 import { ChatQrSheet } from '@/features/chat/components/qr-component';
 import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
-import { useCreateChat } from '@/features/chat/hooks/use-create-chat';
+import {
+  openChatFailedText,
+  useOpenChatWithContact,
+} from '@/features/chat/hooks/use-open-chat-with-contact';
 import { groupContactsByLetter, matchesContactSearch } from '@/features/chat/utils/contact-search';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -22,7 +24,7 @@ import { i18nConfig } from '@/types/types';
 import { Loader2, QrCode, UserPlus, Users } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 
@@ -39,11 +41,6 @@ const text = {
     de: 'Du hast noch keine Kontakte. Scanne den QR-Code einer Person, um mit ihr zu chatten.',
     en: 'You have no contacts yet. Scan someone’s QR code to chat with them.',
     fr: 'Tu n’as pas encore de contacts. Scanne le code QR d’une personne pour discuter avec elle.',
-  },
-  openFailed: {
-    de: 'Chat konnte nicht geöffnet werden. Versuche es nochmals.',
-    en: 'The chat could not be opened. Please try again.',
-    fr: 'Le chat n’a pas pu être ouvert. Réessaie.',
   },
   noMatch: {
     de: 'Keine Kontakte für deine Suche gefunden',
@@ -65,13 +62,11 @@ export const CreateNewChatPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { data: allContacts, isLoading } = trpc.chat.contacts.useQuery({});
   const [searchQuery, setSearchQuery] = useState('');
-  const [openingUserId, setOpeningUserId] = useState<string | undefined>();
-  const [hasOpenFailed, setHasOpenFailed] = useState(false);
   const [isQrOpen, setIsQrOpen] = useState(false);
   const [qrTab, setQrTab] = useState<ChatQrTab>('scan');
-  const router = useRouter();
   const pathname = usePathname();
-  const { createChat } = useCreateChat();
+  // `replace`: going back from the chat belongs to the list, not to this screen
+  const { openChatWith, openingUserId, hasOpenFailed, reset } = useOpenChatWithContact('replace');
 
   // The route stays mounted, hidden, after leaving it; coming back starts from a clean screen.
   const isOnRoute = /\/app\/chat\/new\/?$/.test(pathname);
@@ -80,26 +75,8 @@ export const CreateNewChatPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSearchQuery('');
     // the chat has opened: nothing here stays busy for the next visit
-    setOpeningUserId(undefined);
-    setHasOpenFailed(false);
-  }, [isOnRoute]);
-
-  const openChatWith = (contact: Contact): void => {
-    if (openingUserId !== undefined) return;
-    setOpeningUserId(contact.userId);
-    setHasOpenFailed(false);
-    try {
-      // The id is chosen client-side, so the chat opens straight away; for someone the user
-      // already chats with, the server answers with that chat and the view follows it.
-      const chatId = createChat({ chatName: undefined, members: [contact] });
-      // `replace`: going back from the chat belongs to the list, not to this screen
-      router.replace(`/app/chat/${chatId}`);
-    } catch (error) {
-      console.error('Opening the chat failed', error);
-      setOpeningUserId(undefined);
-      setHasOpenFailed(true);
-    }
-  };
+    reset();
+  }, [isOnRoute, reset]);
 
   const openScanner = (): void => {
     setQrTab('scan');
@@ -156,7 +133,7 @@ export const CreateNewChatPage: React.FC = () => {
           role="alert"
           className="text-danger-text bg-danger-soft mx-4 mt-4 rounded-xl px-4 py-3 text-sm"
         >
-          {text.openFailed[locale]}
+          {openChatFailedText[locale]}
         </p>
       )}
 
