@@ -14,7 +14,19 @@ export const NavLink: React.FC<{
   onClick: (href: string) => void;
   isLoading: boolean;
   loadingHref: string | undefined;
-}> = ({ href, icon: Icon, label, isActive, isCurrent, color, onClick, isLoading, loadingHref }) => {
+  className?: string | undefined;
+}> = ({
+  href,
+  icon: Icon,
+  label,
+  isActive,
+  isCurrent,
+  color,
+  onClick,
+  isLoading,
+  loadingHref,
+  className,
+}) => {
   const isCurrentlyLoading = isLoading && loadingHref === href;
 
   return (
@@ -23,9 +35,11 @@ export const NavLink: React.FC<{
       prefetch
       onClick={() => onClick(href)}
       aria-current={isCurrent ? 'page' : undefined}
-      className={cn('flex h-full flex-1 flex-col items-center justify-center space-y-1 py-2', {
-        'text-blue-600': isActive,
-      })}
+      className={cn(
+        'flex h-full flex-1 flex-col items-center justify-center space-y-1 py-2',
+        { 'text-blue-600': isActive },
+        className,
+      )}
     >
       <div className="relative">
         {isCurrentlyLoading ? (

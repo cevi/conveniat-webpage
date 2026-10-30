@@ -10,7 +10,7 @@ import type React from 'react';
  */
 export default function ScheduleLoading(): React.ReactNode {
   return (
-    <div className="bg-page fixed top-(--app-content-top) left-0 z-30 h-[calc(100dvh-var(--app-content-top))] w-full overflow-y-auto xl:left-[480px] xl:w-[calc(100dvw-480px)]">
+    <div className="bg-page fixed top-(--app-content-top) left-0 z-30 h-[calc(100dvh-var(--app-content-top))] w-full overflow-y-auto xl:left-(--app-content-left) xl:w-[calc(100dvw-var(--app-content-left))]">
       <SearchFilterHeaderPlaceholder />
       <ScheduleLoadingSkeleton />
     </div>

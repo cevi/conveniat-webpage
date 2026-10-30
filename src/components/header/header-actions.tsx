@@ -35,9 +35,13 @@ export const SetHeaderActions: React.FC<{ children?: ReactNode }> = ({ children 
 
 /**
  * The title of the header: in the app on the left, next to the menu, with the page's buttons on
- * the right; on the website centred, unless a page brings buttons.
+ * the right; on the website centred, unless a page brings buttons. `inlineOnDesktop` keeps both on
+ * a desktop, right of the brand, where the website's menu takes the rest of the header.
  */
-export const AppHeaderTitle: React.FC<{ inAppDesign: boolean }> = ({ inAppDesign }) => {
+export const AppHeaderTitle: React.FC<{ inAppDesign: boolean; inlineOnDesktop?: boolean }> = ({
+  inAppDesign,
+  inlineOnDesktop = false,
+}) => {
   const actions = useContext(HeaderActionsContext);
   const mobileMenuOpen = useIsMobileMenuOpen();
   // A page that hides the header, like the detail of a block, brings its own heading; the
@@ -60,10 +64,17 @@ export const AppHeaderTitle: React.FC<{ inAppDesign: boolean }> = ({ inAppDesign
       className={cn(
         'pointer-events-none absolute top-0 right-2 left-[60px] z-[105] flex h-[60px] items-center gap-2',
         !inAppDesign && 'right-[56px] left-[112px] xl:right-2',
+        inlineOnDesktop &&
+          'xl:pointer-events-auto xl:static xl:ml-4 xl:h-10 xl:shrink-0 xl:gap-1 xl:border-l xl:border-gray-200 xl:pl-4',
       )}
     >
       {/* the page's heading: the title is what every app page is called */}
-      <Title className="min-w-0 flex-1 truncate font-['Montserrat'] text-[22px] leading-none font-extrabold xl:hidden">
+      <Title
+        className={cn(
+          "min-w-0 flex-1 truncate font-['Montserrat'] text-[22px] leading-none font-extrabold xl:hidden",
+          inlineOnDesktop && 'xl:text-heading xl:block xl:max-w-64 xl:flex-none xl:text-lg',
+        )}
+      >
         <DynamicAppTitleName />
       </Title>
       {/* The open menu makes everything outside its dialog inert, the header included, which

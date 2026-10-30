@@ -14,6 +14,7 @@ import {
 import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view/swipe-to-delete-chat';
 import { RealtimeSyncBanner } from '@/features/chat/components/realtime-sync-banner';
 import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
+import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatListActions } from '@/features/chat/hooks/use-chat-list-actions';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChats } from '@/features/chat/hooks/use-chats';
@@ -21,6 +22,7 @@ import { useSearchClearedOnLeave } from '@/features/chat/hooks/use-search-cleare
 import type { ChatListFilter } from '@/features/chat/utils/chat-list-filter';
 import { matchesChatListFilter } from '@/features/chat/utils/chat-list-filter';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -229,6 +231,9 @@ export const ChatsOverviewClientComponent: React.FC<{
   // unlike the search, kept while the route stays mounted: coming back from a chat keeps the chip
   const [listFilter, setListFilter] = useState<ChatListFilter>('all');
   const locale = useCurrentLocale(i18nConfig) as Locale;
+  // the chat open beside the list on a desktop
+  const openChatId = useChatId();
+  const isDesktop = useIsDesktop();
 
   // Filter chats based on a search query. Pinned chats go first; the sort is stable, so both
   // groups keep the server's most-recent-first order, and chats added optimistically at the
@@ -284,8 +289,10 @@ export const ChatsOverviewClientComponent: React.FC<{
 
   return (
     <div className="flex flex-col gap-4">
-      {/* the own code needs no right to create chats: a scanned code opens a private chat */}
-      <SetHeaderActions>{qrCodeButton}</SetHeaderActions>
+      {/* The own code needs no right to create chats: a scanned code opens a private chat. It
+          sits in the app header on a phone and above the list on a desktop, never in both, as
+          each copy would open its sheet from the `?qr=` parameter. */}
+      <SetHeaderActions>{isDesktop ? undefined : qrCodeButton}</SetHeaderActions>
 
       <span id={actionsHintId} hidden>
         {actionsHintText[locale]}
@@ -319,20 +326,44 @@ export const ChatsOverviewClientComponent: React.FC<{
         className="border-danger-line rounded-[14px] border"
       />
 
-      {/* only once there is something to search */}
-      {hasChats && (
+      {/* The search, once there is something to search, and on a desktop the list's actions
+          beside it, at the top of the list the way WhatsApp Web has them. */}
+      {(hasChats || isDesktop) && (
         <div className="flex flex-col gap-3">
-          <ChatSearchField
-            placeholder={searchPlaceholderText[locale]}
-            value={searchQuery}
-            onChange={setSearchQuery}
-          />
-          <ChatFilterChips
-            value={listFilter}
-            onChange={setListFilter}
-            unreadChats={unreadChats}
-            locale={locale}
-          />
+          <div className="flex items-center gap-1">
+            {hasChats && (
+              <div className="min-w-0 flex-1">
+                <ChatSearchField
+                  placeholder={searchPlaceholderText[locale]}
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                />
+              </div>
+            )}
+            {isDesktop && (
+              <div className="ml-auto flex shrink-0 items-center gap-1">
+                {qrCodeButton}
+                {createChatsEnabled === true && (
+                  <Link
+                    href="/app/chat/new"
+                    aria-label={newChatLabel[locale]}
+                    title={newChatLabel[locale]}
+                    className="bg-conveniat-green flex h-11 w-11 items-center justify-center rounded-full text-white hover:bg-green-700"
+                  >
+                    <MessageSquarePlus className="h-5 w-5" aria-hidden="true" />
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+          {hasChats && (
+            <ChatFilterChips
+              value={listFilter}
+              onChange={setListFilter}
+              unreadChats={unreadChats}
+              locale={locale}
+            />
+          )}
         </div>
       )}
 
@@ -343,7 +374,7 @@ export const ChatsOverviewClientComponent: React.FC<{
       {!isInitialLoad && (
         <PullToRefresh onRefresh={handleRefresh}>
           {filteredChats.length > 0 && (
-            <ul className="border-line -mx-4 border-t bg-white sm:mx-0">
+            <ul className="border-line -mx-4 border-t bg-white sm:mx-0 xl:-mx-4">
               {filteredChats.map((chat) => (
                 <li
                   key={chat.id}
@@ -355,6 +386,7 @@ export const ChatsOverviewClientComponent: React.FC<{
                       chat={chat}
                       onOpenActions={(pressed) => setActionsChatId(pressed.id)}
                       actionsHintId={actionsHintId}
+                      isSelected={chat.id === openChatId}
                     />
                   </SwipeToDeleteChat>
                 </li>
@@ -376,8 +408,8 @@ export const ChatsOverviewClientComponent: React.FC<{
       )}
 
       {/* the screen's main action floats over the list, above the tab bar */}
-      {createChatsEnabled === undefined && <NewChatButtonSkeleton />}
-      {createChatsEnabled === true && (
+      {!isDesktop && createChatsEnabled === undefined && <NewChatButtonSkeleton />}
+      {!isDesktop && createChatsEnabled === true && (
         <Link
           href="/app/chat/new"
           className="bg-conveniat-green fixed right-4 bottom-[calc(5rem+16px)] z-30 flex h-12 items-center gap-2 rounded-2xl px-5 text-[15px] font-semibold text-white shadow-lg hover:bg-green-700"

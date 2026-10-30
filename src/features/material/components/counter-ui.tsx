@@ -103,7 +103,7 @@ export const StickyAction: React.FC<{ children: React.ReactNode; className?: str
 }) => (
   <div
     className={cn(
-      'border-line bg-page/95 sticky bottom-20 z-20 -mx-4 mt-4 border-t px-4 pt-3 pb-3 backdrop-blur',
+      'border-line bg-page/95 sticky bottom-(--app-tab-bar-height) z-20 -mx-4 mt-4 border-t px-4 pt-3 pb-3 backdrop-blur',
       className,
     )}
   >

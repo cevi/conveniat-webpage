@@ -661,7 +661,7 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
 
       {/* ---- Sticky status bar, above the app nav bar ---- */}
       {showStickyBar && (
-        <div className="border-line fixed bottom-20 left-0 z-30 w-full border-t bg-white/95 px-4 py-3 backdrop-blur-sm xl:left-[480px] xl:w-[calc(100%-480px)]">
+        <div className="border-line fixed bottom-(--app-tab-bar-height) left-0 z-30 w-full border-t bg-white/95 px-4 py-3 backdrop-blur-sm xl:left-(--app-content-left) xl:w-[calc(100%-var(--app-content-left))]">
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
             <div className="text-[15px] font-bold text-green-900 tabular-nums">
               {pointsAllocated} / {maxPoints} {t('points')}

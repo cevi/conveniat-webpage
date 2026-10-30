@@ -29,13 +29,10 @@ export const MenuEntryLabel: React.FC<{
   node: MenuNode;
   className: string;
   isCurrent?: boolean;
-  /** drawn in front of the label, like the dot of a link */
-  leading?: React.ReactNode;
-}> = ({ node, className, isCurrent = false, leading }) => {
+}> = ({ node, className, isCurrent = false }) => {
   if (!node.hasLink) {
     return (
       <span className={className}>
-        {leading}
         <span>{node.label}</span>
       </span>
     );
@@ -44,7 +41,6 @@ export const MenuEntryLabel: React.FC<{
   if (!node.hasPerm) {
     return (
       <span className={cn(className, 'text-gray-500')}>
-        {leading}
         <span>
           {node.label}
           <OctagonAlert aria-hidden className="text-danger ml-2 inline size-4 align-[-2px]" />
@@ -61,16 +57,15 @@ export const MenuEntryLabel: React.FC<{
       aria-current={isCurrent ? 'page' : undefined}
       className={cn('closeNavOnClick', className)}
     >
-      {leading}
       <span>{node.label}</span>
     </LinkComponent>
   );
 };
 
 /**
- * The entries below a column of the menu, down to the fourth level. A plain entry is a link with a
- * dot on its first line, so a label that wraps keeps its dot in place (#1479). An entry with
- * entries below it is a group: its label, then its own links behind a line.
+ * The entries below a column of the menu, down to the fourth level. A plain entry is a link; an
+ * entry with entries below it is a group: a small label like a `SectionLabel`, its own links
+ * indented below it. Deeper levels step down in size and colour instead of adding marks.
  */
 export const MenuLinks: React.FC<{
   nodes: MenuNode[];
@@ -84,17 +79,19 @@ export const MenuLinks: React.FC<{
 
       if (children.length > 0) {
         return (
-          <li key={node.id} className="mt-2 first:mt-0">
+          <li key={node.id}>
             <MenuEntryLabel
               node={node}
               isCurrent={isCurrent(node)}
               className={cn(
-                'text-heading block rounded-lg px-3 py-2 font-semibold',
-                depth === 2 ? 'text-[15px]' : 'text-[14px]',
-                node.hasLink && 'hover:bg-tint',
+                'block rounded-xl px-3',
+                depth === 2
+                  ? 'font-heading pt-4 pb-1 text-[12px] font-extrabold tracking-[0.07em] text-green-500 uppercase'
+                  : 'pt-2.5 pb-0.5 text-[14px] font-bold text-green-700',
+                node.hasLink && 'hover:text-heading',
               )}
             />
-            <div className="border-line ml-3 border-l pl-2">
+            <div className="pl-3">
               <MenuLinks
                 nodes={children}
                 showPreview={showPreview}
@@ -112,22 +109,13 @@ export const MenuLinks: React.FC<{
           <MenuEntryLabel
             node={node}
             isCurrent={current}
-            leading={
-              <span
-                aria-hidden
-                className={cn(
-                  'mt-[0.5lh] size-1.5 shrink-0 -translate-y-1/2 rounded-full',
-                  current
-                    ? 'bg-conveniat-green'
-                    : 'bg-rail-node group-hover/link:bg-conveniat-green',
-                )}
-              />
-            }
             className={cn(
-              'group/link flex items-start gap-2.5 rounded-lg px-3 py-2 leading-snug',
-              depth === 2 ? 'text-[15px] text-gray-700' : 'text-[14px] text-green-700',
-              node.hasLink && 'hover:bg-tint hover:text-heading',
-              current && 'bg-tint text-heading font-semibold',
+              'flex min-h-[44px] items-center rounded-xl px-3 py-2 leading-snug',
+              depth === 2 && 'text-heading text-[16px] font-semibold',
+              depth === 3 && 'text-[15px] font-medium text-green-700',
+              depth > 3 && 'text-[14px] font-medium text-green-500',
+              node.hasLink && 'hover:bg-tint',
+              current && 'bg-conveniat-green hover:bg-conveniat-green text-white',
             )}
           />
         </li>

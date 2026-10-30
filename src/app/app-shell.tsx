@@ -72,14 +72,19 @@ export const AppShell: React.FC<AppShellProperties> = ({
                   {/* --app-header-height is the height of the fixed header above, for anything
                     that sticks right below it. --app-content-top and --app-content-left are the
                     corner of the free area under the header and right of the side panel, for
-                    anything positioned with `fixed`: only side-nav has a panel, and the top-nav
-                    header grows on wide screens. All three include the preview banner above the header. */}
+                    anything positioned with `fixed`: side-nav has a panel, the app in top-nav its
+                    rail of tabs, and the top-nav header grows on wide screens. All three include the
+                    preview banner above the header. --app-tab-bar-height is the room the app's
+                    tab bar takes at the bottom, none once it is the rail. */}
                   <div
                     className={cn(
-                      'wco-content-wrapper mt-[calc(62px+var(--preview-banner-height))] h-[calc(100dvh-62px-var(--preview-banner-height))] [--app-content-left:0px] [--app-content-top:calc(62px+var(--preview-banner-height))] [--app-header-height:calc(60px+var(--preview-banner-height))]',
+                      'wco-content-wrapper mt-[calc(62px+var(--preview-banner-height))] h-[calc(100dvh-62px-var(--preview-banner-height))] [--app-content-left:0px] [--app-content-top:calc(62px+var(--preview-banner-height))] [--app-header-height:calc(60px+var(--preview-banner-height))] [--app-tab-bar-height:5rem]',
                       isTopNavMode
                         ? 'xl:[--app-content-top:calc(4rem+2px+var(--preview-banner-height))] xl:[--app-header-height:calc(4rem+var(--preview-banner-height))]'
                         : 'xl:ml-[480px] xl:[--app-content-left:480px]',
+                      isTopNavMode &&
+                        inAppDesign &&
+                        'xl:ml-20 xl:[--app-content-left:5rem] xl:[--app-tab-bar-height:0px]',
                     )}
                   >
                     <main className="flex min-h-full flex-col justify-between">
@@ -94,7 +99,9 @@ export const AppShell: React.FC<AppShellProperties> = ({
                         </ErrorBoundary>
                       </div>
                       {footer !== null && footer !== undefined && (
-                        <FooterClientWrapper>{footer}</FooterClientWrapper>
+                        <FooterClientWrapper keepOnDesktop={inAppDesign}>
+                          {footer}
+                        </FooterClientWrapper>
                       )}
                     </main>
                   </div>

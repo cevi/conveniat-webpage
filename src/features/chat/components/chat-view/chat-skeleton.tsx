@@ -29,7 +29,7 @@ const IncomingRun: React.FC<{ widths: string[] }> = ({ widths }) => (
  * bubbles on both sides, and the composer, whose frame is real and does not pulse.
  */
 export const ChatSkeleton: React.FC = () => (
-  <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
+  <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
     <AppFooterController hideAppFooter />
     <ChatHeaderSkeleton />
     <div

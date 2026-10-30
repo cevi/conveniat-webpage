@@ -1,49 +1,21 @@
 import { AppAdvertisement } from '@/components/app-advertisement';
-import {
-  ChatQrCodeButton,
-  QrCodeIconSkeleton,
-} from '@/features/chat/components/chat-overview-view/chat-qr-code-button';
-import { ChatsOverviewClientComponent } from '@/features/chat/components/chat-overview-view/chats-overview-client-component';
+import { NoChatSelected } from '@/features/chat/components/chat-overview-view/no-chat-selected';
 import type { Locale } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import type React from 'react';
-import { Suspense } from 'react';
 
 /**
- * Chat overview.
- *
- * The page shell is kept static: the chat list is rendered by a client
- * component backed by the persisted (IndexedDB) react-query cache, so
- * navigating to /app/chat immediately shows the previously loaded chats -
- * also while offline - instead of the loading skeleton, and the list is
- * refreshed in the background.
- *
- * Everything that needs the session (the QR invite button) is streamed inside
- * its own Suspense boundary so it cannot turn the whole segment dynamic.
+ * Chat overview. The list itself comes from the layout, which keeps it beside an open chat on a
+ * desktop; the page is what stands next to it while no chat is open.
  */
 const ChatPage: React.FC<{
   params: Promise<{ locale: Locale; design: DesignCodes }>;
 }> = async ({ params }) => {
   const { locale, design } = await params;
 
-  const qrCodeButton = (
-    <Suspense fallback={<QrCodeIconSkeleton />}>
-      <ChatQrCodeButton />
-    </Suspense>
-  );
-
   return (
     <>
-      {/* The screen is white like the design, so the grey search contrasts, from the header
-          down to the tab bar however few chats there are, and across the full width. The
-          bottom room keeps the last row clear of the tab bar and the "Neuer Chat" button. */}
-      <div className="min-h-[calc(100dvh-var(--app-content-top))] bg-white">
-        <article className="container mx-auto px-4 pt-4 pb-[168px] sm:px-6 md:px-8">
-          <div className="mx-auto w-full max-w-2xl">
-            <ChatsOverviewClientComponent qrCodeButton={qrCodeButton} />
-          </div>
-        </article>
-      </div>
+      <NoChatSelected locale={locale} />
       {design !== DesignCodes.APP_DESIGN && <AppAdvertisement locale={locale} type="chat" />}
     </>
   );
