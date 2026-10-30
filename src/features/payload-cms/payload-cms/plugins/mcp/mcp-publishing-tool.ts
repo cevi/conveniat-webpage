@@ -2,7 +2,9 @@ import type { LocaleCode } from '@/features/payload-cms/payload-cms/locales';
 import { enabledLocales } from '@/features/payload-cms/payload-cms/locales';
 import type { MCPAccessSettings, MCPPluginConfig } from '@payloadcms/plugin-mcp';
 import type { CollectionSlug, PayloadRequest } from 'payload';
-import { z } from 'zod';
+// The MCP plugin is still built on zod 3 and hands a tool's parameters to the MCP SDK next
+// to its own zod 3 schemas, so they come from the same zod 3 the plugin resolves.
+import { z } from 'zod-v3';
 
 interface ToolResponse {
   content: Array<{ text: string; type: 'text' }>;

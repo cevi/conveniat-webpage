@@ -26,7 +26,7 @@ const tooManyReactionsText: StaticTranslationString = {
 };
 
 const toggleReactionInputSchema = z.object({
-  messageId: z.string().uuid('Invalid message ID format.'),
+  messageId: z.uuid('Invalid message ID format.'),
   emoji: z.string().min(1, 'Emoji cannot be empty.').max(EMOJI_MAX_LENGTH, 'Emoji is too long.'),
 });
 

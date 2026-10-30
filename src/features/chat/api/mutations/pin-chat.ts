@@ -10,7 +10,7 @@ import { z } from 'zod';
  * Pinning a pinned chat keeps its place, so a replayed call does not reorder the list.
  */
 export const pinChat = trpcBaseProcedure
-  .input(z.object({ chatId: z.string().uuid(), pinned: z.boolean() }))
+  .input(z.object({ chatId: z.uuid(), pinned: z.boolean() }))
   .mutation(async ({ input, ctx }): Promise<{ success: true }> => {
     const { user, prisma } = ctx;
     const membership = await findOwnChatMembership(prisma, user.uuid, input.chatId);

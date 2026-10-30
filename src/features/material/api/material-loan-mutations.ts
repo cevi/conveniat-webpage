@@ -69,12 +69,12 @@ export const createLoanBasket = materialTeamProcedure
           .max(MAX_LINES),
         preparedLoanIds: z.array(z.string()).max(MAX_LINES).default([]),
       })
-      .refine(hasHolder, { message: 'A loan needs a Hof or a person.' })
+      .refine(hasHolder, { error: 'A loan needs a Hof or a person.' })
       .refine((input) => input.mode === 'ISSUE' || input.startDate !== undefined, {
-        message: 'A preparation needs a start date.',
+        error: 'A preparation needs a start date.',
       })
       .refine((input) => input.lines.length > 0 || input.preparedLoanIds.length > 0, {
-        message: 'The basket is empty.',
+        error: 'The basket is empty.',
       }),
   )
   .mutation(async ({ ctx, input }) => {
@@ -332,7 +332,7 @@ export const returnLoanBasket = materialTeamProcedure
       .refine(
         (input) => new Set(input.lines.map((line) => line.loanId)).size === input.lines.length,
         {
-          message: 'A loan can only be returned once.',
+          error: 'A loan can only be returned once.',
         },
       ),
   )

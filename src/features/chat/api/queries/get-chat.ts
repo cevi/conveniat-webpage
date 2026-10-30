@@ -18,7 +18,7 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 export const getChat = trpcBaseProcedure
-  .input(z.object({ chatId: z.string().uuid() }))
+  .input(z.object({ chatId: z.uuid() }))
   .query(async ({ input, ctx }): Promise<ChatDetails> => {
     const { chatId } = input;
     const { user, prisma } = ctx;

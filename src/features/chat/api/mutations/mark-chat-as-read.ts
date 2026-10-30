@@ -4,8 +4,8 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 const markChatAsReadInputSchema = z.object({
-  chatId: z.string().uuid(),
-  lastMessageId: z.string().uuid(),
+  chatId: z.uuid(),
+  lastMessageId: z.uuid(),
 });
 
 export const markChatAsRead = trpcBaseProcedure
