@@ -53,9 +53,15 @@ export const AppHeaderTitle: React.FC<{ inAppDesign: boolean }> = ({ inAppDesign
     );
   }
 
-  // one row, so a long title ends where the page's buttons begin instead of running under them
+  // One row, so a long title ends where the page's buttons begin instead of running under them.
+  // The app has the menu on the left; the website has its logo there and the menu on the right.
   return (
-    <div className="pointer-events-none absolute top-0 right-2 left-[60px] z-[105] flex h-[60px] items-center gap-2">
+    <div
+      className={cn(
+        'pointer-events-none absolute top-0 right-2 left-[60px] z-[105] flex h-[60px] items-center gap-2',
+        !inAppDesign && 'right-[56px] left-[112px] xl:right-2',
+      )}
+    >
       {/* the page's heading: the title is what every app page is called */}
       <Title className="min-w-0 flex-1 truncate font-['Montserrat'] text-[22px] leading-none font-extrabold xl:hidden">
         <DynamicAppTitleName />
