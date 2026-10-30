@@ -11,10 +11,13 @@ import type { CollectionConfig, Locale } from 'payload';
 export const generatePreviewUrl = ({
   data,
   collectionConfig,
+  globalSlug,
   locale,
 }: {
   data: { seo?: { urlSlug?: string }; id?: string } | null | undefined;
   collectionConfig?: CollectionConfig;
+  /** the global being edited, when it is a global and not a document of a collection */
+  globalSlug?: string;
   locale?: Locale;
 }): string => {
   const lang = locale?.code ?? 'de';
@@ -38,6 +41,11 @@ export const generatePreviewUrl = ({
   // permanently trapping the iframe in a foreign language (e.g., French) if the user
   // toggles back and forth. Passing `/de/` commands the middleware to cleanly overwrite the cookie.
   const prefix = `/${lang}`;
+
+  // the main menu shows on every page: preview it on the start page, with the menu open
+  if (globalSlug === 'header') {
+    return `${host}${prefix}?preview=true&menu=open`;
+  }
 
   if (collectionConfig) {
     if (collectionConfig.slug === 'timeline' && data.id !== undefined) {

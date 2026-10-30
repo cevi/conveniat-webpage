@@ -1,3 +1,4 @@
+import { draftGlobalTag } from '@/features/payload-cms/payload-cms/utils/draft-global-tag';
 import { linkTargetPopulate } from '@/features/payload-cms/payload-cms/utils/link-target-populate';
 import { revalidateTag } from 'next/cache';
 import type {
@@ -222,6 +223,16 @@ export const flushPageCacheOnChangeGlobal: GlobalAfterChangeHook = ({ doc, req, 
       { global: global.slug },
       'Draft saved, the cache keeps the published global',
     );
+    // A cached draft read, like the preview of the main menu, has to show this save on the
+    // very next request, so it expires without serving the stale entry first.
+    try {
+      revalidateTag(draftGlobalTag(global.slug), { expire: 0 });
+    } catch (error: unknown) {
+      req.payload.logger.warn(
+        { error, global: global.slug },
+        'Expiring the cached draft failed, this is non-critical',
+      );
+    }
     return;
   }
   req.payload.logger.debug({ global: global.slug }, 'Flushing all pages after a global change');

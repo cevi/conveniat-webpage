@@ -13,6 +13,7 @@ import { LinkComponent } from '@/components/ui/link-component';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import { getLanguagePrefix } from '@/features/payload-cms/utils/get-language-prefix';
 import type { Locale, NavigationMode, StaticTranslationString } from '@/types/types';
+import { isAdminSession } from '@/utils/is-admin-session';
 import { ForceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import React from 'react';
 
@@ -29,15 +30,32 @@ const landingPageAreaLinktText: StaticTranslationString = {
 };
 
 /**
- * Async Top Navigation Content component wrapped inside React.Suspense
+ * The desktop header bar with the published menu, and for an editor the draft menu as well, which
+ * it shows in preview mode (`?preview=true`), so the live preview of the header global and page
+ * previews show the menu being edited.
  */
-const TopNavContent: React.FC<{ locale: Locale }> = async ({ locale }) => {
+const TopNavContent: React.FC<{ locale: Locale; withDraftForEditors?: boolean }> = async ({
+  locale,
+  withDraftForEditors = false,
+}) => {
   const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
-  const publishedMenuRaw = await getMainMenuFromPayloadCached(locale, false);
-  const publishedMenu = Array.isArray(publishedMenuRaw) ? publishedMenuRaw : [];
-  const processedMenu = await processMenuTree(publishedMenu, locale, false);
+  // the published read starts before the session read, for the reason given in `MainMenu`
+  const publishedMenu = await getMainMenuFromPayloadCached(locale, false);
+  const menuItems = await processMenuTree(publishedMenu, locale, false);
 
-  return <DesktopNav locale={locale} menuItems={processedMenu} actionURL={actionURL} />;
+  const draftMenuItems =
+    withDraftForEditors && (await isAdminSession())
+      ? await processMenuTree(await getMainMenuFromPayloadCached(locale, true), locale, true)
+      : undefined;
+
+  return (
+    <DesktopNav
+      locale={locale}
+      menuItems={menuItems}
+      draftMenuItems={draftMenuItems}
+      actionURL={actionURL}
+    />
+  );
 };
 
 /**
@@ -84,8 +102,10 @@ const TopNavHeader: React.FC<{
 
           {/* Full Width Desktop Top Navigation, taking whatever width the logo leaves */}
           <div className="flex min-w-0 flex-1 items-center justify-end pr-4">
-            <React.Suspense fallback={undefined}>
-              <TopNavContent locale={locale} />
+            {/* The published bar is part of the prerendered shell and stays there when the
+                session read below cannot run, offline for one. */}
+            <React.Suspense fallback={<TopNavContent locale={locale} />}>
+              <TopNavContent locale={locale} withDraftForEditors />
             </React.Suspense>
           </div>
 

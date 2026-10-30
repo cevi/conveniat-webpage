@@ -201,10 +201,12 @@ const saveHeader = async (operationArguments: {
 describe('flushPageCacheOnChangeGlobal', () => {
   beforeEach(() => jest.mocked(revalidateTag).mockClear());
 
-  it('keeps the cache when autosave stores a draft', async () => {
+  it('keeps the published global cached when autosave stores a draft, and expires its draft', async () => {
     await saveHeader({ draft: true, data: { _status: 'draft' } });
 
-    expect(flushedTags()).toEqual([]);
+    expect(flushedTags()).toEqual(['global:header:draft']);
+    // the preview has to show this save on the next request, not after a stale one
+    expect(jest.mocked(revalidateTag)).toHaveBeenCalledWith('global:header:draft', { expire: 0 });
   });
 
   it('flushes everything when the global is published', async () => {

@@ -102,10 +102,22 @@ const validateURL: TextFieldSingleValidation = (url, options) => {
   return true; // Valid URL
 };
 
+/**
+ * The placeholder of the link target, in the language of the admin panel. Payload types it as a
+ * string or a function, but a function cannot reach the browser, and the select it ends up in
+ * translates an object per language (`getTranslation` in `@payloadcms/ui`'s `ReactSelect`).
+ */
+const referencePlaceholder = {
+  en: 'Select a page, blog post, image or document',
+  de: 'Seite, Blog-Artikel, Bild oder Dokument wählen',
+  fr: 'Choisir une page, un article, une image ou un document',
+} as Record<string, string> as unknown as string;
+
 export const LinkField = (required: boolean = true): NamedGroupField => {
   return {
     name: 'linkField',
     type: 'group',
+    label: { en: 'Link', de: 'Link', fr: 'Lien' },
     fields: [
       {
         name: 'type',
@@ -114,18 +126,18 @@ export const LinkField = (required: boolean = true): NamedGroupField => {
           layout: 'horizontal',
         },
         defaultValue: 'reference',
-        label: 'To URL Type',
+        label: { en: 'Link type', de: 'Art des Links', fr: 'Type de lien' },
         options: [
           {
-            label: 'Internal link',
+            label: { en: 'Internal link', de: 'Interner Link', fr: 'Lien interne' },
             value: 'reference',
           },
           {
-            label: 'Custom URL',
+            label: { en: 'Custom URL', de: 'Eigene URL', fr: 'URL personnalisée' },
             value: 'custom',
           },
           {
-            label: 'Email',
+            label: { en: 'Email', de: 'E-Mail', fr: 'E-mail' },
             value: 'email',
           },
         ],
@@ -140,9 +152,9 @@ export const LinkField = (required: boolean = true): NamedGroupField => {
           // Payload's list in a drawer: one collection at a time, with search and filters, instead
           // of one long dropdown mixing pages, images and documents
           appearance: 'drawer',
-          placeholder: 'Select a document or blog post',
+          placeholder: referencePlaceholder,
         },
-        label: 'Document to redirect to',
+        label: { en: 'Link target', de: 'Linkziel', fr: 'Cible du lien' },
         // the drawer opens on the first collection: pages are what most links point to
         relationTo: [
           'generic-page',
@@ -186,7 +198,7 @@ export const LinkField = (required: boolean = true): NamedGroupField => {
         admin: {
           condition: (_, siblingData) => siblingData['type'] === 'custom',
         },
-        label: 'Custom URL',
+        label: { en: 'Custom URL', de: 'Eigene URL', fr: 'URL personnalisée' },
         required: required,
         validate: validateURL,
       },
@@ -196,14 +208,18 @@ export const LinkField = (required: boolean = true): NamedGroupField => {
         admin: {
           condition: (_, siblingData) => siblingData['type'] === 'email',
         },
-        label: 'Email Address',
+        label: { en: 'Email address', de: 'E-Mail-Adresse', fr: 'Adresse e-mail' },
         required: required,
         validate: validateEmail,
       },
       {
         name: 'openInNewTab',
         type: 'checkbox',
-        label: 'Open in new tab',
+        label: {
+          en: 'Open in new tab',
+          de: 'In neuem Tab öffnen',
+          fr: 'Ouvrir dans un nouvel onglet',
+        },
         defaultValue: false,
         admin: {
           condition: (_, siblingData) => siblingData['type'] === 'custom',
