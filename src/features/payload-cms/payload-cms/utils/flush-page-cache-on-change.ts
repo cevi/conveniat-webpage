@@ -219,20 +219,21 @@ export const flushPageCacheOnChange: CollectionAfterChangeHook = async ({
     return;
   }
 
-  try {
-    const flushEverything = !(await changedOwnContentOnly(req, collectionSlug, id));
-    req.payload.logger.debug(
-      { collection: collectionSlug, 'document.id': id, 'cache.flush_everything': flushEverything },
-      'Revalidating the cache for a document',
-    );
+  const flushEverything = !(await changedOwnContentOnly(req, collectionSlug, id));
+  req.payload.logger.debug(
+    { collection: collectionSlug, 'document.id': id, 'cache.flush_everything': flushEverything },
+    'Revalidating the cache for a document',
+  );
 
+  // Before `revalidateTag`, which throws when the save runs outside a request.
+  if (flushEverything && COLLECTIONS_WITH_PUBLISHED_SLUGS.has(collectionSlug)) {
+    await announceChangedSlugs(req, collectionSlug);
+  }
+
+  try {
     if (flushEverything) revalidateTag('payload', 'max');
     revalidateTag(`collection:${collectionSlug}`, 'max');
     revalidateTag(`doc:${collectionSlug}:${id}`, 'max');
-
-    if (flushEverything && COLLECTIONS_WITH_PUBLISHED_SLUGS.has(collectionSlug)) {
-      await announceChangedSlugs(req, collectionSlug);
-    }
   } catch (error: unknown) {
     req.payload.logger.warn(
       { error, collection: collectionSlug },

@@ -74,7 +74,7 @@ const linkTarget = (urlSlug: string, published: boolean): object => ({
 
 describe('flushPageCacheOnChange', () => {
   beforeEach(() => {
-    jest.mocked(revalidateTag).mockClear();
+    jest.mocked(revalidateTag).mockReset();
     mockMarkPublishedPageSlugsChanged.mockReset().mockResolvedValue();
   });
 
@@ -87,6 +87,17 @@ describe('flushPageCacheOnChange', () => {
     await savePage(requestReading(linkTarget('anmeldung', true), linkTarget('anmeldung', false)), {
       data: { _status: 'published' },
     });
+    expect(mockMarkPublishedPageSlugsChanged).toHaveBeenCalledTimes(1);
+  });
+
+  it('tells the proxy about changed slugs when the save runs outside a request', async () => {
+    jest.mocked(revalidateTag).mockImplementation(() => {
+      throw new Error('Invariant: static generation store missing in revalidateTag payload');
+    });
+    const request = requestReading(linkTarget('anmeldung', true), linkTarget('anmeldung', false));
+
+    await savePage(request, { data: { _status: 'published' } });
+
     expect(mockMarkPublishedPageSlugsChanged).toHaveBeenCalledTimes(1);
   });
 

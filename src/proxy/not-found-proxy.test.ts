@@ -94,11 +94,11 @@ describe('notFoundProxy', () => {
     ).resolves.toBe('/de/design-mode-web/~not-found');
   });
 
-  it('leaves routes of their own, previews and form posts alone', async () => {
+  it('leaves the home page, routes of their own, previews and form posts alone, unread', async () => {
     mockFetchPublishedPageSlugs.mockResolvedValue(published(['']));
     const proxyModule = loadModule();
 
-    for (const page of ['/app/dashboard', '/suche', '/go/abc', '/timeline-preview/123']) {
+    for (const page of ['/', '/app/dashboard', '/suche', '/go/abc', '/timeline-preview/123']) {
       await expect(run(proxyModule, page, `/de/design-mode-web${page}`)).resolves.toBe(
         `/de/design-mode-web${page}`,
       );
@@ -109,6 +109,41 @@ describe('notFoundProxy', () => {
     await expect(run(proxyModule, '/draft', '/de/design-mode-web/draft', 'POST')).resolves.toBe(
       '/de/design-mode-web/draft',
     );
+
+    expect(mockFetchPublishedPageSlugs).not.toHaveBeenCalled();
+    expect(mockReadPublishedPageSlugsVersion).not.toHaveBeenCalled();
+  });
+
+  it('checks a path whose preview parameter is not true, as the page route does', async () => {
+    mockFetchPublishedPageSlugs.mockResolvedValue(published(['']));
+    const proxyModule = loadModule();
+
+    await expect(
+      run(proxyModule, '/draft?preview=false', '/de/design-mode-web/draft'),
+    ).resolves.toBe('/de/design-mode-web/~not-found');
+  });
+
+  it('answers from the slugs it has while newer ones are read', async () => {
+    mockFetchPublishedPageSlugs.mockResolvedValueOnce(published(['', 'anmeldung']));
+    const proxyModule = loadModule();
+    await run(proxyModule, '/anmeldung', '/de/design-mode-web/anmeldung');
+
+    mockFetchPublishedPageSlugs.mockReturnValue(new Promise(() => {}));
+    jest.advanceTimersByTime(5 * 60 * 1000);
+
+    await expect(run(proxyModule, '/anmeldung', '/de/design-mode-web/anmeldung')).resolves.toBe(
+      '/de/design-mode-web/anmeldung',
+    );
+  });
+
+  it('leaves the path to the page route when reading the slugs hangs', async () => {
+    mockFetchPublishedPageSlugs.mockReturnValue(new Promise(() => {}));
+    const proxyModule = loadModule();
+
+    const answer = run(proxyModule, '/does-not-exist', '/de/design-mode-web/does-not-exist');
+    await jest.advanceTimersByTimeAsync(5000);
+
+    await expect(answer).resolves.toBe('/de/design-mode-web/does-not-exist');
   });
 
   it('answers 404 for a page as soon as its unpublishing is announced', async () => {
@@ -141,6 +176,20 @@ describe('notFoundProxy', () => {
 
     mockFetchPublishedPageSlugs.mockResolvedValue(published(['', 'neu']));
     jest.advanceTimersByTime(2000);
+    await expect(run(proxyModule, '/neu', '/de/design-mode-web/neu')).resolves.toBe(
+      '/de/design-mode-web/neu',
+    );
+  });
+
+  it('finds a page whose publishing was never announced, after a while', async () => {
+    mockFetchPublishedPageSlugs.mockResolvedValueOnce(published(['']));
+    const proxyModule = loadModule();
+    await run(proxyModule, '/neu', '/de/design-mode-web/neu');
+
+    // published by a save that could not reach Redis
+    mockFetchPublishedPageSlugs.mockResolvedValue(published(['', 'neu']));
+    jest.advanceTimersByTime(10_000);
+
     await expect(run(proxyModule, '/neu', '/de/design-mode-web/neu')).resolves.toBe(
       '/de/design-mode-web/neu',
     );

@@ -49,15 +49,23 @@ export const SEGMENTS_NOT_RESOLVED_BY_SLUG = new Set([
 ]);
 
 /**
- * Whether the path below the locale and the design can resolve to a published CMS page.
+ * Whether the catch-all CMS route resolves the path by slug. Every other path, the home page
+ * included, is left to its route without reading anything.
+ *
+ * @param segments - the decoded path segments after `/{locale}/{design}`
+ */
+const isResolvedBySlug = (segments: string[]): boolean =>
+  segments[0] !== undefined && !SEGMENTS_NOT_RESOLVED_BY_SLUG.has(segments[0]);
+
+/**
+ * Whether a path the CMS route resolves by slug has a published page.
  *
  * @param segments - the decoded path segments after `/{locale}/{design}`
  * @param slugs - the published slugs
  */
-export const mayResolveToCmsPage = (segments: string[], slugs: PublishedPageSlugs): boolean => {
+const hasPublishedPage = (segments: string[], slugs: PublishedPageSlugs): boolean => {
   const [first, ...rest] = segments;
-  if (first === undefined || SEGMENTS_NOT_RESOLVED_BY_SLUG.has(first)) return true;
-  if (blogPrefixes.has(first)) return slugs.blogPosts.has(rest.join('/'));
+  if (first !== undefined && blogPrefixes.has(first)) return slugs.blogPosts.has(rest.join('/'));
   return slugs.genericPages.has(segments.join('/'));
 };
 
@@ -70,31 +78,58 @@ const VERSION_CHECK_INTERVAL_MS = 1000;
  * change from its `afterChange` hook, before Payload commits it, so the first read can miss it.
  */
 const REREAD_AFTER_CHANGE_MS = 2000;
+/**
+ * How soon a path that is not in the slugs may read them again, for a page whose publishing was
+ * never announced: a save outside a request, a seed, or Redis failing during the save.
+ */
+const RECHECK_MISS_AFTER_MS = 10 * 1000;
 /** How soon a failed read is tried again. Until then every path is left to the page route. */
 const RETRY_AFTER_FAILURE_MS = 30 * 1000;
+/** How long a read may take before it counts as failed, so that no request hangs on Mongo. */
+const READ_TIMEOUT_MS = 5000;
 
 interface SlugIndex {
   slugs: PublishedPageSlugs | undefined;
   version: string;
+  readAt: number;
   expiresAt: number;
 }
 
 let index: SlugIndex | undefined;
 let pendingRead: Promise<SlugIndex> | undefined;
 
+const fetchWithTimeout = async (): Promise<PublishedPageSlugs> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`Reading the published page slugs took longer than ${READ_TIMEOUT_MS} ms`));
+    }, READ_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([fetchPublishedPageSlugs(), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 const readSlugs = async (version: string, changed: boolean): Promise<SlugIndex> => {
-  pendingRead ??= fetchPublishedPageSlugs()
+  pendingRead ??= fetchWithTimeout()
     .then(
-      (slugs): SlugIndex => ({
-        slugs,
-        version,
-        expiresAt: Date.now() + (changed ? REREAD_AFTER_CHANGE_MS : MAX_AGE_MS),
-      }),
+      (slugs): SlugIndex => {
+        const now = Date.now();
+        return {
+          slugs,
+          version,
+          readAt: now,
+          expiresAt: now + (changed ? REREAD_AFTER_CHANGE_MS : MAX_AGE_MS),
+        };
+      },
       (error: unknown): SlugIndex => {
         logger.warn('Could not read the published page slugs, unknown paths answer 200 for now', {
           error,
         });
-        return { slugs: undefined, version, expiresAt: Date.now() + RETRY_AFTER_FAILURE_MS };
+        const now = Date.now();
+        return { slugs: undefined, version, readAt: now, expiresAt: now + RETRY_AFTER_FAILURE_MS };
       },
     )
     .then((read) => {
@@ -108,21 +143,30 @@ const readSlugs = async (version: string, changed: boolean): Promise<SlugIndex> 
 };
 
 let announcedVersion: { value: string | undefined; nextCheckAt: number } | undefined;
+let pendingVersionRead: Promise<string | undefined> | undefined;
 
 /** The announced version of the slugs, `undefined` while Redis cannot be read. */
 const readAnnouncedVersion = async (): Promise<string | undefined> => {
-  const now = Date.now();
-  if (announcedVersion !== undefined && now < announcedVersion.nextCheckAt) {
+  if (announcedVersion !== undefined && Date.now() < announcedVersion.nextCheckAt) {
     return announcedVersion.value;
   }
-  try {
-    const value = await readPublishedPageSlugsVersion();
-    announcedVersion = { value, nextCheckAt: now + VERSION_CHECK_INTERVAL_MS };
-  } catch (error: unknown) {
-    logger.warn('Could not read the version of the published page slugs from Redis', { error });
-    announcedVersion = { value: undefined, nextCheckAt: now + RETRY_AFTER_FAILURE_MS };
-  }
-  return announcedVersion.value;
+  pendingVersionRead ??= readPublishedPageSlugsVersion()
+    .then(
+      (value) => {
+        announcedVersion = { value, nextCheckAt: Date.now() + VERSION_CHECK_INTERVAL_MS };
+        return value;
+      },
+      (error: unknown): undefined => {
+        logger.warn('Could not read the version of the published page slugs from Redis', {
+          error,
+        });
+        announcedVersion = { value: undefined, nextCheckAt: Date.now() + RETRY_AFTER_FAILURE_MS };
+      },
+    )
+    .finally(() => {
+      pendingVersionRead = undefined;
+    });
+  return await pendingVersionRead;
 };
 
 /**
@@ -130,16 +174,28 @@ const readAnnouncedVersion = async (): Promise<string | undefined> => {
  * as a page, so that the page route decides as it did before.
  */
 const mayResolve = async (segments: string[]): Promise<boolean> => {
+  if (!isResolvedBySlug(segments)) return true;
+
   const version = await readAnnouncedVersion();
   if (version === undefined) return true;
 
+  // Only the first request and the first one after an announced change wait for the slugs.
+  // Expired slugs keep answering while newer ones are read.
   let current = index;
-  if (current?.version !== version || Date.now() >= current.expiresAt) {
-    const changed = current !== undefined && current.version !== version;
-    if (changed) logger.debug('The published page slugs changed, reading them again');
-    current = await readSlugs(version, changed);
+  if (current?.version !== version) {
+    if (current !== undefined) logger.debug('The published page slugs changed, reading them again');
+    current = await readSlugs(version, current !== undefined);
+  } else if (Date.now() >= current.expiresAt) {
+    void readSlugs(version, false);
   }
-  return current.slugs === undefined || mayResolveToCmsPage(segments, current.slugs);
+  if (current.slugs === undefined || hasPublishedPage(segments, current.slugs)) return true;
+
+  // A path about to answer 404 waits for slugs newer than expired ones, or than a miss long ago.
+  const now = Date.now();
+  if (now >= current.expiresAt || now - current.readAt >= RECHECK_MISS_AFTER_MS) {
+    current = await readSlugs(version, false);
+  }
+  return current.slugs === undefined || hasPublishedPage(segments, current.slugs);
 };
 
 const decodeSegments = (pathname: string): string[] | undefined => {
@@ -170,7 +226,8 @@ const decodeSegments = (pathname: string): string[] | undefined => {
 export const notFoundProxy: ProxyModule = (next) => async (request, event, response) => {
   const rewrite = response.headers.get(Header.MIDDLEWARE_REWRITES);
   const isPageRead = request.method === 'GET' || request.method === 'HEAD';
-  if (rewrite === null || !isPageRead || request.nextUrl.searchParams.has('preview')) {
+  const isPreview = request.nextUrl.searchParams.get('preview') === 'true';
+  if (rewrite === null || !isPageRead || isPreview) {
     return next(request, event, response);
   }
 
