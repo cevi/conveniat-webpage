@@ -1,5 +1,6 @@
 import { FormsPreviewPage } from '@/features/payload-cms/page-layouts/forms-preview-page';
 import SearchPage from '@/features/payload-cms/page-layouts/search-page';
+import { localizedPagePath } from '@/features/payload-cms/utils/metadata-helper';
 import type { Locale, LocalizedCollectionPage, LocalizedPageType } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import type React from 'react';
@@ -68,3 +69,19 @@ export const getSpecialPage = (
   }
   return undefined;
 };
+
+/**
+ * The path of a special page in every locale this deployment serves.
+ *
+ * @param entry - the special page
+ * @returns the path by locale, German without a prefix
+ */
+export const specialPagePathsByLocale = (
+  entry: SpecialRouteResolutionEntry,
+): Partial<Record<Locale, string>> =>
+  Object.fromEntries(
+    (i18nConfig.locales as Locale[]).map((locale) => [
+      locale,
+      localizedPagePath(locale, '', entry.alternatives[locale].replace(/^\/+/, '')),
+    ]),
+  );

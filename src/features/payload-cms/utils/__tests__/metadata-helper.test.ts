@@ -1,6 +1,29 @@
-import { buildMetadata } from '@/features/payload-cms/utils/metadata-helper';
+import { buildMetadata, findAlternatives } from '@/features/payload-cms/utils/metadata-helper';
+import type { BasePayload } from 'payload';
 
-const seo = { urlSlug: 'unused', metaTitle: 'Über uns' };
+const seo = { metaTitle: 'Über uns' };
+
+describe('findAlternatives', () => {
+  it('keys each version by the locale it was found in, not by a field of the document', async () => {
+    // The query selects only `seo`, so the documents carry no `_locale`.
+    const slugs: Record<string, string | undefined> = { de: 'lagerbericht', fr: 'rapport' };
+    const find = jest.fn(({ locale }: { locale: string }) => {
+      const slug = slugs[locale];
+      return Promise.resolve({
+        docs: slug === undefined ? [] : [{ id: 'a', seo: { urlSlug: slug } }],
+      });
+    });
+
+    const slugsByLocale = await findAlternatives({
+      payload: { find } as unknown as BasePayload,
+      collection: 'blog',
+      internalPageName: 'Lagerbericht',
+      currentDate: '2027-07-24T00:00:00.000Z',
+    });
+
+    expect(slugsByLocale).toEqual({ de: 'lagerbericht', fr: 'rapport' });
+  });
+});
 
 describe('buildMetadata', () => {
   it('makes every version its own canonical and lists all versions with German as x-default', () => {

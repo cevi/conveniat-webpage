@@ -1,11 +1,12 @@
 import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
 import { environmentVariables } from '@/config/environment-variables';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
-import { getSpecialPage, isSpecialPage } from '@/features/payload-cms/special-pages-table';
 import {
-  buildLanguageAlternates,
-  localizedPagePath,
-} from '@/features/payload-cms/utils/metadata-helper';
+  getSpecialPage,
+  isSpecialPage,
+  specialPagePathsByLocale,
+} from '@/features/payload-cms/special-pages-table';
+import { buildLanguageAlternates } from '@/features/payload-cms/utils/metadata-helper';
 import type { PreviewAccess } from '@/features/payload-cms/utils/preview/preview-utils';
 import { PreviewWarning } from '@/features/payload-cms/utils/preview/preview-utils';
 import type { Locale, SearchParameters } from '@/types/types';
@@ -43,15 +44,9 @@ const handleSpecialPage = (collection: string, locale: Locale): Metadata => {
   const foundLocale = specialPage.locale;
 
   if (foundLocale === locale) {
-    const pathsByLocale = Object.fromEntries(
-      (i18nConfig.locales as Locale[]).map((l) => [
-        l,
-        localizedPagePath(l, '', normalizeAlternativePath(specialPage.alternatives[l])),
-      ]),
-    );
     return {
       title: specialPage.title[locale],
-      alternates: buildLanguageAlternates(pathsByLocale, locale),
+      alternates: buildLanguageAlternates(specialPagePathsByLocale(specialPage), locale),
     };
   }
 

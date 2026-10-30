@@ -61,6 +61,7 @@ export async function findAlternatives({
  * @param locale - the locale of the page
  * @param urlPrefix - the path segment of the collection, empty for generic pages
  * @param slug - the URL slug of the page in that locale, empty for the landing page
+ * @returns the absolute path, `/` for the German landing page
  */
 export const localizedPagePath = (locale: Locale, urlPrefix: string, slug: string): string =>
   `/${[locale === i18nConfig.defaultLocale ? '' : locale, urlPrefix, slug]
@@ -74,8 +75,8 @@ export const localizedPagePath = (locale: Locale, urlPrefix: string, slug: strin
  * other language (`x-default`).
  * https://developers.google.com/search/docs/specialty/international/localized-versions
  *
- * The paths are relative; `metadataBase` in the root metadata makes them absolute, which Google
- * requires.
+ * Google requires absolute URLs. Page metadata passes paths, which `metadataBase` in the root
+ * metadata resolves; the sitemap passes absolute URLs.
  *
  * @param pathsByLocale - the path or URL of every published version of the page, by locale
  * @param locale - the locale of the version being rendered
@@ -95,13 +96,17 @@ export const buildLanguageAlternates = (
 };
 
 interface SEOType {
-  urlSlug: string;
   metaTitle?: string | null;
   metaDescription?: string | null;
   keywords?: string | null;
 }
 /**
  * The metadata of one version of a CMS page: its SEO fields and its language links.
+ *
+ * @param options.seo - the SEO fields of the version being rendered
+ * @param options.locale - the locale of the version being rendered
+ * @param options.slugsByLocale - the URL slug of every published version, by locale
+ * @param options.urlPrefix - the path segment of the collection, empty for generic pages
  */
 export function buildMetadata({
   seo,

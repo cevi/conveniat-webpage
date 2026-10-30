@@ -1,7 +1,10 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { enabledLocales } from '@/features/payload-cms/payload-cms/locales';
 import type { Blog, GenericPage } from '@/features/payload-cms/payload-types';
-import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
+import {
+  specialPagePathsByLocale,
+  specialPagesTable,
+} from '@/features/payload-cms/special-pages-table';
 import {
   buildLanguageAlternates,
   localizedPagePath,
@@ -40,10 +43,10 @@ const addLocalizedEntries = (
 };
 
 /**
- * Retrieves all published localized URLs for a given generic page.
+ * Retrieves all published localized URLs for a given generic page or blog post.
  * It checks the publishing status and slug for each locale.
  *
- * @param page - The GenericPage object from Payload CMS.
+ * @param page - The generic page or blog post from Payload CMS.
  * @param appHostUrl - The base URL of the application.
  * @param urlPrefix - The path segment of the collection, empty for generic pages.
  * @returns A partial record mapping each locale to its corresponding published URL, if available.
@@ -163,10 +166,9 @@ export const cachedSitemapGenerator = async (): Promise<MetadataRoute.Sitemap> =
     addLocalizedEntries(
       sitemap,
       Object.fromEntries(
-        enabledLocales.map((locale) => [
+        Object.entries(specialPagePathsByLocale(searchPage)).map(([locale, path]) => [
           locale,
-          APP_HOST_URL +
-            localizedPagePath(locale, '', searchPage.alternatives[locale].replace(/^\//, '')),
+          APP_HOST_URL + path,
         ]),
       ),
     );
