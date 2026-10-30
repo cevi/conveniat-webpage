@@ -22,8 +22,9 @@ declare const self: ServiceWorkerGlobalScope;
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
+// A 200 HTML page under an asset URL is a soft 404 or a captive portal (camp wifi), never the asset.
 const htmlErrorPreventionPlugin: SerwistPlugin = {
-  // Prevent caching HTML error responses as CSS/JS
+  // Prevent caching HTML error responses as assets
   cacheWillUpdate: ({ response }) => {
     if (response.headers.get('content-type')?.includes('text/html') === true) {
       return;
@@ -115,7 +116,10 @@ const imageCaching: RuntimeCaching = {
     ? new NetworkOnly()
     : new StaleWhileRevalidate({
         cacheName: CACHE_NAMES.IMAGES,
-        plugins: [new CacheableResponsePlugin({ statuses: [200] }) as SerwistPlugin],
+        plugins: [
+          new CacheableResponsePlugin({ statuses: [200] }) as SerwistPlugin,
+          htmlErrorPreventionPlugin,
+        ],
       }),
 };
 
@@ -125,7 +129,10 @@ const nextImageCaching: RuntimeCaching = {
     ? new NetworkOnly()
     : new StaleWhileRevalidate({
         cacheName: CACHE_NAMES.IMAGES,
-        plugins: [new CacheableResponsePlugin({ statuses: [200] }) as SerwistPlugin],
+        plugins: [
+          new CacheableResponsePlugin({ statuses: [200] }) as SerwistPlugin,
+          htmlErrorPreventionPlugin,
+        ],
       }),
 };
 
