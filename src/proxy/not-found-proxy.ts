@@ -46,15 +46,23 @@ export const SEGMENTS_NOT_RESOLVED_BY_SLUG = new Set([
 ]);
 
 /**
- * Whether the path below the locale and the design can resolve to a published CMS page.
+ * Whether the catch-all CMS route resolves the path by slug. Every other path, the home page
+ * included, is left to its route without reading anything.
+ *
+ * @param segments - the decoded path segments after `/{locale}/{design}`
+ */
+const isResolvedBySlug = (segments: string[]): boolean =>
+  segments[0] !== undefined && !SEGMENTS_NOT_RESOLVED_BY_SLUG.has(segments[0]);
+
+/**
+ * Whether a path the CMS route resolves by slug has a published page.
  *
  * @param segments - the decoded path segments after `/{locale}/{design}`
  * @param slugs - the published slugs
  */
-export const mayResolveToCmsPage = (segments: string[], slugs: PublishedPageSlugs): boolean => {
+const hasPublishedPage = (segments: string[], slugs: PublishedPageSlugs): boolean => {
   const [first, ...rest] = segments;
-  if (first === undefined || SEGMENTS_NOT_RESOLVED_BY_SLUG.has(first)) return true;
-  if (blogPrefixes.has(first)) return slugs.blogPosts.has(rest.join('/'));
+  if (first !== undefined && blogPrefixes.has(first)) return slugs.blogPosts.has(rest.join('/'));
   return slugs.genericPages.has(segments.join('/'));
 };
 
@@ -64,6 +72,8 @@ const MAX_AGE_MS = 5 * 60 * 1000;
 const RECHECK_MISS_AFTER_MS = 10 * 1000;
 /** How soon a failed read is tried again. Until then every path is left to the page route. */
 const RETRY_AFTER_FAILURE_MS = 30 * 1000;
+/** How long a read may take before it counts as failed, so that no request hangs on Mongo. */
+const READ_TIMEOUT_MS = 5000;
 
 interface SlugIndex {
   slugs: PublishedPageSlugs | undefined;
@@ -74,8 +84,22 @@ interface SlugIndex {
 let index: SlugIndex | undefined;
 let pendingRead: Promise<SlugIndex> | undefined;
 
+const fetchWithTimeout = async (): Promise<PublishedPageSlugs> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`Reading the published page slugs took longer than ${READ_TIMEOUT_MS} ms`));
+    }, READ_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([fetchPublishedPageSlugs(), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 const readSlugs = async (): Promise<SlugIndex> => {
-  pendingRead ??= fetchPublishedPageSlugs()
+  pendingRead ??= fetchWithTimeout()
     .then(
       (slugs): SlugIndex => {
         const now = Date.now();
@@ -104,11 +128,16 @@ const readSlugs = async (): Promise<SlugIndex> => {
  * as a page, so that the page route decides as it did before.
  */
 const mayResolve = async (segments: string[]): Promise<boolean> => {
-  let current = index === undefined || Date.now() >= index.expiresAt ? await readSlugs() : index;
-  if (current.slugs === undefined || mayResolveToCmsPage(segments, current.slugs)) return true;
+  if (!isResolvedBySlug(segments)) return true;
+
+  // Only the first request waits for the slugs. Later ones answer from the slugs they have while
+  // newer ones are read.
+  let current = index ?? (await readSlugs());
+  if (Date.now() >= current.expiresAt) void readSlugs();
+  if (current.slugs === undefined || hasPublishedPage(segments, current.slugs)) return true;
 
   if (Date.now() - current.readAt >= RECHECK_MISS_AFTER_MS) current = await readSlugs();
-  return current.slugs === undefined || mayResolveToCmsPage(segments, current.slugs);
+  return current.slugs === undefined || hasPublishedPage(segments, current.slugs);
 };
 
 const decodeSegments = (pathname: string): string[] | undefined => {
@@ -138,7 +167,8 @@ const decodeSegments = (pathname: string): string[] | undefined => {
 export const notFoundProxy: ProxyModule = (next) => async (request, event, response) => {
   const rewrite = response.headers.get(Header.MIDDLEWARE_REWRITES);
   const isPageRead = request.method === 'GET' || request.method === 'HEAD';
-  if (rewrite === null || !isPageRead || request.nextUrl.searchParams.has('preview')) {
+  const isPreview = request.nextUrl.searchParams.get('preview') === 'true';
+  if (rewrite === null || !isPageRead || isPreview) {
     return next(request, event, response);
   }
 
