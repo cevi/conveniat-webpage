@@ -39,10 +39,10 @@
   },
   "lint-staged": {
     "**/package.json": "sort-package-json",
-    "*.{md,mdx,yml,json}": "prettier --config-path .prettierrc.json --write --cache --experimental-cli .",
+    "*.{md,mdx,yml,json}": "prettier --config-path .prettierrc.json --write --cache --experimental-cli",
     "*.{js,jsx,ts,tsx}": [
-      "prettier --config-path .prettierrc.json --write --cache --experimental-cli .",
-      "eslint -c eslint.config.mjs --fix --quiet --cache ."
+      "prettier --config-path .prettierrc.json --write --cache --experimental-cli",
+      "eslint -c eslint.config.mjs --fix --quiet --cache"
     ]
   },
   "dependencies": {
@@ -117,6 +117,7 @@
     "js-cookie": "^3.0.8",
     "json-schema": "^0.4.0",
     "jsonwebtoken": "^9.0.3",
+    "jsqr": "^1.4.0",
     "lucide-react": "^0.540.0",
     "mailparser": "^3.12.4",
     "maplibre-gl": "^6.15.0",
