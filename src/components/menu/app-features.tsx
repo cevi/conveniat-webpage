@@ -1,5 +1,5 @@
+import { AppFeatureLink } from '@/components/menu/app-feature-link';
 import { appFeaturesTitle } from '@/components/menu/app-features-title';
-import { LinkComponent } from '@/components/ui/link-component';
 import { environmentVariables } from '@/config/environment-variables';
 import { getAppFeatureFlagsCached } from '@/features/payload-cms/api/cached-globals';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -102,14 +102,14 @@ const itemClassName: Record<AppFeaturesVariant, string> = {
     'closeNavOnClick -mx-3 flex items-center gap-2 rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50',
   // like the links of the website's columns next to it
   column:
-    'hover:bg-tint hover:text-heading flex min-h-11 items-center gap-2.5 rounded-lg px-3 py-2 text-[15px] leading-snug text-gray-700',
+    'hover:bg-tint text-heading flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2 text-[16px] leading-snug font-semibold [&_svg]:size-[18px] [&_svg]:shrink-0 [&_svg]:text-green-500 group-aria-[current=page]/feature:bg-conveniat-green group-aria-[current=page]/feature:text-white group-aria-[current=page]/feature:[&_svg]:text-white',
 };
 
 const AppFeatureMenuItem: React.FC<
   AppFeatureMenuItemProperties & { variant: AppFeaturesVariant }
 > = ({ href, Icon, text, openInNewTab = false, prefetch, variant }) => {
   return (
-    <LinkComponent
+    <AppFeatureLink
       href={href}
       openInNewTab={openInNewTab}
       {...(prefetch === undefined ? {} : { prefetch })}
@@ -118,7 +118,7 @@ const AppFeatureMenuItem: React.FC<
         <Icon aria-hidden="true" className="size-5" />
         {text}
       </span>
-    </LinkComponent>
+    </AppFeatureLink>
   );
 };
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { CurrentMenuPathContext } from '@/components/menu/app-feature-link';
 import { appFeaturesTitle } from '@/components/menu/app-features-title';
 import type { ProcessedMainMenuItem } from '@/components/menu/main-menu';
 import { moreColumnLabel, splitMenuColumns } from '@/components/menu/menu-columns';
@@ -38,7 +39,7 @@ const pinnedItemClassName =
 const pinnedRowClassName = 'flex items-center gap-1 xl:gap-1.5';
 
 const columnHeadingClassName =
-  'font-heading border-line mb-2 block border-b px-3 pb-2 text-[12px] font-extrabold tracking-[0.08em] text-green-700 uppercase';
+  'font-heading border-line mb-1.5 block border-b px-3 pb-3.5 text-[13px] font-extrabold tracking-[0.09em] text-green-600 uppercase';
 
 /**
  * Calls `onDismiss` on a pointer press outside every referenced element, or on Escape, while `isOpen`.
@@ -472,16 +473,19 @@ export const DesktopNav: React.FC<{
             onClick={closeMenu}
             className="animate-in fade-in-0 fixed inset-x-0 top-[calc(4rem+var(--preview-banner-height))] z-40 h-dvh bg-gray-950/30"
           />
-          <MenuPanel
-            id={menuId}
-            locale={locale}
-            menuItems={menuItems}
-            appFeatures={appFeatures}
-            highlightedId={highlightedId}
-            isCurrent={isCurrent}
-            panelReference={panelReference}
-            onLinkClick={closeOnLinkClick}
-          />
+          {/* the app's links mark the open page with it */}
+          <CurrentMenuPathContext value={pathname}>
+            <MenuPanel
+              id={menuId}
+              locale={locale}
+              menuItems={menuItems}
+              appFeatures={appFeatures}
+              highlightedId={highlightedId}
+              isCurrent={isCurrent}
+              panelReference={panelReference}
+              onLinkClick={closeOnLinkClick}
+            />
+          </CurrentMenuPathContext>
         </>
       )}
     </div>
