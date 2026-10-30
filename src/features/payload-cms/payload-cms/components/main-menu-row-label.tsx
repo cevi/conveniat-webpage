@@ -64,8 +64,12 @@ export const MainEntryRowLabel: React.FC = () => {
         {placement[locale]}
       </Pill>
       {depth === 1 && data.pinnedToHeader === true && (
-        <Pill pillStyle="success" size="small" icon={<Pin className="size-3" />}>
-          {pinned[locale]}
+        // the icon as content, not as `icon`: Payload sizes and places that slot for its own icons
+        <Pill pillStyle="success" size="small">
+          <span className="flex items-center gap-1">
+            {pinned[locale]}
+            <Pin aria-hidden className="size-3 shrink-0" />
+          </span>
         </Pill>
       )}
     </span>
