@@ -21,7 +21,12 @@ const AppLayout: React.FC<LayoutProperties> = ({ children }) => {
       <ClientProviders>
         <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />
         <SetHideCopyrightFooter value />
-        <div className="mb-20">{children}</div>
+        {/* An app page opened from a link renders in the website design, whose round logo
+            hangs 25px out of the header below xl. Its pages are laid out for the app's flat
+            header, so on the website they start lower, the fixed and sticky ones included. */}
+        <div className="mb-20 max-xl:[html:not([data-app])_&]:pt-[28px] max-xl:[html:not([data-app])_&]:[--app-content-top:calc(90px+var(--preview-banner-height))] max-xl:[html:not([data-app])_&]:[--app-header-height:calc(88px+var(--preview-banner-height))]">
+          {children}
+        </div>
         <div></div>
       </ClientProviders>
     </Suspense>
