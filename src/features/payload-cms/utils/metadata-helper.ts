@@ -4,6 +4,11 @@ import { i18nConfig } from '@/types/types';
 import type { Metadata } from 'next';
 import type { BasePayload, CollectionSlug } from 'payload';
 
+/**
+ * Finds the published versions of a page in every locale this deployment serves.
+ *
+ * @returns the URL slug of the page by locale, for the locales it is published in
+ */
 export async function findAlternatives({
   payload,
   collection,
@@ -14,23 +19,22 @@ export async function findAlternatives({
   collection: CollectionSlug;
   internalPageName: string;
   currentDate?: string;
-}): Promise<(GenericPage | Blog)[]> {
+}): Promise<Partial<Record<Locale, string>>> {
   const hasReleaseDate = collection === 'blog';
 
-  const results = await Promise.all(
-    i18nConfig.locales.map((l) =>
-      payload.find({
+  const slugsByLocale = await Promise.all(
+    (i18nConfig.locales as Locale[]).map(async (l) => {
+      const result = await payload.find({
         collection,
         pagination: false,
         fallbackLocale: false,
-        locale: l as Locale,
+        locale: l,
         draft: false,
-        // Only seo.urlSlug and _locale are used for building alternate URLs.
+        // Only seo.urlSlug is used for building alternate URLs.
         // Skip all relationships and content blocks.
         depth: 0,
         select: {
           seo: true,
-          internalPageName: true,
         },
         where: {
           and: [
@@ -41,34 +45,88 @@ export async function findAlternatives({
               : []),
           ],
         },
-      }),
-    ),
+      });
+      const document_ =
+        result.docs.length === 1 ? (result.docs[0] as Blog | GenericPage) : undefined;
+      return [l, document_?.seo.urlSlug] as const;
+    }),
   );
 
-  return results
-    .filter((r) => r.docs.length === 1)
-    .flatMap((r) => r.docs[0] as Blog | GenericPage)
-    .filter(Boolean);
+  return Object.fromEntries(slugsByLocale.filter(([, slug]) => slug !== undefined));
 }
+
+/**
+ * The path of a page in one locale. German, the default locale, is served without a prefix.
+ *
+ * @param locale - the locale of the page
+ * @param urlPrefix - the path segment of the collection, empty for generic pages
+ * @param slug - the URL slug of the page in that locale, empty for the landing page
+ * @returns the absolute path, `/` for the German landing page
+ */
+export const localizedPagePath = (locale: Locale, urlPrefix: string, slug: string): string =>
+  `/${[locale === i18nConfig.defaultLocale ? '' : locale, urlPrefix, slug]
+    .filter((segment) => segment !== '')
+    .join('/')}`;
+
+/**
+ * The canonical and language links of one version of a page, as Google asks for localized
+ * versions: a translation is not a duplicate, so each version is its own canonical and lists
+ * every version, itself included. German, served without a prefix, is the fallback for every
+ * other language (`x-default`).
+ * https://developers.google.com/search/docs/specialty/international/localized-versions
+ *
+ * Google requires absolute URLs. Page metadata passes paths, which `metadataBase` in the root
+ * metadata resolves; the sitemap passes absolute URLs.
+ *
+ * @param pathsByLocale - the path or URL of every published version of the page, by locale
+ * @param locale - the locale of the version being rendered
+ */
+export const buildLanguageAlternates = (
+  pathsByLocale: Partial<Record<Locale, string>>,
+  locale: Locale,
+): { canonical: string; languages: Partial<Record<Locale | 'x-default', string>> } | undefined => {
+  const canonical = pathsByLocale[locale];
+  if (canonical === undefined) return undefined;
+
+  const fallback = pathsByLocale[i18nConfig.defaultLocale as Locale];
+  return {
+    canonical,
+    languages: { ...pathsByLocale, ...(fallback !== undefined && { 'x-default': fallback }) },
+  };
+};
+
 interface SEOType {
-  urlSlug: string;
   metaTitle?: string | null;
   metaDescription?: string | null;
   keywords?: string | null;
 }
+/**
+ * The metadata of one version of a CMS page: its SEO fields and its language links.
+ *
+ * @param options.seo - the SEO fields of the version being rendered
+ * @param options.locale - the locale of the version being rendered
+ * @param options.slugsByLocale - the URL slug of every published version, by locale
+ * @param options.urlPrefix - the path segment of the collection, empty for generic pages
+ */
 export function buildMetadata({
   seo,
-  canonicalLocale,
-  canonicalSlug,
-  alternates,
-  prefix = '',
+  locale,
+  slugsByLocale,
+  urlPrefix = '',
 }: {
   seo: SEOType;
-  canonicalLocale: string;
-  canonicalSlug: string;
-  alternates: Record<string, string>;
-  prefix?: string;
+  locale: Locale;
+  slugsByLocale: Partial<Record<Locale, string>>;
+  urlPrefix?: string;
 }): Metadata {
+  const pathsByLocale = Object.fromEntries(
+    Object.entries(slugsByLocale).map(([l, slug]) => [
+      l,
+      localizedPagePath(l as Locale, urlPrefix, slug),
+    ]),
+  );
+  const alternates = buildLanguageAlternates(pathsByLocale, locale);
+
   return {
     ...(seo.metaTitle && { title: seo.metaTitle }),
     ...(seo.metaDescription && { description: seo.metaDescription }),
@@ -78,12 +136,6 @@ export function buildMetadata({
       ...(seo.metaTitle && { title: seo.metaTitle }),
       ...(seo.metaDescription && { description: seo.metaDescription }),
     },
-    ...(canonicalLocale &&
-      canonicalSlug && {
-        alternates: {
-          canonical: `${prefix}/${canonicalLocale}/${canonicalSlug}`,
-          languages: alternates,
-        },
-      }),
+    ...(alternates && { alternates }),
   };
 }

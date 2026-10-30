@@ -5,13 +5,14 @@
   height: 44px !important;
 }
 
-/* The page draws its own locate button next to the search, which takes the top of the map. */
+/* The page draws its own locate button next to the search, which takes the top of the map, below
+   the website's logo where it hangs over the map (see the app pages layout). */
 .map-has-own-locate-button .maplibregl-ctrl-group:has(> .maplibregl-ctrl-geolocate) {
   display: none;
 }
 
 .map-has-own-locate-button .maplibregl-ctrl-top-right {
-  top: 56px;
+  top: calc(56px + var(--app-logo-overhang, 0px));
 }
 
 /* the compass is round and floats like the locate button above it, on the same right edge */
