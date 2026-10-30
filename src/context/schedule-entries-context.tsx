@@ -1,8 +1,8 @@
 'use client';
 
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
+import { useStoredRows } from '@/hooks/use-stored-rows';
 import { scheduleEntriesCollection, type ScheduleEntryRecord } from '@/lib/tanstack-db';
-import { useLiveQuery } from '@tanstack/react-db';
 import type React from 'react';
 import {
   createContext,
@@ -213,9 +213,7 @@ export const ScheduleEntriesProvider: React.FC<ScheduleEntriesProviderProperties
   const hasHydratedReference = useRef(false);
   const hasSyncedReference = useRef(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | undefined>();
-  const { data: localEntries } = useLiveQuery({
-    query: (q) => q.from({ entry: scheduleEntriesCollection }),
-  });
+  const localEntries = useStoredRows(scheduleEntriesCollection);
 
   // Convert local DB records to frontend types
   const entries = useMemo(
