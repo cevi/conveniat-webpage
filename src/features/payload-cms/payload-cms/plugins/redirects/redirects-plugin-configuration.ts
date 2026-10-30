@@ -49,5 +49,5 @@ export const redirectsPluginConfiguration = redirectsPlugin({
       ];
     },
   },
-  collections: ['blog', 'generic-page'],
+  collections: ['generic-page'],
 });

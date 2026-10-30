@@ -82,6 +82,6 @@ export const specialPagePathsByLocale = (
   Object.fromEntries(
     (i18nConfig.locales as Locale[]).map((locale) => [
       locale,
-      localizedPagePath(locale, '', entry.alternatives[locale].replace(/^\/+/, '')),
+      localizedPagePath(locale, entry.alternatives[locale].replace(/^\/+/, '')),
     ]),
   );

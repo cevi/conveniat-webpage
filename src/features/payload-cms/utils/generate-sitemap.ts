@@ -1,6 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { enabledLocales } from '@/features/payload-cms/payload-cms/locales';
-import type { Blog, GenericPage } from '@/features/payload-cms/payload-types';
+import type { GenericPage } from '@/features/payload-cms/payload-types';
 import {
   specialPagePathsByLocale,
   specialPagesTable,
@@ -14,7 +14,6 @@ import type { Locale } from '@/types/types';
 import config from '@payload-config';
 import type { MetadataRoute } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
-import type { CollectionSlug } from 'payload';
 import { getPayload } from 'payload';
 
 /**
@@ -43,18 +42,16 @@ const addLocalizedEntries = (
 };
 
 /**
- * Retrieves all published localized URLs for a given generic page or blog post.
+ * Retrieves all published localized URLs for a given generic page.
  * It checks the publishing status and slug for each locale.
  *
- * @param page - The generic page or blog post from Payload CMS.
+ * @param page - The generic page from Payload CMS.
  * @param appHostUrl - The base URL of the application.
- * @param urlPrefix - The path segment of the collection, empty for generic pages.
  * @returns A partial record mapping each locale to its corresponding published URL, if available.
  */
 const getPublishedLocalizedPageUrls = (
-  page: GenericPage | Blog,
+  page: GenericPage,
   appHostUrl: string,
-  urlPrefix: string,
 ): Partial<Record<Locale, string>> => {
   const localizedUrls: Partial<Record<Locale, string>> = {};
 
@@ -68,16 +65,14 @@ const getPublishedLocalizedPageUrls = (
       continue;
     }
 
-    localizedUrls[locale] =
-      appHostUrl + localizedPagePath(locale, urlPrefix, multiLangSlug[locale]);
+    localizedUrls[locale] = appHostUrl + localizedPagePath(locale, multiLangSlug[locale]);
   }
 
   return localizedUrls;
 };
 
 function processDocumentsForSitemap(
-  documents: GenericPage[] | Blog[],
-  urlPrefix: string,
+  documents: GenericPage[],
   sitemap: MetadataRoute.Sitemap,
   {
     APP_HOST_URL,
@@ -99,7 +94,7 @@ function processDocumentsForSitemap(
     if (permissionId === undefined || publicPermissionIds.has(permissionId)) {
       addLocalizedEntries(
         sitemap,
-        getPublishedLocalizedPageUrls(document_, APP_HOST_URL, urlPrefix),
+        getPublishedLocalizedPageUrls(document_, APP_HOST_URL),
         document_.updatedAt,
       );
     }
@@ -108,14 +103,14 @@ function processDocumentsForSitemap(
 
 /**
  * Generates a sitemap for Next.js applications by fetching generic pages from Payload CMS.
- * It includes all published pages/blog posts with their localized alternate URLs.
+ * It includes all published pages with their localized alternate URLs.
  *
  * @returns A promise that resolves to an array of sitemap entries.
  */
 export const cachedSitemapGenerator = async (): Promise<MetadataRoute.Sitemap> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'collection:generic-page', 'collection:blog');
+  cacheTag('payload', 'collection:generic-page');
 
   const sitemap: MetadataRoute.Sitemap = [];
   const APP_HOST_URL = environmentVariables.APP_HOST_URL;
@@ -135,29 +130,19 @@ export const cachedSitemapGenerator = async (): Promise<MetadataRoute.Sitemap> =
   });
   const publicPermissionIds = new Set(permissions.map((p) => p.id));
 
-  const collectionsToProcess = [
-    { name: 'generic-page', urlPrefix: '' },
-    { name: 'blog', urlPrefix: 'blog' },
-  ];
-
-  for (const { name, urlPrefix } of collectionsToProcess) {
-    const { docs } = await payload.find({
-      collection: name as CollectionSlug,
-      depth: 0,
-      limit: 1000,
-      locale: 'all',
-      where: {
-        'content.releaseDate': {
-          less_than_equal: currentDate,
-        },
+  const { docs } = await payload.find({
+    collection: 'generic-page',
+    depth: 0,
+    limit: 1000,
+    locale: 'all',
+    where: {
+      'content.releaseDate': {
+        less_than_equal: currentDate,
       },
-    });
+    },
+  });
 
-    processDocumentsForSitemap(docs as Blog[] | GenericPage[], urlPrefix, sitemap, {
-      APP_HOST_URL,
-      publicPermissionIds,
-    });
-  }
+  processDocumentsForSitemap(docs, sitemap, { APP_HOST_URL, publicPermissionIds });
 
   // add special pages
   // --> search

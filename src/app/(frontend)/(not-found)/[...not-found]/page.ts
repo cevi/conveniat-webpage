@@ -4,7 +4,7 @@ import type React from 'react';
 /**
  * This page is rendered when no other page is found.
  *
- * Although, `/src/app/(frontend)/[locale]/[[...slugs]]/blog-posts.tsx` is the fallback page for
+ * Although the catch-all CMS route under `/src/app/(frontend)/[locale]` is the fallback page for
  * all pages that aren't statically rendered, this page is still necessary to handle
  * the case where the locale is set incorrectly.
  *

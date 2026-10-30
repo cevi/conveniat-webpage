@@ -52,7 +52,6 @@ export interface Config {
   blocks: {};
   collections: {
     'generic-page': GenericPage;
-    blog: Blog;
     timeline: Timeline;
     timelineCategory: TimelineCategory;
     images: Image;
@@ -129,7 +128,6 @@ export interface Config {
   };
   collectionsSelect: {
     'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
-    blog: BlogSelect<false> | BlogSelect<true>;
     timeline: TimelineSelect<false> | TimelineSelect<true>;
     timelineCategory: TimelineCategorySelect<false> | TimelineCategorySelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
@@ -360,11 +358,6 @@ export interface GenericPage {
         }
       | MediaTextBlock
       | ProcessStepsBlock
-      | {
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'blogPostsOverview';
-        }
       | FormBlock
       | ApprovedFormSubmissionsBlock
       | {
@@ -422,10 +415,6 @@ export interface GenericPage {
                   value: string | GenericPage;
                 } | null)
               | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
                   relationTo: 'images';
                   value: string | Image;
                 } | null)
@@ -466,10 +455,6 @@ export interface GenericPage {
               | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
-                } | null)
-              | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
                 } | null)
               | ({
                   relationTo: 'images';
@@ -1057,10 +1042,6 @@ export interface MediaTextBlock {
           value: string | GenericPage;
         } | null)
       | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
-      | ({
           relationTo: 'images';
           value: string | Image;
         } | null)
@@ -1089,276 +1070,197 @@ export interface MediaTextBlock {
   blockType: 'mediaText';
 }
 /**
- * Represents a block article that can be published on the website.
- *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "blog".
+ * via the `definition` "documents".
  */
-export interface Blog {
+export interface Document {
   id: string;
-  publishingStatus?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  _localized_status: LocalizedPublishingStatus;
-  _disable_unpublishing?: boolean | null;
-  _locale: string;
   /**
-   * Name of the page for internal purposes.
+   * Shown to visitors instead of the file name. Leave empty to show the file name.
    */
-  internalPageName: string;
+  title?: string | null;
   /**
-   * Authors of the Page (internal use only)
+   * Example: for the newsletter
    */
-  authors?: (string | User)[] | null;
-  /**
-   * Status of the page (internal use)
-   */
-  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
-  content: {
-    /**
-     * This is the title that will be displayed on the page.
-     */
-    blogH1: string;
-    bannerImage: string | Image;
-    releaseDate: string;
-    permissions?: (string | null) | Permission;
-    /**
-     * This is the text that will be displayed as a teaser on the blog overview page.
-     */
-    blogShortTitle: string;
-    /**
-     * The main content of the page
-     */
-    mainContent: (
-      | HeroSectionBlock
-      | PosterHeroBlock
-      | SectionSeparatorBlock
+  internalDescription?: string | null;
+  pdfThumbnailUrl?: string | null;
+  permissions?: (string | null) | Permission;
+  lastEditedByUser?: (string | null) | User;
+  _objectKey?: string | null;
+  folder?: (string | null) | FolderInterface;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-folders".
+ */
+export interface FolderInterface {
+  id: string;
+  name: string;
+  folder?: (string | null) | FolderInterface;
+  documentsAndFolders?: {
+    docs?: (
       | {
-          richTextSection: {
-            root: {
-              type: string;
-              children: {
-                type: any;
-                version: number;
-                [k: string]: unknown;
-              }[];
-              direction: ('ltr' | 'rtl') | null;
-              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-              indent: number;
-              version: number;
-            };
-            [k: string]: unknown;
-          };
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'richTextSection';
-        }
-      | MediaTextBlock
-      | ProcessStepsBlock
-      | {
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'blogPostsOverview';
-        }
-      | FormBlock
-      | ApprovedFormSubmissionsBlock
-      | {
-          images: (string | Image)[];
-          /**
-           * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
-           */
-          aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'photoCarousel';
-        }
-      | PhotoContestBlock
-      | HofDashboardBlock
-      | {
-          image: string | Image;
-          /**
-           * Choose the aspect ratio of the image.
-           */
-          aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'singlePicture';
-        }
-      | YoutubeEmbedding
-      | InstagramEmbedding
-      | SwisstopoMapEmbedding
-      | {
-          file: string | Document;
-          openInNewTab?: boolean | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'fileDownload';
-        }
-      | DetailsTable
-      | AccordionBlocks
-      | SummaryBox
-      | TimelineEntries
-      | Countdown
-      | {
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'whiteSpace';
+          relationTo?: 'payload-folders';
+          value: string | FolderInterface;
         }
       | {
-          /**
-           * Label for the button
-           */
-          label?: string | null;
-          linkField?: {
-            type?: ('reference' | 'custom' | 'email') | null;
-            reference?:
-              | ({
-                  relationTo: 'generic-page';
-                  value: string | GenericPage;
-                } | null)
-              | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
-                  relationTo: 'images';
-                  value: string | Image;
-                } | null)
-              | ({
-                  relationTo: 'documents';
-                  value: string | Document;
-                } | null)
-              | ({
-                  relationTo: 'camp-map-annotations';
-                  value: string | CampMapAnnotation;
-                } | null)
-              | ({
-                  relationTo: 'camp-schedule-entry';
-                  value: string | CampScheduleEntry;
-                } | null);
-            /**
-             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
-             */
-            fragment?: string | null;
-            url?: string | null;
-            email?: string | null;
-            openInNewTab?: boolean | null;
-          };
-          /**
-           * Show inverted colors
-           */
-          inverted?: boolean | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'callToAction';
+          relationTo?: 'documents';
+          value: string | Document;
         }
-      | DonationCtaBlock
-      | DonationBarometerBlock
-      | {
-          linkField?: {
-            type?: ('reference' | 'custom' | 'email') | null;
-            reference?:
-              | ({
-                  relationTo: 'generic-page';
-                  value: string | GenericPage;
-                } | null)
-              | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
-                  relationTo: 'images';
-                  value: string | Image;
-                } | null)
-              | ({
-                  relationTo: 'documents';
-                  value: string | Document;
-                } | null)
-              | ({
-                  relationTo: 'camp-map-annotations';
-                  value: string | CampMapAnnotation;
-                } | null)
-              | ({
-                  relationTo: 'camp-schedule-entry';
-                  value: string | CampScheduleEntry;
-                } | null);
-            /**
-             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
-             */
-            fragment?: string | null;
-            url?: string | null;
-            email?: string | null;
-            openInNewTab?: boolean | null;
-          };
-          headline: string;
-          date: string;
-          image?: (string | null) | Image;
-          paragraph?: {
-            root: {
-              type: string;
-              children: {
-                type: any;
-                version: number;
-                [k: string]: unknown;
-              }[];
-              direction: ('ltr' | 'rtl') | null;
-              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-              indent: number;
-              version: number;
-            };
-            [k: string]: unknown;
-          } | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'newsCard';
-        }
-      | {
-          date: string;
-          location?: (string | null) | CampMapAnnotation;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'campScheduleEntryBlock';
-        }
-      | CardGridBlock
-      | ContactPersonBlock
-      | TwoColumnBlock
-      | SponsorGridBlock
-      | FeaturedSectionBlock
-      | TabsBlock
     )[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
   };
-  seo: {
-    urlSlug: string;
+  folderType?: 'documents'[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-schedule-entry".
+ */
+export interface CampScheduleEntry {
+  id: string;
+  /**
+   * The title of the entry.
+   */
+  title: string;
+  /**
+   * Only programme blocks get a card and a detail page. Fixed points (e.g. Tagwache, Nachtruhe), meals and transfers show as a single compact line.
+   */
+  kind: 'program' | 'fixpoint' | 'meal' | 'transfer';
+  /**
+   * Who plans and runs the block. Shown next to the category.
+   */
+  form?: ('rp' | 'hp' | 'hpStar') | null;
+  /**
+   * The description of the entry
+   */
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Time slots for the schedule entry
+   */
+  timeslot: {
+    date: string;
     /**
-     * This is the title that will be displayed in the browser tab.
+     * Time slots in HH:mm format (e.g., 08:00 - 18:00)
      */
-    metaTitle?: string | null;
-    /**
-     * This is the description that will be displayed in search engine results.
-     */
-    metaDescription?: string | null;
-    /**
-     * These are the keywords that will be used to improve the visibility of the page in search engines.
-     */
-    keywords?: string | null;
-    urlSlugHistory?:
+    time: string;
+  };
+  target_group?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * What participants bring to the block, one item per row, e.g. "Trinkflasche".
+   */
+  bring?:
+    | {
+        item: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * The steps of the block in order. The app works out the clock times from the start of the block and the durations, so one description fits every Quartier.
+   */
+  steps?:
+    | {
+        phase: 'intro' | 'main' | 'end';
+        duration: number;
+        title: string;
+        text?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  leaders?: {
+    materials?:
       | {
-          slug?: string | null;
+          amount?: string | null;
+          item: string;
+          /**
+           * Who provides it, e.g. "Hof" or "MAT".
+           */
+          responsible?: string | null;
           id?: string | null;
         }[]
       | null;
+    safety?: string | null;
+    safeguarding?: string | null;
+    badWeather?: string | null;
+    /**
+     * Only the link is hidden from participants. Who may open the file itself is decided by the permission set on the document.
+     */
+    attachments?: (string | Document)[] | null;
   };
+  enable_enrolment?: boolean | null;
+  hide_participant_list?: boolean | null;
+  participants_min?: number | null;
+  participants_max?: number | null;
+  /**
+   * Location of the Schedule Entry
+   */
+  location: string | CampMapAnnotation;
+  /**
+   * The Quartiere this entry is for. Leave empty for the whole camp. A Hof sees the entries of its Quartier.
+   */
+  quartiere?: (string | Quartier)[] | null;
+  /**
+   * Organiser
+   */
+  organiser?: (string | User)[] | null;
+  category?: (string | null) | CampCategory;
   lastEditedByUser?: (string | null) | User;
+  enrolledCount?: number | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
-  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-categories".
+ */
+export interface CampCategory {
+  id: string;
+  title: string;
+  colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2552,63 +2454,6 @@ export interface SwisstopoMapEmbedding {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "documents".
- */
-export interface Document {
-  id: string;
-  /**
-   * Shown to visitors instead of the file name. Leave empty to show the file name.
-   */
-  title?: string | null;
-  /**
-   * Example: for the newsletter
-   */
-  internalDescription?: string | null;
-  pdfThumbnailUrl?: string | null;
-  permissions?: (string | null) | Permission;
-  lastEditedByUser?: (string | null) | User;
-  _objectKey?: string | null;
-  folder?: (string | null) | FolderInterface;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payload-folders".
- */
-export interface FolderInterface {
-  id: string;
-  name: string;
-  folder?: (string | null) | FolderInterface;
-  documentsAndFolders?: {
-    docs?: (
-      | {
-          relationTo?: 'payload-folders';
-          value: string | FolderInterface;
-        }
-      | {
-          relationTo?: 'documents';
-          value: string | Document;
-        }
-    )[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  folderType?: 'documents'[] | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "DetailsTable".
  */
 export interface DetailsTable {
@@ -2743,10 +2588,6 @@ export interface TeamMembersBlock {
           value: string | GenericPage;
         } | null)
       | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
-      | ({
           relationTo: 'images';
           value: string | Image;
         } | null)
@@ -2786,142 +2627,6 @@ export interface TeamMembersBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'accordionTeamMembersBlock';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-schedule-entry".
- */
-export interface CampScheduleEntry {
-  id: string;
-  /**
-   * The title of the entry.
-   */
-  title: string;
-  /**
-   * Only programme blocks get a card and a detail page. Fixed points (e.g. Tagwache, Nachtruhe), meals and transfers show as a single compact line.
-   */
-  kind: 'program' | 'fixpoint' | 'meal' | 'transfer';
-  /**
-   * Who plans and runs the block. Shown next to the category.
-   */
-  form?: ('rp' | 'hp' | 'hpStar') | null;
-  /**
-   * The description of the entry
-   */
-  description: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  /**
-   * Time slots for the schedule entry
-   */
-  timeslot: {
-    date: string;
-    /**
-     * Time slots in HH:mm format (e.g., 08:00 - 18:00)
-     */
-    time: string;
-  };
-  target_group?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  /**
-   * What participants bring to the block, one item per row, e.g. "Trinkflasche".
-   */
-  bring?:
-    | {
-        item: string;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * The steps of the block in order. The app works out the clock times from the start of the block and the durations, so one description fits every Quartier.
-   */
-  steps?:
-    | {
-        phase: 'intro' | 'main' | 'end';
-        duration: number;
-        title: string;
-        text?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  leaders?: {
-    materials?:
-      | {
-          amount?: string | null;
-          item: string;
-          /**
-           * Who provides it, e.g. "Hof" or "MAT".
-           */
-          responsible?: string | null;
-          id?: string | null;
-        }[]
-      | null;
-    safety?: string | null;
-    safeguarding?: string | null;
-    badWeather?: string | null;
-    /**
-     * Only the link is hidden from participants. Who may open the file itself is decided by the permission set on the document.
-     */
-    attachments?: (string | Document)[] | null;
-  };
-  enable_enrolment?: boolean | null;
-  hide_participant_list?: boolean | null;
-  participants_min?: number | null;
-  participants_max?: number | null;
-  /**
-   * Location of the Schedule Entry
-   */
-  location: string | CampMapAnnotation;
-  /**
-   * The Quartiere this entry is for. Leave empty for the whole camp. A Hof sees the entries of its Quartier.
-   */
-  quartiere?: (string | Quartier)[] | null;
-  /**
-   * Organiser
-   */
-  organiser?: (string | User)[] | null;
-  category?: (string | null) | CampCategory;
-  lastEditedByUser?: (string | null) | User;
-  enrolledCount?: number | null;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-categories".
- */
-export interface CampCategory {
-  id: string;
-  title: string;
-  colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3120,10 +2825,6 @@ export interface Timeline {
                     value: string | GenericPage;
                   } | null)
                 | ({
-                    relationTo: 'blog';
-                    value: string | Blog;
-                  } | null)
-                | ({
                     relationTo: 'images';
                     value: string | Image;
                   } | null)
@@ -3220,10 +2921,6 @@ export interface DonationCtaBlock {
           value: string | GenericPage;
         } | null)
       | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
-      | ({
           relationTo: 'images';
           value: string | Image;
         } | null)
@@ -3289,10 +2986,6 @@ export interface DonationBarometerBlock {
       | ({
           relationTo: 'generic-page';
           value: string | GenericPage;
-        } | null)
-      | ({
-          relationTo: 'blog';
-          value: string | Blog;
         } | null)
       | ({
           relationTo: 'images';
@@ -3377,10 +3070,6 @@ export interface CardGridBlock {
             value: string | GenericPage;
           } | null)
         | ({
-            relationTo: 'blog';
-            value: string | Blog;
-          } | null)
-        | ({
             relationTo: 'images';
             value: string | Image;
           } | null)
@@ -3426,10 +3115,6 @@ export interface ContactPersonBlock {
       | ({
           relationTo: 'generic-page';
           value: string | GenericPage;
-        } | null)
-      | ({
-          relationTo: 'blog';
-          value: string | Blog;
         } | null)
       | ({
           relationTo: 'images';
@@ -3501,11 +3186,6 @@ export interface TwoColumnBlock {
         blockName?: string | null;
         blockType: 'richTextSection';
       }
-    | {
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'blogPostsOverview';
-      }
     | FormBlock
     | ApprovedFormSubmissionsBlock
     | {
@@ -3561,10 +3241,6 @@ export interface TwoColumnBlock {
                 value: string | GenericPage;
               } | null)
             | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
-            | ({
                 relationTo: 'images';
                 value: string | Image;
               } | null)
@@ -3603,10 +3279,6 @@ export interface TwoColumnBlock {
             | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
-              } | null)
-            | ({
-                relationTo: 'blog';
-                value: string | Blog;
               } | null)
             | ({
                 relationTo: 'images';
@@ -3690,11 +3362,6 @@ export interface TwoColumnBlock {
         blockName?: string | null;
         blockType: 'richTextSection';
       }
-    | {
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'blogPostsOverview';
-      }
     | FormBlock
     | ApprovedFormSubmissionsBlock
     | {
@@ -3750,10 +3417,6 @@ export interface TwoColumnBlock {
                 value: string | GenericPage;
               } | null)
             | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
-            | ({
                 relationTo: 'images';
                 value: string | Image;
               } | null)
@@ -3792,10 +3455,6 @@ export interface TwoColumnBlock {
             | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
-              } | null)
-            | ({
-                relationTo: 'blog';
-                value: string | Blog;
               } | null)
             | ({
                 relationTo: 'images';
@@ -3880,10 +3539,6 @@ export interface SponsorGridBlock {
               value: string | GenericPage;
             } | null)
           | ({
-              relationTo: 'blog';
-              value: string | Blog;
-            } | null)
-          | ({
               relationTo: 'images';
               value: string | Image;
             } | null)
@@ -3933,10 +3588,6 @@ export interface FeaturedSectionBlock {
             value: string | GenericPage;
           } | null)
         | ({
-            relationTo: 'blog';
-            value: string | Blog;
-          } | null)
-        | ({
             relationTo: 'images';
             value: string | Image;
           } | null)
@@ -3974,10 +3625,6 @@ export interface FeaturedSectionBlock {
             | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
-              } | null)
-            | ({
-                relationTo: 'blog';
-                value: string | Blog;
               } | null)
             | ({
                 relationTo: 'images';
@@ -4039,11 +3686,6 @@ export interface TabsBlock {
           blockName?: string | null;
           blockType: 'richTextSection';
         }
-      | {
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'blogPostsOverview';
-        }
       | FormBlock
       | ApprovedFormSubmissionsBlock
       | {
@@ -4099,10 +3741,6 @@ export interface TabsBlock {
                   value: string | GenericPage;
                 } | null)
               | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
                   relationTo: 'images';
                   value: string | Image;
                 } | null)
@@ -4141,10 +3779,6 @@ export interface TabsBlock {
               | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
-                } | null)
-              | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
                 } | null)
               | ({
                   relationTo: 'images';
@@ -5017,15 +4651,10 @@ export interface SearchCollection {
   id: string;
   title?: string | null;
   priority?: number | null;
-  doc:
-    | {
-        relationTo: 'blog';
-        value: string | Blog;
-      }
-    | {
-        relationTo: 'generic-page';
-        value: string | GenericPage;
-      };
+  doc: {
+    relationTo: 'generic-page';
+    value: string | GenericPage;
+  };
   /**
    * This field is used for search indexing. It is automatically filled and not editable.
    */
@@ -5043,15 +4672,10 @@ export interface Go {
   urlSlug: string;
   to?: {
     type?: ('reference' | 'custom') | null;
-    reference?:
-      | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
-      | ({
-          relationTo: 'generic-page';
-          value: string | GenericPage;
-        } | null);
+    reference?: {
+      relationTo: 'generic-page';
+      value: string | GenericPage;
+    } | null;
     url?: string | null;
   };
   updatedAt: string;
@@ -5387,10 +5011,6 @@ export interface PayloadLockedDocument {
         value: string | GenericPage;
       } | null)
     | ({
-        relationTo: 'blog';
-        value: string | Blog;
-      } | null)
-    | ({
         relationTo: 'timeline';
         value: string | Timeline;
       } | null)
@@ -5623,12 +5243,6 @@ export interface GenericPageSelect<T extends boolean = true> {
                   };
               mediaText?: T | MediaTextBlockSelect<T>;
               processSteps?: T | ProcessStepsBlockSelect<T>;
-              blogPostsOverview?:
-                | T
-                | {
-                    id?: T;
-                    blockName?: T;
-                  };
               formBlock?: T | FormBlockSelect<T>;
               approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
               photoCarousel?:
@@ -6250,12 +5864,6 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
-        blogPostsOverview?:
-          | T
-          | {
-              id?: T;
-              blockName?: T;
-            };
         formBlock?: T | FormBlockSelect<T>;
         approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
         photoCarousel?:
@@ -6354,12 +5962,6 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
           | T
           | {
               richTextSection?: T;
-              id?: T;
-              blockName?: T;
-            };
-        blogPostsOverview?:
-          | T
-          | {
               id?: T;
               blockName?: T;
             };
@@ -6554,12 +6156,6 @@ export interface TabsBlockSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
-              blogPostsOverview?:
-                | T
-                | {
-                    id?: T;
-                    blockName?: T;
-                  };
               formBlock?: T | FormBlockSelect<T>;
               approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
               photoCarousel?:
@@ -6654,165 +6250,6 @@ export interface TabsBlockSelect<T extends boolean = true> {
       };
   id?: T;
   blockName?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "blog_select".
- */
-export interface BlogSelect<T extends boolean = true> {
-  publishingStatus?: T;
-  _localized_status?: T;
-  _disable_unpublishing?: T;
-  _locale?: T;
-  internalPageName?: T;
-  authors?: T;
-  internalStatus?: T;
-  content?:
-    | T
-    | {
-        blogH1?: T;
-        bannerImage?: T;
-        releaseDate?: T;
-        permissions?: T;
-        blogShortTitle?: T;
-        mainContent?:
-          | T
-          | {
-              heroSection?: T | HeroSectionBlockSelect<T>;
-              posterHero?: T | PosterHeroBlockSelect<T>;
-              sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
-              richTextSection?:
-                | T
-                | {
-                    richTextSection?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              mediaText?: T | MediaTextBlockSelect<T>;
-              processSteps?: T | ProcessStepsBlockSelect<T>;
-              blogPostsOverview?:
-                | T
-                | {
-                    id?: T;
-                    blockName?: T;
-                  };
-              formBlock?: T | FormBlockSelect<T>;
-              approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
-              photoCarousel?:
-                | T
-                | {
-                    images?: T;
-                    aspectRatio?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              photoContestBlock?: T | PhotoContestBlockSelect<T>;
-              hofDashboardBlock?: T | HofDashboardBlockSelect<T>;
-              singlePicture?:
-                | T
-                | {
-                    image?: T;
-                    aspectRatio?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
-              instagramEmbed?: T | InstagramEmbeddingSelect<T>;
-              swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
-              fileDownload?:
-                | T
-                | {
-                    file?: T;
-                    openInNewTab?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              detailsTable?: T | DetailsTableSelect<T>;
-              accordion?: T | AccordionBlocksSelect<T>;
-              summaryBox?: T | SummaryBoxSelect<T>;
-              timelineEntries?: T | TimelineEntriesSelect<T>;
-              countdown?: T | CountdownSelect<T>;
-              whiteSpace?:
-                | T
-                | {
-                    id?: T;
-                    blockName?: T;
-                  };
-              callToAction?:
-                | T
-                | {
-                    label?: T;
-                    linkField?:
-                      | T
-                      | {
-                          type?: T;
-                          reference?: T;
-                          fragment?: T;
-                          url?: T;
-                          email?: T;
-                          openInNewTab?: T;
-                        };
-                    inverted?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              donationCta?: T | DonationCtaBlockSelect<T>;
-              donationBarometer?: T | DonationBarometerBlockSelect<T>;
-              newsCard?:
-                | T
-                | {
-                    linkField?:
-                      | T
-                      | {
-                          type?: T;
-                          reference?: T;
-                          fragment?: T;
-                          url?: T;
-                          email?: T;
-                          openInNewTab?: T;
-                        };
-                    headline?: T;
-                    date?: T;
-                    image?: T;
-                    paragraph?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              campScheduleEntryBlock?:
-                | T
-                | {
-                    date?: T;
-                    location?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              cardGrid?: T | CardGridBlockSelect<T>;
-              contactPerson?: T | ContactPersonBlockSelect<T>;
-              twoColumnBlock?: T | TwoColumnBlockSelect<T>;
-              sponsorGrid?: T | SponsorGridBlockSelect<T>;
-              featuredSection?: T | FeaturedSectionBlockSelect<T>;
-              tabsBlock?: T | TabsBlockSelect<T>;
-            };
-      };
-  seo?:
-    | T
-    | {
-        urlSlug?: T;
-        metaTitle?: T;
-        metaDescription?: T;
-        keywords?: T;
-        urlSlugHistory?:
-          | T
-          | {
-              slug?: T;
-              id?: T;
-            };
-      };
-  lastEditedByUser?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  deletedAt?: T;
-  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -8512,10 +7949,6 @@ export interface Header {
                 value: string | GenericPage;
               } | null)
             | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
-            | ({
                 relationTo: 'images';
                 value: string | Image;
               } | null)
@@ -8548,10 +7981,6 @@ export interface Header {
                   | ({
                       relationTo: 'generic-page';
                       value: string | GenericPage;
-                    } | null)
-                  | ({
-                      relationTo: 'blog';
-                      value: string | Blog;
                     } | null)
                   | ({
                       relationTo: 'images';
@@ -8588,10 +8017,6 @@ export interface Header {
                             value: string | GenericPage;
                           } | null)
                         | ({
-                            relationTo: 'blog';
-                            value: string | Blog;
-                          } | null)
-                        | ({
                             relationTo: 'images';
                             value: string | Image;
                           } | null)
@@ -8624,10 +8049,6 @@ export interface Header {
                               | ({
                                   relationTo: 'generic-page';
                                   value: string | GenericPage;
-                                } | null)
-                              | ({
-                                  relationTo: 'blog';
-                                  value: string | Blog;
                                 } | null)
                               | ({
                                   relationTo: 'images';
@@ -8741,10 +8162,6 @@ export interface Footer {
                 value: string | GenericPage;
               } | null)
             | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
-            | ({
                 relationTo: 'images';
                 value: string | Image;
               } | null)
@@ -8791,10 +8208,6 @@ export interface Footer {
             | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
-              } | null)
-            | ({
-                relationTo: 'blog';
-                value: string | Blog;
               } | null)
             | ({
                 relationTo: 'images';
@@ -8936,11 +8349,6 @@ export interface AppLandingPage {
           }
         | MediaTextBlock
         | ProcessStepsBlock
-        | {
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'blogPostsOverview';
-          }
         | FormBlock
         | ApprovedFormSubmissionsBlock
         | {
@@ -8998,10 +8406,6 @@ export interface AppLandingPage {
                     value: string | GenericPage;
                   } | null)
                 | ({
-                    relationTo: 'blog';
-                    value: string | Blog;
-                  } | null)
-                | ({
                     relationTo: 'images';
                     value: string | Image;
                   } | null)
@@ -9042,10 +8446,6 @@ export interface AppLandingPage {
                 | ({
                     relationTo: 'generic-page';
                     value: string | GenericPage;
-                  } | null)
-                | ({
-                    relationTo: 'blog';
-                    value: string | Blog;
                   } | null)
                 | ({
                     relationTo: 'images';
@@ -9730,12 +9130,6 @@ export interface AppLandingPageSelect<T extends boolean = true> {
             };
         mediaText?: T | MediaTextBlockSelect<T>;
         processSteps?: T | ProcessStepsBlockSelect<T>;
-        blogPostsOverview?:
-          | T
-          | {
-              id?: T;
-              blockName?: T;
-            };
         formBlock?: T | FormBlockSelect<T>;
         approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
         photoCarousel?:
@@ -10326,7 +9720,6 @@ export interface TaskCreateCollectionExport {
     batchSize?: number | null;
     collectionSlug:
       | 'generic-page'
-      | 'blog'
       | 'timeline'
       | 'timelineCategory'
       | 'images'

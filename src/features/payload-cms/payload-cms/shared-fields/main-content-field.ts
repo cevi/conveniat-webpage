@@ -1,7 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
 import { approvedFormSubmissionsBlock } from '@/features/payload-cms/payload-cms/shared-blocks/approved-form-submissions-block';
-import { blockPostsOverview } from '@/features/payload-cms/payload-cms/shared-blocks/blog-posts-overview-block';
 import { callToActionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/call-to-action-block';
 import { campScheduleEntryBlock } from '@/features/payload-cms/payload-cms/shared-blocks/camp-schedule-entry.block';
 import { cardGridBlock } from '@/features/payload-cms/payload-cms/shared-blocks/card-grid-block';
@@ -42,7 +41,6 @@ export const mainContentBlocks: Block[] = [
   richTextArticleBlock,
   mediaTextBlock,
   processStepsBlock,
-  blockPostsOverview,
   formBlock,
   approvedFormSubmissionsBlock,
   photoCarouselBlock,

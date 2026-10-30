@@ -1,10 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { aboutUsContent } from '@/features/payload-cms/payload-cms/initialization/seeding/about-us';
 import {
-  generateBlogArticles,
-  getLocalizedBlogContent,
-} from '@/features/payload-cms/payload-cms/initialization/seeding/blog-articles';
-import {
   createRandomCampAnnotation,
   generateCampSites,
   generatePlaygroundPolygons,
@@ -531,40 +527,6 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     await seedHofDashboard(payload, publicPermission);
   } else {
     console.log('Seeding: Skipping the Hof dashboard, FEATURE_ENABLE_HOF_DASHBOARD is off.');
-  }
-
-  // seed blog articles
-  console.log('Seeding: Creating blog articles...');
-  const blogArticles = generateBlogArticles(publicPermission, userIds[0] ?? '', imageIds[0] ?? '');
-  for (const article of blogArticles) {
-    const { id: articleId } = await payload.create({
-      collection: 'blog',
-      locale: LOCALE.DE,
-      data: article,
-      context: { disableRevalidation: true },
-    });
-
-    const enContent = getLocalizedBlogContent(LOCALE.EN, 'willkommen-beim-cevi', imageIds[0] ?? '');
-    if (Object.keys(enContent).length > 0) {
-      await payload.update({
-        collection: 'blog',
-        id: articleId,
-        locale: LOCALE.EN,
-        data: enContent,
-        context: { disableRevalidation: true },
-      });
-    }
-
-    const frContent = getLocalizedBlogContent(LOCALE.FR, 'willkommen-beim-cevi', imageIds[0] ?? '');
-    if (Object.keys(frContent).length > 0) {
-      await payload.update({
-        collection: 'blog',
-        id: articleId,
-        locale: LOCALE.FR,
-        data: frContent,
-        context: { disableRevalidation: true },
-      });
-    }
   }
 
   // seed timeline

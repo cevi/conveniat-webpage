@@ -85,7 +85,5 @@ export const generatePreviewUrl = ({
 
   const previewIdQuery = data.id ? `&previewId=${data.id}` : '';
 
-  return `${host}${prefix}${
-    collectionConfig?.slug === 'blog' ? `/blog` : ''
-  }${slugPath}?preview=true${previewIdQuery}`;
+  return `${host}${prefix}${slugPath}?preview=true${previewIdQuery}`;
 };

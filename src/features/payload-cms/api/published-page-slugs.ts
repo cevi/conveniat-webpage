@@ -11,7 +11,6 @@ import { withSpan } from '@/utils/tracing-helpers';
  */
 export interface PublishedPageSlugs {
   genericPages: Set<string>;
-  blogPosts: Set<string>;
 }
 
 interface SeoSlugs {
@@ -19,7 +18,7 @@ interface SeoSlugs {
 }
 
 /**
- * Reads the slugs of every published Generic Page and blog post, and nothing else of them.
+ * Reads the slugs of every published Generic Page, and nothing else of them.
  *
  * Payload is imported lazily: the proxy calls this, and its bundle should not load the CMS
  * config before the first request that needs it.
@@ -32,12 +31,9 @@ export const fetchPublishedPageSlugs = async (): Promise<PublishedPageSlugs> => 
     ]);
     const payload = await getPayload({ config });
 
-    const readSlugs = async (
-      collection: 'generic-page' | 'blog',
-      locale: LocaleCode,
-    ): Promise<SeoSlugs[]> => {
+    const readSlugs = async (locale: LocaleCode): Promise<SeoSlugs[]> => {
       const result = await payload.find({
-        collection,
+        collection: 'generic-page',
         locale,
         fallbackLocale: false,
         depth: 0,
@@ -49,11 +45,10 @@ export const fetchPublishedPageSlugs = async (): Promise<PublishedPageSlugs> => 
     };
 
     const genericPages = new Set<string>();
-    const blogPosts = new Set<string>();
 
     await Promise.all(
-      enabledLocales.flatMap((locale) => [
-        readSlugs('generic-page', locale).then((documents) => {
+      enabledLocales.map((locale) =>
+        readSlugs(locale).then((documents) => {
           for (const { seo } of documents) {
             if (typeof seo?.urlSlug === 'string') genericPages.add(seo.urlSlug);
             for (const { slug } of seo?.urlSlugHistory ?? []) {
@@ -61,15 +56,10 @@ export const fetchPublishedPageSlugs = async (): Promise<PublishedPageSlugs> => 
             }
           }
         }),
-        readSlugs('blog', locale).then((documents) => {
-          for (const { seo } of documents) {
-            if (typeof seo?.urlSlug === 'string') blogPosts.add(seo.urlSlug);
-          }
-        }),
-      ]),
+      ),
     );
 
-    return { genericPages, blogPosts };
+    return { genericPages };
   });
 };
 

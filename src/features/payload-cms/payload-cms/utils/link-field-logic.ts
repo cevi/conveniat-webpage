@@ -1,6 +1,5 @@
 import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import type {
-  Blog,
   CampMapAnnotation,
   CampScheduleEntry,
   Document,
@@ -26,11 +25,6 @@ export const hasPermissionsForLinkField = async (
   const { relationTo, value } = linkFieldData.reference;
 
   switch (relationTo) {
-    case 'blog': {
-      const blog = value as Blog;
-      const permission = blog.content.permissions as Permission;
-      return await hasPermissions(permission);
-    }
     case 'generic-page': {
       const page = value as GenericPage;
       if (typeof page !== 'object') return false; // abort
@@ -78,19 +72,9 @@ export const getURLForLinkField = (
     let langPrefix = getLanguagePrefix(locale);
     langPrefix = langPrefix === '' ? '' : `/${langPrefix}`;
 
-    let baseUrl: string | undefined = undefined;
+    let baseUrl: string;
 
     switch (relationTo) {
-      case 'blog': {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (typeof value !== 'object' || value === null || !('seo' in value) || !value.seo)
-          return undefined;
-        const urlSlug = value.seo.urlSlug;
-        if (urlSlug !== '') {
-          baseUrl = `${langPrefix}/blog/${urlSlug}`;
-        }
-        break;
-      }
       case 'generic-page': {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (typeof value !== 'object' || value === null || !('seo' in value) || !value.seo) {
@@ -123,16 +107,14 @@ export const getURLForLinkField = (
       // No default
     }
 
-    if (baseUrl !== undefined) {
-      const fragment = linkFieldData.fragment?.trim();
-      if (fragment && fragment !== '') {
-        const cleanFragment = fragment.startsWith('#') ? fragment.slice(1) : fragment;
-        if (cleanFragment !== '') {
-          return `${baseUrl}#${encodeURIComponent(cleanFragment)}`;
-        }
+    const fragment = linkFieldData.fragment?.trim();
+    if (fragment && fragment !== '') {
+      const cleanFragment = fragment.startsWith('#') ? fragment.slice(1) : fragment;
+      if (cleanFragment !== '') {
+        return `${baseUrl}#${encodeURIComponent(cleanFragment)}`;
       }
-      return baseUrl;
     }
+    return baseUrl;
   }
 
   return undefined;
