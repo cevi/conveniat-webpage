@@ -7,7 +7,7 @@ import React, { useEffect, useRef } from 'react';
 
 export const LivePreviewRestorer: React.FC = () => {
   const { setURL, isLivePreviewing, url: contextUrl } = useLivePreviewContext();
-  const { collectionSlug, id } = useDocumentInfo();
+  const { collectionSlug, globalSlug, id } = useDocumentInfo();
   const { code: currentLocaleCode } = useLocale();
 
   const urlSlugField = useFormFields(
@@ -38,6 +38,7 @@ export const LivePreviewRestorer: React.FC = () => {
             >,
           }
         : {}),
+      ...(typeof globalSlug === 'string' ? { globalSlug } : {}),
       locale: mockLocale,
     });
 
@@ -59,7 +60,16 @@ export const LivePreviewRestorer: React.FC = () => {
       urlReference.current = dynamicUrl;
       setURL(dynamicUrl);
     }
-  }, [urlSlugField, collectionSlug, id, localeCode, isLivePreviewing, contextUrl, setURL]);
+  }, [
+    urlSlugField,
+    collectionSlug,
+    globalSlug,
+    id,
+    localeCode,
+    isLivePreviewing,
+    contextUrl,
+    setURL,
+  ]);
 
   return <div style={{ display: 'none' }} data-url-restorer="sync-active" />;
 };

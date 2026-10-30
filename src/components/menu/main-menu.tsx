@@ -8,6 +8,7 @@ import { NativeAppVersionInfo } from '@/components/native-app-version-info';
 import { LinkComponent } from '@/components/ui/link-component';
 import { getHeaderCached } from '@/features/payload-cms/api/cached-globals';
 import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
+import { draftGlobalTag } from '@/features/payload-cms/payload-cms/utils/draft-global-tag';
 import {
   getURLForLinkField,
   hasPermissionsForLinkField,
@@ -45,10 +46,10 @@ import { AppFeatures } from '@/components/menu/app-features';
  * `cacheLife('hours')`. That is what pinned admin previews to hour-old drafts.
  *
  * Declaring the real tags here fixes the draft variant and makes the published one explicit rather
- * than dependent on propagation. `flushPageCacheOnChangeGlobal` fires both on every save of the
- * header global, and Payload runs global `afterChange` hooks unconditionally — the draft/autosave
- * path is not excluded (`payload/dist/globals/operations/update.js`) — so an editor's keystroke
- * evicts this entry and the next render rebuilds it.
+ * than dependent on propagation. A publish fires them all through `flushPageCacheOnChangeGlobal`.
+ * Autosaved drafts deliberately do not, so the published menu stays cached while an editor types;
+ * they expire only the draft variant's own `draftGlobalTag`, at once, so the live preview of the
+ * header global shows every save.
  */
 export const getMainMenuFromPayloadCached = async (
   locale: Locale,
@@ -57,6 +58,9 @@ export const getMainMenuFromPayloadCached = async (
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'header', 'global:header');
+  // a draft save leaves the published menu alone and expires only this tag, see
+  // `flushPageCacheOnChangeGlobal`, so the preview follows every autosave
+  if (showPreviewForMainMenu) cacheTag(draftGlobalTag('header'));
 
   const header = await getHeaderCached(locale, showPreviewForMainMenu);
   const mainMenu = header.mainMenu;

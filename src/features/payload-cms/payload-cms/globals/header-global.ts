@@ -1,3 +1,4 @@
+import { environmentVariables as env } from '@/config/environment-variables';
 import {
   hasAdminOrWebAccess,
   shouldHideInAdminPanel,
@@ -6,12 +7,21 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { asLocalizedGlobal } from '@/features/payload-cms/payload-cms/utils/localized-global';
+import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import type { ArrayField, Field, GlobalConfig } from 'payload';
 
 const rowLabel = {
   RowLabel: {
     path: '@/features/payload-cms/payload-cms/components/main-menu-row-label#MainEntryRowLabel',
   },
+};
+
+/** The header bar and its menu only show from 1280px, the phones show the drawer. */
+const desktopBreakpoint = {
+  name: 'desktop',
+  label: 'Desktop (1440x900)',
+  width: 1440,
+  height: 900,
 };
 
 const labelField: Field = {
@@ -91,18 +101,24 @@ export const HeaderGlobal: GlobalConfig = asLocalizedGlobal({
     update: hasAdminOrWebAccess,
   },
   label: 'Header Navigation',
-  admin: { group: AdminPanelDashboardGroups.WebpageContent.label, hidden: shouldHideInAdminPanel },
-  hooks: { afterChange: [flushPageCacheOnChangeGlobal] },
-  fields: [
-    {
-      name: 'mainMenuPreview',
-      type: 'ui',
-      admin: {
-        components: {
-          Field: '@/features/payload-cms/payload-cms/components/main-menu-preview#MainMenuPreview',
-        },
+  admin: {
+    group: AdminPanelDashboardGroups.WebpageContent.label,
+    hidden: shouldHideInAdminPanel,
+    // The menu is previewed like a page: the start page with the draft menu, opened. The URL is a
+    // placeholder, `LivePreviewRestorer` points it at the start page in the edited locale.
+    livePreview: {
+      url: `${env.APP_HOST_URL}/de?preview=true&menu=open`,
+      openByDefault: true,
+      breakpoints: [desktopBreakpoint, ...smartphoneBreakpoints],
+    },
+    components: {
+      elements: {
+        beforeDocumentControls: [
+          '@/features/payload-cms/payload-cms/components/live-preview-restorer',
+        ],
       },
     },
-    MainMenu,
-  ],
+  },
+  hooks: { afterChange: [flushPageCacheOnChangeGlobal] },
+  fields: [MainMenu],
 });

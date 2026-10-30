@@ -6,6 +6,7 @@ import type { MenuNode } from '@/components/menu/menu-links';
 import { MenuEntryLabel, MenuLinks, visibleChildren } from '@/components/menu/menu-links';
 import { useFittingItemCount } from '@/components/menu/use-fitting-item-count';
 import { languageOptions } from '@/config/language-options';
+import { usePreviewMode } from '@/hooks/use-preview-mode';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronDown, Languages, Menu as MenuIcon, Search, X } from 'lucide-react';
@@ -194,10 +195,22 @@ const PinnedItem: React.FC<{
 export const DesktopNav: React.FC<{
   locale: Locale;
   menuItems: ProcessedMainMenuItem[];
+  /** the draft menu, handed over for an editor only and shown in preview mode */
+  draftMenuItems?: ProcessedMainMenuItem[] | undefined;
   actionURL: string;
-}> = ({ locale, menuItems, actionURL }) => {
-  // undefined while closed; `true` when opened from "Menü", the id of a pinned entry when opened from it
-  const [openedFrom, setOpenedFrom] = useState<string | true | undefined>();
+}> = ({ locale, menuItems: publishedMenuItems, draftMenuItems, actionURL }) => {
+  const searchParameters = useSearchParams();
+  const { isInPreviewMode } = usePreviewMode();
+  const menuItems =
+    isInPreviewMode === 'enabled' && draftMenuItems !== undefined
+      ? draftMenuItems
+      : publishedMenuItems;
+
+  // undefined while closed; `true` when opened from "Menü", the id of a pinned entry when opened
+  // from it. `?menu=open` opens it on load, which is how the header global's live preview shows it.
+  const [openedFrom, setOpenedFrom] = useState<string | true | undefined>(() =>
+    searchParameters.get('menu') === 'open' ? true : undefined,
+  );
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -211,7 +224,6 @@ export const DesktopNav: React.FC<{
   const searchInputReference = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const pathname = usePathname();
-  const searchParameters = useSearchParams();
 
   // Editors choose how many entries to pin and how long their labels are, so no breakpoint
   // guarantees they fit. Whatever does not fit is left out of the bar; it is still in the menu.
