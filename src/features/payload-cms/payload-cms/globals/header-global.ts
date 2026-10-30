@@ -100,7 +100,7 @@ export const HeaderGlobal: GlobalConfig = asLocalizedGlobal({
     read: () => true,
     update: hasAdminOrWebAccess,
   },
-  label: 'Header Navigation',
+  label: { en: 'Header and menu', de: 'Kopfzeile und Menü', fr: 'En-tête et menu' },
   admin: {
     group: AdminPanelDashboardGroups.WebpageContent.label,
     hidden: shouldHideInAdminPanel,
