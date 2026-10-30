@@ -8494,9 +8494,16 @@ export interface Header {
   _localized_status: LocalizedPublishingStatus;
   _locale: string;
   _disable_unpublishing?: boolean | null;
+  /**
+   * Each entry with sub entries becomes a column of the menu, the entries without sub entries are listed together in the column "More". Pinned entries are also shown directly in the header bar on large screens.
+   */
   mainMenu?:
     | {
         label: string;
+        /**
+         * Shown next to "Menu" on large screens. An entry with sub entries opens the menu at its column. Entries that do not fit are left out of the bar, never out of the menu.
+         */
+        pinnedToHeader?: boolean | null;
         linkField?: {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
@@ -9536,6 +9543,7 @@ export interface HeaderSelect<T extends boolean = true> {
     | T
     | {
         label?: T;
+        pinnedToHeader?: T;
         linkField?:
           | T
           | {

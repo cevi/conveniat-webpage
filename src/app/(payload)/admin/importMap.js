@@ -105,6 +105,7 @@ import { ImportSaveButton as ImportSaveButton_cdf7e044479f899a31f804427d568b36 }
 import { default as default_d37e91e5b9afb343d4dc268d1c9ab212 } from '@/features/payload-cms/payload-cms/components/simple-json-field'
 import { default as default_b88029698d058420c6ac4a1d03de1941 } from '@/features/payload-cms/payload-cms/components/jobs-summary-banner'
 import { FolderTypeField as FolderTypeField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { MainMenuPreview as MainMenuPreview_0dfae19245c156070741acf7112018c1 } from '@/features/payload-cms/payload-cms/components/main-menu-preview'
 import { MainEntryRowLabel as MainEntryRowLabel_576220226adef27d36922a63f8de9abd } from '@/features/payload-cms/payload-cms/components/main-menu-row-label'
 import { default as default_ab019a1f47fb69008664ade9a2845503 } from '@/features/payload-cms/payload-cms/views/alert-management'
 import { default as default_72094444c4748ea6819cf00010baebe6 } from '@/features/payload-cms/payload-cms/components/alert-settings-key-component'
@@ -244,6 +245,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/simple-json-field#default": default_d37e91e5b9afb343d4dc268d1c9ab212,
   "@/features/payload-cms/payload-cms/components/jobs-summary-banner#default": default_b88029698d058420c6ac4a1d03de1941,
   "@payloadcms/next/client#FolderTypeField": FolderTypeField_2b8867833a34864a02ddf429b0728a40,
+  "@/features/payload-cms/payload-cms/components/main-menu-preview#MainMenuPreview": MainMenuPreview_0dfae19245c156070741acf7112018c1,
   "@/features/payload-cms/payload-cms/components/main-menu-row-label#MainEntryRowLabel": MainEntryRowLabel_576220226adef27d36922a63f8de9abd,
   "@/features/payload-cms/payload-cms/views/alert-management#default": default_ab019a1f47fb69008664ade9a2845503,
   "@/features/payload-cms/payload-cms/components/alert-settings-key-component#default": default_72094444c4748ea6819cf00010baebe6,
