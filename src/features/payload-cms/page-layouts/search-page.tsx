@@ -1,12 +1,9 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import { SearchBar } from '@/components/ui/search-bar';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import { BlogDisplay } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
 import { PageDisplay } from '@/features/payload-cms/components/content-blocks/page-display';
-import SearchOnlyBlog from '@/features/payload-cms/components/search/search-blog';
 import SearchOnlyPages from '@/features/payload-cms/components/search/search-page';
 import type {
-  Blog,
   GenericPage,
   Permission,
   SearchCollection,
@@ -30,12 +27,6 @@ const searchResultNoResults: StaticTranslationString = {
   de: 'Keine Resultate gefunden.',
   en: 'No results found.',
   fr: 'Aucun résultat trouvé.',
-};
-
-const searchResultsTitleBlog: StaticTranslationString = {
-  de: 'Blog-Beiträge',
-  en: 'Blog-Posts',
-  fr: 'Articles de blog',
 };
 
 const searchResultsTitlePages: StaticTranslationString = {
@@ -64,10 +55,6 @@ const searchNoResultsSuggestion: StaticTranslationString = {
 
 const renderPermittedPage = (locale: Locale, page: GenericPage): React.JSX.Element => (
   <PageDisplay page={page} key={page.seo.urlSlug} locale={locale} />
-);
-
-const renderPermittedBlog = (locale: Locale, blog: Blog): React.JSX.Element => (
-  <BlogDisplay blog={blog} key={blog.seo.urlSlug} locale={locale} />
 );
 
 const renderNoResults = (locale: Locale): React.JSX.Element => (
@@ -124,8 +111,6 @@ const SearchPage: React.FC<LocalizedPageType> = async ({
 
     if (searchQueryOnly === 'pages') {
       return <SearchOnlyPages searchParameters={searchParameters} />;
-    } else if (searchQueryOnly === 'blogs') {
-      return <SearchOnlyBlog searchParameters={searchParameters} />;
     }
 
     const limitPerCategory = 5;
@@ -177,57 +162,6 @@ const SearchPage: React.FC<LocalizedPageType> = async ({
       },
     });
 
-    const searchEntriesBlogs = await payload.find({
-      collection: 'search-collection',
-      depth: 0,
-      limit: limitPerCategory,
-      locale,
-      where: {
-        and: [
-          {
-            or: [
-              {
-                search_content: {
-                  like: searchQuery,
-                },
-              },
-              {
-                search_title: {
-                  like: searchQuery,
-                },
-              },
-            ],
-          },
-          {
-            'doc.relationTo': { equals: 'blog' },
-          },
-        ],
-      },
-    });
-
-    const searchBlogIDs = searchEntriesBlogs.docs.map(
-      (searchEntry: SearchCollection) => searchEntry.doc.value,
-    );
-
-    const blogs = await payload.find({
-      collection: 'blog',
-      depth: 1,
-      limit: limitPerCategory,
-      locale,
-      where: {
-        and: [
-          { id: { in: searchBlogIDs } },
-          { 'content.releaseDate': { less_than_equal: currentDate } },
-          { _localized_status: { equals: { published: true } } },
-        ],
-      },
-    });
-
-    const blogsPermissions = await Promise.all(
-      blogs.docs.map((blog) => hasPermissions(blog.content.permissions as Permission)),
-    );
-    const permittedBlogs = blogs.docs.filter((_, index) => blogsPermissions[index] ?? false);
-
     const pagesPermissions = await Promise.all(
       pages.docs.map((page) => hasPermissions(page.content.permissions as Permission)),
     );
@@ -251,21 +185,6 @@ const SearchPage: React.FC<LocalizedPageType> = async ({
             {searchEntriesPages.totalPages > 1 && (
               <LinkComponent
                 href={`?q=${searchQuery}&only=pages`}
-                className="rounded-[8px] bg-green-600 px-4 py-2 text-white hover:bg-green-700 hover:text-white"
-              >
-                {searchMoreButton[locale]}
-              </LinkComponent>
-            )}
-          </div>
-          <div className="col-span-2 flex flex-col gap-y-4">
-            <h2 className="text-conveniat-green text-2xl font-bold">
-              {searchResultsTitleBlog[locale]}
-            </h2>
-            {permittedBlogs.length === 0 && renderNoResults(locale)}
-            {permittedBlogs.map((element) => renderPermittedBlog(locale, element))}
-            {searchEntriesBlogs.totalPages > 1 && (
-              <LinkComponent
-                href={`?q=${searchQuery}&only=blogs`}
                 className="rounded-[8px] bg-green-600 px-4 py-2 text-white hover:bg-green-700 hover:text-white"
               >
                 {searchMoreButton[locale]}

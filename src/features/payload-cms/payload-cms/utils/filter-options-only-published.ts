@@ -51,7 +51,7 @@ const publishedIds = (
  * admin panel sends the filter of a relationship field back to the REST API as a query string, where
  * `true` arrives as the string `"true"`, and Payload turns that back into a boolean for checkbox
  * fields only. On the JSON field `_localized_status` it stayed a string, matched nothing, and no
- * page or blog post could be picked in a link field.
+ * page could be picked in a link field.
  */
 export const filterOptionsOnlyPublished = async ({
   relationTo,

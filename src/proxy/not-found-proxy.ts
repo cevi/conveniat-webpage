@@ -3,7 +3,6 @@ import {
   fetchPublishedPageSlugs,
   readPublishedPageSlugsVersion,
 } from '@/features/payload-cms/api/published-page-slugs';
-import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import type { ProxyModule } from '@/proxy/types';
 import { Header } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
@@ -13,12 +12,6 @@ const logger = createLogger('proxy:not-found');
 
 /** The route every path that resolves to no CMS page is rewritten to, below its locale and design. */
 export const NOT_FOUND_SEGMENT = '~not-found';
-
-const blogPrefixes = new Set(
-  slugToUrlMapping
-    .filter(({ slug }) => slug === 'blog')
-    .flatMap(({ urlPrefix }) => Object.values(urlPrefix)),
-);
 
 /**
  * First segments below `[locale]/[design]` that the catch-all CMS route does not resolve by slug:
@@ -63,11 +56,8 @@ const isResolvedBySlug = (segments: string[]): boolean =>
  * @param segments - the decoded path segments after `/{locale}/{design}`
  * @param slugs - the published slugs
  */
-const hasPublishedPage = (segments: string[], slugs: PublishedPageSlugs): boolean => {
-  const [first, ...rest] = segments;
-  if (first !== undefined && blogPrefixes.has(first)) return slugs.blogPosts.has(rest.join('/'));
-  return slugs.genericPages.has(segments.join('/'));
-};
+const hasPublishedPage = (segments: string[], slugs: PublishedPageSlugs): boolean =>
+  slugs.genericPages.has(segments.join('/'));
 
 /** How long the slugs are kept when no change is announced, should an announcement get lost. */
 const MAX_AGE_MS = 5 * 60 * 1000;

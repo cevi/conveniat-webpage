@@ -73,15 +73,9 @@ export const beforeEmailChangeHook: BeforeEmail = async (
       : [];
 
     if (uuids.length > 0) {
-      const [genericPages, blogs, mapAnnotations] = await Promise.all([
+      const [genericPages, mapAnnotations] = await Promise.all([
         payload.find({
           collection: 'generic-page',
-          where: { id: { in: uuids } },
-          depth: 0,
-          pagination: false,
-        }),
-        payload.find({
-          collection: 'blog',
           where: { id: { in: uuids } },
           depth: 0,
           pagination: false,
@@ -99,13 +93,6 @@ export const beforeEmailChangeHook: BeforeEmail = async (
       for (const document_ of genericPages.docs) {
         urlMap[document_.id] =
           `${environmentVariables.APP_HOST_URL}/${document_._locale}/${(document_.seo as Record<string, unknown>)['urlSlug'] as string}`.replaceAll(
-            /([^:]\/)\/+/g,
-            '$1',
-          );
-      }
-      for (const document_ of blogs.docs) {
-        urlMap[document_.id] =
-          `${environmentVariables.APP_HOST_URL}/${document_._locale}/blog/${(document_.seo as Record<string, unknown>)['urlSlug'] as string}`.replaceAll(
             /([^:]\/)\/+/g,
             '$1',
           );

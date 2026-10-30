@@ -1,7 +1,6 @@
 import { filterOptionsOnlyPublished } from '@/features/payload-cms/payload-cms/utils/filter-options-only-published';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type {
-  Blog,
   CampMapAnnotation,
   CampScheduleEntry,
   Document,
@@ -14,10 +13,7 @@ export interface LinkFieldDataType {
   type?: 'reference' | 'custom' | 'email' | null;
   email?: string | null;
   reference?:
-    | ({
-        relationTo: 'blog';
-        value: string | Blog;
-      } | null)
+    | null
     | {
         relationTo: 'generic-page';
         value: string | GenericPage;
@@ -108,8 +104,8 @@ const validateURL: TextFieldSingleValidation = (url, options) => {
  * translates an object per language (`getTranslation` in `@payloadcms/ui`'s `ReactSelect`).
  */
 const referencePlaceholder = {
-  en: 'Select a page, blog post, image or document',
-  de: 'Seite, Blog-Artikel, Bild oder Dokument wählen',
+  en: 'Select a page, image or document',
+  de: 'Seite, Bild oder Dokument wählen',
   fr: 'Choisir une page, un article, une image ou un document',
 } as Record<string, string> as unknown as string;
 
@@ -158,7 +154,6 @@ export const LinkField = (required: boolean = true): NamedGroupField => {
         // the drawer opens on the first collection: pages are what most links point to
         relationTo: [
           'generic-page',
-          'blog',
           'images',
           'documents',
           'camp-map-annotations',
@@ -178,7 +173,7 @@ export const LinkField = (required: boolean = true): NamedGroupField => {
             }
             const reference = siblingData['reference'] as { relationTo?: string } | undefined;
             const relationTo = reference?.relationTo;
-            return !relationTo || relationTo === 'generic-page' || relationTo === 'blog';
+            return !relationTo || relationTo === 'generic-page';
           },
           description: {
             de: 'Optionale Sprungmarke / Anker (z. B. "projektleitung" für den Akkordeon-Block)',

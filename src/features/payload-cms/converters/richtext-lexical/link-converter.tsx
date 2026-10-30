@@ -1,6 +1,5 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import type {
-  Blog,
   CampMapAnnotation,
   CampScheduleEntry,
   Document,
@@ -24,8 +23,7 @@ export interface LinkFields {
   /** only set for links with `linkType: 'phone'` */
   phoneNumber?: string;
   doc: {
-    value:
-      string | Blog | GenericPage | CampMapAnnotation | CampScheduleEntry | Document | PayloadImage;
+    value: string | GenericPage | CampMapAnnotation | CampScheduleEntry | Document | PayloadImage;
     relationTo: string;
   };
   fragment?: string;
@@ -34,7 +32,7 @@ export interface LinkFields {
 /**
  * Resolves an internal link to the correct URL.
  * By stitching together the collection slug and the URL slug,
- * e.g. for a generic page: /page-slug, for a blog post: /blog/page-slug.
+ * e.g. for a generic page: /page-slug.
  *
  * @param fields
  *
@@ -51,8 +49,7 @@ const resolveInternalLink = (fields: LinkFields, currentLocale?: Locale): string
 
     if (fields.linkType === 'internal') {
       switch (fields.doc.relationTo) {
-        case 'generic-page':
-        case 'blog': {
+        case 'generic-page': {
           // We cast to any to access _locale because it might not be present on all types in the union
           // or the specific generated type might differ slightly.
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
@@ -60,8 +57,7 @@ const resolveInternalLink = (fields: LinkFields, currentLocale?: Locale): string
           let langPrefix = getLanguagePrefix(locale);
           langPrefix = langPrefix === '' ? '' : `${langPrefix}/`;
 
-          // Cast to a type that has seo.urlSlug. Blog and GenericPage both have it.
-          const valueWithSeo = documentValue as Blog | GenericPage;
+          const valueWithSeo = documentValue as GenericPage;
           const urlSlug = `${valueWithSeo.seo.urlSlug}`;
           const collectionName = fields.doc.relationTo as string;
           for (const mappingValue of Object.values(slugToUrlMapping)) {

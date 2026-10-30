@@ -32,7 +32,7 @@ describe('filterOptionsOnlyPublished', () => {
   it('hands the admin a filter without a boolean in it', async () => {
     const { request } = requestWith(['page-a']);
 
-    expect(JSON.stringify(await filterFor('blog', request))).not.toMatch(/true|false/);
+    expect(JSON.stringify(await filterFor('generic-page', request))).not.toMatch(/true|false/);
   });
 
   it('offers nothing when nothing is published', async () => {

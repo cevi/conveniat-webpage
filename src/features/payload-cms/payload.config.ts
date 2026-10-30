@@ -154,14 +154,7 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
     // The default locale 'de' omits the prefix.
     url: `${env.APP_HOST_URL}/preview-fallback?preview=true`,
     breakpoints: smartphoneBreakpoints,
-    collections: [
-      'blog',
-      'generic-page',
-      'timeline',
-      'forms',
-      'camp-map-annotations',
-      'announcements',
-    ],
+    collections: ['generic-page', 'timeline', 'forms', 'camp-map-annotations', 'announcements'],
   },
   dashboard: {
     widgets: enabledWidgets,

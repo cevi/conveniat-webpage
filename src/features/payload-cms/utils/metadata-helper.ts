@@ -1,70 +1,16 @@
-import type { Blog, GenericPage } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import type { Metadata } from 'next';
-import type { BasePayload, CollectionSlug } from 'payload';
-
-/**
- * Finds the published versions of a page in every locale this deployment serves.
- *
- * @returns the URL slug of the page by locale, for the locales it is published in
- */
-export async function findAlternatives({
-  payload,
-  collection,
-  internalPageName,
-  currentDate,
-}: {
-  payload: BasePayload;
-  collection: CollectionSlug;
-  internalPageName: string;
-  currentDate?: string;
-}): Promise<Partial<Record<Locale, string>>> {
-  const hasReleaseDate = collection === 'blog';
-
-  const slugsByLocale = await Promise.all(
-    (i18nConfig.locales as Locale[]).map(async (l) => {
-      const result = await payload.find({
-        collection,
-        pagination: false,
-        fallbackLocale: false,
-        locale: l,
-        draft: false,
-        // Only seo.urlSlug is used for building alternate URLs.
-        // Skip all relationships and content blocks.
-        depth: 0,
-        select: {
-          seo: true,
-        },
-        where: {
-          and: [
-            { internalPageName: { equals: internalPageName } },
-            { _localized_status: { equals: { published: true } } },
-            ...(hasReleaseDate
-              ? [{ 'content.releaseDate': { less_than_equal: currentDate } }]
-              : []),
-          ],
-        },
-      });
-      const document_ =
-        result.docs.length === 1 ? (result.docs[0] as Blog | GenericPage) : undefined;
-      return [l, document_?.seo.urlSlug] as const;
-    }),
-  );
-
-  return Object.fromEntries(slugsByLocale.filter(([, slug]) => slug !== undefined));
-}
 
 /**
  * The path of a page in one locale. German, the default locale, is served without a prefix.
  *
  * @param locale - the locale of the page
- * @param urlPrefix - the path segment of the collection, empty for generic pages
  * @param slug - the URL slug of the page in that locale, empty for the landing page
  * @returns the absolute path, `/` for the German landing page
  */
-export const localizedPagePath = (locale: Locale, urlPrefix: string, slug: string): string =>
-  `/${[locale === i18nConfig.defaultLocale ? '' : locale, urlPrefix, slug]
+export const localizedPagePath = (locale: Locale, slug: string): string =>
+  `/${[locale === i18nConfig.defaultLocale ? '' : locale, slug]
     .filter((segment) => segment !== '')
     .join('/')}`;
 
@@ -106,24 +52,18 @@ interface SEOType {
  * @param options.seo - the SEO fields of the version being rendered
  * @param options.locale - the locale of the version being rendered
  * @param options.slugsByLocale - the URL slug of every published version, by locale
- * @param options.urlPrefix - the path segment of the collection, empty for generic pages
  */
 export function buildMetadata({
   seo,
   locale,
   slugsByLocale,
-  urlPrefix = '',
 }: {
   seo: SEOType;
   locale: Locale;
   slugsByLocale: Partial<Record<Locale, string>>;
-  urlPrefix?: string;
 }): Metadata {
   const pathsByLocale = Object.fromEntries(
-    Object.entries(slugsByLocale).map(([l, slug]) => [
-      l,
-      localizedPagePath(l as Locale, urlPrefix, slug),
-    ]),
+    Object.entries(slugsByLocale).map(([l, slug]) => [l, localizedPagePath(l as Locale, slug)]),
   );
   const alternates = buildLanguageAlternates(pathsByLocale, locale);
 

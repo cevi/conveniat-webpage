@@ -33,7 +33,6 @@ import {
 } from '@/features/payload-cms/components/content-blocks/instagram-embed';
 import type { LexicalRichTextSectionType } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
-import { ListBlogPosts } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
 import { MediaText } from '@/features/payload-cms/components/content-blocks/media-text';
 import { ProcessSteps } from '@/features/payload-cms/components/content-blocks/process-steps';
 import { ShowForm } from '@/features/payload-cms/components/content-blocks/show-form';
@@ -80,7 +79,6 @@ import {
 } from '@/features/payload-cms/components/content-blocks/poster-hero';
 
 export type ContentBlockTypeNames =
-  | 'blogPostsOverview'
   | 'richTextSection'
   | 'formBlock'
   | 'approvedFormSubmissionsBlock'
@@ -517,32 +515,6 @@ export const RenderFormBlock: SectionRenderer<FormBlockType> = ({
       locale={locale}
     >
       <ShowForm {...block} withBorder />
-    </SectionWrapper>
-  );
-};
-
-export const RenderBlogPostsOverview: SectionRenderer = ({
-  locale,
-  block,
-  sectionClassName,
-  sectionOverrides,
-}) => {
-  return (
-    <SectionWrapper
-      block={block}
-      sectionClassName={sectionClassName}
-      sectionOverrides={sectionOverrides}
-      errorFallbackMessage={errorMessageForType(
-        {
-          de: 'Die Blogbeitragsübersicht',
-          en: 'blog posts overview',
-          fr: 'l’aperçu des articles de blog',
-        },
-        locale,
-      )}
-      locale={locale}
-    >
-      <ListBlogPosts locale={locale} />
     </SectionWrapper>
   );
 };

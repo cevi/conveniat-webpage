@@ -1,4 +1,3 @@
-import { AppAdvertisement } from '@/components/app-advertisement';
 import { environmentVariables } from '@/config/environment-variables';
 import { loadMapAnnotations } from '@/features/map/api/load-map-annotations';
 import { MapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
@@ -55,23 +54,18 @@ const CampMapComponentCached: React.FC<{
     await loadMapAnnotations(payload, locale);
 
   return (
-    <>
-      <div className="fixed top-[calc(var(--app-header-height)+var(--offline-banner-height,0px))] left-0 h-[calc(100dvh-var(--app-header-height)-var(--offline-banner-height,0px))] w-full pb-20 xl:left-[480px] xl:w-[calc(100vw-480px)]">
-        <MapLibreRenderer
-          initialMapPose={initialMapPoseObergoms}
-          ceviLogoMarkers={[]}
-          campMapAnnotationPoints={campMapAnnotationPoints}
-          campMapAnnotationPolygons={campMapAnnotationPolygons}
-          validateStyle={environmentVariables.NODE_ENV !== 'production'}
-          mapStyle="/vector-map/camp_style.json"
-          schedules={schedules}
-          enableSearch
-        />
-      </div>
-
-      {/* advertisement for app, hidden if already in app mode */}
-      <AppAdvertisement locale={locale} />
-    </>
+    <div className="fixed top-[calc(var(--app-header-height)+var(--offline-banner-height,0px))] left-0 h-[calc(100dvh-var(--app-header-height)-var(--offline-banner-height,0px))] w-full pb-(--app-tab-bar-height) xl:left-(--app-content-left) xl:w-[calc(100vw-var(--app-content-left))]">
+      <MapLibreRenderer
+        initialMapPose={initialMapPoseObergoms}
+        ceviLogoMarkers={[]}
+        campMapAnnotationPoints={campMapAnnotationPoints}
+        campMapAnnotationPolygons={campMapAnnotationPolygons}
+        validateStyle={environmentVariables.NODE_ENV !== 'production'}
+        mapStyle="/vector-map/camp_style.json"
+        schedules={schedules}
+        enableSearch
+      />
+    </div>
   );
 };
 

@@ -6,7 +6,7 @@ import type React from 'react';
  */
 export default function UploadImagesLoading(): React.ReactNode {
   return (
-    <div className="bg-page fixed top-(--app-content-top) left-0 z-30 h-[calc(100dvh-var(--app-content-top))] w-full overflow-y-auto xl:left-[480px] xl:w-[calc(100dvw-480px)]">
+    <div className="bg-page fixed top-(--app-content-top) left-0 z-30 h-[calc(100dvh-var(--app-content-top))] w-full overflow-y-auto xl:left-(--app-content-left) xl:w-[calc(100dvw-var(--app-content-left))]">
       <div className="mx-auto max-w-2xl space-y-6 px-4 pt-4 pb-6">
         <div className="space-y-2">
           <div className="bg-chip h-4 w-full animate-pulse rounded" />

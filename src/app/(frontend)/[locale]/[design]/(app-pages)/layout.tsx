@@ -23,7 +23,7 @@ const AppLayout: React.FC<LayoutProperties> = ({ children }) => {
           so on the website they start below a white band as tall as the overhang, the fixed
           ones too. A full-bleed page like the Karte covers the band and moves only its
           controls down by --app-logo-overhang. */}
-      <div className="max-xl:site:[--app-content-top:calc(90px+var(--preview-banner-height))] max-xl:site:[--app-logo-overhang:28px] mb-20 [--app-logo-overhang:0px]">
+      <div className="max-xl:site:[--app-content-top:calc(90px+var(--preview-banner-height))] max-xl:site:[--app-logo-overhang:28px] mb-(--app-tab-bar-height) [--app-logo-overhang:0px]">
         <div aria-hidden="true" className="h-(--app-logo-overhang) bg-white" />
         {children}
       </div>

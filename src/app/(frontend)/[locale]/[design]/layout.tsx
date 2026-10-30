@@ -36,14 +36,15 @@ interface LayoutProperties {
 const GlobalAppFooterWrapper: React.FC<{
   locale: Locale;
   design: DesignCodes;
-}> = ({ locale, design }) => {
+  navigationMode: NavigationMode;
+}> = ({ locale, design, navigationMode }) => {
   const isInAppDesign = design === DesignCodes.APP_DESIGN;
 
   return (
     <GlobalAppFooterClientWrapper
       locale={locale}
       isAppMode={isInAppDesign}
-      appNavBar={<AppNavBarServer locale={locale} />}
+      appNavBar={<AppNavBarServer locale={locale} railOnDesktop={navigationMode === 'top-nav'} />}
       copyrightArea={<FooterCopyrightArea locale={locale} inAppDesign={isInAppDesign} />}
     />
   );
@@ -72,8 +73,8 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
     notFound();
   }
 
-  const navigationMode: NavigationMode =
-    isRedesignedMenuEnabled && !isInAppDesign ? 'top-nav' : 'side-nav';
+  // the app follows the website's menu, so both look the same on a desktop
+  const navigationMode: NavigationMode = isRedesignedMenuEnabled ? 'top-nav' : 'side-nav';
 
   return (
     <html
@@ -114,7 +115,11 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
                   }
                   footer={
                     <Suspense fallback={undefined}>
-                      <GlobalAppFooterWrapper locale={locale} design={design} />
+                      <GlobalAppFooterWrapper
+                        locale={locale}
+                        design={design}
+                        navigationMode={navigationMode}
+                      />
                     </Suspense>
                   }
                   inAppDesign={isInAppDesign}

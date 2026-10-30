@@ -50,7 +50,6 @@ const checkForbiddenRegexes = (
     'api',
     'admin',
     'app',
-    'blog',
     'timeline-preview',
     'forms-preview',
     'serwist',

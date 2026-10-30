@@ -22,9 +22,9 @@ const AREA_ORDER: AdminPanelArea[] = ['webpage', 'app', 'backoffice'];
 
 const areaDescriptions: Record<AdminPanelArea, StaticTranslationString> = {
   webpage: {
-    de: 'Die öffentliche Webseite: Seiten, Blog, Medien und Formulare.',
-    en: 'The public website: pages, blog, media and forms.',
-    fr: 'Le site web public : pages, blog, médias et formulaires.',
+    de: 'Die öffentliche Webseite: Seiten, Medien und Formulare.',
+    en: 'The public website: pages, media and forms.',
+    fr: 'Le site web public : pages, médias et formulaires.',
   },
   app: {
     de: 'Inhalte und Betrieb der App für Teilnehmende und Helfende.',
