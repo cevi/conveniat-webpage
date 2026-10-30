@@ -72,3 +72,22 @@ export const fetchPublishedPageSlugs = async (): Promise<PublishedPageSlugs> => 
     return { genericPages, blogPosts };
   });
 };
+
+/**
+ * The Redis key whose value changes whenever a save may have changed the published slugs. Every
+ * replica compares it with the value it read its slugs under, so a change on one replica reaches
+ * the proxies of all of them.
+ */
+const SLUGS_VERSION_KEY = 'published-page-slugs:version';
+
+/** Announces that the published slugs may have changed. */
+export const markPublishedPageSlugsChanged = async (): Promise<void> => {
+  const { redis } = await import('@/lib/db/redis');
+  await redis.incr(SLUGS_VERSION_KEY);
+};
+
+/** The version of the published slugs, `'0'` before the first change was announced. */
+export const readPublishedPageSlugsVersion = async (): Promise<string> => {
+  const { redis } = await import('@/lib/db/redis');
+  return (await redis.get(SLUGS_VERSION_KEY)) ?? '0';
+};

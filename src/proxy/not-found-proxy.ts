@@ -1,5 +1,8 @@
 import type { PublishedPageSlugs } from '@/features/payload-cms/api/published-page-slugs';
-import { fetchPublishedPageSlugs } from '@/features/payload-cms/api/published-page-slugs';
+import {
+  fetchPublishedPageSlugs,
+  readPublishedPageSlugsVersion,
+} from '@/features/payload-cms/api/published-page-slugs';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import type { ProxyModule } from '@/proxy/types';
 import { Header } from '@/types/types';
@@ -58,35 +61,40 @@ export const mayResolveToCmsPage = (segments: string[], slugs: PublishedPageSlug
   return slugs.genericPages.has(segments.join('/'));
 };
 
-/** How long a read of the slugs is used before it is read again. */
+/** How long the slugs are kept when no change is announced, should an announcement get lost. */
 const MAX_AGE_MS = 5 * 60 * 1000;
-/** How soon a path that is not in the slugs may read them again, for a page published since. */
-const RECHECK_MISS_AFTER_MS = 10 * 1000;
+/** How often the announced version of the slugs is read from Redis. */
+const VERSION_CHECK_INTERVAL_MS = 1000;
+/**
+ * How soon slugs read for a newly announced version are read once more. The save announces the
+ * change from its `afterChange` hook, before Payload commits it, so the first read can miss it.
+ */
+const REREAD_AFTER_CHANGE_MS = 2000;
 /** How soon a failed read is tried again. Until then every path is left to the page route. */
 const RETRY_AFTER_FAILURE_MS = 30 * 1000;
 
 interface SlugIndex {
   slugs: PublishedPageSlugs | undefined;
-  readAt: number;
+  version: string;
   expiresAt: number;
 }
 
 let index: SlugIndex | undefined;
 let pendingRead: Promise<SlugIndex> | undefined;
 
-const readSlugs = async (): Promise<SlugIndex> => {
+const readSlugs = async (version: string, changed: boolean): Promise<SlugIndex> => {
   pendingRead ??= fetchPublishedPageSlugs()
     .then(
-      (slugs): SlugIndex => {
-        const now = Date.now();
-        return { slugs, readAt: now, expiresAt: now + MAX_AGE_MS };
-      },
+      (slugs): SlugIndex => ({
+        slugs,
+        version,
+        expiresAt: Date.now() + (changed ? REREAD_AFTER_CHANGE_MS : MAX_AGE_MS),
+      }),
       (error: unknown): SlugIndex => {
         logger.warn('Could not read the published page slugs, unknown paths answer 200 for now', {
           error,
         });
-        const now = Date.now();
-        return { slugs: undefined, readAt: now, expiresAt: now + RETRY_AFTER_FAILURE_MS };
+        return { slugs: undefined, version, expiresAt: Date.now() + RETRY_AFTER_FAILURE_MS };
       },
     )
     .then((read) => {
@@ -99,15 +107,38 @@ const readSlugs = async (): Promise<SlugIndex> => {
   return await pendingRead;
 };
 
+let announcedVersion: { value: string | undefined; nextCheckAt: number } | undefined;
+
+/** The announced version of the slugs, `undefined` while Redis cannot be read. */
+const readAnnouncedVersion = async (): Promise<string | undefined> => {
+  const now = Date.now();
+  if (announcedVersion !== undefined && now < announcedVersion.nextCheckAt) {
+    return announcedVersion.value;
+  }
+  try {
+    const value = await readPublishedPageSlugsVersion();
+    announcedVersion = { value, nextCheckAt: now + VERSION_CHECK_INTERVAL_MS };
+  } catch (error: unknown) {
+    logger.warn('Could not read the version of the published page slugs from Redis', { error });
+    announcedVersion = { value: undefined, nextCheckAt: now + RETRY_AFTER_FAILURE_MS };
+  }
+  return announcedVersion.value;
+};
+
 /**
  * Whether the path may resolve to a CMS page. Anything uncertain, a failed read included, counts
  * as a page, so that the page route decides as it did before.
  */
 const mayResolve = async (segments: string[]): Promise<boolean> => {
-  let current = index === undefined || Date.now() >= index.expiresAt ? await readSlugs() : index;
-  if (current.slugs === undefined || mayResolveToCmsPage(segments, current.slugs)) return true;
+  const version = await readAnnouncedVersion();
+  if (version === undefined) return true;
 
-  if (Date.now() - current.readAt >= RECHECK_MISS_AFTER_MS) current = await readSlugs();
+  let current = index;
+  if (current?.version !== version || Date.now() >= current.expiresAt) {
+    const changed = current !== undefined && current.version !== version;
+    if (changed) logger.debug('The published page slugs changed, reading them again');
+    current = await readSlugs(version, changed);
+  }
   return current.slugs === undefined || mayResolveToCmsPage(segments, current.slugs);
 };
 
@@ -130,7 +161,8 @@ const decodeSegments = (pathname: string): string[] | undefined => {
  * prerendered shell. The slug is only known per request, so that shell is stored with 200 and the
  * `notFound()` of the page cannot change it any more. Next.js recommends checking the slug in
  * Proxy for this, see "Status codes" in the `loading.js` reference. The check reads the published
- * slugs, not the pages, and keeps them in memory.
+ * slugs, not the pages, and keeps them in memory until a save announces a change through Redis,
+ * see `flushPageCacheOnChange`.
  *
  * Runs after the design rewrite, whose target names the locale and the design. A preview is left
  * alone: its draft is not in the published slugs.

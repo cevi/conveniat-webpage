@@ -15,8 +15,10 @@ jest.mock('@/features/payload-cms/page-layouts/forms-preview-page', () => ({
 }));
 
 const mockFetchPublishedPageSlugs = jest.fn<Promise<PublishedPageSlugs>, []>();
+const mockReadPublishedPageSlugsVersion = jest.fn<Promise<string>, []>();
 jest.mock('@/features/payload-cms/api/published-page-slugs', () => ({
   fetchPublishedPageSlugs: (): Promise<PublishedPageSlugs> => mockFetchPublishedPageSlugs(),
+  readPublishedPageSlugsVersion: (): Promise<string> => mockReadPublishedPageSlugsVersion(),
 }));
 
 type NotFoundProxyModule = typeof import('@/proxy/not-found-proxy');
@@ -60,6 +62,8 @@ describe('notFoundProxy', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     mockFetchPublishedPageSlugs.mockReset();
+    mockReadPublishedPageSlugsVersion.mockReset();
+    mockReadPublishedPageSlugsVersion.mockResolvedValue('0');
   });
 
   afterEach(() => {
@@ -107,23 +111,61 @@ describe('notFoundProxy', () => {
     );
   });
 
-  it('finds a page published after the slugs were read', async () => {
-    mockFetchPublishedPageSlugs.mockResolvedValueOnce(published(['']));
+  it('answers 404 for a page as soon as its unpublishing is announced', async () => {
+    mockFetchPublishedPageSlugs.mockResolvedValueOnce(published(['', 'anmeldung']));
     const proxyModule = loadModule();
+    await expect(run(proxyModule, '/anmeldung', '/de/design-mode-web/anmeldung')).resolves.toBe(
+      '/de/design-mode-web/anmeldung',
+    );
+
+    mockFetchPublishedPageSlugs.mockResolvedValue(published(['']));
+    mockReadPublishedPageSlugsVersion.mockResolvedValue('1');
+    jest.advanceTimersByTime(1000);
+
+    await expect(run(proxyModule, '/anmeldung', '/de/design-mode-web/anmeldung')).resolves.toBe(
+      '/de/design-mode-web/~not-found',
+    );
+  });
+
+  it('reads the slugs again shortly after a change, which the first read may have missed', async () => {
+    mockFetchPublishedPageSlugs.mockResolvedValue(published(['']));
+    const proxyModule = loadModule();
+    await run(proxyModule, '/neu', '/de/design-mode-web/neu');
+
+    // announced from the hook, but not yet committed when the proxy reads
+    mockReadPublishedPageSlugsVersion.mockResolvedValue('1');
+    jest.advanceTimersByTime(1000);
     await expect(run(proxyModule, '/neu', '/de/design-mode-web/neu')).resolves.toBe(
       '/de/design-mode-web/~not-found',
     );
 
     mockFetchPublishedPageSlugs.mockResolvedValue(published(['', 'neu']));
-    await expect(run(proxyModule, '/neu', '/de/design-mode-web/neu')).resolves.toBe(
-      '/de/design-mode-web/~not-found',
-    );
-    expect(mockFetchPublishedPageSlugs).toHaveBeenCalledTimes(1);
-
-    jest.advanceTimersByTime(10_000);
+    jest.advanceTimersByTime(2000);
     await expect(run(proxyModule, '/neu', '/de/design-mode-web/neu')).resolves.toBe(
       '/de/design-mode-web/neu',
     );
+  });
+
+  it('reads neither Redis nor the database on every request', async () => {
+    mockFetchPublishedPageSlugs.mockResolvedValue(published(['']));
+    const proxyModule = loadModule();
+
+    for (let request = 0; request < 5; request++) {
+      await run(proxyModule, '/gibt-es-nicht', '/de/design-mode-web/gibt-es-nicht');
+    }
+
+    expect(mockReadPublishedPageSlugsVersion).toHaveBeenCalledTimes(1);
+    expect(mockFetchPublishedPageSlugs).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves every path to the page route while Redis cannot be read', async () => {
+    mockFetchPublishedPageSlugs.mockResolvedValue(published(['']));
+    mockReadPublishedPageSlugsVersion.mockRejectedValue(new Error('redis is down'));
+    const proxyModule = loadModule();
+
+    await expect(
+      run(proxyModule, '/does-not-exist', '/de/design-mode-web/does-not-exist'),
+    ).resolves.toBe('/de/design-mode-web/does-not-exist');
   });
 
   it('leaves every path to the page route while the slugs cannot be read', async () => {

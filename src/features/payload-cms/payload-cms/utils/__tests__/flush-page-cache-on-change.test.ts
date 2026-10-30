@@ -10,6 +10,11 @@ import type { PayloadRequest, SanitizedCollectionConfig, SanitizedGlobalConfig }
 
 jest.mock('next/cache', () => ({ revalidateTag: jest.fn() }));
 
+const mockMarkPublishedPageSlugsChanged = jest.fn<Promise<void>, []>();
+jest.mock('@/features/payload-cms/api/published-page-slugs', () => ({
+  markPublishedPageSlugsChanged: (): Promise<void> => mockMarkPublishedPageSlugsChanged(),
+}));
+
 const PAGE_ID = '65f0c1a2b3d4e5f6a7b8c9d0';
 
 const pages = {
@@ -68,7 +73,31 @@ const linkTarget = (urlSlug: string, published: boolean): object => ({
 });
 
 describe('flushPageCacheOnChange', () => {
-  beforeEach(() => jest.mocked(revalidateTag).mockClear());
+  beforeEach(() => {
+    jest.mocked(revalidateTag).mockClear();
+    mockMarkPublishedPageSlugsChanged.mockReset().mockResolvedValue();
+  });
+
+  it('tells the proxy when a page is unpublished, and not when its content changes', async () => {
+    await savePage(requestReading(linkTarget('anmeldung', true), linkTarget('anmeldung', true)), {
+      data: { _status: 'published' },
+    });
+    expect(mockMarkPublishedPageSlugsChanged).not.toHaveBeenCalled();
+
+    await savePage(requestReading(linkTarget('anmeldung', true), linkTarget('anmeldung', false)), {
+      data: { _status: 'published' },
+    });
+    expect(mockMarkPublishedPageSlugsChanged).toHaveBeenCalledTimes(1);
+  });
+
+  it('still flushes the cache when Redis cannot be told about changed slugs', async () => {
+    mockMarkPublishedPageSlugsChanged.mockRejectedValue(new Error('redis is down'));
+    const request = requestReading(linkTarget('anmeldung', true), linkTarget('anmelden', true));
+
+    await savePage(request, { data: { _status: 'published' } });
+
+    expect(flushedTags()).toContain('payload');
+  });
 
   it('keeps the cache when autosave stores a draft', async () => {
     await savePage(requestReading(), { draft: true, data: { _status: 'draft' } });

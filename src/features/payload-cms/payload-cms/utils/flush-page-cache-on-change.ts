@@ -167,6 +167,30 @@ const changedOwnContentOnly = async (
   }
 };
 
+/** The collections whose slugs the proxy checks a path against, see `not-found-proxy.ts`. */
+const COLLECTIONS_WITH_PUBLISHED_SLUGS = new Set<string>(['generic-page', 'blog']);
+
+/**
+ * Tells the proxy of every replica to read the published slugs again. Called when a save changed
+ * a slug, published or unpublished a page, or moved it to the trash or out of it; otherwise a path
+ * whose page just went away answers 200 until the proxy reads them again by itself.
+ */
+const announceChangedSlugs = async (
+  request: PayloadRequest,
+  collection: CollectionSlug,
+): Promise<void> => {
+  try {
+    const { markPublishedPageSlugsChanged } =
+      await import('@/features/payload-cms/api/published-page-slugs');
+    await markPublishedPageSlugsChanged();
+  } catch (error: unknown) {
+    request.payload.logger.warn(
+      { error, collection },
+      'Announcing changed page slugs failed, the proxy reads them again within 5 minutes',
+    );
+  }
+};
+
 /**
  * Flushes the cache entries a saved document is part of.
  *
@@ -205,6 +229,10 @@ export const flushPageCacheOnChange: CollectionAfterChangeHook = async ({
     if (flushEverything) revalidateTag('payload', 'max');
     revalidateTag(`collection:${collectionSlug}`, 'max');
     revalidateTag(`doc:${collectionSlug}:${id}`, 'max');
+
+    if (flushEverything && COLLECTIONS_WITH_PUBLISHED_SLUGS.has(collectionSlug)) {
+      await announceChangedSlugs(req, collectionSlug);
+    }
   } catch (error: unknown) {
     req.payload.logger.warn(
       { error, collection: collectionSlug },
