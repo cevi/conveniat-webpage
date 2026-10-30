@@ -25,3 +25,23 @@ test('a file that exists still answers 200', async ({ request }) => {
   expect(response.status()).toBe(200);
   expect(response.headers()['content-type']).toBe('image/x-icon');
 });
+
+/**
+ * A CMS path without a published page answers 404 too. The proxy rewrites it to the
+ * prerendered `~not-found` route, because the catch-all CMS route answers with the 200 of its
+ * shell however its page ends, see `src/proxy/not-found-proxy.ts`.
+ */
+for (const path of ['/does-not-exist', '/fr/does-not-exist', '/blog/does-not-exist']) {
+  test(`${path} answers 404`, async ({ request }) => {
+    const response = await request.get(path);
+
+    expect(response.status()).toBe(404);
+  });
+}
+
+test('the 404 page of a CMS path speaks the language of the path', async ({ page }) => {
+  const response = await page.goto('/fr/does-not-exist');
+
+  expect(response?.status()).toBe(404);
+  await expect(page.getByRole('heading', { name: '404 - Page non trouvée' })).toBeVisible();
+});

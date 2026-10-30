@@ -71,12 +71,13 @@ const toHome: StaticTranslationString = {
  */
 export const NotFound: React.FC<{
   locale?: Promise<Locale>;
-}> = async ({ locale: localePromise }) => {
-  // fetch locale from cookies if not provided
+  inAppDesign?: boolean;
+}> = async ({ locale: localePromise, inAppDesign }) => {
+  // fetch locale and design from the request if not provided
   let locale = await localePromise;
   locale ??= await getLocaleFromCookies();
 
-  if (await renderInAppDesign()) {
+  if (inAppDesign ?? (await renderInAppDesign())) {
     return (
       <div className="flex w-full justify-center px-4 py-6">
         <EmptyState
