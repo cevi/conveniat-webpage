@@ -1,5 +1,6 @@
 import { designRewriteProxy } from '@/proxy/design-rewrite-proxy';
 import { i18nProxy } from '@/proxy/i18n-proxy';
+import { notFoundProxy } from '@/proxy/not-found-proxy';
 import { proxyChain } from '@/proxy/proxy-chain';
 
 import type { ProxyModule } from '@/proxy/types';
@@ -71,6 +72,7 @@ export const proxy = proxyChain([
   { proxy: pathnameProxy, name: 'pathname' },
   { proxy: i18nProxy, name: 'i18n' },
   { proxy: designRewriteProxy, name: 'designRewrite' },
+  { proxy: notFoundProxy, name: 'notFound' },
 ]);
 
 export const config = {
