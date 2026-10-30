@@ -150,33 +150,15 @@ const generateMetadataInternal = async (
   const payload = await getPayload({ config });
   const currentDate = new Date().toISOString();
 
-  const blogAlternatives = await findAlternatives({
+  const slugsByLocale = await findAlternatives({
     payload,
     collection: 'blog',
     internalPageName: article.internalPageName,
     currentDate,
   });
 
-  const germanAlternative = blogAlternatives.find((a) =>
-    (a._locale as string | undefined)?.startsWith('de'),
-  );
-  const canonicalLocale = germanAlternative?._locale ?? locale;
-  const canonicalSlug = germanAlternative?.seo.urlSlug ?? slug;
-
-  const alternates = Object.fromEntries(
-    blogAlternatives
-      .filter((alt) => alt._locale !== canonicalLocale)
-      .map((alt) => [alt._locale, `/${alt._locale}/blog/${alt.seo.urlSlug}`]),
-  );
-
   return {
-    ...buildMetadata({
-      seo: article.seo,
-      canonicalLocale,
-      canonicalSlug,
-      alternates,
-      prefix: '/blog',
-    }),
+    ...buildMetadata({ seo: article.seo, locale, slugsByLocale, urlPrefix: 'blog' }),
     twitter: {
       card: 'summary_large_image',
       title: article.seo.metaTitle ?? article.content.blogH1,

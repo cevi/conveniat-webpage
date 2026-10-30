@@ -1,8 +1,11 @@
 import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
 import { environmentVariables } from '@/config/environment-variables';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
-import type { SpecialRouteResolutionEntry } from '@/features/payload-cms/special-pages-table';
 import { getSpecialPage, isSpecialPage } from '@/features/payload-cms/special-pages-table';
+import {
+  buildLanguageAlternates,
+  localizedPagePath,
+} from '@/features/payload-cms/utils/metadata-helper';
 import type { PreviewAccess } from '@/features/payload-cms/utils/preview/preview-utils';
 import { PreviewWarning } from '@/features/payload-cms/utils/preview/preview-utils';
 import type { Locale, SearchParameters } from '@/types/types';
@@ -25,27 +28,6 @@ const logger = createLogger('pages:render');
  */
 export const instant = false;
 
-const getCanonicalData = (
-  specialPage: SpecialRouteResolutionEntry,
-  locale: Locale,
-): { canonical: string; languages: { [k: string]: string } } => {
-  const availableLocales = i18nConfig.locales as Locale[];
-  const canonicalLocale = specialPage.alternatives['de'] === '' ? locale : 'de';
-  const canonicalPath = specialPage.alternatives[canonicalLocale];
-
-  const alternates = Object.fromEntries(
-    availableLocales
-      .filter((lang): boolean => lang !== canonicalLocale && specialPage.alternatives[lang] !== '')
-      .map((lang) => [lang, `/${lang}${specialPage.alternatives[lang]}`]),
-  );
-
-  return {
-    // If the canonical locale is 'de', we do not add the locale to the path
-    canonical: `${canonicalLocale == 'de' ? '' : '/' + canonicalLocale}${canonicalPath}`,
-    languages: alternates,
-  };
-};
-
 const normalizeAlternativePath = (alternativePath: string): string =>
   alternativePath.replace(/^\/+/, '');
 
@@ -61,13 +43,15 @@ const handleSpecialPage = (collection: string, locale: Locale): Metadata => {
   const foundLocale = specialPage.locale;
 
   if (foundLocale === locale) {
-    const { canonical, languages } = getCanonicalData(specialPage, locale);
+    const pathsByLocale = Object.fromEntries(
+      (i18nConfig.locales as Locale[]).map((l) => [
+        l,
+        localizedPagePath(l, '', normalizeAlternativePath(specialPage.alternatives[l])),
+      ]),
+    );
     return {
       title: specialPage.title[locale],
-      alternates: {
-        canonical,
-        languages,
-      },
+      alternates: buildLanguageAlternates(pathsByLocale, locale),
     };
   }
 
