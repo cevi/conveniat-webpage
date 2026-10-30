@@ -19,7 +19,7 @@ const VatSplitsValidationSchema = z
       // Tolerate the third of a percent that thirds-style splits cannot express exactly.
       return Math.abs(total - 100) < 0.011;
     },
-    { message: 'Die Anteile der MWST-Aufteilung müssen zusammen 100% ergeben.' },
+    { error: 'Die Anteile der MWST-Aufteilung müssen zusammen 100% ergeben.' },
   );
 
 /**

@@ -332,7 +332,7 @@ export const returnLoanBasket = materialTeamProcedure
       .refine(
         (input) => new Set(input.lines.map((line) => line.loanId)).size === input.lines.length,
         {
-          message: 'A loan can only be returned once.',
+          error: 'A loan can only be returned once.',
         },
       ),
   )
