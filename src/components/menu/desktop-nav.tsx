@@ -1,5 +1,6 @@
 'use client';
 
+import { appFeaturesTitle } from '@/components/menu/app-features-title';
 import type { ProcessedMainMenuItem } from '@/components/menu/main-menu';
 import { moreColumnLabel, splitMenuColumns } from '@/components/menu/menu-columns';
 import type { MenuNode } from '@/components/menu/menu-links';
@@ -11,6 +12,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronDown, Languages, Menu as MenuIcon, Search, X } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import type { ReactNode } from 'react';
 import React, { useEffect, useId, useRef, useState } from 'react';
 
 const menuButtonLabel: StaticTranslationString = {
@@ -87,17 +89,27 @@ const useFocusMenuSection = (
 /**
  * The opened menu: every column side by side, in the order the editors gave them, and the entries
  * without entries below them collected in a last column. Opened from a pinned entry, that entry's
- * column is marked.
+ * column is marked. In the app, the app's features come first.
  */
 const MenuPanel: React.FC<{
   id: string;
   locale: Locale;
   menuItems: ProcessedMainMenuItem[];
+  appFeatures: ReactNode;
   highlightedId: string | undefined;
   isCurrent: (node: MenuNode) => boolean;
   panelReference: React.RefObject<HTMLDivElement | null>;
   onLinkClick: (event: React.MouseEvent) => void;
-}> = ({ id, locale, menuItems, highlightedId, isCurrent, panelReference, onLinkClick }) => {
+}> = ({
+  id,
+  locale,
+  menuItems,
+  appFeatures,
+  highlightedId,
+  isCurrent,
+  panelReference,
+  onLinkClick,
+}) => {
   useFocusMenuSection(panelReference, highlightedId);
 
   // a column whose entries are all hidden from this reader is a plain link
@@ -114,6 +126,13 @@ const MenuPanel: React.FC<{
       className="animate-in fade-in-0 slide-in-from-top-1 border-line fixed top-[calc(4rem+var(--preview-banner-height))] right-0 left-0 z-50 max-h-[calc(100dvh-4rem-var(--preview-banner-height))] overflow-y-auto border-b-2 bg-white duration-150"
     >
       <div className="mx-auto grid max-w-7xl grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-x-6 gap-y-8 px-12 py-10">
+        {appFeatures !== undefined && (
+          <section aria-label={appFeaturesTitle[locale]} className="-m-3 p-3">
+            <span className={columnHeadingClassName}>{appFeaturesTitle[locale]}</span>
+            {appFeatures}
+          </section>
+        )}
+
         {columns.map((item) => (
           <section
             key={item.id}
@@ -198,7 +217,9 @@ export const DesktopNav: React.FC<{
   /** the draft menu, handed over for an editor only and shown in preview mode */
   draftMenuItems?: ProcessedMainMenuItem[] | undefined;
   actionURL: string;
-}> = ({ locale, menuItems: publishedMenuItems, draftMenuItems, actionURL }) => {
+  /** the app's features, the first column of the menu in the app */
+  appFeatures?: ReactNode;
+}> = ({ locale, menuItems: publishedMenuItems, draftMenuItems, actionURL, appFeatures }) => {
   const searchParameters = useSearchParams();
   const { isInPreviewMode } = usePreviewMode();
   const menuItems =
@@ -234,7 +255,7 @@ export const DesktopNav: React.FC<{
     pinnedItems.length,
   );
   const fittingItems = pinnedItems.slice(0, fittingCount);
-  const hasMenu = menuItems.some((item) => item.isVisible);
+  const hasMenu = appFeatures !== undefined || menuItems.some((item) => item.isVisible);
 
   const isMenuOpen = openedFrom !== undefined;
   const highlightedId = typeof openedFrom === 'string' ? openedFrom : undefined;
@@ -455,6 +476,7 @@ export const DesktopNav: React.FC<{
             id={menuId}
             locale={locale}
             menuItems={menuItems}
+            appFeatures={appFeatures}
             highlightedId={highlightedId}
             isCurrent={isCurrent}
             panelReference={panelReference}

@@ -118,7 +118,7 @@ export const AnnotationDetailsDrawer: React.FC<{
       ref={drawerReference}
       // marks the drawer for `useFlyToAnnotation`, which measures how much of the map it covers
       {...{ [ANNOTATION_DRAWER_ATTRIBUTE]: '' }}
-      className="fixed right-0 bottom-[80px] left-0 z-[999] overflow-hidden rounded-t-2xl bg-white shadow-[0px_-4px_38px_-19px_rgba(1,1,1,0.5)] xl:left-[480px]"
+      className="fixed right-0 bottom-(--app-tab-bar-height) left-0 z-[999] overflow-hidden rounded-t-2xl bg-white shadow-[0px_-4px_38px_-19px_rgba(1,1,1,0.5)] xl:left-(--app-content-left)"
       style={{ height: `${drawerHeight}vh` }}
     >
       <div

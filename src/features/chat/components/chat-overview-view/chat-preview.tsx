@@ -182,7 +182,9 @@ export const ChatPreview: React.FC<{
   onOpenActions?: (chat: ChatWithMessagePreview) => void;
   /** the element that tells a screen reader how to reach those actions */
   actionsHintId?: string;
-}> = ({ chat, onOpenActions, actionsHintId }) => {
+  /** the chat open beside the list, on a desktop */
+  isSelected?: boolean;
+}> = ({ chat, onOpenActions, actionsHintId, isSelected = false }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
   const trpcUtils = trpc.useUtils();
@@ -252,9 +254,11 @@ export const ChatPreview: React.FC<{
       className={cn(
         'hover:bg-quiet focus-visible:focus-ring-inset block w-full bg-white select-none',
         hasUnread && 'bg-tint',
+        isSelected && 'bg-quiet',
         isEmergency && 'border-l-4 border-l-red-600 bg-red-50 hover:bg-red-100',
       )}
       data-allow-red={isEmergency ? '' : undefined}
+      aria-current={isSelected ? 'page' : undefined}
       onMouseEnter={handlePrefetch}
       aria-describedby={onOpenActions === undefined ? undefined : actionsHintId}
       // a held finger opens the actions, not the phone's own menu or a text selection
