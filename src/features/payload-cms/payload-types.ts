@@ -418,12 +418,12 @@ export interface GenericPage {
             type?: ('reference' | 'custom' | 'email') | null;
             reference?:
               | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
                 } | null)
               | ({
                   relationTo: 'images';
@@ -464,12 +464,12 @@ export interface GenericPage {
             type?: ('reference' | 'custom' | 'email') | null;
             reference?:
               | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
                 } | null)
               | ({
                   relationTo: 'images';
@@ -1053,12 +1053,12 @@ export interface MediaTextBlock {
     type?: ('reference' | 'custom' | 'email') | null;
     reference?:
       | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
-      | ({
           relationTo: 'generic-page';
           value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
         } | null)
       | ({
           relationTo: 'images';
@@ -1219,12 +1219,12 @@ export interface Blog {
             type?: ('reference' | 'custom' | 'email') | null;
             reference?:
               | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
                 } | null)
               | ({
                   relationTo: 'images';
@@ -1265,12 +1265,12 @@ export interface Blog {
             type?: ('reference' | 'custom' | 'email') | null;
             reference?:
               | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
                 } | null)
               | ({
                   relationTo: 'images';
@@ -2739,12 +2739,12 @@ export interface TeamMembersBlock {
     type?: ('reference' | 'custom' | 'email') | null;
     reference?:
       | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
-      | ({
           relationTo: 'generic-page';
           value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
         } | null)
       | ({
           relationTo: 'images';
@@ -3116,12 +3116,12 @@ export interface Timeline {
               type?: ('reference' | 'custom' | 'email') | null;
               reference?:
                 | ({
-                    relationTo: 'blog';
-                    value: string | Blog;
-                  } | null)
-                | ({
                     relationTo: 'generic-page';
                     value: string | GenericPage;
+                  } | null)
+                | ({
+                    relationTo: 'blog';
+                    value: string | Blog;
                   } | null)
                 | ({
                     relationTo: 'images';
@@ -3216,12 +3216,12 @@ export interface DonationCtaBlock {
     type?: ('reference' | 'custom' | 'email') | null;
     reference?:
       | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
-      | ({
           relationTo: 'generic-page';
           value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
         } | null)
       | ({
           relationTo: 'images';
@@ -3287,12 +3287,12 @@ export interface DonationBarometerBlock {
     type?: ('reference' | 'custom' | 'email') | null;
     reference?:
       | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
-      | ({
           relationTo: 'generic-page';
           value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
         } | null)
       | ({
           relationTo: 'images';
@@ -3373,12 +3373,12 @@ export interface CardGridBlock {
       type?: ('reference' | 'custom' | 'email') | null;
       reference?:
         | ({
-            relationTo: 'blog';
-            value: string | Blog;
-          } | null)
-        | ({
             relationTo: 'generic-page';
             value: string | GenericPage;
+          } | null)
+        | ({
+            relationTo: 'blog';
+            value: string | Blog;
           } | null)
         | ({
             relationTo: 'images';
@@ -3424,12 +3424,12 @@ export interface ContactPersonBlock {
     type?: ('reference' | 'custom' | 'email') | null;
     reference?:
       | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
-      | ({
           relationTo: 'generic-page';
           value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
         } | null)
       | ({
           relationTo: 'images';
@@ -3557,12 +3557,12 @@ export interface TwoColumnBlock {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
             | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
-            | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
               } | null)
             | ({
                 relationTo: 'images';
@@ -3601,12 +3601,12 @@ export interface TwoColumnBlock {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
             | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
-            | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
               } | null)
             | ({
                 relationTo: 'images';
@@ -3746,12 +3746,12 @@ export interface TwoColumnBlock {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
             | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
-            | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
               } | null)
             | ({
                 relationTo: 'images';
@@ -3790,12 +3790,12 @@ export interface TwoColumnBlock {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
             | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
-            | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
               } | null)
             | ({
                 relationTo: 'images';
@@ -3876,12 +3876,12 @@ export interface SponsorGridBlock {
         type?: ('reference' | 'custom' | 'email') | null;
         reference?:
           | ({
-              relationTo: 'blog';
-              value: string | Blog;
-            } | null)
-          | ({
               relationTo: 'generic-page';
               value: string | GenericPage;
+            } | null)
+          | ({
+              relationTo: 'blog';
+              value: string | Blog;
             } | null)
           | ({
               relationTo: 'images';
@@ -3929,12 +3929,12 @@ export interface FeaturedSectionBlock {
       type?: ('reference' | 'custom' | 'email') | null;
       reference?:
         | ({
-            relationTo: 'blog';
-            value: string | Blog;
-          } | null)
-        | ({
             relationTo: 'generic-page';
             value: string | GenericPage;
+          } | null)
+        | ({
+            relationTo: 'blog';
+            value: string | Blog;
           } | null)
         | ({
             relationTo: 'images';
@@ -3972,12 +3972,12 @@ export interface FeaturedSectionBlock {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
             | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
-            | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
               } | null)
             | ({
                 relationTo: 'images';
@@ -4095,12 +4095,12 @@ export interface TabsBlock {
             type?: ('reference' | 'custom' | 'email') | null;
             reference?:
               | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
                 } | null)
               | ({
                   relationTo: 'images';
@@ -4139,12 +4139,12 @@ export interface TabsBlock {
             type?: ('reference' | 'custom' | 'email') | null;
             reference?:
               | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
                 } | null)
               | ({
                   relationTo: 'images';
@@ -8508,12 +8508,12 @@ export interface Header {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
             | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
-            | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
               } | null)
             | ({
                 relationTo: 'images';
@@ -8546,12 +8546,12 @@ export interface Header {
                 type?: ('reference' | 'custom' | 'email') | null;
                 reference?:
                   | ({
-                      relationTo: 'blog';
-                      value: string | Blog;
-                    } | null)
-                  | ({
                       relationTo: 'generic-page';
                       value: string | GenericPage;
+                    } | null)
+                  | ({
+                      relationTo: 'blog';
+                      value: string | Blog;
                     } | null)
                   | ({
                       relationTo: 'images';
@@ -8584,12 +8584,12 @@ export interface Header {
                       type?: ('reference' | 'custom' | 'email') | null;
                       reference?:
                         | ({
-                            relationTo: 'blog';
-                            value: string | Blog;
-                          } | null)
-                        | ({
                             relationTo: 'generic-page';
                             value: string | GenericPage;
+                          } | null)
+                        | ({
+                            relationTo: 'blog';
+                            value: string | Blog;
                           } | null)
                         | ({
                             relationTo: 'images';
@@ -8622,12 +8622,12 @@ export interface Header {
                             type?: ('reference' | 'custom' | 'email') | null;
                             reference?:
                               | ({
-                                  relationTo: 'blog';
-                                  value: string | Blog;
-                                } | null)
-                              | ({
                                   relationTo: 'generic-page';
                                   value: string | GenericPage;
+                                } | null)
+                              | ({
+                                  relationTo: 'blog';
+                                  value: string | Blog;
                                 } | null)
                               | ({
                                   relationTo: 'images';
@@ -8737,12 +8737,12 @@ export interface Footer {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
             | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
-            | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
               } | null)
             | ({
                 relationTo: 'images';
@@ -8789,12 +8789,12 @@ export interface Footer {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
             | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
-            | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
+              } | null)
+            | ({
+                relationTo: 'blog';
+                value: string | Blog;
               } | null)
             | ({
                 relationTo: 'images';
@@ -8994,12 +8994,12 @@ export interface AppLandingPage {
               type?: ('reference' | 'custom' | 'email') | null;
               reference?:
                 | ({
-                    relationTo: 'blog';
-                    value: string | Blog;
-                  } | null)
-                | ({
                     relationTo: 'generic-page';
                     value: string | GenericPage;
+                  } | null)
+                | ({
+                    relationTo: 'blog';
+                    value: string | Blog;
                   } | null)
                 | ({
                     relationTo: 'images';
@@ -9040,12 +9040,12 @@ export interface AppLandingPage {
               type?: ('reference' | 'custom' | 'email') | null;
               reference?:
                 | ({
-                    relationTo: 'blog';
-                    value: string | Blog;
-                  } | null)
-                | ({
                     relationTo: 'generic-page';
                     value: string | GenericPage;
+                  } | null)
+                | ({
+                    relationTo: 'blog';
+                    value: string | Blog;
                   } | null)
                 | ({
                     relationTo: 'images';

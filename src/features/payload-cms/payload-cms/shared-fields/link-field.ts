@@ -149,12 +149,16 @@ export const LinkField = (required: boolean = true): NamedGroupField => {
           condition: (_, siblingData) => siblingData['type'] === 'reference',
           allowCreate: false,
           allowEdit: false,
+          // Payload's list in a drawer: one collection at a time, with search and filters, instead
+          // of one long dropdown mixing pages, images and documents
+          appearance: 'drawer',
           placeholder: referencePlaceholder,
         },
         label: { en: 'Link target', de: 'Linkziel', fr: 'Cible du lien' },
+        // the drawer opens on the first collection: pages are what most links point to
         relationTo: [
-          'blog',
           'generic-page',
+          'blog',
           'images',
           'documents',
           'camp-map-annotations',
