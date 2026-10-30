@@ -10,7 +10,7 @@ import { z } from 'zod';
  * receipts alone and goes away once the chat is read again, see `markChatAsRead`.
  */
 export const markChatUnread = trpcBaseProcedure
-  .input(z.object({ chatId: z.string().uuid(), unread: z.boolean() }))
+  .input(z.object({ chatId: z.uuid(), unread: z.boolean() }))
   .mutation(async ({ input, ctx }): Promise<{ success: true }> => {
     const { user, prisma } = ctx;
     const membership = await findOwnChatMembership(prisma, user.uuid, input.chatId);

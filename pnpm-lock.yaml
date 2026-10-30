@@ -321,6 +321,9 @@ importers:
       zod:
         specifier: ^4.6.6
         version: 4.6.6
+      zod-v3:
+        specifier: npm:zod@3.25.76
+        version: zod@3.25.76
     devDependencies:
       '@faker-js/faker':
         specifier: ^10.6.0

@@ -12,7 +12,7 @@ import { z } from 'zod';
  * `sendNotification`. An emergency chat cannot be muted, its pushes have to wake people up.
  */
 export const muteChat = trpcBaseProcedure
-  .input(z.object({ chatId: z.string().uuid(), muted: z.boolean() }))
+  .input(z.object({ chatId: z.uuid(), muted: z.boolean() }))
   .mutation(async ({ input, ctx }): Promise<{ success: true }> => {
     const { user, prisma } = ctx;
     const membership = await findOwnChatMembership(prisma, user.uuid, input.chatId);

@@ -69,8 +69,8 @@ export const chatRouter = createTRPCRouter({
   checkCapability: trpcBaseProcedure
     .input(
       z.object({
-        subject: z.nativeEnum(CapabilitySubject),
-        action: z.nativeEnum(CapabilityAction),
+        subject: z.enum(CapabilitySubject),
+        action: z.enum(CapabilityAction),
         chatId: z.string().optional(),
       }),
     )

@@ -119,7 +119,7 @@ const importRowSchema = z.object({
   reservable: z.string().trim().toLowerCase(),
   description: z.string().trim().max(5000),
   returnInstructions: z.string().trim().max(2000),
-  imageUrl: z.union([z.literal(''), z.string().trim().url()]),
+  imageUrl: z.union([z.literal(''), z.string().trim().pipe(z.url())]),
   step: z.union([z.literal(''), z.coerce.number().int().min(1).max(1_000_000)]),
 });
 

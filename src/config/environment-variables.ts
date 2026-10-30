@@ -20,18 +20,18 @@ export const environmentVariables = createEnv({
    * Will throw if you access these variables on the client.
    */
   server: {
-    DATABASE_URI: z.string().url(),
-    CHAT_DATABASE_URL: z.string().url(),
-    REDIS_URL: z.string().url(),
+    DATABASE_URI: z.url(),
+    CHAT_DATABASE_URL: z.url(),
+    REDIS_URL: z.url(),
     PAYLOAD_SECRET: z.string().min(5),
-    APP_HOST_URL: z.string().url(),
+    APP_HOST_URL: z.url(),
     NODE_ENV: z.string().default('development'),
-    NEXTAUTH_URL: z.string().url(),
+    NEXTAUTH_URL: z.url(),
     AUTH_TRUST_HOST: z.string().transform((value) => value === 'true'),
     NEXTAUTH_SECRET: z.string().min(5),
     JWT_SECRET: z.string().min(5),
-    HITOBITO_BASE_URL: z.string().url(),
-    HITOBITO_FORWARD_URL: z.string().url(),
+    HITOBITO_BASE_URL: z.url(),
+    HITOBITO_FORWARD_URL: z.url(),
     API_TOKEN: z.string().default(''),
     // Destructive: resets every participant to `new` and overwrites their PDFs and
     // invoice numbers. Off unless a deployment opts in explicitly.
@@ -92,8 +92,8 @@ export const environmentVariables = createEnv({
     S3_FORM_FILE_BUCKET_NAME: z.string().min(3).optional(),
     // Holds the attachments of mails waiting in the outgoing queue, until they are sent.
     S3_MAIL_ATTACHMENT_BUCKET_NAME: z.string().min(3).optional(),
-    S3_HOST: z.string().url(),
-    S3_PUBLIC_HOST: z.string().url(),
+    S3_HOST: z.url(),
+    S3_PUBLIC_HOST: z.url(),
     ENABLE_NODEMAILER: z.string().transform((value) => value === 'true'),
     SMTP_HOST: z.string().optional(),
     SMTP_PORT: z.coerce.number().optional(),
@@ -108,30 +108,30 @@ export const environmentVariables = createEnv({
     FEATURE_ENABLE_WORKFLOWS: z
       .string()
       .transform((value) => value === 'true')
-      .default('true'),
+      .default(true),
     FEATURE_ENABLE_REGISTRATION_MANAGEMENT: z
       .string()
       .transform((value) => value === 'true')
-      .default('false'),
+      .default(false),
     FEATURE_ENABLE_PRESENCE_TRACKING: z
       .string()
       .transform((value) => value === 'true')
-      .default('false'),
+      .default(false),
     FEATURE_ENABLE_MATERIAL_MANAGEMENT: z
       .string()
       .transform((value) => value === 'true')
-      .default('false'),
+      .default(false),
     FEATURE_ENABLE_HOF_DASHBOARD: z
       .string()
       .transform((value) => value === 'true')
-      .default('false'),
+      .default(false),
 
     // Map Config
     CAMP_MAP_INITIAL_ZOOM: z.coerce.number(),
     CAMP_MAP_INITIAL_MAP_CENTER: z.string(),
     // degrees clockwise from north, so a long campsite can fill a portrait screen
     CAMP_MAP_INITIAL_BEARING: z.coerce.number().default(0),
-    APP_SUPPORT_EMAIL: z.string().email(),
+    APP_SUPPORT_EMAIL: z.email(),
   },
   /*
    * Environment variables available on the client (and server).
@@ -139,10 +139,10 @@ export const environmentVariables = createEnv({
    * 💡 You'll get type errors if these are not prefixed with NEXT_PUBLIC_.
    */
   client: {
-    NEXT_PUBLIC_APP_HOST_URL: z.string().url(),
+    NEXT_PUBLIC_APP_HOST_URL: z.url(),
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
-    NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
+    NEXT_PUBLIC_POSTHOG_HOST: z.url(),
     NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS: z.boolean(),
     /**
      * Comma separated list of the locales this deployment serves, e.g. `de,fr`.
@@ -157,7 +157,7 @@ export const environmentVariables = createEnv({
      */
     NEXT_PUBLIC_ENABLED_LOCALES: z.string().optional(),
     NEXT_PUBLIC_DISABLE_SERWIST: z.boolean().default(false),
-    NEXT_PUBLIC_HITOBITO_API_URL: z.string().url().optional(),
+    NEXT_PUBLIC_HITOBITO_API_URL: z.url().optional(),
   },
 
   experimental__runtimeEnv: {

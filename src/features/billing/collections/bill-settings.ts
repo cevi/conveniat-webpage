@@ -9,7 +9,7 @@ import { z } from 'zod';
  * part of the camp fee. An empty list is fine — it means "use the single VAT code".
  */
 const VatSplitsValidationSchema = z
-  .array(z.object({ share: z.number().nullable().optional() }).passthrough())
+  .array(z.object({ share: z.number().nullable().optional() }).loose())
   .nullable()
   .optional()
   .refine(

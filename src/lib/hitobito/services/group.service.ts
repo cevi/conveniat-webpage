@@ -47,7 +47,7 @@ const PeopleJsonSchema = z.object({
             .object({ roles: z.array(z.union([z.string(), z.number()])).nullish() })
             .nullish(),
         })
-        .passthrough(),
+        .loose(),
     )
     .nullish(),
   linked: z
@@ -59,7 +59,7 @@ const PeopleJsonSchema = z.object({
               id: z.union([z.string(), z.number()]),
               role_class: z.string().nullish(),
             })
-            .passthrough()
+            .loose()
             .nullable(),
         )
         .nullish(),
