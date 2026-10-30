@@ -1,4 +1,3 @@
-import { ClientProviders } from '@/context/client-providers';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
@@ -16,12 +15,10 @@ interface LayoutProperties {
 
 const AppLayout: React.FC<LayoutProperties> = ({ children }) => {
   return (
+    // ClientProviders are mounted once by the AppShell in the parent layout.
     <Suspense fallback={undefined}>
-      <ClientProviders>
-        <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />
-        <div className="mb-20">{children}</div>
-        <div></div>
-      </ClientProviders>
+      <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />
+      <div className="mb-20">{children}</div>
     </Suspense>
   );
 };
