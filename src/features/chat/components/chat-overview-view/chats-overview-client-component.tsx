@@ -16,6 +16,7 @@ import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field
 import { useChatListActions } from '@/features/chat/hooks/use-chat-list-actions';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChats } from '@/features/chat/hooks/use-chats';
+import { useSearchClearedOnLeave } from '@/features/chat/hooks/use-search-cleared-on-leave';
 import type { ChatListFilter } from '@/features/chat/utils/chat-list-filter';
 import { matchesChatListFilter } from '@/features/chat/utils/chat-list-filter';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
@@ -205,8 +206,8 @@ export const ChatsOverviewClientComponent: React.FC<{
     await trpcUtils.chat.chats.invalidate();
   };
 
-  const [searchQuery, setSearchQuery] = useState('');
-  // kept while the route stays mounted, so coming back from a chat keeps the chosen chip
+  const [searchQuery, setSearchQuery] = useSearchClearedOnLeave();
+  // unlike the search, kept while the route stays mounted: coming back from a chat keeps the chip
   const [listFilter, setListFilter] = useState<ChatListFilter>('all');
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
