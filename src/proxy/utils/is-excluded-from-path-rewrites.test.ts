@@ -20,6 +20,10 @@ describe('isExcludedFromPathRewrites', () => {
     expect(isExcludedFromPathRewrites(requestFor('/background-logo-blurred.webp'))).toBe(true);
   });
 
+  it('excludes .ttf fonts such as the PDF heading font', () => {
+    expect(isExcludedFromPathRewrites(requestFor('/fonts/Montserrat-ExtraBold.ttf'))).toBe(true);
+  });
+
   it('does not exclude page routes', () => {
     expect(isExcludedFromPathRewrites(requestFor('/de/anlaesse'))).toBe(false);
   });
