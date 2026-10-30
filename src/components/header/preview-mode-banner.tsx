@@ -1,12 +1,12 @@
 'use client';
 import { PreviewModeToggle } from '@/components/header/preview-mode-toggler';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { PREVIEW_SESSION_COOKIE } from '@/utils/preview-session-cookie';
 import Cookies from 'js-cookie';
 import { RefreshCw, X } from 'lucide-react';
 import type { User } from 'next-auth';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import { useSearchParams } from 'next/navigation';
 import React, { useState } from 'react';
 

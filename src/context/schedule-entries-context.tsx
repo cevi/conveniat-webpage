@@ -213,10 +213,9 @@ export const ScheduleEntriesProvider: React.FC<ScheduleEntriesProviderProperties
   const hasHydratedReference = useRef(false);
   const hasSyncedReference = useRef(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | undefined>();
-  const { data: localEntries } = useLiveQuery(
-    (q) => q.from({ entry: scheduleEntriesCollection }),
-    [],
-  );
+  const { data: localEntries } = useLiveQuery({
+    query: (q) => q.from({ entry: scheduleEntriesCollection }),
+  });
 
   // Convert local DB records to frontend types
   const entries = useMemo(
@@ -293,24 +292,12 @@ export const ScheduleEntriesProvider: React.FC<ScheduleEntriesProviderProperties
 };
 
 /**
- * What a component sees before the provider is there: no local entries yet.
- *
- * `ClientProviders` loads the provider without SSR and renders its children as the Suspense
- * fallback meanwhile, so the server render, the build's prerender and the first client frames
- * all run outside it. Throwing there fails `next build` on Home (see `useStar` for the same).
- */
-const emptyContext: ScheduleEntriesContextType = {
-  entries: [],
-  isReady: false,
-  syncFromServer: () => {},
-  getEntriesForDate: () => [],
-  lastSyncedAt: undefined,
-};
-
-/**
  * Hook to access schedule entries from local DB.
  */
 export const useScheduleEntries = (): ScheduleEntriesContextType => {
   const context = useContext(ScheduleEntriesContext);
-  return context ?? emptyContext;
+  if (context === undefined) {
+    throw new Error('useScheduleEntries must be used within a ScheduleEntriesProvider');
+  }
+  return context;
 };

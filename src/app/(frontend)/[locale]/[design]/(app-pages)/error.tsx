@@ -1,12 +1,12 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { attemptStaleBundleRecovery } from '@/utils/chunk-error-recovery';
 import { retryButtonTranslation } from '@/utils/shared-translations';
 import { AlertTriangle, RefreshCw, WifiOff } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useRef, useState } from 'react';
 
 const errorMessage: StaticTranslationString = {

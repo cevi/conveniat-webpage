@@ -4,11 +4,11 @@ import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { useFitToSearchResults } from '@/features/map/hooks/use-fit-to-search-results';
 import { useLocateControl, useLocateOnArrival } from '@/features/map/hooks/use-locate-control';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Loader2, LocateFixed, LocateOff } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useState } from 'react';
 

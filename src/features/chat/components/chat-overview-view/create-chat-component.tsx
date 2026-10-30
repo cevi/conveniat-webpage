@@ -18,11 +18,11 @@ import {
   useOpenChatWithContact,
 } from '@/features/chat/hooks/use-open-chat-with-contact';
 import { groupContactsByLetter, matchesContactSearch } from '@/features/chat/utils/contact-search';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Loader2, QrCode, UserPlus, Users } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type React from 'react';

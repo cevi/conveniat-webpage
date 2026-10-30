@@ -7,6 +7,7 @@ import { PersonAvatar } from '@/components/ui/person-avatar';
 import type { ChatDetails } from '@/features/chat/api/types';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { ChatType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
@@ -14,7 +15,6 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ArrowLeft, Loader2, Megaphone } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import Link, { useLinkStatus } from 'next/link';
 
 const onlineText: StaticTranslationString = {

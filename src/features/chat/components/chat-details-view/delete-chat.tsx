@@ -9,6 +9,7 @@ import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-m
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useUpdateChatMutation } from '@/features/chat/hooks/use-update-chat-mutation';
 import { useUserCanArchiveChat } from '@/features/chat/hooks/use-user-can-archive';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { isChatArchived } from '@/lib/chat-shared';
 import { ChatMembershipPermission } from '@/lib/prisma';
 import { trpc } from '@/trpc/client';
@@ -16,7 +17,6 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Trash2 } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 const localizedRoleNames: Record<ChatMembershipPermission, StaticTranslationString> = {

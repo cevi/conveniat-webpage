@@ -26,11 +26,11 @@ import {
   toIsoDay,
 } from '@/features/payload-cms/components/form/utils/date-slots';
 import { RESSORT_WISH_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { CalendarX, X } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useMemo, useState } from 'react';
 import type { Control, FieldValues } from 'react-hook-form';
 import { Controller } from 'react-hook-form';

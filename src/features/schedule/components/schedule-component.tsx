@@ -24,13 +24,13 @@ import { useScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
 import { byStart, findNowAndNext, isForQuartiere } from '@/features/schedule/utils/programme-utils';
 import { dayKeyOf } from '@/features/schedule/utils/time-utils';
 import { buildTimeline } from '@/features/schedule/utils/timeline';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { campClockOf } from '@/utils/camp-clock';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useMemo, useState } from 'react';
 
 const foundEventsText: StaticTranslationString = {

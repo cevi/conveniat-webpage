@@ -7,6 +7,7 @@ import { useLongPress } from '@/features/chat/hooks/use-long-press';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { formatChatListDate } from '@/features/chat/utils/format-chat-list-date';
 import { previewSenderPrefix } from '@/features/chat/utils/preview-sender-prefix';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
@@ -25,7 +26,6 @@ import {
   Siren,
   Users,
 } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import Link, { useLinkStatus } from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
