@@ -24,7 +24,7 @@ interface LinkTargetBeforeSave {
 }
 
 /**
- * Everything of a page or blog article that reaches a cache entry other than its own.
+ * Everything of a page that reaches a cache entry other than its own.
  *
  * Documents linking to it embed {@link linkTargetPopulate}. The lookups by slug, by slug history
  * and by `internalPageName` only match published, untrashed documents, so a read that found
@@ -168,8 +168,8 @@ const changedOwnContentOnly = async (
   }
 };
 
-/** The collections whose slugs the proxy checks a path against, see `not-found-proxy.ts`. */
-const COLLECTIONS_WITH_PUBLISHED_SLUGS = new Set<string>(['generic-page', 'blog']);
+/** The collection whose slugs the proxy checks a path against, see `not-found-proxy.ts`. */
+const COLLECTION_WITH_PUBLISHED_SLUGS = 'generic-page';
 
 /**
  * Tells the proxy of every replica to read the published slugs again. Called when a save changed
@@ -195,7 +195,7 @@ const announceChangedSlugs = async (
 /**
  * Flushes the cache entries a saved document is part of.
  *
- * A draft flushes nothing. A page or blog article whose link target is unchanged flushes its own
+ * A draft flushes nothing. A page whose link target is unchanged flushes its own
  * entries and the lists of its collection. Everything else flushes the whole cache, because any
  * entry may embed it: an image, a file or a form sits inside the pages that show it, and a slug
  * inside every page and menu linking to it.
@@ -227,7 +227,7 @@ export const flushPageCacheOnChange: CollectionAfterChangeHook = async ({
   );
 
   // Before `revalidateTag`, which throws when the save runs outside a request.
-  if (flushEverything && COLLECTIONS_WITH_PUBLISHED_SLUGS.has(collectionSlug)) {
+  if (flushEverything && collectionSlug === COLLECTION_WITH_PUBLISHED_SLUGS) {
     await announceChangedSlugs(req, collectionSlug);
   }
 

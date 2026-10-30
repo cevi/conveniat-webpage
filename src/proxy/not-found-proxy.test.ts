@@ -23,9 +23,8 @@ jest.mock('@/features/payload-cms/api/published-page-slugs', () => ({
 
 type NotFoundProxyModule = typeof import('@/proxy/not-found-proxy');
 
-const published = (genericPages: string[], blogPosts: string[] = []): PublishedPageSlugs => ({
+const published = (genericPages: string[]): PublishedPageSlugs => ({
   genericPages: new Set(genericPages),
-  blogPosts: new Set(blogPosts),
 });
 
 /** Loads the module fresh, so every test starts without slugs in memory. */
@@ -79,19 +78,15 @@ describe('notFoundProxy', () => {
     ).resolves.toBe('/fr/design-mode-app/~not-found');
   });
 
-  it('leaves published pages, their old slugs and blog posts to the page route', async () => {
-    const slugs = published(['', 'über-uns', 'lager/anmeldung'], ['erster-beitrag']);
-    mockFetchPublishedPageSlugs.mockResolvedValue(slugs);
+  it('leaves published pages and their old slugs to the page route', async () => {
+    mockFetchPublishedPageSlugs.mockResolvedValue(published(['', 'über-uns', 'lager/anmeldung']));
     const proxyModule = loadModule();
 
-    for (const page of ['/', '/%C3%BCber-uns', '/lager/anmeldung', '/blog/erster-beitrag']) {
+    for (const page of ['/', '/%C3%BCber-uns', '/lager/anmeldung']) {
       await expect(run(proxyModule, page, `/de/design-mode-web${page}`)).resolves.toBe(
         `/de/design-mode-web${page}`,
       );
     }
-    await expect(
-      run(proxyModule, '/blog/anmeldung', '/de/design-mode-web/blog/anmeldung'),
-    ).resolves.toBe('/de/design-mode-web/~not-found');
   });
 
   it('leaves the home page, routes of their own, previews and form posts alone, unread', async () => {
@@ -253,9 +248,9 @@ describe('SEGMENTS_NOT_RESOLVED_BY_SLUG', () => {
     for (const special of paths) expect(SEGMENTS_NOT_RESOLVED_BY_SLUG).toContain(special);
   });
 
-  it('names every collection prefix except the ones the proxy checks', () => {
+  it('names every collection prefix except the one of generic pages', () => {
     const prefixes = slugToUrlMapping
-      .filter(({ slug }) => slug !== 'blog' && slug !== 'generic-page')
+      .filter(({ slug }) => slug !== 'generic-page')
       .flatMap(({ urlPrefix }) => Object.values(urlPrefix));
 
     for (const prefix of prefixes) expect(SEGMENTS_NOT_RESOLVED_BY_SLUG).toContain(prefix);

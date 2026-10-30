@@ -1,6 +1,6 @@
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import { extractTextContent } from '@/features/payload-cms/payload-cms/utils/extract-rich-text';
-import type { Blog, GenericPage, Permission } from '@/features/payload-cms/payload-types';
+import type { GenericPage, Permission } from '@/features/payload-cms/payload-types';
 import { hasPermissions } from '@/utils/has-permissions';
 import type { PaginatedDocs } from 'payload';
 
@@ -42,10 +42,10 @@ const buildExcerpt = (mainContent: unknown): string => {
  * renders. The return value is passed to a client component, so it must never carry a whole
  * Payload document: restricted pages would reach the browser in the RSC payload.
  *
- * @param documents - one page of generic pages or blog posts, populated at depth 1
+ * @param documents - one page of generic pages, populated at depth 1
  * @param getTitle - picks the card headline from a document
  */
-export const toPermittedSearchResults = async <T extends GenericPage | Blog>(
+export const toPermittedSearchResults = async <T extends GenericPage>(
   documents: PaginatedDocs<T>,
   getTitle: (document: T) => string,
 ): Promise<SearchResults> => {

@@ -1,13 +1,12 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { enabledLocales, LOCALE } from '@/features/payload-cms/payload-cms/locales';
-import type { Blog, GenericPage } from '@/features/payload-cms/payload-types';
+import type { GenericPage } from '@/features/payload-cms/payload-types';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import { i18nConfig, type Locale } from '@/types/types';
 
 import config from '@payload-config';
 import type { MetadataRoute } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
-import type { CollectionSlug } from 'payload';
 import { getPayload } from 'payload';
 
 /**
@@ -45,7 +44,7 @@ interface SpecialPage {
 
 const createSitemapEntry = (
   url: string,
-  page: GenericPage | Blog | SpecialPage,
+  page: GenericPage | SpecialPage,
   alternates: SitemapAlternates,
 ): MetadataRoute.Sitemap[0] => {
   return {
@@ -99,10 +98,9 @@ const buildLocalizedAlternates = (
  * @returns A partial record mapping each locale to its corresponding published URL, if available.
  */
 const getPublishedLocalizedPageUrls = (
-  page: GenericPage | Blog,
+  page: GenericPage,
   appHostUrl: string,
   defaultLocale: Locale,
-  collectionSlug: string,
 ): Partial<Record<Locale, string>> => {
   const localizedUrls: Partial<Record<Locale, string>> = {};
 
@@ -119,7 +117,7 @@ const getPublishedLocalizedPageUrls = (
     const urlSlug = multiLangSlug[locale];
     const localeInUrl = locale === defaultLocale ? '' : locale;
 
-    localizedUrls[locale] = combineUrlSegments([appHostUrl, collectionSlug, localeInUrl, urlSlug]);
+    localizedUrls[locale] = combineUrlSegments([appHostUrl, localeInUrl, urlSlug]);
   }
 
   return localizedUrls;
@@ -137,8 +135,7 @@ function getCanonicalUrl(
 }
 
 function processDocumentsForSitemap(
-  documents: GenericPage[] | Blog[],
-  basePath: string,
+  documents: GenericPage[],
   sitemap: MetadataRoute.Sitemap,
   {
     APP_HOST_URL,
@@ -153,12 +150,7 @@ function processDocumentsForSitemap(
   },
 ): void {
   for (const document_ of documents) {
-    const pageUrlsByLocale = getPublishedLocalizedPageUrls(
-      document_,
-      APP_HOST_URL,
-      defaultLocale,
-      basePath,
-    );
+    const pageUrlsByLocale = getPublishedLocalizedPageUrls(document_, APP_HOST_URL, defaultLocale);
 
     const { canonicalUrl, canonicalLocale } = getCanonicalUrl(
       pageUrlsByLocale,
@@ -186,14 +178,14 @@ function processDocumentsForSitemap(
 
 /**
  * Generates a sitemap for Next.js applications by fetching generic pages from Payload CMS.
- * It includes all published pages/blog posts with their localized alternate URLs.
+ * It includes all published pages with their localized alternate URLs.
  *
  * @returns A promise that resolves to an array of sitemap entries.
  */
 export const cachedSitemapGenerator = async (): Promise<MetadataRoute.Sitemap> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'collection:generic-page', 'collection:blog');
+  cacheTag('payload', 'collection:generic-page');
 
   const sitemap: MetadataRoute.Sitemap = [];
   const APP_HOST_URL = environmentVariables.APP_HOST_URL;
@@ -216,31 +208,24 @@ export const cachedSitemapGenerator = async (): Promise<MetadataRoute.Sitemap> =
   });
   const publicPermissionIds = new Set(permissions.map((p) => p.id));
 
-  const collectionsToProcess = [
-    { name: 'generic-page', basePath: '' },
-    { name: 'blog', basePath: 'blog' },
-  ];
-
-  for (const { name, basePath } of collectionsToProcess) {
-    const { docs } = await payload.find({
-      collection: name as CollectionSlug,
-      depth: 0,
-      limit: 1000,
-      locale: 'all',
-      where: {
-        'content.releaseDate': {
-          less_than_equal: currentDate,
-        },
+  const { docs } = await payload.find({
+    collection: 'generic-page',
+    depth: 0,
+    limit: 1000,
+    locale: 'all',
+    where: {
+      'content.releaseDate': {
+        less_than_equal: currentDate,
       },
-    });
+    },
+  });
 
-    processDocumentsForSitemap(docs as Blog[] | GenericPage[], basePath, sitemap, {
-      APP_HOST_URL,
-      defaultLocale,
-      canonicalURLPriorityList,
-      publicPermissionIds,
-    });
-  }
+  processDocumentsForSitemap(docs, sitemap, {
+    APP_HOST_URL,
+    defaultLocale,
+    canonicalURLPriorityList,
+    publicPermissionIds,
+  });
 
   // add special pages
   // --> search

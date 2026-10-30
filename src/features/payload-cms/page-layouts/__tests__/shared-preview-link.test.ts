@@ -39,9 +39,6 @@ jest.mock('@/features/payload-cms/converters/page-sections/section-error-boundar
 jest.mock('@/features/payload-cms/converters/generic-page', () => ({
   GenericPageConverter: 'generic-page-converter',
 }));
-jest.mock('@/features/payload-cms/converters/blog-article', () => ({
-  BlogArticleConverter: 'blog-article-converter',
-}));
 
 const mockPageByID = jest.fn();
 const mockPageBySlug = jest.fn();
@@ -50,17 +47,11 @@ jest.mock('@/features/payload-cms/api/cached-generic-pages', () => ({
   getGenericPageBySlugCached: (...parameters: unknown[]): unknown => mockPageBySlug(...parameters),
 }));
 
-const mockBlogBySlug = jest.fn();
-jest.mock('@/features/payload-cms/api/cached-blogs', () => ({
-  getBlogArticleBySlugCached: (...parameters: unknown[]): unknown => mockBlogBySlug(...parameters),
-}));
-
 const mockFind = jest.fn();
 jest.mock('payload', () => ({
   getPayload: (): Promise<{ find: jest.Mock }> => Promise.resolve({ find: mockFind }),
 }));
 
-import BlogPostPage from '@/features/payload-cms/page-layouts/blog-posts';
 import { FormsPreviewPage } from '@/features/payload-cms/page-layouts/forms-preview-page';
 import GenericPage from '@/features/payload-cms/page-layouts/generic-page';
 import { TimelinePreviewPage } from '@/features/payload-cms/page-layouts/timeline-preview-page';
@@ -122,23 +113,6 @@ describe('a shared preview link', () => {
       mockPageBySlug.mockResolvedValue({ docs: [draft(OTHER)] });
 
       await expect(render(GenericPage, ['lagerplatz'], LINKED)).rejects.toBe(NOT_FOUND);
-    });
-  });
-
-  describe('on a blog post', () => {
-    it('renders the post of the link', async () => {
-      mockBlogBySlug.mockResolvedValue({ docs: [draft(LINKED)] });
-
-      const element = await render(BlogPostPage, ['lagerplatz'], LINKED);
-
-      expect(element.props['article']).toMatchObject({ id: LINKED });
-    });
-
-    it('refuses another post, and does not offer its other languages', async () => {
-      mockBlogBySlug.mockResolvedValue({ docs: [draft(OTHER)] });
-
-      await expect(render(BlogPostPage, ['lagerplatz'], LINKED)).rejects.toBe(NOT_FOUND);
-      expect(mockBlogBySlug).toHaveBeenCalledTimes(1);
     });
   });
 

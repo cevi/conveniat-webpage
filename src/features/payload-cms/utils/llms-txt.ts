@@ -5,14 +5,13 @@ import { isPermissionPublic } from '@/utils/has-permissions';
 type Localized<T> = Partial<Record<Locale, T | null>> | null;
 
 /**
- * A page or blog post read with `locale: 'all'` and its permission populated. Every field is
+ * A page read with `locale: 'all'` and its permission populated. Every field is
  * optional, because a document that was only ever saved as a draft skipped validation.
  */
 export interface LlmsSourceDocument {
   _localized_status?: Localized<{ published?: boolean }>;
   content?: {
     pageTitle?: Localized<string>;
-    blogH1?: Localized<string>;
     permissions?: string | Permission | null;
   } | null;
   seo?: {
@@ -45,19 +44,18 @@ const isOpenToEveryone = (permission: string | Permission | null | undefined): b
 };
 
 /**
- * Reduces the documents of one collection to the links llms.txt may list: published, open
+ * Reduces the generic pages to the links llms.txt may list: published, open
  * without a login, one link per document in the first locale it is published in.
  *
  * @param documents - documents read with `locale: 'all'` and `depth: 1`
  * @param options.locales - the locales the deployment serves, in order of preference
  * @param options.defaultLocale - the locale served without a prefix in the URL
- * @param options.urlPrefix - the path segment of the collection, empty for generic pages
  */
 export const toLlmsLinks = (
   documents: LlmsSourceDocument[],
-  options: { hostUrl: string; locales: Locale[]; defaultLocale: Locale; urlPrefix: string },
+  options: { hostUrl: string; locales: Locale[]; defaultLocale: Locale },
 ): LlmsLink[] => {
-  const { hostUrl, locales, defaultLocale, urlPrefix } = options;
+  const { hostUrl, locales, defaultLocale } = options;
   const links: LlmsLink[] = [];
 
   for (const document_ of documents) {
@@ -69,13 +67,11 @@ export const toLlmsLinks = (
     if (locale === undefined) continue;
 
     const slug = document_.seo?.urlSlug?.[locale];
-    const title = document_.content?.pageTitle?.[locale] ?? document_.content?.blogH1?.[locale];
+    const title = document_.content?.pageTitle?.[locale];
     if (typeof slug !== 'string' || typeof title !== 'string' || title.trim() === '') continue;
 
     const description = document_.seo?.metaDescription?.[locale];
-    const path = [locale === defaultLocale ? '' : locale, urlPrefix, slug].filter(
-      (segment) => segment !== '',
-    );
+    const path = [locale === defaultLocale ? '' : locale, slug].filter((segment) => segment !== '');
 
     links.push({
       title,

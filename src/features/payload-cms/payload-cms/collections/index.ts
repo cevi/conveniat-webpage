@@ -3,7 +3,6 @@ import { BillPaymentsCollection } from '@/features/billing/collections/bill-paym
 import { BillPdfsCollection } from '@/features/billing/collections/bill-pdfs-collection';
 import { AnnouncementChannelsCollection } from '@/features/payload-cms/payload-cms/collections/announcement-channels';
 import { AnnouncementsCollection } from '@/features/payload-cms/payload-cms/collections/announcements';
-import { BlogArticleCollection } from '@/features/payload-cms/payload-cms/collections/blog-article';
 import { CampCategoryCollection } from '@/features/payload-cms/payload-cms/collections/camp-category';
 import { CampMapAnnotationsCollection } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
 import { CampScheduleEntryCollection } from '@/features/payload-cms/payload-cms/collections/camp-schedule-entry-collection';
@@ -45,7 +44,6 @@ import type { CollectionConfig } from 'payload';
 const rawCollectionsConfig: CollectionConfig[] = [
   // Webseite
   GenericPageCollection,
-  BlogArticleCollection,
   TimelineCollection,
   TimelineEntryCategory,
   ImageCollection,

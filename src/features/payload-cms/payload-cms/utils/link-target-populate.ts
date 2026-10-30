@@ -1,7 +1,7 @@
 import type { SelectType } from 'payload';
 
 /**
- * What a page or blog article carries when another document links to it.
+ * What a page carries when another document links to it.
  *
  * Every populated link target goes wherever the linking document goes, which for the
  * header menu and content blocks is the public HTML of every page. Link rendering only
