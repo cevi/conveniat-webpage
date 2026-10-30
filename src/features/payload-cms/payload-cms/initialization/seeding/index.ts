@@ -520,8 +520,14 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   await seedRandomUserRegistrations(payload, userIds);
   await seedFunktionen(payload, userIds);
 
-  console.log('Seeding: Creating the Hof dashboard...');
-  await seedHofDashboard(payload, publicPermission);
+  // its forms use the Hof selection and material list, which the forms only accept with the
+  // Hof dashboard on
+  if (environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD) {
+    console.log('Seeding: Creating the Hof dashboard...');
+    await seedHofDashboard(payload, publicPermission);
+  } else {
+    console.log('Seeding: Skipping the Hof dashboard, FEATURE_ENABLE_HOF_DASHBOARD is off.');
+  }
 
   // seed timeline
   console.log('Seeding: Creating timeline entries...');

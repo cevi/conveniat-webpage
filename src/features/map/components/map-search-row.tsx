@@ -76,7 +76,7 @@ export const MapSearchRow: React.FC<{
   if (locateState === 'denied' || locateState === 'unavailable') LocateIcon = LocateOff;
 
   return (
-    <div className="absolute top-3 right-4 left-4 z-50">
+    <div className="absolute top-[calc(0.75rem+var(--app-logo-overhang,0px))] right-4 left-4 z-50">
       <div className="flex items-center gap-2">
         {/* the app's search, white with a line as on the grey page, floating over the map */}
         <AppSearchBar

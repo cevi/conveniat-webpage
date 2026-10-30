@@ -540,7 +540,7 @@ export const EmergencyComponent: React.FC = () => {
           {renderAccordionContent()}
         </Accordion>
 
-        <div className="fixed bottom-20 left-0 w-full select-none xl:left-[480px] xl:w-[calc(100%-480px)]">
+        <div className="fixed bottom-(--app-tab-bar-height) left-0 w-full select-none xl:left-(--app-content-left) xl:w-[calc(100%-var(--app-content-left))]">
           <AnimatePresence mode="popLayout">
             {isFallbackActive ? (
               <motion.div
