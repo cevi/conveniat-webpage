@@ -1,6 +1,6 @@
 'use client';
 
-import type { Collection, StandardSchemaAlias, UtilsRecord } from '@tanstack/db';
+import type { Collection, UtilsRecord } from '@tanstack/db';
 import { useLiveQuery } from '@tanstack/react-db';
 import { useSyncExternalStore } from 'react';
 
@@ -8,6 +8,12 @@ const unsubscribeFromNothing = (): void => {};
 const subscribeToNothing = (): (() => void) => unsubscribeFromNothing;
 const isInBrowser = (): boolean => true;
 const isOnServer = (): boolean => false;
+
+/**
+ * The schema bound `Collection` itself declares. `StandardSchemaAlias` is narrower: it requires
+ * `'~standard'.types`, which Zod 4 types as optional, so a Zod-backed collection would not fit.
+ */
+type CollectionSchema = NonNullable<Collection['config']['schema']>;
 
 /**
  * The rows of a collection kept in `localStorage`, live: none on the server and while the page
@@ -21,7 +27,7 @@ export const useStoredRows = <
   T extends object,
   TKey extends string | number,
   TUtils extends UtilsRecord,
-  TSchema extends StandardSchemaAlias,
+  TSchema extends CollectionSchema,
   TInsertInput extends object,
 >(
   collection: Collection<T, TKey, TUtils, TSchema, TInsertInput>,
