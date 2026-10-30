@@ -6,9 +6,10 @@ import { SectionLabel } from '@/components/ui/section-label';
 import { supportMailLink } from '@/features/settings/utils/support-mail';
 import { HitobitoNextAuthUserSchema } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { startCeviDatabaseLogin } from '@/utils/login-handler';
 import type { LucideIcon } from 'lucide-react';
 import { ImageUp, LifeBuoy, LogIn, Package, QrCode } from 'lucide-react';
-import { signIn, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import type React from 'react';
 
@@ -85,7 +86,7 @@ export const DashboardQuickAccess: React.FC<{
             <button
               type="button"
               className={tileClassName}
-              onClick={() => void signIn('cevi-db', { callbackUrl: '/entrypoint' })}
+              onClick={() => void startCeviDatabaseLogin('/entrypoint')}
             >
               <TileContent icon={LogIn} label={labels.signIn[locale]} />
             </button>

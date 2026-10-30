@@ -8,8 +8,8 @@ import {
   type MaterialQueryErrorLike,
 } from '@/features/material/utils/query-errors';
 import type { StaticTranslationString } from '@/types/types';
+import { startCeviDatabaseLogin } from '@/utils/login-handler';
 import { LogIn } from 'lucide-react';
-import { signIn } from 'next-auth/react';
 import type React from 'react';
 import { useCallback } from 'react';
 
@@ -22,7 +22,7 @@ const messages: Record<'forbidden' | 'notFound' | 'other', StaticTranslationStri
 /** Signs in through Cevi.DB and comes back to the page the reader was on. */
 const useSignIn = (): (() => void) =>
   useCallback((): void => {
-    void signIn('cevi-db', { callbackUrl: globalThis.location.href });
+    void startCeviDatabaseLogin(globalThis.location.href);
   }, []);
 
 /**
