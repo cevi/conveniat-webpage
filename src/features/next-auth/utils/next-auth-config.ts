@@ -26,8 +26,12 @@ import { z } from 'zod';
 const logger = createLogger('next-auth');
 
 const TokenIdentitySchema = z.object({
-  uuid: z.string({ required_error: 'uuid missing from token' }),
-  cevi_db_uuid: z.number({ required_error: 'cevi_db_uuid missing from token' }),
+  uuid: z.string({
+    error: (issue) => (issue.input === undefined ? 'uuid missing from token' : undefined),
+  }),
+  cevi_db_uuid: z.number({
+    error: (issue) => (issue.input === undefined ? 'cevi_db_uuid missing from token' : undefined),
+  }),
 });
 
 /**

@@ -64,18 +64,18 @@ const checkAnswer = (
   const ans = findAnswer(answers, keywords);
   if (ans === undefined || ans.trim() === '') {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       message: fieldName,
       path: ['answers', fieldName],
     });
   }
 };
 
-const nullableNonEmptyString = (fieldName: string): z.ZodTypeAny =>
+const nullableNonEmptyString = (fieldName: string): z.ZodType =>
   z
     .union([z.string(), z.null(), z.undefined()])
     .transform((val) => (val ?? '').trim())
-    .refine((val) => val.length > 0, { message: fieldName });
+    .refine((val) => val.length > 0, { error: fieldName });
 
 const PersonSchema = z.object({
   firstName: nullableNonEmptyString('Vorname'),
@@ -106,10 +106,10 @@ const ParticipantValidationSchema = z
     if (
       invoiceEmail === undefined ||
       invoiceEmail.trim() === '' ||
-      !z.string().email().safeParse(invoiceEmail.trim()).success
+      !z.email().safeParse(invoiceEmail.trim()).success
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'Mailadresse für Rechnung',
         path: ['answers', 'Mailadresse für Rechnung'],
       });
@@ -122,7 +122,7 @@ const ParticipantValidationSchema = z
       findAnswer(data.answers, ['nummer', 'krankenkasse']);
     if (versichertennummer === undefined || versichertennummer.trim() === '') {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'Versichertennummer',
         path: ['answers', 'Versichertennummer'],
       });
@@ -133,7 +133,7 @@ const ParticipantValidationSchema = z
       findAnswer(data.answers, ['notfallkontakt', 'vollständig']);
     if (emergencyName === undefined || emergencyName.trim() === '') {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'Notfallkontakt Name',
         path: ['answers', 'Notfallkontakt Name'],
       });
@@ -144,7 +144,7 @@ const ParticipantValidationSchema = z
       findAnswer(data.answers, ['notfallkontakt', 'nummer']);
     if (emergencyPhone === undefined || emergencyPhone.trim() === '') {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'Notfallkontakt Telefonnummer',
         path: ['answers', 'Notfallkontakt Telefonnummer'],
       });

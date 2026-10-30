@@ -12,7 +12,7 @@ const logger = createLogger('chat:access');
 export const getDownloadUrl = trpcBaseProcedure
   .input(
     z.object({
-      chatId: z.string().uuid(),
+      chatId: z.uuid(),
       key: z.string(),
     }),
   )

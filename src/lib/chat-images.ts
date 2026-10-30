@@ -35,7 +35,7 @@ export const isChatImageContentType = (type: string): type is ChatImageContentTy
 
 /** Input of the procedures that hand out an upload URL for a chat image. */
 export const chatImageUploadInputSchema = z.object({
-  chatId: z.string().uuid(),
+  chatId: z.uuid(),
   ...uploadInputShape(CHAT_IMAGE_UPLOAD),
 });
 

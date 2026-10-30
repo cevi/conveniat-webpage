@@ -3,8 +3,8 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 const markThreadAsReadInputSchema = z.object({
-  chatId: z.string().uuid(),
-  threadId: z.string().uuid(),
+  chatId: z.uuid(),
+  threadId: z.uuid(),
 });
 
 export const markThreadAsRead = trpcBaseProcedure

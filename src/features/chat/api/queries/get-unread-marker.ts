@@ -21,7 +21,7 @@ export interface UnreadMarker {
  * was while messages arrive and the reader reads them.
  */
 export const getUnreadMarker = trpcBaseProcedure
-  .input(z.object({ chatId: z.string().uuid() }))
+  .input(z.object({ chatId: z.uuid() }))
   .query(async ({ input, ctx }): Promise<UnreadMarker> => {
     const { prisma, user } = ctx;
     const { chatId } = input;

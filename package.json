@@ -39,10 +39,10 @@
   },
   "lint-staged": {
     "**/package.json": "sort-package-json",
-    "*.{md,mdx,yml,json}": "prettier --config-path .prettierrc.json --write --cache --experimental-cli .",
+    "*.{md,mdx,yml,json}": "prettier --config-path .prettierrc.json --write --cache --experimental-cli",
     "*.{js,jsx,ts,tsx}": [
-      "prettier --config-path .prettierrc.json --write --cache --experimental-cli .",
-      "eslint -c eslint.config.mjs --fix --quiet --cache ."
+      "prettier --config-path .prettierrc.json --write --cache --experimental-cli",
+      "eslint -c eslint.config.mjs --fix --quiet --cache"
     ]
   },
   "dependencies": {
@@ -117,6 +117,7 @@
     "js-cookie": "^3.0.8",
     "json-schema": "^0.4.0",
     "jsonwebtoken": "^9.0.3",
+    "jsqr": "^1.4.0",
     "lucide-react": "^0.540.0",
     "mailparser": "^3.12.4",
     "maplibre-gl": "^6.15.0",
@@ -147,7 +148,8 @@
     "tailwind-merge": "^3.7.0",
     "tailwindcss-animate": "^1.0.7",
     "web-push": "^3.6.7",
-    "zod": "^3.25.76"
+    "zod": "^4.6.6",
+    "zod-v3": "npm:zod@3.25.76"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",

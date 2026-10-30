@@ -15,10 +15,10 @@ const logger = createLogger('chat:messages');
 export const getChatMessages = trpcBaseProcedure
   .input(
     z.object({
-      chatId: z.string().uuid(),
+      chatId: z.uuid(),
       cursor: z.string().nullish(), // Use message UUID as cursor
       limit: z.number().min(1).max(100).default(25),
-      parentId: z.string().uuid().optional(),
+      parentId: z.uuid().optional(),
     }),
   )
   .query(

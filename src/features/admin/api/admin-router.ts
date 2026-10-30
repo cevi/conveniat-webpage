@@ -65,7 +65,7 @@ const adminProcedure = trpcBaseProcedure.use(async ({ ctx, next }) => {
  * and the emergency alerts; a chat between participants is for the chat oversight alone.
  */
 const adminChatProcedure = adminProcedure
-  .input(z.object({ chatId: z.string().uuid() }))
+  .input(z.object({ chatId: z.uuid() }))
   .use(async ({ ctx, input, path, next }) => {
     const chat = await ctx.prisma.chat.findUnique({
       where: { uuid: input.chatId },
@@ -119,7 +119,7 @@ export const adminRouter = createTRPCRouter({
       z
         .object({
           search: z.string().trim().max(100).optional(),
-          type: z.nativeEnum(ChatType).optional(),
+          type: z.enum(ChatType).optional(),
           page: z.number().min(1).optional().default(1),
           limit: z.number().min(1).max(100).optional().default(20),
         })
@@ -211,10 +211,10 @@ export const adminRouter = createTRPCRouter({
     .input(
       z
         .object({
-          status: z.nativeEnum(ChatStatus).optional(),
+          status: z.enum(ChatStatus).optional(),
           search: z.string().optional(),
-          type: z.nativeEnum(ChatType).optional(),
-          includeId: z.string().uuid().optional(),
+          type: z.enum(ChatType).optional(),
+          includeId: z.uuid().optional(),
         })
         .optional(),
     )
@@ -396,7 +396,7 @@ export const adminRouter = createTRPCRouter({
   toggleChatCapability: adminChatProcedure
     .input(
       z.object({
-        chatId: z.string().uuid(),
+        chatId: z.uuid(),
         capability: z.string(),
         isEnabled: z.boolean(),
       }),
@@ -465,7 +465,7 @@ export const adminRouter = createTRPCRouter({
     }),
 
   getChatMessages: adminChatProcedure
-    .input(z.object({ chatId: z.string().uuid() }))
+    .input(z.object({ chatId: z.uuid() }))
     .query(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
 
@@ -528,7 +528,7 @@ export const adminRouter = createTRPCRouter({
     }),
 
   markChatAsRead: adminChatProcedure
-    .input(z.object({ chatId: z.string().uuid() }))
+    .input(z.object({ chatId: z.uuid() }))
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
 
@@ -578,10 +578,10 @@ export const adminRouter = createTRPCRouter({
   postAdminMessage: adminChatProcedure
     .input(
       z.object({
-        chatId: z.string().uuid(),
+        chatId: z.uuid(),
         content: z.string().min(1),
-        type: z.nativeEnum(MessageType).optional().default(MessageType.TEXT_MSG),
-        uuid: z.string().uuid().optional(),
+        type: z.enum(MessageType).optional().default(MessageType.TEXT_MSG),
+        uuid: z.uuid().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -698,7 +698,7 @@ export const adminRouter = createTRPCRouter({
     .mutation(({ input }) => createChatImageUploadUrl(input)),
 
   closeChat: adminChatProcedure
-    .input(z.object({ chatId: z.string().uuid() }))
+    .input(z.object({ chatId: z.uuid() }))
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
       const chat = await prisma.chat.findUnique({
@@ -819,7 +819,7 @@ export const adminRouter = createTRPCRouter({
     }),
 
   reopenChat: adminChatProcedure
-    .input(z.object({ chatId: z.string().uuid() }))
+    .input(z.object({ chatId: z.uuid() }))
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
       const chat = await prisma.chat.findUnique({
@@ -1030,7 +1030,7 @@ export const adminRouter = createTRPCRouter({
   addMemberToChat: adminChatProcedure
     .input(
       z.object({
-        chatId: z.string().uuid(),
+        chatId: z.uuid(),
         userId: z.string(),
       }),
     )

@@ -4,7 +4,7 @@ import { z } from 'zod';
 /** Refused on the way in, so no row ever holds an endpoint a push must not be posted to. */
 const PushEndpointSchema = z
   .string()
-  .refine(isPushServiceEndpoint, { message: UNKNOWN_PUSH_SERVICE_ERROR });
+  .refine(isPushServiceEndpoint, { error: UNKNOWN_PUSH_SERVICE_ERROR });
 
 /**
  * Standard Web Push Subscription schema (used by web-push package)

@@ -21,7 +21,7 @@ const logger = createLogger('chat:mutations');
 
 // Zod schema for input validation
 const sendMessageInputSchema = z.object({
-  chatId: z.string().uuid('Invalid chat ID format.'),
+  chatId: z.uuid('Invalid chat ID format.'),
   content: z
     .string()
     .min(1, 'Message content cannot be empty.')
@@ -41,7 +41,7 @@ const sendMessageInputSchema = z.object({
       return argument;
     },
     z.date({
-      invalid_type_error: 'Timestamp must be a valid date.',
+      error: 'Timestamp must be a valid date.',
     }),
   ),
   // System and alert messages render with authority (the emergency banner, a "call this
@@ -51,12 +51,12 @@ const sendMessageInputSchema = z.object({
     .enum([MessageType.TEXT_MSG, MessageType.IMAGE_MSG, MessageType.LOCATION_MSG])
     .optional()
     .default(MessageType.TEXT_MSG),
-  parentId: z.string().uuid().optional(),
-  quotedMessageId: z.string().uuid().optional(),
+  parentId: z.uuid().optional(),
+  quotedMessageId: z.uuid().optional(),
   // Client-generated identity of this message. Sending it makes the mutation idempotent:
   // a replayed send (offline outbox drain, lost response, retry) carries the same id and
   // returns the message already stored instead of creating a second one.
-  // Deliberately not `.uuid()`: app versions before client-owned ids queued opaque
+  // Deliberately not `z.uuid()`: app versions before client-owned ids queued opaque
   // `optimistic-…` ids in their offline outbox, and rejecting those would drop the
   // queued message instead of delivering it.
   messageId: z.string().optional(),

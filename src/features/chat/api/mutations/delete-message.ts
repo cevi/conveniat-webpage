@@ -25,7 +25,7 @@ const DELETABLE_TYPES: ReadonlySet<string> = new Set([
  * `deliverNextBatch`; one already sent stays on the phone.
  */
 export const deleteMessage = trpcBaseProcedure
-  .input(z.object({ messageId: z.string().uuid() }))
+  .input(z.object({ messageId: z.uuid() }))
   .use(databaseTransactionWrapper)
   .mutation(async ({ input, ctx }): Promise<{ deletedAt: Date }> => {
     const { prisma, user } = ctx;

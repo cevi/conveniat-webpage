@@ -69,9 +69,9 @@ const text = {
     en: 'The app may not use the camera. Allow it in the browser settings or scan the code with the camera app.',
   },
   unsupported: {
-    de: 'Dieser Browser kann keine QR-Codes lesen. Scanne den Code mit der Kamera-App deines Telefons.',
-    fr: 'Ce navigateur ne lit pas les codes QR. Scanne le code avec l’app caméra de ton téléphone.',
-    en: 'This browser cannot read QR codes. Scan the code with your phone’s camera app.',
+    de: 'Hier lässt sich die Kamera nicht öffnen. Scanne den Code mit der Kamera-App deines Telefons.',
+    fr: 'Impossible d’ouvrir la caméra ici. Scanne le code avec l’app caméra de ton téléphone.',
+    en: 'The camera cannot be opened here. Scan the code with your phone’s camera app.',
   },
 } satisfies Record<string, StaticTranslationString>;
 

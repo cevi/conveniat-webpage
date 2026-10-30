@@ -9,7 +9,7 @@ import { z } from 'zod';
  * part of the camp fee. An empty list is fine — it means "use the single VAT code".
  */
 const VatSplitsValidationSchema = z
-  .array(z.object({ share: z.number().nullable().optional() }).passthrough())
+  .array(z.object({ share: z.number().nullable().optional() }).loose())
   .nullable()
   .optional()
   .refine(
@@ -19,7 +19,7 @@ const VatSplitsValidationSchema = z
       // Tolerate the third of a percent that thirds-style splits cannot express exactly.
       return Math.abs(total - 100) < 0.011;
     },
-    { message: 'Die Anteile der MWST-Aufteilung müssen zusammen 100% ergeben.' },
+    { error: 'Die Anteile der MWST-Aufteilung müssen zusammen 100% ergeben.' },
   );
 
 /**
