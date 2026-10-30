@@ -151,8 +151,39 @@ setup [`mobile-mcp`](https://github.com/mobile-next/mobile-mcp) connected throug
 `ADB_SERVER_SOCKET` and gave screenshots, coordinate taps and app install, clear and launch, but its
 element listing failed on every screen, and
 [`chrome-devtools-mcp`](https://github.com/ChromeDevTools/chrome-devtools-mcp) attached to the
-WebView socket without listing its page. T3 Code has a Device panel of its own (`device_list`,
-`device_open`, the `agent-device` CLI), switched on per environment under Settings > Integrations >
-Devices; whether it can adopt this Docker emulator is untested. Prefer stable selectors to
-coordinates, and put a flow that has to stay green into a committed test rather than re-exploring
-it every run.
+WebView socket without listing its page. Prefer stable selectors to coordinates, and put a flow
+that has to stay green into a committed test rather than re-exploring it every run.
+
+## With the T3 Code Device panel
+
+T3 Code has a Device panel of its own (`device_list`, `device_open`, the `agent-device` CLI),
+switched on per environment under Settings > Integrations > Devices. It drives the AVDs of a device
+host's own Android SDK, not the Docker emulator, and the user watches the screen live. Verified on
+2026-10-30 through onboarding, the fake login and the dashboard. Use it when the machine has T3 Code
+and an Android SDK; keep the Docker emulator for everything else and for bad networks (step 6).
+
+- `device_list` names the hosts; `local` is the machine T3 Code runs on. `device_open` boots the
+  AVD and returns an `agent-device` command bound to it. That command runs on the device host and
+  talks to a daemon there; the emulator sits under the host's normal adb server, so plain `adb`
+  works next to it for installs, forwards and logs.
+- `device_open` needs `ffmpeg` with the `libx264` encoder on the host's PATH for the panel's video.
+  A static build dropped into `~/.local/bin` is enough, without a restart.
+- The webpage can run on another machine. Tunnel it to free ports on the device host and map them
+  back to the ports the app expects, so the device still sees `localhost:3000` and `:3001`:
+  `ssh -N -L 23000:localhost:3000 -L 23001:localhost:3001 <webpage-host>`, then
+  `adb reverse tcp:3000 tcp:23000` and `adb reverse tcp:3001 tcp:23001`. The fake login is reached
+  by the server through `HITOBITO_BASE_URL` and by the browser through `HITOBITO_FORWARD_URL`, so
+  only the latter has to stay `http://localhost:3001` when the webpage runs on moved ports.
+- Build the APK as in step 3, then `agent-device install ch.cevi.conveniat27.conveniat27app <apk>`,
+  `adb shell pm clear ch.cevi.conveniat27.conveniat27app` for a fresh onboarding, and
+  `agent-device open ch.cevi.conveniat27.conveniat27app conveniat27://env=testing`.
+- `agent-device snapshot -i` shows a bare `[webview]` until the page has loaded, then lists its
+  buttons and text as `@eN` refs; `press @eN --settle` and `wait text "..."` work on them.
+  `find text "..."` without an action taps the match. The fake login's buttons all read `Login`, so
+  pick a user through DevTools.
+- `agent-device cdp` attaches to a Metro or Hermes runtime, not to a WebView. For DevTools forward
+  the WebView socket as in step 4, with the host's `adb` and a free local port if 9222 is taken.
+- The push step reports push as blocked until the permission is granted:
+  `agent-device settings permission grant notifications`, then `agent-device open <package>
+--relaunch`. `agent-device back` on the dashboard leaves the app.
+- Close the device with `device_close`; remove the `adb reverse` rules and the tunnel you added.
