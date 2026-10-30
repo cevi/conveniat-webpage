@@ -1,5 +1,8 @@
 import type { PublishedPageSlugs } from '@/features/payload-cms/api/published-page-slugs';
-import { fetchPublishedPageSlugs } from '@/features/payload-cms/api/published-page-slugs';
+import {
+  fetchPublishedPageSlugs,
+  readPublishedPageSlugsVersion,
+} from '@/features/payload-cms/api/published-page-slugs';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import type { ProxyModule } from '@/proxy/types';
 import { Header } from '@/types/types';
@@ -66,9 +69,19 @@ const hasPublishedPage = (segments: string[], slugs: PublishedPageSlugs): boolea
   return slugs.genericPages.has(segments.join('/'));
 };
 
-/** How long a read of the slugs is used before it is read again. */
+/** How long the slugs are kept when no change is announced, should an announcement get lost. */
 const MAX_AGE_MS = 5 * 60 * 1000;
-/** How soon a path that is not in the slugs may read them again, for a page published since. */
+/** How often the announced version of the slugs is read from Redis. */
+const VERSION_CHECK_INTERVAL_MS = 1000;
+/**
+ * How soon slugs read for a newly announced version are read once more. The save announces the
+ * change from its `afterChange` hook, before Payload commits it, so the first read can miss it.
+ */
+const REREAD_AFTER_CHANGE_MS = 2000;
+/**
+ * How soon a path that is not in the slugs may read them again, for a page whose publishing was
+ * never announced: a save outside a request, a seed, or Redis failing during the save.
+ */
 const RECHECK_MISS_AFTER_MS = 10 * 1000;
 /** How soon a failed read is tried again. Until then every path is left to the page route. */
 const RETRY_AFTER_FAILURE_MS = 30 * 1000;
@@ -77,6 +90,7 @@ const READ_TIMEOUT_MS = 5000;
 
 interface SlugIndex {
   slugs: PublishedPageSlugs | undefined;
+  version: string;
   readAt: number;
   expiresAt: number;
 }
@@ -98,19 +112,24 @@ const fetchWithTimeout = async (): Promise<PublishedPageSlugs> => {
   }
 };
 
-const readSlugs = async (): Promise<SlugIndex> => {
+const readSlugs = async (version: string, changed: boolean): Promise<SlugIndex> => {
   pendingRead ??= fetchWithTimeout()
     .then(
       (slugs): SlugIndex => {
         const now = Date.now();
-        return { slugs, readAt: now, expiresAt: now + MAX_AGE_MS };
+        return {
+          slugs,
+          version,
+          readAt: now,
+          expiresAt: now + (changed ? REREAD_AFTER_CHANGE_MS : MAX_AGE_MS),
+        };
       },
       (error: unknown): SlugIndex => {
         logger.warn('Could not read the published page slugs, unknown paths answer 200 for now', {
           error,
         });
         const now = Date.now();
-        return { slugs: undefined, readAt: now, expiresAt: now + RETRY_AFTER_FAILURE_MS };
+        return { slugs: undefined, version, readAt: now, expiresAt: now + RETRY_AFTER_FAILURE_MS };
       },
     )
     .then((read) => {
@@ -123,6 +142,33 @@ const readSlugs = async (): Promise<SlugIndex> => {
   return await pendingRead;
 };
 
+let announcedVersion: { value: string | undefined; nextCheckAt: number } | undefined;
+let pendingVersionRead: Promise<string | undefined> | undefined;
+
+/** The announced version of the slugs, `undefined` while Redis cannot be read. */
+const readAnnouncedVersion = async (): Promise<string | undefined> => {
+  if (announcedVersion !== undefined && Date.now() < announcedVersion.nextCheckAt) {
+    return announcedVersion.value;
+  }
+  pendingVersionRead ??= readPublishedPageSlugsVersion()
+    .then(
+      (value) => {
+        announcedVersion = { value, nextCheckAt: Date.now() + VERSION_CHECK_INTERVAL_MS };
+        return value;
+      },
+      (error: unknown): undefined => {
+        logger.warn('Could not read the version of the published page slugs from Redis', {
+          error,
+        });
+        announcedVersion = { value: undefined, nextCheckAt: Date.now() + RETRY_AFTER_FAILURE_MS };
+      },
+    )
+    .finally(() => {
+      pendingVersionRead = undefined;
+    });
+  return await pendingVersionRead;
+};
+
 /**
  * Whether the path may resolve to a CMS page. Anything uncertain, a failed read included, counts
  * as a page, so that the page route decides as it did before.
@@ -130,13 +176,25 @@ const readSlugs = async (): Promise<SlugIndex> => {
 const mayResolve = async (segments: string[]): Promise<boolean> => {
   if (!isResolvedBySlug(segments)) return true;
 
-  // Only the first request waits for the slugs. Later ones answer from the slugs they have while
-  // newer ones are read.
-  let current = index ?? (await readSlugs());
-  if (Date.now() >= current.expiresAt) void readSlugs();
+  const version = await readAnnouncedVersion();
+  if (version === undefined) return true;
+
+  // Only the first request and the first one after an announced change wait for the slugs.
+  // Expired slugs keep answering while newer ones are read.
+  let current = index;
+  if (current?.version !== version) {
+    if (current !== undefined) logger.debug('The published page slugs changed, reading them again');
+    current = await readSlugs(version, current !== undefined);
+  } else if (Date.now() >= current.expiresAt) {
+    void readSlugs(version, false);
+  }
   if (current.slugs === undefined || hasPublishedPage(segments, current.slugs)) return true;
 
-  if (Date.now() - current.readAt >= RECHECK_MISS_AFTER_MS) current = await readSlugs();
+  // A path about to answer 404 waits for slugs newer than expired ones, or than a miss long ago.
+  const now = Date.now();
+  if (now >= current.expiresAt || now - current.readAt >= RECHECK_MISS_AFTER_MS) {
+    current = await readSlugs(version, false);
+  }
   return current.slugs === undefined || hasPublishedPage(segments, current.slugs);
 };
 
@@ -159,7 +217,8 @@ const decodeSegments = (pathname: string): string[] | undefined => {
  * prerendered shell. The slug is only known per request, so that shell is stored with 200 and the
  * `notFound()` of the page cannot change it any more. Next.js recommends checking the slug in
  * Proxy for this, see "Status codes" in the `loading.js` reference. The check reads the published
- * slugs, not the pages, and keeps them in memory.
+ * slugs, not the pages, and keeps them in memory until a save announces a change through Redis,
+ * see `flushPageCacheOnChange`.
  *
  * Runs after the design rewrite, whose target names the locale and the design. A preview is left
  * alone: its draft is not in the published slugs.
