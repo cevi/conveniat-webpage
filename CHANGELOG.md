@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.41.4](https://github.com/cevi/conveniat-webpage/compare/v1.41.3...v1.41.4) (2026-10-30)
+
+
+### Bug Fixes
+
+* 2223 ([f4bc219](https://github.com/cevi/conveniat-webpage/commit/f4bc219eff84967f28a0caf1b06903a8b0d0864f))
+* **qr:** scan with jsQR where the browser has no BarcodeDetector ([371cc2b](https://github.com/cevi/conveniat-webpage/commit/371cc2bc4cbea4af459ec2fb451a7d7fb46d600a))
+* **qr:** scan with jsQR where the browser has no BarcodeDetector ([1216784](https://github.com/cevi/conveniat-webpage/commit/12167845dfa93f77f34b70a4d7da16cdda991a7f)), closes [#2344](https://github.com/cevi/conveniat-webpage/issues/2344)
+
+
+### Dependencies
+
+* **deps:** bump zod ([81f313d](https://github.com/cevi/conveniat-webpage/commit/81f313db90f9e1525fe8ae9052c800a5b25837e3))
+* **deps:** bump zod to 4.6.6 and migrate to the zod 4 API ([7cdd1fc](https://github.com/cevi/conveniat-webpage/commit/7cdd1fcb93445e1d20ad947ea47eb6c4481d4154))
+* **deps:** migrate to the zod 4 API ([3172671](https://github.com/cevi/conveniat-webpage/commit/31726719e0d22b8bfdada5161a6dfe061677489f))
+* **deps:** use the zod 4 error param on two remaining refines ([89cb3eb](https://github.com/cevi/conveniat-webpage/commit/89cb3eb0d8da272e9447bed5b325cca446c10f48))
+
 ## [1.41.3](https://github.com/cevi/conveniat-webpage/compare/v1.41.2...v1.41.3) (2026-10-24)
 
 
