@@ -22,6 +22,10 @@ jest.mock(
   () => ({}),
 );
 jest.mock('@/features/payload-cms/payload-cms/initialization/migrate-legacy-hoefe', () => ({}));
+jest.mock(
+  '@/features/payload-cms/payload-cms/initialization/refresh-admin-panel-access',
+  () => ({}),
+);
 jest.mock('@/features/payload-cms/payload-cms/initialization/seeding', () => ({
   seedDatabase: jest.fn().mockResolvedValue(void 0),
 }));
