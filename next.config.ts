@@ -98,7 +98,8 @@ const nextConfig: NextConfig = {
       '@icons-pack/react-simple-icons',
       'date-fns',
     ],
-    proxyClientMaxBodySize: '50mb',
+    // a little above MAX_UPLOAD_REQUEST_BYTES in payload.config.ts, so the proxy passes an upload whole
+    proxyClientMaxBodySize: '110mb',
     serverActions: {
       bodySizeLimit: '50mb',
     },

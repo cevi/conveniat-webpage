@@ -48,6 +48,7 @@ import { autoCheckoutPresenceTask } from '@/features/presence/payload-cms/tasks/
 import { sendScheduleRemindersTask } from '@/features/schedule/payload-cms/tasks/send-schedule-reminders';
 import type { RoutableConfig } from '@/types/types';
 import { redirectsTranslations } from '@payloadcms/plugin-redirects';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -400,6 +401,15 @@ const jobsConfig: JobsConfig = {
     : [],
 };
 
+/**
+ * The largest file an editor can upload, for every upload collection. Payload's default is 20 MB.
+ * The request around it also carries the document's fields, so `client_max_body_size` in
+ * nginx/nginx.conf and `proxyClientMaxBodySize` in next.config.ts sit a little above it; raise all
+ * three together.
+ */
+const MAX_UPLOAD_FILE_BYTES = 100 * 1024 * 1024;
+const MAX_UPLOAD_REQUEST_BYTES = MAX_UPLOAD_FILE_BYTES + 5 * 1024 * 1024;
+
 const customEndpoints: Endpoint[] = [
   {
     path: '/auto-translate',
@@ -420,6 +430,12 @@ export const payloadConfig: RoutableConfig = {
   globals: globalConfig,
   upload: {
     uploadTimeout: 300_000,
+    limits: { fileSize: MAX_UPLOAD_FILE_BYTES },
+    requestSizeLimit: MAX_UPLOAD_REQUEST_BYTES,
+    // Spool uploads to disk rather than holding them in the container's memory. The default
+    // directory is the relative `tmp`, which resolves under /app, where the app user cannot write.
+    useTempFiles: true,
+    tempFileDir: os.tmpdir(),
   },
   localization: {
     locales,
