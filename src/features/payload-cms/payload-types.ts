@@ -601,6 +601,10 @@ export interface User {
    */
   hidden?: boolean | null;
   /**
+   * For an account that only tries the app, e.g. for the App Store review. Its contact list shows only people of its own Hof and those it exchanged a chat QR code with, not every function holder and AVP.
+   */
+  testAccount?: boolean | null;
+  /**
    * Whether the user is currently present on the campsite.
    */
   presentAtCamp?: boolean | null;
@@ -6778,6 +6782,7 @@ export interface UsersSelect<T extends boolean = true> {
   profilePictureVersion?: T;
   description?: T;
   hidden?: T;
+  testAccount?: T;
   presentAtCamp?: T;
   presenceLogs?: T;
   lastEditedByUser?: T;
