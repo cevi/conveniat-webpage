@@ -3,13 +3,19 @@
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useState } from 'react';
 
+/**
+ * The title of a page that has no name of its own in the header, such as a page of the website:
+ * the camp's name.
+ */
+export const DEFAULT_APP_TITLE = 'conveniat27';
+
 interface DynamicAppTitleContextType {
   dynamicAppTitle: string;
   setDynamicAppTitle: (title: string) => void;
 }
 
 const AppTitleContext = createContext<DynamicAppTitleContextType>({
-  dynamicAppTitle: 'conveniat27',
+  dynamicAppTitle: DEFAULT_APP_TITLE,
   setDynamicAppTitle: () => {
     console.warn('setDynamicAppTitle was called without a provider');
   },
@@ -22,7 +28,7 @@ interface ChatIdProviderProperties {
 
 export const DynamicAppTitleProvider: React.FC<ChatIdProviderProperties> = ({
   children,
-  initialAppTitle = 'conveniat27',
+  initialAppTitle = DEFAULT_APP_TITLE,
 }) => {
   const [dynamicAppTitle, setDynamicAppTitle] = useState<string>(initialAppTitle);
   return (

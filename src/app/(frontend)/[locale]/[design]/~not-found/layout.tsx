@@ -1,4 +1,5 @@
 import { NotFound } from '@/app/(frontend)/(not-found)/not-found';
+import { DEFAULT_APP_TITLE } from '@/components/header/dynamic-app-title-name';
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import type { Locale } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
@@ -19,7 +20,7 @@ const NotFoundLayout: React.FC<{
 
   return (
     <>
-      <SetDynamicPageTitle newTitle="conveniat27" />
+      <SetDynamicPageTitle newTitle={DEFAULT_APP_TITLE} />
       <div className="min-w-full overflow-x-hidden pt-8 pb-24 xl:px-12">
         <NotFound
           locale={Promise.resolve(locale)}
