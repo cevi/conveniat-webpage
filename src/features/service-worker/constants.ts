@@ -18,8 +18,14 @@ export const CACHE_NAMES = {
   AUTH_SESSION: 'next-auth-session-cache',
 } as const;
 
-/** Key in the `OFFLINE_STATUS` cache that records a completed offline download. */
-export const OFFLINE_ENABLED_FLAG = 'offline-enabled';
+/**
+ * Key in the `OFFLINE_STATUS` cache that records a completed offline download.
+ *
+ * Absolute, because the Cache API resolves a relative key against the URL of whoever asks: the
+ * worker wrote `/offline-enabled` (relative to `/sw.js`) and the settings page looked for
+ * `/app/offline-enabled`, so the switch showed every finished download as off after a reload.
+ */
+export const OFFLINE_ENABLED_FLAG = '/offline-enabled';
 
 export const TIMEOUTS = {
   DEFAULT_FETCH: 10_000, // 10 seconds
