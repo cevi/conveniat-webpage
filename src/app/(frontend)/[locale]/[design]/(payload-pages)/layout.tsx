@@ -1,3 +1,4 @@
+import { DEFAULT_APP_TITLE } from '@/components/header/dynamic-app-title-name';
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -12,7 +13,7 @@ interface LayoutProperties {
 const Layout: React.FC<LayoutProperties> = ({ children }) => {
   return (
     <>
-      <SetDynamicPageTitle newTitle="conveniat27" />
+      <SetDynamicPageTitle newTitle={DEFAULT_APP_TITLE} />
       <div className="min-w-full overflow-x-hidden pt-8 pb-24 xl:px-12">{children}</div>
     </>
   );
