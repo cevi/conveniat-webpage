@@ -262,7 +262,7 @@ const DashboardForHof: React.FC<{
         onChange={(index) => onTab(TAB_IDS[index] ?? 'overview')}
         className="grid items-start gap-6 @min-[900px]/dashboard:grid-cols-[13rem_minmax(0,1fr)] @min-[900px]/dashboard:gap-8"
       >
-        <aside className="space-y-6 @min-[900px]/dashboard:sticky @min-[900px]/dashboard:top-28">
+        <aside className="space-y-6 @min-[900px]/dashboard:sticky @min-[900px]/dashboard:top-[calc(var(--app-header-height)+1.5rem)]">
           <DashboardTabList
             tabs={TAB_IDS.map((id) => {
               // what the Hof still has to hand in or revise behind an area's tab

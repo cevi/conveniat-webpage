@@ -16,7 +16,9 @@ import {
   SectionHeading,
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { MaterialOrderReview } from '@/features/hof-dashboard/components/material-order-review';
+import { SortableHeader } from '@/features/hof-dashboard/components/sortable-header';
 import { useMaterialExport } from '@/features/hof-dashboard/hooks/use-material-export';
+import { sortRows, useTableSort } from '@/features/hof-dashboard/hooks/use-table-sort';
 import {
   formatDate,
   formatDateTime,
@@ -131,32 +133,73 @@ const HofBars: React.FC<{
   );
 };
 
-/** How much of each material the Ressort has to get, and from whom how much. */
+/** The line under a sticky header, so rows scrolling under it stay apart from it. */
+const STICKY_HEAD = 'sticky z-20 bg-page shadow-[0_1px_0] shadow-line';
+
+/** The line beside a sticky first column, for rows scrolled sideways under it. */
+const STICKY_COLUMN = 'sticky left-0 z-10 shadow-[1px_0_0] shadow-line';
+
+type TotalColumn = 'material' | 'total' | 'hoefe' | 'largest';
+
+/** One material with what the Höfe ordered of it. */
+interface MaterialTotal {
+  item: MaterialOrderItem;
+  orders: { hofId: string; hofName: string; quantity: number }[];
+  total: number;
+}
+
+const totalValue = (row: MaterialTotal, column: TotalColumn): number | string => {
+  if (column === 'material') return row.item.name;
+  if (column === 'total') return row.total;
+  if (column === 'hoefe') return row.orders.length;
+  return row.orders[0]?.quantity ?? 0;
+};
+
+/**
+ * How much of each material the Ressort has to get, and from whom how much. In the form's order
+ * by its sections, or sorted by any column, then as one list.
+ */
 const TotalTable: React.FC<{
   form: MaterialOrderForm;
   onOpen: (hofId: string) => void;
   locale: Locale;
 }> = ({ form, onOpen, locale }) => {
   const [expanded, setExpanded] = useState<string>();
+  const { sort, toggle } = useTableSort<TotalColumn>();
+  const totals = (items: readonly MaterialOrderItem[]): MaterialTotal[] =>
+    items.map((item) => {
+      const orders = ordersOf(form, item.id);
+      return { item, orders, total: orders.reduce((sum, order) => sum + order.quantity, 0) };
+    });
+  // sorted, the sections would split what is compared, so the list is one
+  const groups =
+    sort === undefined
+      ? bySection(form.items).map(({ section, items }) => ({ section, rows: totals(items) }))
+      : [{ section: undefined, rows: sortRows(totals(form.items), sort, totalValue, locale) }];
+  const head = (column: TotalColumn, label: TextKey, className?: string): React.ReactNode => (
+    <SortableHeader
+      sortKey={column}
+      sort={sort}
+      onSort={toggle}
+      align={column === 'material' ? 'left' : 'right'}
+      className={className}
+    >
+      {translate(label, locale)}
+    </SortableHeader>
+  );
+
   return (
     <table className="w-full text-base">
-      <thead className="bg-page">
+      {/* stays under the site's header while the list scrolls */}
+      <thead className={cn(STICKY_HEAD, 'top-(--app-header-height)')}>
         <tr className={LABEL_CLASS}>
-          <th scope="col" className="px-5 py-3 text-left font-bold @xl:px-6">
-            {translate('material', locale)}
-          </th>
-          <th scope="col" className="px-3 py-3 text-right font-bold">
-            {translate('xlsxTotal', locale)}
-          </th>
-          <th scope="col" className="px-3 py-3 text-right font-bold">
-            {translate('xlsxHoefe', locale)}
-          </th>
-          <th scope="col" className="px-5 py-3 text-right font-bold @xl:px-6">
-            {translate('largestOrder', locale)}
-          </th>
+          {head('material', 'material', 'rounded-tl-[14px] pl-2 @xl:pl-3')}
+          {head('total', 'xlsxTotal')}
+          {head('hoefe', 'xlsxHoefe')}
+          {head('largest', 'largestOrder', 'rounded-tr-[14px] pr-2 @xl:pr-3')}
         </tr>
       </thead>
-      {bySection(form.items).map(({ section, items }, index) => (
+      {groups.map(({ section, rows }, index) => (
         <tbody key={section ?? `section-${index}`} className="divide-line divide-y">
           {section !== undefined && (
             <tr>
@@ -172,9 +215,7 @@ const TotalTable: React.FC<{
               </th>
             </tr>
           )}
-          {items.map((item) => {
-            const orders = ordersOf(form, item.id);
-            const total = orders.reduce((sum, order) => sum + order.quantity, 0);
+          {rows.map(({ item, orders, total }) => {
             const open = expanded === item.id;
             return [
               <tr key={item.id} className={cn(open && 'bg-gray-50')}>
@@ -228,23 +269,36 @@ const TotalTable: React.FC<{
   );
 };
 
-/** What each Hof gets at the handout: one row per Hof, one column per material. */
+/** The Hof's name, or one material's quantity, to sort the Höfe by. */
+type PerHofColumn = 'hof' | `item:${string}`;
+
+/**
+ * What each Hof gets at the handout: one row per Hof, one column per material, sortable by the
+ * Hof or by any material. Scrolls in a box of its own, both ways, with the materials on top and
+ * the Höfe on the left staying in place.
+ */
 const PerHofTable: React.FC<{
   form: MaterialOrderForm;
   onOpen: (hofId: string) => void;
   locale: Locale;
 }> = ({ form, onOpen, locale }) => {
+  const { sort, toggle } = useTableSort<PerHofColumn>();
   const sections = bySection(form.items);
   const hasSections = sections.some(({ section }) => section !== undefined);
-  // the Hof column stays while the materials scroll sideways under it
-  const stickyCell = 'border-line sticky left-0 z-10 border-r bg-white';
+  const hoefe = sortRows(
+    form.hoefe,
+    sort,
+    (hof, column) => (column === 'hof' ? hof.hofName : (hof.quantities[column.slice(5)] ?? 0)),
+    locale,
+  );
   return (
-    <div className="overflow-x-auto">
+    // as tall as the window under the site's header, so its own header can stay in place
+    <div className="max-h-[calc(100dvh-var(--app-header-height)-2rem)] overflow-auto overscroll-x-contain">
       <table className="w-max min-w-full text-sm">
-        <thead className="bg-page">
+        <thead className={cn(STICKY_HEAD, 'top-0')}>
           {hasSections && (
             <tr className={LABEL_CLASS}>
-              <th scope="col" className={cn(stickyCell, 'bg-page')} />
+              <th scope="col" className={cn(STICKY_COLUMN, 'bg-page')} />
               {sections.map(({ section, items }, index) => (
                 <th
                   key={section ?? `section-${index}`}
@@ -258,29 +312,37 @@ const PerHofTable: React.FC<{
             </tr>
           )}
           <tr>
-            <th
-              scope="col"
-              className={cn(stickyCell, 'bg-page px-5 py-3 text-left align-bottom', LABEL_CLASS)}
+            <SortableHeader
+              sortKey="hof"
+              sort={sort}
+              onSort={toggle}
+              className={cn(STICKY_COLUMN, 'bg-page pl-2', LABEL_CLASS)}
             >
               {translate('hof', locale)}
-            </th>
+            </SortableHeader>
             {form.items.map((item) => (
-              <th
+              <SortableHeader
                 key={item.id}
-                scope="col"
-                className="max-w-28 min-w-20 px-3 py-3 text-right align-bottom text-xs font-semibold [overflow-wrap:anywhere] hyphens-auto text-green-800"
+                sortKey={`item:${item.id}`}
+                sort={sort}
+                onSort={toggle}
+                align="right"
+                className="max-w-32 min-w-20 text-xs font-semibold [overflow-wrap:anywhere] hyphens-auto text-green-800"
               >
                 {item.name}
-              </th>
+              </SortableHeader>
             ))}
           </tr>
         </thead>
         <tbody className="divide-line divide-y">
-          {form.hoefe.map((hof) => (
+          {hoefe.map((hof) => (
             <tr key={hof.hofId} className="group">
               <th
                 scope="row"
-                className={cn(stickyCell, 'px-5 py-1 text-left font-normal group-hover:bg-gray-50')}
+                className={cn(
+                  STICKY_COLUMN,
+                  'bg-white px-5 py-1 text-left font-normal group-hover:bg-gray-50',
+                )}
               >
                 <button
                   type="button"
@@ -313,9 +375,13 @@ const PerHofTable: React.FC<{
             </tr>
           ))}
         </tbody>
-        <tfoot className="border-line border-t-2">
+        {/* the totals stay at the foot, whatever the sort, and in sight while the Höfe scroll */}
+        <tfoot className="shadow-line sticky bottom-0 z-20 bg-white shadow-[0_-1px_0]">
           <tr className="font-semibold">
-            <th scope="row" className={cn(stickyCell, 'px-5 py-3 text-left text-green-900')}>
+            <th
+              scope="row"
+              className={cn(STICKY_COLUMN, 'bg-white px-5 py-3 text-left text-green-900')}
+            >
               {translate('xlsxTotal', locale)}
             </th>
             {form.items.map((item) => (
@@ -661,7 +727,7 @@ export const MaterialOrdersView: React.FC<{
           view === 'total' && '@4xl:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]',
         )}
       >
-        <Panel className="min-w-0 overflow-hidden p-0 @xl:p-0">
+        <Panel className="min-w-0 overflow-clip p-0 @xl:p-0">
           {view === 'total' ? (
             <TotalTable form={form} onOpen={setReviewing} locale={locale} />
           ) : (
