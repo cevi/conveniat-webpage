@@ -5,7 +5,26 @@ import { useDocumentInfo, useFormFields, useLivePreviewContext, useLocale } from
 import type { Locale } from 'payload';
 import React, { useEffect, useRef } from 'react';
 
-export const LivePreviewRestorer: React.FC = () => {
+/**
+ * Payload always opens the live preview at its "Responsive" size and has no setting for another
+ * one. Picks `breakpoint` once when the preview opens; the editor can switch away from it.
+ */
+const useDefaultBreakpoint = (breakpoint: string | undefined): void => {
+  const { isLivePreviewing, setBreakpoint } = useLivePreviewContext();
+  const applied = useRef(false);
+
+  useEffect(() => {
+    if (breakpoint === undefined || !isLivePreviewing || applied.current) return;
+    applied.current = true;
+    setBreakpoint(breakpoint);
+  }, [breakpoint, isLivePreviewing, setBreakpoint]);
+};
+
+export const LivePreviewRestorer: React.FC<{
+  /** the device size the preview opens at, a `name` from the configured breakpoints */
+  defaultBreakpoint?: string;
+}> = ({ defaultBreakpoint }) => {
+  useDefaultBreakpoint(defaultBreakpoint);
   const { setURL, isLivePreviewing, url: contextUrl } = useLivePreviewContext();
   const { collectionSlug, globalSlug, id } = useDocumentInfo();
   const { code: currentLocaleCode } = useLocale();

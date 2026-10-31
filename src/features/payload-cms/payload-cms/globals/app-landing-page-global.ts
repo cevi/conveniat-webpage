@@ -44,7 +44,11 @@ export const AppLandingPageGlobal: GlobalConfig = asLocalizedGlobal({
     components: {
       elements: {
         beforeDocumentControls: [
-          '@/features/payload-cms/payload-cms/components/live-preview-restorer',
+          {
+            path: '@/features/payload-cms/payload-cms/components/live-preview-restorer',
+            // Home is only ever seen on a phone; same viewport as an iPhone 15 Pro
+            clientProps: { defaultBreakpoint: 'iphone-14-pro' },
+          },
         ],
       },
     },
