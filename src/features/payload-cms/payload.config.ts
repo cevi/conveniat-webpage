@@ -48,6 +48,7 @@ import { autoCheckoutPresenceTask } from '@/features/presence/payload-cms/tasks/
 import { sendScheduleRemindersTask } from '@/features/schedule/payload-cms/tasks/send-schedule-reminders';
 import type { RoutableConfig } from '@/types/types';
 import { redirectsTranslations } from '@payloadcms/plugin-redirects';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -56,11 +57,16 @@ import {
   isFullAdmin,
   shouldHideInAdminPanel,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { localizeUploadTooLarge } from '@/features/payload-cms/payload-cms/hooks/localize-upload-too-large';
 import { instrumentTasks } from '@/features/payload-cms/payload-cms/utils/instrument-task';
 import {
   customPayloadLoggerConfig,
   setQueriedJobSlugs,
 } from '@/features/payload-cms/payload-cms/utils/job-logger';
+import {
+  MAX_UPLOAD_FILE_BYTES,
+  MAX_UPLOAD_REQUEST_BYTES,
+} from '@/features/payload-cms/payload-cms/utils/upload-size-limit';
 import {
   enabledWidgets,
   widgetDefaultLayout,
@@ -119,6 +125,7 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
       },
     ],
     Nav: '@/features/payload-cms/payload-cms/components/admin-nav/admin-nav',
+    providers: ['@/features/payload-cms/payload-cms/components/upload-size-guard#UploadSizeGuard'],
     views: {
       accessOverview: {
         Component: '@/features/payload-cms/payload-cms/views/access-overview-view#default',
@@ -418,8 +425,17 @@ export const payloadConfig: RoutableConfig = {
   collections: collectionsConfig,
   editor: lexicalEditor,
   globals: globalConfig,
+  hooks: {
+    afterError: [localizeUploadTooLarge],
+  },
   upload: {
     uploadTimeout: 300_000,
+    limits: { fileSize: MAX_UPLOAD_FILE_BYTES },
+    requestSizeLimit: MAX_UPLOAD_REQUEST_BYTES,
+    // Spool uploads to disk rather than holding them in the container's memory. The default
+    // directory is the relative `tmp`, which resolves under /app, where the app user cannot write.
+    useTempFiles: true,
+    tempFileDir: os.tmpdir(),
   },
   localization: {
     locales,
