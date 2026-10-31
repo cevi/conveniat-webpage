@@ -2,12 +2,13 @@
 
 import type { ProfilePictureSeedResult } from '@/features/payload-cms/payload-cms/utils/seed-profile-pictures';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { Button } from '@payloadcms/ui';
+import { Button, Drawer, useModal } from '@payloadcms/ui';
 import { ImageDown, RefreshCw } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 
 const SEED_ENDPOINT = '/api/funktionen/seed-profile-pictures';
+const DRAWER_SLUG = 'funktionen-seed-profile-pictures';
 
 const title: StaticTranslationString = {
   de: 'Profilbilder der Leitungen aus Cevi.DB übernehmen',
@@ -44,8 +45,12 @@ const summaryOf = (locale: Locale, result: ProfilePictureSeedResult): string => 
   return `${String(holders)} Leitende: ${String(seeded)} haben ihr Bild erhalten, ${String(kept)} hatten schon eines, ${String(withoutPicture)} haben keines in der Cevi.DB, ${String(withoutUser)} waren noch nie angemeldet, ${String(failed)} fehlgeschlagen.`;
 };
 
-/** Starts the one-time seed of the leaders' profile pictures and says what it did. */
+/**
+ * Opens the one-time seed of the leaders' profile pictures in a drawer, which starts it and
+ * says what it did.
+ */
 export const SeedProfilePicturesButton: React.FC<{ locale: Locale }> = ({ locale }) => {
+  const { openModal } = useModal();
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<ProfilePictureSeedResult | undefined>();
   const [error, setError] = useState<string | undefined>();
@@ -70,39 +75,49 @@ export const SeedProfilePicturesButton: React.FC<{ locale: Locale }> = ({ locale
     }
   };
 
+  const icon = isRunning ? (
+    <RefreshCw className="h-4 w-4 animate-spin" />
+  ) : (
+    <ImageDown className="h-4 w-4" />
+  );
+
   return (
-    <div className="mt-5 border-t border-(--theme-elevation-150) pt-4">
-      <h4 className="m-0 mb-2 text-[15px] font-semibold text-(--theme-elevation-900)">
-        {title[locale]}
-      </h4>
-      <p className="m-0 mb-4 text-[13px] leading-relaxed text-balance text-(--theme-elevation-600)">
-        {description[locale]}
-      </p>
+    <>
       <Button
         buttonStyle="secondary"
         size="medium"
         margin={false}
-        disabled={isRunning}
-        icon={
-          isRunning ? (
-            <RefreshCw className="h-4 w-4 animate-spin" />
-          ) : (
-            <ImageDown className="h-4 w-4" />
-          )
-        }
+        icon={icon}
         iconPosition="left"
-        onClick={() => void start()}
+        onClick={() => openModal(DRAWER_SLUG)}
       >
         {startLabel[locale]}
       </Button>
-      {result !== undefined && (
-        <p className="mt-3 mb-0 text-[13px] text-(--theme-elevation-700)">
-          {summaryOf(locale, result)}
+
+      <Drawer slug={DRAWER_SLUG} title={title[locale]}>
+        <p className="m-0 mb-4 max-w-3xl text-[13px] leading-relaxed text-(--theme-elevation-600)">
+          {description[locale]}
         </p>
-      )}
-      {error !== undefined && (
-        <p className="mt-3 mb-0 text-[13px] text-(--theme-error-600)">{error}</p>
-      )}
-    </div>
+        <Button
+          buttonStyle="primary"
+          size="medium"
+          margin={false}
+          disabled={isRunning}
+          icon={icon}
+          iconPosition="left"
+          onClick={() => void start()}
+        >
+          {startLabel[locale]}
+        </Button>
+        {result !== undefined && (
+          <p className="mt-3 mb-0 text-[13px] text-(--theme-elevation-700)">
+            {summaryOf(locale, result)}
+          </p>
+        )}
+        {error !== undefined && (
+          <p className="mt-3 mb-0 text-[13px] text-(--theme-error-600)">{error}</p>
+        )}
+      </Drawer>
+    </>
   );
 };
