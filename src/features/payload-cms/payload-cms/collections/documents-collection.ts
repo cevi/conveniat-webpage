@@ -9,7 +9,10 @@ import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared
 import { permissionsField } from '@/features/payload-cms/payload-cms/shared-fields/permissions-field';
 import { buildDocumentContentDisposition } from '@/features/payload-cms/payload-cms/utils/document-download-name';
 import { isCountedDocumentDownload } from '@/features/payload-cms/payload-cms/utils/document-download-tracking';
-import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
+import {
+  flushPageCacheOnChange,
+  flushPageCacheOnDelete,
+} from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import type { Document } from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
 import type { Locale } from '@/types/types';
@@ -105,7 +108,10 @@ const filterByUsage: BaseFilter = async (arguments_) => {
 export const DocumentsCollection: CollectionConfig = {
   slug: 'documents',
   folders: true,
-  hooks: { afterChange: [flushPageCacheOnChange, schedulePdfThumbnail] },
+  hooks: {
+    afterChange: [flushPageCacheOnChange, schedulePdfThumbnail],
+    afterDelete: [flushPageCacheOnDelete],
+  },
 
   labels: {
     singular: {

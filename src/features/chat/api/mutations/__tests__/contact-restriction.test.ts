@@ -54,6 +54,7 @@ import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
 interface Person {
   uuid: string;
   hidden: boolean;
+  testAccount: boolean;
   hofIds: string[];
   avpHofIds: string[];
   funktionIds: string[];
@@ -64,6 +65,7 @@ interface Person {
 const person = (letter: string, details: Partial<Person> = {}): Person => ({
   uuid: letter.repeat(24),
   hidden: false,
+  testAccount: false,
   hofIds: [],
   avpHofIds: [],
   funktionIds: [],
@@ -181,6 +183,7 @@ const expectRefused = async (call: Promise<unknown>): Promise<void> => {
 };
 
 beforeEach(() => {
+  ANNA.testAccount = false;
   restrictContactList = true;
   organiserIds = [];
   writes = [];
@@ -272,5 +275,33 @@ describe('with the contact list open to everyone', () => {
 
   it('still refuses a hidden person', async () => {
     await expectRefused(startChat(HIDDEN_HOF_MATE));
+  });
+});
+
+describe('as a test account', () => {
+  beforeEach(() => {
+    ANNA.testAccount = true;
+  });
+
+  it.each([
+    ['someone from the same Hof', HOF_MATE],
+    ['someone whose QR code was scanned', SCANNED],
+  ])('opens a private chat with %s', async (_who, contact) => {
+    await startChat(contact);
+
+    expect(writes).toEqual(['chat.create']);
+  });
+
+  it.each([
+    ['the AVP of another Hof', AVP],
+    ['someone holding a function', RESSORT_MEMBER],
+  ])('refuses a private chat with %s', async (_who, contact) => {
+    await expectRefused(startChat(contact));
+  });
+
+  it('stays restricted with the contact list open to everyone', async () => {
+    restrictContactList = false;
+
+    await expectRefused(startChat(STRANGER));
   });
 });

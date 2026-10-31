@@ -21,7 +21,7 @@ const logger = createLogger('manifest');
 export const cachedManifestGenerator = async (): Promise<MetadataRoute.Manifest> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'PWA-v12');
+  cacheTag('payload', 'global:PWA');
 
   return await withSpan('cachedManifestGenerator', async () => {
     logger.debug('Generating manifest');

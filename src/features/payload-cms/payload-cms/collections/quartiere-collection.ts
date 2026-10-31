@@ -3,7 +3,10 @@ import {
   isEditor,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
+import {
+  flushPageCacheOnChange,
+  flushPageCacheOnDelete,
+} from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { CollectionConfig, NumberFieldSingleValidation } from 'payload';
 
@@ -35,7 +38,7 @@ export const QuartiereCollection: CollectionConfig = {
   // would also carry the joined Höfe to every reader, e.g. to the programme of all participants.
   defaultPopulate: { name: true, number: true, rufname: true },
   // the cached Karte and Programm show the names, so a renamed Quartier has to reach them
-  hooks: { afterChange: [flushPageCacheOnChange] },
+  hooks: { afterChange: [flushPageCacheOnChange], afterDelete: [flushPageCacheOnDelete] },
   labels: {
     singular: { en: 'Quartier', de: 'Quartier', fr: 'Quartier' },
     plural: { en: 'Quartiers', de: 'Quartiere', fr: 'Quartiers' },

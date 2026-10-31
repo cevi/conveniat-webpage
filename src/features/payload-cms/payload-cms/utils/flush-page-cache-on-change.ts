@@ -3,6 +3,7 @@ import { linkTargetPopulate } from '@/features/payload-cms/payload-cms/utils/lin
 import { revalidateTag } from 'next/cache';
 import type {
   CollectionAfterChangeHook,
+  CollectionAfterDeleteHook,
   CollectionBeforeOperationHook,
   CollectionSlug,
   GlobalAfterChangeHook,
@@ -173,8 +174,9 @@ const COLLECTION_WITH_PUBLISHED_SLUGS = 'generic-page';
 
 /**
  * Tells the proxy of every replica to read the published slugs again. Called when a save changed
- * a slug, published or unpublished a page, or moved it to the trash or out of it; otherwise a path
- * whose page just went away answers 200 until the proxy reads them again by itself.
+ * a slug, published or unpublished a page, or moved it to the trash or out of it, and when a page
+ * is deleted for good; otherwise a path whose page just went away answers 200 until the proxy
+ * reads them again by itself.
  */
 const announceChangedSlugs = async (
   request: PayloadRequest,
@@ -188,6 +190,30 @@ const announceChangedSlugs = async (
     request.payload.logger.warn(
       { error, collection },
       'Announcing changed page slugs failed, the proxy reads them again within 5 minutes',
+    );
+  }
+};
+
+/** Expires the tags of one document, and with `flushEverything` the whole cache. */
+const flushDocument = async (
+  request: PayloadRequest,
+  collectionSlug: CollectionSlug,
+  id: string | number,
+  flushEverything: boolean,
+): Promise<void> => {
+  // Before `revalidateTag`, which throws when the hook runs outside a request.
+  if (flushEverything && collectionSlug === COLLECTION_WITH_PUBLISHED_SLUGS) {
+    await announceChangedSlugs(request, collectionSlug);
+  }
+
+  try {
+    if (flushEverything) revalidateTag('payload', 'max');
+    revalidateTag(`collection:${collectionSlug}`, 'max');
+    revalidateTag(`doc:${collectionSlug}:${id}`, 'max');
+  } catch (error: unknown) {
+    request.payload.logger.warn(
+      { error, collection: collectionSlug },
+      'Revalidating the cache failed, this is non-critical',
     );
   }
 };
@@ -226,21 +252,28 @@ export const flushPageCacheOnChange: CollectionAfterChangeHook = async ({
     'Revalidating the cache for a document',
   );
 
-  // Before `revalidateTag`, which throws when the save runs outside a request.
-  if (flushEverything && collectionSlug === COLLECTION_WITH_PUBLISHED_SLUGS) {
-    await announceChangedSlugs(req, collectionSlug);
-  }
+  await flushDocument(req, collectionSlug, id, flushEverything);
+};
 
-  try {
-    if (flushEverything) revalidateTag('payload', 'max');
-    revalidateTag(`collection:${collectionSlug}`, 'max');
-    revalidateTag(`doc:${collectionSlug}:${id}`, 'max');
-  } catch (error: unknown) {
-    req.payload.logger.warn(
-      { error, collection: collectionSlug },
-      'Revalidating the cache failed, this is non-critical',
-    );
+/**
+ * Flushes the cache entries a permanently deleted document was part of. That is everything, for
+ * the same reason as a save that reaches further than the document itself: any entry may embed
+ * it. A delete is not a save, so {@link flushPageCacheOnChange} never sees it, and collections
+ * without trash delete permanently every time. Add it next to every {@link flushPageCacheOnChange}.
+ */
+export const flushPageCacheOnDelete: CollectionAfterDeleteHook = async ({
+  id,
+  collection,
+  req,
+}): Promise<void> => {
+  if (Boolean(req.context['disableRevalidation'])) {
+    return;
   }
+  req.payload.logger.debug(
+    { collection: collection.slug, 'document.id': id },
+    'Revalidating the cache for a deleted document',
+  );
+  await flushDocument(req, collection.slug, id, true);
 };
 
 export const flushPageCacheOnChangeGlobal: GlobalAfterChangeHook = ({ doc, req, global }): void => {
@@ -278,10 +311,11 @@ export const flushPageCacheOnChangeGlobal: GlobalAfterChangeHook = ({ doc, req, 
   }
 };
 
-export const flushManifestCacheOnChange: GlobalAfterChangeHook = ({ req }): void => {
+/** Flushes the manifest, the one entry that reads the PWA global, see `generate-manifest.ts`. */
+export const flushManifestCacheOnChange: GlobalAfterChangeHook = ({ global, req }): void => {
   req.payload.logger.debug('PWA global changed, revalidating the manifest');
   try {
-    revalidateTag('manifest', 'max');
+    revalidateTag(`global:${global.slug}`, 'max');
   } catch (error: unknown) {
     req.payload.logger.warn({ error }, 'Revalidating the manifest failed, this is non-critical');
   }

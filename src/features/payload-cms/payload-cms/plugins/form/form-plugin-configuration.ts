@@ -34,6 +34,7 @@ import { workflowTab } from '@/features/payload-cms/payload-cms/plugins/form/tab
 import { workflowTriggerOnFormSubmission } from '@/features/payload-cms/payload-cms/plugins/form/workflow-trigger-on-form-submission';
 import {
   flushPageCacheOnChange,
+  flushPageCacheOnDelete,
   rememberDraftSave,
 } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
@@ -435,6 +436,7 @@ export const formPluginConfiguration = formBuilderPlugin({
       beforeOperation: [rememberDraftSave],
       beforeChange: [extractEmailLinksHook],
       afterChange: [flushPageCacheOnChange],
+      afterDelete: [flushPageCacheOnDelete],
     },
   },
   beforeEmail: beforeEmailChangeHook,
