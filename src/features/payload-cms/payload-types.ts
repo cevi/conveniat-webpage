@@ -8241,6 +8241,18 @@ export interface DonationBarometer {
  */
 export interface AppLandingPage {
   id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _locale: string;
+  _disable_unpublishing?: boolean | null;
   /**
    * The title displayed in the app header bar on the dashboard (e.g. "Konekta App").
    */
@@ -8432,6 +8444,7 @@ export interface AppLandingPage {
    * When enabled, the action cards (quick links to app features) are shown on the dashboard.
    */
   showActionCards?: boolean | null;
+  _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -9034,6 +9047,10 @@ export interface DonationBarometerSelect<T extends boolean = true> {
  * via the `definition` "app-landing-page_select".
  */
 export interface AppLandingPageSelect<T extends boolean = true> {
+  publishingStatus?: T;
+  _localized_status?: T;
+  _locale?: T;
+  _disable_unpublishing?: T;
   title?: T;
   pageContent?:
     | T
@@ -9141,6 +9158,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
         tabsBlock?: T | TabsBlockSelect<T>;
       };
   showActionCards?: T;
+  _status?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

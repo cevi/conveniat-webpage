@@ -47,6 +47,11 @@ export const generatePreviewUrl = ({
     return `${host}${prefix}?preview=true&menu=open`;
   }
 
+  // the landing page is Home of the app, previewed in the app's design
+  if (globalSlug === 'app-landing-page') {
+    return `${host}${prefix}/app/dashboard-preview?preview=true`;
+  }
+
   if (collectionConfig) {
     if (collectionConfig.slug === 'timeline' && data.id !== undefined) {
       return `${host}${prefix}/timeline-preview/${data.id}?preview=true`;
