@@ -241,6 +241,7 @@ export interface Config {
       runDailyBilling: TaskRunDailyBilling;
       writeBackPayments: TaskWriteBackPayments;
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
+      refreshUserHoefe: TaskRefreshUserHoefe;
       syncFunktionen: TaskSyncFunktionen;
       autoCheckoutPresence: TaskAutoCheckoutPresence;
       sendScheduleReminders: TaskSendScheduleReminders;
@@ -4890,6 +4891,7 @@ export interface PayloadJob {
           | 'runDailyBilling'
           | 'writeBackPayments'
           | 'cleanupTemporaryFormFiles'
+          | 'refreshUserHoefe'
           | 'syncFunktionen'
           | 'autoCheckoutPresence'
           | 'sendScheduleReminders'
@@ -4947,6 +4949,7 @@ export interface PayloadJob {
         | 'runDailyBilling'
         | 'writeBackPayments'
         | 'cleanupTemporaryFormFiles'
+        | 'refreshUserHoefe'
         | 'syncFunktionen'
         | 'autoCheckoutPresence'
         | 'sendScheduleReminders'
@@ -9616,6 +9619,14 @@ export interface TaskWriteBackPayments {
  * via the `definition` "TaskCleanupTemporaryFormFiles".
  */
 export interface TaskCleanupTemporaryFormFiles {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskRefreshUserHoefe".
+ */
+export interface TaskRefreshUserHoefe {
   input?: unknown;
   output?: unknown;
 }

@@ -33,7 +33,6 @@ jest.mock('@/features/payload-cms/payload-cms/tasks/active-job-tracking', () => 
   announceRunningJobsWith: jest.fn(),
   getRunningJobIds: (): string[] => [],
 }));
-jest.mock('@/features/payload-cms/payload-cms/utils/hof-membership', () => ({}));
 const queryRaw = jest.fn();
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
