@@ -1,4 +1,5 @@
 import {
+  flushManifestCacheOnChange,
   flushPageCacheOnChange,
   flushPageCacheOnChangeGlobal,
   rememberDraftSave,
@@ -253,5 +254,20 @@ describe('flushPageCacheOnChangeGlobal', () => {
     await saveHeader({ draft: true, data: { _status: 'published' } });
 
     expect(flushedTags()).toEqual(['payload', 'global:header']);
+  });
+});
+
+describe('flushManifestCacheOnChange', () => {
+  beforeEach(() => jest.mocked(revalidateTag).mockClear());
+
+  it('flushes the tag the manifest is cached under', async () => {
+    await flushManifestCacheOnChange({
+      doc: {},
+      global: { slug: 'PWA' },
+      req: requestReading(),
+    } as unknown as Parameters<typeof flushManifestCacheOnChange>[0]);
+
+    // `generate-manifest.ts` tags its entry `global:PWA`
+    expect(flushedTags()).toEqual(['global:PWA']);
   });
 });

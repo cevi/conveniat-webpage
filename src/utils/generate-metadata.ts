@@ -9,7 +9,7 @@ import { cacheLife, cacheTag } from 'next/cache';
 export const generateMetadataCached = async (): Promise<Metadata> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'PWA-v8', 'SEO');
+  cacheTag('payload', 'global:SEO');
 
   return await withSpan('generateMetadataCached', async () => {
     const APP_HOST_URL = environmentVariables.APP_HOST_URL;
