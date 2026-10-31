@@ -2,7 +2,10 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
 import { makeInjectEnrollmentCount } from '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
-import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
+import {
+  flushPageCacheOnChange,
+  flushPageCacheOnDelete,
+} from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
@@ -65,6 +68,7 @@ export const CampScheduleEntryCollection: CollectionConfig = {
   trash: true,
   hooks: {
     afterChange: [flushPageCacheOnChange, syncOrganisers],
+    afterDelete: [flushPageCacheOnDelete],
     afterRead: [hideLeaderNotes, makeInjectEnrollmentCount(CourseType.PROGRAM)],
   },
   endpoints: [
