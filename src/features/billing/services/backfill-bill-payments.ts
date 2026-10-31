@@ -5,7 +5,7 @@ import type { Payload } from 'payload';
  *
  * Until then a booking lived only on the bill, as its transaction and amount. Without a row
  * for it, a second payment for that bill would count alone and never read as a double
- * payment. Writes only the rows that are missing, so it runs on every start.
+ * payment. Writes only the rows that are missing. Runs once, as a Payload migration.
  *
  * @returns how many payments it stored
  */
@@ -68,15 +68,15 @@ export async function backfillBillPayments(payload: Payload): Promise<number> {
       known.add(transaction);
       created++;
     } catch (error) {
-      // A second replica starting at the same moment stored it first. Anything else would fail
-      // again on every start, and that bill's second payment would never read as double.
+      // A second replica starting at the same moment stored it first. Anything else is not
+      // retried, and that bill's second payment would never read as double.
       const alreadyStored = await payload.count({
         collection: 'bill-payments',
         where: { transactionReference: { equals: transaction } },
         context: { internal: true },
       });
       if (alreadyStored.totalDocs === 0) {
-        payload.logger.warn(
+        payload.logger.error(
           { err: error },
           `Could not store the earlier booking ${transaction} as a payment`,
         );
