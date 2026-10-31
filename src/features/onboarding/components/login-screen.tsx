@@ -1,5 +1,6 @@
 'use client';
 
+import { useNativeAppLoginEvents } from '@/features/onboarding/hooks/use-native-app-login-events';
 import type { StaticTranslationString } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
 import { Loader2 } from 'lucide-react';
@@ -67,6 +68,19 @@ export const LoginScreen: React.FC<{ locale: 'de' | 'fr' | 'en' }> = ({ locale }
     // Trigger the OAuth redirect
     handleLogin('/entrypoint');
   }, []);
+
+  const clearRedirectTimeout = useCallback((): void => {
+    if (timeoutReference.current) clearTimeout(timeoutReference.current);
+  }, []);
+
+  const stopWaiting = useCallback((): void => {
+    clearRedirectTimeout();
+    setIsLoading(false);
+  }, [clearRedirectTimeout]);
+
+  // In the native app the login opens in the system browser and this page stays: the redirect
+  // succeeded, so the timeout must not report it as failed, and closing the browser ends the wait.
+  useNativeAppLoginEvents({ onOpened: clearRedirectTimeout, onCancelled: stopWaiting });
 
   return (
     <>

@@ -13,6 +13,19 @@
         "FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C",
         "B5:A6:4D:C6:A9:67:44:1F:A6:E8:76:06:D5:CC:F3:95:62:4A:55:88:00:DD:D4:46:F5:81:C1:D9:C4:F8:38:3A"
       ]
+    },
+    "relation_extensions": {
+      "delegate_permission/common.handle_all_urls": {
+        "dynamic_app_link_components": [
+          {
+            "/": "/api/auth/*",
+            "exclude": true
+          },
+          {
+            "/": "*"
+          }
+        ]
+      }
     }
   },
   {
@@ -37,8 +50,22 @@
       "namespace": "android_app",
       "package_name": "ch.cevi.conveniat27.conveniat27app",
       "sha256_cert_fingerprints": [
-        "B5:A6:4D:C6:A9:67:44:1F:A6:E8:76:06:D5:CC:F3:95:62:4A:55:88:00:DD:D4:46:F5:81:C1:D9:C4:F8:38:3A"
+        "B5:A6:4D:C6:A9:67:44:1F:A6:E8:76:06:D5:CC:F3:95:62:4A:55:88:00:DD:D4:46:F5:81:C1:D9:C4:F8:38:3A",
+        "FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C"
       ]
+    },
+    "relation_extensions": {
+      "delegate_permission/common.handle_all_urls": {
+        "dynamic_app_link_components": [
+          {
+            "/": "/api/auth/*",
+            "exclude": true
+          },
+          {
+            "/": "*"
+          }
+        ]
+      }
     }
   }
 ]
