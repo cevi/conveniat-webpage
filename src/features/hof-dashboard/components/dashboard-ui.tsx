@@ -8,7 +8,16 @@ import {
 } from '@/features/hof-dashboard/utils/submission-progress';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { AlertCircle, CheckCircle2, Clock, Mail } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Hammer,
+  Mail,
+  Package,
+  Sparkles,
+  type LucideIcon,
+} from 'lucide-react';
 import type React from 'react';
 
 /**
@@ -193,16 +202,24 @@ export const ResponsibleList: React.FC<{ people: HofContact[]; locale: Locale }>
     </ul>
   );
 
-/** The area's dot, in front of its name wherever an area is named. */
-export const AreaDot: React.FC<{ area: HofDashboardArea; className?: string }> = ({
+/** What each area is about, as its icon: building, the programme's activities, the depot. */
+const AREA_ICON: Record<HofDashboardArea, LucideIcon> = {
+  infrastructure: Hammer,
+  program: Sparkles,
+  material: Package,
+};
+
+/**
+ * The area's icon, in front of its name wherever an area is named, in the area's colour so it
+ * matches the area's progress bars.
+ */
+export const AreaIcon: React.FC<{ area: HofDashboardArea; className?: string }> = ({
   area,
   className,
-}) => (
-  <span
-    aria-hidden
-    className={cn('inline-block h-2 w-2 shrink-0 rounded-full', AREA_DOT_CLASS[area], className)}
-  />
-);
+}) => {
+  const Icon = AREA_ICON[area];
+  return <Icon aria-hidden className={cn('h-4 w-4 shrink-0', AREA_TEXT_CLASS[area], className)} />;
+};
 
 /**
  * One mark of a segment bar: filled in the area's colour, handed in and waiting for the

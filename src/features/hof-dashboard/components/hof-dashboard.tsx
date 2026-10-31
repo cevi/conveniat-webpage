@@ -13,7 +13,7 @@ import type { HofOverviewRow } from '@/features/hof-dashboard/api/hof-overview';
 import { AreaView } from '@/features/hof-dashboard/components/area-view';
 import { DashboardTabList } from '@/features/hof-dashboard/components/dashboard-tabs';
 import {
-  AreaDot,
+  AreaIcon,
   LABEL_CLASS,
   Panel,
   PRIMARY_BUTTON_CLASS,
@@ -252,7 +252,7 @@ const DashboardForHof: React.FC<{
   const marker = (id: Tab): React.ReactNode => {
     if (id === 'overview') return <LayoutGrid className="h-4 w-4" aria-hidden />;
     if (id === 'documents') return <FileText className="h-4 w-4" aria-hidden />;
-    return <AreaDot area={id} />;
+    return <AreaIcon area={id} />;
   };
 
   return (

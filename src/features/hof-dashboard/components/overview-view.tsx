@@ -3,7 +3,7 @@ import type {
   HofDashboardForm,
 } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import {
-  AreaDot,
+  AreaIcon,
   LABEL_CLASS,
   Panel,
   ProgressPill,
@@ -100,7 +100,7 @@ const FormRow: React.FC<{
   return (
     <li className="grid items-center gap-x-4 gap-y-3 px-5 py-4 @min-[420px]:grid-cols-[minmax(0,1fr)_auto] @min-[640px]:grid-cols-[minmax(0,1fr)_auto_auto] @xl:px-6">
       <div className="flex min-w-0 items-start gap-3">
-        <AreaDot area={form.area} className="mt-2" />
+        <AreaIcon area={form.area} className="mt-1" />
         <div className="min-w-0">
           <p className="text-base font-semibold text-balance text-green-900">{form.title}</p>
           <p className="text-sm text-green-700">{rowDetail(form, locale)}</p>
@@ -208,7 +208,7 @@ const SummaryStrip: React.FC<{
             onClick={() => onOpenArea(area)}
           >
             <span className="flex items-center gap-2 text-base font-semibold text-green-900">
-              <AreaDot area={area} />
+              <AreaIcon area={area} />
               {label}
             </span>
             <span className="block text-sm text-green-700 tabular-nums">{count}</span>

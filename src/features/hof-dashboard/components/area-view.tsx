@@ -5,7 +5,7 @@ import type {
   HofDashboardForm,
 } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import {
-  AreaDot,
+  AreaIcon,
   LABEL_CLASS,
   Panel,
   ProgressPill,
@@ -85,7 +85,7 @@ export const AreaView: React.FC<{
       <Panel className="grid gap-6 @min-[640px]:grid-cols-[minmax(11rem,14rem)_minmax(0,1fr)] @min-[640px]:gap-10">
         <div className="space-y-2">
           <p className={cn(LABEL_CLASS, 'flex items-center gap-2')}>
-            <AreaDot area={area} />
+            <AreaIcon area={area} />
             {translate('area', locale)}
           </p>
           <h3 className="font-heading text-heading text-2xl font-extrabold @xl:text-3xl">

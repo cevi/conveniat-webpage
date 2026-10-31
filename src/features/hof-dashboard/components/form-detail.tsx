@@ -6,7 +6,7 @@ import type {
   HofDashboardForm,
 } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import {
-  AreaDot,
+  AreaIcon,
   LABEL_CLASS,
   PRIMARY_BUTTON_CLASS,
   ProgressLine,
@@ -308,7 +308,7 @@ export const FormDetail: React.FC<{
     >
       <header className="space-y-2">
         <p className={cn(LABEL_CLASS, 'flex items-center gap-2')}>
-          <AreaDot area={form.area} />
+          <AreaIcon area={form.area} />
           {HOF_DASHBOARD_AREA_LABELS[form.area][locale]}
         </p>
         <h3

@@ -7,7 +7,7 @@ import type {
   HofOverviewRow,
 } from '@/features/hof-dashboard/api/hof-overview';
 import {
-  AreaDot,
+  AreaIcon,
   LABEL_CLASS,
   Panel,
   PRIMARY_BUTTON_CLASS,
@@ -111,7 +111,7 @@ const WaitingCard: React.FC<{
       <ul className="space-y-1">
         {waiting.map((area) => (
           <li key={area} className="flex items-center gap-2 text-sm text-green-800">
-            <AreaDot area={area} />
+            <AreaIcon area={area} />
             {HOF_DASHBOARD_AREA_LABELS[area][locale]} ·{' '}
             {waitingLine(area, hof.areas[area].toReview, locale)}
           </li>
@@ -290,7 +290,7 @@ export const HofOverviewTable: React.FC<{
               <span>{translate('hof', locale)}</span>
               {HOF_DASHBOARD_AREAS.map((area) => (
                 <span key={area} className="flex items-center gap-2">
-                  <AreaDot area={area} />
+                  <AreaIcon area={area} />
                   {HOF_DASHBOARD_AREA_LABELS[area][locale]}
                 </span>
               ))}
