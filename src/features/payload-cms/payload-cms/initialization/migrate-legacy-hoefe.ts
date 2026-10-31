@@ -96,63 +96,59 @@ export const groupLegacyHofEvents = (
  * Moves the Höfe out of the legacy event list of the `bill-settings` global into the `hoefe`
  * collection, once.
  *
- * Runs on every start and does nothing as soon as a single Hof exists, so it is safe to run
- * on every replica and every restart. Two replicas starting together may both find the
+ * Runs once, as a Payload migration, and does nothing as soon as a single Hof exists. Nothing
+ * locks a migration across replicas, so two replicas starting together may both find the
  * collection empty; the unique `groupId` turns the second create of a Hof into a refused
  * duplicate, which is logged and skipped. The legacy list itself is never modified.
  *
  * Remove together with the legacy `events` field of `bill-settings`.
  */
 export const migrateLegacyHoefe = async (payload: Payload): Promise<void> => {
-  try {
-    const { totalDocs } = await payload.count({
-      collection: 'hoefe',
-      context: { internal: true },
-    });
-    if (totalDocs > 0) return;
+  const { totalDocs } = await payload.count({
+    collection: 'hoefe',
+    context: { internal: true },
+  });
+  if (totalDocs > 0) return;
 
-    const settings = await payload.findGlobal({
-      slug: 'bill-settings',
-      depth: 0,
-      context: { internal: true },
-    });
-    const rows: LegacyHofEventRow[] = Array.isArray(settings.events) ? settings.events : [];
-    if (rows.length === 0) return;
+  const settings = await payload.findGlobal({
+    slug: 'bill-settings',
+    depth: 0,
+    context: { internal: true },
+  });
+  const rows: LegacyHofEventRow[] = Array.isArray(settings.events) ? settings.events : [];
+  if (rows.length === 0) return;
 
-    const { hoefe, conflicts, skippedRows } = groupLegacyHofEvents(rows);
+  const { hoefe, conflicts, skippedRows } = groupLegacyHofEvents(rows);
 
-    for (const conflict of conflicts) {
-      payload.logger.warn(
-        { groupId: conflict.groupId, field: conflict.field, values: conflict.values.length },
-        'Legacy Hof rows of one group disagree; the migration kept the first non-empty value',
-      );
-    }
-    if (skippedRows > 0) {
-      payload.logger.warn(
-        { skippedRows },
-        'Legacy Hof rows without an event or group id were not migrated',
-      );
-    }
-
-    let created = 0;
-    for (const hof of hoefe) {
-      try {
-        await payload.create({ collection: 'hoefe', data: hof, context: { internal: true } });
-        created += 1;
-      } catch (error: unknown) {
-        // Most likely another replica created this Hof a moment earlier.
-        payload.logger.warn(
-          { err: error, groupId: hof.groupId },
-          'Could not create a Hof from the legacy bill settings',
-        );
-      }
-    }
-
-    payload.logger.info(
-      { created, hoefe: hoefe.length, rows: rows.length },
-      `Migrated ${String(created)} Höfe from the legacy bill settings events`,
+  for (const conflict of conflicts) {
+    payload.logger.warn(
+      { groupId: conflict.groupId, field: conflict.field, values: conflict.values.length },
+      'Legacy Hof rows of one group disagree; the migration kept the first non-empty value',
     );
-  } catch (error: unknown) {
-    payload.logger.error({ err: error }, 'Migrating the legacy Höfe failed');
   }
+  if (skippedRows > 0) {
+    payload.logger.warn(
+      { skippedRows },
+      'Legacy Hof rows without an event or group id were not migrated',
+    );
+  }
+
+  let created = 0;
+  for (const hof of hoefe) {
+    try {
+      await payload.create({ collection: 'hoefe', data: hof, context: { internal: true } });
+      created += 1;
+    } catch (error: unknown) {
+      // Most likely another replica created this Hof a moment earlier.
+      payload.logger.warn(
+        { err: error, groupId: hof.groupId },
+        'Could not create a Hof from the legacy bill settings',
+      );
+    }
+  }
+
+  payload.logger.info(
+    { created, hoefe: hoefe.length, rows: rows.length },
+    `Migrated ${String(created)} Höfe from the legacy bill settings events`,
+  );
 };

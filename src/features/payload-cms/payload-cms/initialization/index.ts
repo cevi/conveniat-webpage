@@ -1,14 +1,10 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { backfillBillPayments } from '@/features/billing/services/backfill-bill-payments';
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
 import { ensureIndexes } from '@/features/payload-cms/payload-cms/initialization/ensure-indexes';
-import { migrateFileDownloadGroups } from '@/features/payload-cms/payload-cms/initialization/migrate-file-download-groups';
 import {
   migrateFormFiles,
   s3FormFileStore,
 } from '@/features/payload-cms/payload-cms/initialization/migrate-form-files';
-import { migrateFormPlaceholders } from '@/features/payload-cms/payload-cms/initialization/migrate-form-placeholders';
-import { migrateLegacyHoefe } from '@/features/payload-cms/payload-cms/initialization/migrate-legacy-hoefe';
 import { refreshAdminPanelAccess } from '@/features/payload-cms/payload-cms/initialization/refresh-admin-panel-access';
 import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
 import {
@@ -170,23 +166,6 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
     return;
   }
 
-  // Clear stale preferences for payload-jobs to resolve cached groupBy/where field CastErrors
-  try {
-    await payload.delete({
-      collection: 'payload-preferences',
-      where: {
-        or: [{ key: { equals: 'collection-payload-jobs' } }, { key: { equals: 'payload-jobs' } }],
-      },
-      context: { internal: true },
-    });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    payload.logger.error(
-      { err: error },
-      `[Initialization] Failed to clear stale payload-jobs preferences: ${errorMessage}`,
-    );
-  }
-
   // Check if database is already seeded first
   try {
     const { totalDocs: userCount } = await payload.count({ collection: 'users' });
@@ -195,12 +174,6 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
       payload.logger.info('[Lock Manager] Database already seeded. Skipping seeding.');
       // If the database is already seeded, make sure the lock file is marked as 'done' so other workers skip waiting
       await fs.writeFile(LOCK_FILE, 'done').catch(() => {});
-
-      // Awaited, so the billing never reads an empty Höfe collection on a database that still
-      // has its Höfe in the legacy bill settings. Only a seeded database can have those.
-      await withSpan('payload.init.migrateLegacyHoefe', async () => {
-        await migrateLegacyHoefe(payload);
-      });
 
       // Awaited, so no request looks for a form file in the bucket it is being moved into.
       // A failure leaves the files where they were and is retried on the next start.
@@ -211,26 +184,6 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
         });
       }).catch((error: unknown) => {
         payload.logger.error({ err: error }, 'Moving the form files into their bucket failed');
-      });
-
-      // Awaited, so existing form placeholders are localized before an editor saves them in admin.
-      await withSpan('payload.init.migrateFormPlaceholders', async () => {
-        await migrateFormPlaceholders(payload);
-      });
-
-      // Awaited, so no page renders a file download block before its file sits in a group.
-      await withSpan('payload.init.migrateFileDownloadGroups', async () => {
-        await migrateFileDownloadGroups(payload);
-      });
-
-      // Awaited, so no payment import runs before the earlier bookings are payments too: a
-      // second payment for one of those bills would otherwise not read as a double payment.
-      await withSpan('payload.init.backfillBillPayments', async () => {
-        const created = await backfillBillPayments(payload);
-        if (created > 0)
-          payload.logger.info(`Stored ${String(created)} earlier bookings as payments`);
-      }).catch((error: unknown) => {
-        payload.logger.error({ err: error }, 'Storing the earlier bookings as payments failed');
       });
 
       // Awaited, so the users list never sorts or filters by a flag from before this deployment's

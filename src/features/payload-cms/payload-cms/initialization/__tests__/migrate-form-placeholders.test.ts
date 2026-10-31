@@ -361,7 +361,7 @@ describe('migrateFormPlaceholders', () => {
     expect(info).not.toHaveBeenCalled();
   });
 
-  it('logs a warning when an individual form or version update fails, and continues', async () => {
+  it('logs an error when an individual form or version update fails, and continues', async () => {
     const formDocument = {
       id: 'form-fail',
       sections: [
@@ -386,7 +386,7 @@ describe('migrateFormPlaceholders', () => {
       },
     };
 
-    const { payload, updateOne, updateVersion, warn } = createMockPayload({
+    const { payload, updateOne, updateVersion, error } = createMockPayload({
       forms: [formDocument],
       versions: [versionDocument],
       throwOnUpdate: true,
@@ -396,25 +396,21 @@ describe('migrateFormPlaceholders', () => {
 
     expect(updateOne).toHaveBeenCalledTimes(1);
     expect(updateVersion).toHaveBeenCalledTimes(1);
-    expect(warn).toHaveBeenCalledWith(
+    expect(error).toHaveBeenCalledWith(
       expect.objectContaining({ formId: 'form-fail' }),
       'Failed to migrate placeholders on form',
     );
-    expect(warn).toHaveBeenCalledWith(
+    expect(error).toHaveBeenCalledWith(
       expect.objectContaining({ versionId: 'ver-fail' }),
       'Failed to migrate placeholders on form version',
     );
   });
 
-  it('logs error if finding forms throws an exception', async () => {
-    const { payload, error } = createMockPayload();
+  // so Payload leaves the migration unrecorded and runs it again on the next start
+  it('rejects when the forms cannot be read', async () => {
+    const { payload } = createMockPayload();
     payload.find = jest.fn().mockRejectedValue(new Error('Database unavailable'));
 
-    await migrateFormPlaceholders(payload);
-
-    expect(error).toHaveBeenCalledWith(
-      expect.objectContaining({ err: expect.any(Error) as unknown }),
-      'Migrating form placeholders failed',
-    );
+    await expect(migrateFormPlaceholders(payload)).rejects.toThrow('Database unavailable');
   });
 });
