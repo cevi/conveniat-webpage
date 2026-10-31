@@ -523,6 +523,11 @@ export const authOptions: NextAuthConfig = {
 
       issuer: 'cevi-db',
 
+      // PKCE alone protects the login (Cevi.DB enforces the verifier once a challenge was sent).
+      // `state` additionally ties a callback to the attempt that started it, which the native app
+      // handoff relies on to tell an app login from a later website login in the same browser.
+      checks: ['pkce', 'state'],
+
       // This custom is used as soon as we would like to use a scope different from 'email'.
       // As Hitobito uses the 'X-Scopes' header to pass the scopes, and not the 'scope' parameter,
       userinfo: {
