@@ -4,9 +4,14 @@ import {
   idOf,
   isClosedAtDeadline,
   needsAcceptance,
+  sortDashboardForms,
   statusOf,
 } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import { HOF_DASHBOARD_AREAS, type HofDashboardArea } from '@/features/hof-dashboard/constants';
+import {
+  HOF_DASHBOARD_AREAS,
+  type HofDashboardArea,
+  type HofEntryStatus,
+} from '@/features/hof-dashboard/constants';
 import { getSubmissionProgress } from '@/features/hof-dashboard/utils/submission-progress';
 import type { HofName } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import type { FormSubmission } from '@/features/payload-cms/payload-types';
@@ -20,6 +25,12 @@ const logger = createLogger('hof-dashboard:overview');
 /** Most submissions the overview reads over every Hof; far more than the camp will have. */
 const MAX_SUBMISSIONS = 20_000;
 
+/**
+ * Where one form of a Hof stands for the Ressort: accepted, handed in and waiting for it, or
+ * still missing, which includes a form sent back for a revision.
+ */
+export type HofFormState = 'accepted' | 'waiting' | 'missing';
+
 /** Where one Hof stands in one area, as the reviewers' overview counts it. */
 export interface HofAreaSummary {
   /** Forms of the area on the dashboard. */
@@ -32,6 +43,8 @@ export interface HofAreaSummary {
   toReview: number;
   /** Submissions that count and are not yet accepted, or not yet final for a form of versions. */
   toAccept: number;
+  /** Every form of the area in the dashboard's order, as one mark each. */
+  formStates: HofFormState[];
 }
 
 /** One Hof in the reviewers' overview. */
@@ -45,6 +58,12 @@ export interface HofOverviewRow {
    */
   files: number;
 }
+
+/** Done but not everything that counts accepted yet is what still waits for the Ressort. */
+const formState = (done: boolean, statuses: readonly HofEntryStatus[]): HofFormState => {
+  if (!done) return 'missing';
+  return statuses.every((status) => status === 'accepted') ? 'accepted' : 'waiting';
+};
 
 type OverviewSubmission = Pick<
   FormSubmission,
@@ -61,7 +80,7 @@ export const getHofOverview = async (
   locale: Locale,
 ): Promise<HofOverviewRow[]> => {
   const payload = await getPayload({ config });
-  const forms = await findDashboardForms(payload, locale);
+  const forms = sortDashboardForms(await findDashboardForms(payload, locale), locale);
 
   const submissions =
     forms.length === 0 || hoefe.length === 0
@@ -116,7 +135,14 @@ export const getHofOverview = async (
     const ofHof = stored.filter((submission) => idOf(submission.hof) === hof.id);
     const areas = Object.fromEntries(
       HOF_DASHBOARD_AREAS.map((area): [HofDashboardArea, HofAreaSummary] => {
-        const summary: HofAreaSummary = { forms: 0, done: 0, overdue: 0, toReview: 0, toAccept: 0 };
+        const summary: HofAreaSummary = {
+          forms: 0,
+          done: 0,
+          overdue: 0,
+          toReview: 0,
+          toAccept: 0,
+          formStates: [],
+        };
         for (const form of forms) {
           if (form.hofDashboard?.area !== area) continue;
           const versions = form.hofDashboard.entries !== 'entries';
@@ -135,6 +161,7 @@ export const getHofOverview = async (
           );
           summary.forms += 1;
           if (progress.state === 'done') summary.done += 1;
+          summary.formStates.push(formState(progress.state === 'done', statuses));
           if (progress.state === 'overdue') summary.overdue += 1;
           summary.toReview += statuses.filter(
             (status) => status === 'submitted' || status === 'inReview',

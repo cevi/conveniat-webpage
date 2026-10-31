@@ -209,13 +209,13 @@ const isPublished = (form: { _localized_status?: unknown }): boolean =>
   (form._localized_status as { published?: boolean } | undefined)?.published === true;
 
 /** A field of a form, as far as showing its answer needs it. */
-interface FormField {
+export interface FormField {
   blockType: string;
   name: string;
   label: string;
   options?: { value: string; label: string }[];
   /** The lines of a material list. */
-  items?: { id?: string | null }[];
+  items?: { id?: string | null; name?: string | null; section?: string | null }[];
 }
 
 /** The text of a rich-text node and everything under it, links included. */
@@ -244,7 +244,7 @@ const labelOf = (label: unknown, name: string): string => {
 };
 
 /** Every named field of a form in the order it asks them, conditioned ones included. */
-const fieldsOf = (form: Pick<Form, 'sections'>): FormField[] => {
+export const fieldsOf = (form: Pick<Form, 'sections'>): FormField[] => {
   const collect = (fields: unknown[] | null | undefined): FormField[] =>
     (fields ?? []).flatMap((field): FormField[] => {
       if (field === null || typeof field !== 'object') return [];
@@ -276,7 +276,7 @@ const NO: StaticTranslationString = { de: 'Nein', en: 'No', fr: 'Non' };
 const UNSHOWN_FIELDS = new Set(['hofSelection', 'message', 'ceviDbLogin']);
 
 /** The answers of a submission in the order its form asks them, the empty ones left out. */
-const toAnswers = (
+export const toAnswers = (
   fields: FormField[],
   values: Map<string, string>,
   files: ReadonlyMap<string, HofDashboardFile>,
@@ -328,7 +328,7 @@ const toAnswers = (
     }
   });
 
-interface StoredSubmission {
+export interface StoredSubmission {
   id: string;
   form: string | { id: string };
   submissionData?: { field: string; value: string }[] | null;
@@ -347,6 +347,20 @@ interface StoredSubmission {
   approved?: boolean | null;
   createdAt: string;
 }
+
+/** Every change of a submission's review, newest first. */
+export const reviewLogOf = (
+  submission: Pick<StoredSubmission, 'hofReviewLog'>,
+): HofReviewLogEntry[] =>
+  (submission.hofReviewLog ?? [])
+    .map((change): HofReviewLogEntry => ({
+      at: change.changedAt,
+      by: change.reviewerName ?? '',
+      status: change.status ?? 'submitted',
+      feedback: change.feedback ?? '',
+      final: change.final === true,
+    }))
+    .toReversed();
 
 /**
  * Who wrote the feedback a submission shows now, and when: the change that set it, which is the
@@ -422,6 +436,26 @@ export const findDashboardForms = async (payload: Payload, locale: Locale): Prom
       (isPublished(form) || germanIds.has(form.id)) &&
       hofFieldOf(form) !== undefined,
   );
+};
+
+/** A form's title on the dashboard: the one set for it there, else the form's own. */
+export const dashboardTitleOf = (form: Pick<Form, 'title' | 'hofDashboard'>): string => {
+  const title = form.hofDashboard?.title;
+  return typeof title === 'string' && title !== '' ? title : form.title;
+};
+
+/** The forms in the dashboard's order: an editor's first, those without a position after them. */
+export const sortDashboardForms = <T extends Pick<Form, 'title' | 'hofDashboard'>>(
+  forms: readonly T[],
+  locale: Locale,
+): T[] => {
+  const positionOf = (form: T): number => form.hofDashboard?.position ?? Number.MAX_SAFE_INTEGER;
+  return forms.toSorted((a, b) => {
+    const byPosition = positionOf(a) - positionOf(b);
+    return byPosition === 0
+      ? dashboardTitleOf(a).localeCompare(dashboardTitleOf(b), locale)
+      : byPosition;
+  });
 };
 
 /**
@@ -578,11 +612,8 @@ export const getHofDashboardData = async (
   }
 
   const now = new Date();
-  // an editor's order first; forms without a position after those with one
-  const positionOf = (formId: string): number =>
-    forms.find((form) => form.id === formId)?.hofDashboard?.position ?? Number.MAX_SAFE_INTEGER;
-  const dashboardForms: HofDashboardForm[] = forms
-    .flatMap((form): HofDashboardForm[] => {
+  const dashboardForms: HofDashboardForm[] = sortDashboardForms(forms, locale).flatMap(
+    (form): HofDashboardForm[] => {
       const settingsOfForm = form.hofDashboard;
       const area = settingsOfForm?.area;
       const fields = fieldsByForm.get(form.id) ?? [];
@@ -615,17 +646,7 @@ export const getHofDashboardData = async (
           final: submission.hofFinal === true,
           feedbackBy: feedbackAuthor(submission),
           // the history is the Ressort's working record, not the Hof's
-          reviewLog: isReviewer
-            ? (submission.hofReviewLog ?? [])
-                .map((change): HofReviewLogEntry => ({
-                  at: change.changedAt,
-                  by: change.reviewerName ?? '',
-                  status: change.status ?? 'submitted',
-                  feedback: change.feedback ?? '',
-                  final: change.final === true,
-                }))
-                .toReversed()
-            : [],
+          reviewLog: isReviewer ? reviewLogOf(submission) : [],
           // only the version that counts; an earlier one is what the Ressort answered on.
           // A reviewer answers a submission; taking it back is the Hof's.
           withdrawable:
@@ -655,10 +676,7 @@ export const getHofDashboardData = async (
         {
           id: form.id,
           area,
-          title:
-            typeof settingsOfForm?.title === 'string' && settingsOfForm.title !== ''
-              ? settingsOfForm.title
-              : form.title,
+          title: dashboardTitleOf(form),
           description: settingsOfForm?.description ?? undefined,
           deadline,
           closed: isClosedAtDeadline(settingsOfForm, now),
@@ -670,11 +688,8 @@ export const getHofDashboardData = async (
           entries,
         },
       ];
-    })
-    .toSorted((a, b) => {
-      const byPosition = positionOf(a.id) - positionOf(b.id);
-      return byPosition === 0 ? a.title.localeCompare(b.title, locale) : byPosition;
-    });
+    },
+  );
 
   const deadlines: HofDashboardDeadline[] = (settings.deadlines ?? [])
     .toSorted((a, b) => a.date.localeCompare(b.date))

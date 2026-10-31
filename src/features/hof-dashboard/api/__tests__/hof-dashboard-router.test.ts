@@ -6,6 +6,7 @@ const mockWithdraw = jest.fn();
 const mockReview = jest.fn();
 const mockOverview = jest.fn();
 const mockAcceptArea = jest.fn();
+const mockMaterialOrders = jest.fn();
 
 const HOEFE = [
   { id: 'hof-nord', name: 'Hof Nord', groupId: '990001' },
@@ -55,6 +56,9 @@ jest.mock('@/features/hof-dashboard/api/hof-dashboard-mutations', () => ({
   withdrawHofSubmission: (...parameters: unknown[]): unknown => mockWithdraw(...parameters),
   reviewHofSubmission: (...parameters: unknown[]): unknown => mockReview(...parameters),
   acceptHofArea: (...parameters: unknown[]): unknown => mockAcceptArea(...parameters),
+}));
+jest.mock('@/features/hof-dashboard/api/material-orders', () => ({
+  getMaterialOrders: (...parameters: unknown[]): unknown => mockMaterialOrders(...parameters),
 }));
 jest.mock('@/features/hof-dashboard/api/hof-overview', () => ({
   getHofOverview: (...parameters: unknown[]): unknown => mockOverview(...parameters),
@@ -195,6 +199,25 @@ describe('hofDashboardRouter', () => {
   it('gives a reviewer the overview of every Hof', async () => {
     await expect(reviewer.getHofOverview()).resolves.toEqual({ isReviewer: true, hoefe: [] });
     expect(mockOverview).toHaveBeenCalledWith(
+      [
+        { id: 'hof-nord', name: 'Hof Nord' },
+        { id: 'hof-sued', name: 'Hof Süd' },
+      ],
+      'de',
+    );
+  });
+
+  it("keeps every Hof's material orders from a Hof's own people", async () => {
+    await expect(hofNordAdmin.getMaterialOrderList()).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    expect(mockMaterialOrders).not.toHaveBeenCalled();
+  });
+
+  it("gives a reviewer the material orders of every Hof, in the reader's language", async () => {
+    mockMaterialOrders.mockResolvedValue([]);
+    await expect(reviewer.getMaterialOrderList()).resolves.toEqual([]);
+    expect(mockMaterialOrders).toHaveBeenCalledWith(
       [
         { id: 'hof-nord', name: 'Hof Nord' },
         { id: 'hof-sued', name: 'Hof Süd' },

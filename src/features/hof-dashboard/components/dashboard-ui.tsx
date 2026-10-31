@@ -32,18 +32,23 @@ export const AREA_DOT_CLASS: Record<HofDashboardArea, string> = {
 export const PRIMARY_BUTTON_CLASS =
   'bg-conveniat-green inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-gray-100 transition duration-100 hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:text-base [&_svg]:h-4 [&_svg]:w-4';
 
-/** A secondary action, the back button of the site's forms. */
+/** A secondary action: outlined, on white. */
 export const SECONDARY_BUTTON_CLASS =
-  'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-gray-500 px-4 py-2 text-sm font-semibold text-gray-500 transition duration-100 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 sm:text-base [&_svg]:h-4 [&_svg]:w-4';
+  'border-line inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border bg-white px-4 py-2 text-sm font-semibold text-green-900 transition duration-100 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:text-base [&_svg]:h-4 [&_svg]:w-4';
+
+/** A quiet action without a frame, such as "Ansehen" next to what is done. */
+export const QUIET_BUTTON_CLASS =
+  'inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-green-900 transition hover:bg-gray-50 [&_svg]:h-4 [&_svg]:w-4';
+
+/** The small uppercase label over a part of the dashboard, "NOCH OFFEN", "ABGABEN". */
+export const LABEL_CLASS = 'text-xs font-bold tracking-[0.08em] text-green-700 uppercase';
 
 /** The card every part of the dashboard sits in, so their edges and padding match. */
 export const Panel: React.FC<{ children: React.ReactNode; className?: string }> = ({
   children,
   className,
 }) => (
-  <section
-    className={cn('rounded-xl border border-gray-100 bg-white p-5 shadow-sm @xl:p-6', className)}
-  >
+  <section className={cn('border-line rounded-[14px] border bg-white p-5 @xl:p-6', className)}>
     {children}
   </section>
 );
@@ -92,7 +97,7 @@ export const StatusPill: React.FC<{ tone: StatusTone; children: React.ReactNode 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset',
+        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ring-1 ring-inset',
         className,
       )}
     >
@@ -186,23 +191,43 @@ export const ResponsibleList: React.FC<{ people: HofContact[]; locale: Locale }>
     </ul>
   );
 
-/** The share of submissions handed in, labelled for screen readers with its count. */
-export const ProgressBar: React.FC<{ percent: number; area: HofDashboardArea; label: string }> = ({
-  percent,
+/** The area's dot, in front of its name wherever an area is named. */
+export const AreaDot: React.FC<{ area: HofDashboardArea; className?: string }> = ({
   area,
-  label,
+  className,
 }) => (
-  <div
-    className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100"
-    role="progressbar"
-    aria-label={label}
-    aria-valuenow={percent}
-    aria-valuemin={0}
-    aria-valuemax={100}
-  >
-    <div
-      className={cn('h-full rounded-full', AREA_DOT_CLASS[area])}
-      style={{ width: `${percent}%` }}
-    />
+  <span
+    aria-hidden
+    className={cn('inline-block h-2 w-2 shrink-0 rounded-full', AREA_DOT_CLASS[area], className)}
+  />
+);
+
+/**
+ * One mark of a segment bar: filled in the area's colour, handed in and waiting for the
+ * Ressort, or still empty.
+ */
+export type SegmentTone = 'filled' | 'waiting' | 'empty';
+
+/**
+ * One segment per form of an area, so a Hof sees which of them are done rather than a share.
+ * Read out as `label`.
+ */
+export const SegmentBar: React.FC<{
+  segments: readonly SegmentTone[];
+  area: HofDashboardArea;
+  label: string;
+}> = ({ segments, area, label }) => (
+  <div role="img" aria-label={label} className="flex gap-1">
+    {segments.map((tone, index) => (
+      <span
+        key={index}
+        className={cn(
+          'h-1.5 min-w-2 flex-1 rounded-full',
+          tone === 'filled' && AREA_DOT_CLASS[area],
+          tone === 'waiting' && 'bg-amber-500',
+          tone === 'empty' && 'bg-gray-100',
+        )}
+      />
+    ))}
   </div>
 );

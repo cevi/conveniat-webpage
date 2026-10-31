@@ -278,6 +278,7 @@ const mockBackend = async (
     dashboards = { [HOF_NORD.id]: DASHBOARD },
     deleteError,
     onSubmission,
+    overview,
   }: {
     signedIn?: boolean;
     hoefe?: { id: string; name: string }[];
@@ -286,6 +287,8 @@ const mockBackend = async (
     deleteError?: TrpcError;
     /** Runs once a submission was received, before the answer to it. */
     onSubmission?: () => void;
+    /** Every Hof as the reviewers' overview counts it; makes the user a reviewer. */
+    overview?: Record<string, unknown>[];
   } = {},
 ): Promise<Backend> => {
   const backend: Backend = {
@@ -339,6 +342,14 @@ const mockBackend = async (
       backend.calls.push({ procedure, input });
       if (procedure === 'hofDashboard.getMyHofList') return { data: hoefe };
       if (procedure === 'hofDashboard.getHofList') return { data: hoefe };
+      if (procedure === 'hofDashboard.getHofOverview') {
+        return {
+          data:
+            overview === undefined
+              ? { isReviewer: false, hoefe: [] }
+              : { isReviewer: true, hoefe: overview },
+        };
+      }
       if (procedure === 'hofDashboard.getHofDashboard') {
         const hofId = (input as { hofId?: string } | undefined)?.hofId ?? '';
         const dashboard = dashboards[hofId];
@@ -408,7 +419,92 @@ const openTab = async (page: Page, name: string): Promise<void> => {
   await page.getByRole('tab', { name: new RegExp(`^${name}`) }).click();
 };
 
+/** Picks a form from the list of the area shown, which opens it beside the list. */
+const chooseForm = async (page: Page, title: string): Promise<void> => {
+  await page
+    .getByRole('tabpanel')
+    .getByRole('button', { name: new RegExp(`^${title}`) })
+    .click();
+};
+
+/** One area of a Hof in the reviewers' overview, from where each of its forms stands. */
+const areaSummary = (
+  formStates: ('accepted' | 'waiting' | 'missing')[],
+  toReview = 0,
+): Record<string, unknown> => ({
+  forms: formStates.length,
+  done: formStates.filter((state) => state !== 'missing').length,
+  overdue: 0,
+  toReview,
+  toAccept: toReview,
+  formStates,
+});
+
+const overviewRow = (
+  hof: { id: string; name: string },
+  infrastructure: Record<string, unknown>,
+  files: number,
+): Record<string, unknown> => ({
+  ...hof,
+  areas: {
+    infrastructure,
+    program: areaSummary(['missing']),
+    material: areaSummary(['missing']),
+  },
+  files,
+});
+
 test.describe('Hof dashboard', () => {
+  test('lets the Ressort find a Hof by what waits, by name and by what it handed in', async ({
+    page,
+  }) => {
+    const hofWest = { id: 'hof-west', name: 'Züri 11' };
+    await mockBackend(page, {
+      hoefe: [HOF_NORD, HOF_SUED, hofWest],
+      dashboards: { [HOF_NORD.id]: { ...DASHBOARD, isReviewer: true } },
+      overview: [
+        overviewRow(HOF_NORD, areaSummary(['waiting', 'missing'], 1), 2),
+        overviewRow(HOF_SUED, areaSummary(['accepted', 'accepted']), 3),
+        overviewRow(hofWest, areaSummary(['missing', 'missing']), 0),
+      ],
+    });
+    await page.goto('/hof-dashboard');
+
+    // what waits for the Ressort first, by Hof
+    await expect(page.getByRole('heading', { name: 'Alle Höfe', level: 2 })).toBeVisible();
+    await expect(page.getByText('1 Abgabe aus 1 Hof')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Hof Nord prüfen' })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Alle Abgaben von Hof Nord freigeben' }),
+    ).toBeVisible();
+
+    const rows = page.getByRole('button', { name: /^Dashboard von .* öffnen$/ });
+    await expect(rows).toHaveCount(3);
+    await page.getByRole('button', { name: 'Zu prüfen', exact: true }).click();
+    await expect(rows).toHaveText(['Hof Nord']);
+    await page.getByRole('button', { name: 'Noch nichts abgegeben', exact: true }).click();
+    await expect(rows).toHaveText(['Züri 11']);
+    await page.getByRole('button', { name: 'Mit Abgaben', exact: true }).click();
+    await expect(rows).toHaveText(['Hof Nord', 'Hof Süd']);
+    // without the accents a phone keyboard leaves out
+    await page.getByRole('searchbox', { name: 'Hof suchen' }).fill('sud');
+    await expect(rows).toHaveText(['Hof Süd']);
+    await page.getByRole('searchbox', { name: 'Hof suchen' }).fill('zuri');
+    await expect(page.getByText('Kein Hof passt zu Suche und Filter.')).toBeVisible();
+
+    // a row opens the Hof's dashboard, and the way back returns to every Hof
+    await page.getByRole('button', { name: 'Alle Höfe', exact: true }).first().click();
+    await page.getByRole('searchbox', { name: 'Hof suchen' }).fill('');
+    await page.getByRole('button', { name: 'Dashboard von Hof Nord öffnen' }).click();
+    await expect(page.getByRole('heading', { name: 'Hof Nord', level: 2 })).toBeVisible();
+    await expect(page.getByRole('tab', { name: /^Übersicht/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await page.goBack();
+    await expect(page.getByRole('heading', { name: 'Alle Höfe', level: 2 })).toBeVisible();
+  });
+
   test('asks a signed-out visitor to sign in and loads nothing of a Hof', async ({ page }) => {
     const backend = await mockBackend(page, { signedIn: false });
     await page.goto('/hof-dashboard');
@@ -428,15 +524,19 @@ test.describe('Hof dashboard', () => {
 
     const overview = page.getByRole('tabpanel', { name: 'Übersicht' });
     const rows = overview.getByRole('list').first().getByRole('listitem');
-    // the revision due in five days first, then what is missing; nothing that is done
-    await expect(rows).toHaveCount(2);
-    await expect(rows.nth(0)).toContainText('Hofplan');
-    await expect(rows.nth(0)).toContainText('Überarbeitung erforderlich');
-    await expect(rows.nth(0)).toContainText(`Frist ${swissDate(inDays(5))} · in 5 Tagen`);
-    await expect(rows.nth(1)).toContainText('Schlafzelt');
-    await expect(rows.nth(1)).toContainText('Noch nicht abgegeben');
-    await expect(rows.nth(1)).toContainText('in 40 Tagen');
-    await expect(overview.getByText('Hofprogramm')).toHaveCount(0);
+    // grouped by deadline: the revision due in five days first, then what is missing, and
+    // what is done only under "Erledigt" after them
+    await expect(rows.nth(0)).toHaveText(`Frist ${swissDate(inDays(5))}in 5 Tagen · 1 Abgabe`);
+    await expect(rows.nth(1)).toContainText('Hofplan');
+    await expect(rows.nth(1)).toContainText('Überarbeitung erforderlich');
+    await expect(rows.nth(1).getByRole('button', { name: 'Hofplan öffnen' })).toHaveText(
+      'Überarbeiten',
+    );
+    await expect(rows.nth(2)).toContainText(`Frist ${swissDate(inDays(40))}in 40 Tagen`);
+    await expect(rows.nth(3)).toContainText('Schlafzelt');
+    await expect(rows.nth(3)).toContainText('Noch nicht abgegeben');
+    await expect(rows.nth(4)).toContainText('Erledigt');
+    await expect(rows.filter({ hasText: 'Hofprogramm' })).toContainText('Ansehen');
 
     // two open behind Infrastruktur, none behind Programm and Material
     // the count is read out as words, the badge itself is only for the eye
@@ -526,8 +626,12 @@ test.describe('Hof dashboard', () => {
     });
     await page.goto('/hof-dashboard#infrastructure');
 
+    // the revision asked for is shown first; the tent is a pick from the list
+    await expect(formCard(page, 'form-plan')).toBeVisible();
+    await expect(formCard(page, 'form-tent')).toBeHidden();
+    await chooseForm(page, 'Schlafzelt');
     const card = formCard(page, 'form-tent');
-    await expect(card.getByText('Noch nichts abgegeben.')).toBeVisible();
+    await expect(card.getByText('Noch nichts abgegeben', { exact: true })).toBeVisible();
     await card.getByRole('button', { name: 'Abgeben', exact: true }).click();
     await expect(card.getByLabel('Zeltname')).toBeVisible();
     // the dashboard answers which Hof it is
@@ -703,11 +807,13 @@ test.describe('Hof dashboard', () => {
     await page.goto('/hof-dashboard#infrastructure');
 
     // nothing to hand in, whether handed in before or not
+    await chooseForm(page, 'Schlafzelt');
     const tent = formCard(page, 'form-tent');
-    await expect(tent.getByText('Noch nichts abgegeben.')).toBeVisible();
+    await expect(tent.getByText('Noch nichts abgegeben', { exact: true })).toBeVisible();
     await expect(tent.getByRole('button')).toHaveCount(0);
 
     // the Ressort's answer so far, and the way back to plain handed in
+    await chooseForm(page, 'Hofplan');
     const plan = formCard(page, 'form-plan');
     await expect(plan.getByRole('button', { name: 'Neue Version abgeben' })).toHaveCount(0);
     await expect(plan.getByRole('radio', { name: 'Überarbeitung erforderlich' })).toHaveAttribute(
@@ -748,13 +854,15 @@ test.describe('Hof dashboard', () => {
     await expect(plan.getByRole('checkbox')).toHaveCount(1);
 
     await openTab(page, 'Programm');
+    // each entry stands on its own: none is the last one
+    await chooseForm(page, 'Schichteinsätze');
+    const shifts = formCard(page, 'form-shifts');
+    await expect(shifts.getByRole('radio', { name: 'Eingereicht' }).first()).toBeVisible();
+    await expect(shifts.getByRole('checkbox')).toHaveCount(0);
+    await chooseForm(page, 'Hofprogramm');
     const program = formCard(page, 'form-program');
     await expect(program.getByRole('button', { name: /abgeben/ })).toHaveCount(0);
     await expect(program.getByRole('button', { name: 'Zurückziehen' })).toHaveCount(0);
-    // each entry stands on its own: none is the last one
-    const shifts = formCard(page, 'form-shifts');
-    await expect(shifts.getByRole('radio', { name: 'Eingereicht' })).toBeVisible();
-    await expect(shifts.getByRole('checkbox')).toHaveCount(0);
     const loadsBefore = backend.loads(HOF_NORD.id);
     // accepting is the approval the form builder knows
     await program.getByRole('radio', { name: 'Freigegeben' }).click();
@@ -799,26 +907,27 @@ test.describe('Hof dashboard', () => {
     await expect(order.getByText('Freigegeben · definitiv')).toBeVisible();
   });
 
-  test("names the Hof's responsible people from Cevi.DB in the overview only", async ({ page }) => {
+  test("keeps the Hof's responsible people from Cevi.DB beside every section", async ({ page }) => {
     await mockBackend(page);
     await page.goto('/hof-dashboard');
 
-    const overview = page.getByRole('tabpanel', { name: 'Übersicht' });
-    await expect(overview.getByText('Hofverantwortliche Person (AVP)')).toBeVisible();
-    await expect(overview.getByText('Anna Beispiel v/o Fuchs')).toBeVisible();
-    await expect(overview.getByRole('link', { name: 'anna@example.com' })).toHaveAttribute(
+    // on a wide screen under the sections, so whom to ask stays in view
+    const responsible = page.locator('aside');
+    await expect(responsible.getByText('Hofverantwortliche Person (AVP)')).toBeVisible();
+    await expect(responsible.getByText('Anna Beispiel v/o Fuchs')).toBeVisible();
+    await expect(responsible.getByRole('link', { name: 'anna@example.com' })).toHaveAttribute(
       'href',
       'mailto:anna@example.com',
     );
     // known by address only, until they sign in once
-    await expect(overview.getByRole('link', { name: 'bau@hof-nord.example.com' })).toHaveAttribute(
-      'href',
-      'mailto:bau@hof-nord.example.com',
-    );
+    await expect(
+      responsible.getByRole('link', { name: 'bau@hof-nord.example.com' }),
+    ).toHaveAttribute('href', 'mailto:bau@hof-nord.example.com');
+    // said once: the overview's own copy is for a narrow screen
+    await expect(page.getByRole('link', { name: 'anna@example.com' })).toHaveCount(1);
 
-    // an area names nobody of its own
     await openTab(page, 'Infrastruktur');
-    await expect(page.getByRole('link', { name: /@/ })).toHaveCount(0);
+    await expect(responsible.getByText('Anna Beispiel v/o Fuchs')).toBeVisible();
   });
 
   test('says so when Cevi.DB names nobody responsible for the Hof', async ({ page }) => {
@@ -827,7 +936,9 @@ test.describe('Hof dashboard', () => {
     });
     await page.goto('/hof-dashboard');
     await expect(
-      page.getByText('In der Cevi.DB ist für diesen Hof noch keine Adressverwaltung eingetragen.'),
+      page
+        .getByText('In der Cevi.DB ist für diesen Hof noch keine Adressverwaltung eingetragen.')
+        .filter({ visible: true }),
     ).toBeVisible();
   });
 

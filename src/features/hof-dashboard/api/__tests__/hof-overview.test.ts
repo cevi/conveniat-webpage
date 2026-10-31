@@ -113,10 +113,31 @@ describe('getHofOverview', () => {
       ...HOF_NORD,
       areas: {
         // only the newest version counts: in review, not the earlier one sent back
-        infrastructure: { forms: 1, done: 1, overdue: 0, toReview: 1, toAccept: 1 },
-        // every entry counts, and the accepted one needs nothing more
-        program: { forms: 1, done: 1, overdue: 0, toReview: 1, toAccept: 1 },
-        material: { forms: 1, done: 0, overdue: 0, toReview: 0, toAccept: 0 },
+        infrastructure: {
+          forms: 1,
+          done: 1,
+          overdue: 0,
+          toReview: 1,
+          toAccept: 1,
+          formStates: ['waiting'],
+        },
+        // every entry counts, and the accepted one needs nothing more; the other still waits
+        program: {
+          forms: 1,
+          done: 1,
+          overdue: 0,
+          toReview: 1,
+          toAccept: 1,
+          formStates: ['waiting'],
+        },
+        material: {
+          forms: 1,
+          done: 0,
+          overdue: 0,
+          toReview: 0,
+          toAccept: 0,
+          formStates: ['missing'],
+        },
       },
       // two files handed in, and a PDF of each of the four submissions
       files: 6,
@@ -124,13 +145,49 @@ describe('getHofOverview', () => {
     expect(sued).toEqual({
       ...HOF_SUED,
       areas: {
-        infrastructure: { forms: 1, done: 0, overdue: 1, toReview: 0, toAccept: 0 },
-        program: { forms: 1, done: 0, overdue: 0, toReview: 0, toAccept: 0 },
-        material: { forms: 1, done: 0, overdue: 0, toReview: 0, toAccept: 0 },
+        infrastructure: {
+          forms: 1,
+          done: 0,
+          overdue: 1,
+          toReview: 0,
+          toAccept: 0,
+          formStates: ['missing'],
+        },
+        program: {
+          forms: 1,
+          done: 0,
+          overdue: 0,
+          toReview: 0,
+          toAccept: 0,
+          formStates: ['missing'],
+        },
+        material: {
+          forms: 1,
+          done: 0,
+          overdue: 0,
+          toReview: 0,
+          toAccept: 0,
+          formStates: ['missing'],
+        },
       },
       // a file of a form not on the dashboard is not the Hof's to download here
       files: 0,
     });
+  });
+});
+
+describe('getHofOverview form states', () => {
+  it('marks a form accepted only once everything that counts is accepted', async () => {
+    mockSubmissions = [
+      { id: 'plan-1', form: 'form-plan', hof: 'hof-nord', approved: true, hofFinal: true },
+      { id: 'stand-b', form: 'form-stand', hof: 'hof-nord', approved: true },
+      { id: 'stand-a', form: 'form-stand', hof: 'hof-nord', hofReviewStatus: 'revisionRequired' },
+    ];
+    const [nord] = await getHofOverview([HOF_NORD], 'de');
+
+    expect(nord?.areas.infrastructure.formStates).toEqual(['accepted']);
+    // an entry sent back for a revision leaves the form missing, the accepted one aside
+    expect(nord?.areas.program.formStates).toEqual(['missing']);
   });
 });
 

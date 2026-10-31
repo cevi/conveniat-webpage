@@ -1,0 +1,652 @@
+'use client';
+
+import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
+import { Skeleton } from '@/components/ui/skeleton';
+import type {
+  MaterialOrderForm,
+  MaterialOrderItem,
+} from '@/features/hof-dashboard/api/material-orders';
+import type { MaterialExportSheet } from '@/features/hof-dashboard/api/material-orders-export';
+import {
+  LABEL_CLASS,
+  Panel,
+  PRIMARY_BUTTON_CLASS,
+  SECONDARY_BUTTON_CLASS,
+  SectionHeading,
+} from '@/features/hof-dashboard/components/dashboard-ui';
+import { MaterialOrderReview } from '@/features/hof-dashboard/components/material-order-review';
+import { useMaterialExport } from '@/features/hof-dashboard/hooks/use-material-export';
+import {
+  formatDate,
+  formatDateTime,
+  formatNumber,
+  translate,
+  type TextKey,
+} from '@/features/hof-dashboard/texts';
+import { trpc } from '@/trpc/client';
+import type { Locale } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
+import { ChevronDown, Download, FileSpreadsheet } from 'lucide-react';
+import type React from 'react';
+import { useId, useState } from 'react';
+
+type View = 'total' | 'perHof';
+
+const SHEET_LABELS: Record<MaterialExportSheet, TextKey> = {
+  total: 'viewTotal',
+  perHof: 'viewPerHof',
+  remarks: 'remarks',
+  versions: 'sheetVersions',
+};
+
+/** A choice of a few, as the app's segmented control. */
+const Segmented = <T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}): React.ReactNode => (
+  <div role="group" aria-label={label} className={cn(segmentedTrackClassName, 'inline-flex')}>
+    {options.map((option) => (
+      <button
+        key={option.value}
+        type="button"
+        aria-pressed={option.value === value}
+        className={cn(segmentClassName(option.value === value), 'px-4 text-sm font-semibold')}
+        onClick={() => onChange(option.value)}
+      >
+        {option.label}
+      </button>
+    ))}
+  </div>
+);
+
+/** The materials by the form's sections, in its order. */
+const bySection = (
+  items: readonly MaterialOrderItem[],
+): { section: string | undefined; items: MaterialOrderItem[] }[] => {
+  const sections: { section: string | undefined; items: MaterialOrderItem[] }[] = [];
+  for (const item of items) {
+    const last = sections.at(-1);
+    if (last !== undefined && last.section === item.section) last.items.push(item);
+    else sections.push({ section: item.section, items: [item] });
+  }
+  return sections;
+};
+
+/** The Höfe that ordered a material and how much, the largest first. */
+const ordersOf = (
+  form: MaterialOrderForm,
+  itemId: string,
+): { hofId: string; hofName: string; quantity: number }[] =>
+  form.hoefe
+    .map((hof) => ({
+      hofId: hof.hofId,
+      hofName: hof.hofName,
+      quantity: hof.quantities[itemId] ?? 0,
+    }))
+    .filter((order) => order.quantity > 0)
+    .toSorted((a, b) => b.quantity - a.quantity);
+
+/** Every Hof's quantity of one material as bars, so an outlier stands out. */
+const HofBars: React.FC<{
+  orders: { hofId: string; hofName: string; quantity: number }[];
+  onOpen: (hofId: string) => void;
+  locale: Locale;
+}> = ({ orders, onOpen, locale }) => {
+  const largest = orders[0]?.quantity ?? 0;
+  return (
+    <ul className="space-y-1.5">
+      {orders.map((order) => (
+        <li
+          key={order.hofId}
+          className="grid grid-cols-[minmax(8rem,16rem)_minmax(0,1fr)_4rem] items-center gap-3"
+        >
+          <button
+            type="button"
+            className="min-h-9 cursor-pointer truncate text-left text-sm text-green-900 hover:underline"
+            aria-label={translate('openOrder', locale, { hof: order.hofName })}
+            onClick={() => onOpen(order.hofId)}
+          >
+            {order.hofName}
+          </button>
+          <span aria-hidden className="bg-quiet h-2.5 overflow-hidden rounded-full">
+            <span
+              className="bg-conveniat-green block h-full rounded-full"
+              style={{ width: `${(order.quantity / largest) * 100}%` }}
+            />
+          </span>
+          <span className="text-right text-sm font-semibold text-green-900 tabular-nums">
+            {formatNumber(order.quantity, locale)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+/** How much of each material the Ressort has to get, and from whom how much. */
+const TotalTable: React.FC<{
+  form: MaterialOrderForm;
+  onOpen: (hofId: string) => void;
+  locale: Locale;
+}> = ({ form, onOpen, locale }) => {
+  const [expanded, setExpanded] = useState<string>();
+  return (
+    <table className="w-full text-base">
+      <thead className="bg-page">
+        <tr className={LABEL_CLASS}>
+          <th scope="col" className="px-5 py-3 text-left font-bold @xl:px-6">
+            {translate('material', locale)}
+          </th>
+          <th scope="col" className="px-3 py-3 text-right font-bold">
+            {translate('xlsxTotal', locale)}
+          </th>
+          <th scope="col" className="px-3 py-3 text-right font-bold">
+            {translate('xlsxHoefe', locale)}
+          </th>
+          <th scope="col" className="px-5 py-3 text-right font-bold @xl:px-6">
+            {translate('largestOrder', locale)}
+          </th>
+        </tr>
+      </thead>
+      {bySection(form.items).map(({ section, items }, index) => (
+        <tbody key={section ?? `section-${index}`} className="divide-line divide-y">
+          {section !== undefined && (
+            <tr>
+              <th
+                scope="colgroup"
+                colSpan={4}
+                className={cn(
+                  LABEL_CLASS,
+                  'border-line border-t px-5 pt-5 pb-2 text-left @xl:px-6',
+                )}
+              >
+                {section}
+              </th>
+            </tr>
+          )}
+          {items.map((item) => {
+            const orders = ordersOf(form, item.id);
+            const total = orders.reduce((sum, order) => sum + order.quantity, 0);
+            const open = expanded === item.id;
+            return [
+              <tr key={item.id} className={cn(open && 'bg-gray-50')}>
+                <th scope="row" className="px-5 py-1 text-left font-normal @xl:px-6">
+                  {orders.length === 0 ? (
+                    <span className="flex min-h-11 items-center text-green-700">{item.name}</span>
+                  ) : (
+                    <button
+                      type="button"
+                      aria-expanded={open}
+                      aria-label={translate('showHoefeOf', locale, { material: item.name })}
+                      className="flex min-h-11 w-full cursor-pointer items-center gap-2 text-left text-green-900"
+                      onClick={() => setExpanded(open ? undefined : item.id)}
+                    >
+                      <ChevronDown
+                        aria-hidden
+                        className={cn(
+                          'h-4 w-4 shrink-0 text-green-500 transition',
+                          open && 'rotate-180',
+                        )}
+                      />
+                      {item.name}
+                    </button>
+                  )}
+                </th>
+                <td
+                  className={cn(
+                    'px-3 text-right font-semibold tabular-nums',
+                    total === 0 ? 'text-gray-400' : 'text-green-900',
+                  )}
+                >
+                  {formatNumber(total, locale)}
+                </td>
+                <td className="px-3 text-right text-green-800 tabular-nums">{orders.length}</td>
+                <td className="px-5 text-right text-green-800 tabular-nums @xl:px-6">
+                  {orders[0] === undefined ? '–' : formatNumber(orders[0].quantity, locale)}
+                </td>
+              </tr>,
+              open && (
+                <tr key={`${item.id}-bars`} className="bg-gray-50">
+                  <td colSpan={4} className="px-5 pt-1 pb-4 @xl:px-6">
+                    <HofBars orders={orders} onOpen={onOpen} locale={locale} />
+                  </td>
+                </tr>
+              ),
+            ];
+          })}
+        </tbody>
+      ))}
+    </table>
+  );
+};
+
+/** What each Hof gets at the handout: one row per Hof, one column per material. */
+const PerHofTable: React.FC<{
+  form: MaterialOrderForm;
+  onOpen: (hofId: string) => void;
+  locale: Locale;
+}> = ({ form, onOpen, locale }) => {
+  const sections = bySection(form.items);
+  const hasSections = sections.some(({ section }) => section !== undefined);
+  // the Hof column stays while the materials scroll sideways under it
+  const stickyCell = 'border-line sticky left-0 z-10 border-r bg-white';
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-max min-w-full text-sm">
+        <thead className="bg-page">
+          {hasSections && (
+            <tr className={LABEL_CLASS}>
+              <th scope="col" className={cn(stickyCell, 'bg-page')} />
+              {sections.map(({ section, items }, index) => (
+                <th
+                  key={section ?? `section-${index}`}
+                  scope="colgroup"
+                  colSpan={items.length}
+                  className="border-line border-l px-3 pt-3 text-left font-bold"
+                >
+                  {section}
+                </th>
+              ))}
+            </tr>
+          )}
+          <tr>
+            <th
+              scope="col"
+              className={cn(stickyCell, 'bg-page px-5 py-3 text-left align-bottom', LABEL_CLASS)}
+            >
+              {translate('hof', locale)}
+            </th>
+            {form.items.map((item) => (
+              <th
+                key={item.id}
+                scope="col"
+                className="max-w-28 min-w-20 px-3 py-3 text-right align-bottom text-xs font-semibold [overflow-wrap:anywhere] hyphens-auto text-green-800"
+              >
+                {item.name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-line divide-y">
+          {form.hoefe.map((hof) => (
+            <tr key={hof.hofId} className="group">
+              <th
+                scope="row"
+                className={cn(stickyCell, 'px-5 py-1 text-left font-normal group-hover:bg-gray-50')}
+              >
+                <button
+                  type="button"
+                  className="flex min-h-11 max-w-60 cursor-pointer items-center gap-2 text-left text-green-900 hover:underline"
+                  aria-label={translate('openOrder', locale, { hof: hof.hofName })}
+                  onClick={() => onOpen(hof.hofId)}
+                >
+                  {hof.hofName}
+                  {hof.orderedAt === undefined && (
+                    <span className="text-xs text-green-600">
+                      ({translate('legendMissing', locale)})
+                    </span>
+                  )}
+                </button>
+              </th>
+              {form.items.map((item) => {
+                const quantity = hof.quantities[item.id] ?? 0;
+                return (
+                  <td
+                    key={item.id}
+                    className={cn(
+                      'px-3 text-right tabular-nums group-hover:bg-gray-50',
+                      quantity === 0 ? 'text-gray-300' : 'text-green-900',
+                    )}
+                  >
+                    {quantity === 0 ? '–' : formatNumber(quantity, locale)}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+        <tfoot className="border-line border-t-2">
+          <tr className="font-semibold">
+            <th scope="row" className={cn(stickyCell, 'px-5 py-3 text-left text-green-900')}>
+              {translate('xlsxTotal', locale)}
+            </th>
+            {form.items.map((item) => (
+              <td key={item.id} className="px-3 py-3 text-right text-green-900 tabular-nums">
+                {formatNumber(
+                  form.hoefe.reduce((sum, hof) => sum + (hof.quantities[item.id] ?? 0), 0),
+                  locale,
+                )}
+              </td>
+            ))}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+};
+
+/** What the export holds: both forms or the one shown, and which sheets. */
+const ExportPanel: React.FC<{
+  forms: readonly MaterialOrderForm[];
+  current: MaterialOrderForm;
+  locale: Locale;
+}> = ({ forms, current, locale }) => {
+  const { download, pending } = useMaterialExport(locale);
+  const [onlyCurrent, setOnlyCurrent] = useState(false);
+  const [sheets, setSheets] = useState<Set<MaterialExportSheet>>(
+    () => new Set(['total', 'perHof', 'remarks']),
+  );
+  const formsLabelId = useId();
+  const sheetsLabelId = useId();
+  const toggle = (sheet: MaterialExportSheet): void =>
+    setSheets((chosen) => {
+      const next = new Set(chosen);
+      if (next.has(sheet)) next.delete(sheet);
+      else next.add(sheet);
+      return next;
+    });
+
+  return (
+    <Panel className="space-y-5">
+      <div className="grid gap-6 @3xl:grid-cols-2">
+        {forms.length > 1 && (
+          <fieldset aria-labelledby={formsLabelId} className="space-y-2">
+            <legend id={formsLabelId} className="text-sm font-semibold text-green-900">
+              {translate('exportForms', locale)}
+            </legend>
+            {[false, true].map((only) => (
+              <label key={String(only)} className="flex min-h-11 items-center gap-3 text-base">
+                <input
+                  type="radio"
+                  name={formsLabelId}
+                  checked={onlyCurrent === only}
+                  onChange={() => setOnlyCurrent(only)}
+                  className="accent-conveniat-green h-4 w-4"
+                />
+                {only
+                  ? translate('exportCurrentForm', locale, { form: current.title })
+                  : translate('exportAllForms', locale)}
+              </label>
+            ))}
+          </fieldset>
+        )}
+        <fieldset aria-labelledby={sheetsLabelId} className="space-y-2">
+          <legend id={sheetsLabelId} className="text-sm font-semibold text-green-900">
+            {translate('exportSheets', locale)}
+          </legend>
+          {(Object.keys(SHEET_LABELS) as MaterialExportSheet[]).map((sheet) => (
+            <label key={sheet} className="flex min-h-11 items-center gap-3 text-base">
+              <input
+                type="checkbox"
+                checked={sheets.has(sheet)}
+                onChange={() => toggle(sheet)}
+                className="accent-conveniat-green h-4 w-4"
+              />
+              {translate(SHEET_LABELS[sheet], locale)}
+            </label>
+          ))}
+        </fieldset>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <button
+          type="button"
+          className={PRIMARY_BUTTON_CLASS}
+          disabled={pending || sheets.size === 0}
+          onClick={() =>
+            void download(onlyCurrent ? [current.id] : forms.map((form) => form.id), [...sheets])
+          }
+        >
+          <Download aria-hidden />
+          {translate(pending ? 'exporting' : 'download', locale)}
+        </button>
+        <p className="max-w-lg text-sm text-pretty text-green-700">
+          {translate(sheets.size === 0 ? 'exportNoSheet' : 'exportHint', locale)}
+        </p>
+      </div>
+    </Panel>
+  );
+};
+
+/** A Hof's name that opens its order. */
+const HofLink: React.FC<{ name: string; onOpen: () => void; locale: Locale }> = ({
+  name,
+  onOpen,
+  locale,
+}) => (
+  <button
+    type="button"
+    className="cursor-pointer text-left font-semibold text-green-900 underline-offset-2 hover:underline"
+    aria-label={translate('openOrder', locale, { hof: name })}
+    onClick={onOpen}
+  >
+    {name}
+  </button>
+);
+
+/** Who ordered and who did not, what changed since the export, and the Höfe's remarks. */
+const SidePanels: React.FC<{
+  form: MaterialOrderForm;
+  onOpen: (hofId: string) => void;
+  className?: string;
+  locale: Locale;
+}> = ({ form, onOpen, className, locale }) => {
+  const ordered = form.hoefe.filter((hof) => hof.orderedAt !== undefined);
+  const missing = form.hoefe.filter((hof) => hof.orderedAt === undefined);
+  const changed = ordered
+    .filter((hof) => hof.changedSinceExport)
+    .toSorted((a, b) => (b.orderedAt ?? '').localeCompare(a.orderedAt ?? ''));
+  const remarks = form.hoefe.flatMap((hof) => {
+    const counted = form.mode === 'entries' ? hof.versions : hof.versions.slice(0, 1);
+    const all = counted.flatMap((version) => version.remarks);
+    return all.length === 0 ? [] : [{ hof, remarks: all }];
+  });
+
+  return (
+    <div className={cn('space-y-6', className)}>
+      <Panel className="space-y-3">
+        <SectionHeading className="text-xl">{translate('orderedState', locale)}</SectionHeading>
+        <p className="text-base text-green-800">
+          {translate('orderedCount', locale, { n: ordered.length, total: form.hoefe.length })}
+        </p>
+        {missing.length === 0 ? (
+          <p className="text-sm text-green-700">{translate('allOrdered', locale)}</p>
+        ) : (
+          <details className="group text-sm">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 font-semibold text-green-900">
+              <ChevronDown aria-hidden className="h-4 w-4 transition group-open:rotate-180" />
+              {translate('notOrderedCount', locale, { n: missing.length })}
+            </summary>
+            <ul className="space-y-1 pl-6 text-green-800">
+              {missing.map((hof) => (
+                <li key={hof.hofId}>{hof.hofName}</li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </Panel>
+
+      <Panel className="space-y-3">
+        <SectionHeading className="text-xl">
+          {translate('changedSinceExport', locale)}
+        </SectionHeading>
+        <p className="text-sm text-green-700">
+          {form.exportedAt === undefined
+            ? translate('neverExported', locale)
+            : translate('lastExportOn', locale, {
+                date: formatDateTime(form.exportedAt, locale),
+              })}
+        </p>
+        {form.exportedAt !== undefined &&
+          (changed.length === 0 ? (
+            <p className="text-base text-green-800">{translate('nothingChanged', locale)}</p>
+          ) : (
+            <ul className="divide-line divide-y text-base">
+              {changed.map((hof) => (
+                <li key={hof.hofId} className="flex items-baseline justify-between gap-3 py-2">
+                  <HofLink name={hof.hofName} onOpen={() => onOpen(hof.hofId)} locale={locale} />
+                  <span className="shrink-0 text-sm text-green-700 tabular-nums">
+                    {formatDate(hof.orderedAt ?? '', locale)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ))}
+      </Panel>
+
+      <Panel className="space-y-3">
+        <SectionHeading className="text-xl">{translate('remarks', locale)}</SectionHeading>
+        {remarks.length === 0 ? (
+          <p className="text-sm text-green-700">{translate('noRemarks', locale)}</p>
+        ) : (
+          <ul className="divide-line divide-y">
+            {remarks.map(({ hof, remarks: ofHof }) => (
+              <li key={hof.hofId} className="space-y-1 py-3 first:pt-0 last:pb-0">
+                <HofLink name={hof.hofName} onOpen={() => onOpen(hof.hofId)} locale={locale} />
+                {ofHof.map((remark, index) => (
+                  <p key={index} className="text-sm whitespace-pre-line text-green-800">
+                    <span className="text-green-600">{remark.label}: </span>
+                    {remark.text}
+                  </p>
+                ))}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+    </div>
+  );
+};
+
+/**
+ * The material orders of every Hof, for the Ressort: per form either how much of each material
+ * is needed, with every Hof's share behind a row, or what each Hof gets, with who has not
+ * ordered, what changed since the last export and the Höfe's remarks beside it, and the Excel
+ * export. Only what counts is added up: the newest version of each Hof's order. A Hof opens its
+ * order for review.
+ */
+export const MaterialOrdersView: React.FC<{
+  onOpenHof: (hofId: string) => void;
+  locale: Locale;
+}> = ({ onOpenHof, locale }) => {
+  const orders = trpc.hofDashboard.getMaterialOrderList.useQuery(undefined, {
+    staleTime: 30_000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    meta: { persist: false },
+  });
+  const [formId, setFormId] = useState<string>();
+  const [view, setView] = useState<View>('total');
+  const [exportOpen, setExportOpen] = useState(false);
+  const [reviewing, setReviewing] = useState<string>();
+
+  if (orders.isLoading) {
+    return (
+      <div className="space-y-4" role="status">
+        <span className="sr-only">{translate('loading', locale)}</span>
+        <Skeleton className="h-11 w-80 bg-gray-200" />
+        <Skeleton className="h-96 w-full rounded-xl bg-gray-200" />
+      </div>
+    );
+  }
+  if (orders.data === undefined) {
+    return (
+      <Panel className="space-y-4 text-base text-green-800">
+        <p>{translate(globalThis.navigator.onLine ? 'loadError' : 'offline', locale)}</p>
+        <button
+          type="button"
+          className={SECONDARY_BUTTON_CLASS}
+          onClick={() => void orders.refetch()}
+        >
+          {translate('retry', locale)}
+        </button>
+      </Panel>
+    );
+  }
+  const forms = orders.data;
+  const form = forms.find((candidate) => candidate.id === formId) ?? forms[0];
+  if (form === undefined) {
+    return (
+      <Panel>
+        <p className="text-base text-green-700">{translate('noMaterialForms', locale)}</p>
+      </Panel>
+    );
+  }
+
+  const reviewed = form.hoefe.find((hof) => hof.hofId === reviewing);
+  if (reviewed !== undefined) {
+    return (
+      <MaterialOrderReview
+        form={form}
+        hof={reviewed}
+        onBack={() => setReviewing(undefined)}
+        onOpenInDashboard={() => onOpenHof(reviewed.hofId)}
+        locale={locale}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center gap-3">
+        {forms.length > 1 && (
+          <Segmented
+            label={translate('orderForm', locale)}
+            value={form.id}
+            onChange={setFormId}
+            options={forms.map((candidate) => ({ value: candidate.id, label: candidate.title }))}
+          />
+        )}
+        <Segmented<View>
+          label={translate('viewLabel', locale)}
+          value={view}
+          onChange={setView}
+          options={[
+            { value: 'total', label: translate('viewTotal', locale) },
+            { value: 'perHof', label: translate('viewPerHof', locale) },
+          ]}
+        />
+        <button
+          type="button"
+          aria-expanded={exportOpen}
+          className={cn(SECONDARY_BUTTON_CLASS, '@3xl:ml-auto')}
+          onClick={() => setExportOpen((open) => !open)}
+        >
+          <FileSpreadsheet aria-hidden />
+          {translate('excelExport', locale)}
+          <ChevronDown aria-hidden className={cn('transition', exportOpen && 'rotate-180')} />
+        </button>
+      </div>
+
+      {exportOpen && <ExportPanel forms={forms} current={form} locale={locale} />}
+
+      {/* what each Hof gets needs every column it can have, so the panels go under it */}
+      <div
+        className={cn(
+          'grid items-start gap-6',
+          view === 'total' && '@4xl:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]',
+        )}
+      >
+        <Panel className="min-w-0 overflow-hidden p-0 @xl:p-0">
+          {view === 'total' ? (
+            <TotalTable form={form} onOpen={setReviewing} locale={locale} />
+          ) : (
+            <PerHofTable form={form} onOpen={setReviewing} locale={locale} />
+          )}
+        </Panel>
+        <SidePanels
+          form={form}
+          onOpen={setReviewing}
+          locale={locale}
+          className={cn(view === 'perHof' && 'grid items-start gap-6 space-y-0 @3xl:grid-cols-3')}
+        />
+      </div>
+    </div>
+  );
+};
