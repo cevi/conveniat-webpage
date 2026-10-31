@@ -7,7 +7,7 @@ import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { useAuth, useLocale } from '@payloadcms/ui';
 import type { LucideIcon } from 'lucide-react';
-import { BriefcaseBusiness, QrCode, Tent, Users } from 'lucide-react';
+import { BriefcaseBusiness, FlaskConical, QrCode, Tent, Users } from 'lucide-react';
 import type React from 'react';
 
 const hintTitle: StaticTranslationString = {
@@ -74,12 +74,27 @@ const ADDRESS_BOOK_RULES: AddressBookRule[] = [
     },
     everyone: false,
   },
+  {
+    // the one rule about what someone sees rather than who sees them; set on the user
+    icon: FlaskConical,
+    who: {
+      de: 'Testkonten (Feld «Testkonto» beim Benutzer)',
+      en: 'Test accounts (field «Test account» on the user)',
+      fr: 'Comptes de test (champ «Compte de test» de l’utilisateur)',
+    },
+    seenBy: {
+      de: 'sehen selbst nur ihren Hof und ihre QR-Kontakte',
+      en: 'see only their own Hof and QR contacts',
+      fr: 'ne voient que leur Hof et leurs contacts QR',
+    },
+    everyone: false,
+  },
 ];
 
 const hintFootnote: StaticTranslationString = {
-  de: 'Nur wer sich schon einmal angemeldet hat. Das Adressbuch legt auch fest, wem man einen neuen Chat schreiben kann. Gilt, solange «Kontaktliste im Chat einschränken» in den App-Funktions-Flags aktiv ist; sonst sehen alle alle.',
-  en: 'Only people who have logged in at least once. The address book also decides who someone can start a new chat with. Applies while «Restrict the chat contact list» is on in the App Feature Flags; otherwise everyone sees everyone.',
-  fr: "Seulement les personnes qui se sont déjà connectées. Le carnet d'adresses décide aussi avec qui on peut démarrer une nouvelle discussion. Vaut tant que «Restreindre la liste de contacts du chat» est activé dans les indicateurs de fonctionnalités ; sinon, tout le monde voit tout le monde.",
+  de: 'Nur wer sich schon einmal angemeldet hat. Das Adressbuch legt auch fest, wem man einen neuen Chat schreiben kann. Gilt, solange «Kontaktliste im Chat einschränken» in den App-Funktions-Flags aktiv ist; sonst sehen alle alle, ausser Testkonten.',
+  en: 'Only people who have logged in at least once. The address book also decides who someone can start a new chat with. Applies while «Restrict the chat contact list» is on in the App Feature Flags; otherwise everyone sees everyone, except test accounts.',
+  fr: "Seulement les personnes qui se sont déjà connectées. Le carnet d'adresses décide aussi avec qui on peut démarrer une nouvelle discussion. Vaut tant que «Restreindre la liste de contacts du chat» est activé dans les indicateurs de fonctionnalités ; sinon, tout le monde voit tout le monde, sauf les comptes de test.",
 };
 
 /**

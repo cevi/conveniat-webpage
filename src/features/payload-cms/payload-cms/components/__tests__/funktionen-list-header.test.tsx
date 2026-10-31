@@ -30,6 +30,7 @@ describe('FunktionenListHeader', () => {
     expect(screen.getByText('Wer im Adressbuch der App steht')).toBeInTheDocument();
     expect(screen.getByText('Die AVP jedes Hofs')).toBeInTheDocument();
     expect(screen.getAllByText('allen')).toHaveLength(2);
+    expect(screen.getByText('sehen selbst nur ihren Hof und ihre QR-Kontakte')).toBeInTheDocument();
     expect(screen.getAllByRole('button')).toHaveLength(2);
   });
 
