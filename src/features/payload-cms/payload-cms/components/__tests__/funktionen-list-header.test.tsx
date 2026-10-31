@@ -8,9 +8,6 @@ import React from 'react';
 let mockPermissions: { update?: boolean } = {};
 
 jest.mock('@payloadcms/ui', () => ({
-  Banner: ({ children }: { children: React.ReactNode }): React.ReactElement => (
-    <div>{children}</div>
-  ),
   useAuth: (): unknown => ({ permissions: { collections: { funktionen: mockPermissions } } }),
   useLocale: (): unknown => ({ code: 'de' }),
 }));
@@ -31,7 +28,8 @@ describe('FunktionenListHeader', () => {
     mockPermissions = { update: true };
     render(<FunktionenListHeader />);
     expect(screen.getByText('Wer im Adressbuch der App steht')).toBeInTheDocument();
-    expect(screen.getByText('Die AVP jedes Hofs: bei allen.')).toBeInTheDocument();
+    expect(screen.getByText('Die AVP jedes Hofs')).toBeInTheDocument();
+    expect(screen.getAllByText('allen')).toHaveLength(2);
     expect(screen.getAllByRole('button')).toHaveLength(2);
   });
 

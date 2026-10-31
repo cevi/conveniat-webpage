@@ -3,9 +3,11 @@
 import { FunktionenSyncButton } from '@/features/payload-cms/payload-cms/components/funktionen-sync-button';
 import { SeedProfilePicturesButton } from '@/features/payload-cms/payload-cms/components/funktionen-sync/seed-profile-pictures-button';
 import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
-import type { Locale, StaticTranslationString } from '@/types/types';
-import { Banner, useAuth, useLocale } from '@payloadcms/ui';
-import { BookUser } from 'lucide-react';
+import type { StaticTranslationString } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
+import { useAuth, useLocale } from '@payloadcms/ui';
+import type { LucideIcon } from 'lucide-react';
+import { BriefcaseBusiness, QrCode, Tent, Users } from 'lucide-react';
 import type React from 'react';
 
 const hintTitle: StaticTranslationString = {
@@ -14,28 +16,70 @@ const hintTitle: StaticTranslationString = {
   fr: "Qui figure dans le carnet d'adresses de l'application",
 };
 
-const hintRules: Record<Locale, string[]> = {
-  de: [
-    'Wer eine Funktion aus dieser Liste innehat: bei allen.',
-    'Die AVP jedes Hofs: bei allen.',
-    'Alle anderen: nur bei Personen aus dem gleichen Hof und bei denen, mit denen sie einen Chat-QR-Code gescannt haben (gilt in beide Richtungen).',
-  ],
-  en: [
-    'Whoever holds a function from this list: for everyone.',
-    'The AVP of every Hof: for everyone.',
-    'Everyone else: only for people of the same Hof and for those they scanned a chat QR code with (it works both ways).',
-  ],
-  fr: [
-    'Qui occupe une fonction de cette liste : chez tout le monde.',
-    "L'AVP de chaque Hof : chez tout le monde.",
-    'Toutes les autres personnes : seulement chez les personnes du même Hof et chez celles avec qui elles ont scanné un code QR de chat (dans les deux sens).',
-  ],
+const whoLabel: StaticTranslationString = { de: 'Wer', en: 'Who', fr: 'Qui' };
+
+const seenByLabel: StaticTranslationString = {
+  de: 'Steht im Adressbuch von',
+  en: 'In the address book of',
+  fr: "Dans le carnet d'adresses de",
 };
 
+/** One rule of `getContactFilter`, as a row of the hint. */
+interface AddressBookRule {
+  icon: LucideIcon;
+  who: StaticTranslationString;
+  seenBy: StaticTranslationString;
+  /** marks the rules that reach every participant, like a granted right on the access overview */
+  everyone: boolean;
+}
+
+const ADDRESS_BOOK_RULES: AddressBookRule[] = [
+  {
+    icon: BriefcaseBusiness,
+    who: {
+      de: 'Wer eine Funktion aus dieser Liste innehat',
+      en: 'Whoever holds a function from this list',
+      fr: 'Qui occupe une fonction de cette liste',
+    },
+    seenBy: { de: 'allen', en: 'everyone', fr: 'tout le monde' },
+    everyone: true,
+  },
+  {
+    icon: Tent,
+    who: { de: 'Die AVP jedes Hofs', en: 'The AVP of every Hof', fr: "L'AVP de chaque Hof" },
+    seenBy: { de: 'allen', en: 'everyone', fr: 'tout le monde' },
+    everyone: true,
+  },
+  {
+    icon: Users,
+    who: { de: 'Alle anderen', en: 'Everyone else', fr: 'Toutes les autres personnes' },
+    seenBy: {
+      de: 'Personen aus dem gleichen Hof',
+      en: 'people of the same Hof',
+      fr: 'des personnes du même Hof',
+    },
+    everyone: false,
+  },
+  {
+    icon: QrCode,
+    who: {
+      de: 'Wer einen Chat-QR-Code ausgetauscht hat',
+      en: 'Whoever exchanged a chat QR code',
+      fr: 'Qui a échangé un code QR de chat',
+    },
+    seenBy: {
+      de: 'beiden, gegenseitig',
+      en: 'both of them, mutually',
+      fr: "l'un et l'autre, mutuellement",
+    },
+    everyone: false,
+  },
+];
+
 const hintFootnote: StaticTranslationString = {
-  de: 'Nur wer sich schon einmal angemeldet hat. Mit dem Adressbuch ist auch festgelegt, wem man einen neuen Chat schreiben kann. Das gilt, solange «Kontaktliste im Chat einschränken» in den App-Funktions-Flags aktiv ist; sonst sehen alle alle.',
-  en: 'Only people who have logged in at least once. The address book also decides who someone can start a new chat with. This applies while «Restrict the chat contact list» is on in the App Feature Flags; otherwise everyone sees everyone.',
-  fr: "Seulement les personnes qui se sont déjà connectées. Le carnet d'adresses décide aussi avec qui on peut démarrer une nouvelle discussion. Cela vaut tant que «Restreindre la liste de contacts du chat» est activé dans les indicateurs de fonctionnalités ; sinon, tout le monde voit tout le monde.",
+  de: 'Nur wer sich schon einmal angemeldet hat. Das Adressbuch legt auch fest, wem man einen neuen Chat schreiben kann. Gilt, solange «Kontaktliste im Chat einschränken» in den App-Funktions-Flags aktiv ist; sonst sehen alle alle.',
+  en: 'Only people who have logged in at least once. The address book also decides who someone can start a new chat with. Applies while «Restrict the chat contact list» is on in the App Feature Flags; otherwise everyone sees everyone.',
+  fr: "Seulement les personnes qui se sont déjà connectées. Le carnet d'adresses décide aussi avec qui on peut démarrer une nouvelle discussion. Vaut tant que «Restreindre la liste de contacts du chat» est activé dans les indicateurs de fonctionnalités ; sinon, tout le monde voit tout le monde.",
 };
 
 /**
@@ -49,22 +93,45 @@ export const FunktionenListHeader: React.FC = () => {
   const mayEdit = permissions?.collections?.['funktionen']?.update === true;
 
   return (
-    <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-start">
-      <Banner
-        className="m-0 flex-1"
-        alignIcon="left"
-        icon={<BookUser className="mr-3 h-5 w-5 shrink-0" />}
-      >
-        <div className="text-[13px] leading-relaxed">
-          <strong className="font-semibold">{hintTitle[locale]}</strong>
-          <ul className="my-1 pl-5">
-            {hintRules[locale].map((rule) => (
-              <li key={rule}>{rule}</li>
+    <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <section className="max-w-3xl flex-1">
+        <h2 className="m-0 mb-1 text-xs font-semibold tracking-wide uppercase opacity-60">
+          {hintTitle[locale]}
+        </h2>
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b">
+              <th className="py-2 pr-4 text-left font-semibold">{whoLabel[locale]}</th>
+              <th className="px-2 py-2 text-left font-semibold">{seenByLabel[locale]}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ADDRESS_BOOK_RULES.map(({ icon: Icon, who, seenBy, everyone }) => (
+              <tr key={who.de} className="border-t border-current/10">
+                <td className="py-1.5 pr-4">
+                  <span className="inline-flex items-center gap-2">
+                    <Icon className="size-4 shrink-0 opacity-60" />
+                    {who[locale]}
+                  </span>
+                </td>
+                <td className="px-2 py-1.5">
+                  <span
+                    className={cn(
+                      'rounded-sm px-1.5 py-0.5 text-xs font-medium whitespace-nowrap',
+                      everyone
+                        ? 'border border-(--theme-success-500) bg-(--theme-success-100)'
+                        : 'bg-(--theme-elevation-150)',
+                    )}
+                  >
+                    {seenBy[locale]}
+                  </span>
+                </td>
+              </tr>
             ))}
-          </ul>
-          <span className="text-(--theme-elevation-600)">{hintFootnote[locale]}</span>
-        </div>
-      </Banner>
+          </tbody>
+        </table>
+        <p className="mt-3 mb-0 text-xs opacity-70">{hintFootnote[locale]}</p>
+      </section>
 
       {mayEdit && (
         <div className="flex flex-wrap gap-2 lg:flex-col lg:items-stretch">
