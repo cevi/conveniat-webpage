@@ -5,7 +5,11 @@ import { useSyncExternalStore } from 'react';
 /** Tailwind's `xl` breakpoint, where the app puts its panes side by side. */
 const DESKTOP_QUERY = '(min-width: 1280px)';
 
+// a browser without media queries, like the test environment, is a phone
+const hasMediaQueries = (): boolean => typeof globalThis.matchMedia === 'function';
+
 const subscribe = (onChange: () => void): (() => void) => {
+  if (!hasMediaQueries()) return (): void => {};
   const query = globalThis.matchMedia(DESKTOP_QUERY);
   query.addEventListener('change', onChange);
   return (): void => query.removeEventListener('change', onChange);
@@ -19,6 +23,6 @@ const subscribe = (onChange: () => void): (() => void) => {
 export const useIsDesktop = (): boolean =>
   useSyncExternalStore(
     subscribe,
-    () => globalThis.matchMedia(DESKTOP_QUERY).matches,
+    () => hasMediaQueries() && globalThis.matchMedia(DESKTOP_QUERY).matches,
     () => false,
   );

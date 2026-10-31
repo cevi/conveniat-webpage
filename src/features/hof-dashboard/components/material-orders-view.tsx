@@ -1,5 +1,6 @@
 'use client';
 
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { Skeleton } from '@/components/ui/skeleton';
 import type {
@@ -28,7 +29,7 @@ import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronDown, Download, FileSpreadsheet } from 'lucide-react';
 import type React from 'react';
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 
 type View = 'total' | 'perHof';
 
@@ -332,12 +333,19 @@ const PerHofTable: React.FC<{
   );
 };
 
-/** What the export holds: both forms or the one shown, and which sheets. */
-const ExportPanel: React.FC<{
+/**
+ * What the export holds, both forms or the one shown, and which sheets: a popup under its button
+ * on a desktop, a sheet from the bottom on a phone.
+ */
+const ExportSheet: React.FC<{
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** The button that opens it, which a desktop shows it under. */
+  anchor: React.RefObject<HTMLButtonElement | null>;
   forms: readonly MaterialOrderForm[];
   current: MaterialOrderForm;
   locale: Locale;
-}> = ({ forms, current, locale }) => {
+}> = ({ open, onOpenChange, anchor, forms, current, locale }) => {
   const { download, pending } = useMaterialExport(locale);
   const [onlyCurrent, setOnlyCurrent] = useState(false);
   const [sheets, setSheets] = useState<Set<MaterialExportSheet>>(
@@ -354,8 +362,34 @@ const ExportPanel: React.FC<{
     });
 
   return (
-    <Panel className="space-y-5">
-      <div className="grid gap-6 @3xl:grid-cols-2">
+    <BottomSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      anchor={anchor}
+      title={translate('excelExport', locale)}
+      footer={
+        <div className="space-y-2">
+          <button
+            type="button"
+            className={cn(PRIMARY_BUTTON_CLASS, 'w-full')}
+            disabled={pending || sheets.size === 0}
+            onClick={() =>
+              void download(onlyCurrent ? [current.id] : forms.map((form) => form.id), [
+                ...sheets,
+              ]).then(() => onOpenChange(false))
+            }
+          >
+            <Download aria-hidden />
+            {translate(pending ? 'exporting' : 'download', locale)}
+          </button>
+          <p className="text-sm text-pretty text-green-700">
+            {translate(sheets.size === 0 ? 'exportNoSheet' : 'exportHint', locale)}
+          </p>
+        </div>
+      }
+    >
+      {/* side by side in a desktop's popup, one under the other on a phone */}
+      <div className="grid gap-5 sm:grid-cols-2">
         {forms.length > 1 && (
           <fieldset aria-labelledby={formsLabelId} className="space-y-2">
             <legend id={formsLabelId} className="text-sm font-semibold text-green-900">
@@ -368,7 +402,7 @@ const ExportPanel: React.FC<{
                   name={formsLabelId}
                   checked={onlyCurrent === only}
                   onChange={() => setOnlyCurrent(only)}
-                  className="accent-conveniat-green h-4 w-4"
+                  className="accent-conveniat-green h-4 w-4 shrink-0"
                 />
                 {only
                   ? translate('exportCurrentForm', locale, { form: current.title })
@@ -387,30 +421,14 @@ const ExportPanel: React.FC<{
                 type="checkbox"
                 checked={sheets.has(sheet)}
                 onChange={() => toggle(sheet)}
-                className="accent-conveniat-green h-4 w-4"
+                className="accent-conveniat-green h-4 w-4 shrink-0"
               />
               {translate(SHEET_LABELS[sheet], locale)}
             </label>
           ))}
         </fieldset>
       </div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        <button
-          type="button"
-          className={PRIMARY_BUTTON_CLASS}
-          disabled={pending || sheets.size === 0}
-          onClick={() =>
-            void download(onlyCurrent ? [current.id] : forms.map((form) => form.id), [...sheets])
-          }
-        >
-          <Download aria-hidden />
-          {translate(pending ? 'exporting' : 'download', locale)}
-        </button>
-        <p className="max-w-lg text-sm text-pretty text-green-700">
-          {translate(sheets.size === 0 ? 'exportNoSheet' : 'exportHint', locale)}
-        </p>
-      </div>
-    </Panel>
+    </BottomSheet>
   );
 };
 
@@ -544,6 +562,7 @@ export const MaterialOrdersView: React.FC<{
   const [formId, setFormId] = useState<string>();
   const [view, setView] = useState<View>('total');
   const [exportOpen, setExportOpen] = useState(false);
+  const exportButton = useRef<HTMLButtonElement>(null);
   const [reviewing, setReviewing] = useState<string>();
 
   if (orders.isLoading) {
@@ -614,17 +633,26 @@ export const MaterialOrdersView: React.FC<{
         />
         <button
           type="button"
+          ref={exportButton}
+          aria-haspopup="dialog"
           aria-expanded={exportOpen}
           className={cn(SECONDARY_BUTTON_CLASS, '@3xl:ml-auto')}
-          onClick={() => setExportOpen((open) => !open)}
+          onClick={() => setExportOpen(true)}
         >
           <FileSpreadsheet aria-hidden />
           {translate('excelExport', locale)}
-          <ChevronDown aria-hidden className={cn('transition', exportOpen && 'rotate-180')} />
+          <ChevronDown aria-hidden />
         </button>
       </div>
 
-      {exportOpen && <ExportPanel forms={forms} current={form} locale={locale} />}
+      <ExportSheet
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        anchor={exportButton}
+        forms={forms}
+        current={form}
+        locale={locale}
+      />
 
       {/* what each Hof gets needs every column it can have, so the panels go under it */}
       <div
