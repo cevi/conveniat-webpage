@@ -7,17 +7,17 @@ import { APP_USER_AGENT, QR_CODE_BACKEND_URL } from '@/config/constants';
 import { environmentVariables } from '@/config/environment-variables';
 import { PersonName } from '@/features/chat/components/ui/person-name';
 import { useChatInviteUrl } from '@/features/chat/hooks/use-chat-invite-url';
-import { readChatInvitePath } from '@/features/chat/utils/chat-invite-link';
+import { describeScannedCode, readChatInvitePath } from '@/features/chat/utils/chat-invite-link';
 import { isRateLimitError } from '@/features/chat/utils/send-errors';
 import { QRCodeImage } from '@/features/payload-cms/payload-cms/components/qr-code/qr-code-image';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useQrScanner } from '@/hooks/use-qr-scanner';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { useQuery } from '@tanstack/react-query';
-import { CameraOff, QrCode, ScanLine } from 'lucide-react';
+import { AlertCircle, CameraOff, QrCode, ScanLine } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useCallback, useState } from 'react';
@@ -48,11 +48,17 @@ const text = {
     en: 'Point the camera at someone else’s code.',
   },
   starting: { de: 'Kamera startet …', fr: 'La caméra démarre …', en: 'Starting the camera …' },
-  notAChatCode: {
-    de: 'Dieser Code startet keinen Chat. Scanne den Code aus «Mein Code» einer anderen Person.',
-    fr: 'Ce code ne démarre pas de chat. Scanne le code « Mon code » d’une autre personne.',
-    en: 'This code does not start a chat. Scan the “My code” of someone else.',
+  notAChatCodeTitle: {
+    de: 'Das ist kein Chat-Code',
+    fr: 'Ce n’est pas un code de chat',
+    en: 'This is not a chat code',
   },
+  notAChatCode: {
+    de: 'Scanne den Code, den eine andere Person unter «Mein Code» zeigt.',
+    fr: 'Scanne le code qu’une autre personne affiche sous « Mon code ».',
+    en: 'Scan the code someone else shows under “My code”.',
+  },
+  scannedCode: { de: 'Gelesen:', fr: 'Lu :', en: 'Read:' },
   deniedTitle: {
     de: 'Kein Zugriff auf die Kamera',
     fr: 'Pas d’accès à la caméra',
@@ -176,18 +182,21 @@ const inviteOrigins = (): string[] => [
 
 /**
  * The live camera; mounted only while "Code scannen" is chosen, so the camera is off
- * otherwise. A chat code opens its chat, anything else is refused with a hint.
+ * otherwise. A chat code opens its chat. Anything else turns the frame red and says what was
+ * read, until the camera reads a different code; the scanner reports each code only once, so
+ * the phone vibrates once per refused code and not on every frame.
  */
 const ChatScanner: React.FC<{ locale: Locale; onScanned: (path: string) => void }> = ({
   locale,
   onScanned,
 }) => {
-  const [refused, setRefused] = useState(false);
+  const [refusedCode, setRefusedCode] = useState<string | undefined>();
   const onResult = useCallback(
     (value: string): boolean => {
       const path = readChatInvitePath(value, inviteOrigins());
       if (path === undefined) {
-        setRefused(true);
+        setRefusedCode(value);
+        if (typeof navigator.vibrate === 'function') navigator.vibrate(120);
         return false;
       }
       onScanned(path);
@@ -217,12 +226,34 @@ const ChatScanner: React.FC<{ locale: Locale; onScanned: (path: string) => void 
           muted
           playsInline
         />
-        <div className="pointer-events-none absolute inset-10 rounded-2xl border-4 border-white/80" />
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-10 rounded-2xl border-4 transition-colors',
+            refusedCode === undefined ? 'border-white/80' : 'border-danger',
+          )}
+        />
       </div>
-      <p aria-live="polite" className="text-center text-[15px] text-green-700">
-        {state === 'starting' && text.starting[locale]}
-        {state === 'scanning' && (refused ? text.notAChatCode[locale] : text.aim[locale])}
-      </p>
+      {refusedCode === undefined ? (
+        <p aria-live="polite" className="text-center text-[15px] text-green-700">
+          {state === 'starting' && text.starting[locale]}
+          {state === 'scanning' && text.aim[locale]}
+        </p>
+      ) : (
+        <div
+          role="alert"
+          className="border-danger-line bg-danger-soft text-danger-text flex items-start gap-3 rounded-[14px] border p-4"
+        >
+          <AlertCircle className="text-danger mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+          <div className="min-w-0 text-sm">
+            <p className="font-semibold">{text.notAChatCodeTitle[locale]}</p>
+            <p className="mt-1">{text.notAChatCode[locale]}</p>
+            <p className="mt-2 truncate">
+              {text.scannedCode[locale]}{' '}
+              <span className="font-medium">{describeScannedCode(refusedCode)}</span>
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

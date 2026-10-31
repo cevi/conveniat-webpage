@@ -34,6 +34,8 @@ const syncUserToPostgres: NonNullable<
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const hidden = doc.hidden as boolean | undefined | null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const testAccount = (doc.testAccount as boolean | undefined | null) ?? false;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const description = doc.description as string | undefined | null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const presentAtCamp = (doc.presentAtCamp as boolean | undefined | null) ?? false;
@@ -71,6 +73,7 @@ const syncUserToPostgres: NonNullable<
         // eslint-disable-next-line unicorn/no-null
         description: description ?? null,
         hidden: hidden ?? false,
+        testAccount,
         hofIds,
         avpHofIds,
         funktionIds,
@@ -82,6 +85,7 @@ const syncUserToPostgres: NonNullable<
         // eslint-disable-next-line unicorn/no-null
         description: description ?? null,
         hidden: hidden ?? false,
+        testAccount,
         hofIds,
         avpHofIds,
         funktionIds,
@@ -326,7 +330,6 @@ export const UserCollection: CollectionConfig = {
       name: 'adminPanelAccess',
       label: 'Admin Panel Access',
       type: 'checkbox',
-      virtual: true,
       defaultValue: false,
       admin: {
         readOnly: true,
@@ -334,10 +337,17 @@ export const UserCollection: CollectionConfig = {
           'Whether the user has access to the admin panel. This is set automatically based on the user groups.',
       },
       hooks: {
-        afterRead: [
-          ({ data }): boolean => {
-            if (!data) return false;
-            const groups = (data as User).groups;
+        /**
+         * Stored rather than virtual, so the list view can sort and filter by it. Every write
+         * works it out again from the groups, which a Cevi.DB login rewrites when they changed,
+         * and `refreshAdminPanelAccess` catches up on startup with a change to the role groups.
+         */
+        beforeChange: [
+          ({ siblingData, originalDoc }): boolean => {
+            const groups =
+              'groups' in siblingData
+                ? (siblingData as Partial<User>).groups
+                : (originalDoc as Partial<User> | undefined)?.groups;
             if (!Array.isArray(groups)) return false;
             return hasAccessToThisUser({ user: { groups }, requiredRoles: ADMIN_PANEL_ROLES });
           },
@@ -535,6 +545,20 @@ export const UserCollection: CollectionConfig = {
       defaultValue: false,
       admin: {
         description: 'Hide this user from the chat creation selection.',
+      },
+    },
+    {
+      name: 'testAccount',
+      label: { en: 'Test account', de: 'Testkonto', fr: 'Compte de test' },
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'For an account that only tries the app, e.g. for the App Store review. Its contact list shows only people of its own Hof and those it exchanged a chat QR code with, not every function holder and AVP.',
+          de: 'Für ein Konto, das die App nur ausprobiert, z.B. für die Prüfung im App Store. Seine Kontaktliste zeigt nur Personen aus dem eigenen Hof und die, mit denen es einen Chat-QR-Code ausgetauscht hat, nicht alle mit einer Funktion und alle AVPs.',
+          fr: "Pour un compte qui ne fait qu'essayer l'application, par ex. pour la vérification dans l'App Store. Sa liste de contacts ne montre que les personnes de son propre Hof et celles avec qui il a échangé un code QR de chat, pas toutes les personnes avec une fonction ni tous les AVP.",
+        },
       },
     },
     {

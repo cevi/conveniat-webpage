@@ -6,7 +6,13 @@ import { ForceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import { cacheLife, cacheTag } from 'next/cache';
 import type React from 'react';
 
-const AppNavBarCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
+interface AppNavBarProperties {
+  locale: Locale;
+  /** with the website's top menu, the tabs stand on the left of a desktop screen */
+  railOnDesktop: boolean;
+}
+
+const AppNavBarCached: React.FC<AppNavBarProperties> = async ({ locale, railOnDesktop }) => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'footer');
@@ -14,13 +20,13 @@ const AppNavBarCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
   const footerData = await getFooterCached(locale);
   const appNavBarItems = resolveAppNavBarEntries(footerData.appNavBarMenu, locale);
 
-  return <FooterAppNavBar locale={locale} items={appNavBarItems} />;
+  return <FooterAppNavBar locale={locale} items={appNavBarItems} railOnDesktop={railOnDesktop} />;
 };
 
-export const AppNavBarServer: React.FC<{ locale: Locale }> = ({ locale }) => {
+export const AppNavBarServer: React.FC<AppNavBarProperties> = ({ locale, railOnDesktop }) => {
   return (
     <ForceDynamicOnBuild>
-      <AppNavBarCached locale={locale} />
+      <AppNavBarCached locale={locale} railOnDesktop={railOnDesktop} />
     </ForceDynamicOnBuild>
   );
 };

@@ -250,27 +250,10 @@ const generateMetadataInternal = async (
   const page = result.docs[0];
   if (!page) return {};
 
-  const pageAlternatives = await getGenericPageAlternativesCached(page.internalPageName);
-
-  const germanAlternative = pageAlternatives.find((a) =>
-    (a._locale as string | undefined)?.startsWith('de'),
-  );
-  const canonicalLocale = germanAlternative?._locale ?? locale;
-  const canonicalSlug = germanAlternative?.seo.urlSlug ?? slug;
-
-  const alternates = Object.fromEntries(
-    pageAlternatives
-      .filter((alt) => alt._locale !== canonicalLocale)
-      .map((alt) => [alt._locale, `/${alt._locale}/${alt.seo.urlSlug}`]),
-  );
+  const slugsByLocale = await getGenericPageAlternativesCached(page.internalPageName);
 
   return {
-    ...buildMetadata({
-      seo: page.seo,
-      canonicalLocale,
-      canonicalSlug,
-      alternates,
-    }),
+    ...buildMetadata({ seo: page.seo, locale, slugsByLocale }),
     twitter: {
       card: 'summary',
       title: page.seo.metaTitle ?? page.internalPageName,

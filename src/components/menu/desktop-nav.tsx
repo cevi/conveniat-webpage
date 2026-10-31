@@ -1,19 +1,25 @@
 'use client';
 
+import { CurrentMenuPathContext } from '@/components/menu/app-feature-link';
+import { appFeaturesTitle } from '@/components/menu/app-features-title';
 import type { ProcessedMainMenuItem } from '@/components/menu/main-menu';
+import { moreColumnLabel, splitMenuColumns } from '@/components/menu/menu-columns';
+import type { MenuNode } from '@/components/menu/menu-links';
+import { MenuEntryLabel, MenuLinks, visibleChildren } from '@/components/menu/menu-links';
 import { useFittingItemCount } from '@/components/menu/use-fitting-item-count';
-import { LinkComponent } from '@/components/ui/link-component';
 import { languageOptions } from '@/config/language-options';
+import { usePreviewMode } from '@/hooks/use-preview-mode';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { ChevronDown, Languages, Search, X } from 'lucide-react';
+import { ChevronDown, Languages, Menu as MenuIcon, Search, X } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import React, { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 
-const overflowButtonLabel: StaticTranslationString = {
-  de: 'Mehr',
-  fr: 'Plus',
-  en: 'More',
+const menuButtonLabel: StaticTranslationString = {
+  de: 'Menü',
+  fr: 'Menu',
+  en: 'Menu',
 };
 
 const searchLabel: StaticTranslationString = {
@@ -28,90 +34,12 @@ const searchPlaceholder: StaticTranslationString = {
   en: 'Search...',
 };
 
-/** The `openDropdownId` of the overflow flyout, which lists the items that did not fit. */
-const OVERFLOW_DROPDOWN_ID = 'overflow';
-
-const topLevelItemClassName =
+const pinnedItemClassName =
   'flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap';
-const topLevelRowClassName = 'flex items-center gap-1 xl:gap-1.5';
+const pinnedRowClassName = 'flex items-center gap-1 xl:gap-1.5';
 
-const hasSubMenu = (item: ProcessedMainMenuItem): boolean =>
-  Array.isArray(item.subMenu) && item.subMenu.length > 0;
-
-const DropdownButton: React.FC<{
-  label: string;
-  isOpen: boolean;
-  onToggle: () => void;
-}> = ({ label, isOpen, onToggle }) => (
-  <button
-    type="button"
-    aria-expanded={isOpen}
-    onClick={onToggle}
-    className={cn(
-      topLevelItemClassName,
-      'transition-all duration-200',
-      isOpen
-        ? 'bg-conveniat-green/10 text-conveniat-green'
-        : 'hover:bg-conveniat-green/10 hover:text-conveniat-green text-gray-700',
-    )}
-  >
-    <span>{label}</span>
-    <ChevronDown
-      className={cn(
-        'size-4 text-gray-400 transition-transform duration-200',
-        isOpen && 'text-conveniat-green rotate-180',
-      )}
-    />
-  </button>
-);
-
-const TopLevelItem: React.FC<{
-  item: ProcessedMainMenuItem;
-  isOpen: boolean;
-  onToggle: () => void;
-}> = ({ item, isOpen, onToggle }) => {
-  if (hasSubMenu(item)) {
-    return <DropdownButton label={item.label} isOpen={isOpen} onToggle={onToggle} />;
-  }
-
-  if (typeof item.itemLink === 'string' && item.itemLink !== '') {
-    return (
-      <LinkComponent
-        href={item.itemLink}
-        openInNewTab={item.openInNewTab}
-        prefetch
-        className={cn(
-          topLevelItemClassName,
-          'hover:bg-conveniat-green/10 hover:text-conveniat-green text-gray-700 transition-all duration-200',
-        )}
-      >
-        {item.label}
-      </LinkComponent>
-    );
-  }
-
-  return <span className={cn(topLevelItemClassName, 'text-gray-400')}>{item.label}</span>;
-};
-
-const SubItemWithoutChildren: React.FC<{ subItem: ProcessedMainMenuItem }> = ({ subItem }) => {
-  if (typeof subItem.itemLink === 'string' && subItem.itemLink !== '') {
-    return (
-      <LinkComponent
-        href={subItem.itemLink}
-        openInNewTab={subItem.openInNewTab}
-        prefetch
-        className="group/item hover:bg-conveniat-green/10 hover:text-conveniat-green flex items-center rounded-xl px-3 py-2 text-sm font-medium text-gray-700 transition-colors duration-150"
-      >
-        <span className="flex items-center gap-2">
-          <span className="bg-conveniat-green/40 group-hover/item:bg-conveniat-green size-1.5 rounded-full transition-colors" />
-          <span>{subItem.label}</span>
-        </span>
-      </LinkComponent>
-    );
-  }
-
-  return <span className="block px-3 py-2 text-sm font-medium text-gray-400">{subItem.label}</span>;
-};
+const columnHeadingClassName =
+  'font-heading border-line mb-1.5 block border-b px-3 pb-3.5 text-[13px] font-extrabold tracking-[0.09em] text-green-600 uppercase';
 
 /**
  * Calls `onDismiss` on a pointer press outside every referenced element, or on Escape, while `isOpen`.
@@ -143,53 +71,204 @@ const useDismissOnOutsideInteraction = (
   }, [references, isOpen, onDismiss]);
 };
 
+/**
+ * Moves the focus into the column `sectionId` names once the menu opened on it, so a keyboard
+ * continues where the pinned entry sent it, and scrolls the column into view on short screens.
+ */
+const useFocusMenuSection = (
+  panel: React.RefObject<HTMLElement | null>,
+  sectionId: string | undefined,
+): void => {
+  useEffect(() => {
+    if (sectionId === undefined) return;
+    const section = panel.current?.querySelector<HTMLElement>(`[data-menu-section="${sectionId}"]`);
+    section?.scrollIntoView({ block: 'nearest' });
+    section?.querySelector<HTMLElement>('a, [tabindex]')?.focus({ preventScroll: true });
+  }, [panel, sectionId]);
+};
+
+/**
+ * The opened menu: every column side by side, in the order the editors gave them, and the entries
+ * without entries below them collected in a last column. Opened from a pinned entry, that entry's
+ * column is marked. In the app, the app's features come first.
+ */
+const MenuPanel: React.FC<{
+  id: string;
+  locale: Locale;
+  menuItems: ProcessedMainMenuItem[];
+  appFeatures: ReactNode;
+  highlightedId: string | undefined;
+  isCurrent: (node: MenuNode) => boolean;
+  panelReference: React.RefObject<HTMLDivElement | null>;
+  onLinkClick: (event: React.MouseEvent) => void;
+}> = ({
+  id,
+  locale,
+  menuItems,
+  appFeatures,
+  highlightedId,
+  isCurrent,
+  panelReference,
+  onLinkClick,
+}) => {
+  useFocusMenuSection(panelReference, highlightedId);
+
+  // a column whose entries are all hidden from this reader is a plain link
+  const items = menuItems
+    .filter((item) => item.isVisible)
+    .map((item) => ({ ...item, subMenu: visibleChildren(item, false) }));
+  const { columns, more } = splitMenuColumns(items);
+
+  return (
+    <div
+      id={id}
+      ref={panelReference}
+      onClick={onLinkClick}
+      className="animate-in fade-in-0 slide-in-from-top-1 border-line fixed top-[calc(4rem+var(--preview-banner-height))] right-0 left-0 z-50 max-h-[calc(100dvh-4rem-var(--preview-banner-height))] overflow-y-auto border-b-2 bg-white duration-150"
+    >
+      <div className="mx-auto grid max-w-7xl grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-x-6 gap-y-8 px-12 py-10">
+        {appFeatures !== undefined && (
+          <section aria-label={appFeaturesTitle[locale]} className="-m-3 p-3">
+            <span className={columnHeadingClassName}>{appFeaturesTitle[locale]}</span>
+            {appFeatures}
+          </section>
+        )}
+
+        {columns.map((item) => (
+          <section
+            key={item.id}
+            data-menu-section={item.id}
+            aria-label={item.label}
+            className={cn(
+              '-m-3 rounded-[14px] p-3 transition-colors',
+              highlightedId === item.id && 'bg-tint',
+            )}
+          >
+            <MenuEntryLabel
+              node={item}
+              isCurrent={isCurrent(item)}
+              className={cn(columnHeadingClassName, item.hasLink && 'hover:text-heading')}
+            />
+            <MenuLinks nodes={item.subMenu} showPreview={false} isCurrent={isCurrent} />
+          </section>
+        ))}
+
+        {more.length > 0 && (
+          <section aria-label={moreColumnLabel[locale]} className="-m-3 p-3">
+            <span className={columnHeadingClassName}>{moreColumnLabel[locale]}</span>
+            <MenuLinks nodes={more} showPreview={false} isCurrent={isCurrent} />
+          </section>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const PinnedItem: React.FC<{
+  item: ProcessedMainMenuItem;
+  isOpen: boolean;
+  isCurrent: boolean;
+  menuId: string;
+  onOpen: () => void;
+}> = ({ item, isOpen, isCurrent, menuId, onOpen }) => {
+  // an entry with entries below it has no room for them in the bar, so it opens the menu at its
+  // column; its own link, if any, is the heading of that column
+  if (visibleChildren(item, false).length > 0) {
+    return (
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        aria-controls={menuId}
+        onClick={onOpen}
+        className={cn(
+          pinnedItemClassName,
+          'transition-colors duration-150',
+          isOpen ? 'bg-tint text-heading' : 'hover:bg-tint hover:text-heading text-gray-700',
+        )}
+      >
+        <span>{item.label}</span>
+        <ChevronDown
+          aria-hidden
+          className={cn('size-4 text-gray-400 transition-transform', isOpen && 'rotate-180')}
+        />
+      </button>
+    );
+  }
+
+  return (
+    <MenuEntryLabel
+      node={item}
+      isCurrent={isCurrent}
+      className={cn(
+        pinnedItemClassName,
+        'hover:bg-tint hover:text-heading text-gray-700 transition-colors duration-150',
+        isCurrent && 'text-heading underline decoration-2 underline-offset-8',
+      )}
+    />
+  );
+};
+
+/**
+ * The header bar of the website on large screens: the entries the editors pinned, the language,
+ * the search, and "Menü", which opens the whole menu below the bar.
+ */
 export const DesktopNav: React.FC<{
   locale: Locale;
   menuItems: ProcessedMainMenuItem[];
+  /** the draft menu, handed over for an editor only and shown in preview mode */
+  draftMenuItems?: ProcessedMainMenuItem[] | undefined;
   actionURL: string;
-}> = ({ locale, menuItems, actionURL }) => {
-  const [openDropdownId, setOpenDropdownId] = useState<string | undefined>();
+  /** the app's features, the first column of the menu in the app */
+  appFeatures?: ReactNode;
+}> = ({ locale, menuItems: publishedMenuItems, draftMenuItems, actionURL, appFeatures }) => {
+  const searchParameters = useSearchParams();
+  const { isInPreviewMode } = usePreviewMode();
+  const menuItems =
+    isInPreviewMode === 'enabled' && draftMenuItems !== undefined
+      ? draftMenuItems
+      : publishedMenuItems;
+
+  // undefined while closed; `true` when opened from "Menü", the id of a pinned entry when opened
+  // from it. `?menu=open` opens it on load, which is how the header global's live preview shows it.
+  const [openedFrom, setOpenedFrom] = useState<string | true | undefined>(() =>
+    searchParameters.get('menu') === 'open' ? true : undefined,
+  );
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const navReference = useRef<HTMLElement>(null);
+  const menuId = useId();
+  const barReference = useRef<HTMLDivElement>(null);
+  const pinnedReference = useRef<HTMLElement>(null);
   const measureRowReference = useRef<HTMLDivElement>(null);
-  const flyoutReference = useRef<HTMLDivElement>(null);
-  const dismissReferences = [navReference, flyoutReference];
+  const panelReference = useRef<HTMLDivElement>(null);
+  const dismissReferences = [barReference];
   const searchInputReference = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const pathname = usePathname();
-  const searchParameters = useSearchParams();
 
-  // Editors choose the labels, so no breakpoint guarantees they fit. The items that do not fit
-  // move into an overflow flyout instead of pushing the utilities off the screen.
-  const navItems = menuItems.filter((item) => item.isVisible);
-  const fittingCount = useFittingItemCount(navReference, measureRowReference, navItems.length);
-  const fittingItems = navItems.slice(0, fittingCount);
-  const overflowItems = navItems.slice(fittingCount);
-
-  const activeItem = menuItems.find((item) => item.id === openDropdownId);
-  const activeSubMenu = activeItem?.subMenu;
-  const hasActiveSubMenu = Array.isArray(activeSubMenu) && activeSubMenu.length > 0;
-  const isOverflowOpen =
-    openDropdownId === OVERFLOW_DROPDOWN_ID ||
-    overflowItems.some((item) => item.id === openDropdownId);
-
-  const closeDropdown = (): void => setOpenDropdownId(undefined);
-
-  // Submenus open on click, not hover, so the flyout never closes under a cursor that overshoots.
-  // It closes on a click outside, on Escape, and when a link is followed.
-  useDismissOnOutsideInteraction(
-    dismissReferences,
-    hasActiveSubMenu || isOverflowOpen,
-    closeDropdown,
+  // Editors choose how many entries to pin and how long their labels are, so no breakpoint
+  // guarantees they fit. Whatever does not fit is left out of the bar; it is still in the menu.
+  const pinnedItems = menuItems.filter((item) => item.isVisible && item.isPinned);
+  const fittingCount = useFittingItemCount(
+    pinnedReference,
+    measureRowReference,
+    pinnedItems.length,
   );
+  const fittingItems = pinnedItems.slice(0, fittingCount);
+  const hasMenu = appFeatures !== undefined || menuItems.some((item) => item.isVisible);
+
+  const isMenuOpen = openedFrom !== undefined;
+  const highlightedId = typeof openedFrom === 'string' ? openedFrom : undefined;
+  const isCurrent = (node: MenuNode): boolean => node.hasLink && node.itemLink === pathname;
+
+  const closeMenu = (): void => setOpenedFrom(undefined);
+
+  useDismissOnOutsideInteraction(dismissReferences, isMenuOpen, closeMenu);
 
   const closeOnLinkClick = (event: React.MouseEvent): void => {
-    if (event.target instanceof Element && event.target.closest('a') !== null) closeDropdown();
+    if (event.target instanceof Element && event.target.closest('a') !== null) closeMenu();
   };
-
   const handleLanguageChange = (lang: Locale): void => {
     const langRegex = /^\/(de|en|fr)\//;
     let newPath: string;
@@ -234,160 +313,43 @@ export const DesktopNav: React.FC<{
   };
 
   return (
-    <div className="hidden min-w-0 flex-1 items-center gap-4 xl:flex">
-      {/* Main Navigation Bar: the items that fit, then the overflow button (priority+ pattern) */}
+    <div ref={barReference} className="hidden min-w-0 flex-1 items-center gap-4 xl:flex">
+      {/* The pinned entries that fit, measured by useFittingItemCount */}
       <nav
-        ref={navReference}
+        ref={pinnedReference}
         onClick={closeOnLinkClick}
         className={cn(
           'relative min-w-0 flex-1 justify-end-safe overflow-hidden',
-          topLevelRowClassName,
+          pinnedRowClassName,
         )}
       >
-        {fittingItems.map((item) => {
-          const isOpen = openDropdownId === item.id;
-          return (
-            <TopLevelItem
-              key={item.id}
-              item={item}
-              isOpen={isOpen}
-              onToggle={() => setOpenDropdownId(isOpen ? undefined : item.id)}
-            />
-          );
-        })}
-
-        {overflowItems.length > 0 && (
-          <DropdownButton
-            label={overflowButtonLabel[locale]}
-            isOpen={isOverflowOpen}
-            onToggle={() => setOpenDropdownId(isOverflowOpen ? undefined : OVERFLOW_DROPDOWN_ID)}
+        {fittingItems.map((item) => (
+          <PinnedItem
+            key={item.id}
+            item={item}
+            isOpen={highlightedId === item.id}
+            isCurrent={isCurrent(item)}
+            menuId={menuId}
+            onOpen={() => setOpenedFrom(highlightedId === item.id ? undefined : item.id)}
           />
-        )}
+        ))}
 
-        {/* Invisible copy of every item and the overflow button, measured by useFittingItemCount */}
+        {/* Invisible copy of every pinned entry, measured by useFittingItemCount. The empty last
+            child stands in for its overflow button: there is none, the menu holds everything. */}
         <div
           ref={measureRowReference}
           aria-hidden
-          className={cn(
-            'pointer-events-none invisible absolute top-0 left-0',
-            topLevelRowClassName,
-          )}
+          className={cn('pointer-events-none invisible absolute top-0 left-0', pinnedRowClassName)}
         >
-          {navItems.map((item) => (
-            <span key={item.id} className={topLevelItemClassName}>
+          {pinnedItems.map((item) => (
+            <span key={item.id} className={pinnedItemClassName}>
               <span>{item.label}</span>
-              {hasSubMenu(item) && <ChevronDown className="size-4" />}
+              {visibleChildren(item, false).length > 0 && <ChevronDown className="size-4" />}
             </span>
           ))}
-          <span className={topLevelItemClassName}>
-            <span>{overflowButtonLabel[locale]}</span>
-            <ChevronDown className="size-4" />
-          </span>
+          <span />
         </div>
       </nav>
-
-      {/* Modern Sleek Full-Width Submenu Flyout Panel (2px border-b matching header) */}
-      {(hasActiveSubMenu || isOverflowOpen) && (
-        <div
-          ref={flyoutReference}
-          className="animate-in fade-in-0 slide-in-from-top-1 fixed top-[calc(4rem+var(--preview-banner-height))] right-0 left-0 z-50 w-full border-b-2 border-gray-200 bg-white/98 backdrop-blur-2xl transition-all duration-200"
-          onClick={closeOnLinkClick}
-        >
-          <div className="w-full px-6 py-8 xl:px-12">
-            {isOverflowOpen && (
-              <div
-                className={cn(
-                  'flex-wrap',
-                  topLevelRowClassName,
-                  hasActiveSubMenu && 'mb-8 border-b border-gray-200 pb-4',
-                )}
-              >
-                {overflowItems.map((item) => {
-                  const isOpen = openDropdownId === item.id;
-                  return (
-                    <TopLevelItem
-                      key={item.id}
-                      item={item}
-                      isOpen={isOpen}
-                      onToggle={() => setOpenDropdownId(isOpen ? OVERFLOW_DROPDOWN_ID : item.id)}
-                    />
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-8 xl:gap-12">
-              {(activeSubMenu ?? []).map((subItem) => {
-                if (!subItem.isVisible) return;
-
-                const hasSubSub = Array.isArray(subItem.subMenu) && subItem.subMenu.length > 0;
-
-                return (
-                  <div key={subItem.id} className="max-w-[280px] min-w-[220px] flex-1">
-                    {hasSubSub ? (
-                      <>
-                        {/* Section Header with children: clean label with underline, NO chevron arrow */}
-                        {typeof subItem.itemLink === 'string' && subItem.itemLink !== '' ? (
-                          <LinkComponent
-                            href={subItem.itemLink}
-                            openInNewTab={subItem.openInNewTab}
-                            prefetch
-                            className="group/head text-conveniat-green hover:text-conveniat-green/80 border-conveniat-green/20 font-heading mb-3 flex h-8 items-center border-b pb-1 text-xs font-extrabold tracking-wider uppercase transition-colors"
-                          >
-                            <span className="truncate">{subItem.label}</span>
-                          </LinkComponent>
-                        ) : (
-                          <div className="text-conveniat-green border-conveniat-green/20 font-heading mb-3 flex h-8 items-center border-b pb-1 text-xs font-extrabold tracking-wider uppercase">
-                            <span className="truncate">{subItem.label}</span>
-                          </div>
-                        )}
-
-                        {/* Level 3 Links List */}
-                        <div className="flex flex-col space-y-1">
-                          {subItem.subMenu?.map((subSubItem) => {
-                            if (!subSubItem.isVisible) return;
-
-                            if (
-                              typeof subSubItem.itemLink === 'string' &&
-                              subSubItem.itemLink !== ''
-                            ) {
-                              return (
-                                <LinkComponent
-                                  key={subSubItem.id}
-                                  href={subSubItem.itemLink}
-                                  openInNewTab={subSubItem.openInNewTab}
-                                  prefetch
-                                  className="group/item hover:bg-conveniat-green/10 hover:text-conveniat-green flex items-center rounded-xl px-3 py-2 text-sm font-medium text-gray-700 transition-colors duration-150"
-                                >
-                                  <span className="flex items-center gap-2">
-                                    <span className="bg-conveniat-green/40 group-hover/item:bg-conveniat-green size-1.5 rounded-full transition-colors" />
-                                    <span>{subSubItem.label}</span>
-                                  </span>
-                                </LinkComponent>
-                              );
-                            }
-
-                            return (
-                              <span
-                                key={subSubItem.id}
-                                className="block px-3 py-1.5 text-xs font-medium text-gray-400"
-                              >
-                                {subSubItem.label}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </>
-                    ) : (
-                      <SubItemWithoutChildren subItem={subItem} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Utilities: Language Switcher & Responsive Search Input */}
       <div className="relative flex h-8 shrink-0 items-center gap-2 border-l border-gray-200/80 pl-3">
@@ -485,6 +447,47 @@ export const DesktopNav: React.FC<{
           )}
         </div>
       </div>
+
+      {hasMenu && (
+        <button
+          type="button"
+          aria-expanded={isMenuOpen}
+          aria-controls={menuId}
+          onClick={() => setOpenedFrom(isMenuOpen ? undefined : true)}
+          className="bg-conveniat-green flex h-9 shrink-0 items-center gap-2 rounded-xl px-3.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          {isMenuOpen ? (
+            <X aria-hidden className="size-4" />
+          ) : (
+            <MenuIcon aria-hidden className="size-4" />
+          )}
+          {menuButtonLabel[locale]}
+        </button>
+      )}
+
+      {isMenuOpen && (
+        <>
+          {/* dims the page below the menu; a press on it closes the menu */}
+          <div
+            aria-hidden
+            onClick={closeMenu}
+            className="animate-in fade-in-0 fixed inset-x-0 top-[calc(4rem+var(--preview-banner-height))] z-40 h-dvh bg-gray-950/30"
+          />
+          {/* the app's links mark the open page with it */}
+          <CurrentMenuPathContext value={pathname}>
+            <MenuPanel
+              id={menuId}
+              locale={locale}
+              menuItems={menuItems}
+              appFeatures={appFeatures}
+              highlightedId={highlightedId}
+              isCurrent={isCurrent}
+              panelReference={panelReference}
+              onLinkClick={closeOnLinkClick}
+            />
+          </CurrentMenuPathContext>
+        </>
+      )}
     </div>
   );
 };

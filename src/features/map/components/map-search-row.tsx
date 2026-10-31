@@ -4,11 +4,11 @@ import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { useFitToSearchResults } from '@/features/map/hooks/use-fit-to-search-results';
 import { useLocateControl, useLocateOnArrival } from '@/features/map/hooks/use-locate-control';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Loader2, LocateFixed, LocateOff } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useState } from 'react';
 
@@ -76,7 +76,7 @@ export const MapSearchRow: React.FC<{
   if (locateState === 'denied' || locateState === 'unavailable') LocateIcon = LocateOff;
 
   return (
-    <div className="absolute top-3 right-4 left-4 z-50">
+    <div className="absolute top-[calc(0.75rem+var(--app-logo-overhang,0px))] right-4 left-4 z-50">
       <div className="flex items-center gap-2">
         {/* the app's search, white with a line as on the grey page, floating over the map */}
         <AppSearchBar

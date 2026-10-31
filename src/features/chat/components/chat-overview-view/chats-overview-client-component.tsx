@@ -6,6 +6,7 @@ import { PullToRefresh } from '@/components/ui/pull-to-refresh';
 import { ChatActionsSheet } from '@/features/chat/components/chat-overview-view/chat-actions-sheet';
 import { ChatFilterChips } from '@/features/chat/components/chat-overview-view/chat-filter-chips';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
+import { ChatSearchContacts } from '@/features/chat/components/chat-overview-view/chat-search-contacts';
 import {
   ChatsOverviewSkeleton,
   NewChatButtonSkeleton,
@@ -13,17 +14,20 @@ import {
 import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view/swipe-to-delete-chat';
 import { RealtimeSyncBanner } from '@/features/chat/components/realtime-sync-banner';
 import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
+import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatListActions } from '@/features/chat/hooks/use-chat-list-actions';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChats } from '@/features/chat/hooks/use-chats';
+import { useSearchClearedOnLeave } from '@/features/chat/hooks/use-search-cleared-on-leave';
 import type { ChatListFilter } from '@/features/chat/utils/chat-list-filter';
 import { matchesChatListFilter } from '@/features/chat/utils/chat-list-filter';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { CheckCheck, MessageSquare, MessageSquarePlus, Users, X } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
 import { useId, useMemo, useState } from 'react';
@@ -56,6 +60,12 @@ const adjustingSearchTermsText: StaticTranslationString = {
   en: 'Try adjusting your search terms',
   de: 'Versuche, deine Suchbegriffe anzupassen',
   fr: "Essayez d'ajuster vos termes de recherche",
+};
+
+const nobodyInAddressBookText: StaticTranslationString = {
+  de: 'Auch im Adressbuch passt niemand zu deiner Suche.',
+  en: 'Nobody in the address book matches your search either.',
+  fr: 'Personne dans le carnet d’adresses ne correspond non plus à ta recherche.',
 };
 
 const clearSearchText: StaticTranslationString = {
@@ -119,8 +129,18 @@ const EmptyChatsState: React.FC<{
   onClearSearch: () => void;
   /** Without it there is no way to start a chat, so the empty state offers none. */
   canCreateChats: boolean;
+  /** whether the search also went through the address book, see `ChatSearchContacts` */
+  hasSearchedContacts: boolean;
   locale: Locale;
-}> = ({ searchQuery, listFilter, onShowAll, onClearSearch, canCreateChats, locale }) => {
+}> = ({
+  searchQuery,
+  listFilter,
+  onShowAll,
+  onClearSearch,
+  canCreateChats,
+  hasSearchedContacts,
+  locale,
+}) => {
   if (listFilter !== 'all' && searchQuery === '') {
     return (
       <EmptyState
@@ -139,7 +159,9 @@ const EmptyChatsState: React.FC<{
       <EmptyState
         icon={MessageSquare}
         title={noChatsFoundText[locale]}
-        description={adjustingSearchTermsText[locale]}
+        description={
+          (hasSearchedContacts ? nobodyInAddressBookText : adjustingSearchTermsText)[locale]
+        }
         action={
           <Button variant="quiet" size="touch" onClick={onClearSearch}>
             {clearSearchText[locale]}
@@ -205,10 +227,13 @@ export const ChatsOverviewClientComponent: React.FC<{
     await trpcUtils.chat.chats.invalidate();
   };
 
-  const [searchQuery, setSearchQuery] = useState('');
-  // kept while the route stays mounted, so coming back from a chat keeps the chosen chip
+  const [searchQuery, setSearchQuery] = useSearchClearedOnLeave();
+  // unlike the search, kept while the route stays mounted: coming back from a chat keeps the chip
   const [listFilter, setListFilter] = useState<ChatListFilter>('all');
   const locale = useCurrentLocale(i18nConfig) as Locale;
+  // the chat open beside the list on a desktop
+  const openChatId = useChatId();
+  const isDesktop = useIsDesktop();
 
   // Filter chats based on a search query. Pinned chats go first; the sort is stable, so both
   // groups keep the server's most-recent-first order, and chats added optimistically at the
@@ -239,6 +264,9 @@ export const ChatsOverviewClientComponent: React.FC<{
   const isInitialLoad = chats === undefined && !isError;
 
   const hasChats = (chats?.length ?? 0) > 0 || searchQuery !== '';
+  // a chip narrows the chats, not the people one could start a chat with
+  const searchesContacts =
+    createChatsEnabled === true && listFilter === 'all' && searchQuery.trim() !== '';
   const unreadChats = chats?.filter((chat) => matchesChatListFilter(chat, 'unread')).length ?? 0;
   const listActions = useChatListActions();
   const [actionsChatId, setActionsChatId] = useState<string | undefined>();
@@ -246,10 +274,25 @@ export const ChatsOverviewClientComponent: React.FC<{
   const actionsChat = chats?.find((chat) => chat.id === actionsChatId);
   const actionsHintId = useId();
 
+  const emptyState =
+    filteredChats.length === 0 ? (
+      <EmptyChatsState
+        searchQuery={searchQuery}
+        listFilter={listFilter}
+        onShowAll={() => setListFilter('all')}
+        onClearSearch={() => setSearchQuery('')}
+        canCreateChats={createChatsEnabled === true}
+        hasSearchedContacts={searchesContacts}
+        locale={locale}
+      />
+    ) : undefined;
+
   return (
     <div className="flex flex-col gap-4">
-      {/* the own code needs no right to create chats: a scanned code opens a private chat */}
-      <SetHeaderActions>{qrCodeButton}</SetHeaderActions>
+      {/* The own code needs no right to create chats: a scanned code opens a private chat. It
+          sits in the app header on a phone and above the list on a desktop, never in both, as
+          each copy would open its sheet from the `?qr=` parameter. */}
+      <SetHeaderActions>{isDesktop ? undefined : qrCodeButton}</SetHeaderActions>
 
       <span id={actionsHintId} hidden>
         {actionsHintText[locale]}
@@ -283,20 +326,44 @@ export const ChatsOverviewClientComponent: React.FC<{
         className="border-danger-line rounded-[14px] border"
       />
 
-      {/* only once there is something to search */}
-      {hasChats && (
+      {/* The search, once there is something to search, and on a desktop the list's actions
+          beside it, at the top of the list the way WhatsApp Web has them. */}
+      {(hasChats || isDesktop) && (
         <div className="flex flex-col gap-3">
-          <ChatSearchField
-            placeholder={searchPlaceholderText[locale]}
-            value={searchQuery}
-            onChange={setSearchQuery}
-          />
-          <ChatFilterChips
-            value={listFilter}
-            onChange={setListFilter}
-            unreadChats={unreadChats}
-            locale={locale}
-          />
+          <div className="flex items-center gap-1">
+            {hasChats && (
+              <div className="min-w-0 flex-1">
+                <ChatSearchField
+                  placeholder={searchPlaceholderText[locale]}
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                />
+              </div>
+            )}
+            {isDesktop && (
+              <div className="ml-auto flex shrink-0 items-center gap-1">
+                {qrCodeButton}
+                {createChatsEnabled === true && (
+                  <Link
+                    href="/app/chat/new"
+                    aria-label={newChatLabel[locale]}
+                    title={newChatLabel[locale]}
+                    className="bg-conveniat-green flex h-11 w-11 items-center justify-center rounded-full text-white hover:bg-green-700"
+                  >
+                    <MessageSquarePlus className="h-5 w-5" aria-hidden="true" />
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+          {hasChats && (
+            <ChatFilterChips
+              value={listFilter}
+              onChange={setListFilter}
+              unreadChats={unreadChats}
+              locale={locale}
+            />
+          )}
         </div>
       )}
 
@@ -306,8 +373,8 @@ export const ChatsOverviewClientComponent: React.FC<{
       {/* Chat List */}
       {!isInitialLoad && (
         <PullToRefresh onRefresh={handleRefresh}>
-          {filteredChats.length > 0 ? (
-            <ul className="border-line -mx-4 border-t bg-white sm:mx-0">
+          {filteredChats.length > 0 && (
+            <ul className="border-line -mx-4 border-t bg-white sm:mx-0 xl:-mx-4">
               {filteredChats.map((chat) => (
                 <li
                   key={chat.id}
@@ -319,27 +386,30 @@ export const ChatsOverviewClientComponent: React.FC<{
                       chat={chat}
                       onOpenActions={(pressed) => setActionsChatId(pressed.id)}
                       actionsHintId={actionsHintId}
+                      isSelected={chat.id === openChatId}
                     />
                   </SwipeToDeleteChat>
                 </li>
               ))}
             </ul>
-          ) : (
-            <EmptyChatsState
+          )}
+          {/* the people one could start a chat with come last, under every chat found */}
+          {searchesContacts ? (
+            <ChatSearchContacts
               searchQuery={searchQuery}
-              listFilter={listFilter}
-              onShowAll={() => setListFilter('all')}
-              onClearSearch={() => setSearchQuery('')}
-              canCreateChats={createChatsEnabled === true}
+              foundChats={filteredChats}
+              fallback={emptyState}
               locale={locale}
             />
+          ) : (
+            emptyState
           )}
         </PullToRefresh>
       )}
 
       {/* the screen's main action floats over the list, above the tab bar */}
-      {createChatsEnabled === undefined && <NewChatButtonSkeleton />}
-      {createChatsEnabled === true && (
+      {!isDesktop && createChatsEnabled === undefined && <NewChatButtonSkeleton />}
+      {!isDesktop && createChatsEnabled === true && (
         <Link
           href="/app/chat/new"
           className="bg-conveniat-green fixed right-4 bottom-[calc(5rem+16px)] z-30 flex h-12 items-center gap-2 rounded-2xl px-5 text-[15px] font-semibold text-white shadow-lg hover:bg-green-700"

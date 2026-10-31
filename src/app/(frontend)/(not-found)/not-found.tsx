@@ -8,7 +8,7 @@ import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { SearchX } from 'lucide-react';
 import Link from 'next/link';
-import React from 'react';
+import React, { Suspense } from 'react';
 
 const error404: StaticTranslationString = {
   de: '404 - Seite nicht gefunden',
@@ -71,12 +71,13 @@ const toHome: StaticTranslationString = {
  */
 export const NotFound: React.FC<{
   locale?: Promise<Locale>;
-}> = async ({ locale: localePromise }) => {
-  // fetch locale from cookies if not provided
+  inAppDesign?: boolean;
+}> = async ({ locale: localePromise, inAppDesign }) => {
+  // fetch locale and design from the request if not provided
   let locale = await localePromise;
   locale ??= await getLocaleFromCookies();
 
-  if (await renderInAppDesign()) {
+  if (inAppDesign ?? (await renderInAppDesign())) {
     return (
       <div className="flex w-full justify-center px-4 py-6">
         <EmptyState
@@ -103,11 +104,15 @@ export const NotFound: React.FC<{
   );
 };
 
+/**
+ * The 404 page reads the locale and the design from the request. Behind a Suspense boundary the
+ * rest of the document can be prerendered, and with it the 404 status, see the layout.
+ */
 export const NotFoundPage: React.FC = () => {
   return (
-    <>
+    <Suspense>
       <NotFound />
-    </>
+    </Suspense>
   );
 };
 

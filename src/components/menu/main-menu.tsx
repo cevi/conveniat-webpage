@@ -1,12 +1,14 @@
 import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
 import { FooterBuildInfoText } from '@/components/footer/footer-copyright-area';
 import { MainMenuLanguageSwitcher } from '@/components/menu/main-menu-language-switcher';
+import { MenuEntryLabel, MenuLinks, visibleChildren } from '@/components/menu/menu-links';
 import { PreviewMenuSwitcher } from '@/components/menu/preview-menu-switcher';
 import { SearchComponent } from '@/components/menu/search';
 import { NativeAppVersionInfo } from '@/components/native-app-version-info';
 import { LinkComponent } from '@/components/ui/link-component';
 import { getHeaderCached } from '@/features/payload-cms/api/cached-globals';
 import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
+import { draftGlobalTag } from '@/features/payload-cms/payload-cms/utils/draft-global-tag';
 import {
   getURLForLinkField,
   hasPermissionsForLinkField,
@@ -20,29 +22,11 @@ import { isAdminSession } from '@/utils/is-admin-session';
 import { isRoutableURL } from '@/utils/is-routable-url';
 import { cn } from '@/utils/tailwindcss-override';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
-import { ChevronDown, OctagonAlert } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { cacheLife, cacheTag } from 'next/cache';
 import React from 'react';
 
 import { AppFeatures } from '@/components/menu/app-features';
-
-const DeletedMenuEntry: React.FC<{ message: string; className?: string }> = ({
-  message,
-  className,
-}) => {
-  return (
-    <>
-      <div
-        className={cn(
-          'closeNavOnClick flex cursor-pointer items-center gap-2 rounded-lg py-2 pr-3 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50',
-          className,
-        )}
-      >
-        {message} <OctagonAlert className="size-4" color="red" />
-      </div>
-    </>
-  );
-};
 
 /**
  * The main menu, cached across requests — for the draft view as well as the published one.
@@ -62,10 +46,10 @@ const DeletedMenuEntry: React.FC<{ message: string; className?: string }> = ({
  * `cacheLife('hours')`. That is what pinned admin previews to hour-old drafts.
  *
  * Declaring the real tags here fixes the draft variant and makes the published one explicit rather
- * than dependent on propagation. `flushPageCacheOnChangeGlobal` fires both on every save of the
- * header global, and Payload runs global `afterChange` hooks unconditionally — the draft/autosave
- * path is not excluded (`payload/dist/globals/operations/update.js`) — so an editor's keystroke
- * evicts this entry and the next render rebuilds it.
+ * than dependent on propagation. A publish fires them all through `flushPageCacheOnChangeGlobal`.
+ * Autosaved drafts deliberately do not, so the published menu stays cached while an editor types;
+ * they expire only the draft variant's own `draftGlobalTag`, at once, so the live preview of the
+ * header global shows every save.
  */
 export const getMainMenuFromPayloadCached = async (
   locale: Locale,
@@ -74,6 +58,9 @@ export const getMainMenuFromPayloadCached = async (
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'header', 'global:header');
+  // a draft save leaves the published menu alone and expires only this tag, see
+  // `flushPageCacheOnChangeGlobal`, so the preview follows every autosave
+  if (showPreviewForMainMenu) cacheTag(draftGlobalTag('header'));
 
   const header = await getHeaderCached(locale, showPreviewForMainMenu);
   const mainMenu = header.mainMenu;
@@ -145,6 +132,8 @@ export interface ProcessedMainMenuItem {
   isVisible: boolean;
   itemLink?: string | undefined;
   openInNewTab: boolean;
+  /** shown in the header bar on large screens as well as in the menu */
+  isPinned: boolean;
   subMenu?: ProcessedSubMenuItem[] | undefined;
 }
 
@@ -289,6 +278,7 @@ export const processMenuTree = async (
       isVisible: isVisible,
       itemLink: itemLink,
       openInNewTab: openInNewTab,
+      isPinned: item.pinnedToHeader === true,
       subMenu: subMenuItems,
     });
   }
@@ -306,6 +296,8 @@ const MenuItemsList = async ({
   showPreviewForMainMenu: boolean;
 }): Promise<React.ReactNode> => {
   const processedMenu = await processMenuTree(mainMenuWithFallback, locale, showPreviewForMainMenu);
+  const topLevelClassName =
+    'flex min-h-12 flex-1 items-center py-2 pl-3 text-base font-semibold text-gray-700';
 
   return (
     <>
@@ -314,274 +306,61 @@ const MenuItemsList = async ({
           Preview Menu
         </div>
       )}
-      {processedMenu
-        .filter((item) => item.isVisible || showPreviewForMainMenu)
-        .map((item) => {
-          const hasSub = item.subMenu && item.subMenu.length > 0;
+      <ul className="divide-line -mx-3 divide-y">
+        {processedMenu
+          .filter((item) => item.isVisible || showPreviewForMainMenu)
+          .map((item) => {
+            const children = visibleChildren(item, showPreviewForMainMenu);
 
-          if (hasSub) {
+            if (children.length === 0) {
+              return (
+                <li key={item.id} className="flex">
+                  <MenuEntryLabel
+                    node={item}
+                    className={cn(topLevelClassName, 'rounded-lg', item.hasLink && 'hover:bg-tint')}
+                  />
+                </li>
+              );
+            }
+
+            // One level folds, the rest of the column shows at once: a fold per level made the
+            // third and fourth level three taps away on a phone.
             return (
-              <SafeErrorBoundary fallback={<></>} key={item.id}>
-                <Disclosure as="div" className="-mx-3">
-                  {item.hasLink ? (
-                    <div className="flex w-full items-center justify-between rounded-lg hover:bg-gray-50">
-                      {item.hasPerm ? (
-                        <LinkComponent
-                          href={item.itemLink ?? '/'}
-                          openInNewTab={item.openInNewTab}
-                          className="closeNavOnClick flex-grow py-2 pl-3 text-base/7 font-semibold text-gray-700"
-                          prefetch
+              <li key={item.id}>
+                <SafeErrorBoundary fallback={<></>}>
+                  <Disclosure>
+                    <div className="flex items-center">
+                      {item.hasLink ? (
+                        <MenuEntryLabel
+                          node={item}
+                          className={cn(topLevelClassName, 'hover:bg-tint rounded-lg')}
+                        />
+                      ) : (
+                        <DisclosureButton
+                          className={cn(topLevelClassName, 'cursor-pointer text-left')}
                         >
                           {item.label}
-                        </LinkComponent>
-                      ) : (
-                        <DeletedMenuEntry message={item.label} className="flex-grow pl-3" />
+                        </DisclosureButton>
                       )}
-                      <DisclosureButton className="group p-2 text-gray-500 hover:text-gray-700">
+                      <DisclosureButton
+                        aria-label={item.label}
+                        className="group hover:bg-tint hover:text-heading flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-gray-500"
+                      >
                         <ChevronDown
                           aria-hidden="true"
-                          className="size-5 flex-none group-data-open:rotate-180"
+                          className="size-5 transition-transform group-data-open:rotate-180"
                         />
                       </DisclosureButton>
                     </div>
-                  ) : (
-                    <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
-                      {item.label}
-                      <ChevronDown
-                        aria-hidden="true"
-                        className="size-5 flex-none group-data-open:rotate-180"
-                      />
-                    </DisclosureButton>
-                  )}
-                  <DisclosurePanel className="border-conveniat-green/30 mt-2 mb-4 ml-2.5 space-y-2 border-l-2 pl-3">
-                    {item.subMenu
-                      ?.filter((subItem) => subItem.isVisible || showPreviewForMainMenu)
-                      .map((subItem) => {
-                        const hasSubSub = subItem.subMenu && subItem.subMenu.length > 0;
-
-                        if (hasSubSub) {
-                          return (
-                            <SafeErrorBoundary fallback={<></>} key={subItem.id}>
-                              <Disclosure as="div" className="pl-1">
-                                {subItem.hasLink ? (
-                                  <div className="flex w-full items-center justify-between rounded-lg hover:bg-gray-50">
-                                    {subItem.hasPerm ? (
-                                      <LinkComponent
-                                        href={subItem.itemLink ?? '/'}
-                                        openInNewTab={subItem.openInNewTab}
-                                        className="closeNavOnClick flex-grow py-2 pl-2 text-sm/7 font-semibold text-gray-600"
-                                        prefetch
-                                      >
-                                        {subItem.label}
-                                      </LinkComponent>
-                                    ) : (
-                                      <DeletedMenuEntry
-                                        message={subItem.label}
-                                        className="flex-grow pl-2"
-                                      />
-                                    )}
-                                    <DisclosureButton className="group p-2 text-gray-400 hover:text-gray-600">
-                                      <ChevronDown
-                                        aria-hidden="true"
-                                        className="size-4 flex-none group-data-open:rotate-180"
-                                      />
-                                    </DisclosureButton>
-                                  </div>
-                                ) : (
-                                  <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-2 text-sm/7 font-semibold text-gray-600 hover:bg-gray-50">
-                                    {subItem.label}
-                                    <ChevronDown
-                                      aria-hidden="true"
-                                      className="size-4 flex-none group-data-open:rotate-180"
-                                    />
-                                  </DisclosureButton>
-                                )}
-                                <DisclosurePanel className="border-conveniat-green/20 mt-1 mb-2 ml-2 space-y-1 border-l-2 pl-2.5">
-                                  {subItem.subMenu
-                                    ?.filter(
-                                      (subSubItem) =>
-                                        subSubItem.isVisible || showPreviewForMainMenu,
-                                    )
-                                    .map((subSubItem) => {
-                                      const hasSubSubSub =
-                                        subSubItem.subMenu && subSubItem.subMenu.length > 0;
-
-                                      if (hasSubSubSub) {
-                                        return (
-                                          <SafeErrorBoundary fallback={<></>} key={subSubItem.id}>
-                                            <Disclosure as="div" className="pl-3">
-                                              {subSubItem.hasLink ? (
-                                                <div className="flex w-full items-center justify-between rounded-lg hover:bg-gray-50">
-                                                  {subSubItem.hasPerm ? (
-                                                    <LinkComponent
-                                                      href={subSubItem.itemLink ?? '/'}
-                                                      openInNewTab={subSubItem.openInNewTab}
-                                                      className="closeNavOnClick flex-grow py-2 pl-3 text-xs/7 font-semibold text-gray-500"
-                                                      prefetch
-                                                    >
-                                                      {subSubItem.label}
-                                                    </LinkComponent>
-                                                  ) : (
-                                                    <DeletedMenuEntry
-                                                      message={subSubItem.label}
-                                                      className="flex-grow pl-3"
-                                                    />
-                                                  )}
-                                                  <DisclosureButton className="group p-2 text-gray-400 hover:text-gray-600">
-                                                    <ChevronDown
-                                                      aria-hidden="true"
-                                                      className="size-3.5 flex-none group-data-open:rotate-180"
-                                                    />
-                                                  </DisclosureButton>
-                                                </div>
-                                              ) : (
-                                                <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-xs/7 font-semibold text-gray-500 hover:bg-gray-50">
-                                                  {subSubItem.label}
-                                                  <ChevronDown
-                                                    aria-hidden="true"
-                                                    className="size-3.5 flex-none group-data-open:rotate-180"
-                                                  />
-                                                </DisclosureButton>
-                                              )}
-                                              <DisclosurePanel className="mt-1 mb-2 space-y-1">
-                                                {subSubItem.subMenu
-                                                  ?.filter(
-                                                    (subSubSubItem) =>
-                                                      subSubSubItem.isVisible ||
-                                                      showPreviewForMainMenu,
-                                                  )
-                                                  .map((subSubSubItem) => {
-                                                    if (subSubSubItem.hasLink) {
-                                                      return subSubSubItem.hasPerm ? (
-                                                        <LinkComponent
-                                                          key={subSubSubItem.id}
-                                                          href={subSubSubItem.itemLink ?? '/'}
-                                                          openInNewTab={subSubSubItem.openInNewTab}
-                                                          className="closeNavOnClick block rounded-lg py-2 pr-3 pl-9 text-xs/7 font-semibold text-gray-400 hover:bg-gray-50"
-                                                          prefetch
-                                                        >
-                                                          {subSubSubItem.label}
-                                                        </LinkComponent>
-                                                      ) : (
-                                                        <DeletedMenuEntry
-                                                          key={subSubSubItem.id}
-                                                          message={subSubSubItem.label}
-                                                          className="pl-9"
-                                                        />
-                                                      );
-                                                    }
-
-                                                    return (
-                                                      <span
-                                                        key={subSubSubItem.id}
-                                                        className="closeNavOnClick block rounded-lg py-2 pr-3 pl-9 text-xs/7 font-semibold text-gray-400"
-                                                      >
-                                                        {subSubSubItem.label}
-                                                      </span>
-                                                    );
-                                                  })}
-                                              </DisclosurePanel>
-                                            </Disclosure>
-                                          </SafeErrorBoundary>
-                                        );
-                                      }
-
-                                      if (subSubItem.hasLink) {
-                                        return subSubItem.hasPerm ? (
-                                          <LinkComponent
-                                            key={subSubItem.id}
-                                            href={subSubItem.itemLink ?? '/'}
-                                            openInNewTab={subSubItem.openInNewTab}
-                                            className="closeNavOnClick block rounded-lg py-2 pr-3 pl-9 text-xs/7 font-semibold text-gray-500 hover:bg-gray-50"
-                                            prefetch
-                                          >
-                                            {subSubItem.label}
-                                          </LinkComponent>
-                                        ) : (
-                                          <DeletedMenuEntry
-                                            key={subSubItem.id}
-                                            message={subSubItem.label}
-                                            className="pl-9"
-                                          />
-                                        );
-                                      }
-
-                                      return (
-                                        <span
-                                          key={subSubItem.id}
-                                          className="closeNavOnClick block rounded-lg py-2 pr-3 pl-9 text-xs/7 font-semibold text-gray-400"
-                                        >
-                                          {subSubItem.label}
-                                        </span>
-                                      );
-                                    })}
-                                </DisclosurePanel>
-                              </Disclosure>
-                            </SafeErrorBoundary>
-                          );
-                        }
-
-                        if (subItem.hasLink) {
-                          return subItem.hasPerm ? (
-                            <LinkComponent
-                              key={subItem.id}
-                              href={subItem.itemLink ?? '/'}
-                              openInNewTab={subItem.openInNewTab}
-                              className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
-                              prefetch
-                            >
-                              {subItem.label}
-                            </LinkComponent>
-                          ) : (
-                            <DeletedMenuEntry
-                              key={subItem.id}
-                              message={subItem.label}
-                              className="pl-6"
-                            />
-                          );
-                        }
-
-                        return (
-                          <span
-                            key={subItem.id}
-                            className="closeNavOnClick block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-400"
-                          >
-                            {subItem.label}
-                          </span>
-                        );
-                      })}
-                  </DisclosurePanel>
-                </Disclosure>
-              </SafeErrorBoundary>
+                    <DisclosurePanel className="pb-3 pl-1">
+                      <MenuLinks nodes={children} showPreview={showPreviewForMainMenu} />
+                    </DisclosurePanel>
+                  </Disclosure>
+                </SafeErrorBoundary>
+              </li>
             );
-          }
-
-          if (item.hasLink) {
-            return item.hasPerm ? (
-              <LinkComponent
-                key={item.id}
-                href={item.itemLink ?? '/'}
-                openInNewTab={item.openInNewTab}
-                prefetch
-              >
-                <span className="closeNavOnClick -mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
-                  {item.label}
-                </span>
-              </LinkComponent>
-            ) : (
-              <DeletedMenuEntry key={item.id} message={item.label} className="-mx-3 px-3" />
-            );
-          }
-
-          return (
-            <span
-              key={item.id}
-              className="closeNavOnClick -mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-400"
-            >
-              {item.label}
-            </span>
-          );
-        })}
+          })}
+      </ul>
     </>
   );
 };

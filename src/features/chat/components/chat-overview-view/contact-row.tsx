@@ -162,11 +162,12 @@ export const NewChatFrame: React.FC<{
   onWhite = false,
   children,
 }) => (
-  <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
+  <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
     <AppFooterController hideAppFooter />
 
     <div className="border-line shrink-0 border-b bg-white">
-      <div className="flex h-[60px] items-center gap-1 pr-3 pl-1">
+      {/* in the column of the search and the list below, also where the frame is wider */}
+      <div className="mx-auto flex h-[60px] w-full max-w-xl items-center gap-1 pr-3 pl-1">
         {onBack === undefined ? (
           <Link
             href={backHref ?? '/app/chat'}

@@ -5,9 +5,9 @@ import {
   ContactRowsSkeleton,
   NewChatFrame,
 } from '@/features/chat/components/chat-overview-view/contact-row';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
 /** The words the screens and their skeletons share, so both say the same while loading. */

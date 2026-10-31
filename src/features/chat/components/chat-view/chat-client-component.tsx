@@ -13,11 +13,11 @@ import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { fitToVisualViewport } from '@/features/chat/utils/fit-to-visual-viewport';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import type { LucideIcon } from 'lucide-react';
 import { AlertCircle, UserX, WifiOff } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const yourOffline: StaticTranslationString = {
@@ -59,7 +59,7 @@ const ChatUnavailable: React.FC<{ icon: LucideIcon; title: string; description?:
   title,
   description,
 }) => (
-  <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
+  <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
     <ChatHeaderSkeleton />
     <div className="flex flex-1 items-center justify-center">
       <EmptyState icon={icon} title={title} description={description} />
@@ -115,7 +115,7 @@ const ChatClientContent: React.FC = () => {
   return (
     <div
       ref={fitToVisualViewport}
-      className="bg-page fixed top-[calc(var(--visual-viewport-top,0px)+var(--preview-banner-height))] z-[110] flex h-[calc(var(--visual-viewport-height,100dvh)-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]"
+      className="bg-page fixed top-[calc(var(--visual-viewport-top,0px)+var(--preview-banner-height))] z-[110] flex h-[calc(var(--visual-viewport-height,100dvh)-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto"
     >
       <AppFooterController hideAppFooter />
       <ChatHeader />

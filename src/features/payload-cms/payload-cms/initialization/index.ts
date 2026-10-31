@@ -2,12 +2,14 @@ import { environmentVariables } from '@/config/environment-variables';
 import { backfillBillPayments } from '@/features/billing/services/backfill-bill-payments';
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
 import { ensureIndexes } from '@/features/payload-cms/payload-cms/initialization/ensure-indexes';
+import { migrateFileDownloadGroups } from '@/features/payload-cms/payload-cms/initialization/migrate-file-download-groups';
 import {
   migrateFormFiles,
   s3FormFileStore,
 } from '@/features/payload-cms/payload-cms/initialization/migrate-form-files';
 import { migrateFormPlaceholders } from '@/features/payload-cms/payload-cms/initialization/migrate-form-placeholders';
 import { migrateLegacyHoefe } from '@/features/payload-cms/payload-cms/initialization/migrate-legacy-hoefe';
+import { refreshAdminPanelAccess } from '@/features/payload-cms/payload-cms/initialization/refresh-admin-panel-access';
 import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
 import {
   announceRunningJobsWith,
@@ -216,6 +218,11 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
         await migrateFormPlaceholders(payload);
       });
 
+      // Awaited, so no page renders a file download block before its file sits in a group.
+      await withSpan('payload.init.migrateFileDownloadGroups', async () => {
+        await migrateFileDownloadGroups(payload);
+      });
+
       // Awaited, so no payment import runs before the earlier bookings are payments too: a
       // second payment for one of those bills would otherwise not read as a double payment.
       await withSpan('payload.init.backfillBillPayments', async () => {
@@ -224,6 +231,20 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
           payload.logger.info(`Stored ${String(created)} earlier bookings as payments`);
       }).catch((error: unknown) => {
         payload.logger.error({ err: error }, 'Storing the earlier bookings as payments failed');
+      });
+
+      // Awaited, so the users list never sorts or filters by a flag from before this deployment's
+      // admin panel groups. Two writes, whatever the number of users.
+      await withSpan('payload.init.refreshAdminPanelAccess', async () => {
+        const changed = await refreshAdminPanelAccess(payload);
+        if (changed > 0) {
+          payload.logger.info({ changed }, 'Brought the admin panel access of the users in line');
+        }
+      }).catch((error: unknown) => {
+        payload.logger.error(
+          { err: error },
+          'Refreshing the admin panel access of the users failed',
+        );
       });
 
       // In the background: fills the Höfe of every user the first time, and afterwards

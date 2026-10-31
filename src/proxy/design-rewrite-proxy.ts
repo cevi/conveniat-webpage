@@ -85,11 +85,14 @@ export const designRewriteProxy: ProxyModule = (next) => async (request, event, 
   const pathname = new URL(response.headers.get(Header.MIDDLEWARE_REWRITES) ?? request.url)
     .pathname;
   const isRefererTrigger = appModeForDashboardBasedOnReferer(pathname, request);
+  // The live preview of Home shows it as the app does. Not through `app-mode=true`: that leaves
+  // a cookie which renders the editor's whole website session in the app's design.
+  const isAppPreview = pathname.endsWith('/app/dashboard-preview');
 
   const userAgent = request.headers.get('user-agent') ?? '';
   const isNativeApp = isNativeAppUserAgent(userAgent);
 
-  if (forceAppMode || implicitAppMode || isRefererTrigger || isNativeApp) {
+  if (forceAppMode || implicitAppMode || isRefererTrigger || isNativeApp || isAppPreview) {
     designPrefix = DesignCodes.APP_DESIGN;
   }
 

@@ -4,6 +4,9 @@ model User {
   name                  String
   description           String?
   hidden                Boolean  @default(false)
+  /// a test account, e.g. for the App Store review: its contact list holds only its own Hof and
+  /// its address book, mirrored from the Payload user
+  testAccount           Boolean  @default(false)
   presentAtCamp         Boolean  @default(false)
   /// ids of the Höfe in Payload's `hoefe` collection the user is registered at, mirrored from
   /// the Payload user; no foreign key, the Höfe live in MongoDB

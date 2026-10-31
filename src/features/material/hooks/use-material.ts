@@ -2,11 +2,11 @@
 
 import { endOfDay } from '@/features/material/utils/holders';
 import { shouldRetryMaterialQuery } from '@/features/material/utils/query-errors';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { RouterOutputs } from '@/trpc/client';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import { useCallback, useEffect, useState } from 'react';
 
 export type MaterialItem = RouterOutputs['material']['getInventory'][number];

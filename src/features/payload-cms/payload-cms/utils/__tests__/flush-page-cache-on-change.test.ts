@@ -1,6 +1,8 @@
 import {
+  flushManifestCacheOnChange,
   flushPageCacheOnChange,
   flushPageCacheOnChangeGlobal,
+  flushPageCacheOnDelete,
   rememberDraftSave,
   rememberDraftSaveGlobal,
   rememberLinkTarget,
@@ -9,6 +11,11 @@ import { revalidateTag } from 'next/cache';
 import type { PayloadRequest, SanitizedCollectionConfig, SanitizedGlobalConfig } from 'payload';
 
 jest.mock('next/cache', () => ({ revalidateTag: jest.fn() }));
+
+const mockMarkPublishedPageSlugsChanged = jest.fn<Promise<void>, []>();
+jest.mock('@/features/payload-cms/api/published-page-slugs', () => ({
+  markPublishedPageSlugsChanged: (): Promise<void> => mockMarkPublishedPageSlugsChanged(),
+}));
 
 const PAGE_ID = '65f0c1a2b3d4e5f6a7b8c9d0';
 
@@ -26,6 +33,7 @@ const header = {
 
 type CollectionSave = Parameters<typeof rememberDraftSave>[0];
 type CollectionChange = Parameters<typeof flushPageCacheOnChange>[0];
+type CollectionDelete = Parameters<typeof flushPageCacheOnDelete>[0];
 type GlobalSave = Parameters<typeof rememberDraftSaveGlobal>[0];
 type GlobalChange = Parameters<typeof flushPageCacheOnChangeGlobal>[0];
 
@@ -68,7 +76,42 @@ const linkTarget = (urlSlug: string, published: boolean): object => ({
 });
 
 describe('flushPageCacheOnChange', () => {
-  beforeEach(() => jest.mocked(revalidateTag).mockClear());
+  beforeEach(() => {
+    jest.mocked(revalidateTag).mockReset();
+    mockMarkPublishedPageSlugsChanged.mockReset().mockResolvedValue();
+  });
+
+  it('tells the proxy when a page is unpublished, and not when its content changes', async () => {
+    await savePage(requestReading(linkTarget('anmeldung', true), linkTarget('anmeldung', true)), {
+      data: { _status: 'published' },
+    });
+    expect(mockMarkPublishedPageSlugsChanged).not.toHaveBeenCalled();
+
+    await savePage(requestReading(linkTarget('anmeldung', true), linkTarget('anmeldung', false)), {
+      data: { _status: 'published' },
+    });
+    expect(mockMarkPublishedPageSlugsChanged).toHaveBeenCalledTimes(1);
+  });
+
+  it('tells the proxy about changed slugs when the save runs outside a request', async () => {
+    jest.mocked(revalidateTag).mockImplementation(() => {
+      throw new Error('Invariant: static generation store missing in revalidateTag payload');
+    });
+    const request = requestReading(linkTarget('anmeldung', true), linkTarget('anmeldung', false));
+
+    await savePage(request, { data: { _status: 'published' } });
+
+    expect(mockMarkPublishedPageSlugsChanged).toHaveBeenCalledTimes(1);
+  });
+
+  it('still flushes the cache when Redis cannot be told about changed slugs', async () => {
+    mockMarkPublishedPageSlugsChanged.mockRejectedValue(new Error('redis is down'));
+    const request = requestReading(linkTarget('anmeldung', true), linkTarget('anmelden', true));
+
+    await savePage(request, { data: { _status: 'published' } });
+
+    expect(flushedTags()).toContain('payload');
+  });
 
   it('keeps the cache when autosave stores a draft', async () => {
     await savePage(requestReading(), { draft: true, data: { _status: 'draft' } });
@@ -179,6 +222,37 @@ describe('flushPageCacheOnChange', () => {
   });
 });
 
+/** Runs the hook of one permanent delete. */
+const deleteDocument = async (collection: SanitizedCollectionConfig, id: string): Promise<void> => {
+  await flushPageCacheOnDelete({
+    collection,
+    doc: { id },
+    id,
+    req: requestReading(),
+  } as unknown as CollectionDelete);
+};
+
+describe('flushPageCacheOnDelete', () => {
+  beforeEach(() => {
+    jest.mocked(revalidateTag).mockReset();
+    mockMarkPublishedPageSlugsChanged.mockReset().mockResolvedValue();
+  });
+
+  it('flushes everything when an image is deleted', async () => {
+    await deleteDocument(images, 'image-1');
+
+    expect(flushedTags()).toEqual(['payload', 'collection:images', 'doc:images:image-1']);
+    expect(mockMarkPublishedPageSlugsChanged).not.toHaveBeenCalled();
+  });
+
+  it('tells the proxy that the slug of a deleted page is gone', async () => {
+    await deleteDocument(pages, PAGE_ID);
+
+    expect(flushedTags()).toContain('payload');
+    expect(mockMarkPublishedPageSlugsChanged).toHaveBeenCalledTimes(1);
+  });
+});
+
 /** Runs the hooks of one save of the header in the order Payload runs them. */
 const saveHeader = async (operationArguments: {
   draft?: boolean;
@@ -201,15 +275,32 @@ const saveHeader = async (operationArguments: {
 describe('flushPageCacheOnChangeGlobal', () => {
   beforeEach(() => jest.mocked(revalidateTag).mockClear());
 
-  it('keeps the cache when autosave stores a draft', async () => {
+  it('keeps the published global cached when autosave stores a draft, and expires its draft', async () => {
     await saveHeader({ draft: true, data: { _status: 'draft' } });
 
-    expect(flushedTags()).toEqual([]);
+    expect(flushedTags()).toEqual(['global:header:draft']);
+    // the preview has to show this save on the next request, not after a stale one
+    expect(jest.mocked(revalidateTag)).toHaveBeenCalledWith('global:header:draft', { expire: 0 });
   });
 
   it('flushes everything when the global is published', async () => {
     await saveHeader({ draft: true, data: { _status: 'published' } });
 
     expect(flushedTags()).toEqual(['payload', 'global:header']);
+  });
+});
+
+describe('flushManifestCacheOnChange', () => {
+  beforeEach(() => jest.mocked(revalidateTag).mockClear());
+
+  it('flushes the tag the manifest is cached under', async () => {
+    await flushManifestCacheOnChange({
+      doc: {},
+      global: { slug: 'PWA' },
+      req: requestReading(),
+    } as unknown as Parameters<typeof flushManifestCacheOnChange>[0]);
+
+    // `generate-manifest.ts` tags its entry `global:PWA`
+    expect(flushedTags()).toEqual(['global:PWA']);
   });
 });

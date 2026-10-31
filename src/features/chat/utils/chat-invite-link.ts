@@ -32,3 +32,22 @@ export const readChatInvitePath = (
   const token = INVITE_PATH.exec(url.pathname)?.[1];
   return token === undefined ? undefined : `/app/chat/new-chat-with-user/${token}`;
 };
+
+/**
+ * What a scanned code holds, for telling the user what the camera read: a web link without
+ * its scheme, e.g. `cevi.ch/agenda`, anything else as it is.
+ *
+ * @param value - what the camera read
+ */
+export const describeScannedCode = (value: string): string => {
+  const trimmed = value.trim();
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol === 'https:' || url.protocol === 'http:') {
+      return `${url.host}${url.pathname === '/' ? '' : url.pathname}`;
+    }
+  } catch {
+    // not a link
+  }
+  return trimmed;
+};

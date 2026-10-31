@@ -1,5 +1,6 @@
 import { designRewriteProxy } from '@/proxy/design-rewrite-proxy';
 import { i18nProxy } from '@/proxy/i18n-proxy';
+import { notFoundProxy } from '@/proxy/not-found-proxy';
 import { proxyChain } from '@/proxy/proxy-chain';
 
 import type { ProxyModule } from '@/proxy/types';
@@ -30,7 +31,9 @@ const authSessionProxy: ProxyModule = (next) => {
     // but not for purely static assets to save overhead.
     const { pathname } = request.nextUrl;
     const isStaticAsset =
-      /\.(png|webp|ico|svg|webmanifest|xml|txt|jpg|jpeg|gif|js|map|json|css)$/i.test(pathname) ||
+      /\.(png|webp|ico|svg|webmanifest|xml|txt|jpg|jpeg|gif|js|map|json|css|ttf)$/i.test(
+        pathname,
+      ) ||
       pathname.startsWith('/imgs/') ||
       pathname.startsWith('/.well-known/') ||
       pathname === '/apple-app-site-association' ||
@@ -69,6 +72,7 @@ export const proxy = proxyChain([
   { proxy: pathnameProxy, name: 'pathname' },
   { proxy: i18nProxy, name: 'i18n' },
   { proxy: designRewriteProxy, name: 'designRewrite' },
+  { proxy: notFoundProxy, name: 'notFound' },
 ]);
 
 export const config = {

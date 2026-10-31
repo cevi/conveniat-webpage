@@ -2,6 +2,7 @@
 
 import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -10,7 +11,6 @@ import { handleLogin } from '@/utils/login-handler';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronRight, Flag, Loader2, LogIn, WifiOff } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 

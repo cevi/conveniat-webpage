@@ -12,12 +12,20 @@ jest.mock('@/features/payload-cms/payload-cms/initialization/deleting', () => ({
 jest.mock('@/features/payload-cms/payload-cms/initialization/ensure-indexes', () => ({
   ensureIndexes: jest.fn().mockResolvedValue(void 0),
 }));
+jest.mock(
+  '@/features/payload-cms/payload-cms/initialization/migrate-file-download-groups',
+  () => ({}),
+);
 jest.mock('@/features/payload-cms/payload-cms/initialization/migrate-form-files', () => ({}));
 jest.mock(
   '@/features/payload-cms/payload-cms/initialization/migrate-form-placeholders',
   () => ({}),
 );
 jest.mock('@/features/payload-cms/payload-cms/initialization/migrate-legacy-hoefe', () => ({}));
+jest.mock(
+  '@/features/payload-cms/payload-cms/initialization/refresh-admin-panel-access',
+  () => ({}),
+);
 jest.mock('@/features/payload-cms/payload-cms/initialization/seeding', () => ({
   seedDatabase: jest.fn().mockResolvedValue(void 0),
 }));

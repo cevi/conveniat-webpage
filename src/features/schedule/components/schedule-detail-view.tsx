@@ -20,12 +20,12 @@ import {
   isForQuartiere,
   quartiereOf,
 } from '@/features/schedule/utils/programme-utils';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { AlertTriangle, ArrowLeft, CalendarX } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useMemo, useState } from 'react';
 
@@ -40,9 +40,12 @@ const labels = {
   },
 } as const;
 
-/** below the preview banner, when there is one, and above the bottom navigation, which is `h-20` */
+/**
+ * below the preview banner, when there is one, and above the bottom navigation; on a desktop in
+ * the free area beside the menu and the tabs, under the header
+ */
 const containerClassName =
-  'fixed inset-x-0 top-(--preview-banner-height) bottom-20 z-[110] flex flex-col overflow-hidden bg-page';
+  'fixed inset-x-0 top-(--preview-banner-height) bottom-(--app-tab-bar-height) z-[110] flex flex-col overflow-hidden bg-page xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0';
 
 interface ScheduleDetailViewProperties {
   id: string;

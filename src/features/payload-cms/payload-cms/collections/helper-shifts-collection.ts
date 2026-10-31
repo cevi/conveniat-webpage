@@ -15,7 +15,10 @@ import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-
 import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-blocks/single-picture-block';
 import { whiteSpaceBlock } from '@/features/payload-cms/payload-cms/shared-blocks/white-space-block';
 import { mainContentField } from '@/features/payload-cms/payload-cms/shared-fields/main-content-field';
-import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
+import {
+  flushPageCacheOnChange,
+  flushPageCacheOnDelete,
+} from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import { DEFAULT_UNENROLLMENT_DEADLINE_MINUTES } from '@/features/schedule/utils/unenrollment-deadline';
@@ -27,6 +30,7 @@ export const HelperShiftsCollection: CollectionConfig = {
   trash: true,
   hooks: {
     afterChange: [flushPageCacheOnChange],
+    afterDelete: [flushPageCacheOnDelete],
     afterRead: [makeInjectEnrollmentCount(CourseType.SHIFT)],
   },
   endpoints: [

@@ -56,7 +56,7 @@ import { HelperShiftOrganiserExport as HelperShiftOrganiserExport_706abe738905a3
 import { ExportListMenuItem as ExportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { ImportListMenuItem as ImportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_de57a7a0310123dd259a53c03db574b9 } from '@/features/payload-cms/components/push-notification/push-notification-panel'
-import { FunktionenSyncButton as FunktionenSyncButton_9dd20bcf5b197469cfbb411fdb50e198 } from '@/features/payload-cms/payload-cms/components/funktionen-sync-button'
+import { FunktionenListHeader as FunktionenListHeader_b4889cf2925bee9fd8708afb34e7214c } from '@/features/payload-cms/payload-cms/components/funktionen-list-header'
 import { default as default_720f56d8cf9ba0434ee963ba588968d8 } from '@/features/billing/components/billing-status-cell'
 import { default as default_06b30d36d4fec532358cb0f29e42cc3e } from '@/features/billing/components/billing-actions-cell'
 import { default as default_861a0172410057db13945839747e3602 } from '@/features/billing/components/billing-actions-field'
@@ -123,6 +123,7 @@ import { default as default_ca24980ef56b9b5023ff164dd084145b } from '@/features/
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
 import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page'
 import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner'
+import { UploadSizeGuard as UploadSizeGuard_eaeb4abe4034540768dce4d0ae049678 } from '@/features/payload-cms/payload-cms/components/upload-size-guard'
 import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_1e4b7ed358a9b39713ba1bd44bbcc1f1 } from '@/features/payload-cms/payload-cms/views/access-overview-view'
 import { default as default_dbd7fa7f7e394074f3d89896acb3145a } from '@/features/payload-cms/payload-cms/views/merge-users-view'
@@ -195,7 +196,7 @@ export const importMap = {
   "@payloadcms/plugin-import-export/rsc#ExportListMenuItem": ExportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@payloadcms/plugin-import-export/rsc#ImportListMenuItem": ImportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/components/push-notification/push-notification-panel#default": default_de57a7a0310123dd259a53c03db574b9,
-  "@/features/payload-cms/payload-cms/components/funktionen-sync-button#FunktionenSyncButton": FunktionenSyncButton_9dd20bcf5b197469cfbb411fdb50e198,
+  "@/features/payload-cms/payload-cms/components/funktionen-list-header#FunktionenListHeader": FunktionenListHeader_b4889cf2925bee9fd8708afb34e7214c,
   "@/features/billing/components/billing-status-cell#default": default_720f56d8cf9ba0434ee963ba588968d8,
   "@/features/billing/components/billing-actions-cell#default": default_06b30d36d4fec532358cb0f29e42cc3e,
   "@/features/billing/components/billing-actions-field#default": default_861a0172410057db13945839747e3602,
@@ -262,6 +263,7 @@ export const importMap = {
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
   "@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page#default": default_d432a7de1921f0e10a01eefbe71b022a,
   "@/features/payload-cms/payload-cms/components/dashboard-welcome-banner#default": default_a79319ae20aa3b9aa7415044aaf68603,
+  "@/features/payload-cms/payload-cms/components/upload-size-guard#UploadSizeGuard": UploadSizeGuard_eaeb4abe4034540768dce4d0ae049678,
   "@payloadcms/plugin-import-export/rsc#ImportExportProvider": ImportExportProvider_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/payload-cms/views/access-overview-view#default": default_1e4b7ed358a9b39713ba1bd44bbcc1f1,
   "@/features/payload-cms/payload-cms/views/merge-users-view#default": default_dbd7fa7f7e394074f3d89896acb3145a,

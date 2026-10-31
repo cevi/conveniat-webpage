@@ -8,11 +8,11 @@ import { resolveLocation } from '@/features/schedule/utils/location-utils';
 import { kindOf, quartiereOf, slotOf } from '@/features/schedule/utils/programme-utils';
 import { formatDuration } from '@/features/schedule/utils/time-utils';
 import type { TimelineStop, TimelineTransfer } from '@/features/schedule/utils/timeline';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { formatQuartierRange } from '@/utils/quartier-names';
 import { Clock, Moon, Route, Sunrise, Utensils } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const iconClassName = 'h-[18px] w-[18px] shrink-0 text-green-500';

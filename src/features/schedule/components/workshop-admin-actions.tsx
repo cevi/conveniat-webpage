@@ -1,12 +1,12 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
 import { SectionLabel } from '@/components/ui/section-label';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Loader2, MessageSquare } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
 

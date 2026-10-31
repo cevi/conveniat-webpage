@@ -1,6 +1,7 @@
 import { DynamicAppTitleName } from '@/components/header/dynamic-app-title-name';
 import { AppHeaderTitle } from '@/components/header/header-actions';
 import { PreviewModeBannerServerComponent } from '@/components/header/preview-mode-banner-server';
+import { AppFeatures } from '@/components/menu/app-features';
 import { DesktopNav } from '@/components/menu/desktop-nav';
 import {
   getMainMenuFromPayloadCached,
@@ -13,7 +14,9 @@ import { LinkComponent } from '@/components/ui/link-component';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import { getLanguagePrefix } from '@/features/payload-cms/utils/get-language-prefix';
 import type { Locale, NavigationMode, StaticTranslationString } from '@/types/types';
+import { isAdminSession } from '@/utils/is-admin-session';
 import { ForceDynamicOnBuild } from '@/utils/is-pre-rendering';
+import { cn } from '@/utils/tailwindcss-override';
 import React from 'react';
 
 interface HeaderComponentProperties {
@@ -29,24 +32,51 @@ const landingPageAreaLinktText: StaticTranslationString = {
 };
 
 /**
- * Async Top Navigation Content component wrapped inside React.Suspense
+ * The desktop header bar with the published menu, and for an editor the draft menu as well, which
+ * it shows in preview mode (`?preview=true`), so the live preview of the header global and page
+ * previews show the menu being edited.
  */
-const TopNavContent: React.FC<{ locale: Locale }> = async ({ locale }) => {
+const TopNavContent: React.FC<{
+  locale: Locale;
+  inAppDesign: boolean;
+  withDraftForEditors?: boolean;
+}> = async ({ locale, inAppDesign, withDraftForEditors = false }) => {
   const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
-  const publishedMenuRaw = await getMainMenuFromPayloadCached(locale, false);
-  const publishedMenu = Array.isArray(publishedMenuRaw) ? publishedMenuRaw : [];
-  const processedMenu = await processMenuTree(publishedMenu, locale, false);
+  // the published read starts before the session read, for the reason given in `MainMenu`
+  const publishedMenu = await getMainMenuFromPayloadCached(locale, false);
+  const menuItems = await processMenuTree(publishedMenu, locale, false);
 
-  return <DesktopNav locale={locale} menuItems={processedMenu} actionURL={actionURL} />;
+  const draftMenuItems =
+    withDraftForEditors && (await isAdminSession())
+      ? await processMenuTree(await getMainMenuFromPayloadCached(locale, true), locale, true)
+      : undefined;
+
+  return (
+    <DesktopNav
+      locale={locale}
+      menuItems={menuItems}
+      draftMenuItems={draftMenuItems}
+      actionURL={actionURL}
+      appFeatures={
+        inAppDesign ? (
+          <ForceDynamicOnBuild>
+            <AppFeatures locale={locale} variant="column" />
+          </ForceDynamicOnBuild>
+        ) : undefined
+      }
+    />
+  );
 };
 
 /**
  * Top Navigation Header Layout
  * Full-width top bar with contained logo + title and horizontal megamenu on wide screens (>= 1280px).
+ * Below that, the app keeps its own header: the menu on the left, the page's title next to it.
  */
 const TopNavHeader: React.FC<{
   locale: Locale;
-}> = ({ locale }) => {
+  inAppDesign: boolean;
+}> = ({ locale, inAppDesign }) => {
   const languagePrefix = getLanguagePrefix(locale);
 
   return (
@@ -66,7 +96,9 @@ const TopNavHeader: React.FC<{
             className="group flex shrink-0 items-center gap-3 focus:outline-hidden"
           >
             {/* Mobile Logo */}
-            <ConveniatLogo className="absolute top-[12px] left-[24px] z-[105] xl:hidden" />
+            {!inAppDesign && (
+              <ConveniatLogo className="absolute top-[12px] left-[24px] z-[105] xl:hidden" />
+            )}
 
             {/* Desktop Contained Logo + Brand Title */}
             <div className="hidden items-center gap-3 xl:flex">
@@ -77,26 +109,34 @@ const TopNavHeader: React.FC<{
             </div>
           </LinkComponent>
 
-          {/* Mobile Title */}
-          <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:hidden">
-            <DynamicAppTitleName />
-          </span>
+          {/* Mobile Title; in the app also the page's title and buttons on a desktop */}
+          {inAppDesign ? (
+            <AppHeaderTitle inAppDesign inlineOnDesktop />
+          ) : (
+            <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:hidden">
+              <DynamicAppTitleName />
+            </span>
+          )}
 
           {/* Full Width Desktop Top Navigation, taking whatever width the logo leaves */}
           <div className="flex min-w-0 flex-1 items-center justify-end pr-4">
-            <React.Suspense fallback={undefined}>
-              <TopNavContent locale={locale} />
+            {/* The published bar is part of the prerendered shell and stays there when the
+                session read below cannot run, offline for one. */}
+            <React.Suspense fallback={<TopNavContent locale={locale} inAppDesign={inAppDesign} />}>
+              <TopNavContent locale={locale} inAppDesign={inAppDesign} withDraftForEditors />
             </React.Suspense>
           </div>
 
-          {/* Mobile Drawer */}
-          <React.Suspense fallback={<div className="h-[60px] xl:hidden" />}>
-            <NavComponent showDesktopSidePanel={false} locale={locale}>
-              <ForceDynamicOnBuild>
-                <MainMenu locale={locale} inAppDesign={false} />
-              </ForceDynamicOnBuild>
-            </NavComponent>
-          </React.Suspense>
+          {/* Mobile Drawer, opened from the left in the app */}
+          <div className={cn(inAppDesign && 'order-first')}>
+            <React.Suspense fallback={<div className="h-[60px] xl:hidden" />}>
+              <NavComponent showDesktopSidePanel={false} locale={locale}>
+                <ForceDynamicOnBuild>
+                  <MainMenu locale={locale} inAppDesign={inAppDesign} />
+                </ForceDynamicOnBuild>
+              </NavComponent>
+            </React.Suspense>
+          </div>
         </div>
       </div>
     </header>
@@ -154,7 +194,7 @@ export const HeaderComponent: React.FC<HeaderComponentProperties> = ({
   navigationMode = 'side-nav',
 }) => {
   if (navigationMode === 'top-nav') {
-    return <TopNavHeader locale={locale} />;
+    return <TopNavHeader locale={locale} inAppDesign={inAppDesign} />;
   }
 
   return <SideNavHeader locale={locale} inAppDesign={inAppDesign} />;

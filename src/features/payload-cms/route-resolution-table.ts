@@ -1,4 +1,3 @@
-import BlogPostPage from '@/features/payload-cms/page-layouts/blog-posts';
 import GenericPage from '@/features/payload-cms/page-layouts/generic-page';
 import { TimelinePreviewPage } from '@/features/payload-cms/page-layouts/timeline-preview-page';
 import { collectionsConfig } from '@/features/payload-cms/payload-cms/collections';
@@ -40,7 +39,6 @@ const slugLookup: Record<
   PageSlug,
   React.FC<LocalizedCollectionPage> | React.FC<LocalizedPageType>
 > = {
-  blog: BlogPostPage,
   timeline: TimelinePreviewPage,
   'generic-page': GenericPage,
 };
@@ -79,8 +77,7 @@ export const routeResolutionTable: RouteResolutionTable = collectionsConfig.redu
 /**
  * Maps an url prefix to the corresponding collection slug.
  *
- * @example If the user defines a blogs collection with the url prefix 'blog', this function
- * will return the collection slug 'blogs'.
+ * @example The url prefix 'timeline-preview' resolves to the collection slug 'timeline'.
  *
  * TODO: currently this function does not check if the locale is correct.
  *

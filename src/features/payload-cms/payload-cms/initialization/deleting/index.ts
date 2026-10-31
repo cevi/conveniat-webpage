@@ -3,7 +3,6 @@ import type { CollectionSlug, Payload } from 'payload';
 export const deleteDatabase = async (payload: Payload): Promise<void> => {
   const slugs_to_delete: CollectionSlug[] = [
     'generic-page',
-    'blog',
     'forms',
     'documents',
     'form-submissions',
