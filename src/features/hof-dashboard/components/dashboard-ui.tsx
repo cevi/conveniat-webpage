@@ -177,14 +177,16 @@ export const ResponsibleList: React.FC<{ people: HofContact[]; locale: Locale }>
   ) : (
     <ul className="grid gap-4 @2xl:grid-cols-2 @5xl:grid-cols-3">
       {people.map((person) => (
-        <li key={person.email} className="text-sm text-gray-900">
+        <li key={person.email} className="min-w-0 text-sm text-gray-900">
           {person.name !== undefined && <p className="font-semibold">{person.name}</p>}
+          {/* one line, cut short where the column is narrow; the whole address on hover */}
           <a
             href={`mailto:${person.email}`}
-            className="text-conveniat-green flex min-h-11 items-center gap-1.5 break-all hover:underline"
+            title={person.email}
+            className="text-conveniat-green flex min-h-11 min-w-0 items-center gap-1.5 hover:underline"
           >
             <Mail className="h-4 w-4 shrink-0" aria-hidden />
-            {person.email}
+            <span className="truncate">{person.email}</span>
           </a>
         </li>
       ))}
