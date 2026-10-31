@@ -1,4 +1,4 @@
-import { readChatInvitePath } from '@/features/chat/utils/chat-invite-link';
+import { describeScannedCode, readChatInvitePath } from '@/features/chat/utils/chat-invite-link';
 
 const ORIGINS = ['https://conveniat27.ch', 'https://con27.ch'];
 
@@ -27,5 +27,19 @@ describe('readChatInvitePath', () => {
   it('ignores a link of the app that is no invite, and text that is no link', () => {
     expect(readChatInvitePath('https://conveniat27.ch/app/map', ORIGINS)).toBeUndefined();
     expect(readChatInvitePath('JS-WOLL', ORIGINS)).toBeUndefined();
+  });
+});
+
+describe('describeScannedCode', () => {
+  it('shows a web link by its host and path', () => {
+    expect(describeScannedCode('https://www.cevi.ch/agenda?ref=plakat')).toBe('www.cevi.ch/agenda');
+    expect(describeScannedCode(' https://example.com/ ')).toBe('example.com');
+  });
+
+  it('shows anything else as it was read', () => {
+    expect(describeScannedCode('JS-WOLL')).toBe('JS-WOLL');
+    expect(describeScannedCode('WIFI:S:Lager;T:WPA;P:geheim;;')).toBe(
+      'WIFI:S:Lager;T:WPA;P:geheim;;',
+    );
   });
 });
