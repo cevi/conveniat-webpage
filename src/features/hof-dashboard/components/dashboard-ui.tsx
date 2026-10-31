@@ -89,8 +89,8 @@ const TONE_STYLE: Record<
   StatusTone,
   { icon: React.FC<{ className?: string }>; className: string }
 > = {
-  done: { icon: CheckCircle2, className: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
-  neutral: { icon: Clock, className: 'bg-gray-100 text-gray-700 ring-gray-200' },
+  done: { icon: CheckCircle2, className: 'bg-tint text-green-800 ring-tint-line' },
+  neutral: { icon: Clock, className: 'bg-white text-gray-700 ring-gray-200' },
   warning: { icon: Clock, className: 'bg-amber-50 text-amber-800 ring-amber-200' },
   // the Hof has to act: amber like due soon, marked like an alert
   attention: { icon: AlertCircle, className: 'bg-amber-50 text-amber-800 ring-amber-200' },
