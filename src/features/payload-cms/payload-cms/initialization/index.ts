@@ -2,6 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import { backfillBillPayments } from '@/features/billing/services/backfill-bill-payments';
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
 import { ensureIndexes } from '@/features/payload-cms/payload-cms/initialization/ensure-indexes';
+import { migrateFileDownloadGroups } from '@/features/payload-cms/payload-cms/initialization/migrate-file-download-groups';
 import {
   migrateFormFiles,
   s3FormFileStore,
@@ -214,6 +215,11 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
       // Awaited, so existing form placeholders are localized before an editor saves them in admin.
       await withSpan('payload.init.migrateFormPlaceholders', async () => {
         await migrateFormPlaceholders(payload);
+      });
+
+      // Awaited, so no page renders a file download block before its file sits in a group.
+      await withSpan('payload.init.migrateFileDownloadGroups', async () => {
+        await migrateFileDownloadGroups(payload);
       });
 
       // Awaited, so no payment import runs before the earlier bookings are payments too: a

@@ -12,6 +12,10 @@ jest.mock('@/features/payload-cms/payload-cms/initialization/deleting', () => ({
 jest.mock('@/features/payload-cms/payload-cms/initialization/ensure-indexes', () => ({
   ensureIndexes: jest.fn().mockResolvedValue(void 0),
 }));
+jest.mock(
+  '@/features/payload-cms/payload-cms/initialization/migrate-file-download-groups',
+  () => ({}),
+);
 jest.mock('@/features/payload-cms/payload-cms/initialization/migrate-form-files', () => ({}));
 jest.mock(
   '@/features/payload-cms/payload-cms/initialization/migrate-form-placeholders',

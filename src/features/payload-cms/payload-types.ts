@@ -385,13 +385,7 @@ export interface GenericPage {
       | YoutubeEmbedding
       | InstagramEmbedding
       | SwisstopoMapEmbedding
-      | {
-          file: string | Document;
-          openInNewTab?: boolean | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'fileDownload';
-        }
+      | FileDownloadBlock
       | DetailsTable
       | AccordionBlocks
       | SummaryBox
@@ -2454,6 +2448,27 @@ export interface SwisstopoMapEmbedding {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FileDownloadBlock".
+ */
+export interface FileDownloadBlock {
+  /**
+   * Each group is shown as its own list under its title. For a plain list, use one group without a title.
+   */
+  groups: {
+    /**
+     * Optional, for example "For parents".
+     */
+    title?: string | null;
+    files: (string | Document)[];
+    id?: string | null;
+  }[];
+  openInNewTab?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'fileDownload';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "DetailsTable".
  */
 export interface DetailsTable {
@@ -2535,13 +2550,7 @@ export interface AccordionBlocks {
           | AccordionTimelineElementBlock
           | TitleOnlyAccordionValueBlock
           | NestedAccordionBlocks
-          | {
-              file: string | Document;
-              openInNewTab?: boolean | null;
-              id?: string | null;
-              blockName?: string | null;
-              blockType: 'fileDownload';
-            }
+          | FileDownloadBlock
         )[];
         id?: string | null;
       }[]
@@ -2635,20 +2644,7 @@ export interface TeamMembersBlock {
 export interface AccordionTimelineElementBlock {
   dateText: string;
   title: string;
-  contentBlocks?:
-    | (
-        | PlainTextBlock
-        | TeamMembersBlock
-        | FormBlock
-        | {
-            file: string | Document;
-            openInNewTab?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'fileDownload';
-          }
-      )[]
-    | null;
+  contentBlocks?: (PlainTextBlock | TeamMembersBlock | FormBlock | FileDownloadBlock)[] | null;
   id?: string | null;
   blockName?: string | null;
   blockType: 'accordionTimelineElement';
@@ -2675,13 +2671,7 @@ export interface NestedAccordionBlocks {
           | PlainTextBlock
           | TeamMembersBlock
           | FormBlock
-          | {
-              file: string | Document;
-              openInNewTab?: boolean | null;
-              id?: string | null;
-              blockName?: string | null;
-              blockType: 'fileDownload';
-            }
+          | FileDownloadBlock
           | AccordionTimelineElementBlock
           | TitleOnlyAccordionValueBlock
         )[];
@@ -3211,13 +3201,7 @@ export interface TwoColumnBlock {
     | YoutubeEmbedding
     | InstagramEmbedding
     | SwisstopoMapEmbedding
-    | {
-        file: string | Document;
-        openInNewTab?: boolean | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'fileDownload';
-      }
+    | FileDownloadBlock
     | DetailsTable
     | AccordionBlocks
     | SummaryBox
@@ -3387,13 +3371,7 @@ export interface TwoColumnBlock {
     | YoutubeEmbedding
     | InstagramEmbedding
     | SwisstopoMapEmbedding
-    | {
-        file: string | Document;
-        openInNewTab?: boolean | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'fileDownload';
-      }
+    | FileDownloadBlock
     | DetailsTable
     | AccordionBlocks
     | SummaryBox
@@ -3711,13 +3689,7 @@ export interface TabsBlock {
       | YoutubeEmbedding
       | InstagramEmbedding
       | SwisstopoMapEmbedding
-      | {
-          file: string | Document;
-          openInNewTab?: boolean | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'fileDownload';
-        }
+      | FileDownloadBlock
       | DetailsTable
       | AccordionBlocks
       | SummaryBox
@@ -4153,13 +4125,7 @@ export interface HelperShift {
             blockName?: string | null;
             blockType: 'singlePicture';
           }
-        | {
-            file: string | Document;
-            openInNewTab?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'fileDownload';
-          }
+        | FileDownloadBlock
         | AccordionBlocks
         | {
             id?: string | null;
@@ -5266,14 +5232,7 @@ export interface GenericPageSelect<T extends boolean = true> {
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
               instagramEmbed?: T | InstagramEmbeddingSelect<T>;
               swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
-              fileDownload?:
-                | T
-                | {
-                    file?: T;
-                    openInNewTab?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
+              fileDownload?: T | FileDownloadBlockSelect<T>;
               detailsTable?: T | DetailsTableSelect<T>;
               accordion?: T | AccordionBlocksSelect<T>;
               summaryBox?: T | SummaryBoxSelect<T>;
@@ -5547,6 +5506,22 @@ export interface SwisstopoMapEmbeddingSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FileDownloadBlock_select".
+ */
+export interface FileDownloadBlockSelect<T extends boolean = true> {
+  groups?:
+    | T
+    | {
+        title?: T;
+        files?: T;
+        id?: T;
+      };
+  openInNewTab?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "DetailsTable_select".
  */
 export interface DetailsTableSelect<T extends boolean = true> {
@@ -5589,14 +5564,7 @@ export interface AccordionBlocksSelect<T extends boolean = true> {
               accordionTimelineElement?: T | AccordionTimelineElementBlockSelect<T>;
               titleOnlyAccordionValueBlock?: T | TitleOnlyAccordionValueBlockSelect<T>;
               nestedAccordion?: T | NestedAccordionBlocksSelect<T>;
-              fileDownload?:
-                | T
-                | {
-                    file?: T;
-                    openInNewTab?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
+              fileDownload?: T | FileDownloadBlockSelect<T>;
             };
         id?: T;
       };
@@ -5659,14 +5627,7 @@ export interface AccordionTimelineElementBlockSelect<T extends boolean = true> {
         accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
         accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
-        fileDownload?:
-          | T
-          | {
-              file?: T;
-              openInNewTab?: T;
-              id?: T;
-              blockName?: T;
-            };
+        fileDownload?: T | FileDownloadBlockSelect<T>;
       };
   id?: T;
   blockName?: T;
@@ -5695,14 +5656,7 @@ export interface NestedAccordionBlocksSelect<T extends boolean = true> {
               accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
               accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
               formBlock?: T | FormBlockSelect<T>;
-              fileDownload?:
-                | T
-                | {
-                    file?: T;
-                    openInNewTab?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
+              fileDownload?: T | FileDownloadBlockSelect<T>;
               accordionTimelineElement?: T | AccordionTimelineElementBlockSelect<T>;
               titleOnlyAccordionValueBlock?: T | TitleOnlyAccordionValueBlockSelect<T>;
             };
@@ -5885,14 +5839,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
         youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
         instagramEmbed?: T | InstagramEmbeddingSelect<T>;
         swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
-        fileDownload?:
-          | T
-          | {
-              file?: T;
-              openInNewTab?: T;
-              id?: T;
-              blockName?: T;
-            };
+        fileDownload?: T | FileDownloadBlockSelect<T>;
         detailsTable?: T | DetailsTableSelect<T>;
         accordion?: T | AccordionBlocksSelect<T>;
         summaryBox?: T | SummaryBoxSelect<T>;
@@ -5986,14 +5933,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
         youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
         instagramEmbed?: T | InstagramEmbeddingSelect<T>;
         swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
-        fileDownload?:
-          | T
-          | {
-              file?: T;
-              openInNewTab?: T;
-              id?: T;
-              blockName?: T;
-            };
+        fileDownload?: T | FileDownloadBlockSelect<T>;
         detailsTable?: T | DetailsTableSelect<T>;
         accordion?: T | AccordionBlocksSelect<T>;
         summaryBox?: T | SummaryBoxSelect<T>;
@@ -6177,14 +6117,7 @@ export interface TabsBlockSelect<T extends boolean = true> {
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
               instagramEmbed?: T | InstagramEmbeddingSelect<T>;
               swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
-              fileDownload?:
-                | T
-                | {
-                    file?: T;
-                    openInNewTab?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
+              fileDownload?: T | FileDownloadBlockSelect<T>;
               detailsTable?: T | DetailsTableSelect<T>;
               accordion?: T | AccordionBlocksSelect<T>;
               summaryBox?: T | SummaryBoxSelect<T>;
@@ -6767,14 +6700,7 @@ export interface HelperShiftsSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
-        fileDownload?:
-          | T
-          | {
-              file?: T;
-              openInNewTab?: T;
-              id?: T;
-              blockName?: T;
-            };
+        fileDownload?: T | FileDownloadBlockSelect<T>;
         accordion?: T | AccordionBlocksSelect<T>;
         whiteSpace?:
           | T
@@ -8376,13 +8302,7 @@ export interface AppLandingPage {
         | YoutubeEmbedding
         | InstagramEmbedding
         | SwisstopoMapEmbedding
-        | {
-            file: string | Document;
-            openInNewTab?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'fileDownload';
-          }
+        | FileDownloadBlock
         | DetailsTable
         | AccordionBlocks
         | SummaryBox
@@ -9153,14 +9073,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
         youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
         instagramEmbed?: T | InstagramEmbeddingSelect<T>;
         swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
-        fileDownload?:
-          | T
-          | {
-              file?: T;
-              openInNewTab?: T;
-              id?: T;
-              blockName?: T;
-            };
+        fileDownload?: T | FileDownloadBlockSelect<T>;
         detailsTable?: T | DetailsTableSelect<T>;
         accordion?: T | AccordionBlocksSelect<T>;
         summaryBox?: T | SummaryBoxSelect<T>;
