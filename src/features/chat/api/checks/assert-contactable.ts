@@ -21,24 +21,33 @@ const notAContactText: StaticTranslationString = {
  * With the contact list restricted, that is the people sharing a Hof with the user, the
  * people in their address book (see `AddressBookEntry`), and everyone holding a function or
  * the AVP role of a Hof. Otherwise it is everyone who is not hidden.
+ *
+ * A test account, like the one for the App Store review, keeps only its Hof and its address
+ * book, whether the contact list is restricted or not.
  */
 export const getContactFilter = async (
   prisma: PrismaClientOrTransaction,
   userId: string,
 ): Promise<Prisma.UserWhereInput> => {
   const everyone: Prisma.UserWhereInput = { uuid: { not: userId }, hidden: false };
-  if (!(await getFeatureFlag(FEATURE_FLAG_RESTRICT_CONTACT_LIST))) return everyone;
+  const self = await prisma.user.findUnique({
+    where: { uuid: userId },
+    select: { hofIds: true, testAccount: true },
+  });
+  const isTestAccount = self?.testAccount === true;
+  if (!isTestAccount && !(await getFeatureFlag(FEATURE_FLAG_RESTRICT_CONTACT_LIST))) {
+    return everyone;
+  }
 
-  const self = await prisma.user.findUnique({ where: { uuid: userId }, select: { hofIds: true } });
+  const ownContacts: Prisma.UserWhereInput[] = [
+    { hofIds: { hasSome: self?.hofIds ?? [] } },
+    { inAddressBooksOf: { some: { ownerId: userId } } },
+  ];
+  if (isTestAccount) return { ...everyone, OR: ownContacts };
 
   return {
     ...everyone,
-    OR: [
-      { hofIds: { hasSome: self?.hofIds ?? [] } },
-      { inAddressBooksOf: { some: { ownerId: userId } } },
-      { funktionIds: { isEmpty: false } },
-      { avpHofIds: { isEmpty: false } },
-    ],
+    OR: [...ownContacts, { funktionIds: { isEmpty: false } }, { avpHofIds: { isEmpty: false } }],
   };
 };
 
