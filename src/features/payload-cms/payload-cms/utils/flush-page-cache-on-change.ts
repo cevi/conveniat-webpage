@@ -278,10 +278,11 @@ export const flushPageCacheOnChangeGlobal: GlobalAfterChangeHook = ({ doc, req, 
   }
 };
 
-export const flushManifestCacheOnChange: GlobalAfterChangeHook = ({ req }): void => {
+/** Flushes the manifest, the one entry that reads the PWA global, see `generate-manifest.ts`. */
+export const flushManifestCacheOnChange: GlobalAfterChangeHook = ({ global, req }): void => {
   req.payload.logger.debug('PWA global changed, revalidating the manifest');
   try {
-    revalidateTag('manifest', 'max');
+    revalidateTag(`global:${global.slug}`, 'max');
   } catch (error: unknown) {
     req.payload.logger.warn({ error }, 'Revalidating the manifest failed, this is non-critical');
   }

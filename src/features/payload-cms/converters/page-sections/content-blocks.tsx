@@ -151,7 +151,7 @@ const getTimelineEntriesCachedPersistent = async (
 ): Promise<{ docs: Timeline[] }> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'timeline', 'collection:timeline', `ids:${ids.join(',')}`, locale);
+  cacheTag('payload', 'collection:timeline');
 
   return getTimelineEntriesCached(ids, locale);
 };
