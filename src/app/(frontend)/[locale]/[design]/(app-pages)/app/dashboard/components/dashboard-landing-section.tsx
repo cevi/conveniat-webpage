@@ -1,5 +1,6 @@
 'use client';
 
+import type { QuickAccessFlags } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-quick-access';
 import { DashboardQuickAccess } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-quick-access';
 import { QuickAccessSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
@@ -48,22 +49,41 @@ export const DashboardLandingSection: React.FC<{
   }
 
   return (
-    <>
-      <SetDynamicPageTitle newTitle={dashboardConfig.title} />
+    <DashboardLanding
+      locale={locale}
+      title={dashboardConfig.title}
+      showActionCards={dashboardConfig.showActionCards}
+      flags={{
+        // guarded: a phone may restore a configuration cached before the flags existed
+        imageUploadEnabled:
+          (dashboardConfig.featureFlags as { imageUploadEnabled?: boolean } | undefined)
+            ?.imageUploadEnabled !== false,
+        materialEnabled,
+      }}
+      supportEmail={supportEmail}
+    >
       {children}
-      {dashboardConfig.showActionCards && (
-        <DashboardQuickAccess
-          locale={locale}
-          supportEmail={supportEmail}
-          flags={{
-            // guarded: a phone may restore a configuration cached before the flags existed
-            imageUploadEnabled:
-              (dashboardConfig.featureFlags as { imageUploadEnabled?: boolean } | undefined)
-                ?.imageUploadEnabled !== false,
-            materialEnabled,
-          }}
-        />
-      )}
-    </>
+    </DashboardLanding>
   );
 };
+
+/**
+ * Home as the CMS configures it: the title in the app header, `children` and, if switched on,
+ * the Schnellzugriff. The live preview of the landing page renders it with the draft.
+ */
+export const DashboardLanding: React.FC<{
+  locale: Locale;
+  title: string;
+  showActionCards: boolean;
+  flags: QuickAccessFlags;
+  supportEmail: string;
+  children?: React.ReactNode;
+}> = ({ locale, title, showActionCards, flags, supportEmail, children }) => (
+  <>
+    <SetDynamicPageTitle newTitle={title} />
+    {children}
+    {showActionCards && (
+      <DashboardQuickAccess locale={locale} supportEmail={supportEmail} flags={flags} />
+    )}
+  </>
+);

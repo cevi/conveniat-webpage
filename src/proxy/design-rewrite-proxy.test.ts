@@ -218,6 +218,17 @@ describe('design-rewrite-proxy', () => {
     expect(getRewritePathname()).toContain(DesignCodes.APP_DESIGN);
   });
 
+  it('uses APP_DESIGN for the live preview of Home without leaving an app-mode cookie', async () => {
+    const request = mockRequest('https://example.com/app/dashboard-preview?preview=true');
+    const response = mockResponse('https://example.com/fr/app/dashboard-preview');
+
+    await handler(request, {} as NextFetchEvent, response);
+
+    expect(getRewritePathname()).toBe(`/fr/${DesignCodes.APP_DESIGN}/app/dashboard-preview`);
+    const rewritten = mockRewrite.mock.calls.at(0)?.[1].cookies as unknown as { set: jest.Mock };
+    expect(rewritten.set).not.toHaveBeenCalled();
+  });
+
   // -----------------------------------------------------------------------
   // Standard app-mode triggers still work for non-offline pages
   // -----------------------------------------------------------------------
