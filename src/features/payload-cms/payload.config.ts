@@ -57,11 +57,16 @@ import {
   isFullAdmin,
   shouldHideInAdminPanel,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { localizeUploadTooLarge } from '@/features/payload-cms/payload-cms/hooks/localize-upload-too-large';
 import { instrumentTasks } from '@/features/payload-cms/payload-cms/utils/instrument-task';
 import {
   customPayloadLoggerConfig,
   setQueriedJobSlugs,
 } from '@/features/payload-cms/payload-cms/utils/job-logger';
+import {
+  MAX_UPLOAD_FILE_BYTES,
+  MAX_UPLOAD_REQUEST_BYTES,
+} from '@/features/payload-cms/payload-cms/utils/upload-size-limit';
 import {
   enabledWidgets,
   widgetDefaultLayout,
@@ -120,6 +125,7 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
       },
     ],
     Nav: '@/features/payload-cms/payload-cms/components/admin-nav/admin-nav',
+    providers: ['@/features/payload-cms/payload-cms/components/upload-size-guard#UploadSizeGuard'],
     views: {
       accessOverview: {
         Component: '@/features/payload-cms/payload-cms/views/access-overview-view#default',
@@ -401,15 +407,6 @@ const jobsConfig: JobsConfig = {
     : [],
 };
 
-/**
- * The largest file an editor can upload, for every upload collection. Payload's default is 20 MB.
- * The request around it also carries the document's fields, so `client_max_body_size` in
- * nginx/nginx.conf and `proxyClientMaxBodySize` in next.config.ts sit a little above it; raise all
- * three together.
- */
-const MAX_UPLOAD_FILE_BYTES = 100 * 1024 * 1024;
-const MAX_UPLOAD_REQUEST_BYTES = MAX_UPLOAD_FILE_BYTES + 5 * 1024 * 1024;
-
 const customEndpoints: Endpoint[] = [
   {
     path: '/auto-translate',
@@ -428,6 +425,9 @@ export const payloadConfig: RoutableConfig = {
   collections: collectionsConfig,
   editor: lexicalEditor,
   globals: globalConfig,
+  hooks: {
+    afterError: [localizeUploadTooLarge],
+  },
   upload: {
     uploadTimeout: 300_000,
     limits: { fileSize: MAX_UPLOAD_FILE_BYTES },
