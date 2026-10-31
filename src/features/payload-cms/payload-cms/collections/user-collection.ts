@@ -326,7 +326,6 @@ export const UserCollection: CollectionConfig = {
       name: 'adminPanelAccess',
       label: 'Admin Panel Access',
       type: 'checkbox',
-      virtual: true,
       defaultValue: false,
       admin: {
         readOnly: true,
@@ -334,10 +333,17 @@ export const UserCollection: CollectionConfig = {
           'Whether the user has access to the admin panel. This is set automatically based on the user groups.',
       },
       hooks: {
-        afterRead: [
-          ({ data }): boolean => {
-            if (!data) return false;
-            const groups = (data as User).groups;
+        /**
+         * Stored rather than virtual, so the list view can sort and filter by it. Every write
+         * works it out again from the groups, which a Cevi.DB login rewrites when they changed,
+         * and `refreshAdminPanelAccess` catches up on startup with a change to the role groups.
+         */
+        beforeChange: [
+          ({ siblingData, originalDoc }): boolean => {
+            const groups =
+              'groups' in siblingData
+                ? (siblingData as Partial<User>).groups
+                : (originalDoc as Partial<User> | undefined)?.groups;
             if (!Array.isArray(groups)) return false;
             return hasAccessToThisUser({ user: { groups }, requiredRoles: ADMIN_PANEL_ROLES });
           },
