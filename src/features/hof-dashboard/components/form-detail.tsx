@@ -1,19 +1,27 @@
 'use client';
 
 import type {
+  HofDashboardDocument,
   HofDashboardEntry,
   HofDashboardForm,
 } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import {
+  AreaIcon,
+  LABEL_CLASS,
   PRIMARY_BUTTON_CLASS,
   ProgressLine,
   SECONDARY_BUTTON_CLASS,
   SectionHeading,
   StatusPill,
 } from '@/features/hof-dashboard/components/dashboard-ui';
+import { DocumentLinks } from '@/features/hof-dashboard/components/document-links';
 import { EntryAnswers } from '@/features/hof-dashboard/components/entry-answers';
 import { ReviewPanel } from '@/features/hof-dashboard/components/review-panel';
-import { HOF_ENTRY_STATUS_LABELS, type HofEntryStatus } from '@/features/hof-dashboard/constants';
+import {
+  HOF_DASHBOARD_AREA_LABELS,
+  HOF_ENTRY_STATUS_LABELS,
+  type HofEntryStatus,
+} from '@/features/hof-dashboard/constants';
 import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import { useWithdrawSubmission } from '@/features/hof-dashboard/hooks/use-withdraw-submission';
 import { formatDate, translate, type TextKey } from '@/features/hof-dashboard/texts';
@@ -24,7 +32,7 @@ import { FormBlock } from '@/features/payload-cms/components/form';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Trash2 } from 'lucide-react';
+import { ShoppingCart, Trash2, Upload } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useId, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -170,141 +178,195 @@ const actionLabel = (form: HofDashboardForm): TextKey => {
   return form.mode === 'versions' ? 'handInNewVersion' : 'handInAnother';
 };
 
+/** What the button's neighbour says about handing in again; nothing for a form of entries. */
+const actionHint = (form: HofDashboardForm): TextKey | undefined => {
+  if (form.mode === 'entries') return undefined;
+  return form.area === 'material' ? 'orderHint' : 'versionsHint';
+};
+
+/** What the Hof handed in so far: the newest version with the earlier ones folded away below. */
+const Submissions: React.FC<{
+  form: HofDashboardForm;
+  hofId: string;
+  isReviewer: boolean;
+  locale: Locale;
+}> = ({ form, hofId, isReviewer, locale }) => {
+  const [showEarlier, setShowEarlier] = useState(false);
+  const withdraw = useWithdrawSubmission(hofId, locale);
+  const earlierId = useId();
+  const [current, ...earlier] = form.entries;
+
+  if (current === undefined) {
+    return (
+      <div className="border-line rounded-xl border border-dashed p-5">
+        <p className="text-base font-semibold text-green-900">{translate('nothingYet', locale)}</p>
+        {!isReviewer && (
+          <p className="mt-1 text-sm text-green-700">{translate('nothingYetHint', locale)}</p>
+        )}
+      </div>
+    );
+  }
+
+  if (form.mode === 'entries') {
+    return (
+      <div className="divide-line border-line divide-y border-y">
+        {form.entries.map((entry, index) => (
+          <div key={entry.id} className="py-4">
+            <EntryBlock
+              entry={entry}
+              heading={entryHeading(form, index, locale)}
+              locale={locale}
+              reviewFor={isReviewer ? hofId : undefined}
+              onWithdraw={withdraw}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <EntryBlock
+        entry={current}
+        heading={entryHeading(form, 0, locale)}
+        showStatus={false}
+        reviewFor={isReviewer ? hofId : undefined}
+        canFinalize
+        locale={locale}
+        onWithdraw={withdraw}
+      />
+      {earlier.length > 0 && (
+        <AccordionItem
+          titleElement={
+            <span className="text-sm font-semibold text-gray-700">
+              {translate('earlierVersions', locale, { n: earlier.length })}
+            </span>
+          }
+          showChevron
+          accordionId={earlierId}
+          isExpanded={showEarlier}
+          onToggle={() => setShowEarlier((shown) => !shown)}
+          isNested
+        >
+          {showEarlier && (
+            <div className="divide-line divide-y">
+              {earlier.map((entry, index) => (
+                <div key={entry.id} className="py-4 first:pt-0 last:pb-0">
+                  <EntryBlock
+                    entry={entry}
+                    heading={entryHeading(form, index + 1, locale)}
+                    locale={locale}
+                    reviewFor={isReviewer ? hofId : undefined}
+                    onWithdraw={withdraw}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </AccordionItem>
+      )}
+    </div>
+  );
+};
+
 /**
- * One form the Hof hands in: where it stands, what it handed in and what the Ressort said, and
- * the form itself, opened in place with the Hof filled in. Of a form of versions the newest is
- * shown and the earlier ones fold away below it.
+ * One form the Hof hands in, as the detail beside an area's list: where it stands, what to
+ * hand in, the button that opens the form in place with the Hof filled in, the area's
+ * documents, and what the Hof handed in with the Ressort's feedback. An opened form takes the
+ * full width. Kept mounted while another form is shown, so what was typed survives a look at
+ * it; `hidden` takes it out of view.
  */
-export const FormCard: React.FC<{
+export const FormDetail: React.FC<{
   form: HofDashboardForm;
   progress: SubmissionProgress;
   hofId: string;
   /** A reviewer answers what the Hof handed in, and hands in nothing for it. */
   isReviewer: boolean;
+  /** The documents of the form's area. */
+  documents: HofDashboardDocument[];
+  hidden: boolean;
   locale: Locale;
-}> = ({ form, progress, hofId, isReviewer, locale }) => {
+}> = ({ form, progress, hofId, isReviewer, documents, hidden, locale }) => {
   const [open, setOpen] = useState(false);
-  const [showEarlier, setShowEarlier] = useState(false);
   const utils = trpc.useUtils();
-  const withdraw = useWithdrawSubmission(hofId, locale);
   const titleId = useId();
-  const earlierId = useId();
   useWarnBeforeLeaving(open);
   const presetValues = useMemo(() => ({ [form.hofField]: hofId }), [form.hofField, hofId]);
 
-  const [current, ...earlier] = form.entries;
   const revisionAsked = progress.gap === 'revision';
+  const mayHandIn = !isReviewer && !form.closed && !form.finalized;
+  const hint = actionHint(form);
 
   return (
     <article
       data-form={form.id}
       tabIndex={-1}
+      hidden={hidden}
       aria-labelledby={titleId}
-      className="scroll-mt-24 space-y-5 rounded-xl border border-gray-100 bg-white p-5 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-green-600 @xl:p-6"
+      className="border-line @container scroll-mt-24 space-y-6 rounded-[14px] border bg-white p-5 outline-none focus-visible:ring-2 focus-visible:ring-green-600 @xl:p-8"
     >
       <header className="space-y-2">
-        <SectionHeading area={form.area}>
-          <span id={titleId}>{form.title}</span>
-        </SectionHeading>
+        <p className={cn(LABEL_CLASS, 'flex items-center gap-2')}>
+          <AreaIcon area={form.area} />
+          {HOF_DASHBOARD_AREA_LABELS[form.area][locale]}
+        </p>
+        <h3
+          id={titleId}
+          className="font-heading text-heading text-2xl font-extrabold text-balance @xl:text-3xl"
+        >
+          {form.title}
+        </h3>
         <ProgressLine progress={progress} locale={locale} />
-        {form.description !== undefined && form.description !== '' && (
-          <p className="text-sm text-balance whitespace-pre-line text-gray-600">
-            {form.description}
-          </p>
-        )}
       </header>
 
-      {form.entries.length === 0 && !open && (
-        <p className="text-sm text-gray-500">{translate('noEntries', locale)}</p>
-      )}
-
-      {form.mode === 'versions' && current !== undefined && (
-        <>
-          <EntryBlock
-            entry={current}
-            heading={entryHeading(form, 0, locale)}
-            showStatus={false}
-            reviewFor={isReviewer ? hofId : undefined}
-            canFinalize
-            locale={locale}
-            onWithdraw={withdraw}
-          />
-          {earlier.length > 0 && (
-            <AccordionItem
-              titleElement={
-                <span className="text-sm font-semibold text-gray-700">
-                  {translate('earlierVersions', locale, { n: earlier.length })}
-                </span>
-              }
-              showChevron
-              accordionId={earlierId}
-              isExpanded={showEarlier}
-              onToggle={() => setShowEarlier((shown) => !shown)}
-              isNested
-            >
-              {showEarlier && (
-                <div className="divide-y divide-gray-100">
-                  {earlier.map((entry, index) => (
-                    <div key={entry.id} className="py-4 first:pt-0 last:pb-0">
-                      <EntryBlock
-                        entry={entry}
-                        heading={entryHeading(form, index + 1, locale)}
-                        locale={locale}
-                        reviewFor={isReviewer ? hofId : undefined}
-                        onWithdraw={withdraw}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </AccordionItem>
-          )}
-        </>
-      )}
-
-      {form.mode === 'entries' && form.entries.length > 0 && (
-        <div className="divide-y divide-gray-100 border-y border-gray-100">
-          {form.entries.map((entry, index) => (
-            <div key={entry.id} className="py-4">
-              <EntryBlock
-                entry={entry}
-                heading={entryHeading(form, index, locale)}
-                locale={locale}
-                reviewFor={isReviewer ? hofId : undefined}
-                onWithdraw={withdraw}
-              />
-            </div>
-          ))}
+      {form.description !== undefined && form.description !== '' && (
+        <div className="bg-quiet rounded-xl px-5 py-4">
+          <p className="text-base font-semibold text-green-900">
+            {translate(isReviewer ? 'whatTheHofHandsIn' : 'whatYouHandIn', locale)}
+          </p>
+          <p className="mt-1 text-base text-pretty whitespace-pre-line text-green-800">
+            {form.description}
+          </p>
         </div>
       )}
 
       {form.closed && form.deadline !== undefined && (
-        <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+        <p className="bg-quiet rounded-xl px-5 py-4 text-sm text-green-800">
           {translate('formClosed', locale, { date: formatDate(form.deadline, locale) })}
         </p>
       )}
 
       {form.finalized && !isReviewer && (
-        <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+        <p className="bg-quiet rounded-xl px-5 py-4 text-sm text-green-800">
           {translate('finalized', locale)}
         </p>
       )}
 
-      {!isReviewer && !form.closed && !form.finalized && !open && (
-        <button
-          type="button"
-          // when the Ressort asked for a revision, handing it in is the card's main action
-          className={
-            revisionAsked || current === undefined ? PRIMARY_BUTTON_CLASS : SECONDARY_BUTTON_CLASS
-          }
-          onClick={() => setOpen(true)}
-        >
-          {translate(actionLabel(form), locale)}
-        </button>
+      {mayHandIn && !open && (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <button
+            type="button"
+            // once something is handed in, a new version is no longer the main thing to do,
+            // unless the Ressort asked for it
+            className={
+              revisionAsked || form.entries.length === 0
+                ? PRIMARY_BUTTON_CLASS
+                : SECONDARY_BUTTON_CLASS
+            }
+            onClick={() => setOpen(true)}
+          >
+            {form.area === 'material' ? <ShoppingCart aria-hidden /> : <Upload aria-hidden />}
+            {translate(actionLabel(form), locale)}
+          </button>
+          {hint !== undefined && (
+            <p className="max-w-md text-sm text-pretty text-green-700">{translate(hint, locale)}</p>
+          )}
+        </div>
       )}
 
-      {!isReviewer && !form.closed && !form.finalized && open && (
-        <div className="space-y-2 rounded-xl border border-gray-100 bg-gray-50 p-4 @xl:p-6">
+      {mayHandIn && open && (
+        <div className="bg-page border-line space-y-2 rounded-xl border p-4 @xl:p-6">
           <FormBlock
             form={form.form}
             withBorder={false}
@@ -321,6 +383,29 @@ export const FormCard: React.FC<{
           </button>
         </div>
       )}
+
+      {/* a reviewer's answers need the width; for the Hof the documents sit beside its own */}
+      <div
+        className={cn(
+          'grid gap-8',
+          !isReviewer &&
+            documents.length > 0 &&
+            '@min-[600px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]',
+        )}
+      >
+        <section className="min-w-0 space-y-3">
+          <SectionHeading>
+            {translate(isReviewer ? 'hofSubmissions' : 'yourSubmissions', locale)}
+          </SectionHeading>
+          <Submissions form={form} hofId={hofId} isReviewer={isReviewer} locale={locale} />
+        </section>
+        {documents.length > 0 && (
+          <section className="min-w-0 space-y-1 @min-[600px]:order-first">
+            <SectionHeading>{translate('formDocuments', locale)}</SectionHeading>
+            <DocumentLinks documents={documents} locale={locale} />
+          </section>
+        )}
+      </div>
     </article>
   );
 };

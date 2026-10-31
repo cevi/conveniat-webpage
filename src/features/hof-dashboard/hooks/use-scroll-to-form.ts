@@ -3,11 +3,18 @@
 import { scrollBehavior } from '@/features/hof-dashboard/utils/scroll-behavior';
 import { useEffect, type RefObject } from 'react';
 
+/** Whether the top of an element is in the upper half of the screen, where it is read first. */
+const topInView = (element: HTMLElement): boolean => {
+  const { top } = element.getBoundingClientRect();
+  return top >= 0 && top < globalThis.innerHeight / 2;
+};
+
 /**
- * Brings a form's card into view once its tab has rendered, for the rows of the
- * overview, and moves the focus there so a keyboard or screen reader follows. The card is
- * looked up within this dashboard, since a page could hold two. Then the target is forgotten,
- * so a later render does not jump again.
+ * Brings a form's detail into view once its tab has rendered, for the rows of the overview and
+ * the list of an area, and moves the focus there so a keyboard or screen reader follows. Beside
+ * the list on a wide screen it is in view already, and the page stays where it is. The detail
+ * is looked up within this dashboard, since a page could hold two. Then the target is
+ * forgotten, so a later render does not jump again.
  */
 export const useScrollToForm = (
   container: RefObject<HTMLElement | null>,
@@ -21,7 +28,9 @@ export const useScrollToForm = (
       const card = container.current?.querySelector<HTMLElement>(
         `[data-form="${CSS.escape(target)}"]`,
       );
-      card?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
+      if (card !== null && card !== undefined && !topInView(card)) {
+        card.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
+      }
       card?.focus({ preventScroll: true });
       clearTarget();
     });

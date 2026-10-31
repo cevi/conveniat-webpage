@@ -1,20 +1,29 @@
 'use client';
 
+import { useAnchoredPosition } from '@/hooks/use-anchored-position';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { useIsDesktop } from '@/hooks/use-is-desktop';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import type { PanInfo } from 'framer-motion';
 import { motion, useDragControls, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type React from 'react';
-import { useRef } from 'react';
+import { useRef, type RefObject } from 'react';
 
 const closeLabel: StaticTranslationString = {
   de: 'Schliessen',
   en: 'Close',
   fr: 'Fermer',
 };
+
+/** A popup fades in where it is; a sheet comes up from below. */
+const motionFrom = (popup: boolean): { opacity?: number; y: number | string } =>
+  popup ? { opacity: 0, y: -4 } : { y: '100%' };
+
+const motionDuration = (popup: boolean): number => (popup ? 0.12 : 0.24);
 
 /** how far, or how fast, the sheet has to be pulled down before it lets go */
 const CLOSE_OFFSET = 96;
@@ -25,6 +34,10 @@ const CLOSE_VELOCITY = 500;
  * page underneath: the page stays in sight, dimmed. It closes with its ✕, a tap on the dimmed
  * page, Escape, or by pulling it down at its grabber. Focus stays inside while it is open and
  * returns to what opened it.
+ *
+ * Given an `anchor`, the same sheet opens on a desktop as a popup under that element, the
+ * button that opened it, with the same title, content and footer; on a phone it stays a sheet.
+ * The one component for both, so a choice reads alike on every screen.
  */
 export const BottomSheet: React.FC<{
   open: boolean;
@@ -43,6 +56,8 @@ export const BottomSheet: React.FC<{
    * message a sheet of message actions shows at its top
    */
   hideTitle?: boolean;
+  /** On a desktop, open as a popup under this element, usually the button that opens it. */
+  anchor?: RefObject<HTMLElement | null>;
   children: React.ReactNode;
 }> = ({
   open,
@@ -53,9 +68,13 @@ export const BottomSheet: React.FC<{
   leading,
   description,
   hideTitle = false,
+  anchor,
   children,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
+  const isDesktop = useIsDesktop();
+  const popup = anchor !== undefined && isDesktop;
+  const position = useAnchoredPosition(popup ? anchor : undefined, open);
   const dragControls = useDragControls();
   const reduceMotion = useReducedMotion() ?? false;
   // Radix hands focus back to a Dialog.Trigger only, and these sheets open from a long press, a
@@ -69,7 +88,10 @@ export const BottomSheet: React.FC<{
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[200] bg-green-900/40" />
+        {/* a popup leaves the page as it is; a click beside it still closes it */}
+        <DialogPrimitive.Overlay
+          className={cn('fixed inset-0 z-[200]', popup ? 'bg-transparent' : 'bg-green-900/40')}
+        />
         <DialogPrimitive.Content
           asChild
           // the title names the sheet; a description is read with it where there is one
@@ -87,11 +109,32 @@ export const BottomSheet: React.FC<{
           }}
         >
           <motion.div
-            className="fixed inset-x-0 bottom-0 z-[201] mx-auto flex max-h-[90dvh] w-full max-w-xl flex-col rounded-t-[24px] bg-white pb-[env(safe-area-inset-bottom)] focus:outline-none"
-            initial={reduceMotion ? false : { y: '100%' }}
-            animate={{ y: 0 }}
-            transition={{ type: 'tween', duration: reduceMotion ? 0 : 0.24, ease: 'easeOut' }}
-            drag="y"
+            className={cn(
+              'fixed z-[201] flex flex-col bg-white focus:outline-none',
+              popup
+                ? 'border-line w-[min(30rem,calc(100vw-1rem))] rounded-[14px] border pt-3 shadow-xl'
+                : 'inset-x-0 bottom-0 mx-auto max-h-[90dvh] w-full max-w-xl rounded-t-[24px] pb-[env(safe-area-inset-bottom)]',
+              // measured once it is open: unseen until it knows where its button is
+              popup && position === undefined && 'invisible',
+            )}
+            style={
+              popup && position !== undefined
+                ? {
+                    top: position.top,
+                    bottom: position.bottom,
+                    right: position.right,
+                    maxHeight: position.maxHeight,
+                  }
+                : {}
+            }
+            initial={reduceMotion ? false : motionFrom(popup)}
+            animate={popup ? { opacity: 1, y: 0 } : { y: 0 }}
+            transition={{
+              type: 'tween',
+              duration: reduceMotion ? 0 : motionDuration(popup),
+              ease: 'easeOut',
+            }}
+            drag={popup ? false : 'y'}
             dragListener={false}
             dragControls={dragControls}
             dragConstraints={{ top: 0, bottom: 0 }}
@@ -101,11 +144,15 @@ export const BottomSheet: React.FC<{
             {/* the grabber and the title row are where a thumb pulls the sheet down */}
             <div
               className="shrink-0 touch-none"
-              onPointerDown={(event) => dragControls.start(event)}
+              onPointerDown={(event) => {
+                if (!popup) dragControls.start(event);
+              }}
             >
-              <div className="flex justify-center pt-2 pb-1">
-                <span aria-hidden="true" className="bg-rail h-1 w-9 rounded-full" />
-              </div>
+              {!popup && (
+                <div className="flex justify-center pt-2 pb-1">
+                  <span aria-hidden="true" className="bg-rail h-1 w-9 rounded-full" />
+                </div>
+              )}
               {hideTitle ? (
                 <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
               ) : (

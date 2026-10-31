@@ -8,7 +8,16 @@ import {
 } from '@/features/hof-dashboard/utils/submission-progress';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { AlertCircle, CheckCircle2, Clock, Mail } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Hammer,
+  Mail,
+  Package,
+  Sparkles,
+  type LucideIcon,
+} from 'lucide-react';
 import type React from 'react';
 
 /**
@@ -32,18 +41,23 @@ export const AREA_DOT_CLASS: Record<HofDashboardArea, string> = {
 export const PRIMARY_BUTTON_CLASS =
   'bg-conveniat-green inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-gray-100 transition duration-100 hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:text-base [&_svg]:h-4 [&_svg]:w-4';
 
-/** A secondary action, the back button of the site's forms. */
+/** A secondary action: outlined, on white. */
 export const SECONDARY_BUTTON_CLASS =
-  'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-gray-500 px-4 py-2 text-sm font-semibold text-gray-500 transition duration-100 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 sm:text-base [&_svg]:h-4 [&_svg]:w-4';
+  'border-line inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border bg-white px-4 py-2 text-sm font-semibold text-green-900 transition duration-100 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:text-base [&_svg]:h-4 [&_svg]:w-4';
+
+/** A quiet action without a frame, such as "Ansehen" next to what is done. */
+export const QUIET_BUTTON_CLASS =
+  'inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-green-900 transition hover:bg-gray-50 [&_svg]:h-4 [&_svg]:w-4';
+
+/** The small uppercase label over a part of the dashboard, "NOCH OFFEN", "ABGABEN". */
+export const LABEL_CLASS = 'text-xs font-bold tracking-[0.08em] text-green-700 uppercase';
 
 /** The card every part of the dashboard sits in, so their edges and padding match. */
 export const Panel: React.FC<{ children: React.ReactNode; className?: string }> = ({
   children,
   className,
 }) => (
-  <section
-    className={cn('rounded-xl border border-gray-100 bg-white p-5 shadow-sm @xl:p-6', className)}
-  >
+  <section className={cn('border-line rounded-[14px] border bg-white p-5 @xl:p-6', className)}>
     {children}
   </section>
 );
@@ -75,8 +89,8 @@ const TONE_STYLE: Record<
   StatusTone,
   { icon: React.FC<{ className?: string }>; className: string }
 > = {
-  done: { icon: CheckCircle2, className: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
-  neutral: { icon: Clock, className: 'bg-gray-100 text-gray-700 ring-gray-200' },
+  done: { icon: CheckCircle2, className: 'bg-tint text-green-800 ring-tint-line' },
+  neutral: { icon: Clock, className: 'bg-white text-gray-700 ring-gray-200' },
   warning: { icon: Clock, className: 'bg-amber-50 text-amber-800 ring-amber-200' },
   // the Hof has to act: amber like due soon, marked like an alert
   attention: { icon: AlertCircle, className: 'bg-amber-50 text-amber-800 ring-amber-200' },
@@ -92,7 +106,7 @@ export const StatusPill: React.FC<{ tone: StatusTone; children: React.ReactNode 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset',
+        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ring-1 ring-inset',
         className,
       )}
     >
@@ -172,37 +186,67 @@ export const ResponsibleList: React.FC<{ people: HofContact[]; locale: Locale }>
   ) : (
     <ul className="grid gap-4 @2xl:grid-cols-2 @5xl:grid-cols-3">
       {people.map((person) => (
-        <li key={person.email} className="text-sm text-gray-900">
+        <li key={person.email} className="min-w-0 text-sm text-gray-900">
           {person.name !== undefined && <p className="font-semibold">{person.name}</p>}
+          {/* one line, cut short where the column is narrow; the whole address on hover */}
           <a
             href={`mailto:${person.email}`}
-            className="text-conveniat-green flex min-h-11 items-center gap-1.5 break-all hover:underline"
+            title={person.email}
+            className="text-conveniat-green flex min-h-11 min-w-0 items-center gap-1.5 hover:underline"
           >
             <Mail className="h-4 w-4 shrink-0" aria-hidden />
-            {person.email}
+            <span className="truncate">{person.email}</span>
           </a>
         </li>
       ))}
     </ul>
   );
 
-/** The share of submissions handed in, labelled for screen readers with its count. */
-export const ProgressBar: React.FC<{ percent: number; area: HofDashboardArea; label: string }> = ({
-  percent,
+/** What each area is about, as its icon: building, the programme's activities, the depot. */
+const AREA_ICON: Record<HofDashboardArea, LucideIcon> = {
+  infrastructure: Hammer,
+  program: Sparkles,
+  material: Package,
+};
+
+/**
+ * The area's icon, in front of its name wherever an area is named, in the area's colour so it
+ * matches the area's progress bars.
+ */
+export const AreaIcon: React.FC<{ area: HofDashboardArea; className?: string }> = ({
   area,
-  label,
-}) => (
-  <div
-    className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100"
-    role="progressbar"
-    aria-label={label}
-    aria-valuenow={percent}
-    aria-valuemin={0}
-    aria-valuemax={100}
-  >
-    <div
-      className={cn('h-full rounded-full', AREA_DOT_CLASS[area])}
-      style={{ width: `${percent}%` }}
-    />
+  className,
+}) => {
+  const Icon = AREA_ICON[area];
+  return <Icon aria-hidden className={cn('h-4 w-4 shrink-0', AREA_TEXT_CLASS[area], className)} />;
+};
+
+/**
+ * One mark of a segment bar: filled in the area's colour, handed in and waiting for the
+ * Ressort, or still empty.
+ */
+export type SegmentTone = 'filled' | 'waiting' | 'empty';
+
+/**
+ * One segment per form of an area, so a Hof sees which of them are done rather than a share.
+ * Read out as `label`.
+ */
+export const SegmentBar: React.FC<{
+  segments: readonly SegmentTone[];
+  area: HofDashboardArea;
+  label: string;
+}> = ({ segments, area, label }) => (
+  <div role="img" aria-label={label} className="flex gap-1">
+    {segments.map((tone, index) => (
+      <span
+        key={index}
+        className={cn(
+          'h-1.5 min-w-2 flex-1 rounded-full',
+          tone === 'filled' && AREA_DOT_CLASS[area],
+          tone === 'waiting' && 'bg-amber-500',
+          tone === 'empty' && 'bg-gray-100',
+        )}
+      />
+    ))}
   </div>
 );

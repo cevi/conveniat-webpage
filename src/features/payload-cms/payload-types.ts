@@ -8834,6 +8834,16 @@ export interface HofDashboardSetting {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Set by the Excel export on the Hof dashboard.
+   */
+  materialOrderExports?:
+    | {
+        form: string | Form;
+        exportedAt: string;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -9384,6 +9394,13 @@ export interface HofDashboardSettingsSelect<T extends boolean = true> {
     | {
         document?: T;
         area?: T;
+        id?: T;
+      };
+  materialOrderExports?:
+    | T
+    | {
+        form?: T;
+        exportedAt?: T;
         id?: T;
       };
   updatedAt?: T;
