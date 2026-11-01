@@ -22,11 +22,20 @@ const pageTitle: StaticTranslationString = {
   fr: 'Programme',
 };
 
+/** Beside the list on a desktop while no block is open: the one that matters most, see ScheduleComponent. */
+const renderSuggestion = (suggestedId: string | undefined): React.ReactNode =>
+  suggestedId === undefined ? (
+    <NoBlockSelected />
+  ) : (
+    <ScheduleDetailView key={suggestedId} id={suggestedId} isSuggested />
+  );
+
 /**
  * Unified schedule page that handles both list and detail views.
  * - No id param: Shows schedule list
  * - With id param: Shows schedule details over the list, which stays mounted and hidden; a
- *   desktop keeps the list beside the details instead, the way the chats do
+ *   desktop keeps the list beside the details instead, the way the chats do, and shows the
+ *   block that matters most there while none is open
  *
  * All data is fetched client-side via tRPC for offline support.
  */
@@ -53,10 +62,14 @@ const SchedulePage: React.FC = () => {
         <SetDynamicPageTitle newTitle={pageTitle[locale]} />
         {/* the width is where the block's pane starts, see ScheduleDetailView */}
         <div className="xl:border-line xl:min-h-[calc(100dvh-var(--app-content-top)-var(--app-tab-bar-height))] xl:w-[400px] xl:border-r">
-          <ScheduleComponent />
+          <ScheduleComponent
+            openId={hasId ? scheduleId : undefined}
+            // a phone shows the list alone while no block is open
+            renderBesideList={isDesktop && !hasId ? renderSuggestion : undefined}
+          />
         </div>
       </Activity>
-      {hasId ? <ScheduleDetailView id={scheduleId} /> : <NoBlockSelected />}
+      {hasId && <ScheduleDetailView id={scheduleId} />}
     </>
   );
 };

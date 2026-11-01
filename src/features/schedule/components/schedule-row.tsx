@@ -38,6 +38,8 @@ interface ScheduleRowProperties {
   isPast: boolean;
   /** "Läuft · noch 18 min", when it is running */
   runningLabel?: string | undefined;
+  /** the block shown beside the list on a desktop; on a phone the list is hidden while one is open */
+  openId?: string | undefined;
 }
 
 /** One block on the timeline: a card, its node in the category's colour. */
@@ -50,6 +52,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
   showSlots,
   isPast,
   runningLabel,
+  openId: shownId,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
@@ -71,8 +74,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
   const [, end = ''] = primary.timeslot.time.split(' - ');
   const slot = slotOf(primary);
   const isGrouped = stop.slots.length > 1;
-  // the slot open beside the list on a desktop; on a phone the list is hidden while one is open
-  const openId = stop.slots.find(({ id }) => id === searchParameters.get('id'))?.id;
+  const openId = stop.slots.find(({ id }) => id === shownId)?.id;
 
   const hrefOf = (entry: Entry): string => {
     const parameters = new URLSearchParams(searchParameters.toString());
