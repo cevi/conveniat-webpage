@@ -513,6 +513,49 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT | n
   }
 }
 
+/**
+ * Tells Cevi.DB at sign-out that the session's tokens are no longer needed (RFC 7009), so its
+ * refresh token cannot be used for the rest of its lifetime. Revoking the refresh token revokes
+ * the access token issued with it. A failure keeps nobody signed in: Auth.js clears the cookie
+ * either way, and the token runs out on its own.
+ */
+async function revokeRefreshToken(token: JWT): Promise<void> {
+  const refreshToken = token.refresh_token;
+  if (refreshToken === undefined || refreshToken === '') return;
+
+  try {
+    const response = await fetch(
+      `${HITOBITO_BASE_URL}/oauth/revoke`,
+      withCeviDatabaseUserAgent({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: CEVI_DB_CLIENT_ID,
+          client_secret: CEVI_DB_CLIENT_SECRET,
+          token: refreshToken,
+          token_type_hint: 'refresh_token',
+        }),
+        cache: 'no-store',
+      }),
+    );
+    if (response.ok) {
+      logger.info('Revoked the Cevi.DB tokens of a signed out session', {
+        'auth.user_uuid': token.uuid,
+      });
+    } else {
+      logger.warn('Cevi.DB refused to revoke the tokens of a signed out session', {
+        'auth.user_uuid': token.uuid,
+        'http.status_code': response.status,
+      });
+    }
+  } catch (error) {
+    logger.warn('Could not revoke the Cevi.DB tokens of a signed out session', {
+      'auth.user_uuid': token.uuid,
+      error,
+    });
+  }
+}
+
 export const authOptions: NextAuthConfig = {
   providers: [
     {
@@ -566,6 +609,12 @@ export const authOptions: NextAuthConfig = {
   session: {
     strategy: 'jwt',
     maxAge: CEVI_DB_REFRESH_TOKEN_LIFETIME,
+  },
+
+  events: {
+    async signOut(message) {
+      if ('token' in message && message.token !== null) await revokeRefreshToken(message.token);
+    },
   },
 
   callbacks: {
