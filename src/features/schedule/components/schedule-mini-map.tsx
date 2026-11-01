@@ -5,7 +5,10 @@ import { MiniMapLibreRenderer } from '@/features/map/components/map-renderer-wra
 // eslint-disable-next-line import/no-restricted-paths -- schedule feature needs types from map
 import type { CampMapAnnotationPolygon } from '@/features/map/types/types';
 import type { CampMapAnnotation, Image } from '@/features/payload-cms/payload-types';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import React from 'react';
 
 /** a round white button floating over the map at the top of a block's or a shift's page */
@@ -70,13 +73,17 @@ export const mapCenterOf = (location: CampMapAnnotation): [number, number] | und
  * The place's row in the facts leads to the Karte, which does answer.
  */
 export const ScheduleMiniMap: React.FC<{ location: CampMapAnnotation }> = ({ location }) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   // Fetch all polygon annotations for context
-  const { data: allAnnotations } = trpc.map.getAnnotations.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
+  const { data: allAnnotations } = trpc.map.getAnnotations.useQuery(
+    { locale },
+    {
+      staleTime: 1000 * 60 * 5,
 
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-  });
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+    },
+  );
 
   const currentPolygonCoords =
     location.annotationType === 'polygon'

@@ -163,7 +163,7 @@ export const ProfileAvatar: React.FC<{
           }}
           disabled={isBusy}
           aria-label={labels.avatar[locale]}
-          className="relative block shrink-0 cursor-pointer rounded-full"
+          className="relative block shrink-0 cursor-pointer rounded-full focus-visible:outline-offset-0"
         >
           <PersonAvatar
             seed={userId}

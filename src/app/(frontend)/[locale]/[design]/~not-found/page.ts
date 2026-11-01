@@ -4,7 +4,7 @@ import { DesignCodes } from '@/utils/design-codes';
 import { notFound } from 'next/navigation';
 
 /**
- * Where the proxy rewrites a path that resolves to no CMS page, see `not-found-proxy.ts`.
+ * Where the proxy rewrites a path that resolves to no CMS page, see `page-status-proxy.ts`.
  *
  * It calls `notFound()` without waiting for anything, so the prerendered shell is stored with
  * 404, and that is the status every rewritten request is answered with.

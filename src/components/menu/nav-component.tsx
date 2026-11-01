@@ -64,7 +64,7 @@ export const NavComponent: React.FC<{
           <button
             type="button"
             onClick={handleOpen}
-            className="relative top-[18px] z-[105] cursor-pointer"
+            className="app:focus-visible:focus-surface app:-m-2.5 app:rounded-xl app:p-2.5 relative top-[18px] z-[105] cursor-pointer"
           >
             <span className="sr-only">{openMenuText[locale]}</span>
             <MenuIcon aria-hidden="true" className="size-6" />
@@ -74,7 +74,7 @@ export const NavComponent: React.FC<{
         {mobileMenuOpen && (
           <button
             type="button"
-            className="relative top-[18px] z-[105] cursor-pointer"
+            className="app:focus-visible:focus-surface app:-m-2.5 app:rounded-xl app:p-2.5 relative top-[18px] z-[105] cursor-pointer"
             onClick={handleClose}
           >
             <span className="sr-only">{closeMenuText[locale]}</span>

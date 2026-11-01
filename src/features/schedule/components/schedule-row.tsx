@@ -8,7 +8,6 @@ import {
   TimelineTimes,
 } from '@/features/schedule/components/schedule-timeline-item';
 import { programmeLabels, scheduleLabels } from '@/features/schedule/constants/schedule-labels';
-import { useScrollRestoration } from '@/features/schedule/hooks/use-scroll-restoration';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { getCategoryAccent } from '@/features/schedule/utils/category-utils';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
@@ -54,7 +53,6 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
-  const { saveScrollPosition } = useScrollRestoration();
 
   const isMine = (entry: Entry): boolean =>
     myQuartierIds.size > 0 && quartiereOf(entry).length > 0 && isForQuartiere(entry, myQuartierIds);
@@ -88,7 +86,6 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
    * A click that asks for a new tab or window keeps the link's own behaviour.
    */
   const openBlock = (event: React.MouseEvent<HTMLAnchorElement>): void => {
-    saveScrollPosition();
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
       return;
     }
@@ -117,7 +114,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
       <div
         className={cn(
           // the link fills the card, which clips it: the card shows its focus
-          'has-[>a:focus-visible]:focus-ring relative mb-3.5 overflow-hidden rounded-[14px] border transition-colors',
+          'has-[>a:focus-visible]:focus-surface relative mb-3.5 overflow-hidden rounded-[14px] border transition-colors',
           runningLabel === undefined
             ? 'border-line has-[>a:hover]:border-rail'
             : 'border-live-line',

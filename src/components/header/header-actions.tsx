@@ -1,5 +1,6 @@
 'use client';
 
+import { GetTheAppButton, useIsGetTheAppShown } from '@/components/get-the-app';
 import {
   DEFAULT_APP_TITLE,
   DynamicAppTitleName,
@@ -42,11 +43,15 @@ export const SetHeaderActions: React.FC<{ children?: ReactNode }> = ({ children 
  * the right; on the website centred, unless a page brings buttons. `inlineOnDesktop` keeps both on
  * a desktop, right of the brand, where the website's menu takes the rest of the header.
  */
-export const AppHeaderTitle: React.FC<{ inAppDesign: boolean; inlineOnDesktop?: boolean }> = ({
-  inAppDesign,
-  inlineOnDesktop = false,
-}) => {
+export const AppHeaderTitle: React.FC<{
+  inAppDesign: boolean;
+  inlineOnDesktop?: boolean;
+  /** the website's top bar, whose menu takes the right of the header on a desktop */
+  hiddenOnDesktop?: boolean;
+}> = ({ inAppDesign, inlineOnDesktop = false, hiddenOnDesktop = false }) => {
   const actions = useContext(HeaderActionsContext);
+  // in a browser, on the app's pages, the way to the app sits with the page's buttons
+  const offersApp = useIsGetTheAppShown();
   const mobileMenuOpen = useIsMobileMenuOpen();
   // A page that hides the header, like the detail of a block, brings its own heading; the
   // header's title is then only the desktop's label, not a second page heading.
@@ -57,7 +62,7 @@ export const AppHeaderTitle: React.FC<{ inAppDesign: boolean; inlineOnDesktop?: 
   const { dynamicAppTitle } = useDynamicAppTitle();
   const titledOnDesktop = inlineOnDesktop && dynamicAppTitle !== DEFAULT_APP_TITLE;
 
-  if (actions === undefined && !inAppDesign) {
+  if (actions === undefined && !offersApp && !inAppDesign) {
     return (
       <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:hidden">
         <DynamicAppTitleName />
@@ -72,6 +77,7 @@ export const AppHeaderTitle: React.FC<{ inAppDesign: boolean; inlineOnDesktop?: 
       className={cn(
         'pointer-events-none absolute top-0 right-2 left-[60px] z-[105] flex h-[60px] items-center gap-2',
         !inAppDesign && 'right-[56px] left-[112px] xl:right-2',
+        hiddenOnDesktop && 'xl:hidden',
         inlineOnDesktop && 'xl:pointer-events-auto xl:static xl:ml-4 xl:h-10 xl:shrink-0 xl:gap-1',
         titledOnDesktop && 'xl:border-l xl:border-gray-200 xl:pl-4',
       )}
@@ -95,6 +101,7 @@ export const AppHeaderTitle: React.FC<{ inAppDesign: boolean; inlineOnDesktop?: 
         )}
       >
         {actions}
+        <GetTheAppButton />
       </div>
     </div>
   );

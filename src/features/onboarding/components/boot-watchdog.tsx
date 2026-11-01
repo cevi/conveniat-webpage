@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/buttons/button';
 import type { StaticTranslationString } from '@/types/types';
 import { type Locale } from '@/types/types';
 import type React from 'react';
@@ -61,14 +62,12 @@ export const BootWatchdog: React.FC<{ locale: Locale }> = ({ locale }) => {
         style={{ display: 'none' }}
         className="fixed inset-x-0 bottom-0 z-[9999] flex-col items-center gap-3 bg-white/95 p-6 text-center shadow-[0_-2px_16px_rgba(0,0,0,0.12)]"
       >
-        <p className="max-w-sm text-balance text-gray-700">{bootStalledMessage[locale]}</p>
-        <button
-          id="konekta-boot-reload"
-          type="button"
-          className="font-heading cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 shadow-md"
-        >
+        <p className="max-w-sm text-[15px] leading-normal text-balance text-green-700">
+          {bootStalledMessage[locale]}
+        </p>
+        <Button id="konekta-boot-reload" type="button" variant="primary" size="touch">
           {bootReloadLabel[locale]}
-        </button>
+        </Button>
       </div>
       <script
         dangerouslySetInnerHTML={{

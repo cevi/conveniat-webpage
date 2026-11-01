@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/buttons/button';
 import { AcceptCookieEntrypointComponent } from '@/features/onboarding/components/accept-cookies-component';
 import { FancyLoadingScreen } from '@/features/onboarding/components/fancy-loading-screen';
 import { LanguageSwitcher } from '@/features/onboarding/components/language-switcher';
@@ -33,28 +34,27 @@ export const OnboardingProcessContent: React.FC = () => {
   } = useOnboarding();
 
   // Define footer content based on step
-  let footer: React.ReactNode = <div className="invisible h-6">Spacer</div>; // Default spacer
+  let footer: React.ReactNode = <div className="invisible h-11">Spacer</div>; // Default spacer
 
   if (onboardingStep === OnboardingStep.Login) {
     footer = (
-      <button
-        onClick={handleSkipLogin}
-        className="cursor-pointer font-semibold text-gray-400 hover:text-gray-600"
-      >
+      <Button variant="plain" size="touch" className="text-green-500" onClick={handleSkipLogin}>
         {loginDismissText[locale]}
-      </button>
+      </Button>
     );
   } else if (onboardingStep === OnboardingStep.PushNotifications) {
     footer = (
-      <button
+      <Button
+        variant="plain"
+        size="touch"
+        className="text-green-500"
         onClick={() => {
           Cookies.set(Cookie.SKIP_PUSH_NOTIFICATION, 'true', { expires: 7 });
           handlePushNotification();
         }}
-        className="cursor-pointer font-semibold text-gray-400 hover:text-gray-600"
       >
         {skipPushNotificationText[locale]}
-      </button>
+      </Button>
     );
   }
 

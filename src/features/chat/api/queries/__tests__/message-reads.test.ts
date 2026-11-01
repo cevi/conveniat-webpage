@@ -39,6 +39,7 @@ interface StoredMessage extends Row {
   senderId: string | null;
   type: string;
   parentId: string | null;
+  seq: number;
   createdAt: Date;
   deletedAt: Date | null;
   payload: unknown;
@@ -46,6 +47,7 @@ interface StoredMessage extends Row {
 
 let messages: StoredMessage[];
 let reactions: { messageId: string; userId: string; emoji: string }[];
+/** The message the reader read last; the membership stores its position. */
 let lastReadMessageId: string | null;
 
 /* eslint-disable unicorn/no-null -- mirrors the Prisma rows and filters */
@@ -70,6 +72,7 @@ const matches = (row: Row, where: Row): boolean =>
     if ('gt' in operators) {
       const bound = operators['gt'];
       if (bound instanceof Date) return value instanceof Date && value > bound;
+      if (typeof bound === 'number') return typeof value === 'number' && value > bound;
       return typeof value === 'string' && value > String(bound);
     }
     if ('in' in operators) return (operators['in'] as unknown[]).includes(value);
@@ -112,7 +115,10 @@ const prisma = {
       Promise.resolve({ uuid: CHAT_ID, adminReadAt: null, chatMemberships: [{ userId: reader }] }),
   },
   chatMembership: {
-    findUnique: (): Promise<Row> => Promise.resolve({ lastReadMessageId }),
+    findUnique: (): Promise<Row> =>
+      Promise.resolve({
+        lastReadSeq: messages.find((message) => message.uuid === lastReadMessageId)?.seq ?? null,
+      }),
   },
   user: {
     findMany: ({ where }: { where: { uuid: { in: string[] } } }): Promise<Row[]> =>
@@ -179,6 +185,7 @@ const seed = (
     senderId,
     type: senderId === null ? 'SYSTEM_MSG' : 'TEXT_MSG',
     parentId: null,
+    seq: minute,
     createdAt: new Date(Date.UTC(2027, 6, 25, 8, minute)),
     deletedAt: null,
     payload,

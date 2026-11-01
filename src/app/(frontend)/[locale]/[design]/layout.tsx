@@ -4,6 +4,7 @@ import { AppNavBarServer } from '@/components/footer/app-nav-bar-server';
 import { FooterCopyrightArea } from '@/components/footer/footer-copyright-area';
 import { GlobalAppFooterClientWrapper } from '@/components/footer/global-app-footer-client-wrapper';
 import { HideFooterProvider } from '@/components/footer/hide-footer-context';
+import { AppStatusBarMeta } from '@/components/header/app-status-bar-meta';
 import { HeaderComponent } from '@/components/header/header-component';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { HideBackgroundLogoProvider } from '@/components/ui/hide-background-logo-context';
@@ -42,7 +43,6 @@ const GlobalAppFooterWrapper: React.FC<{
 
   return (
     <GlobalAppFooterClientWrapper
-      locale={locale}
       isAppMode={isInAppDesign}
       appNavBar={<AppNavBarServer locale={locale} railOnDesktop={navigationMode === 'top-nav'} />}
       copyrightArea={<FooterCopyrightArea locale={locale} inAppDesign={isInAppDesign} />}
@@ -87,6 +87,7 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
       suppressHydrationWarning
     >
       <head>
+        <AppStatusBarMeta />
         {!environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST && (
           <link rel="manifest" href="/manifest.webmanifest" />
         )}

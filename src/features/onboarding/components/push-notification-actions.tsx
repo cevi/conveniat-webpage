@@ -1,5 +1,6 @@
+import { Button } from '@/components/ui/buttons/button';
 import type { StaticTranslationString } from '@/types/types';
-
+import { CircleAlert } from 'lucide-react';
 import React from 'react';
 
 const notYetSubscribed: StaticTranslationString = {
@@ -46,18 +47,21 @@ export const PushNotificationActions: React.FC<PushNotificationActionsProperties
 }) => {
   return (
     <div className="mb-0 flex flex-col items-center">
-      <p className="mb-4 text-balance text-gray-700">
+      <p className="mb-4 text-[15px] leading-normal text-balance text-green-700">
         {isSubscribed ? subscribedText[locale] : notYetSubscribed[locale]}
       </p>
 
       {errorMessage && (
-        <p className="mb-4 rounded bg-red-50 p-2 text-sm text-balance text-red-600">
+        <p className="bg-danger-soft text-danger-text mb-4 flex items-start gap-2.5 rounded-xl p-3 text-left text-[15px] leading-normal">
+          <CircleAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
           {errorMessage}
         </p>
       )}
 
-      <button
-        className="font-heading flex cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+      <Button
+        variant="primary"
+        size="touch"
+        className="w-full"
         onClick={() => {
           void onToggle().then((success) => {
             if (success) onContinue();
@@ -69,7 +73,7 @@ export const PushNotificationActions: React.FC<PushNotificationActionsProperties
           <div className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent" />
         )}
         {isSubscribed ? unsubscribeAcceptedText[locale] : subscribeAcceptedText[locale]}
-      </button>
+      </Button>
     </div>
   );
 };

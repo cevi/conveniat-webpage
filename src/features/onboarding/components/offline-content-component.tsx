@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/buttons/button';
 import {
   offlineContentDescription,
   offlineContentDownloadButton,
@@ -15,6 +16,7 @@ import { syncAllOfflineData } from '@/lib/chat-sync';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { motion } from 'framer-motion';
+import { Check, CircleAlert, CloudOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useRef } from 'react';
 
@@ -65,8 +67,12 @@ export const OfflineContentEntrypointComponent: React.FC<
     <>
       <div className="mb-8 flex flex-col items-center gap-4">
         <div className="space-y-2 text-center">
-          <h2 className="text-xl font-bold text-gray-800">{offlineContentTitle[locale]}</h2>
-          <p className="text-lg text-balance text-gray-700">{offlineContentDescription[locale]}</p>
+          <h2 className="font-heading text-heading text-[17px] leading-snug font-bold">
+            {offlineContentTitle[locale]}
+          </h2>
+          <p className="text-[15px] leading-normal text-balance text-green-700">
+            {offlineContentDescription[locale]}
+          </p>
         </div>
       </div>
 
@@ -74,7 +80,7 @@ export const OfflineContentEntrypointComponent: React.FC<
         {status === 'checking' && (
           <div className="flex flex-col items-center justify-center py-4">
             <motion.div
-              className="h-10 w-10 rounded-full border-4 border-red-200 border-t-red-600"
+              className="border-t-conveniat-green h-10 w-10 rounded-full border-4 border-green-200"
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
             />
@@ -83,33 +89,32 @@ export const OfflineContentEntrypointComponent: React.FC<
 
         {status === 'idle' && (
           <div className="flex flex-col gap-3">
-            <button
-              onClick={handleDownload}
-              className="font-heading w-full transform cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 shadow-md duration-100 hover:scale-[1.02] hover:bg-red-800 active:scale-[0.98]"
-            >
+            <Button variant="primary" size="touch" className="w-full" onClick={handleDownload}>
               {offlineContentDownloadButton[locale]}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="plain"
+              size="touch"
+              className="w-full text-green-500"
               onClick={handleNotNow}
-              className="cursor-pointer font-semibold text-gray-400 hover:text-gray-600"
             >
               {offlineContentNotNowButton[locale]}
-            </button>
+            </Button>
           </div>
         )}
 
         {status === 'downloading' && (
           <div className="w-full space-y-2">
-            <div className="text-center text-sm font-medium text-red-700">
+            <div className="text-center text-[15px] font-medium text-green-700">
               {offlineContentDownloading[locale]} (
               {progress.total > 0
                 ? Math.min(100, Math.round((progress.current / progress.total) * 100))
                 : 0}
               %)
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-red-100">
+            <div className="bg-tint h-2 w-full overflow-hidden rounded-full">
               <motion.div
-                className="relative h-full overflow-hidden bg-red-700"
+                className="bg-conveniat-green relative h-full overflow-hidden"
                 initial={{ width: 0 }}
                 animate={{
                   width: `${progress.total > 0 ? Math.min(100, (progress.current / progress.total) * 100) : 0}%`,
@@ -127,28 +132,31 @@ export const OfflineContentEntrypointComponent: React.FC<
         )}
 
         {status === 'success' && (
-          <div className="flex items-center justify-center gap-2 rounded-lg bg-green-50 p-3 text-green-700">
-            <span className="font-semibold">{offlineContentSuccess[locale]}</span>
+          <div className="bg-tint flex items-start gap-2.5 rounded-xl p-3 text-left text-[15px] leading-normal text-green-700">
+            <Check className="text-conveniat-green mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+            <span>{offlineContentSuccess[locale]}</span>
           </div>
         )}
 
         {status === 'error' && (
-          <div className="flex items-center justify-center gap-2 rounded-lg bg-red-50 p-3 text-red-700">
-            <span className="font-semibold">{offlineContentError[locale]}</span>
+          <div className="bg-danger-soft text-danger-text flex items-start gap-2.5 rounded-xl p-3 text-left text-[15px] leading-normal">
+            <CircleAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+            <span>{offlineContentError[locale]}</span>
           </div>
         )}
 
         {status === 'sw-error' && (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-center gap-2 rounded-lg bg-gray-100 p-3 text-gray-600">
-              <span className="font-semibold">{offlineContentServiceWorkerError[locale]}</span>
+            <div className="bg-quiet flex items-start gap-2.5 rounded-xl p-3 text-left text-[15px] leading-normal text-green-700">
+              <CloudOff
+                className="text-conveniat-green mt-0.5 h-5 w-5 shrink-0"
+                aria-hidden="true"
+              />
+              <span>{offlineContentServiceWorkerError[locale]}</span>
             </div>
-            <button
-              onClick={handleNotNow}
-              className="font-heading w-full transform cursor-pointer rounded-[8px] bg-gray-400 px-8 py-3 text-center text-lg leading-normal font-bold text-white shadow-md duration-100 hover:scale-[1.02] hover:bg-gray-500 active:scale-[0.98]"
-            >
+            <Button variant="primary" size="touch" className="w-full" onClick={handleNotNow}>
               {offlineContentNotNowButton[locale]}
-            </button>
+            </Button>
           </div>
         )}
       </div>

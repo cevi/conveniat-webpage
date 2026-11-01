@@ -29,7 +29,7 @@ test('a file that exists still answers 200', async ({ request }) => {
 /**
  * A CMS path without a published page answers 404 too. The proxy rewrites it to the
  * prerendered `~not-found` route, because the catch-all CMS route answers with the 200 of its
- * shell however its page ends, see `src/proxy/not-found-proxy.ts`.
+ * shell however its page ends, see `src/proxy/page-status-proxy.ts`.
  */
 for (const path of ['/does-not-exist', '/fr/does-not-exist', '/blog/does-not-exist']) {
   test(`${path} answers 404`, async ({ request }) => {
@@ -44,4 +44,16 @@ test('the 404 page of a CMS path speaks the language of the path', async ({ page
 
   expect(response?.status()).toBe(404);
   await expect(page.getByRole('heading', { name: '404 - Page non trouvée' })).toBeVisible();
+});
+
+/**
+ * A CMS page that needs a login answers 401 to a visitor without one, for the same reason: the
+ * proxy rewrites it to the prerendered `~unauthorized` route. The seeded `intern` page is for
+ * signed-in users only.
+ */
+test('a page that needs a login answers 401 and asks to log in', async ({ page }) => {
+  const response = await page.goto('/intern');
+
+  expect(response?.status()).toBe(401);
+  await expect(page.getByRole('button', { name: 'Anmelden mit Cevi.DB' })).toBeVisible();
 });

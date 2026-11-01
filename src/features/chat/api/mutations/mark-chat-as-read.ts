@@ -20,7 +20,7 @@ export const markChatAsRead = trpcBaseProcedure
         uuid: lastMessageId,
         chatId: chatId,
       },
-      select: { uuid: true },
+      select: { seq: true },
     });
 
     if (!message) {
@@ -30,21 +30,18 @@ export const markChatAsRead = trpcBaseProcedure
       });
     }
 
-    // 2. Advance the high-water mark in one statement, so concurrent calls cannot move it
-    // backwards: it only moves when unset or when the stored message is not newer than this one
-    // (a stored id pointing at a deleted message counts as unset). Reading the chat also takes
-    // away the caller's own unread mark.
-    const updatedRows = await prisma.$executeRaw`
-      UPDATE "ChatMembership" AS membership
-      SET "lastReadMessageId" = ${lastMessageId}, "markedUnread" = false
-      WHERE membership."userId" = ${user.uuid}
-        AND membership."chatId" = ${chatId}
-        AND NOT EXISTS (
-          SELECT 1 FROM "Message" AS current
-          WHERE current."uuid" = membership."lastReadMessageId"
-            AND current."createdAt" > (SELECT "createdAt" FROM "Message" WHERE "uuid" = ${lastMessageId})
-        )
-    `;
+    // 2. Advance the read marker to the position of this message. The condition is part of the
+    // UPDATE, so concurrent calls cannot move it backwards. Reading the chat also takes away the
+    // caller's own unread mark.
+    const { count: updatedRows } = await prisma.chatMembership.updateMany({
+      where: {
+        userId: user.uuid,
+        chatId,
+        // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
+        OR: [{ lastReadSeq: null }, { lastReadSeq: { lt: message.seq } }],
+      },
+      data: { lastReadSeq: message.seq, lastReadMessageId: lastMessageId, markedUnread: false },
+    });
 
     if (updatedRows === 0) {
       const membership = await prisma.chatMembership.findUnique({
@@ -60,7 +57,7 @@ export const markChatAsRead = trpcBaseProcedure
       }
 
       // The mark goes away as well when an older message is read, which does not move the
-      // high-water mark.
+      // read marker.
       if (membership.markedUnread) {
         await prisma.chatMembership.update({
           where: { userId_chatId: { userId: user.uuid, chatId: chatId } },
@@ -69,8 +66,8 @@ export const markChatAsRead = trpcBaseProcedure
       }
     }
 
-    // 3. Small chats also keep a READ event for the read ticks, large ones only the high-water
-    // mark. Counting stops at the threshold: an announcement channel has thousands of members,
+    // 3. Small chats also keep a READ event for the read ticks, large ones only the read
+    // marker. Counting stops at the threshold: an announcement channel has thousands of members,
     // and each of them runs this when they open an announcement.
     const memberCount = await prisma.chatMembership.count({
       where: { chatId },

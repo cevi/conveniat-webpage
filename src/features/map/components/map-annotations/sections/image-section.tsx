@@ -71,7 +71,7 @@ export const AnnotationImagesSection: React.FC<AnnotationImagesSectionProperties
           <DialogPrimitive.Content
             aria-describedby={undefined}
             onClick={() => setSelectedImage(undefined)}
-            className="fixed inset-0 z-[1000] flex items-center justify-center p-4 pt-[max(3.5rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] focus:outline-none"
+            className="fixed inset-0 z-[1000] flex items-center justify-center p-4 pt-[max(3.5rem,var(--status-bar-height))] pb-[max(1rem,env(safe-area-inset-bottom))] focus:outline-none"
           >
             {selectedImage !== undefined && (
               <>
@@ -89,7 +89,7 @@ export const AnnotationImagesSection: React.FC<AnnotationImagesSectionProperties
             )}
             <DialogPrimitive.Close
               aria-label={closeText[locale]}
-              className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-white"
+              className="absolute top-[max(0.75rem,var(--status-bar-height))] right-3 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-white"
             >
               <X className="h-6 w-6" aria-hidden="true" />
             </DialogPrimitive.Close>
