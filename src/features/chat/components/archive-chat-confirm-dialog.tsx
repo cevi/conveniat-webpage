@@ -64,8 +64,9 @@ interface ArchiveChatConfirmDialogProperties {
 }
 
 /**
- * Confirms deleting a chat, shared by the delete button in the chat details and the swipe
- * in the chat overview so that neither can archive a chat for everybody by accident.
+ * Confirms deleting a chat from its details, so that the button cannot archive a chat for
+ * everybody by accident. The chat list asks nothing and offers an undo instead, see
+ * `usePendingChatDeletion`.
  */
 export const ArchiveChatConfirmDialog: React.FC<ArchiveChatConfirmDialogProperties> = ({
   open,
