@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/buttons/button';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { WifiOff } from 'lucide-react';
 import type React from 'react';
@@ -27,21 +28,27 @@ interface NoInternetComponentProperties {
 export const NoInternetComponent: React.FC<NoInternetComponentProperties> = ({ locale }) => {
   return (
     <div className="flex flex-col items-center gap-6 p-4 text-center">
-      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100">
-        <WifiOff className="h-10 w-10 text-gray-500" />
+      <div className="bg-quiet flex h-20 w-20 items-center justify-center rounded-full">
+        <WifiOff className="h-10 w-10 text-green-500" />
       </div>
 
       <div className="space-y-2">
-        <h2 className="text-xl font-bold text-gray-800">{noInternetTitle[locale]}</h2>
-        <p className="text-balance text-gray-600">{noInternetDescription[locale]}</p>
+        <h2 className="font-heading text-heading text-[17px] leading-snug font-bold">
+          {noInternetTitle[locale]}
+        </h2>
+        <p className="text-[15px] leading-normal text-balance text-green-700">
+          {noInternetDescription[locale]}
+        </p>
       </div>
 
-      <button
+      <Button
+        variant="primary"
+        size="touch"
+        className="w-full"
         onClick={() => globalThis.location.reload()}
-        className="font-heading w-full transform cursor-pointer rounded-[8px] bg-gray-800 px-8 py-3 text-center text-lg leading-normal font-bold text-white shadow-md duration-100 hover:scale-[1.02] hover:bg-gray-700 active:scale-[0.98]"
       >
         {tryAgainButton[locale]}
-      </button>
+      </Button>
     </div>
   );
 };

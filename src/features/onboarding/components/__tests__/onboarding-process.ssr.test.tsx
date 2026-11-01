@@ -80,7 +80,6 @@ describe('OnboardingProcessContent server-rendered markup', () => {
     mockedStep = OnboardingStep.Initial;
     const html = renderToString(<OnboardingProcessContent />);
 
-    expect(html).toContain('bg-red-700');
     expect(html).toContain('Akzeptieren');
     expect(html).toContain('Nur notwendige');
     expect(html).not.toMatch(INVISIBLE);

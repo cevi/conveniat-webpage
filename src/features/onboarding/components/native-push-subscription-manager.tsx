@@ -1,8 +1,10 @@
 'use client';
 
+import { Button } from '@/components/ui/buttons/button';
 import type { StaticTranslationString } from '@/types/types';
 import { Cookie } from '@/types/types';
 import Cookies from 'js-cookie';
+import { BellOff } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 const descriptionText: StaticTranslationString = {
@@ -156,24 +158,26 @@ export const NativePushSubscriptionManager: React.FC<{
   if (isDenied) {
     return (
       <div className="flex flex-col items-center gap-4">
-        <div className="flex items-center justify-center rounded-lg bg-yellow-50 p-3 text-yellow-800">
-          <span className="text-sm font-semibold text-balance">{deniedText[locale]}</span>
+        <div className="bg-quiet flex items-start gap-2.5 rounded-xl p-3 text-left text-[15px] leading-normal text-green-700">
+          <BellOff className="text-conveniat-green mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+          <span>{deniedText[locale]}</span>
         </div>
-        <button
-          className="font-heading flex cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800"
-          onClick={handleOpenSettings}
-        >
+        <Button variant="primary" size="touch" className="w-full" onClick={handleOpenSettings}>
           {openSettingsButtonText[locale]}
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="mb-0 flex flex-col items-center">
-      <p className="mb-4 text-balance text-gray-700">{descriptionText[locale]}</p>
-      <button
-        className="font-heading flex cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+      <p className="mb-4 text-[15px] leading-normal text-balance text-green-700">
+        {descriptionText[locale]}
+      </p>
+      <Button
+        variant="primary"
+        size="touch"
+        className="w-full"
         onClick={handleEnable}
         disabled={isRequesting}
       >
@@ -181,7 +185,7 @@ export const NativePushSubscriptionManager: React.FC<{
           <div className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent" />
         )}
         {enableButtonText[locale]}
-      </button>
+      </Button>
     </div>
   );
 };

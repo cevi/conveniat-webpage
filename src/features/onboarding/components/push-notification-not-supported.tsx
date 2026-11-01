@@ -1,6 +1,8 @@
+import { Button } from '@/components/ui/buttons/button';
 import { offlineContentNotNowButton } from '@/features/onboarding/onboarding-constants';
 import type { StaticTranslationString } from '@/types/types';
 import { isPWAStandalone } from '@/utils/standalone-check';
+import { BellOff } from 'lucide-react';
 import React from 'react';
 
 const notSupportedBrowserText: StaticTranslationString = {
@@ -28,17 +30,15 @@ export const PushNotificationNotSupported: React.FC<PushNotificationNotSupported
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-center gap-2 rounded-lg bg-gray-100 p-3 text-gray-600">
-        <span className="font-semibold text-balance">
+      <div className="bg-quiet flex items-start gap-2.5 rounded-xl p-3 text-left text-[15px] leading-normal text-green-700">
+        <BellOff className="text-conveniat-green mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+        <span>
           {isStandalone ? notSupportedDeviceText[locale] : notSupportedBrowserText[locale]}
         </span>
       </div>
-      <button
-        onClick={onSkip}
-        className="font-heading w-full transform cursor-pointer rounded-[8px] bg-gray-400 px-8 py-3 text-center text-lg leading-normal font-bold text-white shadow-md duration-100 hover:scale-[1.02] hover:bg-gray-500 active:scale-[0.98]"
-      >
+      <Button variant="primary" size="touch" className="w-full" onClick={onSkip}>
         {offlineContentNotNowButton[locale]}
-      </button>
+      </Button>
     </div>
   );
 };

@@ -14,7 +14,9 @@ export const GettingReadyEntrypointComponent: React.FC<{
   return (
     <div className="rounded-lg p-8 text-center">
       <CenteredConveniatLogo />
-      <p className="mb-4 text-balance text-gray-700">{gettingReadyText[locale]}</p>
+      <p className="mb-4 text-[15px] leading-normal text-balance text-green-700">
+        {gettingReadyText[locale]}
+      </p>
     </div>
   );
 };
