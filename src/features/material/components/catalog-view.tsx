@@ -21,6 +21,7 @@ import {
 } from '@/features/material/components/material-ui';
 import { RequestSheet } from '@/features/material/components/request-sheet';
 import { RoleGate } from '@/features/material/components/role-gate';
+import { useKeptScrollPosition } from '@/features/material/hooks/use-kept-scroll-position';
 import { usePagination } from '@/features/material/hooks/use-list-state';
 import { materialQueryOptions, useMaterialLocale } from '@/features/material/hooks/use-material';
 import { useSearchHistory } from '@/features/material/hooks/use-search-history';
@@ -382,21 +383,24 @@ const CatalogScreen: React.FC = () => {
       return quantity <= 0 ? others : [...others, { itemId: item.id, quantity }];
     });
 
+  const itemCode = code !== null && code !== '' ? code : undefined;
+  useKeptScrollPosition(itemCode !== undefined);
+
   if (catalog.isLoading) return <LoadingState text={labels.loading[locale]} />;
   if (!catalog.data) return <MaterialQueryError error={catalog.error} />;
 
-  const itemCode = code !== null && code !== '' ? code : undefined;
-
   return (
     <div>
-      {itemCode === undefined ? (
+      {/* stays mounted under an open article, so its filters and its page survive the visit */}
+      <div hidden={itemCode !== undefined}>
         <CatalogList
           items={catalog.data}
           quantityOf={quantityOf}
           onChange={setQuantity}
           onOpen={(next) => history.open(`item=${encodeURIComponent(next)}`)}
         />
-      ) : (
+      </div>
+      {itemCode !== undefined && (
         // brings its own bar at the bottom, with the article's button next to the request's
         <CatalogItemView
           key={itemCode}

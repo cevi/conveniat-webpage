@@ -363,8 +363,10 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
 
   return (
     <div className="space-y-4">
+      {/* the inventory under the article puts itself back where it was left */}
       <Link
         href="/app/material/inventar"
+        scroll={false}
         className={cn(
           'inline-flex min-h-11 items-center gap-1 rounded-lg text-sm font-semibold text-green-700 hover:text-green-900',
         )}

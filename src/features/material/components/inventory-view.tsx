@@ -15,6 +15,7 @@ import {
   Panel,
 } from '@/features/material/components/material-ui';
 import { RoleGate } from '@/features/material/components/role-gate';
+import { useKeptScrollPosition } from '@/features/material/hooks/use-kept-scroll-position';
 import { usePagination } from '@/features/material/hooks/use-list-state';
 import {
   materialQueryOptions,
@@ -159,16 +160,21 @@ const InventoryList: React.FC = () => {
 };
 
 /**
- * The inventory, or one article in full. Which of the two is decided by `?item=`, the address
- * an article's QR label points to.
+ * The inventory, or one article in full over it. Which of the two shows is decided by `?item=`,
+ * the address an article's QR label points to.
  */
 export const InventoryPage: React.FC = () => {
   const code = useSearchParams().get('item');
   const hasCode = code !== null && code !== '';
+  useKeptScrollPosition(hasCode);
   // a participant who scanned an article label reads it in the catalogue
   return (
     <RoleGate role="team" elsewhere={hasCode ? catalogItemPath(code) : '/app/material/katalog'}>
-      {hasCode ? <ItemDetailView key={code} code={code} /> : <InventoryList />}
+      {/* stays mounted under an open article, so its filters and its page survive the visit */}
+      <div hidden={hasCode}>
+        <InventoryList />
+      </div>
+      {hasCode && <ItemDetailView key={code} code={code} />}
     </RoleGate>
   );
 };
