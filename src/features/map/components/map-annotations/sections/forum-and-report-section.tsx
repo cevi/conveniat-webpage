@@ -111,7 +111,7 @@ export const AnnotationForumAndReportSection: React.FC<{
         }}
         disabled={!isOnline || isPending || isRedirecting || sessionStatus === 'loading'}
         aria-busy={isPending || isRedirecting}
-        className="border-line flex min-h-[60px] w-full cursor-pointer items-center gap-3 rounded-[14px] border bg-white px-3.5 py-2.5 text-left transition-colors hover:border-green-300 disabled:cursor-not-allowed disabled:opacity-60"
+        className="focus-visible:focus-surface border-line flex min-h-[60px] w-full cursor-pointer items-center gap-3 rounded-[14px] border bg-white px-3.5 py-2.5 text-left transition-colors hover:border-green-300 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <IconTile
           icon={icon}

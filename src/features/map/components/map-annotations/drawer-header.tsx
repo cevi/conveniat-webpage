@@ -15,7 +15,7 @@ const labels = {
 
 /** a labelled action under the name of the place */
 const actionClassName =
-  'flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border border-line bg-white px-4 text-[15px] font-semibold text-green-900 transition-colors hover:border-green-300 hover:bg-white';
+  'focus-visible:focus-surface-tight flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border border-line bg-white px-4 text-[15px] font-semibold text-green-900 transition-colors hover:border-green-300 hover:bg-white';
 
 interface AnnotationDrawerHeaderProperties {
   closeDrawer: () => void;

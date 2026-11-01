@@ -463,7 +463,7 @@ export const ChatTextAreaInput: React.FC = () => {
                   type="button"
                   onClick={() => fileInputReference.current?.click()}
                   aria-label={attachImageText[locale]}
-                  className="flex h-[42px] w-[42px] shrink-0 cursor-pointer items-center justify-center rounded-[11px] text-green-700 hover:text-green-900"
+                  className="focus-visible:focus-surface flex h-[42px] w-[42px] shrink-0 cursor-pointer items-center justify-center rounded-[11px] text-green-700 hover:text-green-900"
                 >
                   <Paperclip className="h-5 w-5" aria-hidden="true" />
                 </button>

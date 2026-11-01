@@ -97,8 +97,8 @@ export const MapSearchRow: React.FC<{
             'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors',
             floatingClassName,
             locateState === 'active'
-              ? 'bg-conveniat-green text-white hover:bg-green-700'
-              : 'hover:bg-quiet text-green-900',
+              ? 'bg-conveniat-green focus-visible:focus-surface-filled text-white hover:bg-green-700'
+              : 'hover:bg-quiet focus-visible:focus-surface text-green-900',
           )}
         >
           <LocateIcon
