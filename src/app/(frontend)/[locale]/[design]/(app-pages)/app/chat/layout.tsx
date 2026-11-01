@@ -5,8 +5,10 @@ import {
 } from '@/features/chat/components/chat-overview-view/chat-qr-code-button';
 import { ChatsOverviewClientComponent } from '@/features/chat/components/chat-overview-view/chats-overview-client-component';
 import { ChatSplitView } from '@/features/chat/components/chat-split-view';
+import { ContinueOnPhoneCard } from '@/features/chat/components/continue-on-phone-card';
 import { SetOnlineStatus } from '@/features/chat/components/set-online-status';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { DesignCodes } from '@/utils/design-codes';
 import type { ReactNode } from 'react';
 import React, { Suspense } from 'react';
 
@@ -14,6 +16,7 @@ interface LayoutProperties {
   children: ReactNode;
   params: Promise<{
     locale: Locale;
+    design: DesignCodes;
   }>;
 }
 
@@ -32,7 +35,8 @@ const chatsTitle: StaticTranslationString = {
  * boundary so it cannot turn the whole segment dynamic.
  */
 const Layout: React.FC<LayoutProperties> = async ({ children, params }) => {
-  const { locale } = await params;
+  const { locale, design } = await params;
+  const inAppDesign = design === DesignCodes.APP_DESIGN;
 
   const qrCodeButton = (
     <Suspense fallback={<QrCodeIconSkeleton />}>
@@ -44,7 +48,12 @@ const Layout: React.FC<LayoutProperties> = async ({ children, params }) => {
     <>
       <SetOnlineStatus />
       <SetDynamicPageTitle newTitle={chatsTitle[locale]} />
-      <ChatSplitView list={<ChatsOverviewClientComponent qrCodeButton={qrCodeButton} />}>
+      <ChatSplitView
+        list={<ChatsOverviewClientComponent qrCodeButton={qrCodeButton} />}
+        // in a browser on a desktop, the way to the app on the phone
+        listFoot={inAppDesign ? undefined : <ContinueOnPhoneCard />}
+        inAppDesign={inAppDesign}
+      >
         {children}
       </ChatSplitView>
     </>
