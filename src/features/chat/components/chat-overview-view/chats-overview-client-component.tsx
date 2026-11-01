@@ -311,9 +311,11 @@ export const ChatsOverviewClientComponent: React.FC<{
           className={cn(
             // Kept under the header while the chats scroll beneath it, and in place while a pull
             // to refresh moves them. It takes over the room above and below it, so it stands
-            // where it did and covers the rows scrolling under it edge to edge.
-            'sticky top-(--app-content-top) z-20 -mx-4 -mt-4 -mb-4 flex flex-col gap-3 bg-white px-4 pt-4 pb-4',
-            'sm:mx-0 sm:px-0 xl:top-0 xl:-mx-4 xl:px-4',
+            // where it did and covers the rows scrolling under it edge to edge. In a browser
+            // that room includes the band under the hanging logo, see the app pages' layout.
+            'sticky top-[calc(var(--app-content-top)-var(--app-logo-overhang))] z-20 -mx-4 -mb-4 flex flex-col gap-3 bg-white px-4 pb-4',
+            'mt-[calc(-1*(var(--app-logo-overhang)+1rem))] pt-[calc(var(--app-logo-overhang)+1rem)]',
+            'sm:mx-0 sm:px-0 xl:top-0 xl:-mx-4 xl:-mt-4 xl:px-4 xl:pt-4',
           )}
         >
           <div className="flex items-center gap-1">
