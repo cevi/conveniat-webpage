@@ -19,6 +19,13 @@ import type {
 import { Controller } from 'react-hook-form';
 import ReactSelect from 'react-select';
 
+/** What an empty dropdown says when the editor gave it no placeholder of its own. */
+const choosePlaceholderText: StaticTranslationString = {
+  de: 'Bitte auswählen …',
+  en: 'Please choose …',
+  fr: 'Veuillez choisir …',
+};
+
 /** Longest option label, in characters, that still reads well inside a grid card. */
 const LONG_OPTION_LABEL_LENGTH = 20;
 
@@ -52,6 +59,12 @@ export const Select: React.FC<
     en: 'No options available',
     fr: "Aucune option n'est disponible",
   };
+
+  // react-select shows an English "Select..." for a field without one
+  const placeholderText =
+    typeof placeholder === 'string' && placeholder.trim() !== ''
+      ? placeholder
+      : choosePlaceholderText[locale as Locale];
 
   if (optionType === 'dropdown') {
     return (
@@ -109,7 +122,7 @@ export const Select: React.FC<
                 ref={ref}
                 classNamePrefix="react-select"
                 unstyled
-                placeholder={placeholder}
+                placeholder={placeholderText}
                 classNames={{
                   control: (state) =>
                     cn(
