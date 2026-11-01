@@ -634,6 +634,18 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
       }
     }
 
+    // Files under /_next/static/ carry a content hash in their name, so any cached copy is the
+    // right one. Serwist's routes each look in one cache and then ask the network; a chunk the
+    // offline download stored in another cache was fetched again, and on wifi without an uplink
+    // that request never ended: a cached page from an earlier build waited for it forever.
+    if (url.origin === self.location.origin && url.pathname.startsWith('/_next/static/')) {
+      const cachedAsset = await caches.match(event.request, {
+        ignoreSearch: true,
+        ignoreVary: true,
+      });
+      if (cachedAsset) return cachedAsset;
+    }
+
     // 3. Serwist Strategies
     const response = await serwist.handleRequest({
       request: requestToHandle,
