@@ -7,6 +7,7 @@ import {
 } from '@/components/footer/footer-nav-bar-menu-entries';
 import { NavLink } from '@/components/footer/nav-link';
 import type { Config } from '@/features/payload-cms/payload-types';
+import { useKeyboardShrinksPage } from '@/hooks/use-keyboard-shrinks-page';
 import { cn } from '@/utils/tailwindcss-override';
 import { House } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -26,6 +27,7 @@ export const FooterAppNavBar: React.FC<FooterAppNavBarProperties> = ({
 }) => {
   const pathname = usePathname();
   const router = useRouter();
+  const keyboardShrinksPage = useKeyboardShrinksPage();
 
   const navItems = useMemo(() => {
     if (items && items.length > 0) return items;
@@ -60,6 +62,9 @@ export const FooterAppNavBar: React.FC<FooterAppNavBarProperties> = ({
     <div
       className={cn(
         'fixed bottom-0 left-(--app-content-left) z-40 flex h-20 w-[calc(100dvw-var(--app-content-left))] border-t-2 border-gray-200 bg-[#f8fafc]',
+        // In the Android app the keyboard shrinks the page, which would stand the bar on top of
+        // it. A field may keep its focus after the keyboard closes, so both have to hold.
+        keyboardShrinksPage && (railOnDesktop ? 'max-xl:typing:hidden' : 'typing:hidden'),
         // the rail is the free area's left margin, see --app-content-left in the app shell
         railOnDesktop &&
           'xl:top-(--app-content-top) xl:left-0 xl:h-auto xl:w-(--app-content-left) xl:border-t-0 xl:border-r-2',
