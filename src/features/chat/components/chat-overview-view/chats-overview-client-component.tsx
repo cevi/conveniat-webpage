@@ -18,10 +18,10 @@ import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view
 import { RealtimeSyncBanner } from '@/features/chat/components/realtime-sync-banner';
 import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
 import { useChatId } from '@/features/chat/context/chat-id-context';
+import { usePendingChatDeletionContext } from '@/features/chat/context/pending-chat-deletion-context';
 import { useChatListActions } from '@/features/chat/hooks/use-chat-list-actions';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChats } from '@/features/chat/hooks/use-chats';
-import { usePendingChatDeletion } from '@/features/chat/hooks/use-pending-chat-deletion';
 import { useSearchClearedOnLeave } from '@/features/chat/hooks/use-search-cleared-on-leave';
 import type { ChatListFilter } from '@/features/chat/utils/chat-list-filter';
 import { matchesChatListFilter } from '@/features/chat/utils/chat-list-filter';
@@ -245,7 +245,7 @@ export const ChatsOverviewClientComponent: React.FC<{
   // the chat open beside the list on a desktop
   const openChatId = useChatId();
   const isDesktop = useIsDesktop();
-  const pendingDeletion = usePendingChatDeletion();
+  const pendingDeletion = usePendingChatDeletionContext();
 
   // Filter chats based on a search query. Pinned chats go first; the sort is stable, so both
   // groups keep the server's most-recent-first order, and chats added optimistically at the
@@ -262,7 +262,7 @@ export const ChatsOverviewClientComponent: React.FC<{
         }
 
         // deleted, though the server only hears of it once the moment to undo has passed
-        if (chat.id === pendingDeletion.chatId) return false;
+        if (chat.id === pendingDeletion.pending?.chatId) return false;
         if (!matchesChatListFilter(chat, listFilter)) return false;
         const chatName = chat.name;
         return (
@@ -331,7 +331,6 @@ export const ChatsOverviewClientComponent: React.FC<{
         chat={actionsChat}
         onClose={() => setActionsChatId(undefined)}
         actions={listActions}
-        onDelete={pendingDeletion.deleteChat}
         locale={locale}
       />
 
@@ -401,7 +400,7 @@ export const ChatsOverviewClientComponent: React.FC<{
                     // the line between rows starts at the text, as the avatar marks each row; above the swipe layer
                     className="after:bg-line relative after:absolute after:right-0 after:bottom-0 after:left-[72px] after:z-20 after:h-px last:after:hidden"
                   >
-                    <SwipeToDeleteChat chat={chat} onDelete={pendingDeletion.deleteChat}>
+                    <SwipeToDeleteChat chat={chat}>
                       <ChatPreview
                         chat={chat}
                         onOpenActions={(pressed) => setActionsChatId(pressed.id)}
@@ -430,17 +429,19 @@ export const ChatsOverviewClientComponent: React.FC<{
 
       {/* the screen's main action floats over the list, above the tab bar, and gives its place
           to the undo of a delete for the moment it lasts */}
-      {pendingDeletion.chatId !== undefined && (
+      {pendingDeletion.pending !== undefined && (
         <ChatDeletedBanner
-          key={pendingDeletion.chatId}
+          key={pendingDeletion.pending.chatId}
+          forEveryone={pendingDeletion.pending.forEveryone}
           onUndo={pendingDeletion.undo}
+          onHold={pendingDeletion.hold}
           locale={locale}
         />
       )}
-      {!isDesktop && pendingDeletion.chatId === undefined && createChatsEnabled === undefined && (
+      {!isDesktop && pendingDeletion.pending === undefined && createChatsEnabled === undefined && (
         <NewChatButtonSkeleton />
       )}
-      {!isDesktop && pendingDeletion.chatId === undefined && createChatsEnabled === true && (
+      {!isDesktop && pendingDeletion.pending === undefined && createChatsEnabled === true && (
         <Link
           href="/app/chat/new"
           className="focus-visible:focus-surface-filled bg-conveniat-green fixed right-4 bottom-[calc(var(--app-tab-bar-height)+16px)] z-30 flex h-12 items-center gap-2 rounded-2xl px-5 text-[15px] font-semibold text-white shadow-lg hover:bg-green-700"

@@ -5,6 +5,7 @@ import { LeaveChatDialog } from '@/features/chat/components/chat-details-view/le
 import { ChatAvatar } from '@/features/chat/components/ui/chat-avatar';
 import { SheetActionRow } from '@/features/chat/components/ui/sheet-action-row';
 import { ChatIdProvider } from '@/features/chat/context/chat-id-context';
+import { usePendingChatDeletionContext } from '@/features/chat/context/pending-chat-deletion-context';
 import type { ChatListActions } from '@/features/chat/hooks/use-chat-list-actions';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { canDeleteChat } from '@/features/chat/utils/can-delete-chat';
@@ -57,10 +58,9 @@ export const ChatActionsSheet: React.FC<{
   chat: ChatWithMessagePreview | undefined;
   onClose: () => void;
   actions: ChatListActions;
-  /** deletes the chat with a moment to undo it, see `usePendingChatDeletion` */
-  onDelete: (chatId: string) => void;
   locale: Locale;
-}> = ({ chat, onClose, actions, onDelete, locale }) => {
+}> = ({ chat, onClose, actions, locale }) => {
+  const { deleteChat } = usePendingChatDeletionContext();
   const [leaving, setLeaving] = useState<ChatWithMessagePreview>();
 
   const act = (action: () => void): void => {
@@ -131,7 +131,7 @@ export const ChatActionsSheet: React.FC<{
               destructive
               onClick={() => {
                 if (canLeave) setLeaving(chat);
-                else onDelete(chat.id);
+                else deleteChat({ chatId: chat.id, forEveryone: chat.isArchived !== true });
                 onClose();
               }}
             />

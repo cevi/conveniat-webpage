@@ -1,5 +1,6 @@
 'use client';
 
+import { usePendingChatDeletionContext } from '@/features/chat/context/pending-chat-deletion-context';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { canDeleteChat } from '@/features/chat/utils/can-delete-chat';
 import { cn } from '@/utils/tailwindcss-override';
@@ -10,18 +11,13 @@ import { useCallback, useRef, useState } from 'react';
 
 interface SwipeToDeleteChatProperties {
   chat: ChatWithMessagePreview;
-  /** deletes the chat with a moment to undo it, see `usePendingChatDeletion` */
-  onDelete: (chatId: string) => void;
   children: React.ReactNode;
 }
 
 const DELETE_THRESHOLD_PERCENT = 0.35;
 
-export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({
-  chat,
-  onDelete,
-  children,
-}) => {
+export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat, children }) => {
+  const { deleteChat } = usePendingChatDeletionContext();
   const draggingX = useMotionValue(0);
   const containerReference = useRef<HTMLDivElement>(null);
   const [pastThreshold, setPastThreshold] = useState(false);
@@ -50,7 +46,7 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({
 
     // no question first: the list holds the delete back for a moment and offers to undo it
     if (isRightSwipe && distanceMet && canDelete) {
-      onDelete(chat.id);
+      deleteChat({ chatId: chat.id, forEveryone: chat.isArchived !== true });
     }
     animate(draggingX, 0, { type: 'spring', stiffness: 500, damping: 35 });
   };
