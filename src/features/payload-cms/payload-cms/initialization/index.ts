@@ -16,7 +16,6 @@ import {
   announceRunningJobsWith,
   getRunningJobIds,
 } from '@/features/payload-cms/payload-cms/tasks/active-job-tracking';
-import { refreshUserHoefe } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import prisma from '@/lib/db/prisma';
 import { FORM_FILE_BUCKET_NAME, S3_BUCKET_NAME, s3Client } from '@/lib/s3';
 import { withSpan } from '@/utils/tracing-helpers';
@@ -199,18 +198,6 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
           { err: error },
           'Refreshing the admin panel access of the users failed',
         );
-      });
-
-      // In the background: fills the Höfe of every user the first time, and afterwards
-      // repairs whatever a failed registration hook left behind. Writes only what differs.
-      void withSpan('payload.init.refreshUserHoefe', async () => {
-        const written = await refreshUserHoefe(payload);
-        payload.logger.info(
-          { written },
-          'Brought the Höfe of the users in line with their registrations',
-        );
-      }).catch((error: unknown) => {
-        payload.logger.error({ err: error }, 'Refreshing the Höfe of the users failed');
       });
 
       // Run in the background so index generation doesn't block the first request
