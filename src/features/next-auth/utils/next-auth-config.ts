@@ -71,6 +71,15 @@ const HITOBITO_FORWARD_URL = environmentVariables.HITOBITO_FORWARD_URL;
 const CEVI_DB_CLIENT_ID = environmentVariables.CEVI_DB_CLIENT_ID;
 const CEVI_DB_CLIENT_SECRET = environmentVariables.CEVI_DB_CLIENT_SECRET;
 
+/**
+ * How long a session lives after its last token refresh, in seconds. Hitobito keeps a refresh
+ * token for `oidc.refresh_token_expires_in`, 7 days, counted from the refresh that issued it, and
+ * its cleanup job deletes it after that. A session cookie that outlived it would only be refused
+ * at its next refresh. The cookie is issued anew with every refresh, so with the same lifetime it
+ * always ends first, and the user is simply signed out instead.
+ */
+const CEVI_DB_REFRESH_TOKEN_LIFETIME = 7 * 24 * 60 * 60;
+
 type UserGroup = NonNullable<User['groups']>[number];
 
 /**
@@ -556,6 +565,7 @@ export const authOptions: NextAuthConfig = {
   logger: createAuthJsLogger(logger),
   session: {
     strategy: 'jwt',
+    maxAge: CEVI_DB_REFRESH_TOKEN_LIFETIME,
   },
 
   callbacks: {
