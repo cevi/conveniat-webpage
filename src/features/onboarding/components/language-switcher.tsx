@@ -36,7 +36,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProperties> = ({
             size="icon"
             className="h-10 w-10 rounded-full bg-white/80 shadow-sm backdrop-blur-sm hover:bg-white focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
           >
-            <Globe className="h-5 w-5 text-gray-700" />
+            <Globe className="h-5 w-5 text-green-700" />
             <span className="sr-only">{changeLanguageText[currentLocale]}</span>
           </Button>
         </DropdownMenuTrigger>
