@@ -1,8 +1,7 @@
 import { IconTile } from '@/components/ui/icon-tile';
-import { cn } from '@/utils/tailwindcss-override';
+import { ListRow } from '@/components/ui/list-row';
 import type { LucideIcon } from 'lucide-react';
 import { ChevronRight } from 'lucide-react';
-import Link from 'next/link';
 import type React from 'react';
 
 /**
@@ -34,12 +33,12 @@ export const FactRow: React.FC<{
     </>
   );
   const className =
-    'focus-visible:focus-ring-inset relative flex min-h-[60px] items-center gap-3 px-3.5 py-2.5 not-first:before:absolute not-first:before:top-0 not-first:before:right-0 not-first:before:left-16 not-first:before:h-px not-first:before:bg-line';
+    'relative flex min-h-[60px] items-center gap-3 px-3.5 py-2.5 not-first:before:absolute not-first:before:top-0 not-first:before:right-0 not-first:before:left-16 not-first:before:h-px not-first:before:bg-line';
   return href === undefined ? (
     <div className={className}>{body}</div>
   ) : (
-    <Link href={href} className={cn(className, 'hover:bg-quiet transition-colors')}>
+    <ListRow href={href} className={className}>
       {body}
-    </Link>
+    </ListRow>
   );
 };

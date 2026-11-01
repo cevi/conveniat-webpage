@@ -3,6 +3,7 @@
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/buttons/button';
 import { IconTile } from '@/components/ui/icon-tile';
+import { ListRow } from '@/components/ui/list-row';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { FRAME_EDGE, usePhotoFraming } from '@/features/settings/hooks/use-photo-framing';
 import { useProfilePicture } from '@/features/settings/hooks/use-profile-picture';
@@ -81,14 +82,10 @@ const SourceRow: React.FC<{
   label: string;
   onClick: () => void;
 }> = ({ icon, label, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className="hover:bg-quiet flex min-h-[56px] w-full cursor-pointer items-center gap-3 px-3.5 py-2 text-left text-[15px] font-semibold text-green-900"
-  >
+  <ListRow onClick={onClick} className="px-3.5 py-2 text-[15px] font-semibold text-green-900">
     <IconTile icon={icon} />
     {label}
-  </button>
+  </ListRow>
 );
 
 /**

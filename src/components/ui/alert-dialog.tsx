@@ -97,7 +97,7 @@ AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayNam
  */
 export const destructiveButtonClassName = cn(
   buttonVariants({ variant: 'outlined', size: 'touch' }),
-  'border-danger-line text-danger-text hover:bg-danger-soft',
+  'border-danger-line text-danger-text hover:bg-danger-soft focus-visible:outline-danger',
 );
 
 /**

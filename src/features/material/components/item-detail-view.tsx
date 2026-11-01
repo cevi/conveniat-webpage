@@ -1,5 +1,6 @@
 'use client';
 
+import { ListRow } from '@/components/ui/list-row';
 import { HolderAvatar, holderName } from '@/features/material/components/counter-ui';
 import { IncidentPhotoField } from '@/features/material/components/incident-photo-field';
 import { ItemEditDialog } from '@/features/material/components/item-edit-dialog';
@@ -315,16 +316,13 @@ const WhereIsIt: React.FC<{ item: MaterialItemDetail }> = ({ item }) => {
             return (
               <li key={group.key}>
                 {out.length > 0 ? (
-                  <Link
+                  <ListRow
                     href={`/app/material/zurueck?${holderSearch(group.holder)}`}
-                    className={cn(
-                      'hover:bg-quiet flex items-center gap-3 px-4 py-3',
-                      'focus-visible:focus-ring-inset',
-                    )}
+                    className="min-h-0 py-3"
                   >
                     {content}
                     <ChevronRight className="size-4 shrink-0 text-green-500" aria-hidden />
-                  </Link>
+                  </ListRow>
                 ) : (
                   <div className="flex items-center gap-3 px-4 py-3">{content}</div>
                 )}

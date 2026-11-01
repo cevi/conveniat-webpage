@@ -1,4 +1,5 @@
 import { IconTile } from '@/components/ui/icon-tile';
+import { ListRow } from '@/components/ui/list-row';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { SectionLabel } from '@/components/ui/section-label';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
@@ -128,25 +129,19 @@ export const ParticipantsList: React.FC<ParticipantsListProperties> = ({
   actionFor,
   locale,
 }) => {
-  // a row fills its card, which clips a ring outside it
-  const rowClassName =
-    'flex min-h-[64px] w-full items-center gap-3 px-4 py-2.5 text-left focus-visible:focus-ring-inset';
+  const rowClassName = 'min-h-[64px]';
   return (
     <section>
       <SectionLabel className="mb-2">{participantsText(participants.length, locale)}</SectionLabel>
       <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
         {onAdd !== undefined && (
           <li>
-            <button
-              type="button"
-              onClick={onAdd}
-              className={cn(rowClassName, 'hover:bg-quiet cursor-pointer')}
-            >
+            <ListRow onClick={onAdd} className={rowClassName}>
               <IconTile icon={UserPlus} className="h-11 w-11 rounded-full" />
               <span className="text-[15px] font-semibold text-green-900">
                 {addParticipantsText[locale]}
               </span>
-            </button>
+            </ListRow>
           </li>
         )}
         {participants.map((participant) => {
@@ -159,19 +154,24 @@ export const ParticipantsList: React.FC<ParticipantsListProperties> = ({
             // writing to them is all there is to do, so the row itself does it
             return (
               <li key={participant.id}>
-                <button
-                  type="button"
+                <ListRow
                   onClick={action.run}
                   aria-label={messageToText[locale].replace('{name}', displayName)}
-                  className={cn(rowClassName, 'hover:bg-quiet cursor-pointer')}
+                  className={rowClassName}
                 >
                   {body}
-                </button>
+                </ListRow>
               </li>
             );
           }
           return (
-            <li key={participant.id} className={cn(rowClassName, action && 'pr-2')}>
+            <li
+              key={participant.id}
+              className={cn(
+                'flex min-h-[64px] items-center gap-3 px-4 py-2.5',
+                action !== undefined && 'pr-2',
+              )}
+            >
               {body}
               {action !== undefined && (
                 <button

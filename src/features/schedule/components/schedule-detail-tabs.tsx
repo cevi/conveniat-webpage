@@ -1,3 +1,4 @@
+import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import type { LeaderNotes } from '@/features/schedule/api/viewer';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
@@ -133,19 +134,19 @@ export const MaterialTab: React.FC<{ notes: LeaderNotes; locale: Locale }> = ({
           <div className="border-line divide-line mt-2 divide-y overflow-hidden rounded-[14px] border bg-white">
             {attachments.map((document) =>
               typeof document === 'object' ? (
-                <a
+                <ListRow
                   key={document.id}
-                  href={document.url ?? undefined}
+                  href={document.url ?? ''}
                   target="_blank"
                   rel="noreferrer"
-                  className="focus-visible:focus-ring-inset hover:bg-quiet flex min-h-11 items-center gap-3 px-3.5 py-2.5 text-[15px] transition-colors"
+                  className="min-h-11 px-3.5 text-[15px]"
                 >
                   <FileText className="text-conveniat-green h-4 w-4 shrink-0" aria-hidden="true" />
                   <span className="min-w-0 flex-1 truncate text-green-900">
                     {document.title ?? document.filename}
                   </span>
                   <ChevronRight className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />
-                </a>
+                </ListRow>
               ) : undefined,
             )}
           </div>
