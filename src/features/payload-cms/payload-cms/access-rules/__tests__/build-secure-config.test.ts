@@ -17,9 +17,10 @@ jest.mock('@/features/payload-cms/payload-cms/plugins/strip-control-characters-p
 
 import {
   applyDefaultAccess,
+  keepDraftsToEditors,
   restrictInternalEntities,
 } from '@/features/payload-cms/payload-cms/access-rules/build-secure-config';
-import type { Access, PayloadRequest } from 'payload';
+import type { Access, GlobalConfig, PayloadRequest, Where } from 'payload';
 
 type Rules = Record<string, Access>;
 
@@ -121,5 +122,65 @@ describe('restrictInternalEntities', () => {
     restrictInternalEntities(config);
 
     expect(allows(config.collections[2]?.access ?? {}, 'read', participant)).toBe(true);
+  });
+});
+
+/** A draft-enabled global everybody may read, like the header or the app landing page. */
+const publicGlobalWithDrafts = (): Pick<GlobalConfig, 'access' | 'hooks' | 'versions'> => {
+  const global: Pick<GlobalConfig, 'access' | 'hooks' | 'versions'> = {
+    access: { read: () => true },
+    versions: { drafts: true },
+  };
+  applyDefaultAccess({ globals: [global] });
+  keepDraftsToEditors({ globals: [global] });
+  return global;
+};
+
+/** Runs a draft read through the global's hooks, the way Payload does; true if it stays one. */
+const readsDraft = async (
+  global: Pick<GlobalConfig, 'access' | 'hooks'>,
+  request: PayloadRequest,
+  overrideAccess = false,
+): Promise<boolean> => {
+  let readArguments: unknown = { draft: true };
+  for (const hook of global.hooks?.beforeOperation ?? []) {
+    const changed: unknown = await hook({
+      args: readArguments,
+      context: {},
+      global: global as never,
+      operation: 'read',
+      overrideAccess,
+      req: request,
+    });
+    readArguments = changed ?? readArguments;
+  }
+  return (readArguments as { draft?: boolean }).draft === true;
+};
+
+describe('keepDraftsToEditors', () => {
+  it('gives a participant asking for the draft the published state', async () => {
+    expect(await readsDraft(publicGlobalWithDrafts(), participant)).toBe(false);
+  });
+
+  it('gives whoever may edit the global the draft', async () => {
+    expect(await readsDraft(publicGlobalWithDrafts(), fullAdmin)).toBe(true);
+  });
+
+  it('leaves the local API with overridden access alone', async () => {
+    expect(await readsDraft(publicGlobalWithDrafts(), participant, true)).toBe(true);
+  });
+
+  it('counts a narrowed update as permission', async () => {
+    const global = publicGlobalWithDrafts();
+    global.access = { ...global.access, update: (): Where => ({ id: { equals: 'p1' } }) };
+
+    expect(await readsDraft(global, participant)).toBe(true);
+  });
+
+  it('adds nothing to a global without drafts', () => {
+    const global: Pick<GlobalConfig, 'hooks' | 'versions'> = { versions: { drafts: false } };
+    keepDraftsToEditors({ globals: [global] });
+
+    expect(global.hooks?.beforeOperation).toBeUndefined();
   });
 });
