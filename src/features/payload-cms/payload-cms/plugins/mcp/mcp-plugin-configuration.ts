@@ -5,6 +5,7 @@ import {
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { awaitMcpResponse } from '@/features/payload-cms/payload-cms/plugins/mcp/await-mcp-response';
+import { withFullKeyUser } from '@/features/payload-cms/payload-cms/plugins/mcp/mcp-key-user';
 import {
   createPublishingTool,
   PUBLISHING_TOOL_NAME,
@@ -183,7 +184,10 @@ const configuredMcpPlugin = mcpPlugin({
       },
     },
   },
-  overrideAuth: rememberKeyAccessSettings,
+  overrideAuth: (request, getDefaultMcpAccessSettings) =>
+    rememberKeyAccessSettings(request, async (overrideApiKey) =>
+      withFullKeyUser(request, await getDefaultMcpAccessSettings(overrideApiKey)),
+    ),
   mcp: {
     tools: [createPublishingTool(['generic-page', 'forms', 'helper-jobs'])],
     serverOptions: {
