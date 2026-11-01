@@ -169,6 +169,28 @@ describe('section display conditions', () => {
   });
 
   /*
+   * Back from the Cevi.DB login, the form first renders with empty answers, so every gated
+   * section looks hidden until the stored answers are restored. A section that was never
+   * shown in this mount is not a branch the helper left.
+   */
+  it('keeps the restored answers of a branch when coming back from the login', async () => {
+    sessionStorage.setItem(
+      getFormStorageKey('test-form', 'state'),
+      JSON.stringify({ anmeldeart: 'rolle', jobhauptlager: 'Kuechenhilfe', vorname: 'Mia' }),
+    );
+    sessionStorage.setItem(getFormStorageKey('test-form', 'step'), '2');
+
+    render(<FormBlock form={config} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Absenden' }));
+
+    await waitFor(() => expect(submitSpy).toHaveBeenCalledTimes(1));
+    const [submitted] = submitSpy.mock.calls.at(0) as [Record<string, unknown>];
+    expect(submitted['anmeldeart']).toBe('rolle');
+    expect(submitted['jobhauptlager']).toBe('Kuechenhilfe');
+  });
+
+  /*
    * A helper sent through the Cevi DB login comes back with the stored step, but the stored
    * answers can leave fewer steps than there were — an index past the end would render an
    * empty form with no way forward.
