@@ -54,14 +54,15 @@ const FooterLayoutCached: React.FC<{ locale: Locale; children?: React.ReactNode 
 
   return (
     <>
-      {/* the row wraps rather than scrolling a small phone sideways, a label never breaks */}
+      {/* the row wraps rather than scrolling a small phone sideways; a label only breaks when it
+          alone is wider than the screen, and then hyphenated in the page's language */}
       <div className="mb-2 flex flex-wrap justify-center gap-x-5 text-sm md:text-xs">
         {minimalFooterMenu?.map((footerMenuElement) => (
           <Fragment key={footerMenuElement.id}>
             <LinkComponent
               href={getURLForLinkField(footerMenuElement.linkField, locale) ?? ''}
               openInNewTab={openURLInNewTab(footerMenuElement.linkField)}
-              className="inline-flex min-h-11 items-center whitespace-nowrap"
+              className="inline-flex min-h-11 min-w-0 items-center justify-center text-center hyphens-auto"
             >
               {footerMenuElement.label}
             </LinkComponent>
@@ -165,7 +166,9 @@ const FooterCopyrightText: React.FC = async () => {
   const copyright = `© ${year} · conveniat27`;
 
   return (
-    <span className="font-heading mt-[32px] text-[22px] leading-[24x] font-bold">{copyright}</span>
+    <span className="font-heading mt-[32px] text-center text-[22px] leading-[24x] font-bold">
+      {copyright}
+    </span>
   );
 };
 
@@ -204,8 +207,8 @@ export const FooterCopyrightArea: React.FC<{
         )}
       >
         <FooterCopyrightText />
-        <div className="mb-[20px]">
-          <CeviSchweiz className="h-12 w-56" />
+        <div className="mb-[20px] max-w-full px-6">
+          <CeviSchweiz className="h-12 w-56 max-w-full" />
         </div>
         <div className="mb-[16px] flex w-full flex-col px-6 text-center">
           <ForceDynamicOnBuild>
