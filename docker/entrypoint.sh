@@ -7,19 +7,40 @@
 # the container that built it is gone. Nothing populated that directory before this script
 # existed, which is why chunk requests after a rollover answered 404.
 #
-# Files are copied without preserving timestamps on purpose: a chunk that is still part of the
-# current build gets a fresh mtime on every deploy, while one that no build ships anymore ages out
-# and is pruned. The retention only has to outlive a client's session and its service worker
-# precache; the app reloads itself on a stale bundle anyway.
+# The file names are content hashes, so a name that is already there holds these exact bytes, and
+# nginx may be sending it to a browser on another node right now. Such a file is never written
+# again: a rewrite empties it first, and nginx sends whatever it finds with a 200 that browsers
+# keep for a year. It is only touched, so a chunk that is still part of the current build stays
+# inside the retention, while one that no build ships anymore ages out and is pruned. A missing
+# file is written under a temporary name and published with `ln`, which creates the name at once,
+# also on NFS, and fails if another replica published it first. The retention only has to outlive
+# a client's session and its service worker precache; the app reloads itself on a stale bundle
+# anyway.
 set -eu
 
 STATIC_DIR=/app/.next/static
 PERSISTENT_DIR=/app/.next/static-persistent
 RETENTION_DAYS=14
 
+publish_static() (
+  cd "$STATIC_DIR" || exit 1
+  find . -type f | while IFS= read -r file; do
+    target="$PERSISTENT_DIR/$file"
+    if [ -e "$target" ]; then
+      touch -c "$target" || exit 1
+    else
+      mkdir -p "$(dirname "$target")"
+      partial="$target.partial-$$"
+      cp "$file" "$partial" || exit 1
+      ln "$partial" "$target" 2>/dev/null || [ -e "$target" ] || exit 1
+      rm -f "$partial"
+    fi
+  done
+)
+
 if [ -d "$PERSISTENT_DIR" ]; then
   if [ -w "$PERSISTENT_DIR" ]; then
-    if cp -R "$STATIC_DIR/." "$PERSISTENT_DIR/"; then
+    if publish_static; then
       find "$PERSISTENT_DIR" -type f -mtime +"$RETENTION_DAYS" -delete
       find "$PERSISTENT_DIR" -mindepth 1 -type d -empty -delete
     else
