@@ -28,7 +28,7 @@ import type { StaticTranslationString } from '@/types/types';
 import { AlertTriangle, Plus, Tags } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type React from 'react';
-import { useMemo, useRef, useState } from 'react';
+import { Activity, useMemo, useRef, useState } from 'react';
 
 const text = {
   search: {
@@ -170,10 +170,11 @@ export const InventoryPage: React.FC = () => {
   // a participant who scanned an article label reads it in the catalogue
   return (
     <RoleGate role="team" elsewhere={hasCode ? catalogItemPath(code) : '/app/material/katalog'}>
-      {/* stays mounted under an open article, so its filters and its page survive the visit */}
-      <div hidden={hasCode}>
+      {/* hidden, not unmounted, under an open article: its filters and its page survive the
+          visit, the way Next.js keeps a page the user left */}
+      <Activity mode={hasCode ? 'hidden' : 'visible'}>
         <InventoryList />
-      </div>
+      </Activity>
       {hasCode && <ItemDetailView key={code} code={code} />}
     </RoleGate>
   );

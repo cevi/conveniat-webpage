@@ -33,7 +33,7 @@ import { cn } from '@/utils/tailwindcss-override';
 import { ArrowLeft, Plus, Send } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
-import { useMemo, useRef, useState } from 'react';
+import { Activity, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 type CatalogItem = RouterOutputs['material']['getCatalog'][number];
@@ -391,15 +391,16 @@ const CatalogScreen: React.FC = () => {
 
   return (
     <div>
-      {/* stays mounted under an open article, so its filters and its page survive the visit */}
-      <div hidden={itemCode !== undefined}>
+      {/* hidden, not unmounted, under an open article: its filters and its page survive the
+          visit, the way Next.js keeps a page the user left */}
+      <Activity mode={itemCode === undefined ? 'visible' : 'hidden'}>
         <CatalogList
           items={catalog.data}
           quantityOf={quantityOf}
           onChange={setQuantity}
           onOpen={(next) => history.open(`item=${encodeURIComponent(next)}`)}
         />
-      </div>
+      </Activity>
       {itemCode !== undefined && (
         // brings its own bar at the bottom, with the article's button next to the request's
         <CatalogItemView
