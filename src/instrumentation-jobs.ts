@@ -1,3 +1,4 @@
+import { markPayloadInitFailed } from '@/features/payload-cms/payload-cms/initialization/init-state';
 import { isBuildPhase } from '@/utils/build-phase';
 import { createLogger } from '@/utils/server-logger';
 import { context, ROOT_CONTEXT } from '@opentelemetry/api';
@@ -31,6 +32,8 @@ export const startJobsRunner = async (): Promise<void> => {
       await getPayload({ config, cron: true });
       logger.info('Payload job runner started');
     } catch (error: unknown) {
+      // Payload would initialize again on the next request, but without `onPayloadInit`.
+      markPayloadInitFailed();
       logger.error('Could not start the Payload job runner', { error });
     }
   });

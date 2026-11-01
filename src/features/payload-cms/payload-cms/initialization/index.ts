@@ -4,6 +4,7 @@ import { deleteDatabase } from '@/features/payload-cms/payload-cms/initializatio
 import { ensureIndexes } from '@/features/payload-cms/payload-cms/initialization/ensure-indexes';
 import {
   isPayloadInitCompleted,
+  markPayloadInitFailed,
   setPayloadInitCompleted,
 } from '@/features/payload-cms/payload-cms/initialization/init-state';
 import { migrateFileDownloadGroups } from '@/features/payload-cms/payload-cms/initialization/migrate-file-download-groups';
@@ -271,9 +272,10 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
     }
   } catch (error: unknown) {
     // A database that could not be asked is not an empty one. Falling through would take the
-    // path of a fresh install on a deployment that has data. The flag stays unset, so the next
-    // initialization checks again.
+    // path of a fresh install on a deployment that has data. Payload never calls this again in
+    // this process, so `/status` fails and Swarm replaces it with one that checks again.
     payload.logger.error({ err: error }, '[Lock Manager] Failed to check database seeding status');
+    markPayloadInitFailed();
     return;
   }
 

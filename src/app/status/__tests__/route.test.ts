@@ -1,4 +1,4 @@
-import { setPayloadInitCompleted } from '@/features/payload-cms/payload-cms/initialization/init-state';
+import { markPayloadInitFailed } from '@/features/payload-cms/payload-cms/initialization/init-state';
 
 const queryRaw = jest.fn();
 jest.mock('@/lib/db/prisma', () => ({
@@ -17,11 +17,20 @@ describe('GET /status', () => {
   beforeEach(() => {
     jest.resetModules();
     queryRaw.mockReset();
-    setPayloadInitCompleted(false);
+    (globalThis as { __payloadInitFailed__?: boolean }).__payloadInitFailed__ = false;
   });
 
-  it('answers 503 while Payload is still initializing', async () => {
+  it('answers ok while Payload is still initializing', async () => {
     queryRaw.mockResolvedValue([1]);
+
+    const response = await probe();
+
+    expect(response.status).toBe(200);
+  });
+
+  it('answers 503 once initializing Payload failed', async () => {
+    queryRaw.mockResolvedValue([1]);
+    markPayloadInitFailed();
 
     const response = await probe();
 
@@ -29,7 +38,6 @@ describe('GET /status', () => {
   });
 
   it('answers 503 while Postgres cannot be reached', async () => {
-    setPayloadInitCompleted(true);
     queryRaw.mockRejectedValue(new Error('connection refused'));
 
     const response = await probe();
@@ -37,8 +45,7 @@ describe('GET /status', () => {
     expect(response.status).toBe(503);
   });
 
-  it('answers ok once both databases were reached, and keeps answering ok after a blip', async () => {
-    setPayloadInitCompleted(true);
+  it('keeps answering ok after a Postgres blip once it was reached', async () => {
     queryRaw.mockResolvedValue([1]);
     const { GET } = await import('@/app/status/route');
 
