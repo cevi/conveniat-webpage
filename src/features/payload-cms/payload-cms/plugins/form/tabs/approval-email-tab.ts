@@ -1,22 +1,7 @@
-import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
+import { formEmailEditor } from '@/features/payload-cms/payload-cms/plugins/form/tabs/form-email-editor';
 import { EMAIL_SENDER_DOMAIN } from '@/features/payload-cms/payload-cms/utils/email-sender';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
-import {
-  defaultEditorLexicalConfig,
-  HeadingFeature,
-  lexicalEditor,
-} from '@payloadcms/richtext-lexical';
 import type { Field, Tab } from 'payload';
-
-const formLexicalEditorSettings = lexicalEditor({
-  features: [
-    ...minimalEditorFeatures,
-    HeadingFeature({
-      enabledHeadingSizes: ['h3'],
-    }),
-  ],
-  lexical: defaultEditorLexicalConfig,
-});
 
 const formApprovalEmailField: Field = {
   name: 'approvalEmails',
@@ -109,7 +94,7 @@ const formApprovalEmailField: Field = {
       admin: { description: 'Enter the message that should be sent in this approval email.' },
       label: 'Message',
       localized: true,
-      editor: formLexicalEditorSettings,
+      editor: formEmailEditor,
       hooks: patchRichTextLinkHook,
     },
   ],
