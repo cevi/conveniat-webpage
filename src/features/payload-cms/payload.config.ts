@@ -71,6 +71,7 @@ import {
   enabledWidgets,
   widgetDefaultLayout,
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
+import { withVisitDayPlaces } from '@/features/visit-day/payload-cms/visit-day-submission-hooks';
 import { dbConfig } from '@/lib/db/mongodb';
 import type { CollectionAfterOperationHook, Endpoint, JobsConfig, MetaConfig } from 'payload';
 import { de } from 'payload/i18n/de';
@@ -459,7 +460,8 @@ export const payloadConfig: RoutableConfig = {
   sharp: sharp,
   telemetry: false,
   plugins: [
-    formPluginConfiguration,
+    // the Besuchstag takes its places before the form builder sends the confirmation email
+    withVisitDayPlaces(formPluginConfiguration),
     ...s3StoragePlugins,
     searchPluginConfiguration,
     redirectsPluginConfiguration,

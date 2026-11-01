@@ -13,6 +13,7 @@ import { PWAGlobal } from '@/features/payload-cms/payload-cms/globals/pwa-global
 import { SeoGlobal } from '@/features/payload-cms/payload-cms/globals/seo-global';
 import { SupportChatManagement } from '@/features/payload-cms/payload-cms/globals/support-chat-management';
 import { CampsitePresenceGlobal } from '@/features/presence/payload-cms/globals/campsite-presence';
+import { VisitDayGlobal } from '@/features/visit-day/payload-cms/visit-day-global';
 import type { GlobalConfig } from 'payload';
 
 /**
@@ -39,5 +40,6 @@ export const globalConfig: GlobalConfig[] = [
   // Backoffice
   BillSettingsGlobal,
   HofDashboardSettingsGlobal,
+  VisitDayGlobal,
   CeviDatabaseSessionGlobal,
 ];

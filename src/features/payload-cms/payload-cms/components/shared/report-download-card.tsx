@@ -19,7 +19,7 @@ export interface ReportDownloadCardProperties {
   errorMessage: StaticTranslationString;
 }
 
-/** The filename the server chose, so the download matches the mail attachment. */
+/** The filename the server chose, so the download matches a mailed copy of the same file. */
 const parseFilename = (contentDisposition: string | null): string | undefined => {
   const match = /filename="([^"]+)"/.exec(contentDisposition ?? '');
   return match?.[1];
@@ -48,8 +48,8 @@ const saveBlob = (blob: Blob, filename: string): void => {
 };
 
 /**
- * A card in the bill settings that renders one of the weekly mail's attachments on demand
- * and downloads it, without sending anything.
+ * A card in a settings page that renders a report on demand and downloads it, e.g. one of the
+ * weekly bill mail's attachments or the Besuchstag visitor list, without sending anything.
  *
  * The file is fetched rather than opened in a tab: building it walks every registration,
  * which takes long enough that an operator needs to see it is running.
