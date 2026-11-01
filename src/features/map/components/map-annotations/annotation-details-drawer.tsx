@@ -6,11 +6,7 @@ import { AnnotationDescriptionSection } from '@/features/map/components/map-anno
 import { AnnotationForumAndReportSection } from '@/features/map/components/map-annotations/sections/forum-and-report-section';
 import { AnnotationImagesSection } from '@/features/map/components/map-annotations/sections/image-section';
 import { AnnotationOpeningHoursSection } from '@/features/map/components/map-annotations/sections/opening-hours-section';
-import type {
-  CampMapAnnotationPoint,
-  CampMapAnnotationPolygon,
-  CampScheduleEntry,
-} from '@/features/map/types/types';
+import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 import { ANNOTATION_DRAWER_ATTRIBUTE } from '@/features/map/utils/annotation-focus';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -22,9 +18,8 @@ const CLOSE_THRESHOLD = 15; // If height is less than 15vh on release, close the
 export const AnnotationDetailsDrawer: React.FC<{
   closeDrawer: () => void;
   annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon;
-  schedule: CampScheduleEntry[] | undefined;
   locale: Locale;
-}> = ({ closeDrawer, annotation, schedule, locale }) => {
+}> = ({ closeDrawer, annotation, locale }) => {
   const [drawerHeight, setDrawerHeight] = useState(50);
   const [isResizing, setIsResizing] = useState(false);
   const drawerReference = useRef<HTMLDivElement>(null);
@@ -152,7 +147,7 @@ export const AnnotationDetailsDrawer: React.FC<{
 
           <AnnotationImagesSection images={annotation.images} locale={locale} />
 
-          {schedule && <AnnotationScheduleTableComponent locale={locale} schedule={schedule} />}
+          <AnnotationScheduleTableComponent locale={locale} placeId={annotation.id} />
 
           {(annotation.enableSupportChat ?? true) && (
             <AnnotationForumAndReportSection

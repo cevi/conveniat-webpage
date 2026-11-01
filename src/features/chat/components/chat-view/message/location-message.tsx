@@ -96,7 +96,6 @@ export const LocationMessage: React.FC<{ message: ChatMessage }> = ({ message })
           <MapLibreRenderer
             initialMapPose={initialMapPose}
             ceviLogoMarkers={[marker]}
-            schedules={{}}
             unavailableFallback={fallback}
           />
         </SafeErrorBoundary>

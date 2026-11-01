@@ -14,6 +14,8 @@ export interface OnboardingContext {
   hasDownloadedContent: boolean;
   hasSkippedOffline: boolean;
   isOnline: boolean;
+  /** The app sent the user here because their session expired, see SESSION_EXPIRED_ENTRYPOINT. */
+  isSessionExpired: boolean;
 }
 
 export interface OnboardingState {
@@ -41,6 +43,7 @@ export const initialOnboardingContext: OnboardingContext = {
   hasDownloadedContent: false,
   hasSkippedOffline: false,
   isOnline: true,
+  isSessionExpired: false,
 };
 
 export const initialOnboardingState: OnboardingState = {
@@ -64,6 +67,7 @@ export const determineNextStep = (context: OnboardingContext): OnboardingStep =>
     hasDownloadedContent,
     hasSkippedOffline,
     isOnline,
+    isSessionExpired,
   } = context;
 
   if (!hasAnsweredCookieBanner) {
@@ -78,8 +82,10 @@ export const determineNextStep = (context: OnboardingContext): OnboardingStep =>
   const isAuth = authStatus === 'authenticated';
   // If not authenticated and hasn't skipped login, go to Login. Offline, the session request
   // fails and reports 'unauthenticated' even for a logged-in user, and the Cevi.DB login could
-  // not complete anyway, so let the user through to the cached app instead.
-  if (!isAuth && !hasSkippedLogin && isOnline) {
+  // not complete anyway, so let the user through to the cached app instead. Not when the app
+  // sent the user here for an expired session: that one is known, and letting them through
+  // would only have the app send them back once the network answers.
+  if (!isAuth && !hasSkippedLogin && (isOnline || isSessionExpired)) {
     return OnboardingStep.Login;
   }
 

@@ -7,7 +7,7 @@ import type {
   JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FieldName, UseFormReturn } from 'react-hook-form';
 import { useWatch } from 'react-hook-form';
 
@@ -129,19 +129,26 @@ export const useFormSteps = (
    *
    * A field another section is gated on is never dropped: unregistering it would flip that
    * section's visibility, which would recompute this list, which would flip it back.
+   *
+   * Only a section that was shown and is now hidden counts as left. Back from the Cevi.DB
+   * login, the first render has empty answers and every gated section looks hidden; the
+   * stored answers are restored in the same mount, and dropping them then would lose the
+   * branch the helper actually took while keeping the answer that led there.
    */
-  const hiddenFieldNames = useMemo(() => {
-    const gateFields = new Set(conditionFieldNames.filter((name) => name !== ''));
-    return sections
-      .filter((_, index) => visibilityKey[index] !== '1')
-      .flatMap((section) => collectFieldNames(section.fields))
-      .filter((name) => !gateFields.has(name));
-  }, [sections, visibilityKey, conditionFieldNames]);
-
+  const previousVisibilityKey = useRef<string | undefined>(undefined);
   const { unregister } = formMethods;
   useEffect(() => {
-    if (hiddenFieldNames.length > 0) unregister(hiddenFieldNames);
-  }, [hiddenFieldNames, unregister]);
+    const previous = previousVisibilityKey.current;
+    previousVisibilityKey.current = visibilityKey;
+    if (previous === undefined) return;
+
+    const gateFields = new Set(conditionFieldNames.filter((name) => name !== ''));
+    const leftFieldNames = sections
+      .filter((_, index) => previous[index] === '1' && visibilityKey[index] !== '1')
+      .flatMap((section) => collectFieldNames(section.fields))
+      .filter((name) => !gateFields.has(name));
+    if (leftFieldNames.length > 0) unregister(leftFieldNames);
+  }, [sections, visibilityKey, conditionFieldNames, unregister]);
 
   /*
    * Initialize state from sessionStorage if available to avoid layout shift

@@ -1,7 +1,6 @@
 import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
-  CampScheduleEntry,
   MapQuartier,
 } from '@/features/map/types/types';
 import { resolveLinksInArray } from '@/features/payload-cms/payload-cms/utils/resolve-rich-text-links';
@@ -12,10 +11,9 @@ import type { Payload } from 'payload';
 export interface MapAnnotations {
   campMapAnnotationPoints: CampMapAnnotationPoint[];
   campMapAnnotationPolygons: CampMapAnnotationPolygon[];
-  schedules: Record<string, CampScheduleEntry[]>;
 }
 
-/** Most places and programme entries the camp has, with room to spare. */
+/** Most places the camp has, with room to spare. */
 const LIMIT = 1000;
 
 const idOf = (value: unknown): string | undefined => {
@@ -27,18 +25,25 @@ const idOf = (value: unknown): string | undefined => {
 };
 
 /**
- * Everything the camp map shows: its places as markers and areas, the Quartier an area belongs
- * to, and the programme at each place. One source for the server-rendered map and for the
- * refresh the client fetches, so the two cannot drift apart.
+ * Everything the camp map shows: its places as markers and areas, and the Quartier an area
+ * belongs to. The programme at a place is not part of it: the map reads it from the schedule
+ * query, which a device keeps once for every screen and for offline use.
  */
 export const loadMapAnnotations = async (
   payload: Payload,
   locale: Locale,
 ): Promise<MapAnnotations> => {
-  // without a locale Payload answers in German, whatever language the map is shown in
-  const [annotations, scheduleEntries, quartiere] = await Promise.all([
-    payload.find({ collection: 'camp-map-annotations', limit: LIMIT, depth: 1, locale }),
-    payload.find({ collection: 'camp-schedule-entry', limit: LIMIT, depth: 1, locale }),
+  // Without a locale Payload answers in German, whatever language the map is shown in. Asked
+  // for one, it falls back to nothing: `localization.fallback` is off, so a place nobody has
+  // translated yet came back without a name; it keeps its German one.
+  const [annotations, quartiere] = await Promise.all([
+    payload.find({
+      collection: 'camp-map-annotations',
+      limit: LIMIT,
+      depth: 1,
+      locale,
+      fallbackLocale: 'de',
+    }),
     // read on the server for every visitor: the Quartier names are public on the map itself
     payload.find({
       collection: 'quartiere',
@@ -50,7 +55,6 @@ export const loadMapAnnotations = async (
   ]);
 
   await resolveLinksInArray(annotations.docs, payload, locale);
-  await resolveLinksInArray(scheduleEntries.docs, payload, locale);
 
   const quartierOf = new Map(
     quartiere.docs.flatMap((quartier) => {
@@ -66,12 +70,6 @@ export const loadMapAnnotations = async (
       return [[annotationId, label] as const];
     }),
   );
-
-  const entries = scheduleEntries.docs as unknown as CampScheduleEntry[];
-  const schedules: Record<string, CampScheduleEntry[]> = {};
-  for (const annotation of annotations.docs) {
-    schedules[annotation.id] = entries.filter((entry) => idOf(entry.location) === annotation.id);
-  }
 
   const campMapAnnotationPoints: CampMapAnnotationPoint[] = annotations.docs
     .filter((document_) => document_.annotationType === 'marker')
@@ -129,5 +127,5 @@ export const loadMapAnnotations = async (
       } as CampMapAnnotationPolygon;
     });
 
-  return { campMapAnnotationPoints, campMapAnnotationPolygons, schedules };
+  return { campMapAnnotationPoints, campMapAnnotationPolygons };
 };

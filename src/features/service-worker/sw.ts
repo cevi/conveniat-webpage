@@ -11,6 +11,7 @@ import {
   handleFetchEvent,
 } from '@/features/service-worker/offline-support/fetch-handler';
 import { registerMapOfflineSupport } from '@/features/service-worker/offline-support/map-viewer';
+import { reportNetworkStatus } from '@/features/service-worker/offline-support/network-reachability';
 import { clearPersonalCaches } from '@/features/service-worker/offline-support/personal-caches';
 import {
   cachePageAndScrape,
@@ -167,6 +168,10 @@ self.addEventListener('message', (event) => {
     );
   }
 
+  if (data?.type === ServiceWorkerMessages.NETWORK_STATUS && event.source instanceof Client) {
+    event.waitUntil(reportNetworkStatus(event.source));
+  }
+
   if (data?.type === ServiceWorkerMessages.CHECK_OFFLINE_READY && event.source instanceof Client) {
     const client = event.source;
     event.waitUntil(
@@ -176,24 +181,6 @@ self.addEventListener('message', (event) => {
           type: ServiceWorkerMessages.CHECK_OFFLINE_READY,
           payload: { ready: isReady },
         });
-      })(),
-    );
-  }
-
-  if (data?.type === ServiceWorkerMessages.UPDATE_MAP_CACHE && event.source instanceof Client) {
-    event.waitUntil(
-      (async (): Promise<void> => {
-        try {
-          const isEnabled = await isOfflineSupportEnabled();
-          if (!isEnabled) {
-            return;
-          }
-          console.log('[SW] Updating map page cache (online update)...');
-          await cachePageAndScrape('/app/map');
-          console.log('[SW] Map page cache updated.');
-        } catch (error) {
-          console.error('[SW] Failed to update map page cache:', error);
-        }
       })(),
     );
   }

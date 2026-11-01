@@ -2,12 +2,18 @@
 
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { ScheduleComponent } from '@/features/schedule/components/schedule-component';
-import { ScheduleDetailView } from '@/features/schedule/components/schedule-detail-view';
+import {
+  NoBlockSelected,
+  ScheduleDetailView,
+} from '@/features/schedule/components/schedule-detail-view';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { useIsDesktop } from '@/hooks/use-is-desktop';
+import { useKeptScrollPosition } from '@/hooks/use-kept-scroll-position';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useParams, useSearchParams } from 'next/navigation';
 import type React from 'react';
+import { Activity } from 'react';
 
 // the same words as the tab that opens it
 const pageTitle: StaticTranslationString = {
@@ -16,10 +22,20 @@ const pageTitle: StaticTranslationString = {
   fr: 'Programme',
 };
 
+/** Beside the list on a desktop while no block is open: the one that matters most, see ScheduleComponent. */
+const renderSuggestion = (suggestedId: string | undefined): React.ReactNode =>
+  suggestedId === undefined ? (
+    <NoBlockSelected />
+  ) : (
+    <ScheduleDetailView key={suggestedId} id={suggestedId} isSuggested />
+  );
+
 /**
  * Unified schedule page that handles both list and detail views.
  * - No id param: Shows schedule list
- * - With id param: Shows schedule details
+ * - With id param: Shows schedule details over the list, which stays mounted and hidden; a
+ *   desktop keeps the list beside the details instead, the way the chats do, and shows the
+ *   block that matters most there while none is open
  *
  * All data is fetched client-side via tRPC for offline support.
  */
@@ -33,16 +49,27 @@ const SchedulePage: React.FC = () => {
   const scheduleId =
     (Array.isArray(idParameter) ? idParameter[0] : idParameter) ?? searchParameters.get('id');
 
-  // If we have an ID, show the detail view
-  if (scheduleId) {
-    return <ScheduleDetailView id={scheduleId} />;
-  }
+  const hasId = scheduleId !== null && scheduleId !== '';
+  const isDesktop = useIsDesktop();
+  const isListHidden = hasId && !isDesktop;
+  useKeptScrollPosition(isListHidden);
 
-  // Otherwise show the schedule list
   return (
     <>
-      <SetDynamicPageTitle newTitle={pageTitle[locale]} />
-      <ScheduleComponent />
+      {/* hidden, not unmounted, under an open block on a phone: its search, its filters and its
+          place survive the visit, the way Next.js keeps a page the user left */}
+      <Activity mode={isListHidden ? 'hidden' : 'visible'}>
+        <SetDynamicPageTitle newTitle={pageTitle[locale]} />
+        {/* the width is where the block's pane starts, see ScheduleDetailView */}
+        <div className="xl:border-line xl:min-h-[calc(100dvh-var(--app-content-top)-var(--app-tab-bar-height))] xl:w-[400px] xl:border-r">
+          <ScheduleComponent
+            openId={hasId ? scheduleId : undefined}
+            // a phone shows the list alone while no block is open
+            renderBesideList={isDesktop && !hasId ? renderSuggestion : undefined}
+          />
+        </div>
+      </Activity>
+      {hasId && <ScheduleDetailView id={scheduleId} />}
     </>
   );
 };

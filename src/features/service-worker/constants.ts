@@ -33,6 +33,10 @@ export const TIMEOUTS = {
   // The entrypoint gives up on a session check that is still loading after 3 s and treats the
   // user as logged out, so the worker has to answer from its cache before that.
   SESSION_FETCH: 2500,
+  // How long a document, RSC or session request waits for the network before the cache answers,
+  // once an earlier request went unanswered (see network-reachability.ts). Long enough for a
+  // server that answers again, short enough not to be felt on wifi without an uplink.
+  UNREACHABLE_NETWORK: 500,
   PREFETCH_CONCURRENCY: 20, // High concurrency to utilize HTTP/2 streams for map tiles
   ASSET_FETCH: 15_000, // 15 seconds per asset
   PROGRESS_STALL: 25_000, // 25 seconds without progress = stall

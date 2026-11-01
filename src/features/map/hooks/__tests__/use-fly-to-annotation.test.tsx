@@ -22,7 +22,25 @@ interface FakeMapOptions {
   zoom: number;
   bearing: number;
   drawerHeight?: number;
+  /** the page is hidden: the container has no size until the page is shown */
+  hidden?: boolean;
+  /** the canvas still has another size than its container, MapLibre has not measured it yet */
+  staleCanvasHeight?: number;
 }
+
+const stubRectangle = (element: Element, top: number, bottom: number): void => {
+  element.getBoundingClientRect = (): DOMRect =>
+    ({
+      top,
+      right: CANVAS_WIDTH,
+      bottom,
+      left: 0,
+      width: CANVAS_WIDTH,
+      height: bottom - top,
+      x: 0,
+      y: top,
+    }) as DOMRect;
+};
 
 /**
  * Minimal stand-in for a MapLibre map.
@@ -36,9 +54,14 @@ const createFakeMap = ({
   zoom,
   bearing,
   drawerHeight = DRAWER_HEIGHT,
+  hidden = false,
+  staleCanvasHeight,
 }: FakeMapOptions): {
   map: maplibregl.Map;
   flyTo: jest.Mock;
+  resize: jest.Mock;
+  /** shows the page: MapLibre measures it and fires `resize` */
+  show: () => void;
   project: (coordinates: [number, number]) => { x: number; y: number };
   /** coordinate that currently projects onto the given canvas position */
   coordinatesAt: (point: { x: number; y: number }) => [number, number];
@@ -85,20 +108,6 @@ const createFakeMap = ({
     };
   };
 
-  const stubRectangle = (element: Element, top: number, bottom: number): void => {
-    element.getBoundingClientRect = (): DOMRect =>
-      ({
-        top,
-        right: CANVAS_WIDTH,
-        bottom,
-        left: 0,
-        width: CANVAS_WIDTH,
-        height: bottom - top,
-        x: 0,
-        y: top,
-      }) as DOMRect;
-  };
-
   const wrapper = document.createElement('div');
   const container = document.createElement('div');
   const canvas = document.createElement('canvas');
@@ -106,8 +115,13 @@ const createFakeMap = ({
   container.append(canvas);
   document.body.append(wrapper);
 
-  Object.defineProperty(canvas, 'clientWidth', { value: CANVAS_WIDTH });
-  Object.defineProperty(canvas, 'clientHeight', { value: CANVAS_HEIGHT });
+  let shown = !hidden;
+  let canvasHeight = staleCanvasHeight ?? CANVAS_HEIGHT;
+  const resizeListeners = new Set<() => void>();
+  Object.defineProperty(container, 'clientWidth', { get: () => (shown ? CANVAS_WIDTH : 0) });
+  Object.defineProperty(container, 'clientHeight', { get: () => (shown ? CANVAS_HEIGHT : 0) });
+  Object.defineProperty(canvas, 'clientWidth', { get: () => CANVAS_WIDTH });
+  Object.defineProperty(canvas, 'clientHeight', { get: () => canvasHeight });
   stubRectangle(canvas, 0, CANVAS_HEIGHT);
 
   if (drawerHeight > 0) {
@@ -116,6 +130,10 @@ const createFakeMap = ({
     stubRectangle(drawer, CANVAS_HEIGHT - drawerHeight, CANVAS_HEIGHT);
     wrapper.append(drawer);
   }
+
+  const resize = jest.fn((): void => {
+    canvasHeight = CANVAS_HEIGHT;
+  });
 
   const flyTo = jest.fn(({ center: newCenter }: { center: { lng: number; lat: number } }) => {
     currentCenter = [newCenter.lng, newCenter.lat];
@@ -128,14 +146,26 @@ const createFakeMap = ({
     project,
     unproject,
     flyTo,
+    resize,
+    on: (event: string, listener: () => void): void => {
+      if (event === 'resize') resizeListeners.add(listener);
+    },
+    off: (event: string, listener: () => void): void => {
+      if (event === 'resize') resizeListeners.delete(listener);
+    },
   } as unknown as maplibregl.Map;
+
+  const show = (): void => {
+    shown = true;
+    for (const listener of resizeListeners) listener();
+  };
 
   const coordinatesAt = (point: { x: number; y: number }): [number, number] => {
     const { lng, lat } = unproject([point.x, point.y]);
     return [lng, lat];
   };
 
-  return { map, flyTo, project, coordinatesAt };
+  return { map, flyTo, resize, show, project, coordinatesAt };
 };
 
 const pointAnnotation = (coordinates: [number, number]): CampMapAnnotationPoint =>
@@ -190,6 +220,41 @@ describe('useFlyToAnnotation', () => {
     },
   );
 
+  it('flies to a place asked for while the page is hidden once the page is shown', () => {
+    const center: [number, number] = [8.301_211, 46.502_822];
+    const { map, flyTo, show, project } = createFakeMap({
+      center,
+      zoom: 17,
+      bearing: 0,
+      hidden: true,
+    });
+
+    renderFlyToHook(map, pointAnnotation(center));
+    expect(flyTo).not.toHaveBeenCalled();
+
+    show();
+    show();
+
+    expect(flyTo).toHaveBeenCalledTimes(1);
+    expectWithinVisibleRegion(project(center));
+  });
+
+  it('measures a map shown again before working out where to fly', () => {
+    const center: [number, number] = [8.301_211, 46.502_822];
+    const { map, flyTo, resize, project } = createFakeMap({
+      center,
+      zoom: 17,
+      bearing: 0,
+      staleCanvasHeight: 300,
+    });
+
+    renderFlyToHook(map, pointAnnotation(center));
+
+    expect(resize).toHaveBeenCalledTimes(1);
+    expect(flyTo).toHaveBeenCalledTimes(1);
+    expectWithinVisibleRegion(project(center));
+  });
+
   it('centers the annotation in the region left over by the drawer', () => {
     const center: [number, number] = [8.301_211, 46.502_822];
     const { map, project } = createFakeMap({ center, zoom: 17, bearing: 42 });
@@ -197,7 +262,11 @@ describe('useFlyToAnnotation', () => {
     renderFlyToHook(map, pointAnnotation(center));
 
     const projected = project(center);
-    expect(projected.x).toBeCloseTo(CANVAS_WIDTH / 2, 5);
+    // horizontally centered between the left edge and the column of map buttons on the right
+    expect(projected.x).toBeCloseTo(
+      (ANNOTATION_FOCUS_MARGINS.left + CANVAS_WIDTH - ANNOTATION_FOCUS_MARGINS.right) / 2,
+      5,
+    );
     // vertically centered within the visible strip, offset by the asymmetric margins
     const visibleHeight = CANVAS_HEIGHT - DRAWER_HEIGHT;
     const expectedY =

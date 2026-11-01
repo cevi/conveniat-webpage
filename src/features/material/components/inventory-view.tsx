@@ -22,12 +22,13 @@ import {
   type MaterialItem,
 } from '@/features/material/hooks/use-material';
 import { catalogItemPath, itemPath, loanPath, parseScan } from '@/features/material/utils/scan';
+import { useKeptScrollPosition } from '@/hooks/use-kept-scroll-position';
 import { trpc } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { AlertTriangle, Plus, Tags } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type React from 'react';
-import { useMemo, useRef, useState } from 'react';
+import { Activity, useMemo, useRef, useState } from 'react';
 
 const text = {
   search: {
@@ -159,16 +160,22 @@ const InventoryList: React.FC = () => {
 };
 
 /**
- * The inventory, or one article in full. Which of the two is decided by `?item=`, the address
- * an article's QR label points to.
+ * The inventory, or one article in full over it. Which of the two shows is decided by `?item=`,
+ * the address an article's QR label points to.
  */
 export const InventoryPage: React.FC = () => {
   const code = useSearchParams().get('item');
   const hasCode = code !== null && code !== '';
+  useKeptScrollPosition(hasCode);
   // a participant who scanned an article label reads it in the catalogue
   return (
     <RoleGate role="team" elsewhere={hasCode ? catalogItemPath(code) : '/app/material/katalog'}>
-      {hasCode ? <ItemDetailView key={code} code={code} /> : <InventoryList />}
+      {/* hidden, not unmounted, under an open article: its filters and its page survive the
+          visit, the way Next.js keeps a page the user left */}
+      <Activity mode={hasCode ? 'hidden' : 'visible'}>
+        <InventoryList />
+      </Activity>
+      {hasCode && <ItemDetailView key={code} code={code} />}
     </RoleGate>
   );
 };

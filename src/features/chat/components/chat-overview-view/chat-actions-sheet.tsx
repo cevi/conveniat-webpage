@@ -1,12 +1,11 @@
 'use client';
 
 import { BottomSheet } from '@/components/ui/bottom-sheet';
-import { ArchiveChatConfirmDialog } from '@/features/chat/components/archive-chat-confirm-dialog';
 import { LeaveChatDialog } from '@/features/chat/components/chat-details-view/leave-chat';
 import { ChatAvatar } from '@/features/chat/components/ui/chat-avatar';
 import { SheetActionRow } from '@/features/chat/components/ui/sheet-action-row';
 import { ChatIdProvider } from '@/features/chat/context/chat-id-context';
-import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-mutation';
+import { usePendingChatDeletionContext } from '@/features/chat/context/pending-chat-deletion-context';
 import type { ChatListActions } from '@/features/chat/hooks/use-chat-list-actions';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { canDeleteChat } from '@/features/chat/utils/can-delete-chat';
@@ -52,8 +51,8 @@ const typeText: Record<ChatType, StaticTranslationString> = {
 
 /**
  * What a long press on a chat of the list offers: pin, mute, mark (un)read, its details, and
- * leaving or deleting it with the same question the details ask. Leaving and deleting are red,
- * as every destructive action is.
+ * leaving it with the same question the details ask, or deleting it with a moment to undo, as a
+ * swipe does. Leaving and deleting are red, as every destructive action is.
  */
 export const ChatActionsSheet: React.FC<{
   chat: ChatWithMessagePreview | undefined;
@@ -61,11 +60,8 @@ export const ChatActionsSheet: React.FC<{
   actions: ChatListActions;
   locale: Locale;
 }> = ({ chat, onClose, actions, locale }) => {
-  const [confirm, setConfirm] = useState<{
-    kind: 'leave' | 'delete';
-    chat: ChatWithMessagePreview;
-  }>();
-  const archiveMutation = useArchiveChatMutation();
+  const { deleteChat } = usePendingChatDeletionContext();
+  const [leaving, setLeaving] = useState<ChatWithMessagePreview>();
 
   const act = (action: () => void): void => {
     action();
@@ -134,7 +130,8 @@ export const ChatActionsSheet: React.FC<{
               label={canLeave ? text.leave[locale] : text.delete[locale]}
               destructive
               onClick={() => {
-                setConfirm({ kind: canLeave ? 'leave' : 'delete', chat });
+                if (canLeave) setLeaving(chat);
+                else deleteChat({ chatId: chat.id, forEveryone: chat.isArchived !== true });
                 onClose();
               }}
             />
@@ -147,29 +144,15 @@ export const ChatActionsSheet: React.FC<{
   return (
     <>
       {sheet}
-      {confirm?.kind === 'leave' && (
-        <ChatIdProvider chatId={confirm.chat.id}>
+      {leaving !== undefined && (
+        <ChatIdProvider chatId={leaving.id}>
           <LeaveChatDialog
             open
             onOpenChange={(open) => {
-              if (!open) setConfirm(undefined);
+              if (!open) setLeaving(undefined);
             }}
           />
         </ChatIdProvider>
-      )}
-      {confirm?.kind === 'delete' && (
-        <ArchiveChatConfirmDialog
-          open
-          onOpenChange={(open) => {
-            if (!open) setConfirm(undefined);
-          }}
-          onConfirm={() => {
-            archiveMutation.mutate({ chatUuid: confirm.chat.id });
-            setConfirm(undefined);
-          }}
-          isPending={archiveMutation.isPending}
-          archivesForEveryone={confirm.chat.isArchived !== true}
-        />
       )}
     </>
   );

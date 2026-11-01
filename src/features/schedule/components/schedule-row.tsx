@@ -38,6 +38,8 @@ interface ScheduleRowProperties {
   isPast: boolean;
   /** "Läuft · noch 18 min", when it is running */
   runningLabel?: string | undefined;
+  /** the block shown beside the list on a desktop; on a phone the list is hidden while one is open */
+  openId?: string | undefined;
 }
 
 /** One block on the timeline: a card, its node in the category's colour. */
@@ -50,6 +52,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
   showSlots,
   isPast,
   runningLabel,
+  openId: shownId,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
@@ -71,6 +74,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
   const [, end = ''] = primary.timeslot.time.split(' - ');
   const slot = slotOf(primary);
   const isGrouped = stop.slots.length > 1;
+  const openId = stop.slots.find(({ id }) => id === shownId)?.id;
 
   const hrefOf = (entry: Entry): string => {
     const parameters = new URLSearchParams(searchParameters.toString());
@@ -119,11 +123,14 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
             ? 'border-line has-[>a:hover]:border-rail'
             : 'border-live-line',
           isPast ? 'bg-quiet border-transparent' : 'bg-white',
+          openId !== undefined && 'border-conveniat-green has-[>a:hover]:border-conveniat-green',
         )}
       >
         <Link
           href={hrefOf(primary)}
           onClick={openBlock}
+          // where the slots have links of their own, the open one says it
+          aria-current={openId === primary.id && !(showSlots && isGrouped) ? 'page' : undefined}
           className="block py-3 pr-12 pl-3.5 focus-visible:outline-none"
         >
           {eyebrow.length > 0 && (
@@ -181,6 +188,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
                   <Link
                     href={hrefOf(entry)}
                     onClick={openBlock}
+                    aria-current={openId === entry.id ? 'page' : undefined}
                     // px, not rem: the root font is larger on desktop. The Quartiere of a slot
                     // are one chip, so the row keeps to one line beside its time.
                     className={cn(

@@ -15,6 +15,7 @@ import {
 } from '@/hooks/use-native-push';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
+import { forgetOnboardingComplete, rememberOnboardingComplete } from '@/lib/onboarding-complete';
 import type { Locale } from '@/types/types';
 import { Cookie } from '@/types/types';
 import { getAnalyticsConsent } from '@/utils/analytics-consent';
@@ -134,6 +135,13 @@ export const useOnboarding = (): UseOnboardingReturn => {
     hasPushSubscription,
     hasNativePushSubscription,
   ]);
+
+  useEffect(() => {
+    dispatch({
+      type: OnboardingAction.UPDATE_CONTEXT,
+      payload: { isSessionExpired: searchParameters.get('session') === 'expired' },
+    });
+  }, [searchParameters]);
 
   // Keep track of whether we initially booted in app-mode
   const isAppModeInitial = useRef(
@@ -307,42 +315,21 @@ export const useOnboarding = (): UseOnboardingReturn => {
     return '/app/dashboard';
   }, [searchParameters]);
 
-  // Pre-fetch target routes while user is going through onboarding steps.
-  //
-  // Every path is prefetched at most once per mount. `router.prefetch()` writes into the router
-  // cache, which can change the `router` identity this effect depends on, and `staleTimes.dynamic`
-  // is 0 so a repeat call is never a cache hit that quietly no-ops - it always goes to the network.
-  // Those two together form a loop that re-issues the identical `?_rsc=` request at RTT for as
-  // long as the page stays open; measured at a sustained 23 req/s from /entrypoint against
-  // /app/dashboard and /app/chat. The ref survives the re-runs and breaks it.
-  const prefetchedPathsReference = useRef<Set<string>>(new Set());
+  // A step on screen means the onboarding is not done: the next start has to boot it again.
   useEffect(() => {
-    if (typeof globalThis === 'undefined') return;
-
-    const prefetchOnce = (path: string): void => {
-      if (prefetchedPathsReference.current.has(path)) return;
-      prefetchedPathsReference.current.add(path);
-      try {
-        router.prefetch(path);
-      } catch {
-        // ignore prefetch errors
-      }
-    };
-
-    prefetchOnce(targetRedirectPath);
-
-    // Pre-fetch primary app hubs if target path is custom
-    if (targetRedirectPath !== '/app/dashboard') {
-      prefetchOnce('/app/dashboard');
+    if (onboardingStep !== OnboardingStep.Loading && onboardingStep !== OnboardingStep.Checking) {
+      forgetOnboardingComplete();
     }
-    if (!targetRedirectPath.startsWith('/app/chat')) {
-      prefetchOnce('/app/chat');
-    }
-  }, [router, targetRedirectPath, onboardingStep]);
+  }, [onboardingStep]);
 
   // Redirect to target destination or dashboard when finished
+  // The effect runs again whenever `router` changes identity; a second `location.replace` would
+  // abort the page load the first one started.
+  const hasLeftForDashboard = useRef(false);
   useEffect(() => {
     if (onboardingStep === OnboardingStep.Loading) {
+      // the next start skips the entrypoint; see ONBOARDING_COMPLETE_KEY
+      rememberOnboardingComplete();
       try {
         const pendingRedirect =
           sessionStorage.getItem('pending_push_redirect') ??
@@ -358,8 +345,14 @@ export const useOnboarding = (): UseOnboardingReturn => {
         // ignore SSR / storage unavailable
       }
 
+      // The entrypoint has a root layout of its own, so leaving it is always a full page load;
+      // `router.push` only fetched an RSC payload first and threw it away, which costs a round
+      // trip online and a whole network timeout on wifi without an uplink. Replacing the entry
+      // also keeps the back gesture on the dashboard from returning here.
       if (targetRedirectPath === '/app/dashboard') {
-        router.push('/app/dashboard');
+        if (hasLeftForDashboard.current) return;
+        hasLeftForDashboard.current = true;
+        globalThis.location.replace('/app/dashboard');
       } else {
         performReliablePushNavigation(router, targetRedirectPath);
       }
