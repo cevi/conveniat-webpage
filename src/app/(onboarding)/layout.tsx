@@ -7,6 +7,7 @@ import { Suspense } from 'react';
 import '@/app/globals.scss';
 import { BackgroundLogo } from '@/components/background-logo';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
+import { StylesheetRecovery } from '@/components/stylesheet-recovery';
 import { environmentVariables } from '@/config/environment-variables';
 import { BootHydrationMarker } from '@/features/onboarding/components/boot-hydration-marker';
 import { BootWatchdog } from '@/features/onboarding/components/boot-watchdog';
@@ -37,6 +38,7 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
       lang={locale}
     >
       <head>
+        <StylesheetRecovery />
         <AppStatusBarMeta />
         {!environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST && (
           <link rel="manifest" href="/manifest.webmanifest" />

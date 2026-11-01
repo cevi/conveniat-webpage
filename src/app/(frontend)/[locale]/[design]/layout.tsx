@@ -7,6 +7,7 @@ import { HideFooterProvider } from '@/components/footer/hide-footer-context';
 import { AppStatusBarMeta } from '@/components/header/app-status-bar-meta';
 import { HeaderComponent } from '@/components/header/header-component';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
+import { StylesheetRecovery } from '@/components/stylesheet-recovery';
 import { HideBackgroundLogoProvider } from '@/components/ui/hide-background-logo-context';
 import { CookieBanner } from '@/components/utils/cookie-banner';
 import { environmentVariables } from '@/config/environment-variables';
@@ -87,6 +88,7 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
       suppressHydrationWarning
     >
       <head>
+        <StylesheetRecovery />
         <AppStatusBarMeta />
         {!environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST && (
           <link rel="manifest" href="/manifest.webmanifest" />
