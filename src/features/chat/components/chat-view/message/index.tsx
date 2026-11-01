@@ -309,17 +309,16 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         </span>
       );
     }
-    // sent and delivered stay faint; read takes a colour of its own, so it shows at a glance
+    // the ticks take the time's colour; read fills them instead of changing colour
     switch (message.status) {
       case MessageEventType.STORED: {
-        return <Check className="ml-1 h-3.5 w-3.5 text-white/60" strokeWidth={2.5} />;
+        return <Check className="ml-1 h-3.5 w-3.5" strokeWidth={2.5} />;
       }
       case MessageEventType.RECEIVED: {
-        return <DoubleCheck className="ml-1 text-white/60" />;
+        return <DoubleCheck surface="brand" className="ml-1" />;
       }
       case MessageEventType.READ: {
-        // 6:1 on the bubble, and a colour of its own beside the faint white of delivered
-        return <DoubleCheck className="text-read-on-brand ml-1" />;
+        return <DoubleCheck read surface="brand" className="ml-1" />;
       }
 
       default: {
