@@ -6,27 +6,26 @@ import { auth } from '@/utils/auth';
 import type { Session } from 'next-auth';
 import type { NextFetchEvent, NextRequest, NextResponse } from 'next/server';
 
+/**
+ * Puts a cookie the session check set into the request, so the route reads the same session the
+ * browser will. `request.cookies` rewrites the `cookie` header itself and encodes the value, so it
+ * takes the decoded one: the `Set-Cookie` value is already encoded, and passing it on as it is
+ * encodes it twice, which turns the callback URL into one Auth.js refuses.
+ */
 function propagateCookieToRequest(request: NextRequest, cookieString: string): void {
-  const parts = cookieString.split(';')[0]?.split('=');
-  if (parts?.length === 2) {
-    const name = parts[0];
-    const value = parts[1];
-    if (name !== undefined && value !== undefined) {
-      const trimmedName = name.trim();
-      const trimmedValue = value.trim();
-      request.cookies.set(trimmedName, trimmedValue);
-
-      // Update the raw Cookie header string so that libraries reading headers directly
-      // (like NextAuth or Payload CMS) get the updated rotated token value.
-      const cookieHeader = request.headers.get('cookie') ?? '';
-      const cookiePairs = cookieHeader
-        .split(';')
-        .map((p) => p.trim())
-        .filter(Boolean);
-      const updatedPairs = cookiePairs.filter((p) => !p.startsWith(`${trimmedName}=`));
-      updatedPairs.push(`${trimmedName}=${trimmedValue}`);
-      request.headers.set('cookie', updatedPairs.join('; '));
-    }
+  const pair = cookieString.split(';')[0] ?? '';
+  const separator = pair.indexOf('=');
+  if (separator <= 0) return;
+  const name = pair.slice(0, separator).trim();
+  const value = pair.slice(separator + 1).trim();
+  if (value === '') {
+    request.cookies.delete(name);
+    return;
+  }
+  try {
+    request.cookies.set(name, decodeURIComponent(value));
+  } catch {
+    request.cookies.set(name, value);
   }
 }
 

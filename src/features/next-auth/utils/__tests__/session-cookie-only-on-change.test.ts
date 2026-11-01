@@ -7,6 +7,10 @@ jest.mock('next-auth', () => ({ customFetch: Symbol('customFetch') }));
 jest.mock('payload', () => ({ getPayload: jest.fn().mockRejectedValue(new Error('no database')) }));
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('undici', () => ({ Agent: jest.fn(), setGlobalDispatcher: jest.fn() }));
+// Without Redis every refresh runs in this process, which is what these tests look at.
+jest.mock('@/lib/db/redis', () => ({
+  redis: { get: (): Promise<never> => Promise.reject(new Error('Redis is not part of this test')) },
+}));
 jest.mock('@/utils/server-logger', () => ({
   createLogger: (): Record<string, jest.Mock> => ({
     debug: jest.fn(),
@@ -31,6 +35,8 @@ const CSRF_COOKIE = 'authjs.csrf-token=csrf; Path=/; HttpOnly';
 // the wrapped callback and then sets the session cookie whatever came out of it: re-signed for a
 // token, emptied for none.
 let sessionToken: JWT | undefined;
+// Further cookies Auth.js sets with the session check, such as the callback URL.
+let otherSetCookies: string[] = [];
 jest.mock('@/utils/auth', () => ({
   auth:
     (callback: (request: { auth: { user: { group_ids: number[] | undefined } } | null }) => void) =>
@@ -42,6 +48,7 @@ jest.mock('@/utils/auth', () => ({
         token: JWT;
       }) => Promise<JWT | null>;
       const headers = new Headers({ 'set-cookie': CSRF_COOKIE });
+      for (const cookie of otherSetCookies) headers.append('set-cookie', cookie);
       // eslint-disable-next-line unicorn/no-null -- `null` is what Auth.js answers for no session
       const resolved = token === undefined ? null : await jwt({ token });
       callback({
@@ -175,6 +182,30 @@ describe('the session cookie on a response', () => {
 
   it('does not take the other cookies Auth.js sets with it', async () => {
     await expect(allCookiesSetFor(session())).resolves.toEqual([CSRF_COOKIE]);
+  });
+
+  it('reaches the route in the request, so the route does not refresh a second time', async () => {
+    fetchMock.mockImplementation((url) =>
+      Promise.resolve(
+        url.endsWith('/oauth/token')
+          ? answer(200, { access_token: 'rotated', expires_in: 7200 })
+          : answer(200, { id: 4711, first_name: 'Mia', last_name: 'Muster', roles: [] }),
+      ),
+    );
+    sessionToken = session({ refresh_token: 'handed-on', expires_at: nowSeconds() - 60 });
+    otherSetCookies = ['authjs.callback-url=https%3A%2F%2Fconveniat27.test%2Fapp; Path=/'];
+    const request = new NextRequest('https://conveniat27.test/api/auth/session', {
+      headers: { cookie: `${SESSION_COOKIE}=signed-expired` },
+    });
+
+    await rotateSessionToken(request, {} as NextFetchEvent, NextResponse.next());
+    otherSetCookies = [];
+
+    expect(request.cookies.get(SESSION_COOKIE)?.value).toBe('signed-rotated');
+    // Encoded once, as the browser sends it: Auth.js refuses a callback URL encoded twice.
+    expect(request.headers.get('cookie')).toContain(
+      'authjs.callback-url=https%3A%2F%2Fconveniat27.test%2Fapp',
+    );
   });
 
   it('is cleared when Cevi.DB refuses the refresh token', async () => {
