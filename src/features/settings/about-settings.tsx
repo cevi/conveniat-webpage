@@ -3,6 +3,7 @@
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { IconTile } from '@/components/ui/icon-tile';
 import { LinkComponent } from '@/components/ui/link-component';
+import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import { SettingsCard, SettingsRow } from '@/features/settings/components/settings-row';
 import { useNativeAppInfo } from '@/hooks/use-native-app-info';
@@ -255,14 +256,13 @@ export const AboutSettings: React.FC<AboutSettingsProperties> = ({ locale, webBu
 
   return (
     <>
-      <button
-        type="button"
+      <ListRow
         onClick={() => setIsOpen(true)}
-        className="hover:bg-quiet flex min-h-[56px] w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left text-[15px] leading-5 font-medium text-green-900 transition-colors"
+        className="text-[15px] leading-5 font-medium text-green-900"
       >
         <span className="min-w-0 flex-1">{aboutTitle[locale]}</span>
         <ChevronRight className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />
-      </button>
+      </ListRow>
 
       <BottomSheet open={isOpen} onOpenChange={setIsOpen} title={aboutTitle[locale]}>
         <div className="space-y-6">
@@ -291,7 +291,7 @@ export const AboutSettings: React.FC<AboutSettingsProperties> = ({ locale, webBu
             {/* Contact Row */}
             <LinkComponent
               href="mailto:info@cevi.tools"
-              className="hover:bg-quiet block transition-colors"
+              className="hover:bg-quiet focus-visible:focus-row relative block transition-colors"
               hideExternalIcon
             >
               <SettingsRow

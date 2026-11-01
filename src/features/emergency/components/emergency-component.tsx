@@ -417,7 +417,7 @@ export const EmergencyComponent: React.FC = () => {
                         }
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="border-rail hover:bg-quiet inline-flex min-h-11 items-center gap-2 rounded-full border bg-white px-3.5 py-2 text-sm font-semibold text-green-900 transition-colors"
+                        className="focus-visible:focus-surface border-rail hover:bg-quiet inline-flex min-h-11 items-center gap-2 rounded-full border bg-white px-3.5 py-2 text-sm font-semibold text-green-900 transition-colors"
                       >
                         <Download className="h-4 w-4 text-green-700" aria-hidden="true" />
                         <span>{displayName}</span>

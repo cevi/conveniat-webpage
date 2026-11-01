@@ -670,7 +670,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                     }}
                     aria-label={messageActionsText[activeLocale]}
                     title={messageActionsText[activeLocale]}
-                    className="hover:bg-quiet flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-green-700 hover:text-green-900"
+                    className="focus-visible:focus-surface hover:bg-quiet flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-green-700 hover:text-green-900"
                   >
                     <Ellipsis className="h-4 w-4" aria-hidden="true" />
                   </button>

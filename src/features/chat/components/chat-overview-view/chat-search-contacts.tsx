@@ -1,5 +1,6 @@
 'use client';
 
+import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import {
   chatListBleedClassName,
@@ -94,13 +95,12 @@ export const ChatSearchContacts: React.FC<{
             <ul>
               {matches.map((contact) => (
                 <li key={contact.userId} className={contactRowItemClassName}>
-                  <button
-                    type="button"
+                  <ListRow
                     onClick={() => openChatWith(contact)}
                     aria-busy={openingUserId === contact.userId}
                     // one chat opens at a time; the row that opens shows a spinner and stays still
                     disabled={openingUserId !== undefined && openingUserId !== contact.userId}
-                    className="hover:bg-quiet focus-visible:focus-ring-inset flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left disabled:cursor-default"
+                    className="min-h-16 disabled:cursor-default disabled:opacity-100"
                   >
                     <ContactRowContent contact={contact} />
                     {openingUserId === contact.userId ? (
@@ -115,7 +115,7 @@ export const ChatSearchContacts: React.FC<{
                         aria-hidden="true"
                       />
                     )}
-                  </button>
+                  </ListRow>
                 </li>
               ))}
             </ul>

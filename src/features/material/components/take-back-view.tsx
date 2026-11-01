@@ -1,6 +1,7 @@
 'use client';
 
 import { IconTile } from '@/components/ui/icon-tile';
+import { ListRow } from '@/components/ui/list-row';
 import {
   holderName,
   loanSummary,
@@ -210,10 +211,7 @@ const DueReturns: React.FC<{ onOpen: (holder: LoanHolder) => void }> = ({ onOpen
   );
 };
 
-const rowButton = cn(
-  'flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2 text-left hover:bg-quiet',
-  'focus-visible:focus-ring-inset',
-);
+const rowButton = 'py-2';
 
 /** Everybody with material out, found by name, or a loan by the number on its label. */
 const HolderSearch: React.FC<{
@@ -262,17 +260,13 @@ const HolderSearch: React.FC<{
       />
       <Panel>
         {loanNumber !== undefined && (
-          <button
-            type="button"
-            className={rowButton}
-            onClick={() => onOpenLoan(Number(loanNumber))}
-          >
+          <ListRow className={rowButton} onClick={() => onOpenLoan(Number(loanNumber))}>
             <IconTile icon={Hash} />
             <span className="min-w-0 flex-1 truncate font-semibold text-green-900">
               {format(text.openLoan, locale, { n: loanNumber })}
             </span>
             <ChevronRight className="size-4 shrink-0 text-green-500" aria-hidden />
-          </button>
+          </ListRow>
         )}
         {holders.isLoading && <LoadingState text={labels.loading[locale]} />}
         {!holders.isLoading && rows.length === 0 && loanNumber === undefined && (
@@ -281,7 +275,7 @@ const HolderSearch: React.FC<{
         <ul className="divide-line divide-y">
           {rows.map((row) => (
             <li key={`${row.holder.kind}:${row.holder.id}`}>
-              <button type="button" className={rowButton} onClick={() => onOpen(row.holder)}>
+              <ListRow className={rowButton} onClick={() => onOpen(row.holder)}>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold text-green-900">{row.name}</span>
                   <span className="flex items-center gap-1 text-xs text-green-500">
@@ -294,7 +288,7 @@ const HolderSearch: React.FC<{
                   </span>
                 </span>
                 <ChevronRight className="size-4 shrink-0 text-green-500" aria-hidden />
-              </button>
+              </ListRow>
             </li>
           ))}
         </ul>

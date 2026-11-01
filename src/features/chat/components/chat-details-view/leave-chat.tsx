@@ -9,6 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { ListRow } from '@/components/ui/list-row';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useLeaveChatMutation } from '@/features/chat/hooks/use-leave-chat-mutation';
@@ -142,10 +143,6 @@ export const LeaveChatDialog: React.FC<{
   );
 };
 
-/** A row of the actions card at the foot of the chat details. */
-export const detailsActionRowClassName =
-  'flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left hover:bg-quiet disabled:cursor-not-allowed disabled:opacity-60 focus-visible:focus-ring-inset';
-
 /**
  * Lets any member of a group chat leave it, whatever their permission: a neutral row, as
  * leaving can be undone by an admin adding them again.
@@ -156,16 +153,12 @@ export const LeaveChat: React.FC = () => {
 
   return (
     <>
-      <button
-        type="button"
-        className={detailsActionRowClassName}
-        onClick={() => setIsDialogOpen(true)}
-      >
+      <ListRow onClick={() => setIsDialogOpen(true)}>
         <LogOut className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
         <span className="text-[15px] font-semibold text-green-900">
           {localizedLeaveChat[locale]}
         </span>
-      </button>
+      </ListRow>
       <LeaveChatDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
     </>
   );

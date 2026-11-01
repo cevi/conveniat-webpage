@@ -27,7 +27,7 @@ const labels = {
 } satisfies Record<string, StaticTranslationString>;
 
 const tileClassName =
-  'border-line hover:bg-quiet flex min-h-[64px] w-full cursor-pointer items-center gap-2.5 rounded-[14px] border bg-white px-3 py-2.5 text-left text-[14px] leading-[18px] font-semibold text-green-900';
+  'focus-visible:focus-surface border-line hover:bg-quiet flex min-h-[64px] w-full cursor-pointer items-center gap-2.5 rounded-[14px] border bg-white px-3 py-2.5 text-left text-[14px] leading-[18px] font-semibold text-green-900';
 
 const TileContent: React.FC<{ icon: LucideIcon; label: string }> = ({ icon, label }) => (
   <>

@@ -157,7 +157,7 @@ const ThreadRoot: React.FC<{
         <button
           type="button"
           onClick={onShowInChat}
-          className="hover:bg-quiet -ml-2 flex min-h-11 cursor-pointer items-center gap-1 rounded-[12px] px-2 text-[13px] font-semibold text-green-900"
+          className="focus-visible:focus-surface hover:bg-quiet -ml-2 flex min-h-11 cursor-pointer items-center gap-1 rounded-[12px] px-2 text-[13px] font-semibold text-green-900"
         >
           {showInChatText[locale]}
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
@@ -237,7 +237,7 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
         <button
           type="button"
           onClick={onClose}
-          className="hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900"
+          className="focus-visible:focus-surface hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900"
           aria-label={backButtonLabel[locale]}
         >
           <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />

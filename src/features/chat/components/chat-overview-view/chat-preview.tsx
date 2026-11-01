@@ -191,11 +191,12 @@ export const ChatPreview: React.FC<{
       href={chatDetailLink}
       // an emergency chat is the one row that may be red, so it stands out of the list
       className={cn(
-        'hover:bg-quiet focus-visible:focus-ring-inset block w-full bg-white select-none',
+        'hover:bg-quiet focus-visible:focus-row relative block w-full bg-white select-none',
         hasUnread && 'bg-tint',
         // darker than the hover, so the open chat stays told apart from the row under the mouse
         isSelected && 'bg-chip hover:bg-chip',
-        isEmergency && 'border-l-4 border-l-red-600 bg-red-50 hover:bg-red-100',
+        isEmergency &&
+          'focus-visible:focus-row-danger border-l-4 border-l-red-600 bg-red-50 hover:bg-red-100',
       )}
       data-allow-red={isEmergency ? '' : undefined}
       aria-current={isSelected ? 'page' : undefined}
