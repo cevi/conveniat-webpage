@@ -4,8 +4,9 @@
 
 import type { ChatDetails } from '@/features/chat/api/types';
 import { ChatHeader } from '@/features/chat/components/chat-view/chat-header';
+import { ListIsPreviousContext } from '@/features/chat/context/list-is-previous-context';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 const CHAT_ID = 'chat-1';
 const ME = 'user-me';
@@ -43,6 +44,10 @@ jest.mock('@/lib/prisma/client', () => ({
 }));
 jest.mock('@/features/chat/context/chat-id-context', () => ({ useChatId: (): string => CHAT_ID }));
 jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
+const mockBack = jest.fn();
+jest.mock('next/navigation', () => ({
+  useRouter: (): { back: jest.Mock } => ({ back: mockBack }),
+}));
 jest.mock('@/hooks/use-online-status', () => ({ useOnlineStatus: (): boolean => true }));
 
 const listEntry = (entry: Partial<ChatWithMessagePreview>): ChatWithMessagePreview =>
@@ -57,9 +62,12 @@ const participant = (
 
 const detailsLink = (): HTMLElement => screen.getByRole('link', { name: /, Chat-Details öffnen$/ });
 
+const backLink = (): HTMLElement => screen.getByRole('link', { name: 'Zurück zu den Chats' });
+
 beforeEach(() => {
   cache.list = undefined;
   cache.details = undefined;
+  mockBack.mockClear();
 });
 
 describe('ChatHeader', () => {
@@ -129,5 +137,28 @@ describe('ChatHeader', () => {
 
     expect(screen.queryByRole('link', { name: /Chat-Details öffnen$/ })).toBeNull();
     expect(container.querySelector('.animate-pulse')).not.toBeNull();
+  });
+
+  it('goes back in the history where the list is the previous entry', () => {
+    render(
+      <ListIsPreviousContext value>
+        <ChatHeader />
+      </ListIsPreviousContext>,
+    );
+
+    const notPrevented = fireEvent.click(backLink());
+
+    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(notPrevented).toBe(false);
+  });
+
+  it('opens the list for a chat opened directly, as from a push', () => {
+    render(<ChatHeader />);
+
+    const notPrevented = fireEvent.click(backLink());
+
+    expect(mockBack).not.toHaveBeenCalled();
+    expect(notPrevented).toBe(true);
+    expect(backLink()).toHaveAttribute('href', '/app/chat');
   });
 });
