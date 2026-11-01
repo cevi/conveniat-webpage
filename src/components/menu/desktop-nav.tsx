@@ -89,8 +89,8 @@ const useFocusMenuSection = (
 
 /**
  * The opened menu: every column side by side, in the order the editors gave them, and the entries
- * without entries below them collected in a last column. Opened from a pinned entry, that entry's
- * column is marked. In the app, the app's features come first.
+ * without entries below them collected in a last column. Opened from a pinned entry, the focus
+ * moves into that entry's column. In the app, the app's features come first.
  */
 const MenuPanel: React.FC<{
   id: string;
@@ -139,10 +139,7 @@ const MenuPanel: React.FC<{
             key={item.id}
             data-menu-section={item.id}
             aria-label={item.label}
-            className={cn(
-              '-m-3 rounded-[14px] p-3 transition-colors',
-              highlightedId === item.id && 'bg-tint',
-            )}
+            className="-m-3 p-3"
           >
             <MenuEntryLabel
               node={item}
