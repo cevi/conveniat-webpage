@@ -7,6 +7,7 @@ import type { ChatAvatarChat } from '@/features/chat/components/ui/chat-avatar';
 import { ChatAvatar } from '@/features/chat/components/ui/chat-avatar';
 import { LinkPendingSpinner } from '@/features/chat/components/ui/link-pending-spinner';
 import { useChatId } from '@/features/chat/context/chat-id-context';
+import { useListIsPrevious } from '@/features/chat/context/list-is-previous-context';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
@@ -18,6 +19,7 @@ import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const onlineText: StaticTranslationString = {
   de: 'Online',
@@ -63,10 +65,31 @@ const headerClassName =
 const iconButtonClassName =
   'focus-visible:focus-surface flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900 hover:bg-quiet';
 
+/**
+ * Back to the chats. Where the list is the previous history entry it goes back in the history,
+ * so the list returns as it was and the chat leaves no detour behind. A chat opened from a push or
+ * a shared link has something else before it, the entrypoint or nothing at all, so it opens the
+ * list instead, the way the Programm's back button does.
+ */
 const BackLink: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
+  const isListPrevious = useListIsPrevious();
+  const router = useRouter();
+
+  const goBack = (event: React.MouseEvent<HTMLAnchorElement>): void => {
+    // a click with a modifier opens the list in a new tab, which the link does by itself
+    if (!isListPrevious || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    router.back();
+  };
+
   return (
-    <Link href="/app/chat" aria-label={backText[locale]} className={iconButtonClassName}>
+    <Link
+      href="/app/chat"
+      onClick={goBack}
+      aria-label={backText[locale]}
+      className={iconButtonClassName}
+    >
       <LinkPendingSpinner spinnerClassName="h-[22px] w-[22px]">
         <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
       </LinkPendingSpinner>
