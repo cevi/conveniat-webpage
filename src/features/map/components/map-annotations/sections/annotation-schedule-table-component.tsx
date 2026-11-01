@@ -1,12 +1,12 @@
 'use client';
 
+import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import type { CampScheduleEntry } from '@/features/map/types/types';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { campClockOf } from '@/utils/camp-clock';
 import { ChevronRight } from 'lucide-react';
-import Link from 'next/link';
 import type React from 'react';
 import { useMemo, useState } from 'react';
 
@@ -112,9 +112,9 @@ export const AnnotationScheduleTableComponent: React.FC<{
       <ul className="mt-1">
         {rows.map(({ entry, dayKey, start }) => (
           <li key={entry.id} className="border-line border-b last:border-b-0">
-            <Link
+            <ListRow
               href={`/app/schedule?date=${dayKey}&id=${entry.id}`}
-              className="focus-visible:focus-ring-inset hover:bg-quiet -mx-4 flex min-h-[52px] items-center gap-2.5 px-4 py-1.5 transition-colors"
+              className="-mx-4 min-h-[52px] w-auto gap-2.5 py-1.5"
             >
               <span className="w-16 shrink-0">
                 <span className="block text-xs font-medium text-green-500">
@@ -128,7 +128,7 @@ export const AnnotationScheduleTableComponent: React.FC<{
                 {entry.title}
               </span>
               <ChevronRight className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />
-            </Link>
+            </ListRow>
           </li>
         ))}
       </ul>

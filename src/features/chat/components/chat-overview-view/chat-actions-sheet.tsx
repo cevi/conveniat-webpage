@@ -3,7 +3,7 @@
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { ArchiveChatConfirmDialog } from '@/features/chat/components/archive-chat-confirm-dialog';
 import { LeaveChatDialog } from '@/features/chat/components/chat-details-view/leave-chat';
-import { ChatAvatar } from '@/features/chat/components/chat-overview-view/chat-preview';
+import { ChatAvatar } from '@/features/chat/components/ui/chat-avatar';
 import { SheetActionRow } from '@/features/chat/components/ui/sheet-action-row';
 import { ChatIdProvider } from '@/features/chat/context/chat-id-context';
 import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-mutation';

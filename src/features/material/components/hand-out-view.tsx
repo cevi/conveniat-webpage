@@ -1,5 +1,6 @@
 'use client';
 
+import { ListRow } from '@/components/ui/list-row';
 import { BasketEditor, type BasketStart } from '@/features/material/components/basket-editor';
 import {
   holderName,
@@ -457,10 +458,7 @@ const PreparedPickups: React.FC<{
   );
 };
 
-const pickButton = cn(
-  'flex min-h-11 w-full cursor-pointer items-center gap-3 px-4 py-2 text-left text-[15px] text-green-900 hover:bg-quiet',
-  'focus-visible:focus-ring-inset',
-);
+const pickButton = 'min-h-11 py-2 text-[15px] text-green-900';
 
 /** "A" for "Aathal", and for "Äsch" too, so the umlauts sort in with their letter. */
 const initialOf = (name: string): string =>
@@ -503,8 +501,7 @@ const HofChoice: React.FC<{ onPick: (start: BasketStart) => void }> = ({ onPick 
             <ul className="divide-line divide-y">
               {group.map((hof) => (
                 <li key={hof.id}>
-                  <button
-                    type="button"
+                  <ListRow
                     className={pickButton}
                     onClick={() => onPick({ holder: { kind: 'HOF', id: hof.id, name: hof.name } })}
                   >
@@ -515,7 +512,7 @@ const HofChoice: React.FC<{ onPick: (start: BasketStart) => void }> = ({ onPick 
                       </span>
                     )}
                     <ChevronRight className="size-4 shrink-0 text-green-500" aria-hidden />
-                  </button>
+                  </ListRow>
                 </li>
               ))}
             </ul>
@@ -548,8 +545,7 @@ const PersonChoice: React.FC<{ onPick: (start: BasketStart) => void }> = ({ onPi
           {debounced !== '' &&
             people.data?.map((person) => (
               <li key={person.uuid}>
-                <button
-                  type="button"
+                <ListRow
                   className={pickButton}
                   onClick={() =>
                     onPick({ holder: { kind: 'PERSON', id: person.uuid, name: person.name } })
@@ -557,7 +553,7 @@ const PersonChoice: React.FC<{ onPick: (start: BasketStart) => void }> = ({ onPi
                 >
                   <span className="min-w-0 flex-1 truncate">{person.name}</span>
                   <ChevronRight className="size-4 shrink-0 text-green-500" aria-hidden />
-                </button>
+                </ListRow>
               </li>
             ))}
         </ul>

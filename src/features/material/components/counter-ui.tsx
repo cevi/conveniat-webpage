@@ -127,7 +127,7 @@ export const Stepper: React.FC<{
   const down = stepQuantity(value, step, -1);
   const up = stepQuantity(value, step, 1);
   const button = cn(
-    'flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-rail bg-white text-green-900 hover:bg-quiet disabled:cursor-not-allowed disabled:opacity-40',
+    'focus-visible:focus-surface flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-rail bg-white text-green-900 hover:bg-quiet disabled:cursor-not-allowed disabled:opacity-40',
   );
   return (
     <div className="flex shrink-0 items-center gap-1" role="group" aria-label={label}>
@@ -222,7 +222,7 @@ export const SearchField: React.FC<{
             title={labels.scan[locale]}
             onClick={() => setScanning(true)}
             className={cn(
-              'bg-conveniat-green flex h-[44px] w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-[12px] text-white',
+              'focus-visible:focus-surface-filled bg-conveniat-green flex h-[44px] w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-[12px] text-white',
             )}
           >
             <ScanLine className="size-5" aria-hidden />
@@ -293,8 +293,8 @@ export const FilterChip: React.FC<{
     className={cn(
       'inline-flex h-11 max-w-full cursor-pointer items-center gap-1.5 rounded-full border px-4 text-sm font-semibold [&_svg]:size-4',
       active
-        ? 'border-conveniat-green bg-conveniat-green text-white'
-        : 'border-rail bg-white text-green-900',
+        ? 'border-conveniat-green bg-conveniat-green focus-visible:focus-surface-filled-tight text-white'
+        : 'border-rail focus-visible:focus-surface-tight bg-white text-green-900',
     )}
   >
     <span className="truncate">{children}</span>

@@ -954,7 +954,7 @@ export const BillSettingsGlobal: GlobalConfig = {
                   name: 'body',
                   type: 'textarea',
                   defaultValue:
-                    'Guten Morgen\n\nAnbei der aktuelle Anmeldestand für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDetails und mögliche Probleme stehen im angehängten Bericht.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen',
+                    'Guten Morgen\n\nAnbei der aktuelle Anmeldestand für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDetails und mögliche Probleme stehen im angehängten Bericht.\n\nFreundliche Grüsse\n\n{{signatur :: Ressort Finanzen}}',
                   label: { en: 'Email Text', de: 'E-Mail-Text', fr: "Texte de l'e-mail" },
                   admin: {
                     description: {
@@ -985,7 +985,7 @@ export const BillSettingsGlobal: GlobalConfig = {
                   name: 'financeBody',
                   type: 'textarea',
                   defaultValue:
-                    'Guten Morgen\n\nAnbei die aktuelle Rechnungsübersicht für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDie detaillierten Buchungszeilen befinden sich in der angehängten Excel-Datei.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen',
+                    'Guten Morgen\n\nAnbei die aktuelle Rechnungsübersicht für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDie detaillierten Buchungszeilen befinden sich in der angehängten Excel-Datei.\n\nFreundliche Grüsse\n\n{{signatur :: Ressort Finanzen}}',
                   label: {
                     en: 'Finance Email Text',
                     de: 'Finanz-E-Mail Text',
@@ -1154,7 +1154,7 @@ export const BillSettingsGlobal: GlobalConfig = {
               name: 'invoiceEmailBody',
               type: 'textarea',
               defaultValue:
-                'Liebe/r {{firstName}},\n\nVielen Dank für deine Anmeldung zum conveniat27. Im Anhang findest du deine Anmeldebestätigung inkl. Rechnung.\n\nBitte überweise den Betrag innert 30 Tagen.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen',
+                'Liebe/r {{firstName}},\n\nVielen Dank für deine Anmeldung zum conveniat27. Im Anhang findest du deine Anmeldebestätigung inkl. Rechnung.\n\nBitte überweise den Betrag innert 30 Tagen.\n\nFreundliche Grüsse\n\n{{signatur :: Ressort Finanzen}}',
               label: {
                 en: 'Email Body',
                 de: 'E-Mail-Text',

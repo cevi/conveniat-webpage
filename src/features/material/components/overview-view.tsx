@@ -2,6 +2,7 @@
 
 import { buttonVariants } from '@/components/ui/buttons/button';
 import { IconTile } from '@/components/ui/icon-tile';
+import { ListRow } from '@/components/ui/list-row';
 import type { MaterialStockAlert } from '@/features/material/api/material-router';
 import { holderName, loanSummary, positionCount } from '@/features/material/components/counter-ui';
 import {
@@ -281,13 +282,7 @@ const buildAttention = (data: Dashboard, locale: Locale): AttentionEntry[] => {
 
 const AttentionRow: React.FC<{ entry: AttentionEntry }> = ({ entry }) => (
   <li className="flex items-center gap-2 pr-3">
-    <Link
-      href={entry.href}
-      className={cn(
-        'hover:bg-quiet flex min-w-0 flex-1 items-center gap-3 py-3 pl-4',
-        'focus-visible:focus-ring-inset',
-      )}
-    >
+    <ListRow href={entry.href} className="min-h-0 min-w-0 flex-1 py-3 pr-0">
       {entry.icon}
       <span className="min-w-0 flex-1">
         <span className="block truncate font-semibold text-green-900" title={entry.title}>
@@ -302,7 +297,7 @@ const AttentionRow: React.FC<{ entry: AttentionEntry }> = ({ entry }) => (
       {entry.badge !== undefined && (
         <span className={cn(chip, entry.badge.tone)}>{entry.badge.label}</span>
       )}
-    </Link>
+    </ListRow>
     {entry.action}
   </li>
 );

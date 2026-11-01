@@ -13,6 +13,7 @@ import { Number } from '@/features/payload-cms/components/form/number';
 import { Select } from '@/features/payload-cms/components/form/select';
 import { Text } from '@/features/payload-cms/components/form/text';
 import { TextArea } from '@/features/payload-cms/components/form/textarea';
+import { VisitDaySelection } from '@/features/visit-day/components/visit-day-selection';
 import type React from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,4 +33,5 @@ export const fields: Record<string, React.FC<any>> = {
   dateSlotSelection: DateSlotSelection,
   fileUpload: FileUpload,
   materialList: MaterialList,
+  visitDaySelection: VisitDaySelection,
 };

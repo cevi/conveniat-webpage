@@ -82,7 +82,7 @@ export const ShareLinkButton: React.FC<{
       aria-label={iconOnlyLabel}
       title={currentLabel}
       className={cn(
-        'hover:bg-quiet flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl p-2 text-green-700 transition-colors hover:text-green-900',
+        'focus-visible:focus-surface hover:bg-quiet flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl p-2 text-green-700 transition-colors hover:text-green-900',
         className,
       )}
     >

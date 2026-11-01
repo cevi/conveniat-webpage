@@ -47,6 +47,8 @@ jobs:
             NEXT_PUBLIC_POSTHOG_KEY=phc_QXeG5AHoyxCVCcIse8a2rriQKZgAwkk3vO15Zz0aDud
             NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
             NEXT_PUBLIC_HITOBITO_API_URL=https://db.cevi.ch
+            NEXT_PUBLIC_APP_STORE_URL=https://apps.apple.com/ch/app/conveniat-27/id6817359538
+            NEXT_PUBLIC_PLAY_STORE_URL=https://play.google.com/store/apps/details?id=ch.cevi.conveniat27.conveniat27app
             POSTHOG_API_KEY=${{ secrets.POSTHOG_API_KEY }}
             POSTHOG_PROJECT_ID=${{ secrets.POSTHOG_PROJECT_ID }}
             BUILD_GIT_HASH=${{ github.sha }}

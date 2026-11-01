@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import { fitToVisualViewport } from '@/features/chat/utils/fit-to-visual-viewport';
+import { fitToVisualViewport } from '@/utils/fit-to-visual-viewport';
 
 /** A visual viewport whose size the test moves, like a browser opening its keyboard. */
 class FakeVisualViewport extends EventTarget {
@@ -10,9 +10,10 @@ class FakeVisualViewport extends EventTarget {
   offsetTop = 0;
   scale = 1;
 
-  openKeyboard(keyboardHeight: number): void {
+  /** `scrolledBy` is how far the browser scrolls to reveal the focused input, at most the keyboard */
+  openKeyboard(keyboardHeight: number, scrolledBy = keyboardHeight): void {
     this.height -= keyboardHeight;
-    this.offsetTop = keyboardHeight;
+    this.offsetTop = scrolledBy;
     this.dispatchEvent(new Event('resize'));
     this.dispatchEvent(new Event('scroll'));
   }
@@ -25,20 +26,29 @@ describe('fitToVisualViewport', () => {
   beforeEach(() => {
     viewport = new FakeVisualViewport();
     Object.defineProperty(globalThis, 'visualViewport', { value: viewport, configurable: true });
+    Object.defineProperty(globalThis, 'innerHeight', { value: 664, configurable: true });
     element = document.createElement('div');
   });
 
-  const fittedTo = (): { height: string; top: string } => ({
+  const fittedTo = (): { height: string; top: string; bottom: string } => ({
     height: element.style.getPropertyValue('--visual-viewport-height'),
     top: element.style.getPropertyValue('--visual-viewport-top'),
+    bottom: element.style.getPropertyValue('--visual-viewport-bottom'),
   });
 
   it('keeps the element above the keyboard while it opens', () => {
     fitToVisualViewport(element);
-    expect(fittedTo()).toEqual({ height: '664px', top: '0px' });
+    expect(fittedTo()).toEqual({ height: '664px', top: '0px', bottom: '0px' });
 
     viewport.openKeyboard(336);
-    expect(fittedTo()).toEqual({ height: '328px', top: '336px' });
+    expect(fittedTo()).toEqual({ height: '328px', top: '336px', bottom: '0px' });
+  });
+
+  it('lifts a sheet at the bottom over the keyboard when the browser barely scrolls', () => {
+    fitToVisualViewport(element);
+    viewport.openKeyboard(336, 40);
+
+    expect(fittedTo()).toEqual({ height: '328px', top: '40px', bottom: '296px' });
   });
 
   it('falls back to the full screen while the user has zoomed in', () => {
@@ -46,7 +56,7 @@ describe('fitToVisualViewport', () => {
     viewport.scale = 2;
     viewport.openKeyboard(0);
 
-    expect(fittedTo()).toEqual({ height: '', top: '' });
+    expect(fittedTo()).toEqual({ height: '', top: '', bottom: '' });
   });
 
   it('stops following the viewport once the element unmounts', () => {
@@ -54,6 +64,6 @@ describe('fitToVisualViewport', () => {
     cleanup?.();
     viewport.openKeyboard(336);
 
-    expect(fittedTo()).toEqual({ height: '664px', top: '0px' });
+    expect(fittedTo()).toEqual({ height: '664px', top: '0px', bottom: '0px' });
   });
 });

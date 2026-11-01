@@ -1,6 +1,7 @@
 'use client';
 
 import { Card } from '@/components/ui/card';
+import { ListRow } from '@/components/ui/list-row';
 import {
   holderInitials,
   SearchField,
@@ -250,14 +251,7 @@ const ItemSearch: React.FC<{
             });
             return (
               <li key={item.id}>
-                <button
-                  type="button"
-                  onClick={() => add(item)}
-                  className={cn(
-                    'hover:bg-quiet flex min-h-12 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left',
-                    'focus-visible:focus-ring-inset',
-                  )}
-                >
+                <ListRow onClick={() => add(item)} className="min-h-12 px-3 py-2">
                   <MaterialItemImage name={item.name} imageUrl={item.imageUrl} className="size-9" />
                   <span className="min-w-0 flex-1 truncate font-semibold text-green-900">
                     {item.name}
@@ -275,7 +269,7 @@ const ItemSearch: React.FC<{
                           max: item.maxLoanQuantity,
                         })}
                   </span>
-                </button>
+                </ListRow>
               </li>
             );
           })}
@@ -352,7 +346,7 @@ const BasketLineRow: React.FC<{
           onClick={onRemove}
           aria-label={`${labels.remove[locale]}: ${name}`}
           className={cn(
-            'hover:bg-quiet flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-500 hover:text-green-900',
+            'focus-visible:focus-surface hover:bg-quiet flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-500 hover:text-green-900',
           )}
         >
           <Trash2 className="size-4" aria-hidden />

@@ -125,6 +125,11 @@ export const environmentVariables = createEnv({
       .string()
       .transform((value) => value === 'true')
       .default(false),
+    // the Besuchstag registration of conveniat27; konekta has no Besuchstag
+    FEATURE_ENABLE_VISIT_DAY: z
+      .string()
+      .transform((value) => value === 'true')
+      .default(false),
 
     // Map Config
     CAMP_MAP_INITIAL_ZOOM: z.coerce.number(),
@@ -158,6 +163,13 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_ENABLED_LOCALES: z.string().optional(),
     NEXT_PUBLIC_DISABLE_SERWIST: z.boolean().default(false),
     NEXT_PUBLIC_HITOBITO_API_URL: z.url().optional(),
+    /**
+     * The deployment's app in the App Store and on Google Play, offered to a browser on the app
+     * pages. A build time value, set per deployment; unset hides the store's button, and with
+     * neither set the deployment offers no app at all (konekta).
+     */
+    NEXT_PUBLIC_APP_STORE_URL: z.url().optional(),
+    NEXT_PUBLIC_PLAY_STORE_URL: z.url().optional(),
   },
 
   experimental__runtimeEnv: {
@@ -170,6 +182,8 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_ENABLED_LOCALES: process.env['NEXT_PUBLIC_ENABLED_LOCALES'],
     NEXT_PUBLIC_DISABLE_SERWIST: process.env['NEXT_PUBLIC_DISABLE_SERWIST'] === 'true',
     NEXT_PUBLIC_HITOBITO_API_URL: process.env['NEXT_PUBLIC_HITOBITO_API_URL'],
+    NEXT_PUBLIC_APP_STORE_URL: process.env['NEXT_PUBLIC_APP_STORE_URL'],
+    NEXT_PUBLIC_PLAY_STORE_URL: process.env['NEXT_PUBLIC_PLAY_STORE_URL'],
   },
 
   /**

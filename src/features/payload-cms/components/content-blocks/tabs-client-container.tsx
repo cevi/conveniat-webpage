@@ -11,7 +11,8 @@ export const TabsClientContainer: React.FC<{
 
   return (
     <div className="w-full">
-      <div className="mb-8 flex w-full items-center justify-center">
+      {/* Starts at the left edge, like the blocks below it, which are narrower than the column. */}
+      <div className="mb-8 flex w-full items-center">
         <div className="inline-flex rounded-full bg-gray-100 p-1">
           {tabs.map((tab, index) => (
             <button

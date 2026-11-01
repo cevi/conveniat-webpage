@@ -1,7 +1,6 @@
 'use client';
 
-import { AppAdvertisement } from '@/components/app-advertisement';
-import type { Locale } from '@/types/types';
+import { ShowGetTheAppButton } from '@/components/get-the-app';
 import { i18nConfig } from '@/types/types';
 import { usePathname } from 'next/navigation';
 import React from 'react';
@@ -9,18 +8,16 @@ import React from 'react';
 interface Properties {
   appNavBar: React.ReactNode;
   copyrightArea: React.ReactNode;
-  locale: Locale;
   isAppMode: boolean;
 }
 
 /**
- * Client-side wrapper for the global footer to handle dynamic visibility during navigation.
- * It ensures the App Advertisement disappears when navigating away from /app/* routes.
+ * Client-side wrapper for the global footer to handle dynamic visibility during navigation. On the
+ * app's pages in a browser it leaves the bottom free and offers the app in the header instead.
  */
 export const GlobalAppFooterClientWrapper: React.FC<Properties> = ({
   appNavBar,
   copyrightArea,
-  locale,
   isAppMode,
 }) => {
   const pathname = usePathname();
@@ -34,19 +31,9 @@ export const GlobalAppFooterClientWrapper: React.FC<Properties> = ({
     return <>{appNavBar}</>;
   }
 
-  // If we are on an app path in browser mode, show the advertisement
-  if (isAppPath) {
-    let type: 'map' | 'chat' | 'generic' = 'generic';
-    if (pathname.includes('/app/map')) {
-      type = 'map';
-    } else if (pathname.includes('/app/chat')) {
-      type = 'chat';
-    }
-
-    // No copyright area on app pages. Decided from the path rather than from state a page sets
-    // after mounting: the server and the browser then agree on what this streamed footer holds.
-    return <AppAdvertisement locale={locale} type={type} />;
-  }
+  // No copyright area on app pages. Decided from the path rather than from state a page sets
+  // after mounting: the server and the browser then agree on what this streamed footer holds.
+  if (isAppPath) return <ShowGetTheAppButton />;
 
   // Otherwise, render normal browser CMS footer
   return <>{copyrightArea}</>;

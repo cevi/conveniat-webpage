@@ -1,9 +1,9 @@
 'use client';
+import { ListRow } from '@/components/ui/list-row';
 import {
   ArchiveChatConfirmDialog,
   localizedDeleteChat,
 } from '@/features/chat/components/archive-chat-confirm-dialog';
-import { detailsActionRowClassName } from '@/features/chat/components/chat-details-view/leave-chat';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-mutation';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
@@ -15,7 +15,6 @@ import { ChatMembershipPermission } from '@/lib/prisma';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { cn } from '@/utils/tailwindcss-override';
 import { Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React from 'react';
@@ -100,9 +99,9 @@ export const DeleteChat: React.FC = () => {
   return (
     <>
       {/* red: it deletes the chat for everybody and cannot be undone, and it says so */}
-      <button
-        type="button"
-        className={cn(detailsActionRowClassName, 'hover:bg-danger-soft')}
+      <ListRow
+        tone="danger"
+        className="disabled:opacity-60"
         onClick={() => setIsDialogOpen(true)}
         disabled={
           !canUserArchiveChat || updateChatMutation.isPending || deleteChatMutation.isPending
@@ -115,7 +114,7 @@ export const DeleteChat: React.FC = () => {
           </span>
           <span className="block text-[13px] text-green-700">{subtitle}</span>
         </span>
-      </button>
+      </ListRow>
 
       <ArchiveChatConfirmDialog
         open={isDialogOpen}

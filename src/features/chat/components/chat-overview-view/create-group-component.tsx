@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { fieldInputClassName, formFieldClassName } from '@/components/ui/field';
+import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import {
@@ -312,20 +313,16 @@ export const CreateNewGroupPage: React.FC = () => {
                 const isChosen = isSelected(contact);
                 return (
                   <li key={contact.userId} className={contactRowItemClassName}>
-                    <button
-                      type="button"
+                    <ListRow
                       role="checkbox"
                       aria-checked={isChosen}
                       disabled={!isChosen && isAtLimit}
                       onClick={() => toggle(contact)}
-                      className={cn(
-                        'focus-visible:focus-ring-inset flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50',
-                        isChosen ? 'bg-tint' : 'hover:bg-quiet',
-                      )}
+                      className={cn('min-h-16', isChosen && 'bg-tint hover:bg-tint')}
                     >
                       <ContactRowContent contact={contact} />
                       <SelectionMark isSelected={isChosen} />
-                    </button>
+                    </ListRow>
                   </li>
                 );
               })}

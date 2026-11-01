@@ -149,7 +149,7 @@ const WhatComesNextCard: React.FC<{
   link: (content: React.ReactNode, className: string) => React.ReactNode;
 }> = ({ next, nextBlock, locale, link }) => {
   const className = cn(
-    'mt-2 flex min-h-16 items-center gap-3 rounded-[14px] bg-quiet px-3.5 py-3',
+    'focus-visible:focus-surface mt-2 flex min-h-16 items-center gap-3 rounded-[14px] bg-quiet px-3.5 py-3',
     nextBlock !== undefined && 'hover:bg-chip transition-colors',
   );
   const content = (

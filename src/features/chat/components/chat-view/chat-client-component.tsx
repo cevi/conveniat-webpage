@@ -6,16 +6,17 @@ import { ChatHeader, ChatHeaderSkeleton } from '@/features/chat/components/chat-
 import { ChatSkeleton } from '@/features/chat/components/chat-view/chat-skeleton';
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
+import { PhonePushHint } from '@/features/chat/components/chat-view/phone-push-hint';
 import { ThreadView } from '@/features/chat/components/chat-view/thread-view';
 import { RealtimeSyncBanner } from '@/features/chat/components/realtime-sync-banner';
 import { ChatActionsProvider, useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
-import { fitToVisualViewport } from '@/features/chat/utils/fit-to-visual-viewport';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { fitToVisualViewport } from '@/utils/fit-to-visual-viewport';
 import type { LucideIcon } from 'lucide-react';
 import { AlertCircle, UserX, WifiOff } from 'lucide-react';
 import React from 'react';
@@ -59,7 +60,7 @@ const ChatUnavailable: React.FC<{ icon: LucideIcon; title: string; description?:
   title,
   description,
 }) => (
-  <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
+  <div className="bg-page fixed top-(--app-top-inset) z-[110] flex h-[calc(100dvh-var(--app-top-inset))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
     <ChatHeaderSkeleton />
     <div className="flex flex-1 items-center justify-center">
       <EmptyState icon={icon} title={title} description={description} />
@@ -86,7 +87,8 @@ const ChatClientContent: React.FC = () => {
   );
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (isLoading && errorUpdateCount === 0 && chatDetails === undefined) return <ChatSkeleton />;
+  if (isLoading && errorUpdateCount === 0 && chatDetails === undefined)
+    return <ChatSkeleton header={<ChatHeader />} />;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (isPaused && isPending && chatDetails === undefined) {
     return (
@@ -115,7 +117,7 @@ const ChatClientContent: React.FC = () => {
   return (
     <div
       ref={fitToVisualViewport}
-      className="bg-page fixed top-[calc(var(--visual-viewport-top,0px)+var(--preview-banner-height))] z-[110] flex h-[calc(var(--visual-viewport-height,100dvh)-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto"
+      className="bg-page fixed top-[calc(var(--visual-viewport-top,0px)+var(--app-top-inset))] z-[110] flex h-[calc(var(--visual-viewport-height,100dvh)-var(--app-top-inset))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto"
     >
       <AppFooterController hideAppFooter />
       <ChatHeader />
@@ -125,6 +127,7 @@ const ChatClientContent: React.FC = () => {
       <div className="flex-1 overflow-hidden">
         <MessageList />
       </div>
+      <PhonePushHint chatId={chatId} />
       <div className="border-line border-t bg-white px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <ChatTextAreaInput />
       </div>

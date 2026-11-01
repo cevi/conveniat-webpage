@@ -169,7 +169,7 @@ const migrateSource = async (payload: BasePayload, source: FileDownloadSource): 
       await source.collection.updateOne({ _id: document._id }, { $set: changes });
       migrated += 1;
     } catch (error: unknown) {
-      payload.logger.warn(
+      payload.logger.error(
         { err: error, source: source.name, id: String(document._id) },
         'Failed to migrate the file download blocks of a document',
       );
@@ -183,23 +183,20 @@ const migrateSource = async (payload: BasePayload, source: FileDownloadSource): 
  * {@link migrateFileDownloadBlocks}. Documents, drafts, versions and globals are rewritten, so
  * restoring an older version brings back a block the renderer understands.
  *
- * Runs on startup and is idempotent: a block without `file` is left untouched. A document that
- * fails keeps its old block, which renders nothing, and is retried on the next start.
+ * Runs once, as a Payload migration, and is idempotent: a block without `file` is left untouched.
+ * A document that fails keeps its old block, which renders nothing, and is logged as an error,
+ * since nothing retries it.
  *
  * @param payload The Payload instance.
  */
 export const migrateFileDownloadGroups = async (payload: BasePayload): Promise<void> => {
-  try {
-    const counts: Record<string, number> = {};
-    for (const source of listFileDownloadSources(payload)) {
-      const migrated = await migrateSource(payload, source);
-      if (migrated > 0) counts[source.name] = migrated;
-    }
+  const counts: Record<string, number> = {};
+  for (const source of listFileDownloadSources(payload)) {
+    const migrated = await migrateSource(payload, source);
+    if (migrated > 0) counts[source.name] = migrated;
+  }
 
-    if (Object.keys(counts).length > 0) {
-      payload.logger.info({ counts }, 'Moved the files of file download blocks into groups');
-    }
-  } catch (error: unknown) {
-    payload.logger.error({ err: error }, 'Migrating the file download blocks failed');
+  if (Object.keys(counts).length > 0) {
+    payload.logger.info({ counts }, 'Moved the files of file download blocks into groups');
   }
 };
