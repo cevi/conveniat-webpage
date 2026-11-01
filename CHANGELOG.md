@@ -1,5 +1,49 @@
 # Changelog
 
+## [1.43.0](https://github.com/cevi/conveniat-webpage/compare/v1.42.1...v1.43.0) (2026-11-01)
+
+
+### Features
+
+* **besuchstag:** every registration gets a number per Hof ([643e74e](https://github.com/cevi/conveniat-webpage/commit/643e74e95feb68cc7cfb45addcf1a40fcc0899f1))
+* **besuchstag:** registration with places per day and a visitor list ([68f265e](https://github.com/cevi/conveniat-webpage/commit/68f265ef473f8bbff70b22bcd397ee040a040f5f))
+* **besuchstag:** registration with places per day and a visitor list ([4a21b3c](https://github.com/cevi/conveniat-webpage/commit/4a21b3cc566d2ab97960a58837830419d059fe07))
+* **chat:** point desktop browsers to the app on the phone ([4a5b71d](https://github.com/cevi/conveniat-webpage/commit/4a5b71d2307570d0f25af0bb3f6e7cb95fc7f22a))
+* **chat:** point desktop browsers to the app on the phone ([a6c7e31](https://github.com/cevi/conveniat-webpage/commit/a6c7e31b9168440a206a43fb512f9936eac68002))
+* **email:** official signature as {{signatur}} and an HTML and text part for every mail ([239ef1b](https://github.com/cevi/conveniat-webpage/commit/239ef1ba1f28c6339a2128180ca1fa9feb920108))
+* **email:** official signature as {{signatur}} and an HTML and text part for every mail ([d295a9d](https://github.com/cevi/conveniat-webpage/commit/d295a9d1e4218124f007d529dd5da6103ecf54d3))
+* **schedule:** a schedule entry's description can embed a YouTube video ([56f0780](https://github.com/cevi/conveniat-webpage/commit/56f07807108957eab672a9bdebe3229da36f3b7a))
+* **schedule:** a schedule entry's description can embed a YouTube video ([21bd6b5](https://github.com/cevi/conveniat-webpage/commit/21bd6b5c18afdea178c23f3f28391c28d9870348))
+
+
+### Bug Fixes
+
+* **app:** buttons show keyboard focus on their own surface ([bd9d729](https://github.com/cevi/conveniat-webpage/commit/bd9d729adeccf01e0206272e0a5c4de3aa77882c))
+* **app:** content starts below the desktop header, also with a larger font ([45be789](https://github.com/cevi/conveniat-webpage/commit/45be789c16974ac49598c36498e9f26d9b228c9e))
+* **app:** content starts below the desktop header, also with a larger font ([e1624c4](https://github.com/cevi/conveniat-webpage/commit/e1624c4265403bcc0e5d4590ed3d577bb29327bc))
+* **app:** keyboard focus on rows, buttons and closed sheets ([6f357e9](https://github.com/cevi/conveniat-webpage/commit/6f357e9f9d6f87066fb46cd96ad2f377704f0626))
+* **app:** keyboard focus on rows, red actions and closed sheets ([19b7f37](https://github.com/cevi/conveniat-webpage/commit/19b7f378406407d4655d3a5c5e4be11e6e8de6ba))
+* **app:** the header leaves room for the status bar ([4f26f90](https://github.com/cevi/conveniat-webpage/commit/4f26f905765989938fed26f178c344cd5974c4d0))
+* **app:** the header leaves room for the status bar ([414134a](https://github.com/cevi/conveniat-webpage/commit/414134acef153b153cd5d6a009053f060d24c40a))
+* **chat:** contact rows line up with the chat rows on desktop ([e3bdb2f](https://github.com/cevi/conveniat-webpage/commit/e3bdb2fef07b758ed39aeb774ba9cf13a4ee3c50))
+* **chat:** contact rows line up with the chat rows on desktop ([b889295](https://github.com/cevi/conveniat-webpage/commit/b8892952343d8fe61fb23597cd12e428912bac3a))
+* **chat:** read ticks differ by shape, not by colour ([07ae982](https://github.com/cevi/conveniat-webpage/commit/07ae982b7ac8ded6454417b43f10e6ee91a4a171))
+* **chat:** read ticks differ by shape, not by colour ([71ce06f](https://github.com/cevi/conveniat-webpage/commit/71ce06f043d86c1087fcb04f4b430c266ad0aae5))
+* **header:** menu joins the header below the preview banner ([79e6c4d](https://github.com/cevi/conveniat-webpage/commit/79e6c4d61c02fb81c019f7c216e66bf133d23385))
+* **header:** menu joins the header below the preview banner ([50440c8](https://github.com/cevi/conveniat-webpage/commit/50440c8c7cd5f6ab4089920104aee7c9c8a1fa35))
+* **menu:** mark only the current page, in light green ([2567f55](https://github.com/cevi/conveniat-webpage/commit/2567f55691b6e01b630beae4922f449885212fc2))
+* **menu:** mark only the current page, in light green ([a21f530](https://github.com/cevi/conveniat-webpage/commit/a21f5305c20676647d79542577e674422e00f960))
+* **ui:** bottom sheets stay above the on-screen keyboard ([b0f788a](https://github.com/cevi/conveniat-webpage/commit/b0f788a074b3056a8efa49a1afd9c435dec5e480))
+
+
+### Performance
+
+* **chat:** a chat opens at once, without a spinner flash, a jump or a skeleton header ([97e3f0d](https://github.com/cevi/conveniat-webpage/commit/97e3f0d41c14b633fafff00941ce2dcf4edb3a42))
+* **chat:** a chat opens with its name and picture from the chat list ([b33749b](https://github.com/cevi/conveniat-webpage/commit/b33749ba68c7c5e914b58b8af28b5cc550f7b4b2))
+* **chat:** a chat opens without a spinner flash, a jump or a false empty state ([1df16fb](https://github.com/cevi/conveniat-webpage/commit/1df16fb878c9a1396e77f12efe980255474823d4))
+* **chat:** back to the chat list without a spinner flash ([602fa28](https://github.com/cevi/conveniat-webpage/commit/602fa281c8167ac3c50b22d283006d2d034ad421))
+* **chat:** back to the chat list without a spinner flash ([d692c0c](https://github.com/cevi/conveniat-webpage/commit/d692c0c3fa65db3af6b329afd3f16c4ca602f0a1))
+
 ## [1.42.1](https://github.com/cevi/conveniat-webpage/compare/v1.42.0...v1.42.1) (2026-11-01)
 
 
