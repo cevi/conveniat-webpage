@@ -25,7 +25,7 @@ import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { AlertTriangle, ArrowLeft, CalendarX } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CalendarDays, CalendarX } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useMemo, useState } from 'react';
 
@@ -42,13 +42,42 @@ const labels = {
 
 /**
  * below the preview banner, when there is one, and above the bottom navigation; on a desktop in
- * the free area beside the menu and the tabs, under the header
+ * the free area beside the menu and the tabs, under the header, right of the Programm's list,
+ * which is 400px wide there (see the schedule page)
  */
 const containerClassName =
-  'fixed inset-x-0 top-(--app-top-inset) bottom-(--app-tab-bar-height) z-[110] flex flex-col overflow-hidden bg-page xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0';
+  'fixed inset-x-0 top-(--app-top-inset) bottom-(--app-tab-bar-height) z-[110] flex flex-col overflow-hidden bg-page xl:top-(--app-content-top) xl:left-[calc(var(--app-content-left)+400px)] xl:z-0';
+
+const pickBlockLabels = {
+  title: { de: 'Wähle einen Block', en: 'Choose a block', fr: 'Choisis un bloc' },
+  description: {
+    de: 'Er öffnet sich hier, das Programm bleibt daneben.',
+    en: 'It opens here, next to the program.',
+    fr: 'Il s’ouvre ici, à côté du programme.',
+  },
+} as const;
+
+/** What a desktop shows beside the Programm while no block is open; a phone shows the list. */
+export const NoBlockSelected: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+  return (
+    <div className={cn(containerClassName, 'hidden items-center justify-center xl:flex')}>
+      <EmptyState
+        icon={CalendarDays}
+        title={pickBlockLabels.title[locale]}
+        description={pickBlockLabels.description[locale]}
+      />
+    </div>
+  );
+};
 
 interface ScheduleDetailViewProperties {
   id: string;
+  /**
+   * Shown beside the list on a desktop without being opened, see `ScheduleComponent`: nothing
+   * to go back to, and the address stays the list's until another block is opened from it.
+   */
+  isSuggested?: boolean;
 }
 
 /**
@@ -56,7 +85,10 @@ interface ScheduleDetailViewProperties {
  * floating over it, and below everything the block holds. Fetches through tRPC and falls back
  * to the offline copies, so a block once seen opens without signal.
  */
-export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id: initialId }) => {
+export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({
+  id: initialId,
+  isSuggested = false,
+}) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const router = useRouter();
   // set once the user opens another slot or block from this page
@@ -186,15 +218,21 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     courseStatus: courseStatus ?? undefined,
   });
 
-  const navigateToEntry = useCallback((entryId: string): void => {
-    setOpenedId(entryId);
-    // Update the URL without triggering a Next.js navigation to avoid
-    // tearing down the React tree (which breaks TRPCProvider's promise chain)
-    // Keep the other parameters: the date and the scope decide what "back" returns to.
-    const parameters = new URLSearchParams(globalThis.location.search);
-    parameters.set('id', entryId);
-    globalThis.history.replaceState(undefined, '', `/app/schedule?${parameters.toString()}`);
-  }, []);
+  const navigateToEntry = useCallback(
+    (entryId: string): void => {
+      setOpenedId(entryId);
+      // Update the URL without triggering a Next.js navigation to avoid
+      // tearing down the React tree (which breaks TRPCProvider's promise chain)
+      // Keep the other parameters: the date and the scope decide what "back" returns to.
+      const parameters = new URLSearchParams(globalThis.location.search);
+      parameters.set('id', entryId);
+      const url = `/app/schedule?${parameters.toString()}`;
+      // from a suggested block a new entry, so back returns to the list as it was
+      if (isSuggested) globalThis.history.pushState(undefined, '', url);
+      else globalThis.history.replaceState(undefined, '', url);
+    },
+    [isSuggested],
+  );
 
   // The block was the first page this document loaded, from a shared link or a push: there is
   // nothing in the app to go back to.
@@ -220,7 +258,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     router.replace(query === '' ? '/app/schedule' : `/app/schedule?${query}`);
   };
 
-  const backButton = (
+  const backButton = isSuggested ? undefined : (
     <button
       type="button"
       onClick={goBack}
@@ -289,7 +327,8 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
       <div className={containerClassName}>
         {/* Floating over the map: the way back on the left, sharing and the star on the right */}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between p-3 [&>*]:pointer-events-auto">
-          {backButton}
+          {/* holds the place of the way back, so the actions stay on the right */}
+          {backButton ?? <span />}
           <ScheduleEditHeaderActions
             entryId={entry.id}
             locale={locale}
