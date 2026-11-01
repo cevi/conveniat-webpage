@@ -53,7 +53,6 @@ const DashboardPreview: React.FC<{
       <DashboardContentErrorBoundary>
         <DashboardLanding
           locale={locale}
-          title={landingPage.title}
           showActionCards={landingPage.showActionCards ?? false}
           flags={{
             imageUploadEnabled: featureFlags.imageUploadEnabled !== false,

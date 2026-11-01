@@ -1,5 +1,3 @@
-import { DEFAULT_APP_TITLE } from '@/components/header/dynamic-app-title-name';
-import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
@@ -12,11 +10,8 @@ interface LayoutProperties {
 
 const Layout: React.FC<LayoutProperties> = ({ children }) => {
   return (
-    <>
-      <SetDynamicPageTitle newTitle={DEFAULT_APP_TITLE} />
-      {/* clip, not hidden: hidden makes a scroll container, which stops sticky headers inside */}
-      <div className="min-w-full overflow-x-clip pt-8 pb-24 xl:px-12">{children}</div>
-    </>
+    // clip, not hidden: hidden makes a scroll container, which stops sticky headers inside
+    <div className="min-w-full overflow-x-clip pt-8 pb-24 xl:px-12">{children}</div>
   );
 };
 

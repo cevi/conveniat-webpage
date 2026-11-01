@@ -1,5 +1,6 @@
 import { GetTheAppButton } from '@/components/get-the-app';
 import { AppHeaderTitle } from '@/components/header/header-actions';
+import { PageTitle } from '@/components/header/page-title';
 import { PreviewModeBannerServerComponent } from '@/components/header/preview-mode-banner-server';
 import { AppFeatures } from '@/components/menu/app-features';
 import { DesktopNav } from '@/components/menu/desktop-nav';
@@ -11,6 +12,7 @@ import {
 import { NavComponent } from '@/components/menu/nav-component';
 import { ConveniatLogo } from '@/components/svg-logos/conveniat-logo';
 import { LinkComponent } from '@/components/ui/link-component';
+import { getAppLandingPageCached } from '@/features/payload-cms/api/cached-globals';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import { getLanguagePrefix } from '@/features/payload-cms/utils/get-language-prefix';
 import type { Locale, NavigationMode, StaticTranslationString } from '@/types/types';
@@ -68,6 +70,41 @@ const TopNavContent: React.FC<{
   );
 };
 
+/** Home's title as an editor's draft has it, for the live preview of the App Landing Page. */
+const PageTitleForEditors: React.FC<{ locale: Locale; dashboardTitle: string }> = async ({
+  locale,
+  dashboardTitle,
+}) => {
+  const draft = (await isAdminSession()) ? await getAppLandingPageCached(locale, true) : undefined;
+  return (
+    <PageTitle locale={locale} dashboardTitle={dashboardTitle} dashboardDraftTitle={draft?.title} />
+  );
+};
+
+/**
+ * The page's title, part of the prerendered shell with Home's published title. The session read
+ * for an editor's draft streams in behind it, the way the desktop menu does it.
+ */
+const HeaderPageTitle: React.FC<{ locale: Locale }> = async ({ locale }) => {
+  const { title } = await getAppLandingPageCached(locale);
+  return (
+    <React.Suspense fallback={<PageTitle locale={locale} dashboardTitle={title} />}>
+      <PageTitleForEditors locale={locale} dashboardTitle={title} />
+    </React.Suspense>
+  );
+};
+
+/**
+ * The title for `AppHeaderTitle`. Its own boundary because the route's segments are unknown
+ * while prerendering a route with a param, a block of the programme or a chat: the title then
+ * streams in, and the rest of the header stays in the shell.
+ */
+const pageTitle = (locale: Locale): React.ReactNode => (
+  <React.Suspense>
+    <HeaderPageTitle locale={locale} />
+  </React.Suspense>
+);
+
 /**
  * Top Navigation Header Layout
  * Full-width top bar with contained logo + title and horizontal megamenu on wide screens (>= 1280px).
@@ -124,9 +161,9 @@ const TopNavHeader: React.FC<{
 
           {/* Mobile Title; in the app also the page's title and buttons on a desktop */}
           {inAppDesign ? (
-            <AppHeaderTitle inAppDesign inlineOnDesktop />
+            <AppHeaderTitle title={pageTitle(locale)} inAppDesign inlineOnDesktop />
           ) : (
-            <AppHeaderTitle inAppDesign={false} hiddenOnDesktop />
+            <AppHeaderTitle title={pageTitle(locale)} inAppDesign={false} hiddenOnDesktop />
           )}
 
           {/* Full Width Desktop Top Navigation, taking whatever width the logo leaves */}
@@ -187,7 +224,7 @@ const SideNavHeader: React.FC<{
               </LinkComponent>
             )}
 
-            <AppHeaderTitle inAppDesign={inAppDesign} />
+            <AppHeaderTitle title={pageTitle(locale)} inAppDesign={inAppDesign} />
 
             <React.Suspense fallback={<div className="h-[60px] xl:hidden" />}>
               <NavComponent showDesktopSidePanel locale={locale}>

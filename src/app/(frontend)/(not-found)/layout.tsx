@@ -1,6 +1,5 @@
 import { BackgroundLogo } from '@/components/background-logo';
 import { AppStatusBarMeta } from '@/components/header/app-status-bar-meta';
-import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-name';
 import { HeaderComponent } from '@/components/header/header-component';
 import { HideHeaderProvider } from '@/components/header/hide-header-context';
 import { StylesheetRecovery } from '@/components/stylesheet-recovery';
@@ -36,20 +35,18 @@ const RootLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
       </head>
       <body className="bg-page flex h-dvh w-dvw flex-col overflow-x-hidden">
         <PostHogProvider>
-          <DynamicAppTitleProvider>
-            <HideHeaderProvider>
-              <Suspense>
-                <LocalizedHeader />
-              </Suspense>
-            </HideHeaderProvider>
-            <div className="absolute top-0 z-[-999] h-screen w-full p-[56px] xl:pl-[480px]">
-              <BackgroundLogo className="max-h-[60vh]" />
-            </div>
+          <HideHeaderProvider>
+            <Suspense>
+              <LocalizedHeader />
+            </Suspense>
+          </HideHeaderProvider>
+          <div className="absolute top-0 z-[-999] h-screen w-full p-[56px] xl:pl-[480px]">
+            <BackgroundLogo className="max-h-[60vh]" />
+          </div>
 
-            <div className="mt-[calc(62px+var(--app-top-inset))] h-[calc(100dvh-62px-var(--app-top-inset))] xl:ml-[480px]">
-              <main className="flex min-h-full flex-col justify-between">{children}</main>
-            </div>
-          </DynamicAppTitleProvider>
+          <div className="mt-[calc(62px+var(--app-top-inset))] h-[calc(100dvh-62px-var(--app-top-inset))] xl:ml-[480px]">
+            <main className="flex min-h-full flex-col justify-between">{children}</main>
+          </div>
         </PostHogProvider>
       </body>
     </html>

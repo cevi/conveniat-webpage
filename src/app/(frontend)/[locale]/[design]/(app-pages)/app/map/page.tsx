@@ -1,4 +1,4 @@
-import { MapPageHeader } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/map/map-page-header';
+import { SetHeaderActions } from '@/components/header/header-actions';
 import { CampMapComponent } from '@/features/map/components/camp-map-component';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { ForceDynamicOnBuild } from '@/utils/is-pre-rendering';
@@ -35,7 +35,8 @@ export const generateMetadata = async ({
 
 const MapPage: React.FC = () => (
   <>
-    <MapPageHeader />
+    {/* the title on the left, the way Programm has it; the map brings its own search */}
+    <SetHeaderActions />
     {/* the initial pose comes from the environment of the running deployment, not of the build */}
     <ForceDynamicOnBuild>
       <CampMapComponent />
