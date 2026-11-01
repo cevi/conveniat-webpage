@@ -7,6 +7,7 @@ import { AppFeatureFlags } from '@/features/payload-cms/payload-cms/globals/app-
 import { AppLandingPageGlobal } from '@/features/payload-cms/payload-cms/globals/app-landing-page-global';
 import { CeviDatabaseSessionGlobal } from '@/features/payload-cms/payload-cms/globals/cevidb-session-global';
 import { DonationBarometerGlobal } from '@/features/payload-cms/payload-cms/globals/donation-barometer-global';
+import { EmailSignatureGlobal } from '@/features/payload-cms/payload-cms/globals/email-signature-global';
 import { FooterGlobal } from '@/features/payload-cms/payload-cms/globals/footer-global';
 import { HeaderGlobal } from '@/features/payload-cms/payload-cms/globals/header-global';
 import { PWAGlobal } from '@/features/payload-cms/payload-cms/globals/pwa-global';
@@ -42,4 +43,5 @@ export const globalConfig: GlobalConfig[] = [
   HofDashboardSettingsGlobal,
   VisitDayGlobal,
   CeviDatabaseSessionGlobal,
+  EmailSignatureGlobal,
 ];

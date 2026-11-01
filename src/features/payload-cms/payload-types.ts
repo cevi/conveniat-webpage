@@ -194,6 +194,7 @@ export interface Config {
     'hof-dashboard-settings': HofDashboardSetting;
     'visit-day': VisitDaySetting;
     'registration-management': RegistrationManagement;
+    'email-signature': EmailSignatureSetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
@@ -213,6 +214,7 @@ export interface Config {
     'hof-dashboard-settings': HofDashboardSettingsSelect<false> | HofDashboardSettingsSelect<true>;
     'visit-day': VisitDaySelect<false> | VisitDaySelect<true>;
     'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
+    'email-signature': EmailSignatureSelect<false> | EmailSignatureSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
@@ -2052,7 +2054,7 @@ export interface Form {
     url: string;
   };
   /**
-   * Send custom emails when the form submits. Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data, {{*:table}} to format it as an HTML table in the email, and {{approval-link}} (or {{approval-link :: Link Text}}) to insert an approval link for the submission.
+   * Send custom emails when the form submits. Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data, {{*:table}} to format it as an HTML table in the email, and {{approval-link}} (or {{approval-link :: Link Text}}) to insert an approval link for the submission. {{signatur}} (or {{signatur :: Ressort Programm}}) ends the email with the official signature.
    */
   emails?:
     | {
@@ -2095,7 +2097,7 @@ export interface Form {
       }[]
     | null;
   /**
-   * Send custom emails when a form submission is approved (set to Freigegeben). Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email.
+   * Send custom emails when a form submission is approved (set to Freigegeben). Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email. {{signatur}} (or {{signatur :: Ressort Programm}}) ends the email with the official signature.
    */
   approvalEmails?:
     | {
@@ -8956,6 +8958,24 @@ export interface RegistrationManagement {
   createdAt?: string | null;
 }
 /**
+ * Write {{signatur}} in an email to end it with this signature, or {{signatur :: Ressort Finanzen}} to add a line under the name. Works in the emails of the forms and in the billing texts. A field left empty uses the official value.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-signature".
+ */
+export interface EmailSignatureSetting {
+  id: string;
+  name?: string | null;
+  /**
+   * Only in the emails, never on the website.
+   */
+  whatsapp?: string | null;
+  email?: string | null;
+  website?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
@@ -9519,6 +9539,19 @@ export interface VisitDaySelect<T extends boolean = true> {
  */
 export interface RegistrationManagementSelect<T extends boolean = true> {
   browserCookie?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-signature_select".
+ */
+export interface EmailSignatureSelect<T extends boolean = true> {
+  name?: T;
+  whatsapp?: T;
+  email?: T;
+  website?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
