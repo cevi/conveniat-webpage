@@ -1,5 +1,65 @@
 # Changelog
 
+## [1.44.0](https://github.com/cevi/conveniat-webpage/compare/v1.43.0...v1.44.0) (2026-11-01)
+
+
+### Features
+
+* **app:** offer the app from the header instead of a bar at the bottom ([a982f92](https://github.com/cevi/conveniat-webpage/commit/a982f92101d43bdad107f8d0a0b05dfbcc250c3d))
+* **app:** offer the app from the header instead of a bar at the bottom ([7373dc4](https://github.com/cevi/conveniat-webpage/commit/7373dc45db8dc40ce4983c454cc891acfb19e5f9))
+* **chat:** order chat messages by a per-chat position and keep read markers as positions ([d9b4696](https://github.com/cevi/conveniat-webpage/commit/d9b46962db88cf151fc03808fc7cdec1c18f4620))
+
+
+### Bug Fixes
+
+* **app:** pages ask the app to draw under the status bar and get its height ([53fa150](https://github.com/cevi/conveniat-webpage/commit/53fa15051d90ae555ab11b6002e03c309641cc01))
+* **app:** pages tell the app that they leave room for the status bar ([a2ee331](https://github.com/cevi/conveniat-webpage/commit/a2ee331f7626aa48362027b08aef82696313200f))
+* **app:** red buttons show keyboard focus on their own surface ([01256ed](https://github.com/cevi/conveniat-webpage/commit/01256ed6c44deba1ac3c37084a96e55d0847cbd7))
+* **app:** red buttons show keyboard focus on their own surface ([8ca26e6](https://github.com/cevi/conveniat-webpage/commit/8ca26e60e338400cd60293a0e2d8ffe6094075af))
+* **app:** the bottom navigation shows keyboard focus like a row ([f3d4297](https://github.com/cevi/conveniat-webpage/commit/f3d429715e7a52b1735dfba4248a2edc49e3450f))
+* **app:** the bottom navigation shows keyboard focus like a row ([b798655](https://github.com/cevi/conveniat-webpage/commit/b798655fce1e67fc71614003fc609d322750b41d))
+* **app:** the remaining controls show keyboard focus on their own surface ([84cae75](https://github.com/cevi/conveniat-webpage/commit/84cae75737f9775768d68cf6f70c9139c7ce1c33))
+* **app:** the remaining controls show keyboard focus on their own surface ([589ace7](https://github.com/cevi/conveniat-webpage/commit/589ace78b2d9733a8b56442dd98a176db5cec9ad))
+* **app:** the status bar height comes from the app when the WebView has none ([6254cc3](https://github.com/cevi/conveniat-webpage/commit/6254cc3b2c5c8ba2b2e273c46652d04ee150998c))
+* **chat:** add-participants and QR sheets keep their height while content changes ([831893e](https://github.com/cevi/conveniat-webpage/commit/831893e2c7c5bddebc7efe89dd9aefebdbcc2e1b))
+* **chat:** add-participants and QR sheets keep their height while content changes ([831670e](https://github.com/cevi/conveniat-webpage/commit/831670eecaa90f11995750e1f069e8cd488178bb))
+* **chat:** back arrow returns to the list through the history ([dd210bc](https://github.com/cevi/conveniat-webpage/commit/dd210bcc8294df8194c9600abb47093a64bc26ec))
+* **chat:** back arrow returns to the list through the history ([73e1c10](https://github.com/cevi/conveniat-webpage/commit/73e1c1036143c9099b381d82fb6381e0660b1f53))
+* **chat:** chat list opens at the top on a phone ([75d8053](https://github.com/cevi/conveniat-webpage/commit/75d80539441927417d4a8341e88256e66b8eb78a))
+* **chat:** chat list opens at the top on a phone ([4a797cd](https://github.com/cevi/conveniat-webpage/commit/4a797cdca3e79acaffc31af5e9b6106fccea49c4))
+* **cms:** blocks inside tabs line up with the tab bar ([6ae1d42](https://github.com/cevi/conveniat-webpage/commit/6ae1d42768460863d0198584a34715ea1ae5717e))
+* **cms:** blocks inside tabs line up with the tab bar ([ee20628](https://github.com/cevi/conveniat-webpage/commit/ee20628863a79ab571251a73819504af14179b55)), closes [#1161](https://github.com/cevi/conveniat-webpage/issues/1161)
+* **cms:** run one-off data fixups once as Payload migrations ([94127cb](https://github.com/cevi/conveniat-webpage/commit/94127cbfe226124c85471f9b2e61be9c9b5774b5))
+* **dev:** the dev container stops on a Postgres without migration history ([c83a903](https://github.com/cevi/conveniat-webpage/commit/c83a903c3bab597def9b70411de3429ce6fb8cd8))
+* **footer:** link row wraps instead of scrolling small phones sideways ([827a5dd](https://github.com/cevi/conveniat-webpage/commit/827a5dd7a504f8e0da6572c71129c31cb66584ea))
+* **footer:** link row wraps instead of scrolling small phones sideways ([fb4b918](https://github.com/cevi/conveniat-webpage/commit/fb4b91844db2d0c6146aab6d4dc7f7b735152c4e))
+* **footer:** long words hyphenate instead of overflowing ([1b2f618](https://github.com/cevi/conveniat-webpage/commit/1b2f6182c26ea7d67c27426287fe8e530b6890ba))
+* **footer:** YouTube icon no longer cut off at some scales ([0fa0446](https://github.com/cevi/conveniat-webpage/commit/0fa044616a1cde5f6571bfe5e1d5cc6e4ada87db))
+* **footer:** YouTube icon no longer cut off at some scales ([4d19ee9](https://github.com/cevi/conveniat-webpage/commit/4d19ee9e2b5382ccea55eb274e5266493de1b849)), closes [#622](https://github.com/cevi/conveniat-webpage/issues/622)
+* **form:** an error goes away as soon as the field is valid ([cd305f9](https://github.com/cevi/conveniat-webpage/commit/cd305f9fdff2d2a54beff198679bd557599bf60b))
+* **form:** an error goes away as soon as the field is valid ([0d26a65](https://github.com/cevi/conveniat-webpage/commit/0d26a655023a3b9afbda73e28579ff1b14ae4758))
+* **form:** choices show keyboard focus like rows and cards, never after a tap ([dc9968e](https://github.com/cevi/conveniat-webpage/commit/dc9968ef006b21e657e805a312d07b3742933827))
+* **form:** choices show keyboard focus like rows and cards, never after a tap ([3db8d34](https://github.com/cevi/conveniat-webpage/commit/3db8d34473c9a29e9c54cf1445374e038560348f))
+* **forms:** an empty dropdown asks in the reader's language ([15acf7b](https://github.com/cevi/conveniat-webpage/commit/15acf7bd434959c5c1147a92ccb7a29434e6b66a))
+* **forms:** an empty dropdown asks in the reader's language ([43c6952](https://github.com/cevi/conveniat-webpage/commit/43c6952c1fe7f4f5d4cde6128421e0c05485614c))
+* **forms:** the email editor of a form knows bullet lists ([fb61281](https://github.com/cevi/conveniat-webpage/commit/fb6128181adeebe99218abd72dac7856eb9e8be0))
+* **forms:** the email editor of a form knows bullet lists ([8740abd](https://github.com/cevi/conveniat-webpage/commit/8740abd6420a22a582c6e8fa4fe2ed35e5922ea5))
+* **map:** place names follow the language of the map ([26e1dd5](https://github.com/cevi/conveniat-webpage/commit/26e1dd5eeec9ac37c5304d1cff922328f9c0bf89))
+* **map:** place names follow the language of the map ([0defc10](https://github.com/cevi/conveniat-webpage/commit/0defc100a4a3cfd05111e90d787a2c16080f0fec))
+* **map:** search ends when the map page is left ([d492297](https://github.com/cevi/conveniat-webpage/commit/d492297022aed527a5e8b9c882e625f80c979294))
+* **map:** search ends when the map page is left ([e1367b7](https://github.com/cevi/conveniat-webpage/commit/e1367b706e2b3a779bcae21743d8a5176532dd30))
+* **onboarding:** text and buttons follow the app's design language ([1e5e2c0](https://github.com/cevi/conveniat-webpage/commit/1e5e2c0cc0676d59841ed9b731e0e0183c989800))
+* **onboarding:** text and buttons follow the app's design language ([cfa2e28](https://github.com/cevi/conveniat-webpage/commit/cfa2e286d6e4837a2bdb192501dbb1dadcc0855e))
+* **pages:** restricted CMS pages answer 401 and 403 ([68b8688](https://github.com/cevi/conveniat-webpage/commit/68b8688cc2e2e9a8071ba016b25256be6ab573f6))
+* **pages:** restricted CMS pages answer 401 and 403 ([c529f50](https://github.com/cevi/conveniat-webpage/commit/c529f500b0e1e269b3eb162ff1306a0372a9ad9c)), closes [#702](https://github.com/cevi/conveniat-webpage/issues/702)
+* **status:** answer 503 until Payload initialized and Postgres answered ([8b0ed73](https://github.com/cevi/conveniat-webpage/commit/8b0ed7370c60d81914c2cdb0b96d3705d0206d23))
+* **status:** fail only on a failed initialization, not a slow one ([9055bd3](https://github.com/cevi/conveniat-webpage/commit/9055bd3405cb3061a7b248aad5dabdbe8321f50c))
+
+
+### Performance
+
+* **cms:** repair the Höfe of the users nightly, not on every boot ([26df4c4](https://github.com/cevi/conveniat-webpage/commit/26df4c4de77b9585368a2566a8234438aa13c669))
+
 ## [1.43.0](https://github.com/cevi/conveniat-webpage/compare/v1.42.1...v1.43.0) (2026-11-01)
 
 
