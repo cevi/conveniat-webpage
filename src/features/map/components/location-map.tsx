@@ -46,7 +46,6 @@ export const LocationMap: React.FC<LocationMapProperties> = ({
                 title: 'User Location',
               },
             ]}
-            schedules={{}}
             limitUsage={false}
           />
         </div>
@@ -67,7 +66,6 @@ export const LocationMap: React.FC<LocationMapProperties> = ({
             title: 'User Location',
           },
         ]}
-        schedules={{}}
         limitUsage={false}
       />
       <div className="absolute top-2 left-2 flex flex-col gap-2">

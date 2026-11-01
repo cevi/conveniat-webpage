@@ -185,24 +185,6 @@ self.addEventListener('message', (event) => {
     );
   }
 
-  if (data?.type === ServiceWorkerMessages.UPDATE_MAP_CACHE && event.source instanceof Client) {
-    event.waitUntil(
-      (async (): Promise<void> => {
-        try {
-          const isEnabled = await isOfflineSupportEnabled();
-          if (!isEnabled) {
-            return;
-          }
-          console.log('[SW] Updating map page cache (online update)...');
-          await cachePageAndScrape('/app/map');
-          console.log('[SW] Map page cache updated.');
-        } catch (error) {
-          console.error('[SW] Failed to update map page cache:', error);
-        }
-      })(),
-    );
-  }
-
   if (data?.type === 'CLEAR_AUTH_CACHE') {
     event.waitUntil(
       (async (): Promise<void> => {

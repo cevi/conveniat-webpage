@@ -1,6 +1,5 @@
 import type {
   CampMapAnnotation as CampMapAnnotationPayloadDocumentType,
-  CampScheduleEntry as CampScheduleEntryPayloadDocumentType,
   Image,
 } from '@/features/payload-cms/payload-types';
 
@@ -23,29 +22,6 @@ export interface CeviLogoMarker {
     coordinates: [number, number];
   };
   title: string;
-}
-
-export interface CampScheduleEntry {
-  id: string;
-  title: string;
-  description: CampScheduleEntryPayloadDocumentType['description'];
-  timeslot: CampScheduleEntryPayloadDocumentType['timeslot'];
-  location: {
-    id: string;
-  };
-  organiser: (string | { fullName: string; email: string })[];
-  participants_min: number;
-  participants_max: number;
-  /** read defensively: a phone can restore yesterday's copy without these */
-  kind?: CampScheduleEntryPayloadDocumentType['kind'] | null | undefined;
-  quartiere?:
-    | (
-        | string
-        | { id: string; name?: string; number?: number | null; rufname?: string | null }
-        | null
-      )[]
-    | null
-    | undefined;
 }
 
 /** The Quartier an area belongs to: "Quartier 7 - Phoenix", number 7, Rufname "Phoenix". */
