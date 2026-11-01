@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.45.1](https://github.com/cevi/conveniat-webpage/compare/v1.45.0...v1.45.1) (2026-11-01)
+
+
+### Bug Fixes
+
+* **app:** reload a page that runs a chunk of the previous build ([caca26e](https://github.com/cevi/conveniat-webpage/commit/caca26e5455e0be39f61d849903551dd9fb5b659))
+* **app:** reload a page that runs a chunk of the previous build ([06cc82b](https://github.com/cevi/conveniat-webpage/commit/06cc82b9e5a35646f819eb152ae1bbf98c9afb2c))
+* **app:** tab bar navigates once per tap ([9dbe57c](https://github.com/cevi/conveniat-webpage/commit/9dbe57c3840175c85ef5a694a392f15dfa9a8aaf))
+* **app:** tab bar navigates once per tap ([60c33d4](https://github.com/cevi/conveniat-webpage/commit/60c33d47fa5dbc07415569ceef4e462a0202bc39))
+* **chat:** the new chat screen is ready again after opening a chat ([ca5facf](https://github.com/cevi/conveniat-webpage/commit/ca5facf1da89daf8a24fe0a16e8e8218e97dd4a8))
+* **chat:** the search stays put and the app header names the page on wide screens ([e1a2a38](https://github.com/cevi/conveniat-webpage/commit/e1a2a3859c1f5efbdec3f3131b9a24fac6d2db4e))
+* **map:** place drawer header above its scrolling content ([764be90](https://github.com/cevi/conveniat-webpage/commit/764be904e3142733b3eddea0471fc6c83a127b52))
+* **map:** place drawer header above its scrolling content ([47a2bda](https://github.com/cevi/conveniat-webpage/commit/47a2bdaa89e378ba706c0dd9e10d033026b44de3))
+
+
+### Performance
+
+* **forms:** approval link no longer flushes the whole site cache ([5643f45](https://github.com/cevi/conveniat-webpage/commit/5643f455cef6686d045c97e5a2ae807401570bde))
+* **forms:** approval link no longer flushes the whole site cache ([2acf0b0](https://github.com/cevi/conveniat-webpage/commit/2acf0b095b26dd6c0f73e01251047b50e654dc82))
+
 ## [1.45.0](https://github.com/cevi/conveniat-webpage/compare/v1.44.0...v1.45.0) (2026-11-01)
 
 
