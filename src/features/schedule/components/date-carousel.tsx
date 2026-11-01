@@ -82,8 +82,8 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
               className={cn(
                 'flex h-[58px] w-[calc((100%-6*0.375rem)/7)] shrink-0 cursor-pointer snap-start flex-col items-center justify-center gap-1 rounded-xl border transition-colors select-none',
                 isSelected
-                  ? 'bg-conveniat-green border-conveniat-green'
-                  : 'border-line bg-white hover:border-green-200',
+                  ? 'bg-conveniat-green border-conveniat-green focus-visible:focus-surface-filled-tight'
+                  : 'border-line focus-visible:focus-surface-tight bg-white hover:border-green-200',
               )}
             >
               <span

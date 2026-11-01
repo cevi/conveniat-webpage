@@ -100,7 +100,13 @@ const TopNavHeader: React.FC<{
             href={`/${languagePrefix}`}
             aria-label={landingPageAreaLinktText[locale]}
             prefetch
-            className="group flex shrink-0 items-center gap-3 focus:outline-hidden"
+            className={cn(
+              'group flex shrink-0 items-center gap-3 focus:outline-hidden',
+              // in the app the logo shows on a desktop only; on a phone the link would be an
+              // empty stop for the keyboard
+              inAppDesign &&
+                'focus-visible:focus-surface -m-1.5 hidden rounded-[14px] p-1.5 pr-3.5 xl:-mr-3.5 xl:flex',
+            )}
           >
             {/* Mobile Logo */}
             {!inAppDesign && (

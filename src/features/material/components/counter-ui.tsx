@@ -293,8 +293,8 @@ export const FilterChip: React.FC<{
     className={cn(
       'inline-flex h-11 max-w-full cursor-pointer items-center gap-1.5 rounded-full border px-4 text-sm font-semibold [&_svg]:size-4',
       active
-        ? 'border-conveniat-green bg-conveniat-green text-white'
-        : 'border-rail bg-white text-green-900',
+        ? 'border-conveniat-green bg-conveniat-green focus-visible:focus-surface-filled-tight text-white'
+        : 'border-rail focus-visible:focus-surface-tight bg-white text-green-900',
     )}
   >
     <span className="truncate">{children}</span>

@@ -189,9 +189,10 @@ export const DashboardNow: React.FC<{ locale: Locale }> = ({ locale }) => {
         <SectionLabel>{programmeLabels.now[locale]}</SectionLabel>
         <Link
           href="/app/schedule"
-          className="text-conveniat-green -my-3 flex min-h-11 items-center text-[13px] font-semibold underline-offset-2 hover:underline"
+          // the target is 44px high, the focus marks only the words
+          className="text-conveniat-green group -my-3 flex min-h-11 items-center text-[13px] font-semibold underline-offset-2 hover:underline focus-visible:outline-none"
         >
-          {wholeProgramme[locale]}
+          <span className="group-focus-visible:focus-text">{wholeProgramme[locale]}</span>
         </Link>
       </div>
       {scheduleEntries === undefined && localEntries.length === 0 ? (
