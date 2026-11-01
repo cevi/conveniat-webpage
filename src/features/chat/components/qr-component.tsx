@@ -258,7 +258,8 @@ export const ChatQrSheet: React.FC<{
   ];
 
   return (
-    <BottomSheet open={open} onOpenChange={onOpenChange} title={text.title[locale]}>
+    // the code and the camera differ in height, so a fixed one keeps the tabs from jumping
+    <BottomSheet open={open} onOpenChange={onOpenChange} title={text.title[locale]} fullHeight>
       <div role="group" aria-label={text.title[locale]} className={segmentedTrackClassName}>
         {tabs.map(({ value, label, icon: Icon }) => (
           <button

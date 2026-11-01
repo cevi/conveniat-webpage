@@ -121,6 +121,8 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
       open={open}
       onOpenChange={onOpenChange}
       title={addParticipantsText[locale]}
+      // the search filters the list under it, which would otherwise shrink the sheet as you type
+      fullHeight
       footer={
         <div className="flex flex-col gap-2">
           {/* in the footer, like Neue Gruppe: a strip over the list would move it under the finger */}
