@@ -125,6 +125,11 @@ export const environmentVariables = createEnv({
       .string()
       .transform((value) => value === 'true')
       .default(false),
+    // the Besuchstag registration of conveniat27; konekta has no Besuchstag
+    FEATURE_ENABLE_VISIT_DAY: z
+      .string()
+      .transform((value) => value === 'true')
+      .default(false),
 
     // Map Config
     CAMP_MAP_INITIAL_ZOOM: z.coerce.number(),

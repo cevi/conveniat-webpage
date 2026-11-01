@@ -1,0 +1,28 @@
+/// One person coming to the Besuchstag. A registration in the Besuchstag form adds one row per
+/// person it names, so the rows of a day are the places taken on that day.
+///
+/// The registration itself, with all its answers, stays a form submission in MongoDB; this table
+/// holds what has to be transactional: the capacity of a day is checked and the rows are written
+/// under an advisory lock for that day, so two registrations for the last places cannot both get in.
+model VisitDayVisitor {
+  /// the visitor's id, printed on the ticket later
+  id String @id @default(uuid(7))
+
+  /// the objectID of the registration in the `form-submissions` collection in MongoDB
+  submissionId String
+
+  /// which person of the registration this is, 1 or 2
+  personNumber Int
+
+  /// the objectID of the visited Hof in the `hoefe` collection in MongoDB
+  hofId String
+
+  /// the Besuchstag this person comes on, taken from the Quartier of the Hof
+  visitDate DateTime @db.Date
+
+  createdAt DateTime @default(now())
+
+  @@unique([submissionId, personNumber])
+  @@index([visitDate])
+  @@index([hofId])
+}
