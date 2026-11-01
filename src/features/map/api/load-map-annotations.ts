@@ -33,9 +33,17 @@ export const loadMapAnnotations = async (
   payload: Payload,
   locale: Locale,
 ): Promise<MapAnnotations> => {
-  // without a locale Payload answers in German, whatever language the map is shown in
+  // Without a locale Payload answers in German, whatever language the map is shown in. Asked
+  // for one, it falls back to nothing: `localization.fallback` is off, so a place nobody has
+  // translated yet came back without a name; it keeps its German one.
   const [annotations, quartiere] = await Promise.all([
-    payload.find({ collection: 'camp-map-annotations', limit: LIMIT, depth: 1, locale }),
+    payload.find({
+      collection: 'camp-map-annotations',
+      limit: LIMIT,
+      depth: 1,
+      locale,
+      fallbackLocale: 'de',
+    }),
     // read on the server for every visitor: the Quartier names are public on the map itself
     payload.find({
       collection: 'quartiere',

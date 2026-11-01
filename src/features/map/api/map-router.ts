@@ -29,6 +29,8 @@ export const mapRouter = createTRPCRouter({
         limit: 100,
         depth: 1,
         locale: input.locale,
+        // an area nobody has translated yet keeps its German name, see `loadMapAnnotations`
+        fallbackLocale: 'de',
       });
 
       // Transform to simplified frontend format
