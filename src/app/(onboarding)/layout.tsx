@@ -1,3 +1,4 @@
+import { AppStatusBarMeta } from '@/components/header/app-status-bar-meta';
 import type React from 'react';
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
@@ -36,6 +37,7 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
       lang={locale}
     >
       <head>
+        <AppStatusBarMeta />
         {!environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST && (
           <link rel="manifest" href="/manifest.webmanifest" />
         )}

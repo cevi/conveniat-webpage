@@ -1,4 +1,5 @@
 import { BackgroundLogo } from '@/components/background-logo';
+import { AppStatusBarMeta } from '@/components/header/app-status-bar-meta';
 import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-name';
 import { HeaderComponent } from '@/components/header/header-component';
 import { HideHeaderProvider } from '@/components/header/hide-header-context';
@@ -28,6 +29,9 @@ const LocalizedHeader: React.FC = async () => {
 const RootLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   return (
     <html className={sharedFontClassName} lang={i18nConfig.defaultLocale}>
+      <head>
+        <AppStatusBarMeta />
+      </head>
       <body className="bg-page flex h-dvh w-dvw flex-col overflow-x-hidden">
         <PostHogProvider>
           <DynamicAppTitleProvider>
