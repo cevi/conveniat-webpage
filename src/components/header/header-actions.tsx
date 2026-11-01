@@ -1,6 +1,10 @@
 'use client';
 
-import { DynamicAppTitleName } from '@/components/header/dynamic-app-title-name';
+import {
+  DEFAULT_APP_TITLE,
+  DynamicAppTitleName,
+  useDynamicAppTitle,
+} from '@/components/header/dynamic-app-title-name';
 import { useHideHeader } from '@/components/header/hide-header-context';
 import { useIsMobileMenuOpen } from '@/hooks/use-mobile-menu-navigation';
 import { cn } from '@/utils/tailwindcss-override';
@@ -48,6 +52,10 @@ export const AppHeaderTitle: React.FC<{ inAppDesign: boolean; inlineOnDesktop?: 
   // header's title is then only the desktop's label, not a second page heading.
   const { hideHeader } = useHideHeader();
   const Title = hideHeader ? 'span' : 'h1';
+  // a page of the website has no name of its own here; beside the brand on a desktop that would
+  // read "conveniat27 | conveniat27", and the page's own heading names it anyway
+  const { dynamicAppTitle } = useDynamicAppTitle();
+  const titledOnDesktop = inlineOnDesktop && dynamicAppTitle !== DEFAULT_APP_TITLE;
 
   if (actions === undefined && !inAppDesign) {
     return (
@@ -64,15 +72,15 @@ export const AppHeaderTitle: React.FC<{ inAppDesign: boolean; inlineOnDesktop?: 
       className={cn(
         'pointer-events-none absolute top-0 right-2 left-[60px] z-[105] flex h-[60px] items-center gap-2',
         !inAppDesign && 'right-[56px] left-[112px] xl:right-2',
-        inlineOnDesktop &&
-          'xl:pointer-events-auto xl:static xl:ml-4 xl:h-10 xl:shrink-0 xl:gap-1 xl:border-l xl:border-gray-200 xl:pl-4',
+        inlineOnDesktop && 'xl:pointer-events-auto xl:static xl:ml-4 xl:h-10 xl:shrink-0 xl:gap-1',
+        titledOnDesktop && 'xl:border-l xl:border-gray-200 xl:pl-4',
       )}
     >
       {/* the page's heading: the title is what every app page is called */}
       <Title
         className={cn(
           "min-w-0 flex-1 truncate font-['Montserrat'] text-[22px] leading-none font-extrabold xl:hidden",
-          inlineOnDesktop && 'xl:text-heading xl:block xl:max-w-64 xl:flex-none xl:text-lg',
+          titledOnDesktop && 'xl:text-heading xl:block xl:max-w-64 xl:flex-none xl:text-lg',
         )}
       >
         <DynamicAppTitleName />
