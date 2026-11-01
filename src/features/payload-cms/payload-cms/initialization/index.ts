@@ -2,6 +2,11 @@ import { environmentVariables } from '@/config/environment-variables';
 import { backfillBillPayments } from '@/features/billing/services/backfill-bill-payments';
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
 import { ensureIndexes } from '@/features/payload-cms/payload-cms/initialization/ensure-indexes';
+import {
+  isPayloadInitCompleted,
+  markPayloadInitFailed,
+  setPayloadInitCompleted,
+} from '@/features/payload-cms/payload-cms/initialization/init-state';
 import { migrateFileDownloadGroups } from '@/features/payload-cms/payload-cms/initialization/migrate-file-download-groups';
 import {
   migrateFormFiles,
@@ -162,11 +167,7 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
     startWorkerHeartbeat(payload);
   }
 
-  const globalForInit = globalThis as unknown as {
-    __payloadInitCompleted__?: boolean;
-  };
-
-  if (globalForInit.__payloadInitCompleted__ === true) {
+  if (isPayloadInitCompleted()) {
     return;
   }
 
@@ -266,14 +267,15 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
         payload.logger.error({ err: error }, '[Index Manager] Index verification failed');
       });
 
-      globalForInit.__payloadInitCompleted__ = true;
+      setPayloadInitCompleted(true);
       return;
     }
   } catch (error: unknown) {
     // A database that could not be asked is not an empty one. Falling through would take the
-    // path of a fresh install on a deployment that has data. The flag stays unset, so the next
-    // initialization checks again.
+    // path of a fresh install on a deployment that has data. Payload never calls this again in
+    // this process, so `/status` fails and Swarm replaces it with one that checks again.
     payload.logger.error({ err: error }, '[Lock Manager] Failed to check database seeding status');
+    markPayloadInitFailed();
     return;
   }
 
@@ -333,7 +335,7 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
       // Mark the lock as successfully done
       await fs.writeFile(LOCK_FILE, 'done');
       payload.logger.info('[Lock Manager] Database initialization complete. Lock released.');
-      globalForInit.__payloadInitCompleted__ = true;
+      setPayloadInitCompleted(true);
     } catch (error: unknown) {
       payload.logger.error({ err: error }, '[Lock Manager] Database initialization failed');
       // Clean up lock file on crash so initialization can be retried
@@ -351,7 +353,7 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
           payload.logger.info(
             '[Lock Manager] Database initialization successfully completed by the other worker. Skipping.',
           );
-          globalForInit.__payloadInitCompleted__ = true;
+          setPayloadInitCompleted(true);
           return;
         }
       } catch {
@@ -368,10 +370,7 @@ export const deleteEverything = async (payload: Payload): Promise<void> => {
   payload.logger.info('Deleting everything...');
 
   // Reset the global initialization completed flag so a reset database re-runs seeding/indexing
-  const globalForInit = globalThis as unknown as {
-    __payloadInitCompleted__?: boolean;
-  };
-  globalForInit.__payloadInitCompleted__ = false;
+  setPayloadInitCompleted(false);
 
   // Remove the lock file so a manual database reset allows fresh seeding
   await fs.rm(LOCK_FILE, { force: true }).catch(() => {});
