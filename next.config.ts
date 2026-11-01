@@ -58,7 +58,15 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   cacheComponents: true,
-  partialPrefetching: true,
+
+  /**
+   * Off until vercel/next.js#99675 is fixed in a release (fix: vercel/next.js#100005). With it on,
+   * the `prefetch={true}` header logo prefetches `/`, Next.js records that `[[...slugs]]` index page
+   * as not depending on `slugs`, and every client navigation to another CMS page shows the
+   * homepage under the new URL without asking the server. e2e/cms-page-navigation.spec.ts covers
+   * it; run it against a production build before turning this back on (#2339).
+   */
+  partialPrefetching: false,
 
   /**
    * Our production deployment uses traefik as the reverse proxy and nginx for serving / caching
@@ -76,6 +84,12 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 
   experimental: {
+    /**
+     * Lets the `instant()` e2e tests (e2e/instant-*.spec.ts) pause a navigation of a production
+     * build at what was prefetched. Only a test build sets EXPOSE_TESTING_API=1, see
+     * instant-nav.rig.md; the Dockerfile and the konekta build never do, so no deployment exposes it.
+     */
+    exposeTestingApiInProductionBuild: process.env['EXPOSE_TESTING_API'] === '1',
     useOffline: true,
     optimizePackageImports: [
       'lucide-react',
@@ -84,7 +98,8 @@ const nextConfig: NextConfig = {
       '@icons-pack/react-simple-icons',
       'date-fns',
     ],
-    proxyClientMaxBodySize: '50mb',
+    // a little above MAX_UPLOAD_REQUEST_BYTES in payload-cms/utils/upload-size-limit.ts, so the proxy passes an upload whole
+    proxyClientMaxBodySize: '110mb',
     serverActions: {
       bodySizeLimit: '50mb',
     },

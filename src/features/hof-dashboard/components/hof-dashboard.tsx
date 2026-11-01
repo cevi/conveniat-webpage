@@ -34,6 +34,7 @@ import {
   isOpen,
   type SubmissionProgress,
 } from '@/features/hof-dashboard/utils/submission-progress';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useReleasePushSubscriptions } from '@/hooks/use-release-push-subscriptions';
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import { trpc } from '@/trpc/client';
@@ -42,7 +43,6 @@ import { i18nConfig } from '@/types/types';
 import { TabGroup, TabPanel, TabPanels } from '@headlessui/react';
 import { LogOut } from 'lucide-react';
 import { signIn, signOut, useSession } from 'next-auth/react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
 

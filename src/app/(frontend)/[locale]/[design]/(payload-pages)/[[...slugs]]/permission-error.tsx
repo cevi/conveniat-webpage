@@ -2,9 +2,9 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { TeaserText } from '@/components/ui/typography/teaser-text';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
 interface StaticTranslationString {

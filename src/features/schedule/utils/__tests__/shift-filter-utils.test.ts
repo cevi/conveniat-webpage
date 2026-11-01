@@ -1,6 +1,6 @@
 import type { CampCategory } from '@/features/payload-cms/payload-types';
 import type { HelperShiftFrontendType } from '@/features/schedule/api/get-helper-shifts';
-import type { FilterState } from '@/features/schedule/components/search-filter-bar';
+import { noFilters } from '@/features/schedule/utils/schedule-filters';
 import { extractShiftCategories, filterShifts } from '@/features/schedule/utils/shift-filter-utils';
 
 const kitchen = {
@@ -24,13 +24,6 @@ const makeShift = (
   organiser: [],
   ...overrides,
 });
-
-const noFilters: FilterState = {
-  searchText: '',
-  selectedLocations: [],
-  selectedCategory: undefined,
-  starredOnly: false,
-};
 
 describe('extractShiftCategories', () => {
   it('returns each populated category exactly once', () => {

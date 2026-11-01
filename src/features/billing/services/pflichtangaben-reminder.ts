@@ -60,7 +60,7 @@ const DEFAULT_BODY =
   'Hallo {{names}}\n\nBei {{count}} Anmeldung(en) für {{eventName}} fehlen Pflichtangaben. Diese Anmeldungen können erst verrechnet werden, wenn die Angaben in der Cevi.DB vollständig sind. Bitte ergänzt die folgenden Angaben:';
 
 const CLOSING =
-  'Sobald die Angaben in der Cevi.DB ergänzt sind, werden die Anmeldungen beim nächsten Abgleich automatisch verrechnet.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen';
+  'Sobald die Angaben in der Cevi.DB ergänzt sind, werden die Anmeldungen beim nächsten Abgleich automatisch verrechnet.\n\nFreundliche Grüsse\n\n{{signatur :: Ressort Finanzen}}';
 
 /** The reason a manual send reports when the row does not have missing mandatory fields. */
 export const NOT_MISSING_REASON =

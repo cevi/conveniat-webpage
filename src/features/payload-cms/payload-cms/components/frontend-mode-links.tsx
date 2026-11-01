@@ -31,7 +31,7 @@ const leaveAppMode = (): void => {
 };
 
 const linkClassName =
-  'font-heading border-conveniat-green text-conveniat-green hover:bg-conveniat-green inline-flex items-center gap-2 rounded-[8px] border px-4 py-2 text-sm font-bold no-underline duration-100 hover:text-white';
+  'font-heading inline-flex items-center gap-2 rounded-[8px] border px-4 py-2 text-sm font-bold no-underline duration-100 border-(--theme-elevation-800) text-(--theme-text) hover:bg-(--theme-elevation-800) hover:text-(--theme-elevation-0)';
 
 /**
  * Links from the admin dashboard to the frontend, opened either in the app design or in the web

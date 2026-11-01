@@ -534,7 +534,8 @@ export const materialRouter = createTRPCRouter({
         holders: dueToday.length,
         lines: dueToday.reduce((sum, group) => sum + group.loans.length, 0),
       },
-      available: entries.reduce((sum, { item }) => sum + item.stock.available, 0),
+      // articles with at least one piece free, out of all: "4/27 verfügbar"
+      availableArticles: entries.filter(({ item }) => item.stock.available > 0).length,
       articles: entries.length,
       incidents,
       stockAlerts,

@@ -28,6 +28,15 @@ jest.mock('@/features/payload-cms/payload-cms/utils/link-field-logic', () => ({
 jest.mock('@/features/payload-cms/payload-cms/collections/camp-map-collection', () => ({
   mapAnnotationDescriptionLexicalEditorSettings: {},
 }));
+jest.mock('@/features/payload-cms/payload-cms/plugins/lexical-editor', () => ({
+  minimalEditorFeatures: [],
+}));
+jest.mock('@payloadcms/richtext-lexical', () => ({
+  BlocksFeature: jest.fn(),
+  defaultEditorLexicalConfig: {},
+  HeadingFeature: jest.fn(),
+  lexicalEditor: jest.fn(),
+}));
 jest.mock('@/features/payload-cms/payload-cms/endpoints/course-organiser-export', () => ({}));
 jest.mock('@/features/payload-cms/payload-cms/endpoints/course-participants-export', () => ({}));
 jest.mock('@/features/payload-cms/payload-cms/endpoints/course-participants-manager', () => ({}));
@@ -65,5 +74,38 @@ describe('leader notes of a Lager-Programmblock', () => {
     hasAdminOrWebAccess.mockReturnValue(true);
 
     expect(read({ user: { id: 'editor' }, context: {} })).toEqual(notes);
+  });
+});
+
+const flagOf = (leaders: unknown): unknown =>
+  (
+    hideLeaderNotes({
+      doc: { ...block, leaders },
+      // eslint-disable-next-line unicorn/no-null -- Payload sets `null` for no user
+      req: { user: null, context: {} },
+    } as never) as { hasLeaderSection?: unknown }
+  ).hasLeaderSection;
+
+describe('whether a Lager-Programmblock has a part for Leitende', () => {
+  beforeEach(() => hasAdminOrWebAccess.mockReturnValue(false));
+
+  it('is told to everybody, without the part itself', () => {
+    expect(flagOf(notes)).toBe(true);
+    expect(flagOf({ materials: [{ item: 'Seil' }] })).toBe(true);
+  });
+
+  it('is no for a block whose part is empty or only blank', () => {
+    expect(flagOf({ materials: [], attachments: [], safety: '  ' })).toBe(false);
+    // eslint-disable-next-line unicorn/no-null
+    expect(flagOf(null)).toBe(false);
+  });
+
+  it('is left out of a read that did not select the part', () => {
+    const publicPart = hideLeaderNotes({
+      doc: { id: 'entry-1', title: 'Kennenlernspiel' },
+      // eslint-disable-next-line unicorn/no-null
+      req: { user: null, context: {} },
+    } as never) as Record<string, unknown>;
+    expect('hasLeaderSection' in publicPart).toBe(false);
   });
 });

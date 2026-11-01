@@ -36,6 +36,7 @@ export const asLocalizedGlobal = (config: GlobalConfig): GlobalConfig => {
                 isGlobal: true,
               },
             },
+            ...(config.admin?.components?.elements?.beforeDocumentControls ?? []),
           ],
         },
       },

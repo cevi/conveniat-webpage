@@ -1,6 +1,6 @@
+import { SectionLabel } from '@/components/ui/section-label';
 import type { CampMapAnnotation as CampMapAnnotationPayloadDocumentType } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { Clock } from 'lucide-react';
 import type React from 'react';
 
 type OpeningHours = NonNullable<CampMapAnnotationPayloadDocumentType['openingHours']>;
@@ -33,24 +33,28 @@ const weekdayText: Record<Weekday, StaticTranslationString> = {
   sunday: { de: 'Sonntag', en: 'Sunday', fr: 'Dimanche' },
 };
 
+/** When a place is open, one row per day with its hours, like the programme at the place. */
 export const AnnotationOpeningHoursSection: React.FC<AnnotationOpeningHoursSectionProperties> = ({
   openingHours,
   locale,
 }) => {
   if (!openingHours || openingHours.length === 0) return <></>;
   return (
-    <div className="border-b-2 border-gray-100 p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <Clock size={18} className="text-gray-600" />
-        <h3 className="font-semibold text-gray-900">{openingHoursText[locale]}</h3>
-      </div>
-      <ul className="list-disc pl-5">
+    <section className="pt-3 pb-4">
+      <SectionLabel as="h3">{openingHoursText[locale]}</SectionLabel>
+      <ul className="mt-1">
         {openingHours.map((entry, index) => (
-          <li key={index} className="text-gray-700">
-            {entry.day ? weekdayText[entry.day][locale] : dailyText[locale]}: {entry.time}
+          <li
+            key={entry.id ?? index}
+            className="border-line flex min-h-11 items-center justify-between gap-3 border-b py-2 text-[15px] last:border-b-0"
+          >
+            <span className="text-green-700">
+              {entry.day ? weekdayText[entry.day][locale] : dailyText[locale]}
+            </span>
+            <span className="font-semibold text-green-900 tabular-nums">{entry.time}</span>
           </li>
         ))}
       </ul>
-    </div>
+    </section>
   );
 };

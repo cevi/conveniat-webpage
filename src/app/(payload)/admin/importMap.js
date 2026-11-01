@@ -48,6 +48,7 @@ import { AnnouncementPushSummaryField as AnnouncementPushSummaryField_52ba1255fb
 import { AnnouncementTranslateMissingLanguages as AnnouncementTranslateMissingLanguages_1519d81df2f98fe32884c13868eadfc1 } from '@/features/payload-cms/payload-cms/components/announcement-translate-missing-languages'
 import { default as default_5e6e3bcc43a18e826de12d19a3b1de10 } from '@/features/payload-cms/payload-cms/components/fields/icon-select-field'
 import { default as default_4c4fde438445a819805cfbe983551661 } from '@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field'
+import { BlocksFeatureClient as BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ParticipantsAdminUI as ParticipantsAdminUI_6073fbd2f4ec389b3079bf8bb78b9c59 } from '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui'
 import { default as default_9a47e1efa5ebe7e17cc6bea1c1b3bad9 } from '@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell'
 import { CampScheduleOrganiserExport as CampScheduleOrganiserExport_2f5bf8d677cca7cfe25e44ae3a73b945 } from '@/features/payload-cms/payload-cms/components/camp-schedule-organiser-export'
@@ -56,13 +57,16 @@ import { HelperShiftOrganiserExport as HelperShiftOrganiserExport_706abe738905a3
 import { ExportListMenuItem as ExportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { ImportListMenuItem as ImportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_de57a7a0310123dd259a53c03db574b9 } from '@/features/payload-cms/components/push-notification/push-notification-panel'
-import { FunktionenSyncButton as FunktionenSyncButton_9dd20bcf5b197469cfbb411fdb50e198 } from '@/features/payload-cms/payload-cms/components/funktionen-sync-button'
+import { FunktionenListHeader as FunktionenListHeader_b4889cf2925bee9fd8708afb34e7214c } from '@/features/payload-cms/payload-cms/components/funktionen-list-header'
 import { default as default_720f56d8cf9ba0434ee963ba588968d8 } from '@/features/billing/components/billing-status-cell'
-import { default as default_fb0edca85ff4d5747b6689eaa2656c54 } from '@/features/billing/components/missing-data-field'
-import { default as default_76bea7d0da84feab859623aecb60b1b6 } from '@/features/billing/components/sync-history-field'
-import { default as default_213735919c76873cbbfc040670fae11b } from '@/features/billing/components/related-emails-cell'
-import { default as default_90d0188c5b32bd3d10c2e47fb1e9e710 } from '@/features/billing/components/hitobito-link-cell'
 import { default as default_06b30d36d4fec532358cb0f29e42cc3e } from '@/features/billing/components/billing-actions-cell'
+import { default as default_861a0172410057db13945839747e3602 } from '@/features/billing/components/billing-actions-field'
+import { default as default_90d0188c5b32bd3d10c2e47fb1e9e710 } from '@/features/billing/components/hitobito-link-cell'
+import { default as default_8fab6db47fe75a227550f4f88fec6865 } from '@/features/billing/components/hitobito-link-field'
+import { default as default_5f8bfd464e92455f8ae88e1b0e4c07b4 } from '@/features/billing/components/read-only-array-table'
+import { default as default_fb0edca85ff4d5747b6689eaa2656c54 } from '@/features/billing/components/missing-data-field'
+import { default as default_213735919c76873cbbfc040670fae11b } from '@/features/billing/components/related-emails-cell'
+import { default as default_76bea7d0da84feab859623aecb60b1b6 } from '@/features/billing/components/sync-history-field'
 import { default as default_7e46c70b38f19ab508dd58722ced6657 } from '@/features/billing/components/billing-list-toolbar'
 import { EventRowLabel as EventRowLabel_7fd9e802aba4470ba78c74210269ca9c } from '@/features/billing/components/event-row-label'
 import { PopulateSubeventsButton as PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678 } from '@/features/billing/components/populate-subevents-button'
@@ -112,13 +116,16 @@ import { default as default_95aac01a1d24126400a908467acf9d8a } from '@/features/
 import { FeatureFlagToggle as FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49 } from '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle'
 import { WeeklyReportDownloadButton as WeeklyReportDownloadButton_4feb29f94908f9b1a61df99625cd4f11 } from '@/features/billing/components/weekly-report-download-button'
 import { FinanceOverviewDownloadButton as FinanceOverviewDownloadButton_ff022ac0ed53841b3398e8154467b8f0 } from '@/features/billing/components/finance-overview-download-button'
+import { DoublePaymentsDownloadButton as DoublePaymentsDownloadButton_41d9ab87954b036d3722d2b9a61e8a94 } from '@/features/billing/components/double-payments-download-button'
 import { ReferenceNumberExplainer as ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64 } from '@/features/billing/components/reference-number-explainer'
 import { BillPreviewComponent as BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236 } from '@/features/billing/components/bill-preview-component'
 import { FieldsRowLabel as FieldsRowLabel_ca3224a51f3b058ed80bfbc2a7b266ae } from '@/features/hof-dashboard/payload-cms/components/fields-row-label'
+import { VisitDayExportButton as VisitDayExportButton_4b6e952f6d29976647b1e0579eb03e30 } from '@/features/visit-day/components/visit-day-export-button'
 import { default as default_ca24980ef56b9b5023ff164dd084145b } from '@/features/payload-cms/payload-cms/components/admin-nav/admin-nav'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
 import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page'
 import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner'
+import { UploadSizeGuard as UploadSizeGuard_eaeb4abe4034540768dce4d0ae049678 } from '@/features/payload-cms/payload-cms/components/upload-size-guard'
 import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_1e4b7ed358a9b39713ba1bd44bbcc1f1 } from '@/features/payload-cms/payload-cms/views/access-overview-view'
 import { default as default_dbd7fa7f7e394074f3d89896acb3145a } from '@/features/payload-cms/payload-cms/views/merge-users-view'
@@ -183,6 +190,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/announcement-translate-missing-languages#AnnouncementTranslateMissingLanguages": AnnouncementTranslateMissingLanguages_1519d81df2f98fe32884c13868eadfc1,
   "@/features/payload-cms/payload-cms/components/fields/icon-select-field#default": default_5e6e3bcc43a18e826de12d19a3b1de10,
   "@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field#default": default_4c4fde438445a819805cfbe983551661,
+  "@payloadcms/richtext-lexical/client#BlocksFeatureClient": BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI": ParticipantsAdminUI_6073fbd2f4ec389b3079bf8bb78b9c59,
   "@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell#default": default_9a47e1efa5ebe7e17cc6bea1c1b3bad9,
   "@/features/payload-cms/payload-cms/components/camp-schedule-organiser-export#CampScheduleOrganiserExport": CampScheduleOrganiserExport_2f5bf8d677cca7cfe25e44ae3a73b945,
@@ -191,13 +199,16 @@ export const importMap = {
   "@payloadcms/plugin-import-export/rsc#ExportListMenuItem": ExportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@payloadcms/plugin-import-export/rsc#ImportListMenuItem": ImportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/components/push-notification/push-notification-panel#default": default_de57a7a0310123dd259a53c03db574b9,
-  "@/features/payload-cms/payload-cms/components/funktionen-sync-button#FunktionenSyncButton": FunktionenSyncButton_9dd20bcf5b197469cfbb411fdb50e198,
+  "@/features/payload-cms/payload-cms/components/funktionen-list-header#FunktionenListHeader": FunktionenListHeader_b4889cf2925bee9fd8708afb34e7214c,
   "@/features/billing/components/billing-status-cell#default": default_720f56d8cf9ba0434ee963ba588968d8,
-  "@/features/billing/components/missing-data-field#default": default_fb0edca85ff4d5747b6689eaa2656c54,
-  "@/features/billing/components/sync-history-field#default": default_76bea7d0da84feab859623aecb60b1b6,
-  "@/features/billing/components/related-emails-cell#default": default_213735919c76873cbbfc040670fae11b,
-  "@/features/billing/components/hitobito-link-cell#default": default_90d0188c5b32bd3d10c2e47fb1e9e710,
   "@/features/billing/components/billing-actions-cell#default": default_06b30d36d4fec532358cb0f29e42cc3e,
+  "@/features/billing/components/billing-actions-field#default": default_861a0172410057db13945839747e3602,
+  "@/features/billing/components/hitobito-link-cell#default": default_90d0188c5b32bd3d10c2e47fb1e9e710,
+  "@/features/billing/components/hitobito-link-field#default": default_8fab6db47fe75a227550f4f88fec6865,
+  "@/features/billing/components/read-only-array-table#default": default_5f8bfd464e92455f8ae88e1b0e4c07b4,
+  "@/features/billing/components/missing-data-field#default": default_fb0edca85ff4d5747b6689eaa2656c54,
+  "@/features/billing/components/related-emails-cell#default": default_213735919c76873cbbfc040670fae11b,
+  "@/features/billing/components/sync-history-field#default": default_76bea7d0da84feab859623aecb60b1b6,
   "@/features/billing/components/billing-list-toolbar#default": default_7e46c70b38f19ab508dd58722ced6657,
   "@/features/billing/components/event-row-label#EventRowLabel": EventRowLabel_7fd9e802aba4470ba78c74210269ca9c,
   "@/features/billing/components/populate-subevents-button#PopulateSubeventsButton": PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678,
@@ -247,13 +258,16 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle": FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49,
   "@/features/billing/components/weekly-report-download-button#WeeklyReportDownloadButton": WeeklyReportDownloadButton_4feb29f94908f9b1a61df99625cd4f11,
   "@/features/billing/components/finance-overview-download-button#FinanceOverviewDownloadButton": FinanceOverviewDownloadButton_ff022ac0ed53841b3398e8154467b8f0,
+  "@/features/billing/components/double-payments-download-button#DoublePaymentsDownloadButton": DoublePaymentsDownloadButton_41d9ab87954b036d3722d2b9a61e8a94,
   "@/features/billing/components/reference-number-explainer#ReferenceNumberExplainer": ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64,
   "@/features/billing/components/bill-preview-component#BillPreviewComponent": BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236,
   "@/features/hof-dashboard/payload-cms/components/fields-row-label#FieldsRowLabel": FieldsRowLabel_ca3224a51f3b058ed80bfbc2a7b266ae,
+  "@/features/visit-day/components/visit-day-export-button#VisitDayExportButton": VisitDayExportButton_4b6e952f6d29976647b1e0579eb03e30,
   "@/features/payload-cms/payload-cms/components/admin-nav/admin-nav#default": default_ca24980ef56b9b5023ff164dd084145b,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
   "@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page#default": default_d432a7de1921f0e10a01eefbe71b022a,
   "@/features/payload-cms/payload-cms/components/dashboard-welcome-banner#default": default_a79319ae20aa3b9aa7415044aaf68603,
+  "@/features/payload-cms/payload-cms/components/upload-size-guard#UploadSizeGuard": UploadSizeGuard_eaeb4abe4034540768dce4d0ae049678,
   "@payloadcms/plugin-import-export/rsc#ImportExportProvider": ImportExportProvider_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/payload-cms/views/access-overview-view#default": default_1e4b7ed358a9b39713ba1bd44bbcc1f1,
   "@/features/payload-cms/payload-cms/views/merge-users-view#default": default_dbd7fa7f7e394074f3d89896acb3145a,

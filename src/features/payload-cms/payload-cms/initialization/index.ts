@@ -2,17 +2,20 @@ import { environmentVariables } from '@/config/environment-variables';
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
 import { ensureIndexes } from '@/features/payload-cms/payload-cms/initialization/ensure-indexes';
 import {
+  isPayloadInitCompleted,
+  markPayloadInitFailed,
+  setPayloadInitCompleted,
+} from '@/features/payload-cms/payload-cms/initialization/init-state';
+import {
   migrateFormFiles,
   s3FormFileStore,
 } from '@/features/payload-cms/payload-cms/initialization/migrate-form-files';
-import { migrateFormPlaceholders } from '@/features/payload-cms/payload-cms/initialization/migrate-form-placeholders';
-import { migrateLegacyHoefe } from '@/features/payload-cms/payload-cms/initialization/migrate-legacy-hoefe';
+import { refreshAdminPanelAccess } from '@/features/payload-cms/payload-cms/initialization/refresh-admin-panel-access';
 import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
 import {
   announceRunningJobsWith,
   getRunningJobIds,
 } from '@/features/payload-cms/payload-cms/tasks/active-job-tracking';
-import { refreshUserHoefe } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import prisma from '@/lib/db/prisma';
 import { FORM_FILE_BUCKET_NAME, S3_BUCKET_NAME, s3Client } from '@/lib/s3';
 import { withSpan } from '@/utils/tracing-helpers';
@@ -159,29 +162,8 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
     startWorkerHeartbeat(payload);
   }
 
-  const globalForInit = globalThis as unknown as {
-    __payloadInitCompleted__?: boolean;
-  };
-
-  if (globalForInit.__payloadInitCompleted__ === true) {
+  if (isPayloadInitCompleted()) {
     return;
-  }
-
-  // Clear stale preferences for payload-jobs to resolve cached groupBy/where field CastErrors
-  try {
-    await payload.delete({
-      collection: 'payload-preferences',
-      where: {
-        or: [{ key: { equals: 'collection-payload-jobs' } }, { key: { equals: 'payload-jobs' } }],
-      },
-      context: { internal: true },
-    });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    payload.logger.error(
-      { err: error },
-      `[Initialization] Failed to clear stale payload-jobs preferences: ${errorMessage}`,
-    );
   }
 
   // Check if database is already seeded first
@@ -192,12 +174,6 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
       payload.logger.info('[Lock Manager] Database already seeded. Skipping seeding.');
       // If the database is already seeded, make sure the lock file is marked as 'done' so other workers skip waiting
       await fs.writeFile(LOCK_FILE, 'done').catch(() => {});
-
-      // Awaited, so the billing never reads an empty Höfe collection on a database that still
-      // has its Höfe in the legacy bill settings. Only a seeded database can have those.
-      await withSpan('payload.init.migrateLegacyHoefe', async () => {
-        await migrateLegacyHoefe(payload);
-      });
 
       // Awaited, so no request looks for a form file in the bucket it is being moved into.
       // A failure leaves the files where they were and is retried on the next start.
@@ -210,21 +186,18 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
         payload.logger.error({ err: error }, 'Moving the form files into their bucket failed');
       });
 
-      // Awaited, so existing form placeholders are localized before an editor saves them in admin.
-      await withSpan('payload.init.migrateFormPlaceholders', async () => {
-        await migrateFormPlaceholders(payload);
-      });
-
-      // In the background: fills the Höfe of every user the first time, and afterwards
-      // repairs whatever a failed registration hook left behind. Writes only what differs.
-      void withSpan('payload.init.refreshUserHoefe', async () => {
-        const written = await refreshUserHoefe(payload);
-        payload.logger.info(
-          { written },
-          'Brought the Höfe of the users in line with their registrations',
-        );
+      // Awaited, so the users list never sorts or filters by a flag from before this deployment's
+      // admin panel groups. Two writes, whatever the number of users.
+      await withSpan('payload.init.refreshAdminPanelAccess', async () => {
+        const changed = await refreshAdminPanelAccess(payload);
+        if (changed > 0) {
+          payload.logger.info({ changed }, 'Brought the admin panel access of the users in line');
+        }
       }).catch((error: unknown) => {
-        payload.logger.error({ err: error }, 'Refreshing the Höfe of the users failed');
+        payload.logger.error(
+          { err: error },
+          'Refreshing the admin panel access of the users failed',
+        );
       });
 
       // Run in the background so index generation doesn't block the first request
@@ -234,14 +207,15 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
         payload.logger.error({ err: error }, '[Index Manager] Index verification failed');
       });
 
-      globalForInit.__payloadInitCompleted__ = true;
+      setPayloadInitCompleted(true);
       return;
     }
   } catch (error: unknown) {
     // A database that could not be asked is not an empty one. Falling through would take the
-    // path of a fresh install on a deployment that has data. The flag stays unset, so the next
-    // initialization checks again.
+    // path of a fresh install on a deployment that has data. Payload never calls this again in
+    // this process, so `/status` fails and Swarm replaces it with one that checks again.
     payload.logger.error({ err: error }, '[Lock Manager] Failed to check database seeding status');
+    markPayloadInitFailed();
     return;
   }
 
@@ -301,7 +275,7 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
       // Mark the lock as successfully done
       await fs.writeFile(LOCK_FILE, 'done');
       payload.logger.info('[Lock Manager] Database initialization complete. Lock released.');
-      globalForInit.__payloadInitCompleted__ = true;
+      setPayloadInitCompleted(true);
     } catch (error: unknown) {
       payload.logger.error({ err: error }, '[Lock Manager] Database initialization failed');
       // Clean up lock file on crash so initialization can be retried
@@ -319,7 +293,7 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
           payload.logger.info(
             '[Lock Manager] Database initialization successfully completed by the other worker. Skipping.',
           );
-          globalForInit.__payloadInitCompleted__ = true;
+          setPayloadInitCompleted(true);
           return;
         }
       } catch {
@@ -336,10 +310,7 @@ export const deleteEverything = async (payload: Payload): Promise<void> => {
   payload.logger.info('Deleting everything...');
 
   // Reset the global initialization completed flag so a reset database re-runs seeding/indexing
-  const globalForInit = globalThis as unknown as {
-    __payloadInitCompleted__?: boolean;
-  };
-  globalForInit.__payloadInitCompleted__ = false;
+  setPayloadInitCompleted(false);
 
   // Remove the lock file so a manual database reset allows fresh seeding
   await fs.rm(LOCK_FILE, { force: true }).catch(() => {});

@@ -16,7 +16,7 @@ const logger = createLogger('chat:mutations');
 // only the answer is accepted. App versions that send the whole payload back still pass: the
 // extra keys are dropped here.
 const updateMessageContentSchema = z.object({
-  messageId: z.string().uuid(),
+  messageId: z.uuid(),
   content: z.object({
     selectedOption: z.string().min(1).max(500),
     selectedOptionId: z.string().max(100).nullish(),

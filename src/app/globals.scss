@@ -5,6 +5,124 @@
 @config './tailwind.config.ts';
 /***************************************************/
 
+/* The preview banner sits on top of the fixed header and pushes it down, so everything placed
+   below the header has to move with it. Zero unless the banner is on the page.
+
+   Above the banner the header leaves room for the status bar, for a shell that lets the page draw
+   under it, so that a full-screen scrim also dims the status bar. --app-top-inset is both together,
+   the room above the header's bar, and what everything placed below the header moves by.
+
+   --status-bar-height is that room. The native app passes it in as --safe-area-inset-top, because
+   Android WebView before 140 reports env(safe-area-inset-top) as 0; everywhere else env() holds. */
+:root {
+  --preview-banner-height: 0px;
+  --status-bar-height: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --app-top-inset: calc(var(--status-bar-height) + var(--preview-banner-height));
+}
+
+:root:has([data-preview-banner]) {
+  --preview-banner-height: 32px;
+}
+
+/* Keyboard focus in the app looks one way: a 2px brand-green outline, 2px off the element so it
+   still shows around a filled green button. It is `:focus-visible` only, so a tap leaves nothing
+   behind. Text fields draw the same ring on their frame instead, see `src/components/ui/field.ts`.
+
+   - a row of a list or a card, see `ListRow`, uses `focus-row`: it takes the hover surface and
+     draws the ring 4px inside itself with its own radius, so a card's corner never clips it.
+     It needs `relative`. A red row uses `focus-row-danger`.
+   - a button with a surface, see `Button`, uses `focus-surface`: the same quiet surface and a
+     ring 4px inside its own edge, so a button and a row look focused alike. A filled green
+     button keeps its colour and takes `focus-surface-filled`, a white ring, and a red one takes
+     `focus-surface-danger`, the danger surface with a red ring, as a red row does. A chip or a
+     pill is too small for the 4px gap and takes `focus-surface-tight` (`-filled-tight` when it
+     is chosen), 2px. A link in running text takes `focus-text`: the surface and an underline.
+   - another element whose ring would be clipped, like a tab or a segment, uses `focus-ring-inset`
+   - a control whose hit area is larger than what it shows, like a filter chip, puts the ring on
+     the visible part with `group-focus-visible:focus-ring` and drops its own
+
+   The website keeps its own focus styles; `site:` marks them so they stay out of the app. */
+@custom-variant site (&:where(:not([data-app] *)));
+@custom-variant app (&:where([data-app] *));
+
+@utility focus-ring {
+  outline: 2px solid theme('colors.conveniat-green');
+  outline-offset: 2px;
+}
+
+@utility focus-ring-inset {
+  outline: 2px solid theme('colors.conveniat-green');
+  outline-offset: -2px;
+}
+
+@utility focus-row {
+  @apply bg-quiet after:outline-conveniat-green outline-none after:pointer-events-none after:absolute after:inset-1 after:rounded-[10px] after:outline-2;
+}
+
+@utility focus-row-danger {
+  @apply bg-danger-soft after:outline-danger outline-none after:pointer-events-none after:absolute after:inset-1 after:rounded-[10px] after:outline-2;
+}
+
+@utility focus-surface {
+  outline: none;
+  border-color: transparent;
+  background-color: theme('colors.quiet');
+  box-shadow:
+    inset 0 0 0 4px theme('colors.quiet'),
+    inset 0 0 0 6px theme('colors.conveniat-green');
+}
+
+@utility focus-surface-filled {
+  outline: none;
+  background-color: theme('colors.conveniat-green');
+  box-shadow:
+    inset 0 0 0 4px theme('colors.conveniat-green'),
+    inset 0 0 0 6px white;
+}
+
+@utility focus-surface-danger {
+  outline: none;
+  border-color: transparent;
+  background-color: theme('colors.danger.soft');
+  box-shadow:
+    inset 0 0 0 4px theme('colors.danger.soft'),
+    inset 0 0 0 6px theme('colors.danger.DEFAULT');
+}
+
+@utility focus-surface-tight {
+  outline: none;
+  border-color: transparent;
+  background-color: theme('colors.quiet');
+  box-shadow:
+    inset 0 0 0 2px theme('colors.quiet'),
+    inset 0 0 0 4px theme('colors.conveniat-green');
+}
+
+@utility focus-surface-filled-tight {
+  outline: none;
+  background-color: theme('colors.conveniat-green');
+  box-shadow:
+    inset 0 0 0 2px theme('colors.conveniat-green'),
+    inset 0 0 0 4px white;
+}
+
+@utility focus-text {
+  outline: none;
+  border-radius: 6px;
+  background-color: theme('colors.quiet');
+  /* the surface reaches past the text without moving it */
+  box-shadow: 0 0 0 4px theme('colors.quiet');
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+@layer base {
+  [data-app] :focus-visible {
+    @apply focus-ring;
+  }
+}
+
 /* Adjust Size for Desktop */
 @media (min-width: 1024px) {
   // tailwind lg <= x < xl

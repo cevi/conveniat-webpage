@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { hasAccessToThis, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { composeEmailBody } from '@/features/payload-cms/payload-cms/utils/email-body';
 import {
   loadQueuedAttachments,
   releaseQueuedAttachments,
@@ -46,17 +47,33 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
     // attachments waiting. Resending it means "send it now", attachments included.
     const attachments = await loadQueuedAttachments(emailDocument);
 
-    // Prepare email options
+    // A bill mail is its PDF, and only a queued one keeps it. Resent without it, the mail
+    // would read as delivered to billing and clear the review its failure raised, while the
+    // participant still has no bill.
+    const isBillMail =
+      emailDocument.billParticipant !== null && emailDocument.billParticipant !== undefined;
+    if (isBillMail && attachments.length === 0) {
+      return Response.json(
+        {
+          error:
+            'Diese Rechnungs-E-Mail hat ihr PDF nicht mehr. Bitte die Rechnung in der ' +
+            'Rechnungsverwaltung über «Email senden» erneut versenden.',
+        },
+        { status: 409 },
+      );
+    }
+
+    // Both parts and the signature, like a first send: a record from before both were stored
+    // has only one of them, and may still hold the placeholder
+    const body = await composeEmailBody(payload, {
+      html: emailDocument.html ?? undefined,
+      text: emailDocument.text ?? undefined,
+    });
     const emailOptions = {
       to: suppressed.length > 0 ? deliverable : emailDocument.to,
       subject: emailDocument.subject,
       ...(attachments.length > 0 ? { attachments } : {}),
-      ...(typeof emailDocument.html === 'string' && emailDocument.html.length > 0
-        ? { html: emailDocument.html }
-        : {}),
-      ...(typeof emailDocument.text === 'string' && emailDocument.text.length > 0
-        ? { text: emailDocument.text }
-        : {}),
+      ...body,
       ...(typeof environmentVariables.SMTP_USER === 'string' &&
       environmentVariables.SMTP_USER.length > 0
         ? {

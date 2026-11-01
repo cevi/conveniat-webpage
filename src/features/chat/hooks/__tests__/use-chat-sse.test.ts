@@ -166,6 +166,80 @@ describe('useChatSSE', () => {
     jest.advanceTimersByTime(1);
   });
 
+  it('shows a message another member deleted as deleted, without refetching it', () => {
+    const chatId = '550e8400-e29b-41d4-a716-446655440000';
+    const utils = (trpc.useUtils as unknown as jest.Mock)() as {
+      chat: {
+        infiniteMessages: { setInfiniteData: jest.Mock; invalidate: jest.Mock };
+        chats: { getData: jest.Mock; setData: jest.Mock };
+      };
+    };
+    utils.chat.chats.getData.mockReturnValue([
+      {
+        id: chatId,
+        unreadCount: 0,
+        lastMessage: { id: 'message-1', senderId: 'someone-else', messagePreview: 'Hoi' },
+      },
+    ]);
+    const { unmount } = renderHook(() => useChatSSE([chatId]));
+    jest.advanceTimersByTime(1);
+
+    const onMessage = (
+      mockAddEventListener.mock.calls as [string, (event: unknown) => void][]
+    ).findLast(([type]) => type === 'message')?.[1];
+    onMessage?.({
+      data: JSON.stringify({
+        type: 'message_deleted',
+        chatId,
+        senderId: 'someone-else',
+        message: {
+          id: 'message-1',
+          createdAt: '2027-07-24T09:00:00Z',
+          messagePayload: {},
+          senderId: 'someone-else',
+          status: 'STORED',
+          type: 'TEXT_MSG',
+          deletedAt: '2027-07-24T09:05:00Z',
+        },
+      }),
+    });
+
+    const update = (utils.chat.infiniteMessages.setInfiniteData.mock.calls as unknown[][]).find(
+      (call) => (call[0] as { parentId?: string }).parentId === undefined,
+    )?.[1] as (old: unknown) => { pages: { items: unknown[] }[] };
+    const cached = {
+      pageParams: [undefined],
+      pages: [
+        {
+          items: [
+            {
+              id: 'message-1',
+              messagePayload: { text: 'Das Passwort ist 1234' },
+              reactions: [{ emoji: '👍', userId: 'user-uuid-123', userName: 'Anna' }],
+            },
+          ],
+        },
+      ],
+    };
+    expect(update(cached).pages[0]?.items[0]).toMatchObject({
+      id: 'message-1',
+      messagePayload: {},
+      reactions: [],
+      deletedAt: new Date('2027-07-24T09:05:00Z'),
+    });
+    expect(utils.chat.infiniteMessages.invalidate).not.toHaveBeenCalled();
+    expect(utils.chat.chats.setData).toHaveBeenCalledWith({}, [
+      expect.objectContaining({
+        lastMessage: expect.objectContaining({
+          messagePreview: expect.objectContaining({ de: 'Nachricht gelöscht' }) as unknown,
+        }) as unknown,
+      }),
+    ]);
+
+    unmount();
+    jest.advanceTimersByTime(1);
+  });
+
   it('refetches the open chat and the feature flags once after a delivery gap', () => {
     const chatId = '550e8400-e29b-41d4-a716-446655440000';
     const utils = (trpc.useUtils as unknown as jest.Mock)() as {

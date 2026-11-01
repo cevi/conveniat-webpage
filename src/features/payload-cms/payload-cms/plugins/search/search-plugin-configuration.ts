@@ -10,11 +10,7 @@ import { searchPlugin } from '@payloadcms/plugin-search';
  *
  */
 export const searchPluginConfiguration = searchPlugin({
-  collections: ['blog', 'generic-page'],
-  defaultPriorities: {
-    blog: 2,
-    'generic-page': 1, // higher priority for pages,
-  },
+  collections: ['generic-page'],
   searchOverrides: searchOverrides,
   beforeSync: beforeSyncWithSearch,
   skipSync: skipSyncOfRestrictedDocuments,

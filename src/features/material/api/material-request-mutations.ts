@@ -62,7 +62,7 @@ export const createLoanRequest = materialProcedure
           .min(1)
           .max(MAX_LINES),
       })
-      .refine(hasHolder, { message: 'A loan needs a Hof or a person.' }),
+      .refine(hasHolder, { error: 'A loan needs a Hof or a person.' }),
   )
   .mutation(async ({ ctx, input }) => {
     assertMayRequestFor(ctx.user, input, await ctx.myHofIds(), ctx.locale);

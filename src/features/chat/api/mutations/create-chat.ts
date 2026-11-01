@@ -27,7 +27,7 @@ const createChatInputSchema = z.object({
   // right away — also while offline — and makes the mutation idempotent: a replayed
   // creation (offline outbox drain, lost response, retry) carries the same id and is
   // answered with the chat already stored instead of creating a second one.
-  chatId: z.string().uuid('Invalid chat ID format.').optional(),
+  chatId: z.uuid('Invalid chat ID format.').optional(),
 });
 
 export const createChat = trpcBaseProcedure

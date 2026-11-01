@@ -47,6 +47,8 @@ const mockNotificationFindMany = jest.fn();
 const mockNotificationUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
 const mockLogUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
 const mockPendingGroups = jest.fn().mockResolvedValue([]);
+/** The chat messages a batch finds deleted; none unless a test says so. */
+const mockDeletedMessages = jest.fn().mockResolvedValue([]);
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
   default: {
@@ -69,6 +71,9 @@ jest.mock('@/lib/db/prisma', () => ({
           chatId: 'chat-1',
           messageId: undefined,
         }),
+    },
+    message: {
+      findMany: (...args: unknown[]): unknown => mockDeletedMessages(...args),
     },
     pushNotificationLog: {
       updateMany: (...args: unknown[]): unknown => mockLogUpdateMany(...args),
@@ -141,6 +146,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   claimBatches.length = 0;
   mockNotificationFindMany.mockResolvedValue([notification()]);
+  mockDeletedMessages.mockResolvedValue([]);
   mockSendPushToDevice.mockResolvedValue({ outcome: 'accepted' });
 });
 
@@ -301,6 +307,22 @@ describe('drainPushQueue', () => {
     expect(writesOf()[0]?.data).toMatchObject({
       status: 'FAILED',
       error: 'Expired before it could be sent',
+    });
+  });
+
+  // The sender took the message back before its push went out, or before a retry.
+  it('does not send a push about a chat message deleted while it waited', async () => {
+    claimBatches.push([claimed('a')]);
+    givenSubscriptions(['sub-a']);
+    mockDeletedMessages.mockResolvedValue([{ uuid: 'message-1' }]);
+
+    await drainPushQueue('all');
+
+    expect(mockSendPushToDevice).not.toHaveBeenCalled();
+    expect(recordPushDeliveriesDropped).toHaveBeenCalledWith('ANNOUNCEMENT', 'message_deleted', 1);
+    expect(writesOf()[0]?.data).toMatchObject({
+      status: 'FAILED',
+      error: 'The message was deleted',
     });
   });
 

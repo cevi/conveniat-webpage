@@ -383,22 +383,24 @@ export const getGenericPageMetadataBySlugCached = async (
 
 /**
  * Fetches all published locale variants of a page by internalPageName.
+ *
+ * @returns the URL slug of the page by locale, for the locales it is published in
  */
 export const getGenericPageAlternativesCached = async (
   internalPageName: string,
-): Promise<GenericPage[]> => {
+): Promise<Partial<Record<Locale, string>>> => {
   'use cache';
   cacheLife('hours');
 
   const alternatives = await withSpan('getGenericPageAlternativesCached', async () => {
     const payload = await getPayload({ config });
-    const results = await Promise.all(
-      i18nConfig.locales.map((loc) =>
-        payload.find({
+    return await Promise.all(
+      (i18nConfig.locales as Locale[]).map(async (loc) => {
+        const result = await payload.find({
           depth: 0,
           collection: 'generic-page',
           pagination: false,
-          locale: loc as Locale,
+          locale: loc,
           fallbackLocale: false,
           draft: false,
           where: {
@@ -409,13 +411,18 @@ export const getGenericPageAlternativesCached = async (
           },
           select: {
             seo: true,
-            _localized_status: true,
           },
-        }),
-      ),
+        });
+        // The locale comes from the query: the selected fields do not carry it.
+        return { locale: loc, pages: result.docs as unknown as GenericPage[] };
+      }),
     );
-    return results.flatMap((r) => r.docs as unknown as GenericPage[]);
   });
-  tagPages(alternatives);
-  return alternatives;
+  tagPages(alternatives.flatMap(({ pages }) => pages));
+
+  return Object.fromEntries(
+    alternatives.flatMap(({ locale, pages }) =>
+      pages[0] === undefined ? [] : [[locale, pages[0].seo.urlSlug]],
+    ),
+  );
 };

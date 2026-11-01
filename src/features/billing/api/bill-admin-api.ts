@@ -6,7 +6,13 @@ import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-sett
 import { RedisJobProgressAdapter } from '@/features/billing/adapters/redis-job-progress.adapter';
 import { S3StorageAdapter } from '@/features/billing/adapters/s3-storage.adapter';
 import type { BillingJobProgress } from '@/features/billing/ports/job-progress.port';
-import { buildLatestJobWhere, selectTaskLogOutput } from '@/features/billing/services/job-log';
+import { NEEDS_MANUAL_REVIEW, statusAfterReview } from '@/features/billing/services/billing-status';
+import { describeActor } from '@/features/billing/services/describe-actor';
+import {
+  buildLatestJobWhere,
+  getJobDerivedStatus,
+  selectTaskLogOutput,
+} from '@/features/billing/services/job-log';
 import { populateSubeventsUseCase } from '@/features/billing/services/populate-subevents';
 import { previewPdfUseCase } from '@/features/billing/services/preview-pdf';
 import type { PopulateSubeventsStreamMessage } from '@/features/billing/types';
@@ -29,18 +35,6 @@ const describeCancelReason = (reason: unknown): string | undefined => {
   return JSON.stringify(reason);
 };
 
-/** Names the operator behind a manual action, for the participant's history. */
-function describeActor(user: unknown): string {
-  if (user !== null && typeof user === 'object') {
-    const record = user as Record<string, unknown>;
-    for (const key of ['name', 'email', 'id']) {
-      const value = record[key];
-      if (typeof value === 'string' && value !== '') return value;
-    }
-  }
-  return 'unbekannt';
-}
-
 const ParticipantIdSchema = z.object({
   participantId: z.string().trim().min(1, 'Missing participantId'),
 });
@@ -51,6 +45,14 @@ const RemoveParticipantSchema = ParticipantIdSchema.extend({
     .trim()
     .min(1, 'Bitte gib einen Grund für die Stornierung an.')
     .max(1000, 'Der Grund darf höchstens 1000 Zeichen lang sein.'),
+});
+
+const ResolveReviewSchema = ParticipantIdSchema.extend({
+  comment: z
+    .string()
+    .trim()
+    .min(1, 'Bitte gib einen Kommentar zur Prüfung an.')
+    .max(1000, 'Der Kommentar darf höchstens 1000 Zeichen lang sein.'),
 });
 
 const SyncStatusQuerySchema = z.object({
@@ -81,6 +83,36 @@ export const billingSyncHandler: PayloadHandler = async (request) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     request.payload.logger.error({ err: error }, `Billing sync queue failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
+
+/**
+ * POST /api/confidential/billing/sync-single – Sync one participant from Cevi.DB
+ *
+ * Runs in the request rather than as a queued job: it reads one event's list and one
+ * participation's answers, which takes seconds, and the operator waits for the result.
+ */
+export const billingSyncSingleHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (hasAccess !== true) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const bodyJson = (await (request as unknown as Request).json()) as unknown;
+    const parseResult = ParticipantIdSchema.safeParse(bodyJson);
+    if (!parseResult.success) {
+      return Response.json(
+        { error: parseResult.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 },
+      );
+    }
+
+    const { syncSingleParticipant } = await import('@/features/billing/services/sync-service');
+    const summary = await syncSingleParticipant(request.payload, parseResult.data.participantId);
+    return Response.json({ success: true, ...summary });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Single participant sync failed: ${message}`);
     return Response.json({ error: message }, { status: 500 });
   }
 };
@@ -259,6 +291,71 @@ export const billingRemoveParticipantHandler: PayloadHandler = async (request) =
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     request.payload.logger.error({ err: error }, `Manual removal failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
+
+/**
+ * POST /api/confidential/billing/resolve-review – close a manual review by hand.
+ *
+ * The operator has looked at a row parked in "Manuelle Prüfung nötig" and found the bill
+ * still good. Without this, the only ways out were reissuing the bill or cancelling the
+ * registration, and both are wrong for a bill nothing is wrong with. The bill is left as it
+ * is, the row goes back to the state that bill is in, and the comment is kept in the history
+ * next to who resolved it.
+ */
+export const billingResolveReviewHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (hasAccess !== true) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const bodyJson = (await (request as unknown as Request).json()) as unknown;
+    const parseResult = ResolveReviewSchema.safeParse(bodyJson);
+    if (!parseResult.success) {
+      return Response.json(
+        { error: parseResult.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 },
+      );
+    }
+
+    const participantRepo = new PayloadParticipantRepositoryAdapter(request.payload);
+    const participant = await participantRepo.findById(parseResult.data.participantId);
+    if (participant === null)
+      return Response.json({ error: 'Teilnehmer nicht gefunden.' }, { status: 404 });
+
+    if (participant.status !== NEEDS_MANUAL_REVIEW) {
+      return Response.json(
+        { error: 'Diese Anmeldung wartet nicht auf eine manuelle Prüfung.' },
+        { status: 409 },
+      );
+    }
+
+    const actor = describeActor(request.user);
+    const now = new Date().toISOString();
+    const history = Array.isArray(participant.syncHistory) ? participant.syncHistory : [];
+    const status = statusAfterReview(participant);
+
+    await participantRepo.update(participant.id, {
+      status,
+      syncHistory: [
+        ...history,
+        {
+          date: now,
+          action: 'manual_review_resolved',
+          diff: { status: { from: NEEDS_MANUAL_REVIEW, to: status } },
+          reviewReason: `Geprüft durch ${actor}. Kommentar: ${parseResult.data.comment}`,
+        },
+      ],
+    });
+
+    request.payload.logger.info(
+      `Manual review of participant ${String(participant.id)} resolved by ${actor}; status ${status}.`,
+    );
+
+    return Response.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Resolving manual review failed: ${message}`);
     return Response.json({ error: message }, { status: 500 });
   }
 };
@@ -572,6 +669,44 @@ export const billingWeeklyReportPdfHandler: PayloadHandler = async (request) => 
 };
 
 /**
+ * GET /api/confidential/billing/double-payments-pdf – Download the double payments now
+ *
+ * The same document the weekly finance mail attaches, from the payments as they stand right
+ * now. Read-only, so it leaves the mail's schedule alone.
+ */
+export const billingDoublePaymentsPdfHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (hasAccess !== true) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { buildDoublePaymentAttachment, findDoublePaymentReport } =
+      await import('@/features/billing/services/double-payment-report');
+    const report = await findDoublePaymentReport(request.payload, new Date());
+    const { filename, content } = await buildDoublePaymentAttachment(report);
+
+    request.payload.logger.info(
+      `Double payment report generated on demand by ${describeActor(request.user)}.`,
+    );
+
+    return new Response(new Uint8Array(content), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        // Names and amounts: the browser must not keep a copy on disk.
+        'Cache-Control': 'no-store',
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Double payment report failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
+
+/**
  * POST /api/confidential/billing/populate-subevents – Dynamically fetch subevents of group
  * 4337 and save them to the Höfe.
  *
@@ -700,16 +835,6 @@ interface SyncJobStatus {
   updatedAt: string;
   /** Only present while the job is running and reporting. */
   progress?: BillingJobProgress;
-}
-
-function getJobDerivedStatus(job: {
-  completedAt?: string | null;
-  hasError?: boolean | null;
-}): BillingJobStatus {
-  if (job.hasError === true) return BillingJobStatus.Failed;
-  if (typeof job.completedAt === 'string' && job.completedAt.length > 0)
-    return BillingJobStatus.Success;
-  return BillingJobStatus.Pending;
 }
 
 function getJobErrorMessage(job: {

@@ -1,5 +1,16 @@
-import { photoCarouselMinSelectionValidation } from '@/features/payload-cms/payload-cms/collections/blog-article/validation';
-import type { Block } from 'payload';
+import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
+import type { Block, RelationshipFieldManyValidation } from 'payload';
+
+const photoCarouselMinSelectionValidation: RelationshipFieldManyValidation = (value, options) => {
+  if (value === undefined || value === null || value.length < 5)
+    return getValidationMessage(options.req.i18n.language, {
+      en: 'At least 5 images are required',
+      de: 'Es sind mindestens 5 Bilder erforderlich',
+      fr: 'Au moins 5 images sont requises',
+    });
+
+  return true;
+};
 
 export const photoCarouselBlock: Block = {
   slug: 'photoCarousel',

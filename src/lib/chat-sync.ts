@@ -301,6 +301,16 @@ export const syncAllOfflineData = async (
     })(),
     // eslint-disable-next-line unicorn/no-useless-undefined
     safePrefetch(trpcUtils.schedule.getMyEnrollments.fetch(undefined)),
+    // what the Programm and a block need to look the same offline: the own Quartier for the
+    // view, whether "Für Leitende" is offered, and the reminders with their settings
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    safePrefetch(trpcUtils.schedule.getMyQuartiere.fetch(undefined)),
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    safePrefetch(trpcUtils.schedule.getLeaderAccess.fetch(undefined)),
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    safePrefetch(trpcUtils.schedule.reminders.getReminders.fetch(undefined)),
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    safePrefetch(trpcUtils.schedule.reminders.getReminderSettings.fetch(undefined)),
     // eslint-disable-next-line unicorn/no-useless-undefined
     safePrefetch(trpcUtils.shifts.getMyShiftEnrollments.fetch(undefined)),
     // eslint-disable-next-line unicorn/no-useless-undefined
@@ -334,8 +344,9 @@ export const syncAllOfflineData = async (
     safePrefetch(trpcUtils.map.getMapAnnotations.fetch({ locale: 'de' })),
     safePrefetch(trpcUtils.map.getMapAnnotations.fetch({ locale: 'en' })),
     safePrefetch(trpcUtils.map.getMapAnnotations.fetch({ locale: 'fr' })),
-    // eslint-disable-next-line unicorn/no-useless-undefined
-    safePrefetch(trpcUtils.map.getAnnotations.fetch(undefined)),
+    safePrefetch(trpcUtils.map.getAnnotations.fetch({ locale: 'de' })),
+    safePrefetch(trpcUtils.map.getAnnotations.fetch({ locale: 'en' })),
+    safePrefetch(trpcUtils.map.getAnnotations.fetch({ locale: 'fr' })),
     // eslint-disable-next-line unicorn/no-useless-undefined
     safePrefetch(trpcUtils.presence.getPresence.fetch(undefined)),
     // eslint-disable-next-line unicorn/no-useless-undefined

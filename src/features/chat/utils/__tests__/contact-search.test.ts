@@ -1,8 +1,11 @@
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import {
+  describeContact,
   describeContactFunktionen,
   describeContactHof,
+  groupContactsByLetter,
   matchesContactSearch,
+  MIN_CONTACTS_FOR_LETTER_GROUPS,
 } from '@/features/chat/utils/contact-search';
 
 const ANNA: Contact = {
@@ -94,5 +97,62 @@ describe('the AVP of a Hof in the address book', () => {
   it('falls back to the plain Höfe for a contact cached before the roles existed', () => {
     const cached: Contact = { ...AVP, hofRoles: undefined };
     expect(describeContactHof(cached)).toBe('Cevi Uster, Züri 11 · Quartier 3');
+  });
+});
+
+describe('describeContact', () => {
+  it('joins functions, Höfe and the description', () => {
+    expect(
+      describeContact({
+        userId: 'c',
+        name: 'Cora Test',
+        funktionen: ['Leitung Programm'],
+        hofRoles: [{ hof: 'Cevi Uster', quartier: 'Quartier 3', isAvp: true }],
+        description: 'Küche',
+      }),
+    ).toBe('Leitung Programm · AVP, Cevi Uster, Quartier 3 · Küche');
+  });
+
+  it('is empty for a contact cached before any of it existed', () => {
+    expect(describeContact(CACHED)).toBe('');
+  });
+});
+
+const byName = (name: string): string => name;
+
+describe('groupContactsByLetter', () => {
+  const names = ['Zora', 'äsche', 'Bär', 'Amsel', '3D', 'biber', 'Dachs', 'Elch', 'Fink', 'Gams'];
+
+  it('sorts by name and groups under the first letter, umlauts with their vowel', () => {
+    expect(groupContactsByLetter(names, byName, 'de')).toEqual([
+      { letter: 'A', contacts: ['Amsel', 'äsche'] },
+      { letter: 'B', contacts: ['Bär', 'biber'] },
+      { letter: 'D', contacts: ['Dachs'] },
+      { letter: 'E', contacts: ['Elch'] },
+      { letter: 'F', contacts: ['Fink'] },
+      { letter: 'G', contacts: ['Gams'] },
+      { letter: 'Z', contacts: ['Zora'] },
+      { letter: '#', contacts: ['3D'] },
+    ]);
+  });
+
+  it(`lists fewer than ${MIN_CONTACTS_FOR_LETTER_GROUPS} contacts without letters`, () => {
+    const nine = names.slice(0, MIN_CONTACTS_FOR_LETTER_GROUPS - 1);
+    expect(groupContactsByLetter(nine, byName, 'de')).toEqual([
+      {
+        letter: undefined,
+        contacts: ['Amsel', 'äsche', 'Bär', 'biber', 'Dachs', 'Elch', 'Fink', 'Zora', '3D'],
+      },
+    ]);
+  });
+
+  it(`heads the groups with letters from ${MIN_CONTACTS_FOR_LETTER_GROUPS} contacts on`, () => {
+    const groups = groupContactsByLetter(names, byName, 'de');
+    expect(names).toHaveLength(MIN_CONTACTS_FOR_LETTER_GROUPS);
+    expect(groups.every(({ letter }) => letter !== undefined)).toBe(true);
+  });
+
+  it('has no group for no contacts', () => {
+    expect(groupContactsByLetter([], byName, 'de')).toEqual([]);
   });
 });

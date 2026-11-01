@@ -62,7 +62,7 @@ const ROUTINE_ACTIONS = new Set([
  * a value we wrote back to the Cevi.DB, a status change, or a change to a field that comes
  * from the Cevi.DB rather than from our own validation.
  */
-const isRoutine = (entry: SyncHistoryEntry): boolean => {
+export const isRoutine = (entry: SyncHistoryEntry): boolean => {
   if (!ROUTINE_ACTIONS.has(entry.action)) return false;
   if (entry.value !== undefined && entry.value !== '') return false;
   if (entry.reviewReason !== undefined && entry.reviewReason !== '') return false;

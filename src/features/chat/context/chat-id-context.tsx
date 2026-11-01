@@ -8,22 +8,23 @@ import React, { createContext, useContext } from 'react';
 const CHAT_ID_FROM_PATHNAME = /\/app\/chat\/([^/]+)/;
 
 interface ChatIdContextType {
-  chatId: string | null;
+  chatId: string | undefined;
 }
 
 const ChatIdContext = createContext<ChatIdContextType | undefined>(undefined);
 
 interface ChatIdProviderProperties {
   children: ReactNode;
-  chatId: string;
+  /** the chat outside its own route, like a sheet on the chat list; on the route the URL names it */
+  chatId?: string;
 }
 
 export const ChatIdProvider: React.FC<ChatIdProviderProperties> = ({ children, chatId }) => {
   const pathname = usePathname();
 
-  // The service worker may replay a cached RSC shell rendered for a *different* chat when
-  // this route was never visited online. The browser URL always reflects the chat the user
-  // navigated to, so it takes precedence over the id baked into the server payload.
+  // On `/app/chat/<chatId>` the browser URL names the chat, also when the service worker
+  // replays a shell cached for another chat, or the router shows the App Shell it shares
+  // with every chat.
   const chatIdFromPathname = CHAT_ID_FROM_PATHNAME.exec(pathname)?.[1];
   const resolvedChatId =
     chatIdFromPathname === undefined ? chatId : decodeURIComponent(chatIdFromPathname);

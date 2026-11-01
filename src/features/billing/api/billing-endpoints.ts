@@ -1,5 +1,6 @@
 import {
   billingCancelHandler,
+  billingDoublePaymentsPdfHandler,
   billingExportCsvHandler,
   billingExportXlsxHandler,
   billingGenerateHandler,
@@ -9,10 +10,12 @@ import {
   billingRegenerateAllHandler,
   billingRegenerateSingleHandler,
   billingRemoveParticipantHandler,
+  billingResolveReviewHandler,
   billingSendHandler,
   billingSendPflichtangabenReminderHandler,
   billingSendSingleHandler,
   billingSyncHandler,
+  billingSyncSingleHandler,
   billingSyncStatusHandler,
   billingWeeklyReportPdfHandler,
 } from '@/features/billing/api/bill-admin-api';
@@ -23,6 +26,11 @@ export const billingEndpoints: Endpoint[] = [
     path: '/confidential/billing/sync',
     method: 'post',
     handler: billingSyncHandler,
+  },
+  {
+    path: '/confidential/billing/sync-single',
+    method: 'post',
+    handler: billingSyncSingleHandler,
   },
   {
     path: '/confidential/billing/sync-status',
@@ -48,6 +56,11 @@ export const billingEndpoints: Endpoint[] = [
     path: '/confidential/billing/remove-participant',
     method: 'post',
     handler: billingRemoveParticipantHandler,
+  },
+  {
+    path: '/confidential/billing/resolve-review',
+    method: 'post',
+    handler: billingResolveReviewHandler,
   },
   {
     path: '/confidential/billing/send',
@@ -78,6 +91,11 @@ export const billingEndpoints: Endpoint[] = [
     path: '/confidential/billing/weekly-report-pdf',
     method: 'get',
     handler: billingWeeklyReportPdfHandler,
+  },
+  {
+    path: '/confidential/billing/double-payments-pdf',
+    method: 'get',
+    handler: billingDoublePaymentsPdfHandler,
   },
   {
     path: '/confidential/billing/preview-pdf',

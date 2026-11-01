@@ -84,8 +84,8 @@ describe('push delivery policy', () => {
 
   it('treats emergency and support pushes as urgent, and nothing else', () => {
     expect(
-      (['EMERGENCY', 'SUPPORT', 'CHAT', 'ANNOUNCEMENT', 'SYSTEM'] as const).filter((kind) =>
-        isUrgentKind(kind),
+      (['EMERGENCY', 'SUPPORT', 'CHAT', 'ANNOUNCEMENT', 'SYSTEM', 'REMINDER'] as const).filter(
+        (kind) => isUrgentKind(kind),
       ),
     ).toEqual(['EMERGENCY', 'SUPPORT']);
   });

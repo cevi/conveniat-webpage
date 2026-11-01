@@ -1,22 +1,27 @@
-import { Card } from '@/components/ui/card';
-import { LinkComponent } from '@/components/ui/link-component';
+import { QuartierDot } from '@/components/quartier/quartier-badge';
+import { IconTile } from '@/components/ui/icon-tile';
+import { SectionLabel } from '@/components/ui/section-label';
 import { environmentVariables } from '@/config/environment-variables';
 import { CeviDatabaseGroupSync } from '@/features/settings/cevi-db-group-sync';
 import { LoginButton } from '@/features/settings/login-button';
 import { LogoutButton } from '@/features/settings/logout-button';
+import { PresenceSettings } from '@/features/settings/presence-settings';
+import { displayNamesOf } from '@/features/settings/utils/display-names';
+import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
-import { auth } from '@/utils/auth';
+import { getCachedSession } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { ExternalLink, Hash, LifeBuoy, LogIn, Mail, MapPin } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import React from 'react';
 
 import {
   describeHofRoles,
   getHofDirectory,
+  type HofQuartier,
   type HofRole,
 } from '@/features/payload-cms/payload-cms/utils/hof-directory';
-import { SettingsRow } from '@/features/settings/components/settings-row';
+import { SettingsCard, SettingsFactRow } from '@/features/settings/components/settings-row';
 import { ProfileAvatar } from '@/features/settings/profile-avatar';
 import prisma from '@/lib/db/prisma';
 import { getFeatureFlag } from '@/lib/db/redis';
@@ -60,10 +65,13 @@ const idsOf = (value: unknown): string[] =>
 
 /**
  * The Höfe of the logged-in user, from their registration, each with its Quartier and whether
- * they are its AVP. Undefined when they cannot be read, so the page says so instead of claiming
- * the user has no Hof.
+ * they are its AVP, and their Quartiere, each once, with the number that picks the house icon.
+ * Undefined when they cannot be read, so the page says so instead of claiming the user has no
+ * Hof.
  */
-const findHofRolesOfUser = async (userId: string): Promise<HofRole[] | undefined> => {
+const findHofRolesOfUser = async (
+  userId: string,
+): Promise<{ roles: HofRole[]; quartiere: HofQuartier[] } | undefined> => {
   try {
     const payload = await getPayload({ config });
     const [user, directory] = await Promise.all([
@@ -75,20 +83,37 @@ const findHofRolesOfUser = async (userId: string): Promise<HofRole[] | undefined
       }),
       getHofDirectory(payload),
     ]);
-    return describeHofRoles(idsOf(user.hoefe), idsOf(user.avpHoefe), directory);
+    const hofIds = idsOf(user.hoefe);
+    const quartiere = new Map<string, HofQuartier>();
+    for (const id of hofIds) {
+      const quartier = directory.get(id)?.quartier;
+      if (quartier !== undefined) quartiere.set(quartier.id, quartier);
+    }
+    return {
+      roles: describeHofRoles(hofIds, idsOf(user.avpHoefe), directory),
+      quartiere: [...quartiere.values()],
+    };
   } catch (error: unknown) {
     logger.warn('Could not read the Höfe of the user', { error, 'user.id': userId });
     return undefined;
   }
 };
 
-/** "Cevi Uster (AVP), Züri 11" and their Quartiere, each once. */
-const describeHofRolesForProfile = (roles: HofRole[]): { hoefe: string; quartiere: string } => ({
-  hoefe: roles.map(({ hof, isAvp }) => (isAvp ? `${hof} (AVP)` : hof)).join(', '),
-  quartiere: [
-    ...new Set(roles.map(({ quartier }) => quartier).filter((name) => name !== undefined)),
-  ].join(', '),
-});
+/** "Cevi Uster (AVP), Züri 11" */
+const describeHofRolesForProfile = (roles: HofRole[]): string =>
+  roles.map(({ hof, isAvp }) => (isAvp ? `${hof} (AVP)` : hof)).join(', ');
+
+/** "Quartier 5 - Greif", each Quartier behind the icon of its house. */
+const QuartierList: React.FC<{ quartiere: HofQuartier[] }> = ({ quartiere }) => (
+  <span className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+    {quartiere.map((quartier) => (
+      <span key={quartier.id} className="inline-flex items-center gap-1.5">
+        <QuartierDot quartier={quartier} />
+        {quartier.name}
+      </span>
+    ))}
+  </span>
+);
 
 const guestTitle: StaticTranslationString = {
   de: 'Gast',
@@ -103,60 +128,68 @@ const guestDescription: StaticTranslationString = {
 };
 
 const profileDetailsExplanation: StaticTranslationString = {
-  de: 'Daten aus deinem Cevi.DB Account',
+  de: 'Daten aus deinem Cevi.DB-Account',
   en: 'Data from your Cevi.DB account',
-  fr: 'Données de votre compte Cevi.DB',
+  fr: 'Données de ton compte Cevi.DB',
 };
 
-const supportTitle: StaticTranslationString = {
-  de: 'Hilfe & Support',
-  en: 'Help & Support',
-  fr: 'Aide & Support',
+const myCampTitle: StaticTranslationString = {
+  de: 'Mein Lager',
+  en: 'My camp',
+  fr: 'Mon camp',
 };
 
-const contactSupportText: StaticTranslationString = {
-  en: 'Contact Support',
-  de: 'Support kontaktieren',
-  fr: 'Contacter le support',
-};
+const factLabels = {
+  hof: { de: 'Hof', en: 'Hof', fr: 'Hof' },
+  quartier: { de: 'Quartier', en: 'Quartier', fr: 'Quartier' },
+  email: { de: 'E-Mail', en: 'Email', fr: 'E-mail' },
+} satisfies Record<string, StaticTranslationString>;
 
-const userIdLabel: StaticTranslationString = {
-  de: 'Benutzer-ID',
-  en: 'User ID',
-  fr: "ID d'utilisateur",
-};
-
-const supportMailContent: StaticTranslationString = {
-  de: 'Guten Tag,\nIch habe ein App-Problem.\nMeine Benutzer ID: __ID__\n\n[Bitte beschreibe hier dein Problem]',
-  en: 'Hello,\nI have an app issue.\nMy user ID: __ID__\n\n[Please describe your issue here]',
-  fr: "Bonjour,\nJ'ai un problème avec l'application.\nMon ID utilisateur: __ID__\n\n[Veuillez décrire votre problème ici]",
-};
-
-const supportMailSubject: StaticTranslationString = {
-  de: '[conveniat27 App] Support Anfrage',
-  en: '[conveniat27 App] Support Request',
-  fr: '[conveniat27 App] Demande de support',
-};
-
-export const ProfileDetails: React.FC = async () => {
-  const locale = await getLocaleFromCookies();
-  let session;
+/** The logged-in user from the session, or undefined for a guest and when it cannot be read. */
+const sessionUser = async (): Promise<HitobitoNextAuthUser | undefined> => {
   try {
-    session = await auth();
+    const session = await getCachedSession();
+    return isValidNextAuthUser(session?.user) ? session.user : undefined;
   } catch {
     // Gracefully handle auth lookup errors when offline or db unavailable
+    return undefined;
   }
-  const user = isValidNextAuthUser(session?.user) ? session.user : undefined;
-  const isAuthenticated = !!user;
+};
+
+/** "Abmelden" at the foot of the settings, for a logged-in user. */
+export const LogoutSection: React.FC = async () => {
+  const user = await sessionUser();
+  return user === undefined ? <></> : <LogoutButton />;
+};
+
+/**
+ * The profile at the top of the settings: the avatar and the names from Cevi.DB, then "Mein
+ * Lager" with the Hof, the Quartier, the e-mail address and the groups. A guest gets the way to
+ * log in instead.
+ */
+export const ProfileDetails: React.FC = async () => {
+  const locale = await getLocaleFromCookies();
+  const user = await sessionUser();
+
+  if (user === undefined) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          <IconTile icon={LogIn} size="lg" />
+          <div className="min-w-0 flex-1">
+            <h2 className="font-heading text-heading text-xl leading-tight font-extrabold">
+              {guestTitle[locale]}
+            </h2>
+            <p className="mt-0.5 text-[13px] text-green-700">{guestDescription[locale]}</p>
+          </div>
+        </div>
+        <LoginButton />
+      </div>
+    );
+  }
 
   const getDetail = (value: string | number | undefined | null): string =>
     value?.toString() ?? notAvailable[locale];
-
-  const mailSupportLink = `mailto:${environmentVariables.APP_SUPPORT_EMAIL}?subject=${encodeURIComponent(
-    supportMailSubject[locale],
-  )}&body=${encodeURIComponent(
-    supportMailContent[locale].replace('__ID__', getDetail(user?.uuid)),
-  )}`;
 
   let hideHofAndQuartier = false;
   try {
@@ -164,104 +197,65 @@ export const ProfileDetails: React.FC = async () => {
   } catch {
     // Default to false if Redis is unreachable
   }
-  const shouldShowHofAndQuartier = isAuthenticated && !hideHofAndQuartier;
-  const hofRoles = shouldShowHofAndQuartier ? await findHofRolesOfUser(user.uuid) : undefined;
-  const hofSummary = hofRoles === undefined ? undefined : describeHofRolesForProfile(hofRoles);
+  const hofRoles = hideHofAndQuartier ? undefined : await findHofRolesOfUser(user.uuid);
+  const hoefe = hofRoles === undefined ? undefined : describeHofRolesForProfile(hofRoles.roles);
   const hofText = (): string => {
-    if (hofSummary === undefined) return notAvailable[locale];
-    return hofSummary.hoefe === '' ? noHofYet[locale] : hofSummary.hoefe;
+    if (hoefe === undefined) return notAvailable[locale];
+    return hoefe === '' ? noHofYet[locale] : hoefe;
   };
-  const quartierText = (): string => {
-    if (hofSummary === undefined) return notAvailable[locale];
-    if (hofSummary.hoefe === '') return noHofYet[locale];
-    return hofSummary.quartiere === '' ? noQuartierYet[locale] : hofSummary.quartiere;
+  const quartierValue = (): React.ReactNode => {
+    if (hofRoles === undefined) return notAvailable[locale];
+    if (hoefe === '') return noHofYet[locale];
+    return hofRoles.quartiere.length === 0 ? (
+      noQuartierYet[locale]
+    ) : (
+      <QuartierList quartiere={hofRoles.quartiere} />
+    );
   };
 
   let pictureUrl: string | undefined;
-  if (isAuthenticated) {
-    try {
-      const own = await prisma.user.findUnique({
-        where: { uuid: user.uuid },
-        select: { profilePictureVersion: true },
-      });
-      pictureUrl = profilePictureUrlOrUndefined(user.uuid, own?.profilePictureVersion);
-    } catch {
-      // the initials stand in, e.g. while the database is unreachable
-    }
+  try {
+    const own = await prisma.user.findUnique({
+      where: { uuid: user.uuid },
+      select: { profilePictureVersion: true },
+    });
+    pictureUrl = profilePictureUrlOrUndefined(user.uuid, own?.profilePictureVersion);
+  } catch {
+    // the initials stand in, e.g. while the database is unreachable
   }
+
+  const { ceviName, fullName } = displayNamesOf(user.name, user.nickname);
 
   return (
     <div className="space-y-6">
-      {/* Profile Header */}
-      <Card contentClassName="p-6">
-        {isAuthenticated ? (
-          <ProfileAvatar
-            userId={user.uuid}
-            name={user.name}
-            pictureUrl={pictureUrl}
-            locale={locale}
-          >
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-900">{getDetail(user.name)}</h2>
-              <p className="text-sm text-gray-500">{profileDetailsExplanation[locale]}</p>
-            </div>
-          </ProfileAvatar>
-        ) : (
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
-              <LogIn className="h-7 w-7 text-gray-400" />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-900">{guestTitle[locale]}</h2>
-              <p className="text-sm text-gray-500">{guestDescription[locale]}</p>
-            </div>
-          </div>
-        )}
+      <ProfileAvatar userId={user.uuid} name={user.name} pictureUrl={pictureUrl} locale={locale}>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-heading text-heading text-xl leading-tight font-extrabold break-words">
+            {ceviName ?? fullName}
+          </h2>
+          {ceviName !== undefined && (
+            <p className="mt-0.5 text-[15px] text-green-900">{fullName}</p>
+          )}
+          <p className="mt-0.5 text-[13px] text-green-700">{profileDetailsExplanation[locale]}</p>
+        </div>
+      </ProfileAvatar>
 
-        {isAuthenticated ? (
-          <>
-            {/* User Details List */}
-            <div className="mt-6 space-y-4">
-              <SettingsRow icon={Mail} title="E-Mail" subtitle={getDetail(user.email)} />
-
-              {shouldShowHofAndQuartier && (
-                <>
-                  <SettingsRow icon={MapPin} title="Hof" subtitle={hofText()} />
-                  <SettingsRow icon={MapPin} title="Quartier" subtitle={quartierText()} />
-                </>
-              )}
-
-              <SettingsRow
-                icon={Hash}
-                title={userIdLabel[locale]}
-                subtitle={getDetail(user.uuid)}
-                subtitleClassName="font-mono text-xs text-gray-600"
-              />
-
-              <CeviDatabaseGroupSync />
-            </div>
-
-            <LogoutButton />
-          </>
-        ) : (
-          <LoginButton />
-        )}
-      </Card>
-
-      {/* Support Section */}
-      <Card title={supportTitle[locale]} showBorder={false} contentClassName="p-6 pt-0">
-        <LinkComponent
-          href={mailSupportLink}
-          className="-mx-3 block rounded-lg px-3 transition-colors hover:bg-gray-50"
-          hideExternalIcon
-        >
-          <SettingsRow
-            icon={LifeBuoy}
-            title={contactSupportText[locale]}
-            action={<ExternalLink className="h-4 w-4 text-gray-400" />}
-          />
-        </LinkComponent>
-      </Card>
+      <section>
+        <SectionLabel className="mb-2 px-1">{myCampTitle[locale]}</SectionLabel>
+        <SettingsCard>
+          {!hideHofAndQuartier && (
+            <SettingsFactRow label={factLabels.hof[locale]} value={hofText()} />
+          )}
+          {!hideHofAndQuartier && (
+            <SettingsFactRow label={factLabels.quartier[locale]} value={quartierValue()} />
+          )}
+          <SettingsFactRow label={factLabels.email[locale]} value={getDetail(user.email)} />
+          <CeviDatabaseGroupSync />
+          {environmentVariables.FEATURE_ENABLE_PRESENCE_TRACKING && (
+            <PresenceSettings locale={locale} />
+          )}
+        </SettingsCard>
+      </section>
     </div>
   );
 };

@@ -8,8 +8,8 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 const signalTypingInputSchema = z.object({
-  chatId: z.string().uuid(),
-  parentId: z.string().uuid().optional(),
+  chatId: z.uuid(),
+  parentId: z.uuid().optional(),
 });
 
 /** Clients signal every 2.5 s; anything faster is dropped before it reaches pg_notify. */

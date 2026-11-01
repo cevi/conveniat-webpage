@@ -49,12 +49,11 @@ export const OnboardingProgress: React.FC<OnboardingProgressProperties> = ({
               animate={{
                 width: isActive ? 24 : 12,
                 height: 12,
-                backgroundColor: isActive || isCompleted ? '#B91C1C' : '#D1D5DB', // red-700 : gray-300
+                backgroundColor: isActive || isCompleted ? '#47564C' : '#C2CDC5', // conveniat-green : green-200
               }}
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
               className={cn(
-                'rounded-full group-hover:bg-red-400 group-focus-visible:ring-2 group-focus-visible:ring-red-500',
-                isActive && 'group-hover:bg-red-800',
+                'group-focus-visible:ring-conveniat-green rounded-full group-focus-visible:ring-2',
               )}
             />
           </button>

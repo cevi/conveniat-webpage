@@ -1,9 +1,9 @@
 'use client';
 import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const loginText: StaticTranslationString = {

@@ -42,7 +42,12 @@ export const FunktionenCollection: CollectionConfig = {
   typescript: { interface: 'Funktion' },
   labels: {
     singular: { en: 'Function', de: 'Funktion', fr: 'Fonction' },
-    plural: { en: 'Functions', de: 'Funktionen', fr: 'Fonctions' },
+    // the list also explains the address book, which the functions feed
+    plural: {
+      en: 'Functions and address book',
+      de: 'Funktionen und Adressbuch',
+      fr: "Fonctions et carnet d'adresses",
+    },
   },
   admin: {
     useAsTitle: 'label',
@@ -55,7 +60,7 @@ export const FunktionenCollection: CollectionConfig = {
     },
     components: {
       beforeListTable: [
-        '@/features/payload-cms/payload-cms/components/funktionen-sync-button#FunktionenSyncButton',
+        '@/features/payload-cms/payload-cms/components/funktionen-list-header#FunktionenListHeader',
       ],
     },
   },

@@ -1,16 +1,16 @@
 'use client';
 
-/* eslint-disable import/no-restricted-paths -- the chat dialog is the app's only bottom-anchored alert dialog */
 import {
-  ChatAlertDialog,
-  ChatAlertDialogAction,
-  ChatAlertDialogCancel,
-  ChatAlertDialogContent,
-  ChatAlertDialogDescription,
-  ChatAlertDialogFooter,
-  ChatAlertDialogHeader,
-  ChatAlertDialogTitle,
-} from '@/features/chat/components/ui/chat-alert-dialog';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { cn } from '@/utils/tailwindcss-override';
 /* eslint-enable import/no-restricted-paths */
 import { ChatLinkButton } from '@/components/ui/buttons/chat-link-button';
 import { useConflictingEntry } from '@/features/schedule/hooks/use-conflicting-entry';
@@ -132,18 +132,18 @@ const ConflictEntry: React.FC<{
   <div
     className={
       isMuted
-        ? 'w-full rounded-lg border border-gray-200 bg-gray-50 p-3'
-        : 'border-conveniat-green/30 w-full rounded-lg border bg-green-50/50 p-3'
+        ? 'bg-quiet w-full rounded-xl p-3'
+        : 'border-tint-line bg-tint w-full rounded-xl border p-3'
     }
   >
-    <div className="font-heading text-[10px] font-bold tracking-wider text-gray-500 uppercase">
+    <div className="text-[11px] font-bold tracking-[0.08em] text-green-700 uppercase">
       {label}
       {tag !== undefined && ` · ${tag}`}
     </div>
-    <div className="mt-0.5 font-semibold text-gray-900">{entry.title}</div>
+    <div className="mt-0.5 font-semibold text-green-900">{entry.title}</div>
     {entry.timeslot !== undefined && (
-      <div className="mt-1 flex items-center gap-1.5 text-sm text-gray-600">
-        <Clock className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+      <div className="mt-1 flex items-center gap-1.5 text-[13px] text-green-700 tabular-nums">
+        <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         <span>
           {formatCampDay(entry.timeslot.date, locale)} · {entry.timeslot.time}
         </span>
@@ -205,14 +205,12 @@ export const ShiftConflictDialog: React.FC<{
   const contactOrganiser = conflictingEntry?.organisers[0];
 
   return (
-    <ChatAlertDialog open={open} onOpenChange={onOpenChange}>
-      <ChatAlertDialogContent>
-        <ChatAlertDialogHeader>
-          <ChatAlertDialogTitle>{localizedConflict[locale]}</ChatAlertDialogTitle>
-          <ChatAlertDialogDescription>
-            {localizedConflictDescription[locale]}
-          </ChatAlertDialogDescription>
-        </ChatAlertDialogHeader>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{localizedConflict[locale]}</AlertDialogTitle>
+          <AlertDialogDescription>{localizedConflictDescription[locale]}</AlertDialogDescription>
+        </AlertDialogHeader>
 
         <div className="flex flex-col items-center gap-1">
           <ConflictEntry
@@ -223,8 +221,8 @@ export const ShiftConflictDialog: React.FC<{
             isMuted
             note={
               isSwitchBlocked ? (
-                <div className="mt-1 flex items-center gap-1.5 text-sm text-amber-700">
-                  <Lock className="h-3.5 w-3.5 shrink-0" />
+                <div className="text-danger-text mt-1 flex items-center gap-1.5 text-[13px]">
+                  <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span>
                     {localizedWithdrawalClosedShort[locale]}
                     {blockedDeadline != undefined &&
@@ -235,7 +233,7 @@ export const ShiftConflictDialog: React.FC<{
             }
           />
 
-          <ArrowDown className="-my-0.5 h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+          <ArrowDown className="-my-0.5 h-4 w-4 shrink-0 text-green-500" aria-hidden="true" />
 
           <ConflictEntry
             label={localizedWouldEnrolIn[locale]}
@@ -249,34 +247,38 @@ export const ShiftConflictDialog: React.FC<{
             said what follows, in separate boxes a line apart. They are one thought.
           */}
           {(overlap !== undefined || isSwitchBlocked) && (
-            <div className="mt-1 w-full rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <div
+              className={cn(
+                'mt-1 w-full rounded-xl px-3 py-2 text-sm',
+                // a switch that is blocked is a problem; an overlap alone is something to know
+                isSwitchBlocked ? 'bg-danger-soft text-danger-text' : 'bg-quiet text-green-900',
+              )}
+            >
               {overlap !== undefined && (
                 <span className="flex items-center gap-1.5 font-medium">
-                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   {localizedOverlapLabel[locale]} {formatCampTime(overlap.start, locale)} –{' '}
                   {formatCampTime(overlap.end, locale)}
                 </span>
               )}
               {isSwitchBlocked && (
-                <span className="mt-0.5 block text-amber-700">
-                  {localizedSwitchBlockedHint[locale]}
-                </span>
+                <span className="mt-0.5 block">{localizedSwitchBlockedHint[locale]}</span>
               )}
             </div>
           )}
         </div>
 
-        <ChatAlertDialogFooter className="gap-3 sm:gap-0">
+        <AlertDialogFooter className="gap-3 sm:gap-0">
           {isSwitchBlocked && contactOrganiser !== undefined && (
             <ChatLinkButton
               userId={contactOrganiser.id}
               label={localizedContactOrganiser[locale]}
-              className="h-10 w-full border-amber-200 bg-amber-100 text-amber-900 hover:bg-amber-200 hover:text-amber-900"
+              className="border-rail hover:bg-quiet h-11 w-full bg-white text-green-900 hover:text-green-900"
             />
           )}
           {!isSwitchBlocked && (
-            <ChatAlertDialogAction
-              className="bg-conveniat-green hover:bg-conveniat-green-dark w-full text-white"
+            <AlertDialogAction
+              className="bg-conveniat-green w-full text-white hover:bg-green-700"
               onClick={(event: React.MouseEvent) => {
                 event.preventDefault();
                 onSwitch();
@@ -291,14 +293,14 @@ export const ShiftConflictDialog: React.FC<{
               ) : (
                 localizedSwitchToThis[locale]
               )}
-            </ChatAlertDialogAction>
+            </AlertDialogAction>
           )}
           {/* with nothing left to confirm, the way out stops being a cancel and becomes a close */}
-          <ChatAlertDialogCancel disabled={isSwitching} className="w-full">
+          <AlertDialogCancel disabled={isSwitching} className="w-full">
             {isSwitchBlocked ? localizedClose[locale] : localizedCancel[locale]}
-          </ChatAlertDialogCancel>
-        </ChatAlertDialogFooter>
-      </ChatAlertDialogContent>
-    </ChatAlertDialog>
+          </AlertDialogCancel>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };

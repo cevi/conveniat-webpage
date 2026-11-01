@@ -50,7 +50,9 @@ export type PushDropReason =
   /** It kept failing until it ran out of attempts. */
   | 'attempts_exhausted'
   /** Its subscription was deleted while it waited. */
-  | 'subscription_gone';
+  | 'subscription_gone'
+  /** The chat message it is about was deleted by its sender while it waited. */
+  | 'message_deleted';
 
 const sendCounter = lazy<Counter>((m) =>
   m.createCounter('push_sends_total', {

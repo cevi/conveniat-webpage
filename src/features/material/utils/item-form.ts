@@ -18,7 +18,7 @@ export const getItemFormProblems = (form: {
   if (!ITEM_CODE_PATTERN.test(form.code.trim().toUpperCase())) problems.add('code');
   const imageUrl = form.imageUrl.trim();
   // the same check the server runs, so both agree on what a link is
-  if (imageUrl !== '' && !z.string().url().safeParse(imageUrl).success) problems.add('imageUrl');
+  if (imageUrl !== '' && !z.url().safeParse(imageUrl).success) problems.add('imageUrl');
   if (!Number.isInteger(form.maxLoanQuantity) || form.maxLoanQuantity < 1) {
     problems.add('maxLoanQuantity');
   }

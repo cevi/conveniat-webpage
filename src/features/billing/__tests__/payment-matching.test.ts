@@ -1,6 +1,11 @@
 import type { BankPayment } from '@/features/billing/services/payment-csv';
 import type { MatchableParticipant } from '@/features/billing/services/payment-matching';
-import { isValidQrReference, matchPayments } from '@/features/billing/services/payment-matching';
+import {
+  isConvertedReference,
+  isValidQrReference,
+  matchPayments,
+  OVERPAYMENT_TOLERANCE,
+} from '@/features/billing/services/payment-matching';
 import { generateQrReference } from '@/features/billing/utils';
 
 const reference = generateQrReference('123012', '34000', '0567000', 1);
@@ -43,6 +48,27 @@ describe('matchPayments', () => {
       expect(matchPayments([payment()], [bill({ status })])[0]?.outcome).toBe('booked');
     },
   );
+
+  it('books a bill paid with a few francs too much, as when the amount was rounded up', () => {
+    const [match] = matchPayments([payment({ amount: 173 })], [bill({ invoiceAmount: 172.96 })]);
+
+    expect(match).toEqual(expect.objectContaining({ outcome: 'booked', participantId: 'row-1' }));
+  });
+
+  it('books an overpayment of exactly the tolerance, and leaves one Rappen more', () => {
+    expect(
+      matchPayments([payment({ amount: 330 + OVERPAYMENT_TOLERANCE })], [bill()])[0]?.outcome,
+    ).toBe('booked');
+    expect(
+      matchPayments([payment({ amount: 330.01 + OVERPAYMENT_TOLERANCE })], [bill()])[0]?.outcome,
+    ).toBe('amount_mismatch');
+  });
+
+  it('never books a payment short of the bill, even by one Rappen', () => {
+    const [match] = matchPayments([payment({ amount: 329.99 })], [bill()]);
+
+    expect(match?.outcome).toBe('amount_mismatch');
+  });
 
   it('leaves a payment of a different amount for the finance team, naming both amounts', () => {
     const [match] = matchPayments([payment({ amount: 300 })], [bill()]);
@@ -113,22 +139,30 @@ describe('matchPayments', () => {
     expect(match?.outcome).toBe('already_booked');
   });
 
-  it('flags a second payment of a paid bill as a possible double payment', () => {
+  it('links a second payment of a paid bill to it as a double payment', () => {
     const [match] = matchPayments(
       [payment({ transactionReference: 'GS00000000000002' })],
       [bill({ status: 'paid', paymentTransactionReference: 'GS00000000000001' })],
     );
 
-    expect(match?.outcome).toBe('already_paid');
+    expect(match?.outcome).toBe('double_payment');
+    expect(match?.participantId).toBe('row-1');
   });
 
-  it('books a bill paid twice in the same file only once', () => {
+  it('books a bill paid twice in the same file once, and links the second as a double payment', () => {
     const matches = matchPayments(
       [payment(), payment({ line: 3, transactionReference: 'GS00000000000003' })],
       [bill()],
     );
 
-    expect(matches.map((match) => match.outcome)).toEqual(['booked', 'already_paid']);
+    expect(matches.map((match) => match.outcome)).toEqual(['booked', 'double_payment']);
+  });
+
+  it('recognises a transaction already stored as a payment, whatever bill it went to', () => {
+    // Finance may have moved the payment to a sibling's bill since: the file still adds nothing.
+    const [match] = matchPayments([payment()], [bill()], new Set(['GS00000000000001']));
+
+    expect(match?.outcome).toBe('already_booked');
   });
 
   it('does not book a payment the bank gave no transaction reference', () => {
@@ -143,5 +177,18 @@ describe('matchPayments', () => {
       'wrong_currency',
     );
     expect(matchPayments([payment({ amount: -330 })], [bill()])[0]?.outcome).toBe('invalid_amount');
+  });
+});
+
+describe('isConvertedReference', () => {
+  it.each(['-9.2233720368547758e+18', '1.23457E+26'])(
+    'recognises %s as a reference a program turned into a number',
+    (value) => {
+      expect(isConvertedReference(value)).toBe(true);
+    },
+  );
+
+  it('leaves a real reference alone', () => {
+    expect(isConvertedReference(reference)).toBe(false);
   });
 });

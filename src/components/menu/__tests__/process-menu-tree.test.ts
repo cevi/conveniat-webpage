@@ -63,4 +63,20 @@ describe('processMenuTree', () => {
     expect(serialized).not.toContain('x@y.z');
     expect(serialized).not.toContain('special_permissions');
   });
+
+  it('pins an entry only where the editors ticked it, and not one saved before the field existed', async () => {
+    const menu = [
+      { id: 'pinned', label: 'Mitmachen', pinnedToHeader: true, subMenu: [] },
+      { id: 'unticked', label: 'News', pinnedToHeader: false, subMenu: [] },
+      { id: 'older', label: 'Kontakt', subMenu: [] },
+    ] as unknown as NonNullable<Header['mainMenu']>;
+
+    const items = await processMenuTree(menu, 'de', false);
+
+    expect(items.map((item) => [item.label, item.isPinned])).toEqual([
+      ['Mitmachen', true],
+      ['News', false],
+      ['Kontakt', false],
+    ]);
+  });
 });

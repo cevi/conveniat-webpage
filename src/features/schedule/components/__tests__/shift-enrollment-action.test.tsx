@@ -28,7 +28,7 @@ jest.mock('next-auth/react', () => ({
   useSession: (): { status: string } => ({ status: 'authenticated' }),
 }));
 
-jest.mock('next-i18n-router/client', () => ({
+jest.mock('@/hooks/use-current-locale', () => ({
   useCurrentLocale: (): string => 'de',
 }));
 

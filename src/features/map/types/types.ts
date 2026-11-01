@@ -36,6 +36,23 @@ export interface CampScheduleEntry {
   organiser: (string | { fullName: string; email: string })[];
   participants_min: number;
   participants_max: number;
+  /** read defensively: a phone can restore yesterday's copy without these */
+  kind?: CampScheduleEntryPayloadDocumentType['kind'] | null | undefined;
+  quartiere?:
+    | (
+        | string
+        | { id: string; name?: string; number?: number | null; rufname?: string | null }
+        | null
+      )[]
+    | null
+    | undefined;
+}
+
+/** The Quartier an area belongs to: "Quartier 7 - Phoenix", number 7, Rufname "Phoenix". */
+export interface MapQuartier {
+  name: string;
+  number?: number | undefined;
+  rufname?: string | undefined;
 }
 
 export interface CampMapAnnotationPoint {
@@ -52,6 +69,8 @@ export interface CampMapAnnotationPoint {
   hiddenOnDefaultMap?: boolean;
   /** Whether the title is rendered next to the marker once the map is zoomed in. */
   showLabel?: boolean;
+  /** the Quartier whose area this is; absent for the other places and in an older copy */
+  quartier?: MapQuartier | undefined;
 }
 
 export interface CampMapAnnotationPolygon {
@@ -67,6 +86,8 @@ export interface CampMapAnnotationPolygon {
   importance: 'high' | 'medium' | 'low';
   enableSupportChat?: boolean;
   hiddenOnDefaultMap?: boolean;
+  /** the Quartier whose area this is; absent for the other places and in an older copy */
+  quartier?: MapQuartier | undefined;
 }
 
 export interface MapControlOptions {

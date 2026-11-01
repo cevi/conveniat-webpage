@@ -1,9 +1,14 @@
+import { Button } from '@/components/ui/buttons/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { TeaserText } from '@/components/ui/typography/teaser-text';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import React from 'react';
+import { renderInAppDesign } from '@/utils/render-in-app-design';
+import { SearchX } from 'lucide-react';
+import Link from 'next/link';
+import React, { Suspense } from 'react';
 
 const error404: StaticTranslationString = {
   de: '404 - Seite nicht gefunden',
@@ -42,15 +47,52 @@ const error404Description: Record<Locale, React.JSX.Element> = {
   ),
 };
 
+const appTitle: StaticTranslationString = {
+  de: 'Seite nicht gefunden',
+  en: 'Page not found',
+  fr: 'Page introuvable',
+};
+
+const appDescription: StaticTranslationString = {
+  de: 'Diese Seite gibt es nicht oder nicht mehr. Vielleicht war der Link veraltet.',
+  en: 'This page does not exist, or no longer does. The link may be out of date.',
+  fr: "Cette page n'existe pas ou plus. Le lien est peut-être périmé.",
+};
+
+const toHome: StaticTranslationString = {
+  de: 'Zur Startseite',
+  en: 'Go to Home',
+  fr: "Aller à l'accueil",
+};
+
 /**
- * This file is responsible for converters a general 404 error page.
+ * The 404 page. In the app it is an empty state with the way back to Home, so a dead link does
+ * not leave the app; the website keeps its own page.
  */
 export const NotFound: React.FC<{
   locale?: Promise<Locale>;
-}> = async ({ locale: localePromise }) => {
-  // fetch locale from cookies if not provided
+  inAppDesign?: boolean;
+}> = async ({ locale: localePromise, inAppDesign }) => {
+  // fetch locale and design from the request if not provided
   let locale = await localePromise;
   locale ??= await getLocaleFromCookies();
+
+  if (inAppDesign ?? (await renderInAppDesign())) {
+    return (
+      <div className="flex w-full justify-center px-4 py-6">
+        <EmptyState
+          icon={SearchX}
+          title={appTitle[locale]}
+          description={appDescription[locale]}
+          action={
+            <Button asChild variant="primary" size="touch">
+              <Link href="/app/dashboard">{toHome[locale]}</Link>
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -62,11 +104,15 @@ export const NotFound: React.FC<{
   );
 };
 
+/**
+ * The 404 page reads the locale and the design from the request. Behind a Suspense boundary the
+ * rest of the document can be prerendered, and with it the 404 status, see the layout.
+ */
 export const NotFoundPage: React.FC = () => {
   return (
-    <>
+    <Suspense>
       <NotFound />
-    </>
+    </Suspense>
   );
 };
 

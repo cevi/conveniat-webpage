@@ -1,12 +1,13 @@
 'use client';
 
+import { ListRow } from '@/components/ui/list-row';
 import type { RealtimeConnectionStatus } from '@/features/chat/utils/realtime-connection';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { RefreshCw, WifiOff } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const notLiveText: StaticTranslationString = {
@@ -47,22 +48,21 @@ export const RealtimeSyncBanner: React.FC<RealtimeSyncBannerProperties> = ({
   if (status !== 'offline' || !isOnline) return <></>;
 
   return (
-    <button
-      type="button"
+    <ListRow
+      tone="danger"
       onClick={onReconnect}
       aria-live="polite"
       className={cn(
-        'font-body flex w-full items-center gap-2 bg-red-50 px-4 py-2 text-left text-xs text-red-700',
-        'border-y border-red-200 transition-colors hover:bg-red-100',
+        'bg-danger-soft border-danger-line min-h-11 gap-2 border-y py-2 text-[13px]',
         className,
       )}
     >
-      <WifiOff className="h-4 w-4 shrink-0" />
+      <WifiOff className="h-4 w-4 shrink-0" aria-hidden="true" />
       <span className="flex-1">{notLiveText[locale]}</span>
       <span className="flex shrink-0 items-center gap-1 font-semibold underline">
-        <RefreshCw className="h-3 w-3" />
+        <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
         {reconnectText[locale]}
       </span>
-    </button>
+    </ListRow>
   );
 };

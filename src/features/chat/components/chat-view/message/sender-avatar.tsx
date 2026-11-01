@@ -12,12 +12,12 @@ export const SenderAvatar: React.FC<{
   hidden?: boolean;
 }> = ({ senderId, name, pictureUrl, hidden = false }) =>
   hidden ? (
-    <div aria-hidden="true" className="mb-1 h-7 w-7 shrink-0" />
+    <div aria-hidden="true" className="h-8 w-8 shrink-0" />
   ) : (
     <PersonAvatar
       seed={senderId}
       name={name}
       pictureUrl={pictureUrl}
-      className="font-body mb-1 h-7 w-7 text-[11px]"
+      className="font-body h-8 w-8 text-[11px]"
     />
   );

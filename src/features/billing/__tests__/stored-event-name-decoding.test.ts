@@ -20,6 +20,14 @@ const read = (hook: FieldHook, value?: unknown): unknown =>
   hook({ value } as unknown as Parameters<FieldHook>[0]);
 
 /** The named field of a config, looked up the way Payload resolves it. */
+/** The data fields, out of the tabs and rows that only arrange the edit view. */
+const dataFields = (fields: Field[]): Field[] =>
+  fields.flatMap((field) => {
+    if (field.type === 'tabs') return dataFields(field.tabs.flatMap((tab) => tab.fields));
+    if (field.type === 'row') return dataFields(field.fields);
+    return [field];
+  });
+
 const fieldNamed = (fields: Field[], name: string): Field | undefined =>
   fields.find((field) => 'name' in field && field.name === name);
 
@@ -50,7 +58,7 @@ describe('decodeStoredEventName', () => {
 
 describe('the Anlass-Name shown in the admin', () => {
   it('is decoded on the Rechnungsverwaltung participant', () => {
-    const field = fieldNamed(BillParticipantsCollection.fields, 'eventName');
+    const field = fieldNamed(dataFields(BillParticipantsCollection.fields), 'eventName');
     const hooks = field !== undefined && 'hooks' in field ? (field.hooks.afterRead ?? []) : [];
 
     expect(hooks).toHaveLength(1);

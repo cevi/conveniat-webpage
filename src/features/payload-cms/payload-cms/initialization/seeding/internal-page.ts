@@ -99,7 +99,7 @@ export const internalPageContent = (
         },
         {
           blockType: 'fileDownload',
-          file: fileDownload,
+          groups: [{ files: [fileDownload] }],
         },
       ],
     },

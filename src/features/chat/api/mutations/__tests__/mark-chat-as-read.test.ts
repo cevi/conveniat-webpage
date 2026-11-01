@@ -45,6 +45,8 @@ interface MarkerWhere {
 }
 
 let memberIds: string[];
+/** The reader's own unread mark, see `markChatUnread`. */
+let markedUnread: boolean;
 let readEvents: ReadEvent[];
 let lastReadSeq: number | null;
 /** How many membership rows the procedure made the database look at. */
@@ -60,20 +62,26 @@ const prisma = {
     },
   },
   chatMembership: {
-    findUnique: (): Promise<{ userId: string }> => Promise.resolve({ userId: READER }),
+    findUnique: (): Promise<{ userId: string; markedUnread: boolean }> =>
+      Promise.resolve({ userId: READER, markedUnread }),
     updateMany: ({
       where,
       data,
     }: {
       where: MarkerWhere;
-      data: { lastReadSeq: number };
+      data: { lastReadSeq: number; markedUnread?: boolean };
     }): Promise<{ count: number }> => {
       const below = where.OR[1].lastReadSeq.lt;
       if (where.userId !== READER || (lastReadSeq !== null && lastReadSeq >= below)) {
         return Promise.resolve({ count: 0 });
       }
       lastReadSeq = data.lastReadSeq;
+      if (data.markedUnread !== undefined) markedUnread = data.markedUnread;
       return Promise.resolve({ count: 1 });
+    },
+    update: ({ data }: { data: { markedUnread?: boolean } }): Promise<unknown> => {
+      if (data.markedUnread !== undefined) markedUnread = data.markedUnread;
+      return Promise.resolve({});
     },
     count: ({ take }: { where: { chatId: string }; take?: number }): Promise<number> => {
       const counted = Math.min(memberIds.length, take ?? memberIds.length);
@@ -103,6 +111,7 @@ beforeEach(() => {
   memberIds = chatWithMembers(3);
   // eslint-disable-next-line unicorn/no-null
   lastReadSeq = null;
+  markedUnread = false;
   readEvents = [];
   membershipRowsRead = 0;
 });
@@ -143,5 +152,25 @@ describe('marking a chat as read', () => {
     await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: MESSAGE_ID });
 
     expect(membershipRowsRead).toBeLessThanOrEqual(LARGE_CHAT_THRESHOLD);
+  });
+});
+
+describe('reading a chat the reader marked unread', () => {
+  it('takes the mark away when the read moves the read marker', async () => {
+    markedUnread = true;
+
+    await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: MESSAGE_ID });
+
+    expect(markedUnread).toBe(false);
+  });
+
+  // A message older than the stored read marker, read late on a slow connection.
+  it('takes the mark away when the read marker stays', async () => {
+    await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: MESSAGE_ID });
+    markedUnread = true;
+
+    await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: OLDER_MESSAGE_ID });
+
+    expect(markedUnread).toBe(false);
   });
 });

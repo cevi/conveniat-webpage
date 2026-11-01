@@ -2,11 +2,11 @@
 
 import { Required } from '@/features/payload-cms/components/form/required';
 import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import type { SelectField } from '@payloadcms/plugin-form-builder/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import type {
   Control,
@@ -18,6 +18,13 @@ import type {
 } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import ReactSelect from 'react-select';
+
+/** What an empty dropdown says when the editor gave it no placeholder of its own. */
+const choosePlaceholderText: StaticTranslationString = {
+  de: 'Bitte auswählen …',
+  en: 'Please choose …',
+  fr: 'Veuillez choisir …',
+};
 
 /** Longest option label, in characters, that still reads well inside a grid card. */
 const LONG_OPTION_LABEL_LENGTH = 20;
@@ -52,6 +59,12 @@ export const Select: React.FC<
     en: 'No options available',
     fr: "Aucune option n'est disponible",
   };
+
+  // react-select shows an English "Select..." for a field without one
+  const placeholderText =
+    typeof placeholder === 'string' && placeholder.trim() !== ''
+      ? placeholder
+      : choosePlaceholderText[locale as Locale];
 
   if (optionType === 'dropdown') {
     return (
@@ -109,7 +122,7 @@ export const Select: React.FC<
                 ref={ref}
                 classNamePrefix="react-select"
                 unstyled
-                placeholder={placeholder}
+                placeholder={placeholderText}
                 classNames={{
                   control: (state) =>
                     cn(
@@ -201,9 +214,19 @@ export const Select: React.FC<
               required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
             }}
             render={({ field: { onChange, value } }) => (
-              <div className="space-y-3">
+              // each option is a 44px row, its label part of the target, and shows keyboard focus
+              // like a row: the surface with a ring inside, red while the field has an error
+              <div>
                 {options.map((option) => (
-                  <div key={option.value} className="flex items-center">
+                  <div
+                    key={option.value}
+                    className={cn(
+                      '-mx-3 flex min-h-11 items-center rounded-xl px-3',
+                      hasError
+                        ? 'has-[input:focus-visible]:focus-surface-danger'
+                        : 'has-[input:focus-visible]:focus-surface',
+                    )}
+                  >
                     <input
                       id={`${name}-${option.value}`}
                       type={allowMultiple ? 'checkbox' : 'radio'}
@@ -232,17 +255,14 @@ export const Select: React.FC<
                         }
                       }}
                       className={cn(
-                        'h-4 w-4 border-gray-300 text-green-600 focus:ring-2 focus:ring-green-600 focus:ring-offset-2',
-                        {
-                          'border-red-500 text-red-600 focus:ring-red-600': hasError,
-                          rounded: allowMultiple, // checkboxes are rounded
-                        },
+                        'size-5 shrink-0 cursor-pointer focus-visible:outline-none',
+                        hasError ? 'accent-danger' : 'accent-conveniat-green',
                       )}
                     />
                     <label
                       htmlFor={`${name}-${option.value}`}
                       className={cn(
-                        'font-body ml-3 block cursor-pointer text-sm font-medium transition-colors',
+                        'font-body ml-3 block flex-1 cursor-pointer py-2.5 text-sm font-medium transition-colors',
                         {
                           'text-red-600': hasError,
                           'text-gray-500 hover:text-gray-900': !hasError,
@@ -316,16 +336,18 @@ export const Select: React.FC<
                       }
                     }}
                     className={cn(
-                      'font-body relative flex min-w-0 cursor-pointer items-center rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none',
+                      // 14px like every card, so the focus ring inside keeps a visible curve
+                      'font-body relative flex min-w-0 cursor-pointer items-center rounded-[14px] border-2 px-4 py-3 text-sm font-medium transition-all duration-200',
                       hasLongLabels ? 'justify-start' : 'justify-center',
+                      hasError
+                        ? 'focus-visible:focus-surface-danger'
+                        : 'focus-visible:focus-surface',
                       {
-                        'border-green-600 bg-green-50 text-green-700 ring-green-600':
-                          isSelected && !hasError,
-                        'border-red-500 bg-red-50 text-red-700 ring-red-600':
-                          isSelected && hasError,
-                        'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 focus:ring-green-600':
+                        'border-green-600 bg-green-50 text-green-700': isSelected && !hasError,
+                        'border-red-500 bg-red-50 text-red-700': isSelected && hasError,
+                        'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50':
                           !isSelected && !hasError,
-                        'border-red-200 bg-white text-gray-700 hover:border-red-300 hover:bg-red-50 focus:ring-red-600':
+                        'border-red-200 bg-white text-gray-700 hover:border-red-300 hover:bg-red-50':
                           !isSelected && hasError,
                       },
                     )}

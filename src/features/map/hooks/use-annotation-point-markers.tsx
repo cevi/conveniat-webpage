@@ -156,6 +156,8 @@ export const useAnnotationPointMarkers = (
 
     const run = (): void => {
       update().catch((error: unknown) => {
+        // leaving the Karte removes the map while badge images are still decoding
+        if (cancelled) return;
         console.error('Drawing the map markers failed:', error);
       });
     };

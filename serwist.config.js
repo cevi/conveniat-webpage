@@ -13,6 +13,8 @@ export default await serwist({
     '**/admin-block-images/**/*',
     // the unversioned copy only serves tabs opened before the worker URL was versioned (#2257)
     '**/maplibre-gl-worker.js',
+    // read from disk by the PDF renderers only; the browser loads Montserrat through next/font
+    '**/fonts/**/*',
   ],
   esbuildOptions: {
     define: {

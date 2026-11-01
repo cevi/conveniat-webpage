@@ -4,6 +4,7 @@ import {
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { AlertSettingsNextKeyField } from '@/features/payload-cms/payload-cms/shared-fields/alert-settings-key-field';
+import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { GlobalConfig, TextFieldSingleValidation } from 'payload';
 
@@ -17,6 +18,9 @@ export const AlertSettingsGlobal: GlobalConfig = {
   admin: {
     group: AdminPanelDashboardGroups.AppOperations.label,
     hidden: shouldHideInAdminPanelIfNotAdmin,
+  },
+  hooks: {
+    afterChange: [flushPageCacheOnChangeGlobal],
   },
   fields: [
     {

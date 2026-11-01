@@ -3,7 +3,7 @@
  * Error messages are shown using console.error.
  *
  * Note: For user-facing error messages, consider using the AlertDialog
- * component from @/components/ui/alert-dialog.tsx instead.
+ * from @/components/ui/alert-dialog instead.
  */
 export const toast = {
   /**

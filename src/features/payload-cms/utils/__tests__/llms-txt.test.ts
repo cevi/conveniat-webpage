@@ -41,7 +41,6 @@ const options = {
   hostUrl: 'https://conveniat27.ch',
   locales: ['de', 'fr', 'en'] as Locale[],
   defaultLocale: 'de' as Locale,
-  urlPrefix: '',
 };
 
 describe('toLlmsLinks', () => {
@@ -89,11 +88,6 @@ describe('toLlmsLinks', () => {
     expect(toLlmsLinks([buildPage('travel', ['en'])], konekta)).toEqual([]);
   });
 
-  it('puts the collection prefix after the locale', () => {
-    const [link] = toLlmsLinks([buildPage('news', ['fr'])], { ...options, urlPrefix: 'blog' });
-    expect(link?.url).toBe('https://conveniat27.ch/fr/blog/news-fr');
-  });
-
   it('links the landing page, which has an empty slug, first', () => {
     const links = toLlmsLinks([buildPage('anmeldung', ['de']), buildPage('', ['de'])], options);
     expect(links.map((link) => link.url)).toEqual([
@@ -125,7 +119,7 @@ describe('renderLlmsTxt', () => {
             { title: 'Kontakt [neu]', url: 'https://conveniat27.ch/kontakt' },
           ],
         },
-        { heading: 'Blog', links: [] },
+        { heading: 'Formulare', links: [] },
       ],
     });
 

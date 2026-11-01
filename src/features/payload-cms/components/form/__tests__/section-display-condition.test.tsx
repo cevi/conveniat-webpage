@@ -8,7 +8,7 @@ import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
-jest.mock('next-i18n-router/client', () => ({
+jest.mock('@/hooks/use-current-locale', () => ({
   useCurrentLocale: (): string => 'de',
 }));
 

@@ -1,3 +1,4 @@
+import { SectionLabel } from '@/components/ui/section-label';
 import { MaterialItemImage } from '@/features/material/components/material-item-image';
 import { labels } from '@/features/material/components/material-labels';
 import {
@@ -35,7 +36,7 @@ export const ItemHeader: React.FC<{
       name={item.name}
       imageUrl={item.imageUrl}
       className={cn(
-        'rounded-2xl sm:size-36 sm:p-1',
+        'rounded-[14px] sm:size-36 sm:p-1',
         !hero && 'size-20',
         hero &&
           (item.imageUrl === null || item.imageUrl === '' ? 'hidden sm:flex' : 'h-56 w-full p-3'),
@@ -43,13 +44,13 @@ export const ItemHeader: React.FC<{
     />
     <div className="min-w-0 flex-1 space-y-2">
       <div>
-        <p className="truncate text-sm text-gray-500">
+        <p className="truncate text-sm text-green-500">
           {item.category.name} · {item.code}
         </p>
         <h1
           className={cn(
-            'text-conveniat-green font-bold break-words',
-            hero ? 'text-2xl' : 'text-xl sm:text-2xl',
+            'font-heading text-heading font-extrabold break-words',
+            hero ? 'text-[28px] leading-tight' : 'text-xl sm:text-2xl',
           )}
         >
           {item.name}
@@ -79,17 +80,17 @@ export const ItemTexts: React.FC<{
   const hasNotes = item.usageNotes !== null && item.usageNotes.trim() !== '';
   if (sections.length === 0 && !hasNotes) return <></>;
   return (
-    <section className="grid gap-5 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 lg:grid-cols-2">
+    <section className="border-line grid gap-5 rounded-[14px] border bg-white p-4 sm:p-5 lg:grid-cols-2">
       {sections.map((section) => (
         <div key={section.title}>
-          <h2 className="font-semibold text-gray-900">{section.title}</h2>
-          <p className="mt-1 text-sm leading-relaxed whitespace-pre-line text-gray-700">
+          <SectionLabel>{section.title}</SectionLabel>
+          <p className="mt-1.5 text-[15px] leading-relaxed whitespace-pre-line text-green-900">
             {section.body}
           </p>
         </div>
       ))}
       {hasNotes && (
-        <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm leading-relaxed text-amber-900 lg:col-span-2">
+        <p className="bg-danger-soft text-danger-text rounded-[10px] px-3 py-2 text-sm leading-relaxed lg:col-span-2">
           <span className="font-semibold">{labels.usageNotes[locale]}: </span>
           {item.usageNotes}
         </p>

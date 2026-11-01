@@ -1,10 +1,9 @@
 import React from 'react';
 
-const CardSkeleton = ({ hasImage = false }): React.JSX.Element => (
+const CardSkeleton = (): React.JSX.Element => (
   <div className="flex basis-1 flex-col rounded-md border-2 border-gray-200 bg-white p-6 lg:max-w-96">
     <div className="mb-2 h-3 w-1/3 rounded bg-gray-50" /> {/* Date */}
     <div className="mb-6 h-5 w-full rounded bg-gray-100" /> {/* Headline */}
-    {hasImage && <div className="mb-4 aspect-video w-full rounded bg-gray-50" />} {/* Image */}
     <div className="flex flex-col gap-y-2">
       <div className="h-4 w-full rounded bg-gray-50" />
       <div className="h-4 w-5/6 rounded bg-gray-50" />
@@ -34,15 +33,6 @@ export const SearchSkeleton: React.FC = () => {
           <div className="flex flex-col gap-y-4">
             <CardSkeleton />
             <CardSkeleton />
-          </div>
-        </div>
-
-        {/* Blog Section Skeleton */}
-        <div className="col-span-2 flex flex-col gap-y-4">
-          <div className="mb-2 h-8 w-40 rounded bg-gray-100" />
-          <div className="flex flex-col gap-y-4">
-            <CardSkeleton hasImage />
-            <CardSkeleton hasImage />
           </div>
         </div>
       </div>

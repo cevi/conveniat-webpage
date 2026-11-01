@@ -47,6 +47,8 @@ export const useMessageInfiniteScroll = ({
   currentUser,
 }: MessageInfiniteScrollProperties): {
   sortedMessages: ChatMessage[];
+  /** the first page is on its way and nothing of the chat is cached yet */
+  isLoading: boolean;
   isFetchingNextPage: boolean;
   topSentinelReference: React.RefObject<HTMLDivElement | null>;
 } => {
@@ -55,6 +57,7 @@ export const useMessageInfiniteScroll = ({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isLoading,
   } = trpc.chat.infiniteMessages.useInfiniteQuery(
     { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined },
     {
@@ -178,6 +181,7 @@ export const useMessageInfiniteScroll = ({
 
   return {
     sortedMessages,
+    isLoading,
     isFetchingNextPage: !!isFetchingNextPage,
     topSentinelReference,
   };

@@ -26,7 +26,7 @@ const mockShiftUseQuery = jest.fn<typeof mockShiftQueryResult, [unknown, unknown
   () => mockShiftQueryResult,
 );
 
-jest.mock('next-i18n-router/client', () => ({
+jest.mock('@/hooks/use-current-locale', () => ({
   useCurrentLocale: (): string => 'de',
 }));
 
@@ -67,7 +67,7 @@ describe('ParticipantList', () => {
   it('lists the enrolled participants with the enrolled count for an organiser', () => {
     render(<ParticipantList courseId="course-1" courseStatus={organiserStatus()} />);
 
-    expect(screen.getByText('Teilnehmer (2)')).toBeInTheDocument();
+    expect(screen.getByText('Teilnehmende (2)')).toBeInTheDocument();
     expect(screen.getByText('Anna Muster')).toBeInTheDocument();
     expect(screen.getByText('Beat Beispiel')).toBeInTheDocument();
   });
@@ -121,7 +121,7 @@ describe('ParticipantList', () => {
       />,
     );
 
-    expect(screen.getByText('Noch keine Teilnehmer')).toBeInTheDocument();
+    expect(screen.getByText('Noch keine Teilnehmenden')).toBeInTheDocument();
   });
 
   /**

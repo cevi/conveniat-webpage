@@ -33,8 +33,9 @@ interface ProfilePicture {
   pictureUrl: string | undefined;
   isBusy: boolean;
   hasFailed: boolean;
-  upload: (file: File) => Promise<void>;
-  remove: () => Promise<void>;
+  /** resolves to whether the picture was changed */
+  upload: (file: File) => Promise<boolean>;
+  remove: () => Promise<boolean>;
 }
 
 /**
@@ -50,22 +51,24 @@ export const useProfilePicture = (initialPictureUrl: string | undefined): Profil
   const [isBusy, setIsBusy] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
 
-  const run = async (action: () => Promise<string | undefined>): Promise<void> => {
+  const run = async (action: () => Promise<string | undefined>): Promise<boolean> => {
     setIsBusy(true);
     setHasFailed(false);
     try {
       setPictureUrl(await action());
       // the address book and the chats show the new picture on their next refresh
       await utils.chat.invalidate();
+      return true;
     } catch (error: unknown) {
       console.error('Changing the profile picture failed', error);
       setHasFailed(true);
+      return false;
     } finally {
       setIsBusy(false);
     }
   };
 
-  const upload = (file: File): Promise<void> =>
+  const upload = (file: File): Promise<boolean> =>
     run(async () => {
       const photo = await shrinkForUpload(file);
       const contentType = photo.type === '' ? 'image/jpeg' : photo.type;
@@ -83,7 +86,7 @@ export const useProfilePicture = (initialPictureUrl: string | undefined): Profil
       return uploadedUrl;
     });
 
-  const remove = (): Promise<void> =>
+  const remove = (): Promise<boolean> =>
     run(async () => {
       const { pictureUrl: remainingUrl } = await deletePicture.mutateAsync();
       return remainingUrl;

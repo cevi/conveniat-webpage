@@ -53,7 +53,7 @@ const installTelemetry = (): void => {
 
       const span = {
         setAttribute: (key: string, value: unknown): Span => {
-          recorded.attributes[key] = value as Attributes[string];
+          recorded.attributes[key] = value;
           return span;
         },
         setAttributes: (attributes: Attributes): Span => {

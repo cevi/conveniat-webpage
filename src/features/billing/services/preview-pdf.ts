@@ -1,7 +1,10 @@
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import type { StoragePort } from '@/features/billing/ports/storage.port';
-import { generateQrBillPdf } from '@/features/billing/services/bill-generator-service';
+import {
+  buildCreditorFromSettings,
+  generateQrBillPdf,
+} from '@/features/billing/services/bill-generator-service';
 import type { VatSplitConfig } from '@/features/billing/services/vat-calculation';
 import {
   calculateVat,
@@ -56,13 +59,6 @@ export async function previewPdfUseCase(
   // ── Generate a fictive preview PDF ──────────────────────────────────
   const settings = await settingsRepo.getBillSettings();
 
-  const creditorName = (settings.creditorName as string | undefined) ?? 'Verein conveniat27';
-  const creditorIban = (settings.creditorIban as string | undefined) ?? 'CH1030700114904034095';
-  const creditorUid = (settings.creditorUid as string | undefined) ?? 'CHE-470.917.124';
-  const creditorStreet = (settings.creditorStreet as string | undefined) ?? 'Sihlstrasse';
-  const creditorBuildingNumber = (settings.creditorBuildingNumber as string | undefined) ?? '33';
-  const creditorZip = (settings.creditorZip as string | undefined) ?? '8001';
-  const creditorCity = (settings.creditorCity as string | undefined) ?? 'Zürich';
   const currency = (settings.currency as string | undefined) ?? 'CHF';
   const invoiceLetterText =
     (settings.invoiceLetterText as string | undefined) ??
@@ -124,16 +120,7 @@ export async function previewPdfUseCase(
 
   const pdfBuffer = await generateQrBillPdf({
     documentTitle,
-    creditor: {
-      name: creditorName,
-      street: creditorStreet,
-      ...(creditorBuildingNumber === '' ? {} : { buildingNumber: creditorBuildingNumber }),
-      zip: creditorZip,
-      city: creditorCity,
-      account: creditorIban,
-      uid: creditorUid,
-      country: 'CH',
-    },
+    creditor: buildCreditorFromSettings(settings),
     debtor: {
       name: 'Maximilian Muster',
       street: 'Musterstrasse',

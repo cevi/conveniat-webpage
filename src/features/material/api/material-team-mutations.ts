@@ -20,7 +20,7 @@ const itemFields = z.object({
   description: z.string().trim().max(5000),
   usageNotes: z.string().trim().max(2000).nullable(),
   returnInstructions: z.string().trim().max(2000),
-  imageUrl: z.string().url().nullable(),
+  imageUrl: z.url().nullable(),
   unit: z.string().trim().min(1).max(40),
   totalQuantity: z.number().int().min(0).max(1_000_000),
   maxLoanQuantity: z.number().int().min(1).max(1_000_000),

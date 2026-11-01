@@ -1,4 +1,4 @@
-import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
+import { MapPageHeader } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/map/map-page-header';
 import { CampMapComponent } from '@/features/map/components/camp-map-component';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { ForceDynamicOnBuild } from '@/utils/is-pre-rendering';
@@ -38,7 +38,7 @@ const MapPage: React.FC<{ params: Promise<{ locale: Locale }> }> = ({ params }) 
 
   return (
     <>
-      <SetDynamicPageTitle newTitle="Lagerplatz" />
+      <MapPageHeader />
       <ForceDynamicOnBuild>
         <CampMapComponent locale={locale} />
       </ForceDynamicOnBuild>

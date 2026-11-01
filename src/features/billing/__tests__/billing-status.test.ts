@@ -9,6 +9,7 @@ import {
   isBillable,
   NEEDS_MANUAL_REVIEW,
   resolveSyncStatus,
+  statusAfterReview,
 } from '@/features/billing/services/billing-status';
 
 const unbilled = {
@@ -16,7 +17,7 @@ const unbilled = {
   hasBill: false,
   isRoleOk: true,
   isMissingMandatoryData: false,
-  hasChanges: false,
+  changedFields: [] as string[],
 };
 
 const billed = { ...unbilled, currentStatus: 'bill_sent', hasBill: true };
@@ -89,7 +90,7 @@ describe('resolveSyncStatus — a participant who has not been billed yet', () =
   });
 
   it('marks changed data as updated', () => {
-    expect(resolveSyncStatus({ ...unbilled, hasChanges: true }).status).toBe('updated');
+    expect(resolveSyncStatus({ ...unbilled, changedFields: ['street'] }).status).toBe('updated');
   });
 
   it('leaves an unchanged row alone', () => {
@@ -120,10 +121,24 @@ describe('resolveSyncStatus — a participant who has already been billed', () =
     expect(decision.reviewReason).toContain('Pflichtangaben');
   });
 
-  it('parks a billed participant whose data changed after the bill went out', () => {
-    const decision = resolveSyncStatus({ ...billed, hasChanges: true });
+  it('parks a billed participant whose role or birthday changed after the bill went out', () => {
+    const decision = resolveSyncStatus({ ...billed, changedFields: ['street', 'roleType'] });
     expect(decision.status).toBe(NEEDS_MANUAL_REVIEW);
-    expect(decision.reviewReason).toContain('geändert');
+    expect(decision.reviewReason).toContain('Rolle');
+    expect(decision.reviewReason).not.toContain('street');
+    expect(resolveSyncStatus({ ...billed, changedFields: ['birthday'] }).status).toBe(
+      NEEDS_MANUAL_REVIEW,
+    );
+  });
+
+  it('keeps a billed participant whose address, name or email changed where they are', () => {
+    // The bill is still what they owe: a move or a corrected name is recorded on the row,
+    // but nobody has to look at the bill for it.
+    const decision = resolveSyncStatus({
+      ...billed,
+      changedFields: ['street', 'zip', 'town', 'firstName', 'fullName', 'email', 'eventName'],
+    });
+    expect(decision).toEqual({ status: 'bill_sent' });
   });
 
   it('names the reason on the way in, and does not repeat it on later syncs', () => {
@@ -239,7 +254,7 @@ describe('resolveSyncStatus — a participation that comes back', () => {
       hasBill: false,
       isRoleOk: true,
       isMissingMandatoryData: false,
-      hasChanges: true,
+      changedFields: ['roleType'],
     });
     expect(decision.status).toBe('re_added');
     expect(canTransition('removed', decision.status)).toBe(true);
@@ -252,7 +267,7 @@ describe('resolveSyncStatus — a participation that comes back', () => {
         hasBill: true,
         isRoleOk: true,
         isMissingMandatoryData: false,
-        hasChanges: false,
+        changedFields: [],
       }).status,
     ).toBe('re_added');
   });
@@ -266,7 +281,7 @@ describe('resolveSyncStatus — a paid bill', () => {
         hasBill: true,
         isRoleOk: false,
         isMissingMandatoryData: true,
-        hasChanges: true,
+        changedFields: ['roleType'],
       }).status,
     ).toBe('paid');
   });
@@ -280,13 +295,13 @@ describe('resolveSyncStatus only produces legal transitions', () => {
       for (const hasBill of [true, false]) {
         for (const isRoleOk of [true, false]) {
           for (const isMissingMandatoryData of [true, false]) {
-            for (const hasChanges of [true, false]) {
+            for (const changedFields of [[], ['street'], ['roleType']]) {
               const { status } = resolveSyncStatus({
                 currentStatus,
                 hasBill,
                 isRoleOk,
                 isMissingMandatoryData,
-                hasChanges,
+                changedFields,
               });
               expect({
                 from: currentStatus,
@@ -311,7 +326,7 @@ const afterFieldDeleted = (currentStatus: string, hasBill: boolean): SyncStatusD
     hasBill,
     isRoleOk: true,
     isMissingMandatoryData: true,
-    hasChanges: true,
+    changedFields: ['street'],
   });
 
 describe('a Pflichtangabe deleted after the bill went out', () => {
@@ -342,5 +357,22 @@ describe('a Pflichtangabe deleted after the bill went out', () => {
   it('still blocks a registration that was never billed', () => {
     // The same deletion on an unbilled row is an ordinary Pflichtangaben gap.
     expect(afterFieldDeleted('new', false).status).toBe('pflichtangaben_missing');
+  });
+});
+
+describe('statusAfterReview', () => {
+  it('returns a sent bill to sent', () => {
+    expect(statusAfterReview({ billSentDate: '2026-10-10T15:10:34Z' })).toBe('bill_sent');
+  });
+
+  it('returns a bill whose mail never left to created, so it can still be sent', () => {
+    expect(statusAfterReview({ billSentDate: '' })).toBe('bill_created');
+    expect(statusAfterReview({})).toBe('bill_created');
+  });
+
+  it('only ever names a status a parked row may move to', () => {
+    for (const billSentDate of ['', '2026-10-10T15:10:34Z']) {
+      expect(canTransition(NEEDS_MANUAL_REVIEW, statusAfterReview({ billSentDate }))).toBe(true);
+    }
   });
 });

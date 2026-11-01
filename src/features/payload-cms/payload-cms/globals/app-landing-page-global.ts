@@ -1,3 +1,4 @@
+import { environmentVariables as env } from '@/config/environment-variables';
 import {
   isFullAdmin,
   shouldHideInAdminPanelIfNotAdmin,
@@ -8,9 +9,11 @@ import {
   mainContentBlocks,
 } from '@/features/payload-cms/payload-cms/shared-fields/main-content-field';
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
+import { asLocalizedGlobal } from '@/features/payload-cms/payload-cms/utils/localized-global';
+import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import type { GlobalConfig } from 'payload';
 
-export const AppLandingPageGlobal: GlobalConfig = {
+export const AppLandingPageGlobal: GlobalConfig = asLocalizedGlobal({
   slug: 'app-landing-page',
   label: {
     en: 'App Landing Page',
@@ -20,6 +23,8 @@ export const AppLandingPageGlobal: GlobalConfig = {
   access: {
     read: () => true,
     update: isFullAdmin,
+    // the drafts are only previewed, by whoever may edit them
+    readVersions: isFullAdmin,
   },
   admin: {
     group: AdminPanelDashboardGroups.AppContent.label,
@@ -28,6 +33,24 @@ export const AppLandingPageGlobal: GlobalConfig = {
       en: 'Configure the app dashboard landing page: title, welcome content, and action card visibility.',
       de: 'Konfiguriere die App-Dashboard-Startseite: Titel, Willkommensinhalt und Sichtbarkeit der Aktionskarten.',
       fr: "Configurez la page d'accueil du tableau de bord de l'application : titre, contenu de bienvenue et visibilité des cartes d'action.",
+    },
+    // The draft is previewed as Home of the app. The URL is a placeholder, `LivePreviewRestorer`
+    // points it at the preview of the dashboard in the edited locale.
+    livePreview: {
+      url: `${env.APP_HOST_URL}/de/app/dashboard-preview?preview=true`,
+      openByDefault: true,
+      breakpoints: smartphoneBreakpoints,
+    },
+    components: {
+      elements: {
+        beforeDocumentControls: [
+          {
+            path: '@/features/payload-cms/payload-cms/components/live-preview-restorer',
+            // Home is only ever seen on a phone; same viewport as an iPhone 15 Pro
+            clientProps: { defaultBreakpoint: 'iphone-14-pro' },
+          },
+        ],
+      },
     },
   },
   hooks: {
@@ -92,4 +115,4 @@ export const AppLandingPageGlobal: GlobalConfig = {
       },
     },
   ],
-};
+});

@@ -2,9 +2,9 @@ import { AppShell } from '@/app/app-shell';
 import { ChunkErrorHandler } from '@/components/chunk-error-handler';
 import { AppNavBarServer } from '@/components/footer/app-nav-bar-server';
 import { FooterCopyrightArea } from '@/components/footer/footer-copyright-area';
-import { FooterCopyrightClientWrapper } from '@/components/footer/footer-copyright-client-wrapper';
 import { GlobalAppFooterClientWrapper } from '@/components/footer/global-app-footer-client-wrapper';
 import { HideFooterProvider } from '@/components/footer/hide-footer-context';
+import { AppStatusBarMeta } from '@/components/header/app-status-bar-meta';
 import { HeaderComponent } from '@/components/header/header-component';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { HideBackgroundLogoProvider } from '@/components/ui/hide-background-logo-context';
@@ -37,19 +37,15 @@ interface LayoutProperties {
 const GlobalAppFooterWrapper: React.FC<{
   locale: Locale;
   design: DesignCodes;
-}> = ({ locale, design }) => {
+  navigationMode: NavigationMode;
+}> = ({ locale, design, navigationMode }) => {
   const isInAppDesign = design === DesignCodes.APP_DESIGN;
 
   return (
     <GlobalAppFooterClientWrapper
-      locale={locale}
       isAppMode={isInAppDesign}
-      appNavBar={<AppNavBarServer locale={locale} />}
-      copyrightArea={
-        <FooterCopyrightClientWrapper>
-          <FooterCopyrightArea locale={locale} inAppDesign={isInAppDesign} />
-        </FooterCopyrightClientWrapper>
-      }
+      appNavBar={<AppNavBarServer locale={locale} railOnDesktop={navigationMode === 'top-nav'} />}
+      copyrightArea={<FooterCopyrightArea locale={locale} inAppDesign={isInAppDesign} />}
     />
   );
 };
@@ -77,8 +73,8 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
     notFound();
   }
 
-  const navigationMode: NavigationMode =
-    isRedesignedMenuEnabled && !isInAppDesign ? 'top-nav' : 'side-nav';
+  // the app follows the website's menu, so both look the same on a desktop
+  const navigationMode: NavigationMode = isRedesignedMenuEnabled ? 'top-nav' : 'side-nav';
 
   return (
     <html
@@ -86,15 +82,18 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
         'overscroll-y-none': isInAppDesign,
       })}
       lang={locale}
+      // scopes the app's focus ring, see globals.scss
+      data-app={isInAppDesign ? '' : undefined}
       suppressHydrationWarning
     >
       <head>
+        <AppStatusBarMeta />
         {!environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST && (
           <link rel="manifest" href="/manifest.webmanifest" />
         )}
       </head>
       <body
-        className={cn('flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc]', {
+        className={cn('bg-page flex h-dvh w-dvw flex-col overflow-x-hidden', {
           'overscroll-y-none': isInAppDesign,
         })}
         suppressHydrationWarning
@@ -117,7 +116,11 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
                   }
                   footer={
                     <Suspense fallback={undefined}>
-                      <GlobalAppFooterWrapper locale={locale} design={design} />
+                      <GlobalAppFooterWrapper
+                        locale={locale}
+                        design={design}
+                        navigationMode={navigationMode}
+                      />
                     </Suspense>
                   }
                   inAppDesign={isInAppDesign}

@@ -43,7 +43,7 @@ const pageFields = [
                     name: 'reference',
                     label: 'Document to redirect to',
                     type: 'relationship',
-                    relationTo: ['blog', 'generic-page', 'images', 'documents'],
+                    relationTo: ['generic-page', 'images', 'documents'],
                   },
                 ],
               },

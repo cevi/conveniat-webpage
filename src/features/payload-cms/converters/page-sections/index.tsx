@@ -6,7 +6,6 @@ import {
   AccordionBlock,
   DetailsTable,
   RenderApprovedFormSubmissions,
-  RenderBlogPostsOverview,
   RenderCallToAction,
   RenderCampScheduleEntry,
   RenderCardGrid,
@@ -62,7 +61,6 @@ export const PageSectionsConverter: React.FC<
 
   const componentMap: Record<ContentBlockTypeNames, SectionRenderer<never> | undefined> = {
     richTextSection: RenderRichTextSection,
-    blogPostsOverview: RenderBlogPostsOverview,
     formBlock: RenderFormBlock,
     approvedFormSubmissionsBlock: RenderApprovedFormSubmissions,
     photoCarousel: RenderPhotoCarousel,

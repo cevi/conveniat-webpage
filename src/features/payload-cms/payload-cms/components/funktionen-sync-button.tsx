@@ -1,11 +1,9 @@
 'use client';
 
-import { SeedProfilePicturesButton } from '@/features/payload-cms/payload-cms/components/funktionen-sync/seed-profile-pictures-button';
 import {
   useFunktionenSync,
   type FunktionenSyncState,
 } from '@/features/payload-cms/payload-cms/components/funktionen-sync/use-funktionen-sync';
-import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
 import {
   SyncFoundList,
   SyncProgressCard,
@@ -13,7 +11,7 @@ import {
 } from '@/features/payload-cms/payload-cms/components/shared/sync-progress';
 import type { FunktionenSyncResult } from '@/features/payload-cms/payload-cms/utils/sync-funktionen';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { Button, useAuth, useListQuery, useLocale } from '@payloadcms/ui';
+import { Button, Drawer, useListQuery, useModal } from '@payloadcms/ui';
 import { Download, RefreshCw } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useState } from 'react';
@@ -28,6 +26,12 @@ const cardDescription: StaticTranslationString = {
   de: 'Die Funktionen werden jede Nacht aus den Leitungen der Cevi.DB-Gruppen abgeglichen. Nach einer Änderung in der Cevi.DB lässt sich der Abgleich hier sofort starten. Bezeichnungen und Reihenfolge, die hier gesetzt wurden, bleiben erhalten.',
   en: 'The functions are synced every night from the leaders of the Cevi.DB groups. After a change in Cevi.DB, start the sync here right away. Labels and order set here are kept.',
   fr: "Les fonctions sont synchronisées chaque nuit à partir des responsables des groupes Cevi.DB. Après une modification dans Cevi.DB, lancez la synchronisation ici. Les libellés et l'ordre définis ici sont conservés.",
+};
+
+const openButtonLabel: StaticTranslationString = {
+  de: 'Aus Cevi.DB abgleichen',
+  en: 'Sync from Cevi.DB',
+  fr: 'Synchroniser depuis Cevi.DB',
 };
 
 const startButtonLabel: StaticTranslationString = {
@@ -127,14 +131,15 @@ const percentageOf = (state: FunktionenSyncState): number => {
   return Math.round((state.processedGroups / state.totalGroups) * 100);
 };
 
+const DRAWER_SLUG = 'funktionen-sync';
+
 /**
- * Rendered above the list of the functions: starts the Cevi.DB sync of the camp functions and
- * shows its progress, like the event import above the list of the Höfe. Only shown to those
- * who may edit the functions; the endpoint refuses everybody else anyway.
+ * Opens the Cevi.DB sync of the camp functions in a drawer, which starts it and shows its
+ * progress, like the event import above the list of the Höfe. The sync keeps running when the
+ * drawer is closed, and the button shows that it does.
  */
-export const FunktionenSyncButton: React.FC = () => {
-  const locale = resolveAdminLocale(useLocale().code);
-  const { permissions } = useAuth();
+export const FunktionenSyncButton: React.FC<{ locale: Locale }> = ({ locale }) => {
+  const { openModal } = useModal();
   const { query, refineListData } = useListQuery();
   const [didRefreshList, setDidRefreshList] = useState(true);
 
@@ -150,8 +155,6 @@ export const FunktionenSyncButton: React.FC = () => {
 
   const { state, isRunning, start } = useFunktionenSync(refreshList);
 
-  if (permissions?.collections?.['funktionen']?.update !== true) return <></>;
-
   const percentage = percentageOf(state);
 
   const statusText = {
@@ -162,89 +165,97 @@ export const FunktionenSyncButton: React.FC = () => {
     error: errorStatus[locale],
   }[state.phase];
 
-  return (
-    <div className="mb-5 rounded-md border border-(--theme-elevation-150) bg-(--theme-elevation-50) p-4">
-      <h4 className="m-0 mb-2 text-[15px] font-semibold text-(--theme-elevation-900)">
-        {cardTitle[locale]}
-      </h4>
-      <p className="m-0 mb-4 text-[13px] leading-relaxed text-(--theme-elevation-600)">
-        {cardDescription[locale]}
-      </p>
+  const syncIcon = isRunning ? (
+    <RefreshCw className="h-4 w-4 animate-spin" />
+  ) : (
+    <Download className="h-4 w-4" />
+  );
 
+  return (
+    <>
       <Button
         buttonStyle="primary"
         size="medium"
         margin={false}
-        disabled={isRunning}
-        icon={
-          isRunning ? (
-            <RefreshCw className="h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )
-        }
+        icon={syncIcon}
         iconPosition="left"
-        onClick={() => {
-          setDidRefreshList(true);
-          void start();
-        }}
+        onClick={() => openModal(DRAWER_SLUG)}
       >
-        {isRunning ? runningButtonLabel[locale] : startButtonLabel[locale]}
+        {isRunning ? runningButtonLabel[locale] : openButtonLabel[locale]}
       </Button>
 
-      {state.phase !== 'idle' && (
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <SyncProgressCard
-            phase={syncPhaseOf(isRunning, state.phase === 'error')}
-            status={statusText}
-            percentage={percentage}
-            summary={progressSummary(
-              locale,
-              state.phase === 'discovering' ? state.discoveredGroups : state.processedGroups,
-              state.totalGroups,
-            )}
-            ariaLabel={cardTitle[locale]}
-            error={state.phase === 'error' ? (state.error ?? genericError[locale]) : undefined}
-          >
-            {state.phase === 'done' && state.result !== undefined && (
-              <>
-                <p className="mt-3 mb-0 text-[13px] text-(--theme-elevation-700)">
-                  {resultSummary(locale, state.result)}
-                </p>
-                {!didRefreshList && (
-                  <>
-                    <p className="mt-2 mb-0 text-[13px] text-(--theme-error-600)">
-                      {listRefreshFailed[locale]}
-                    </p>
-                    <Button
-                      buttonStyle="secondary"
-                      size="small"
-                      icon={<RefreshCw className="h-3.5 w-3.5" />}
-                      iconPosition="left"
-                      onClick={() => globalThis.location.reload()}
-                    >
-                      {reloadButtonLabel[locale]}
-                    </Button>
-                  </>
-                )}
-              </>
-            )}
-          </SyncProgressCard>
+      <Drawer slug={DRAWER_SLUG} title={cardTitle[locale]}>
+        <p className="m-0 mb-4 max-w-3xl text-[13px] leading-relaxed text-(--theme-elevation-600)">
+          {cardDescription[locale]}
+        </p>
 
-          <SyncFoundList
-            heading={foundHeading[locale]}
-            emptyText={noneFoundYet[locale]}
-            items={state.found.map((group) => ({
-              key: group.groupId,
-              label: group.groupName,
-              meta: leadersLabel(locale, group.leaders),
-            }))}
-            locale={locale}
-          />
-        </div>
-      )}
+        <Button
+          buttonStyle="primary"
+          size="medium"
+          margin={false}
+          disabled={isRunning}
+          icon={syncIcon}
+          iconPosition="left"
+          onClick={() => {
+            setDidRefreshList(true);
+            void start();
+          }}
+        >
+          {isRunning ? runningButtonLabel[locale] : startButtonLabel[locale]}
+        </Button>
 
-      <SeedProfilePicturesButton locale={locale} />
-    </div>
+        {state.phase !== 'idle' && (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <SyncProgressCard
+              phase={syncPhaseOf(isRunning, state.phase === 'error')}
+              status={statusText}
+              percentage={percentage}
+              summary={progressSummary(
+                locale,
+                state.phase === 'discovering' ? state.discoveredGroups : state.processedGroups,
+                state.totalGroups,
+              )}
+              ariaLabel={cardTitle[locale]}
+              error={state.phase === 'error' ? (state.error ?? genericError[locale]) : undefined}
+            >
+              {state.phase === 'done' && state.result !== undefined && (
+                <>
+                  <p className="mt-3 mb-0 text-[13px] text-(--theme-elevation-700)">
+                    {resultSummary(locale, state.result)}
+                  </p>
+                  {!didRefreshList && (
+                    <>
+                      <p className="mt-2 mb-0 text-[13px] text-(--theme-error-600)">
+                        {listRefreshFailed[locale]}
+                      </p>
+                      <Button
+                        buttonStyle="secondary"
+                        size="small"
+                        icon={<RefreshCw className="h-3.5 w-3.5" />}
+                        iconPosition="left"
+                        onClick={() => globalThis.location.reload()}
+                      >
+                        {reloadButtonLabel[locale]}
+                      </Button>
+                    </>
+                  )}
+                </>
+              )}
+            </SyncProgressCard>
+
+            <SyncFoundList
+              heading={foundHeading[locale]}
+              emptyText={noneFoundYet[locale]}
+              items={state.found.map((group) => ({
+                key: group.groupId,
+                label: group.groupName,
+                meta: leadersLabel(locale, group.leaders),
+              }))}
+              locale={locale}
+            />
+          </div>
+        )}
+      </Drawer>
+    </>
   );
 };

@@ -1,11 +1,6 @@
-import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
+import { formEmailEditor } from '@/features/payload-cms/payload-cms/plugins/form/tabs/form-email-editor';
 import { EMAIL_SENDER_DOMAIN } from '@/features/payload-cms/payload-cms/utils/email-sender';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
-import {
-  defaultEditorLexicalConfig,
-  HeadingFeature,
-  lexicalEditor,
-} from '@payloadcms/richtext-lexical';
 import type { Field, Tab } from 'payload';
 
 const formSubmitButtonLabelField: Field = {
@@ -14,16 +9,6 @@ const formSubmitButtonLabelField: Field = {
   required: true,
   localized: true,
 };
-
-const formLexicalEditorSettings = lexicalEditor({
-  features: [
-    ...minimalEditorFeatures,
-    HeadingFeature({
-      enabledHeadingSizes: ['h3'],
-    }),
-  ],
-  lexical: defaultEditorLexicalConfig,
-});
 
 const formConfirmationTypeField: Field = {
   name: 'confirmationType',
@@ -63,9 +48,9 @@ const formEmailField: Field = {
   access: {},
   admin: {
     description: {
-      en: "Send custom emails when the form submits. Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data, {{*:table}} to format it as an HTML table in the email, and {{approval-link}} (or {{approval-link :: Link Text}}) to insert an approval link for the submission.",
-      de: 'Senden Sie benutzerdefinierte E-Mails, wenn das Formular übermittelt wird. Verwenden Sie durch Kommas getrennte Listen, um dieselbe E-Mail an mehrere Empfänger zu senden. Um auf einen Wert aus diesem Formular zu verweisen, schließen Sie den Namen dieses Felds in doppelte geschweifte Klammern ein, z. B. {{firstName}}. Sie können einen Platzhalter {{*}} verwenden, um alle Daten auszugeben, {{*:table}}, um sie als HTML-Tabelle in der E-Mail zu formatieren, und {{approval-link}} (oder {{approval-link :: Link Text}}), um einen Freigabelink einzufügen.',
-      fr: "Envoyez des e-mails personnalisés lorsque le formulaire est soumis. Utilisez des listes séparées par des virgules pour envoyer le même e-mail à plusieurs destinataires. Pour faire référence à une valeur de ce formulaire, entourez le nom de ce champ de doubles accolades, par exemple {{firstName}}. Vous pouvez utiliser un joker {{*}} pour afficher toutes les données, {{*:table}} pour les formater sous forme de tableau HTML dans l'e-mail, et {{approval-link}} (ou {{approval-link :: Texte du lien}}) pour insérer un lien d'approbation.",
+      en: "Send custom emails when the form submits. Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data, {{*:table}} to format it as an HTML table in the email, and {{approval-link}} (or {{approval-link :: Link Text}}) to insert an approval link for the submission. {{signatur}} (or {{signatur :: Ressort Programm}}) ends the email with the official signature.",
+      de: 'Senden Sie benutzerdefinierte E-Mails, wenn das Formular übermittelt wird. Verwenden Sie durch Kommas getrennte Listen, um dieselbe E-Mail an mehrere Empfänger zu senden. Um auf einen Wert aus diesem Formular zu verweisen, schließen Sie den Namen dieses Felds in doppelte geschweifte Klammern ein, z. B. {{firstName}}. Sie können einen Platzhalter {{*}} verwenden, um alle Daten auszugeben, {{*:table}}, um sie als HTML-Tabelle in der E-Mail zu formatieren, und {{approval-link}} (oder {{approval-link :: Link Text}}), um einen Freigabelink einzufügen. {{signatur}} (oder {{signatur :: Ressort Programm}}) beendet die E-Mail mit der offiziellen Signatur.',
+      fr: "Envoyez des e-mails personnalisés lorsque le formulaire est soumis. Utilisez des listes séparées par des virgules pour envoyer le même e-mail à plusieurs destinataires. Pour faire référence à une valeur de ce formulaire, entourez le nom de ce champ de doubles accolades, par exemple {{firstName}}. Vous pouvez utiliser un joker {{*}} pour afficher toutes les données, {{*:table}} pour les formater sous forme de tableau HTML dans l'e-mail, et {{approval-link}} (ou {{approval-link :: Texte du lien}}) pour insérer un lien d'approbation. {{signatur}} (ou {{signatur :: Ressort Programm}}) termine l’e-mail par la signature officielle.",
     },
   },
   fields: [
@@ -191,7 +176,7 @@ const formEmailField: Field = {
       admin: { description: 'Enter the message that should be sent in this email.' },
       label: 'Message',
       localized: true,
-      editor: formLexicalEditorSettings,
+      editor: formEmailEditor,
       hooks: patchRichTextLinkHook,
     },
   ],
@@ -205,7 +190,7 @@ const formConfirmationMessageField: Field = {
   },
   localized: true,
   required: true,
-  editor: formLexicalEditorSettings,
+  editor: formEmailEditor,
   hooks: patchRichTextLinkHook,
 };
 

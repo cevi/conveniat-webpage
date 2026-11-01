@@ -1,6 +1,6 @@
 # To use this Dockerfile, you have to set output: 'standalone' in your next.config.mjs file.
 # From https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
-FROM node:24.15-alpine AS base
+FROM node:24.22-alpine AS base
 
 # libc6-compat for native libs. sharp needs no system libvips: it ships its own in the
 # prebuilt @img/sharp-libvips-linuxmusl-x64 package.
@@ -48,6 +48,13 @@ ENV NEXT_PUBLIC_ENABLED_LOCALES=${NEXT_PUBLIC_ENABLED_LOCALES}
 # reads it from the bundle, where it would be `undefined`.
 ARG NEXT_PUBLIC_HITOBITO_API_URL=https://db.cevi.ch
 ENV NEXT_PUBLIC_HITOBITO_API_URL=${NEXT_PUBLIC_HITOBITO_API_URL}
+
+# The app in the stores, offered to a browser on the app pages. Inlined at build time like the
+# rest. konekta's own Dockerfile sets neither, so it offers no app.
+ARG NEXT_PUBLIC_APP_STORE_URL=https://apps.apple.com/ch/app/conveniat-27/id6817359538
+ENV NEXT_PUBLIC_APP_STORE_URL=${NEXT_PUBLIC_APP_STORE_URL}
+ARG NEXT_PUBLIC_PLAY_STORE_URL=https://play.google.com/store/apps/details?id=ch.cevi.conveniat27.conveniat27app
+ENV NEXT_PUBLIC_PLAY_STORE_URL=${NEXT_PUBLIC_PLAY_STORE_URL}
 
 COPY . .
 

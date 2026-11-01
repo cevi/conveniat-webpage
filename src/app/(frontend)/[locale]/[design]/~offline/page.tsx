@@ -1,4 +1,5 @@
 import { ReloadWhenOnline } from '@/app/(frontend)/[locale]/[design]/~offline/reload-when-online';
+import { EmptyState } from '@/components/ui/empty-state';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
@@ -33,17 +34,14 @@ export default async function OfflinePage({
     <>
       <title>{offlineTitle[locale]}</title>
       <ReloadWhenOnline />
-      <div className="flex min-h-[50vh] items-center justify-center p-4">
-        <div className="max-w-lg text-center">
-          <div className="mb-8 flex justify-center">
-            <WifiOff size={96} className="text-slate-500" strokeWidth={1.5} />
-          </div>
-          <h1 className="mb-4 font-['Montserrat'] text-3xl font-bold text-slate-900">
-            {offlineTitle[locale]}
-          </h1>
-          <p className="leading-relaxed text-slate-600">{offlineMessage[locale]}</p>
-        </div>
-      </div>
+      <main className="flex min-h-[50vh] items-center justify-center p-4">
+        <EmptyState
+          icon={WifiOff}
+          title={offlineTitle[locale]}
+          description={offlineMessage[locale]}
+          className="w-full max-w-md"
+        />
+      </main>
     </>
   );
 }

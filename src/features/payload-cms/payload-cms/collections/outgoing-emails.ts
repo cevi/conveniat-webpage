@@ -1,6 +1,6 @@
 import {
+  canReadOutgoingEmail,
   getRoleGroupIds,
-  isFullAdmin,
   Roles,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
@@ -15,22 +15,41 @@ import type { OutgoingEmail } from '@/features/payload-cms/payload-types';
 import type { CollectionAfterChangeHook, CollectionConfig, FieldHook } from 'payload';
 
 /**
- * A bill counts as sent once its mail has left, and a mail can turn `success` from three
- * places: the queue, a resend, an admin's override. Watching the row covers all of them.
+ * Keeps a bill's status in step with its mail. A mail can turn `success` or `error` from
+ * several places: the queue, the bounce check, a resend, an admin's override. Watching the
+ * row covers all of them.
+ *
+ * A mail the queue discarded is not a failed delivery: it was overtaken by a newer bill or
+ * a changed registration, and says so with `mailDiscarded` in the context.
  *
  * Billing is imported lazily, because its collections import this config.
  */
-const markBillSentOnDelivery: CollectionAfterChangeHook<OutgoingEmail> = async ({
+const syncBillWithDelivery: CollectionAfterChangeHook<OutgoingEmail> = async ({
   doc,
   previousDoc,
   req,
 }) => {
   const before = (previousDoc as Partial<OutgoingEmail> | undefined)?.deliveryStatus;
-  if (doc.deliveryStatus !== 'success' || before === 'success') return doc;
-  const { billParticipantIdOf, markBillMailSent } =
+  if (doc.deliveryStatus === before) return doc;
+  if (doc.deliveryStatus !== 'success' && doc.deliveryStatus !== 'error') return doc;
+  if (req.context['mailDiscarded'] === true) return doc;
+
+  const { billParticipantIdOf, markBillMailFailed, markBillMailSent } =
     await import('@/features/billing/services/bill-mail-status');
   const participantId = billParticipantIdOf(doc);
-  if (participantId !== undefined) await markBillMailSent(req.payload, participantId, doc.to);
+  if (participantId === undefined) return doc;
+  try {
+    await (doc.deliveryStatus === 'success'
+      ? markBillMailSent(req.payload, participantId, doc)
+      : markBillMailFailed(req.payload, participantId, doc));
+  } catch (error) {
+    // The mail's own status is what is true; a bill that could not follow it is logged,
+    // not allowed to fail the write that recorded it.
+    req.payload.logger.error({
+      err: error,
+      msg: `Could not update bill ${participantId} after its mail ${doc.id} turned ${String(doc.deliveryStatus)}.`,
+    });
+  }
   return doc;
 };
 
@@ -64,14 +83,15 @@ export const OutgoingEmails: CollectionConfig = {
     ],
   },
   access: {
-    // read only for admins, only access programmatically
-    read: isFullAdmin,
+    // Written only by the mail code. The billing team reads the mails of its bills, which the
+    // E-Mails tab of a registration lists.
+    read: canReadOutgoingEmail,
     create: () => false,
     update: () => false,
     delete: () => false,
   },
   hooks: {
-    afterChange: [markBillSentOnDelivery],
+    afterChange: [syncBillWithDelivery],
     beforeOperation: [
       // eslint-disable-next-line @typescript-eslint/no-deprecated
       ({ args, operation }): void => {
@@ -132,8 +152,12 @@ export const OutgoingEmails: CollectionConfig = {
       admin: {
         position: 'sidebar',
         components: {
-          Field:
-            '@/features/payload-cms/payload-cms/components/resend-email/resend-email-button#ResendEmailButton',
+          Field: {
+            path: '@/features/payload-cms/payload-cms/components/resend-email/resend-email-button#ResendEmailButton',
+            clientProps: {
+              fullAdminGroupIds: getRoleGroupIds(Roles.FullAdmin),
+            },
+          },
         },
       },
     },

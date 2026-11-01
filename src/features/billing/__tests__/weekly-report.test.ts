@@ -33,6 +33,10 @@ jest.mock('@/features/billing/services/finance-overview-export', () => ({
   buildFinanceOverviewWorkbook: jest.fn().mockResolvedValue(Buffer.from('xlsx')),
 }));
 
+jest.mock('@/features/billing/services/render-double-payment-report', () => ({
+  renderDoublePaymentReportPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')),
+}));
+
 const NOW = new Date('2026-08-31T09:00:00');
 
 const participant = (overrides: Partial<BillParticipant>): BillParticipant =>
@@ -137,6 +141,24 @@ describe('buildWeeklyReport', () => {
     expect(row?.blocked).toBe(1);
     // Every registration is accounted for exactly once.
     expect((row?.billed ?? 0) + (row?.pending ?? 0) + (row?.blocked ?? 0)).toBe(row?.total);
+  });
+
+  it('counts a paid bill as paid, and still as billed and sent', () => {
+    const report = buildWeeklyReport(
+      [
+        participant({ status: 'paid' }),
+        participant({ status: 'paid', eventName: 'Hauptlager conveniat27 - Cevi Uster' }),
+        participant({ status: 'bill_sent' }),
+        participant({ status: 'reminder_sent' }),
+      ],
+      NOW,
+    );
+
+    const zueri = report.abteilungen.find((row) => row.name === 'Züri 11');
+    expect(zueri?.paid).toBe(1);
+    expect(zueri?.sent).toBe(3);
+    expect(zueri?.billed).toBe(3);
+    expect(report.totals.paid).toBe(2);
   });
 
   it('keeps a removed registration out of the Anmeldestand', () => {
@@ -356,12 +378,14 @@ describe('sendWeeklyReport', () => {
       'anmeldestand-2026-08-31.pdf',
     ]);
 
-    // Finance mail: sent to finance, contains both PDF and Excel
+    // Finance mail: sent to finance, with the PDF, the Excel and the double payments, which
+    // are attached even when there are none, so the recipients see the check ran.
     expect(financeMail?.to).toBe('finance@example.ch');
     expect(financeMail?.subject).toContain('Rechnungsübersicht');
     expect(financeMail?.attachments.map((a) => a.filename)).toEqual([
       'anmeldestand-2026-08-31.pdf',
       'rechnungsuebersicht-2026-08-31.xlsx',
+      'doppelzahlungen-2026-08-31.pdf',
     ]);
 
     interface UpdateGlobalCall {
@@ -428,6 +452,7 @@ describe('sendWeeklyReport', () => {
     expect(emailCalls[0]?.[0].attachments.map((a) => a.filename)).toEqual([
       'anmeldestand-2026-08-31.pdf',
       'rechnungsuebersicht-2026-08-31.xlsx',
+      'doppelzahlungen-2026-08-31.pdf',
     ]);
   });
 

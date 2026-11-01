@@ -45,9 +45,14 @@ describe('the downloaded status on the settings page', () => {
     globalThis.caches = originalCaches;
   });
 
+  beforeEach(() => {
+    globalThis.history.pushState({}, '', '/app/settings');
+  });
+
   /**
-   * A cache storage with `pages` cached pages and, optionally, the "download done" flag.
-   * Returns the lookups made, to wait on.
+   * A cache storage with `pages` cached pages and, optionally, the "download done" flag the
+   * service worker writes. A key resolves against the caller's URL like in the real Cache API, so
+   * the page's lookups resolve against `/app/settings`. Returns the lookups made.
    */
   const cachesWith = ({
     pages,
@@ -56,10 +61,14 @@ describe('the downloaded status on the settings page', () => {
     pages: number;
     downloadDone: boolean;
   }): jest.Mock<Promise<object | undefined>> => {
+    // where the worker has always stored it, so the downloads users already made still count
+    const flagUrl = new URL('/offline-enabled', globalThis.location.origin).href;
     const match = jest.fn((name: string, key: string) =>
       Promise.resolve(
         // any stored entry; jsdom has no Response
-        name === 'offline-status-cache-v1' && key === 'offline-enabled' && downloadDone
+        name === 'offline-status-cache-v1' &&
+          new URL(key, globalThis.location.href).href === flagUrl &&
+          downloadDone
           ? { ok: true }
           : undefined,
       ),
@@ -84,7 +93,7 @@ describe('the downloaded status on the settings page', () => {
     const { result } = renderHook(() => useOfflineDownload({ checkCacheOnMount: true }));
 
     await waitFor(() => {
-      expect(match).toHaveBeenCalledWith('offline-status-cache-v1', 'offline-enabled');
+      expect(match).toHaveBeenCalledWith('offline-status-cache-v1', expect.any(String));
     });
     await act(() => Promise.all(match.mock.results.map((call) => call.value as Promise<unknown>)));
 

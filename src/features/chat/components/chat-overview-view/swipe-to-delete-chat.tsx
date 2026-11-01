@@ -3,7 +3,7 @@
 import { ArchiveChatConfirmDialog } from '@/features/chat/components/archive-chat-confirm-dialog';
 import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-mutation';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
+import { canDeleteChat } from '@/features/chat/utils/can-delete-chat';
 import { cn } from '@/utils/tailwindcss-override';
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
@@ -25,16 +25,7 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
   const [pastThreshold, setPastThreshold] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  const canDelete =
-    chat.chatType !== ChatType.ANNOUNCEMENT &&
-    (chat.isArchived === true ||
-      chat.chatType === ChatType.EMERGENCY ||
-      (
-        [
-          ChatMembershipPermission.OWNER,
-          ChatMembershipPermission.ADMIN,
-        ] as ChatMembershipPermission[]
-      ).includes(chat.userChatPermission));
+  const canDelete = canDeleteChat(chat);
 
   // Transforms for right swipe (draggingX is positive)
   const binOpacity = useTransform(draggingX, [0, 30], [0, 1]);
@@ -85,20 +76,21 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
           height: { duration: 0.22, ease: [0.4, 0, 0.2, 1] },
           opacity: { duration: 0.18, ease: 'easeOut' },
         }}
-        className="relative overflow-hidden rounded-md"
+        className="relative overflow-hidden"
         style={{ touchAction: 'pan-y' }}
       >
         {((): React.ReactElement => {
-          let trackBg = 'bg-gray-100';
-          let iconColor = 'text-gray-400';
+          // a delete is red, strong once it is past the threshold
+          let trackBg = 'bg-quiet';
+          let iconColor = 'text-green-500';
           if (canDelete) {
-            trackBg = pastThreshold ? 'bg-red-500' : 'bg-red-100';
-            iconColor = pastThreshold ? 'text-white' : 'text-red-600';
+            trackBg = pastThreshold ? 'bg-danger' : 'bg-danger-soft';
+            iconColor = pastThreshold ? 'text-white' : 'text-danger-text';
           }
           return (
             <div
               className={cn(
-                'absolute inset-y-0 left-0 flex w-full items-center justify-start rounded-md pl-6 transition-colors duration-200',
+                'absolute inset-y-0 left-0 flex w-full items-center justify-start pl-6 transition-colors duration-200',
                 trackBg,
               )}
             >
@@ -107,7 +99,7 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
                   <Trash2 className={cn('h-6 w-6 transition-colors duration-200', iconColor)} />
                   {canDelete ? undefined : (
                     <svg
-                      className="absolute inset-0 h-6 w-6 text-gray-400"
+                      className="absolute inset-0 h-6 w-6 text-green-500"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"

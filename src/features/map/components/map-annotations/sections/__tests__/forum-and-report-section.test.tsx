@@ -11,7 +11,7 @@ const reportProblem = jest.fn();
 jest.mock('next-auth/react', () => ({ useSession: jest.fn() }));
 jest.mock('@/utils/login-handler', () => ({ handleLogin: jest.fn() }));
 jest.mock('@/hooks/use-online-status', () => ({ useOnlineStatus: (): boolean => true }));
-jest.mock('next-i18n-router/client', () => ({ useCurrentLocale: (): string => 'de' }));
+jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
 jest.mock('next/navigation', () => ({ useRouter: (): object => ({ push: jest.fn() }) }));
 jest.mock('@/trpc/client', () => ({
   trpc: {

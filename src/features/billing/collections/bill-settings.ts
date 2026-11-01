@@ -9,7 +9,7 @@ import { z } from 'zod';
  * part of the camp fee. An empty list is fine — it means "use the single VAT code".
  */
 const VatSplitsValidationSchema = z
-  .array(z.object({ share: z.number().nullable().optional() }).passthrough())
+  .array(z.object({ share: z.number().nullable().optional() }).loose())
   .nullable()
   .optional()
   .refine(
@@ -19,7 +19,7 @@ const VatSplitsValidationSchema = z
       // Tolerate the third of a percent that thirds-style splits cannot express exactly.
       return Math.abs(total - 100) < 0.011;
     },
-    { message: 'Die Anteile der MWST-Aufteilung müssen zusammen 100% ergeben.' },
+    { error: 'Die Anteile der MWST-Aufteilung müssen zusammen 100% ergeben.' },
   );
 
 /**
@@ -954,7 +954,7 @@ export const BillSettingsGlobal: GlobalConfig = {
                   name: 'body',
                   type: 'textarea',
                   defaultValue:
-                    'Guten Morgen\n\nAnbei der aktuelle Anmeldestand für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDetails und mögliche Probleme stehen im angehängten Bericht.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen',
+                    'Guten Morgen\n\nAnbei der aktuelle Anmeldestand für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDetails und mögliche Probleme stehen im angehängten Bericht.\n\nFreundliche Grüsse\n\n{{signatur :: Ressort Finanzen}}',
                   label: { en: 'Email Text', de: 'E-Mail-Text', fr: "Texte de l'e-mail" },
                   admin: {
                     description: {
@@ -985,7 +985,7 @@ export const BillSettingsGlobal: GlobalConfig = {
                   name: 'financeBody',
                   type: 'textarea',
                   defaultValue:
-                    'Guten Morgen\n\nAnbei die aktuelle Rechnungsübersicht für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDie detaillierten Buchungszeilen befinden sich in der angehängten Excel-Datei.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen',
+                    'Guten Morgen\n\nAnbei die aktuelle Rechnungsübersicht für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDie detaillierten Buchungszeilen befinden sich in der angehängten Excel-Datei.\n\nFreundliche Grüsse\n\n{{signatur :: Ressort Finanzen}}',
                   label: {
                     en: 'Finance Email Text',
                     de: 'Finanz-E-Mail Text',
@@ -1032,6 +1032,16 @@ export const BillSettingsGlobal: GlobalConfig = {
                     },
                   },
                 },
+                {
+                  name: 'doublePaymentsDownload',
+                  type: 'ui',
+                  admin: {
+                    components: {
+                      Field:
+                        '@/features/billing/components/double-payments-download-button#DoublePaymentsDownloadButton',
+                    },
+                  },
+                },
               ],
             },
             {
@@ -1063,20 +1073,88 @@ export const BillSettingsGlobal: GlobalConfig = {
           },
           fields: [
             {
+              name: 'dailyBillingRun',
+              type: 'group',
+              label: {
+                en: 'Daily billing run',
+                de: 'Täglicher Rechnungslauf',
+                fr: 'Facturation quotidienne',
+              },
+              admin: {
+                description: {
+                  en: 'Generates the bills once a day after the nightly sync and emails every generated bill that has not been sent yet, with the template below. Runs only once that day’s sync has run to the end.',
+                  de: 'Generiert einmal täglich nach dem nächtlichen Abgleich die Rechnungen und versendet alle generierten, noch nicht versendeten Rechnungen mit der Vorlage unten. Läuft erst, wenn der Abgleich des Tages vollständig durchgelaufen ist.',
+                  fr: 'Génère les factures une fois par jour après la synchronisation nocturne et envoie par e-mail toutes les factures générées pas encore envoyées, avec le modèle ci-dessous. Ne démarre que lorsque la synchronisation du jour est allée jusqu’au bout.',
+                },
+              },
+              fields: [
+                {
+                  name: 'enabled',
+                  type: 'checkbox',
+                  defaultValue: false,
+                  label: {
+                    en: 'Generate and send bills automatically every day',
+                    de: 'Rechnungen täglich automatisch generieren und versenden',
+                    fr: 'Générer et envoyer les factures automatiquement chaque jour',
+                  },
+                },
+                {
+                  name: 'hour',
+                  type: 'number',
+                  defaultValue: 6,
+                  min: 0,
+                  max: 23,
+                  label: {
+                    en: 'From hour (0–23, Europe/Zurich)',
+                    de: 'Ab Stunde (0–23, Europe/Zürich)',
+                    fr: 'À partir de l’heure (0–23, Europe/Zurich)',
+                  },
+                  admin: {
+                    description: {
+                      en: 'The earliest start. If the sync is not done by then, it is checked again every hour until midnight.',
+                      de: 'Frühester Start. Ist der Abgleich dann noch nicht fertig, wird bis Mitternacht stündlich erneut geprüft.',
+                      fr: 'Le démarrage au plus tôt. Si la synchronisation n’est pas terminée, une nouvelle vérification a lieu chaque heure jusqu’à minuit.',
+                    },
+                  },
+                },
+                {
+                  name: 'lastRunAt',
+                  type: 'date',
+                  label: { en: 'Last started', de: 'Zuletzt gestartet', fr: 'Dernier démarrage' },
+                  admin: {
+                    readOnly: true,
+                    date: { pickerAppearance: 'dayAndTime' },
+                    description: {
+                      en: 'Written by the scheduler. Also what stops a second run on the same day.',
+                      de: 'Wird vom Zeitplan gesetzt. Verhindert zugleich einen zweiten Lauf am selben Tag.',
+                      fr: 'Écrit par le planificateur; empêche un second lancement le même jour.',
+                    },
+                  },
+                },
+              ],
+            },
+            {
               name: 'invoiceEmailSubject',
               type: 'text',
-              defaultValue: 'conveniat27 – Anmeldebestätigung und Rechnung',
+              defaultValue: 'conveniat27 – Anmeldebestätigung und Rechnung {{registrationNumber}}',
               label: {
                 en: 'Email Subject',
                 de: 'E-Mail-Betreff',
                 fr: "Sujet de l'e-mail",
+              },
+              admin: {
+                description: {
+                  en: 'Same placeholders as the email body.',
+                  de: 'Gleiche Platzhalter wie beim E-Mail-Text.',
+                  fr: "Mêmes espaces réservés que le corps de l'e-mail.",
+                },
               },
             },
             {
               name: 'invoiceEmailBody',
               type: 'textarea',
               defaultValue:
-                'Liebe/r {{firstName}},\n\nVielen Dank für deine Anmeldung zum conveniat27. Im Anhang findest du deine Anmeldebestätigung inkl. Rechnung.\n\nBitte überweise den Betrag innert 30 Tagen.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen',
+                'Liebe/r {{firstName}},\n\nVielen Dank für deine Anmeldung zum conveniat27. Im Anhang findest du deine Anmeldebestätigung inkl. Rechnung.\n\nBitte überweise den Betrag innert 30 Tagen.\n\nFreundliche Grüsse\n\n{{signatur :: Ressort Finanzen}}',
               label: {
                 en: 'Email Body',
                 de: 'E-Mail-Text',
@@ -1084,9 +1162,9 @@ export const BillSettingsGlobal: GlobalConfig = {
               },
               admin: {
                 description: {
-                  en: 'Use {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}} as placeholders.',
-                  de: 'Verwende {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}} als Platzhalter.',
-                  fr: 'Utilisez {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}} comme espaces réservés.',
+                  en: 'Use {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}}, {{registrationNumber}} as placeholders. {{registrationNumber}} is the Registration Number printed on the PDF.',
+                  de: 'Verwende {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}}, {{registrationNumber}} als Platzhalter. {{registrationNumber}} ist die Anmeldenummer, die auf dem PDF steht.',
+                  fr: "Utilisez {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}}, {{registrationNumber}} comme espaces réservés. {{registrationNumber}} est le numéro d'inscription imprimé sur le PDF.",
                 },
               },
             },

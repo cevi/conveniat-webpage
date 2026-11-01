@@ -132,6 +132,12 @@ export interface ParticipationAnswerField {
   label: string;
   /** The answer on the form, `undefined` when no control could be read. */
   value: string | undefined;
+  /**
+   * The answers a select or radio question offers, `[]` for a free-text one. Hitobito saves
+   * any string posted for a choice question, and one that matches no choice shows up in
+   * the Cevi.DB as no answer at all.
+   */
+  choices: string[];
 }
 
 function escapeForRegex(value: string): string {
@@ -250,6 +256,29 @@ function readFieldValue(html: string, fieldName: string): string | undefined {
   return chosen === undefined ? undefined : attribute(chosen, 'value');
 }
 
+/** The non-empty values a select or a group of radios offers for one named control. */
+function readFieldChoices(html: string, fieldName: string): string[] {
+  const name = escapeForRegex(fieldName);
+
+  const selectMatch = html.match(
+    new RegExp(`<select[^>]*name="${name}"[^>]*>([\\s\\S]*?)<\\/select>`, 'i'),
+  );
+  const tags =
+    selectMatch?.[1] === undefined
+      ? [...html.matchAll(/<input[^>]*>/g)]
+          .map((match) => match[0])
+          .filter(
+            (tag) =>
+              attribute(tag, 'name') === fieldName &&
+              (attribute(tag, 'type') ?? '').toLowerCase() === 'radio',
+          )
+      : [...selectMatch[1].matchAll(/<option[^>]*>/gi)].map((match) => match[0]);
+
+  return tags
+    .map((tag) => decodeEntities(attribute(tag, 'value') ?? ''))
+    .filter((value) => value !== '');
+}
+
 /**
  * Every custom-question answer on a participation edit page, with the question text and
  * the name to post an update under.
@@ -260,5 +289,6 @@ export function parseParticipationAnswerFields(html: string): ParticipationAnswe
     fieldName,
     label: findFieldLabel(html, fieldName),
     value: readFieldValue(html, fieldName),
+    choices: readFieldChoices(html, fieldName),
   }));
 }

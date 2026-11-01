@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 const BrevoContactWorkflowInputSchema = z.object({
   input: z.object({
-    email: z.string().email(),
+    email: z.email(),
     firstName: z.string().optional(),
     lastName: z.string().optional(),
     phone: z.string().optional(),

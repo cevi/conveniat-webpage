@@ -8,7 +8,7 @@ import { syncAllOfflineData } from '@/lib/chat-sync';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { motion } from 'framer-motion';
-import { Download, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import React from 'react';
 
 const offlineSettingsTitle: StaticTranslationString = {
@@ -62,7 +62,6 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
 
   return (
     <SettingsRow
-      icon={Download}
       title={offlineSettingsTitle[locale]}
       subtitle={
         displayStatus === 'has-content' ? downloadedText[locale] : notDownloadedText[locale]
@@ -72,18 +71,19 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
         <>
           {displayStatus === 'has-content' && (
             <Button
-              variant="ghost"
-              size="icon"
+              variant="quiet"
+              size="touchIcon"
               onClick={() => {
                 startDownload();
               }}
               title={updateButton[locale]}
-              className="h-8 w-8 text-gray-400 hover:text-blue-600"
+              aria-label={updateButton[locale]}
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw aria-hidden="true" />
             </Button>
           )}
           <Switch
+            aria-label={offlineSettingsTitle[locale]}
             checked={displayStatus === 'has-content' || displayStatus === 'downloading'}
             onCheckedChange={(checked) => {
               if (checked) {
@@ -100,7 +100,7 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
     >
       {displayStatus === 'downloading' && (
         <div className="space-y-1">
-          <div className="flex justify-between text-xs font-medium text-blue-600">
+          <div className="flex justify-between text-[13px] font-medium text-green-700 tabular-nums">
             <span>{downloadingText[locale]}</span>
             <span>
               {progress.total > 0
@@ -109,9 +109,9 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
               %
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+          <div className="bg-quiet h-1.5 w-full overflow-hidden rounded-full">
             <motion.div
-              className="h-full bg-blue-500"
+              className="bg-conveniat-green h-full"
               initial={{ width: 0 }}
               animate={{
                 width: `${progress.total > 0 ? Math.min(100, (progress.current / progress.total) * 100) : 0}%`,

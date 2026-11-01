@@ -16,20 +16,17 @@ interface ResponsePayload {
 export const AlertResponseMessage: React.FC<AlertResponseMessageProperties> = ({ message }) => {
   const payload = message.messagePayload as unknown as ResponsePayload;
 
-  const handleCall = (): void => {
-    globalThis.location.href = `tel:${payload.phoneNumber}`;
-  };
-
   return (
     <div className="flex min-w-[200px] flex-col space-y-3 p-1">
-      <p className="whitespace-pre-wrap text-(--theme-elevation-900,#111827)">{payload.message}</p>
-      <button
-        onClick={handleCall}
-        className="bg-conveniat-green flex w-full cursor-pointer items-center justify-center space-x-2 rounded-xl px-4 py-3 text-white shadow-sm transition-all duration-200 hover:bg-green-700 hover:shadow-md active:scale-[0.98]"
+      <p className="text-[15px] whitespace-pre-wrap text-green-900">{payload.message}</p>
+      {/* red as the call button of the Notfall screens: this is the number to call in an emergency */}
+      <a
+        href={`tel:${payload.phoneNumber}`}
+        className="bg-danger hover:bg-danger-text flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-white transition-colors"
       >
-        <Phone className="h-4 w-4" />
+        <Phone className="h-4 w-4" aria-hidden="true" />
         <span className="font-semibold">{payload.phoneNumber}</span>
-      </button>
+      </a>
     </div>
   );
 };

@@ -28,6 +28,12 @@ interface TrpcUtilsMock {
     getById: { fetch: jest.Mock; setData: jest.Mock };
     getCourseStatus: { fetch: jest.Mock };
     getMyEnrollments: { fetch: jest.Mock };
+    getMyQuartiere: { fetch: jest.Mock };
+    getLeaderAccess: { fetch: jest.Mock };
+    reminders: {
+      getReminders: { fetch: jest.Mock };
+      getReminderSettings: { fetch: jest.Mock };
+    };
     getHelperShifts: { fetch: jest.Mock };
     getCourseStatuses: { fetch: jest.Mock };
   };
@@ -87,6 +93,12 @@ describe('Offline Sync Helpers', () => {
         getById: { fetch: jest.fn().mockResolvedValue({}), setData: jest.fn() },
         getCourseStatus: { fetch: jest.fn().mockResolvedValue({}) },
         getMyEnrollments: { fetch: jest.fn().mockResolvedValue([]) },
+        getMyQuartiere: { fetch: jest.fn().mockResolvedValue([]) },
+        getLeaderAccess: { fetch: jest.fn().mockResolvedValue(false) },
+        reminders: {
+          getReminders: { fetch: jest.fn().mockResolvedValue([]) },
+          getReminderSettings: { fetch: jest.fn().mockResolvedValue({}) },
+        },
         getHelperShifts: { fetch: jest.fn().mockResolvedValue([]) },
         getCourseStatuses: { fetch: jest.fn().mockResolvedValue({}) },
       },
@@ -134,6 +146,15 @@ describe('Offline Sync Helpers', () => {
     expect(mockTrpcUtils.map.getMapAnnotations.fetch).toHaveBeenCalledWith({ locale: 'de' });
     expect(mockTrpcUtils.presence.getPresence.fetch).toHaveBeenCalled();
     expect(mockTrpcUtils.photoContest.getContests.fetch).toHaveBeenCalled();
+  });
+
+  test('downloads what the Programm and a block need offline: own Quartier, leader access, reminders', async () => {
+    await syncAllOfflineData(mockTrpcUtils as unknown as ReturnType<typeof trpc.useUtils>);
+
+    expect(mockTrpcUtils.schedule.getMyQuartiere.fetch).toHaveBeenCalled();
+    expect(mockTrpcUtils.schedule.getLeaderAccess.fetch).toHaveBeenCalled();
+    expect(mockTrpcUtils.schedule.reminders.getReminders.fetch).toHaveBeenCalled();
+    expect(mockTrpcUtils.schedule.reminders.getReminderSettings.fetch).toHaveBeenCalled();
   });
 });
 

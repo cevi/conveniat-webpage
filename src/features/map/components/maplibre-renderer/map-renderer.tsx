@@ -2,11 +2,12 @@
 
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { AnnotationDetailsDrawer } from '@/features/map/components/map-annotations/annotation-details-drawer';
+import { MapSearchRow } from '@/features/map/components/map-search-row';
 import { MapUnavailableFallback } from '@/features/map/components/map-unavailable-fallback';
 import { MapContextProvider } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import { MaplibreMap } from '@/features/map/components/maplibre-renderer/maplibre-map';
-import { SearchBar } from '@/features/map/components/search-bar';
 import { useMapInitialization } from '@/features/map/hooks/use-map-initialization';
+import { useMapSearchTerm } from '@/features/map/hooks/use-map-search-term';
 import { useMapUrlSync } from '@/features/map/hooks/use-map-url-sync';
 import type {
   CampMapAnnotationPoint,
@@ -15,14 +16,16 @@ import type {
   CeviLogoMarker,
   InitialMapPose,
   MapControlOptions,
+  MapQuartier,
 } from '@/features/map/types/types';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { quartierRufnameOf, shortQuartierName } from '@/utils/quartier-names';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 /**
@@ -30,6 +33,23 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
  * Used by the `useCeviLogoMarkers` hook.
  * @returns a DOM element with the Cevi Logo SVG
  */
+/**
+ * Whether a place answers a search: by its own name, or by its Quartier's name, Rufname or
+ * short name, "Quartier 5 - Greif", "Greif" or "Q5".
+ */
+const matchesSearch = (
+  annotation: { title: string; quartier?: MapQuartier | undefined },
+  searchTerm: string,
+): boolean => {
+  const term = searchTerm.toLowerCase();
+  const { quartier } = annotation;
+  const names =
+    quartier === undefined
+      ? [annotation.title]
+      : [annotation.title, quartier.name, quartierRufnameOf(quartier), shortQuartierName(quartier)];
+  return names.some((name) => name.toLowerCase().includes(term));
+};
+
 export const ceviLogoMarkerElementFactory = (): HTMLElement =>
   reactToDomElement(<CeviLogo className="h-5 w-5" />);
 
@@ -81,7 +101,7 @@ export const MapLibreRenderer = ({
     }
     return;
   });
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useMapSearchTerm();
 
   const closeDrawer = useCallback(() => setOpenAnnotation(undefined), []);
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -184,6 +204,7 @@ export const MapLibreRenderer = ({
     limitUsage,
     validateStyle,
     ...(mapStyle !== undefined && { style: mapStyle }),
+    locale,
   });
 
   useMapUrlSync(
@@ -213,21 +234,20 @@ export const MapLibreRenderer = ({
     if (searchTerm === '') {
       return visibleAnnotationPoints;
     }
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return visibleAnnotationPoints.filter((annotation) =>
-      annotation.title.toLowerCase().includes(lowerCaseSearchTerm),
-    );
+    return visibleAnnotationPoints.filter((annotation) => matchesSearch(annotation, searchTerm));
   }, [visibleAnnotationPoints, searchTerm]);
 
   const filteredAnnotationPolygons = useMemo(() => {
     if (searchTerm === '') {
       return visibleAnnotationPolygons;
     }
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return visibleAnnotationPolygons.filter((annotation) =>
-      annotation.title.toLowerCase().includes(lowerCaseSearchTerm),
-    );
+    return visibleAnnotationPolygons.filter((annotation) => matchesSearch(annotation, searchTerm));
   }, [visibleAnnotationPolygons, searchTerm]);
+
+  const searchResults = useMemo(
+    () => [...filteredAnnotationPoints, ...filteredAnnotationPolygons],
+    [filteredAnnotationPoints, filteredAnnotationPolygons],
+  );
 
   const handleSearch = useCallback(
     (term: string) => {
@@ -241,7 +261,7 @@ export const MapLibreRenderer = ({
         setOpenAnnotation(undefined);
       }
     },
-    [openAnnotation, filteredAnnotationPoints, filteredAnnotationPolygons],
+    [openAnnotation, filteredAnnotationPoints, filteredAnnotationPolygons, setSearchTerm],
   );
 
   // MapLibre could not acquire a WebGL context; degrade instead of crashing the page.
@@ -260,14 +280,19 @@ export const MapLibreRenderer = ({
         />
       )}
       <div className="h-full w-full" ref={(element) => setMapContainer(element ?? undefined)} />
-      {enableSearch && <SearchBar onSearch={handleSearch} />}
+      {enableSearch && (
+        <MapSearchRow value={searchTerm} onSearch={handleSearch} results={searchResults} />
+      )}
       <MaplibreMap
         openAnnotation={openAnnotation}
         setOpenAnnotation={setOpenAnnotation}
         campMapAnnotationPoints={filteredAnnotationPoints}
         campMapAnnotationPolygons={filteredAnnotationPolygons}
         ceviLogoMarkers={ceviLogoMarkers}
-        mapControlOptions={mapControlOptions}
+        // the search row brings its own locate button
+        mapControlOptions={
+          enableSearch ? { ...mapControlOptions, showGeolocate: false } : mapControlOptions
+        }
         disableFlyTo={disableFlyTo}
       />
     </MapContextProvider>

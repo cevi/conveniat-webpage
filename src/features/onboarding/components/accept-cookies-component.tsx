@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/buttons/button';
 import {
   acceptAnalyticsText,
   acknowledgeCookiesText,
@@ -14,15 +15,14 @@ import { cn } from '@/utils/tailwindcss-override';
 import Link from 'next/link';
 import React from 'react';
 
-// Both answers look the same on purpose: declining must be as easy as accepting.
-const buttonClassName =
-  'font-heading transform cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 shadow-md duration-100 hover:scale-[1.02] hover:bg-red-800 active:scale-[0.98]';
-
 export const AcceptCookieEntrypointComponent: React.FC<{
   locale: 'de' | 'fr' | 'en';
   callback: () => void;
 }> = ({ locale, callback }) => {
   const asksForAnalytics = isPostHogConfigured();
+  // A lone acknowledgement is the view's primary action. Two answers look the same on purpose:
+  // declining must be as easy as accepting, so neither of them is the primary one.
+  const buttonVariant = asksForAnalytics ? 'outlined' : 'primary';
 
   const answer = (consent: AnalyticsConsent): void => {
     setAnalyticsConsent(consent);
@@ -31,7 +31,7 @@ export const AcceptCookieEntrypointComponent: React.FC<{
 
   return (
     <>
-      <p className="mb-8 text-lg text-balance text-gray-700">
+      <p className="mb-8 text-[15px] leading-normal text-balance text-green-700">
         {asksForAnalytics ? (
           <>
             {analyticsConsentText[locale]}{' '}
@@ -50,13 +50,23 @@ export const AcceptCookieEntrypointComponent: React.FC<{
           'mx-auto w-full max-w-xs items-stretch': asksForAnalytics,
         })}
       >
-        <button onClick={() => answer('denied')} className={buttonClassName}>
+        <Button
+          variant={buttonVariant}
+          size="touch"
+          className="w-full"
+          onClick={() => answer('denied')}
+        >
           {asksForAnalytics ? necessaryCookiesOnlyText[locale] : acknowledgeCookiesText[locale]}
-        </button>
+        </Button>
         {asksForAnalytics && (
-          <button onClick={() => answer('granted')} className={buttonClassName}>
+          <Button
+            variant={buttonVariant}
+            size="touch"
+            className="w-full"
+            onClick={() => answer('granted')}
+          >
             {acceptAnalyticsText[locale]}
-          </button>
+          </Button>
         )}
       </div>
     </>

@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { onPayloadInit } from '@/features/payload-cms/payload-cms/initialization';
+import { hasPayloadInitFailed } from '@/features/payload-cms/payload-cms/initialization/init-state';
 import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
 import { execSync } from 'node:child_process';
 import fs from 'node:fs/promises';
@@ -14,10 +15,9 @@ jest.mock('@/features/payload-cms/payload-cms/initialization/ensure-indexes', ()
 }));
 jest.mock('@/features/payload-cms/payload-cms/initialization/migrate-form-files', () => ({}));
 jest.mock(
-  '@/features/payload-cms/payload-cms/initialization/migrate-form-placeholders',
+  '@/features/payload-cms/payload-cms/initialization/refresh-admin-panel-access',
   () => ({}),
 );
-jest.mock('@/features/payload-cms/payload-cms/initialization/migrate-legacy-hoefe', () => ({}));
 jest.mock('@/features/payload-cms/payload-cms/initialization/seeding', () => ({
   seedDatabase: jest.fn().mockResolvedValue(void 0),
 }));
@@ -25,7 +25,6 @@ jest.mock('@/features/payload-cms/payload-cms/tasks/active-job-tracking', () => 
   announceRunningJobsWith: jest.fn(),
   getRunningJobIds: (): string[] => [],
 }));
-jest.mock('@/features/payload-cms/payload-cms/utils/hof-membership', () => ({}));
 const queryRaw = jest.fn();
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
@@ -66,6 +65,7 @@ describe('onPayloadInit', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (globalThis as { __payloadInitCompleted__?: boolean }).__payloadInitCompleted__ = false;
+    (globalThis as { __payloadInitFailed__?: boolean }).__payloadInitFailed__ = false;
     mockedEnvironment.NODE_ENV = 'production';
   });
 
@@ -77,8 +77,9 @@ describe('onPayloadInit', () => {
     expect(execSync).not.toHaveBeenCalled();
     expect(seedDatabase).not.toHaveBeenCalled();
     expect(fs.rm).not.toHaveBeenCalled();
-    // so the next initialization asks again
     expect(initializationCompleted()).toBe(false);
+    // Payload does not call it again, so `/status` has to get the process replaced
+    expect(hasPayloadInitFailed()).toBe(true);
   });
 
   it('does not push the Prisma schema outside development, even with the tables missing', async () => {

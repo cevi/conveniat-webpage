@@ -1,8 +1,8 @@
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { format } from 'date-fns';
 import { de, enUS, fr } from 'date-fns/locale';
-import { useCurrentLocale } from 'next-i18n-router/client';
 
 const isToday = (date: Date): boolean => {
   const today = new Date();

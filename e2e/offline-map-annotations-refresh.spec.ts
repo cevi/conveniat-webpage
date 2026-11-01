@@ -319,11 +319,12 @@ const waitForServiceWorker = async (page: Page): Promise<void> => {
   });
 };
 
+/**
+ * The offline content's settings row: its state, its switch, "Update" and the progress below.
+ * The switch sits in the row's action area, inside the line with the title, inside the row.
+ */
 const offlineRow = (page: Page): Locator =>
-  page
-    .locator('div.space-y-4')
-    .filter({ has: page.getByText('Offline-Modus', { exact: true }) })
-    .last();
+  page.getByRole('switch', { name: 'Offline-Modus' }).locator('xpath=ancestor::div[3]');
 
 const updateButton = (page: Page): Locator =>
   offlineRow(page).getByRole('button', { name: 'Aktualisieren' });
@@ -338,7 +339,7 @@ const enableOfflineContent = async (page: Page): Promise<void> => {
   if ((await toggle.getAttribute('aria-checked')) !== 'true') {
     await toggle.click();
   }
-  await expect(row.getByText('Heruntergeladen')).toBeVisible({ timeout: 90_000 });
+  await expect(row.getByText('Heruntergeladen', { exact: true })).toBeVisible({ timeout: 90_000 });
   await expect(updateButton(page)).toBeVisible({ timeout: 90_000 });
 };
 
@@ -373,7 +374,7 @@ const pressUpdateAndWait = async (page: Page, timeout: number): Promise<number> 
   // the button makes way for the progress bar while the download runs, and comes back after it
   await expect(button).toBeVisible({ timeout });
   await expect(offlineRow(page).getByText('Lädt...')).toHaveCount(0);
-  await expect(offlineRow(page).getByText('Heruntergeladen')).toBeVisible();
+  await expect(offlineRow(page).getByText('Heruntergeladen', { exact: true })).toBeVisible();
   return Date.now() - startedAt;
 };
 
@@ -468,6 +469,37 @@ test.describe('Map annotations edited in the CMS reach an installed app', () => 
     await expectNoErrorScreen(page);
     expect(pageErrors).toEqual([]);
     expect(server.mapRequests).toBe(requestsWhileOffline);
+  });
+
+  test('B2: offline, the search of the map lies below the offline banner', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    await context.addCookies([
+      { name: 'design-mode', value: 'design-mode-app', url: baseURL ?? 'http://localhost:3000' },
+    ]);
+    await signIn(context);
+    await enableOfflineContent(page);
+    await page.goto('/app/map');
+    const search = page.getByPlaceholder('Ort oder Quartier suchen');
+    await expect(search).toBeVisible({ timeout: 20_000 });
+
+    await context.setOffline(true);
+    await page.goto('/app/map', { waitUntil: 'domcontentloaded' });
+    const banner = page.getByRole('status').filter({ hasText: 'Du bist offline' });
+    await expect(banner).toBeVisible({ timeout: 20_000 });
+    await expect(search).toBeVisible();
+
+    const bannerBox = await banner.boundingBox();
+    const searchBox = await search.boundingBox();
+    expect(bannerBox).not.toBeNull();
+    expect(searchBox).not.toBeNull();
+    expect(searchBox?.y ?? 0).toBeGreaterThanOrEqual(
+      (bannerBox?.y ?? 0) + (bannerBox?.height ?? 0),
+    );
+    // nothing lies over the field: a click would land on it
+    await search.click({ trial: true });
   });
 
   test('C: "Update" in the settings downloads the edited annotation', async ({ page, context }) => {

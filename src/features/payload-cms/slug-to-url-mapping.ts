@@ -7,10 +7,6 @@ export const slugToUrlMapping: {
   };
 }[] = [
   {
-    slug: 'blog',
-    urlPrefix: { de: 'blog', en: 'blog', fr: 'blog' },
-  },
-  {
     slug: 'generic-page',
     urlPrefix: { de: '', en: '', fr: '' },
   },

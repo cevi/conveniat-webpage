@@ -218,6 +218,26 @@ export const canAccessBillingField: FieldAccess = ({ req }) => {
 };
 
 /**
+ * Who reads the outgoing mails: the full admins all of them, the billing team the mails sent
+ * for a registration, the bills and the reminders about missing details, which the E-Mails
+ * tab of a registration lists. Form submission mails stay with the admins: they carry what
+ * someone typed into a form.
+ *
+ * The mail's `type` is derived on read and cannot be queried, so the rule asks for the stored
+ * links instead, and turns away anything linked to a form submission as well.
+ */
+export const canReadOutgoingEmail = ({ req }: { req: PayloadRequest }): boolean | Where => {
+  if (isFullAdmin({ req })) return true;
+  if (!hasAccessToThis({ req, requiredRoles: BILLING_ROLES })) return false;
+  return {
+    and: [
+      { formSubmission: { exists: false } },
+      { or: [{ billParticipant: { exists: true } }, { billParticipants: { exists: true } }] },
+    ],
+  };
+};
+
+/**
  * The billing team, the full admins and the web core team.
  *
  * For shared reference data the billing sync owns but other areas look up, like the Höfe:
@@ -226,6 +246,22 @@ export const canAccessBillingField: FieldAccess = ({ req }) => {
 export const hasBillingOrAdminOrWebAccess: Access = (args) => {
   if (hasAdminOrWebAccess({ req: args.req })) return true;
   return canAccessBilling(args);
+};
+
+/**
+ * Who reads a user: the full admins and the web core team read everyone, every other person
+ * their own user document and nobody else's.
+ *
+ * Payload's account page in the admin panel and `/api/users/me` both load the signed-in
+ * person's own document. Without the second half the billing and material teams, who may open
+ * the admin panel but not read users, got «not found» on the account page and a 403 from
+ * `/api/users/me`.
+ */
+export const canReadUser = ({ req }: { req: PayloadRequest }): boolean | Where => {
+  if (hasAdminOrWebAccess({ req })) return true;
+  const userId = req.user?.id;
+  if (userId === undefined) return false;
+  return { id: { equals: userId } };
 };
 
 export const hasAccessToThisHelper = ({

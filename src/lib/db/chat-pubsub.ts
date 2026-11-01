@@ -27,6 +27,7 @@ export interface ChatRealtimeEvent {
   type:
     | 'new_message'
     | 'message_updated'
+    | 'message_deleted'
     | 'chat_read_by_admin'
     | 'chat_updated'
     | 'new_chat'
@@ -50,6 +51,8 @@ export interface ChatRealtimeEvent {
     status: string;
     type: string;
     parentId?: string | undefined;
+    /** Set on `message_deleted`: when the sender deleted it; the payload is then empty. */
+    deletedAt?: Date | undefined;
   };
   chat?: {
     status: string;

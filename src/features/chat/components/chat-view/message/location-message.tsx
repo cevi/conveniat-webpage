@@ -4,9 +4,9 @@ import type { ChatMessage } from '@/features/chat/api/types';
 import { MapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
 // eslint-disable-next-line import/no-restricted-paths
 import { MapUnavailableFallback } from '@/features/map/components/map-unavailable-fallback';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const locationText: StaticTranslationString = {

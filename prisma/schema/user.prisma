@@ -4,6 +4,9 @@ model User {
   name                  String
   description           String?
   hidden                Boolean  @default(false)
+  /// a test account, e.g. for the App Store review: its contact list holds only its own Hof and
+  /// its address book, mirrored from the Payload user
+  testAccount           Boolean  @default(false)
   presentAtCamp         Boolean  @default(false)
   /// ids of the Höfe in Payload's `hoefe` collection the user is registered at, mirrored from
   /// the Payload user; no foreign key, the Höfe live in MongoDB
@@ -17,23 +20,34 @@ model User {
   /// `profile-pictures/<uuid>/<version>.webp`, mirrored from the Payload user; null when none
   profilePictureVersion String?
 
-  messages             Message[]
-  chatMemberships      ChatMembership[]
-  messagesEvents       MessageEvent[]
-  Enrollments          Enrollment[]
-  Stars                Star[]
-  pushNotificationLogs PushNotificationLog[]
-  reactions            MessageReaction[]
-  presenceLogs         PresenceLog[]
-  photoContestImages   PhotoContestImage[]
-  photoContestVotes    PhotoContestVote[]
-  materialLoans        MaterialLoan[]        @relation("MaterialLoanPerson")
-  createdMaterialLoans MaterialLoan[]        @relation("MaterialLoanCreatedBy")
-  materialIncidents    MaterialIncident[]    @relation("MaterialIncidentReportedBy")
-  addressBook          AddressBookEntry[]    @relation("AddressBookOwner")
-  inAddressBooksOf     AddressBookEntry[]    @relation("AddressBookContact")
-  issuedChatInvites    ChatInvite[]          @relation("ChatInviteIssuer")
-  redeemedChatInvites  ChatInvite[]          @relation("ChatInviteRedeemer")
+  /// how many minutes before a reminded block or shift the first push goes out; 0 or null is
+  /// none. Postgres only: the reminder job reads it, Payload never sees it
+  reminderLeadMinutes Int?    @default(15)
+  /// whether a second push goes out when the block or shift starts
+  reminderAtStart     Boolean @default(true)
+  /// the language of the app when the user last set a reminder or its timing, which the
+  /// reminder pushes are written in; null falls back to German
+  reminderLocale      String?
+
+  messages                   Message[]
+  chatMemberships            ChatMembership[]
+  messagesEvents             MessageEvent[]
+  Enrollments                Enrollment[]
+  Stars                      Star[]
+  pushNotificationLogs       PushNotificationLog[]
+  reactions                  MessageReaction[]
+  presenceLogs               PresenceLog[]
+  photoContestImages         PhotoContestImage[]
+  photoContestVotes          PhotoContestVote[]
+  materialLoans              MaterialLoan[]             @relation("MaterialLoanPerson")
+  createdMaterialLoans       MaterialLoan[]             @relation("MaterialLoanCreatedBy")
+  materialIncidents          MaterialIncident[]         @relation("MaterialIncidentReportedBy")
+  addressBook                AddressBookEntry[]         @relation("AddressBookOwner")
+  inAddressBooksOf           AddressBookEntry[]         @relation("AddressBookContact")
+  scheduleReminders          ScheduleReminder[]
+  scheduleReminderDeliveries ScheduleReminderDelivery[]
+  issuedChatInvites          ChatInvite[]               @relation("ChatInviteIssuer")
+  redeemedChatInvites        ChatInvite[]               @relation("ChatInviteRedeemer")
 
   @@index([name])
 }

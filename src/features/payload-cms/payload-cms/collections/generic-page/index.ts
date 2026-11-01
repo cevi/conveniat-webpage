@@ -16,6 +16,7 @@ import { releaseDate } from '@/features/payload-cms/payload-cms/shared-fields/re
 import { seoTab } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab';
 import {
   flushPageCacheOnChange,
+  flushPageCacheOnDelete,
   rememberLinkTarget,
 } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { linkTargetPopulate } from '@/features/payload-cms/payload-cms/utils/link-target-populate';
@@ -29,6 +30,7 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
     beforeOperation: [rememberLinkTarget],
     beforeChange: [trackSlugHistory],
     afterChange: [flushPageCacheOnChange],
+    afterDelete: [flushPageCacheOnDelete],
   },
 
   labels: {

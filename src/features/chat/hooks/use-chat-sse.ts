@@ -2,6 +2,7 @@
 
 import type { ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
+import { applyMessageDeletion } from '@/features/chat/hooks/use-delete-message';
 import { mergeStoredMessage, mergeStoredMessageAcrossPages } from '@/features/chat/utils';
 import { applyMessageToChatList } from '@/features/chat/utils/apply-message-to-chat-list';
 import type {
@@ -10,6 +11,7 @@ import type {
 } from '@/features/chat/utils/realtime-connection';
 import { createRealtimeConnection } from '@/features/chat/utils/realtime-connection';
 import { notifyRealtimeChatMessage } from '@/features/chat/utils/realtime-message-notification';
+import { addReplyToThreadSummary } from '@/features/chat/utils/thread-summary';
 import { clearTyping, recordTyping } from '@/features/chat/utils/typing-store';
 import type { ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
@@ -20,6 +22,7 @@ interface ChatRealtimeEvent {
   type:
     | 'new_message'
     | 'message_updated'
+    | 'message_deleted'
     | 'chat_read_by_admin'
     | 'chat_updated'
     | 'new_chat'
@@ -323,10 +326,16 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
           // Update the getMessage query cache for the parent message
           trpcUtils.chat.getMessage.setData({ messageId: message.parentId }, (old) => {
             if (!old) return old;
+            const threadSummary = addReplyToThreadSummary(
+              old.threadSummary,
+              old.replyCount ?? 0,
+              message,
+            );
             return {
               ...old,
-              replyCount: old.replyCount + 1,
+              replyCount: (old.replyCount ?? 0) + 1,
               hasUnreadReplies: message.senderId === currentUser ? old.hasUnreadReplies : true,
+              ...(threadSummary === undefined ? {} : { threadSummary }),
             };
           });
 
@@ -344,11 +353,17 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
                   ...page,
                   items: page.items.map((item) => {
                     if (item.id === message.parentId) {
+                      const threadSummary = addReplyToThreadSummary(
+                        item.threadSummary,
+                        item.replyCount ?? 0,
+                        message,
+                      );
                       return {
                         ...item,
                         replyCount: (item.replyCount ?? 0) + 1,
                         hasUnreadReplies:
                           message.senderId === currentUser ? item.hasUnreadReplies : true,
+                        ...(threadSummary === undefined ? {} : { threadSummary }),
                       };
                     }
                     return item;
@@ -402,6 +417,17 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
             };
           });
         }
+      }
+
+      if (data.type === 'message_deleted') {
+        const deletedAt = new Date(message.deletedAt ?? Date.now());
+        applyMessageDeletion(trpcUtils, {
+          chatId: data.chatId,
+          messageId: message.id,
+          parentId: message.parentId,
+          deletedAt: Number.isNaN(deletedAt.getTime()) ? new Date() : deletedAt,
+        });
+        return;
       }
 
       if (data.type === 'message_updated') {

@@ -43,7 +43,7 @@ const locationSchema = z.union([
       id: z.string(),
       title: z.string().optional(),
     })
-    .passthrough(), // Allow additional properties from CampMapAnnotation
+    .loose(), // Allow additional properties from CampMapAnnotation
 ]);
 
 /**
@@ -56,7 +56,7 @@ const organiserSchema = z.union([
     .object({
       fullName: z.string(),
     })
-    .passthrough(), // Allow additional properties from User
+    .loose(), // Allow additional properties from User
 ]);
 
 /**
@@ -68,7 +68,7 @@ const categorySchema = z.union([
     .object({
       id: z.string(),
     })
-    .passthrough(), // Allow title, colorTheme, and additional properties from CampCategory
+    .loose(), // Allow title, colorTheme, and additional properties from CampCategory
 ]);
 
 /**

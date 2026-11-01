@@ -27,6 +27,7 @@ const options = {
   initialMapPose: { initialMapCenter: [8.5, 47.4] as [number, number], zoom: 15 },
   limitUsage: true,
   validateStyle: true,
+  locale: 'de' as const,
 };
 
 describe('useMapInitialization', () => {
@@ -51,6 +52,9 @@ describe('useMapInitialization', () => {
     expect(result.current.initializationFailed).toBe(false);
     expect(result.current.map).toBeDefined();
     expect(addControlMock).toHaveBeenCalledTimes(1);
+    // MapLibre's own labels speak the language of the app
+    const [[mapOptions]] = mapConstructor.mock.calls as [[{ locale: Record<string, string> }]];
+    expect(mapOptions.locale['Map.Title']).toBe('Karte');
   });
 
   it('points MapLibre at the worker built for its own version before creating the map', () => {

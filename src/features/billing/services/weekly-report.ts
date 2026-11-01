@@ -1,4 +1,8 @@
-import { BILLED_STATUSES, NEEDS_MANUAL_REVIEW } from '@/features/billing/services/billing-status';
+import {
+  BILLED_STATUSES,
+  NEEDS_MANUAL_REVIEW,
+  PAID,
+} from '@/features/billing/services/billing-status';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
 
 /**
@@ -20,6 +24,8 @@ export interface AbteilungRow {
   billed: number;
   /** Bills that have gone out by email. */
   sent: number;
+  /** Bills the payment import has booked as paid. */
+  paid: number;
   /** Usable registrations still waiting for a bill. */
   pending: number;
   /** Registrations that cannot be billed as they stand. */
@@ -43,6 +49,7 @@ export interface WeeklyReport {
     participants: number;
     billed: number;
     sent: number;
+    paid: number;
     pending: number;
     blocked: number;
     /** Gross total of every raised bill, in CHF. */
@@ -130,6 +137,7 @@ export function buildWeeklyReport(
       total: 0,
       billed: 0,
       sent: 0,
+      paid: 0,
       pending: 0,
       blocked: 0,
     };
@@ -137,7 +145,8 @@ export function buildWeeklyReport(
     const status = participant.status;
     if (isBilled(status)) row.billed++;
     // A paid bill reached its recipient, so it stays counted as sent.
-    if (status === 'bill_sent' || status === 'reminder_sent' || status === 'paid') row.sent++;
+    if (status === 'bill_sent' || status === 'reminder_sent' || status === PAID) row.sent++;
+    if (status === PAID) row.paid++;
     if (isPending(status)) row.pending++;
     if (!isBilled(status) && !isPending(status)) row.blocked++;
     byAbteilung.set(name, row);
@@ -253,6 +262,7 @@ export function buildWeeklyReport(
       participants: active.length,
       billed: abteilungen.reduce((sum, row) => sum + row.billed, 0),
       sent: abteilungen.reduce((sum, row) => sum + row.sent, 0),
+      paid: abteilungen.reduce((sum, row) => sum + row.paid, 0),
       pending: abteilungen.reduce((sum, row) => sum + row.pending, 0),
       blocked: abteilungen.reduce((sum, row) => sum + row.blocked, 0),
       invoicedAmount: Math.round(invoicedAmount * 100) / 100,

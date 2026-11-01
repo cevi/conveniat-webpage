@@ -4,14 +4,7 @@ import type { ShiftStatus } from '@/features/schedule/hooks/use-shift-status';
 import { getSpotsLeftText } from '@/features/schedule/utils/spots-left-text';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { CheckCircle } from 'lucide-react';
 import type React from 'react';
-
-const localizedEnrolled: StaticTranslationString = {
-  de: 'Angemeldet',
-  en: 'Enrolled',
-  fr: 'Inscrit',
-};
 
 const localizedFull: StaticTranslationString = {
   de: 'Ausgebucht',
@@ -19,7 +12,7 @@ const localizedFull: StaticTranslationString = {
   fr: 'Complet',
 };
 
-const localizedPast: StaticTranslationString = {
+export const localizedPast: StaticTranslationString = {
   de: 'Vorbei',
   en: 'Over',
   fr: 'Terminé',
@@ -31,6 +24,7 @@ export const localizedSpotsFilled: StaticTranslationString = {
   fr: '{{count}} sur {{max}} places occupées',
 };
 
+/** "2 von 6 Plätzen belegt" */
 export const formatSpotsFilled = (
   enrolledCount: number,
   maxParticipants: number,
@@ -41,90 +35,21 @@ export const formatSpotsFilled = (
     .replace('{{max}}', String(maxParticipants));
 
 /**
- * One geometry for every badge in the corner of a card, so the only thing that varies between
- * them is colour: neutral for how full the shift is, green for the helper's own state.
- */
-const BADGE_SHAPE =
-  'flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap';
-
-/**
- * How full a shift is, as one badge in the corner of the card.
+ * How full a shift is, quietly: the free spots and a rail in brand green under them.
  *
- * The card used to carry the same fact three times - "Max. Helfende: 8" in the meta row, "0 / 8"
- * next to the enrol button, and "(8 Plätze frei)" beside that - so the badge is deliberately the
- * only place on the card where a number about capacity appears. The exact count lives in the
- * detail sheet, where there is room to spell it out.
+ * The only place on a card where a number about capacity appears. A full shift turns the rail
+ * and the label red - the colour of what is blocked - so a glance down the list shows which
+ * shifts still need people without reading a single number. Once the shift is over, how full it
+ * was stops being news and the line says so instead.
  */
-export const ShiftCapacityBadge: React.FC<{
+export const ShiftCapacity: React.FC<{
   status: ShiftStatus | undefined;
   locale: Locale;
   isPast?: boolean;
-}> = ({ status, locale, isPast = false }) => {
-  if (status === undefined) return <></>;
-
-  const { isEnrolled, enrolledCount, maxParticipants } = status;
-
-  // A shift that is over has no spots to offer, so how full it is stops being news. Whether the
-  // helper was on it still is, which is why both chips show rather than one replacing the other.
-  if (isPast) {
-    return (
-      <span className="flex shrink-0 items-center gap-1.5">
-        {isEnrolled && (
-          <span className={cn(BADGE_SHAPE, 'gap-1 bg-gray-100 text-gray-500')}>
-            <CheckCircle className="h-3 w-3" />
-            {localizedEnrolled[locale]}
-          </span>
-        )}
-        <span className={cn(BADGE_SHAPE, 'bg-gray-100 text-gray-500')}>
-          {localizedPast[locale]}
-        </span>
-      </span>
-    );
-  }
-
-  // The state the helper is in outranks how full the shift is: once you are in, the number of
-  // free spots is somebody else's problem.
-  if (isEnrolled) {
-    return (
-      <span className={cn(BADGE_SHAPE, 'gap-1 bg-green-100 text-green-700')}>
-        <CheckCircle className="h-3 w-3" />
-        {localizedEnrolled[locale]}
-      </span>
-    );
-  }
-
-  if (maxParticipants === undefined) return <></>;
-
-  const spotsLeft = maxParticipants - enrolledCount;
-
-  if (spotsLeft <= 0) {
-    return (
-      <span className={cn(BADGE_SHAPE, 'bg-gray-100 text-gray-500')}>{localizedFull[locale]}</span>
-    );
-  }
-
-  return (
-    <span className={cn(BADGE_SHAPE, 'bg-gray-100 text-gray-600')}>
-      {spotsLeft} {getSpotsLeftText(spotsLeft, locale)}
-    </span>
-  );
-};
-
-/**
- * The same capacity as a rail, so a glance down a list of cards shows which shifts still need
- * people without reading a single number.
- */
-export const ShiftCapacityBar: React.FC<{
-  status: ShiftStatus | undefined;
-  locale: Locale;
-  /**
-   * Spell the free spots out next to the rail. The card turns this on exactly when the badge is
-   * occupied by something else - being enrolled, or the shift being over - because a helper who
-   * is already on a shift still needs to know whether it is short of people.
-   */
-  withSpotsLabel?: boolean;
-  isPast?: boolean;
-}> = ({ status, locale, withSpotsLabel = false, isPast = false }) => {
+  /** leaves out the label, where a line above already spells the count out */
+  withoutLabel?: boolean;
+  className?: string;
+}> = ({ status, locale, isPast = false, withoutLabel = false, className }) => {
   if (status === undefined) return <></>;
 
   const { enrolledCount, maxParticipants } = status;
@@ -132,34 +57,46 @@ export const ShiftCapacityBar: React.FC<{
 
   const filledRatio = Math.min(1, enrolledCount / maxParticipants);
   const spotsLeft = maxParticipants - enrolledCount;
+  const isFull = spotsLeft <= 0;
+
+  let label = `${spotsLeft} ${getSpotsLeftText(spotsLeft, locale)}`;
+  if (isPast) label = localizedPast[locale];
+  else if (isFull) label = localizedFull[locale];
 
   return (
-    // fixed height: the label only appears in some states, and without this the row - and with
-    // it the whole card - grew by a line the moment a helper enrolled
-    <div className="flex h-4 items-center gap-2">
+    // the label over the rail rather than beside it: next to an enrol button on a phone, a rail
+    // and a label side by side squeezed each other down to nothing
+    <div className={cn('flex min-w-0 flex-col gap-1.5', className)}>
+      {!withoutLabel && (
+        <span
+          className={cn(
+            'text-[13px] leading-[18px] tabular-nums',
+            isPast && 'text-green-500',
+            !isPast && isFull && 'text-danger-text font-semibold',
+            !isPast && !isFull && 'text-green-700',
+          )}
+        >
+          {label}
+        </span>
+      )}
       <div
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={maxParticipants}
         aria-valuenow={enrolledCount}
         aria-label={formatSpotsFilled(enrolledCount, maxParticipants, locale)}
-        className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-gray-100"
+        className="bg-quiet h-1.5 w-full overflow-hidden rounded-full"
       >
         <div
           className={cn(
             'h-full rounded-full transition-[width] duration-300',
-            filledRatio >= 1 || isPast ? 'bg-gray-300' : 'bg-conveniat-green',
+            isPast && 'bg-rail-node',
+            !isPast && isFull && 'bg-danger',
+            !isPast && !isFull && 'bg-conveniat-green',
           )}
           style={{ width: `${filledRatio * 100}%` }}
         />
       </div>
-      {withSpotsLabel && (
-        <span className="shrink-0 text-[11px] whitespace-nowrap text-gray-500">
-          {spotsLeft > 0
-            ? `${spotsLeft} ${getSpotsLeftText(spotsLeft, locale)}`
-            : localizedFull[locale]}
-        </span>
-      )}
     </div>
   );
 };

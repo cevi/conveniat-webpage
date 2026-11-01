@@ -27,12 +27,31 @@ export const initialsOf = (name: string): string => {
   return ((first[0] ?? '') + (last[0] ?? '')).toUpperCase();
 };
 
-/** A stable colour per person, so they keep theirs across chats, lists and sessions. */
-export const avatarColorOf = (seed: string): string => {
+/**
+ * The same colours as text, a shade darker: a sender's name above their bubble in a group chat
+ * takes the colour of their avatar and still reaches 4.5:1 on white.
+ */
+const AVATAR_TEXT_COLORS = [
+  'text-emerald-700',
+  'text-teal-700',
+  'text-amber-700',
+  'text-conveniat-green',
+  'text-slate-700',
+];
+
+const avatarColorIndexOf = (seed: string): number => {
   let hash = 0;
   for (const char of seed) hash = (hash * 31 + (char.codePointAt(0) ?? 0)) % 1_000_003;
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length] ?? 'bg-slate-600';
+  return hash % AVATAR_COLORS.length;
 };
+
+/** A stable colour per person, so they keep theirs across chats, lists and sessions. */
+export const avatarColorOf = (seed: string): string =>
+  AVATAR_COLORS[avatarColorIndexOf(seed)] ?? 'bg-slate-600';
+
+/** The text colour that goes with {@link avatarColorOf}, for the person's name. */
+export const avatarTextColorOf = (seed: string): string =>
+  AVATAR_TEXT_COLORS[avatarColorIndexOf(seed)] ?? 'text-slate-700';
 
 /**
  * A person's avatar: their profile picture from Cevi.DB, or their initials on a colour of their

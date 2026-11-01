@@ -94,4 +94,6 @@ enum PushNotificationKind {
   ANNOUNCEMENT
   /// The confirmation after subscribing, and test sends from the admin panel.
   SYSTEM
+  /// A block or shift the user is reminded of, before it and when it starts.
+  REMINDER
 }

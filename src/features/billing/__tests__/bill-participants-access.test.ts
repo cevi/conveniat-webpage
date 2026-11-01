@@ -20,8 +20,18 @@ const requestFor = (...groupIds: number[]): PayloadRequest =>
 const mayRead = (request: PayloadRequest): boolean =>
   (BillParticipantsCollection.access?.read as Access)({ req: request }) === true;
 
+/** The data fields, out of the tabs and rows that only arrange the edit view. */
+const dataFields = (fields: Field[]): Field[] =>
+  fields.flatMap((field) => {
+    if (field.type === 'tabs') return dataFields(field.tabs.flatMap((tab) => tab.fields));
+    if (field.type === 'row') return dataFields(field.fields);
+    return [field];
+  });
+
 const fieldNamed = (name: string): Field | undefined =>
-  BillParticipantsCollection.fields.find((field) => 'name' in field && field.name === name);
+  dataFields(BillParticipantsCollection.fields).find(
+    (field) => 'name' in field && field.name === name,
+  );
 
 const mayReadField = (name: string, request: PayloadRequest): boolean => {
   const field = fieldNamed(name);

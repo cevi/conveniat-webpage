@@ -52,7 +52,6 @@ export interface Config {
   blocks: {};
   collections: {
     'generic-page': GenericPage;
-    blog: Blog;
     timeline: Timeline;
     timelineCategory: TimelineCategory;
     images: Image;
@@ -76,6 +75,7 @@ export interface Config {
     funktionen: Funktion;
     'presence-logs': PresenceLog;
     'bill-participants': BillParticipant;
+    'bill-payments': BillPayment;
     'bill-pdfs': BillPdf;
     hoefe: Hof;
     'outgoing-emails': OutgoingEmail;
@@ -114,6 +114,8 @@ export interface Config {
       holders: 'users';
     };
     'bill-participants': {
+      payments: 'bill-payments';
+      matchedPayments: 'bill-payments';
       relatedEmails: 'outgoing-emails';
       reminderEmails: 'outgoing-emails';
     };
@@ -126,7 +128,6 @@ export interface Config {
   };
   collectionsSelect: {
     'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
-    blog: BlogSelect<false> | BlogSelect<true>;
     timeline: TimelineSelect<false> | TimelineSelect<true>;
     timelineCategory: TimelineCategorySelect<false> | TimelineCategorySelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
@@ -150,6 +151,7 @@ export interface Config {
     funktionen: FunktionenSelect<false> | FunktionenSelect<true>;
     'presence-logs': PresenceLogsSelect<false> | PresenceLogsSelect<true>;
     'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
+    'bill-payments': BillPaymentsSelect<false> | BillPaymentsSelect<true>;
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
     hoefe: HoefeSelect<false> | HoefeSelect<true>;
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
@@ -190,7 +192,9 @@ export interface Config {
     'app-feature-flags': AppFeatureFlag;
     'bill-settings': BillSetting;
     'hof-dashboard-settings': HofDashboardSetting;
+    'visit-day': VisitDaySetting;
     'registration-management': RegistrationManagement;
+    'email-signature': EmailSignatureSetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
@@ -208,7 +212,9 @@ export interface Config {
     'app-feature-flags': AppFeatureFlagsSelect<false> | AppFeatureFlagsSelect<true>;
     'bill-settings': BillSettingsSelect<false> | BillSettingsSelect<true>;
     'hof-dashboard-settings': HofDashboardSettingsSelect<false> | HofDashboardSettingsSelect<true>;
+    'visit-day': VisitDaySelect<false> | VisitDaySelect<true>;
     'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
+    'email-signature': EmailSignatureSelect<false> | EmailSignatureSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
@@ -236,10 +242,13 @@ export interface Config {
       sendBills: TaskSendBills;
       sendWeeklyReport: TaskSendWeeklyReport;
       sendPflichtangabenReminders: TaskSendPflichtangabenReminders;
+      runDailyBilling: TaskRunDailyBilling;
       writeBackPayments: TaskWriteBackPayments;
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
+      refreshUserHoefe: TaskRefreshUserHoefe;
       syncFunktionen: TaskSyncFunktionen;
       autoCheckoutPresence: TaskAutoCheckoutPresence;
+      sendScheduleReminders: TaskSendScheduleReminders;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -354,11 +363,6 @@ export interface GenericPage {
         }
       | MediaTextBlock
       | ProcessStepsBlock
-      | {
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'blogPostsOverview';
-        }
       | FormBlock
       | ApprovedFormSubmissionsBlock
       | {
@@ -386,13 +390,7 @@ export interface GenericPage {
       | YoutubeEmbedding
       | InstagramEmbedding
       | SwisstopoMapEmbedding
-      | {
-          file: string | Document;
-          openInNewTab?: boolean | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'fileDownload';
-        }
+      | FileDownloadBlock
       | DetailsTable
       | AccordionBlocks
       | SummaryBox
@@ -411,10 +409,6 @@ export interface GenericPage {
           linkField?: {
             type?: ('reference' | 'custom' | 'email') | null;
             reference?:
-              | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
               | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
@@ -457,10 +451,6 @@ export interface GenericPage {
           linkField?: {
             type?: ('reference' | 'custom' | 'email') | null;
             reference?:
-              | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
               | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
@@ -616,6 +606,10 @@ export interface User {
    */
   hidden?: boolean | null;
   /**
+   * For an account that only tries the app, e.g. for the App Store review. Its contact list shows only people of its own Hof and those it exchanged a chat QR code with, not every function holder and AVP.
+   */
+  testAccount?: boolean | null;
+  /**
    * Whether the user is currently present on the campsite.
    */
   presentAtCamp?: boolean | null;
@@ -699,9 +693,17 @@ export interface Hof {
 export interface Quartier {
   id: string;
   /**
-   * Shown next to the Hof, e.g. "Quartier 3".
+   * The full name, shown next to the Hof, e.g. "Quartier 5 - Greif".
    */
   name: string;
+  /**
+   * Shown as "Q5" on chips; it also picks the Quartier's icon and colour in the app.
+   */
+  number: number;
+  /**
+   * The name people call the Quartier by, e.g. "Greif".
+   */
+  rufname?: string | null;
   /**
    * The area of this Quartier, drawn as a polygon on the camp map.
    */
@@ -1039,10 +1041,6 @@ export interface MediaTextBlock {
     type?: ('reference' | 'custom' | 'email') | null;
     reference?:
       | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
-      | ({
           relationTo: 'generic-page';
           value: string | GenericPage;
         } | null)
@@ -1075,276 +1073,197 @@ export interface MediaTextBlock {
   blockType: 'mediaText';
 }
 /**
- * Represents a block article that can be published on the website.
- *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "blog".
+ * via the `definition` "documents".
  */
-export interface Blog {
+export interface Document {
   id: string;
-  publishingStatus?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  _localized_status: LocalizedPublishingStatus;
-  _disable_unpublishing?: boolean | null;
-  _locale: string;
   /**
-   * Name of the page for internal purposes.
+   * Shown to visitors instead of the file name. Leave empty to show the file name.
    */
-  internalPageName: string;
+  title?: string | null;
   /**
-   * Authors of the Page (internal use only)
+   * Example: for the newsletter
    */
-  authors?: (string | User)[] | null;
-  /**
-   * Status of the page (internal use)
-   */
-  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
-  content: {
-    /**
-     * This is the title that will be displayed on the page.
-     */
-    blogH1: string;
-    bannerImage: string | Image;
-    releaseDate: string;
-    permissions?: (string | null) | Permission;
-    /**
-     * This is the text that will be displayed as a teaser on the blog overview page.
-     */
-    blogShortTitle: string;
-    /**
-     * The main content of the page
-     */
-    mainContent: (
-      | HeroSectionBlock
-      | PosterHeroBlock
-      | SectionSeparatorBlock
+  internalDescription?: string | null;
+  pdfThumbnailUrl?: string | null;
+  permissions?: (string | null) | Permission;
+  lastEditedByUser?: (string | null) | User;
+  _objectKey?: string | null;
+  folder?: (string | null) | FolderInterface;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-folders".
+ */
+export interface FolderInterface {
+  id: string;
+  name: string;
+  folder?: (string | null) | FolderInterface;
+  documentsAndFolders?: {
+    docs?: (
       | {
-          richTextSection: {
-            root: {
-              type: string;
-              children: {
-                type: any;
-                version: number;
-                [k: string]: unknown;
-              }[];
-              direction: ('ltr' | 'rtl') | null;
-              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-              indent: number;
-              version: number;
-            };
-            [k: string]: unknown;
-          };
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'richTextSection';
-        }
-      | MediaTextBlock
-      | ProcessStepsBlock
-      | {
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'blogPostsOverview';
-        }
-      | FormBlock
-      | ApprovedFormSubmissionsBlock
-      | {
-          images: (string | Image)[];
-          /**
-           * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
-           */
-          aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'photoCarousel';
-        }
-      | PhotoContestBlock
-      | HofDashboardBlock
-      | {
-          image: string | Image;
-          /**
-           * Choose the aspect ratio of the image.
-           */
-          aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'singlePicture';
-        }
-      | YoutubeEmbedding
-      | InstagramEmbedding
-      | SwisstopoMapEmbedding
-      | {
-          file: string | Document;
-          openInNewTab?: boolean | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'fileDownload';
-        }
-      | DetailsTable
-      | AccordionBlocks
-      | SummaryBox
-      | TimelineEntries
-      | Countdown
-      | {
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'whiteSpace';
+          relationTo?: 'payload-folders';
+          value: string | FolderInterface;
         }
       | {
-          /**
-           * Label for the button
-           */
-          label?: string | null;
-          linkField?: {
-            type?: ('reference' | 'custom' | 'email') | null;
-            reference?:
-              | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
-                  relationTo: 'generic-page';
-                  value: string | GenericPage;
-                } | null)
-              | ({
-                  relationTo: 'images';
-                  value: string | Image;
-                } | null)
-              | ({
-                  relationTo: 'documents';
-                  value: string | Document;
-                } | null)
-              | ({
-                  relationTo: 'camp-map-annotations';
-                  value: string | CampMapAnnotation;
-                } | null)
-              | ({
-                  relationTo: 'camp-schedule-entry';
-                  value: string | CampScheduleEntry;
-                } | null);
-            /**
-             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
-             */
-            fragment?: string | null;
-            url?: string | null;
-            email?: string | null;
-            openInNewTab?: boolean | null;
-          };
-          /**
-           * Show inverted colors
-           */
-          inverted?: boolean | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'callToAction';
+          relationTo?: 'documents';
+          value: string | Document;
         }
-      | DonationCtaBlock
-      | DonationBarometerBlock
-      | {
-          linkField?: {
-            type?: ('reference' | 'custom' | 'email') | null;
-            reference?:
-              | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
-                  relationTo: 'generic-page';
-                  value: string | GenericPage;
-                } | null)
-              | ({
-                  relationTo: 'images';
-                  value: string | Image;
-                } | null)
-              | ({
-                  relationTo: 'documents';
-                  value: string | Document;
-                } | null)
-              | ({
-                  relationTo: 'camp-map-annotations';
-                  value: string | CampMapAnnotation;
-                } | null)
-              | ({
-                  relationTo: 'camp-schedule-entry';
-                  value: string | CampScheduleEntry;
-                } | null);
-            /**
-             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
-             */
-            fragment?: string | null;
-            url?: string | null;
-            email?: string | null;
-            openInNewTab?: boolean | null;
-          };
-          headline: string;
-          date: string;
-          image?: (string | null) | Image;
-          paragraph?: {
-            root: {
-              type: string;
-              children: {
-                type: any;
-                version: number;
-                [k: string]: unknown;
-              }[];
-              direction: ('ltr' | 'rtl') | null;
-              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-              indent: number;
-              version: number;
-            };
-            [k: string]: unknown;
-          } | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'newsCard';
-        }
-      | {
-          date: string;
-          location?: (string | null) | CampMapAnnotation;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'campScheduleEntryBlock';
-        }
-      | CardGridBlock
-      | ContactPersonBlock
-      | TwoColumnBlock
-      | SponsorGridBlock
-      | FeaturedSectionBlock
-      | TabsBlock
     )[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
   };
-  seo: {
-    urlSlug: string;
+  folderType?: 'documents'[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-schedule-entry".
+ */
+export interface CampScheduleEntry {
+  id: string;
+  /**
+   * The title of the entry.
+   */
+  title: string;
+  /**
+   * Only programme blocks get a card and a detail page. Fixed points (e.g. Tagwache, Nachtruhe), meals and transfers show as a single compact line.
+   */
+  kind: 'program' | 'fixpoint' | 'meal' | 'transfer';
+  /**
+   * Who plans and runs the block. Shown next to the category.
+   */
+  form?: ('rp' | 'hp' | 'hpStar') | null;
+  /**
+   * The description of the entry
+   */
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Time slots for the schedule entry
+   */
+  timeslot: {
+    date: string;
     /**
-     * This is the title that will be displayed in the browser tab.
+     * Time slots in HH:mm format (e.g., 08:00 - 18:00)
      */
-    metaTitle?: string | null;
-    /**
-     * This is the description that will be displayed in search engine results.
-     */
-    metaDescription?: string | null;
-    /**
-     * These are the keywords that will be used to improve the visibility of the page in search engines.
-     */
-    keywords?: string | null;
-    urlSlugHistory?:
+    time: string;
+  };
+  target_group?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * What participants bring to the block, one item per row, e.g. "Trinkflasche".
+   */
+  bring?:
+    | {
+        item: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * The steps of the block in order. The app works out the clock times from the start of the block and the durations, so one description fits every Quartier.
+   */
+  steps?:
+    | {
+        phase: 'intro' | 'main' | 'end';
+        duration: number;
+        title: string;
+        text?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  leaders?: {
+    materials?:
       | {
-          slug?: string | null;
+          amount?: string | null;
+          item: string;
+          /**
+           * Who provides it, e.g. "Hof" or "MAT".
+           */
+          responsible?: string | null;
           id?: string | null;
         }[]
       | null;
+    safety?: string | null;
+    safeguarding?: string | null;
+    badWeather?: string | null;
+    /**
+     * Only the link is hidden from participants. Who may open the file itself is decided by the permission set on the document.
+     */
+    attachments?: (string | Document)[] | null;
   };
+  enable_enrolment?: boolean | null;
+  hide_participant_list?: boolean | null;
+  participants_min?: number | null;
+  participants_max?: number | null;
+  /**
+   * Location of the Schedule Entry
+   */
+  location: string | CampMapAnnotation;
+  /**
+   * The Quartiere this entry is for. Leave empty for the whole camp. A Hof sees the entries of its Quartier.
+   */
+  quartiere?: (string | Quartier)[] | null;
+  /**
+   * Organiser
+   */
+  organiser?: (string | User)[] | null;
+  category?: (string | null) | CampCategory;
   lastEditedByUser?: (string | null) | User;
+  enrolledCount?: number | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
-  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-categories".
+ */
+export interface CampCategory {
+  id: string;
+  title: string;
+  colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1644,6 +1563,30 @@ export interface Form {
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'hofSelection';
+              }
+            | {
+                name: string;
+                label: string;
+                /**
+                 * The name of the field asking how many persons come, e.g. "anzahl_personen". Each takes one place.
+                 */
+                personCountField: string;
+                /**
+                 * The day is stored under this name, so an email can name it, e.g. {{besuchstag}}.
+                 */
+                dayField: string;
+                /**
+                 * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter. Stored under this name for the email, e.g. {{anmeldenummer}}.
+                 */
+                registrationNumberField: string;
+                required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'visitDaySelection';
               }
             | {
                 name: string;
@@ -1976,6 +1919,30 @@ export interface Form {
                           name: string;
                           label: string;
                           /**
+                           * The name of the field asking how many persons come, e.g. "anzahl_personen". Each takes one place.
+                           */
+                          personCountField: string;
+                          /**
+                           * The day is stored under this name, so an email can name it, e.g. {{besuchstag}}.
+                           */
+                          dayField: string;
+                          /**
+                           * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter. Stored under this name for the email, e.g. {{anmeldenummer}}.
+                           */
+                          registrationNumberField: string;
+                          required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'visitDaySelection';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          /**
                            * First day a helper can mark.
                            */
                           startDate: string;
@@ -2088,7 +2055,7 @@ export interface Form {
     url: string;
   };
   /**
-   * Send custom emails when the form submits. Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data, {{*:table}} to format it as an HTML table in the email, and {{approval-link}} (or {{approval-link :: Link Text}}) to insert an approval link for the submission.
+   * Send custom emails when the form submits. Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data, {{*:table}} to format it as an HTML table in the email, and {{approval-link}} (or {{approval-link :: Link Text}}) to insert an approval link for the submission. {{signatur}} (or {{signatur :: Ressort Programm}}) ends the email with the official signature.
    */
   emails?:
     | {
@@ -2131,7 +2098,7 @@ export interface Form {
       }[]
     | null;
   /**
-   * Send custom emails when a form submission is approved (set to Freigegeben). Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email.
+   * Send custom emails when a form submission is approved (set to Freigegeben). Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email. {{signatur}} (or {{signatur :: Ressort Programm}}) ends the email with the official signature.
    */
   approvalEmails?:
     | {
@@ -2538,60 +2505,24 @@ export interface SwisstopoMapEmbedding {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "documents".
+ * via the `definition` "FileDownloadBlock".
  */
-export interface Document {
-  id: string;
+export interface FileDownloadBlock {
   /**
-   * Shown to visitors instead of the file name. Leave empty to show the file name.
+   * Each group is shown as its own list under its title. For a plain list, use one group without a title.
    */
-  title?: string | null;
-  /**
-   * Example: for the newsletter
-   */
-  internalDescription?: string | null;
-  pdfThumbnailUrl?: string | null;
-  permissions?: (string | null) | Permission;
-  lastEditedByUser?: (string | null) | User;
-  _objectKey?: string | null;
-  folder?: (string | null) | FolderInterface;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payload-folders".
- */
-export interface FolderInterface {
-  id: string;
-  name: string;
-  folder?: (string | null) | FolderInterface;
-  documentsAndFolders?: {
-    docs?: (
-      | {
-          relationTo?: 'payload-folders';
-          value: string | FolderInterface;
-        }
-      | {
-          relationTo?: 'documents';
-          value: string | Document;
-        }
-    )[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  folderType?: 'documents'[] | null;
-  updatedAt: string;
-  createdAt: string;
+  groups: {
+    /**
+     * Optional, for example "For parents".
+     */
+    title?: string | null;
+    files: (string | Document)[];
+    id?: string | null;
+  }[];
+  openInNewTab?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'fileDownload';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2676,13 +2607,7 @@ export interface AccordionBlocks {
           | AccordionTimelineElementBlock
           | TitleOnlyAccordionValueBlock
           | NestedAccordionBlocks
-          | {
-              file: string | Document;
-              openInNewTab?: boolean | null;
-              id?: string | null;
-              blockName?: string | null;
-              blockType: 'fileDownload';
-            }
+          | FileDownloadBlock
         )[];
         id?: string | null;
       }[]
@@ -2724,10 +2649,6 @@ export interface TeamMembersBlock {
   linkField?: {
     type?: ('reference' | 'custom' | 'email') | null;
     reference?:
-      | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
       | ({
           relationTo: 'generic-page';
           value: string | GenericPage;
@@ -2775,161 +2696,12 @@ export interface TeamMembersBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-schedule-entry".
- */
-export interface CampScheduleEntry {
-  id: string;
-  /**
-   * The title of the entry.
-   */
-  title: string;
-  /**
-   * Only programme blocks get a card and a detail page. Fixed points (e.g. Tagwache, Nachtruhe), meals and transfers show as a single compact line.
-   */
-  kind: 'program' | 'fixpoint' | 'meal' | 'transfer';
-  /**
-   * Who plans and runs the block. Shown next to the category.
-   */
-  form?: ('rp' | 'hp' | 'hpStar') | null;
-  /**
-   * The description of the entry
-   */
-  description: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  /**
-   * Time slots for the schedule entry
-   */
-  timeslot: {
-    date: string;
-    /**
-     * Time slots in HH:mm format (e.g., 08:00 - 18:00)
-     */
-    time: string;
-  };
-  target_group?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  /**
-   * What participants bring to the block, one item per row, e.g. "Trinkflasche".
-   */
-  bring?:
-    | {
-        item: string;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * The steps of the block in order. The app works out the clock times from the start of the block and the durations, so one description fits every Quartier.
-   */
-  steps?:
-    | {
-        phase: 'intro' | 'main' | 'end';
-        duration: number;
-        title: string;
-        text?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  leaders?: {
-    materials?:
-      | {
-          amount?: string | null;
-          item: string;
-          /**
-           * Who provides it, e.g. "Hof" or "MAT".
-           */
-          responsible?: string | null;
-          id?: string | null;
-        }[]
-      | null;
-    safety?: string | null;
-    safeguarding?: string | null;
-    badWeather?: string | null;
-    /**
-     * Only the link is hidden from participants. Who may open the file itself is decided by the permission set on the document.
-     */
-    attachments?: (string | Document)[] | null;
-  };
-  enable_enrolment?: boolean | null;
-  hide_participant_list?: boolean | null;
-  participants_min?: number | null;
-  participants_max?: number | null;
-  /**
-   * Location of the Schedule Entry
-   */
-  location: string | CampMapAnnotation;
-  /**
-   * The Quartiere this entry is for. Leave empty for the whole camp. A Hof sees the entries of its Quartier.
-   */
-  quartiere?: (string | Quartier)[] | null;
-  /**
-   * Organiser
-   */
-  organiser?: (string | User)[] | null;
-  category?: (string | null) | CampCategory;
-  lastEditedByUser?: (string | null) | User;
-  enrolledCount?: number | null;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-categories".
- */
-export interface CampCategory {
-  id: string;
-  title: string;
-  colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "AccordionTimelineElementBlock".
  */
 export interface AccordionTimelineElementBlock {
   dateText: string;
   title: string;
-  contentBlocks?:
-    | (
-        | PlainTextBlock
-        | TeamMembersBlock
-        | FormBlock
-        | {
-            file: string | Document;
-            openInNewTab?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'fileDownload';
-          }
-      )[]
-    | null;
+  contentBlocks?: (PlainTextBlock | TeamMembersBlock | FormBlock | FileDownloadBlock)[] | null;
   id?: string | null;
   blockName?: string | null;
   blockType: 'accordionTimelineElement';
@@ -2956,13 +2728,7 @@ export interface NestedAccordionBlocks {
           | PlainTextBlock
           | TeamMembersBlock
           | FormBlock
-          | {
-              file: string | Document;
-              openInNewTab?: boolean | null;
-              id?: string | null;
-              blockName?: string | null;
-              blockType: 'fileDownload';
-            }
+          | FileDownloadBlock
           | AccordionTimelineElementBlock
           | TitleOnlyAccordionValueBlock
         )[];
@@ -3102,10 +2868,6 @@ export interface Timeline {
               type?: ('reference' | 'custom' | 'email') | null;
               reference?:
                 | ({
-                    relationTo: 'blog';
-                    value: string | Blog;
-                  } | null)
-                | ({
                     relationTo: 'generic-page';
                     value: string | GenericPage;
                   } | null)
@@ -3202,10 +2964,6 @@ export interface DonationCtaBlock {
     type?: ('reference' | 'custom' | 'email') | null;
     reference?:
       | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
-      | ({
           relationTo: 'generic-page';
           value: string | GenericPage;
         } | null)
@@ -3272,10 +3030,6 @@ export interface DonationBarometerBlock {
   linkField?: {
     type?: ('reference' | 'custom' | 'email') | null;
     reference?:
-      | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
       | ({
           relationTo: 'generic-page';
           value: string | GenericPage;
@@ -3359,10 +3113,6 @@ export interface CardGridBlock {
       type?: ('reference' | 'custom' | 'email') | null;
       reference?:
         | ({
-            relationTo: 'blog';
-            value: string | Blog;
-          } | null)
-        | ({
             relationTo: 'generic-page';
             value: string | GenericPage;
           } | null)
@@ -3409,10 +3159,6 @@ export interface ContactPersonBlock {
   linkField?: {
     type?: ('reference' | 'custom' | 'email') | null;
     reference?:
-      | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
       | ({
           relationTo: 'generic-page';
           value: string | GenericPage;
@@ -3487,11 +3233,6 @@ export interface TwoColumnBlock {
         blockName?: string | null;
         blockType: 'richTextSection';
       }
-    | {
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'blogPostsOverview';
-      }
     | FormBlock
     | ApprovedFormSubmissionsBlock
     | {
@@ -3517,13 +3258,7 @@ export interface TwoColumnBlock {
     | YoutubeEmbedding
     | InstagramEmbedding
     | SwisstopoMapEmbedding
-    | {
-        file: string | Document;
-        openInNewTab?: boolean | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'fileDownload';
-      }
+    | FileDownloadBlock
     | DetailsTable
     | AccordionBlocks
     | SummaryBox
@@ -3542,10 +3277,6 @@ export interface TwoColumnBlock {
         linkField?: {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
-            | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
             | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
@@ -3586,10 +3317,6 @@ export interface TwoColumnBlock {
         linkField?: {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
-            | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
             | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
@@ -3676,11 +3403,6 @@ export interface TwoColumnBlock {
         blockName?: string | null;
         blockType: 'richTextSection';
       }
-    | {
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'blogPostsOverview';
-      }
     | FormBlock
     | ApprovedFormSubmissionsBlock
     | {
@@ -3706,13 +3428,7 @@ export interface TwoColumnBlock {
     | YoutubeEmbedding
     | InstagramEmbedding
     | SwisstopoMapEmbedding
-    | {
-        file: string | Document;
-        openInNewTab?: boolean | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'fileDownload';
-      }
+    | FileDownloadBlock
     | DetailsTable
     | AccordionBlocks
     | SummaryBox
@@ -3731,10 +3447,6 @@ export interface TwoColumnBlock {
         linkField?: {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
-            | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
             | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
@@ -3775,10 +3487,6 @@ export interface TwoColumnBlock {
         linkField?: {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
-            | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
             | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
@@ -3862,10 +3570,6 @@ export interface SponsorGridBlock {
         type?: ('reference' | 'custom' | 'email') | null;
         reference?:
           | ({
-              relationTo: 'blog';
-              value: string | Blog;
-            } | null)
-          | ({
               relationTo: 'generic-page';
               value: string | GenericPage;
             } | null)
@@ -3915,10 +3619,6 @@ export interface FeaturedSectionBlock {
       type?: ('reference' | 'custom' | 'email') | null;
       reference?:
         | ({
-            relationTo: 'blog';
-            value: string | Blog;
-          } | null)
-        | ({
             relationTo: 'generic-page';
             value: string | GenericPage;
           } | null)
@@ -3957,10 +3657,6 @@ export interface FeaturedSectionBlock {
         linkField?: {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
-            | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
             | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
@@ -4025,11 +3721,6 @@ export interface TabsBlock {
           blockName?: string | null;
           blockType: 'richTextSection';
         }
-      | {
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'blogPostsOverview';
-        }
       | FormBlock
       | ApprovedFormSubmissionsBlock
       | {
@@ -4055,13 +3746,7 @@ export interface TabsBlock {
       | YoutubeEmbedding
       | InstagramEmbedding
       | SwisstopoMapEmbedding
-      | {
-          file: string | Document;
-          openInNewTab?: boolean | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'fileDownload';
-        }
+      | FileDownloadBlock
       | DetailsTable
       | AccordionBlocks
       | SummaryBox
@@ -4080,10 +3765,6 @@ export interface TabsBlock {
           linkField?: {
             type?: ('reference' | 'custom' | 'email') | null;
             reference?:
-              | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
               | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
@@ -4124,10 +3805,6 @@ export interface TabsBlock {
           linkField?: {
             type?: ('reference' | 'custom' | 'email') | null;
             reference?:
-              | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
               | ({
                   relationTo: 'generic-page';
                   value: string | GenericPage;
@@ -4505,13 +4182,7 @@ export interface HelperShift {
             blockName?: string | null;
             blockType: 'singlePicture';
           }
-        | {
-            file: string | Document;
-            openInNewTab?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'fileDownload';
-          }
+        | FileDownloadBlock
         | AccordionBlocks
         | {
             id?: string | null;
@@ -4614,59 +4285,29 @@ export interface PushNotificationSubscription {
  */
 export interface BillParticipant {
   id: string;
-  /**
-   * The UUID of the event_participation object in the Cevi.DB. Changes on re-enrollment.
-   */
-  participationUuid: string;
-  /**
-   * The person ID in the Cevi.DB. Stable across re-enrollments.
-   */
-  userId: string;
-  eventId: string;
-  groupId?: string | null;
-  eventName?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  nickname?: string | null;
-  fullName: string;
-  /**
-   * Cevi.DB event role type (e.g. Event::Camp::Role::Participant)
-   */
-  roleType?: string | null;
-  street?: string | null;
-  zip?: string | null;
-  zipCode?: string | null;
-  town?: string | null;
-  email?: string | null;
-  /**
-   * The "Administrationsangaben » Anmeldestatus" answer from the Cevi.DB.
-   */
-  anmeldestatus?: string | null;
-  birthday?: string | null;
-  gender?: string | null;
-  active?: boolean | null;
-  enrollmentDate?: string | null;
-  firstSyncDate?: string | null;
-  lastSyncDate?: string | null;
-  billCreatedDate?: string | null;
-  billSentDate?: string | null;
-  /**
-   * The booking date of the payment in the bank file.
-   */
-  paidDate?: string | null;
-  paidAmount?: number | null;
-  /**
-   * The bank transaction (Transaktionsreferenz in the bank file) that paid this bill. Importing the same file again books it only once.
-   */
-  paymentTransactionReference?: string | null;
+  status:
+    | 'new'
+    | 'pflichtangaben_missing'
+    | 'invalid_anmeldeangaben'
+    | 'needs_manual_review'
+    | 'bill_created'
+    | 'bill_mail_pending'
+    | 'bill_sent'
+    | 'removed'
+    | 're_added'
+    | 'updated'
+    | 'reminder_sent'
+    | 'paid';
   /**
    * Free text carried into the finance overview export. Never touched by a Cevi.DB sync.
    */
   financeNote?: string | null;
-  removedDate?: string | null;
-  reAddedDate?: string | null;
-  referenceNumber?: string | null;
   invoiceNumber?: string | null;
+  /**
+   * The Registration Number printed on the bill PDF.
+   */
+  registrationNumber?: string | null;
+  referenceNumber?: string | null;
   /**
    * Gross amount, i.e. the net camp fee plus VAT.
    */
@@ -4686,6 +4327,8 @@ export interface BillParticipant {
         id?: string | null;
       }[]
     | null;
+  billCreatedDate?: string | null;
+  billSentDate?: string | null;
   billPdfs?: (string | BillPdf)[] | null;
   /**
    * Every bill raised for this registration, including replaced and cancelled ones.
@@ -4701,19 +4344,56 @@ export interface BillParticipant {
         id?: string | null;
       }[]
     | null;
-  status:
-    | 'new'
-    | 'pflichtangaben_missing'
-    | 'invalid_anmeldeangaben'
-    | 'needs_manual_review'
-    | 'bill_created'
-    | 'bill_mail_pending'
-    | 'bill_sent'
-    | 'removed'
-    | 're_added'
-    | 'updated'
-    | 'reminder_sent'
-    | 'paid';
+  /**
+   * The booking date of the payment in the bank file.
+   */
+  paidDate?: string | null;
+  paidAmount?: number | null;
+  /**
+   * The bank transaction (Transaktionsreferenz in the bank file) that paid this bill. Importing the same file again books it only once.
+   */
+  paymentTransactionReference?: string | null;
+  /**
+   * More was paid for this bill than it asks for. Refund the payment or assign it to another bill under «Payments».
+   */
+  doublePayment?: boolean | null;
+  /**
+   * The payments assigned to this bill.
+   */
+  payments?: {
+    docs?: (string | BillPayment)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  /**
+   * Every payment that came in with this bill’s reference, including ones assigned to another bill or not yet assigned.
+   */
+  matchedPayments?: {
+    docs?: (string | BillPayment)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  fullName: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  nickname?: string | null;
+  email?: string | null;
+  street?: string | null;
+  zipCode?: string | null;
+  zip?: string | null;
+  town?: string | null;
+  birthday?: string | null;
+  gender?: string | null;
+  eventName?: string | null;
+  /**
+   * The "Administrationsangaben » Anmeldestatus" answer from the Cevi.DB.
+   */
+  anmeldestatus?: string | null;
+  /**
+   * Cevi.DB event role type (e.g. Event::Camp::Role::Participant)
+   */
+  roleType?: string | null;
+  active?: boolean | null;
   missingStammdaten?:
     | {
         [k: string]: unknown;
@@ -4732,6 +4412,31 @@ export interface BillParticipant {
     | number
     | boolean
     | null;
+  enrollmentDate?: string | null;
+  removedDate?: string | null;
+  reAddedDate?: string | null;
+  /**
+   * The UUID of the event_participation object in the Cevi.DB. Changes on re-enrollment.
+   */
+  participationUuid: string;
+  /**
+   * The person ID in the Cevi.DB. Stable across re-enrollments.
+   */
+  userId: string;
+  eventId: string;
+  groupId?: string | null;
+  relatedEmails?: {
+    docs?: (string | OutgoingEmail)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  reminderEmails?: {
+    docs?: (string | OutgoingEmail)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  firstSyncDate?: string | null;
+  lastSyncDate?: string | null;
   /**
    * Array of { date, action } entries for audit trail.
    */
@@ -4744,16 +4449,6 @@ export interface BillParticipant {
     | number
     | boolean
     | null;
-  relatedEmails?: {
-    docs?: (string | OutgoingEmail)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  reminderEmails?: {
-    docs?: (string | OutgoingEmail)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
   updatedAt: string;
   createdAt: string;
 }
@@ -4775,6 +4470,64 @@ export interface BillPdf {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * Every payment from an imported bank file. Assign a payment the import could not book, move a double payment to the bill it was meant for, or split one payment across several bills.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bill-payments".
+ */
+export interface BillPayment {
+  id: string;
+  /**
+   * Identifies the payment: importing the same bank file again adds nothing.
+   */
+  transactionReference: string;
+  amount: number;
+  currency?: string | null;
+  bookingDate?: string | null;
+  reference?: string | null;
+  payer?: string | null;
+  message?: string | null;
+  /**
+   * The registration whose bill carries the paid reference. Kept when the payment is assigned elsewhere.
+   */
+  matchedParticipant?: (string | null) | BillParticipant;
+  importOutcome?:
+    | (
+        | 'booked'
+        | 'already_booked'
+        | 'double_payment'
+        | 'amount_mismatch'
+        | 'unknown_reference'
+        | 'invalid_reference'
+        | 'superseded_bill'
+        | 'cancelled'
+        | 'not_payable'
+        | 'wrong_currency'
+        | 'invalid_amount'
+        | 'missing_transaction_reference'
+      )
+    | null;
+  importedBy?: string | null;
+  importMessage?: string | null;
+  /**
+   * The bills this payment pays. A bill counts as paid once its assigned amounts reach its total. To split one payment for two children, add both bills with their amounts.
+   */
+  allocations?:
+    | {
+        participant: string | BillParticipant;
+        amount: number;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Set once the money went back. The payment then counts for no bill, and a double payment is no longer flagged.
+   */
+  refundedDate?: string | null;
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -4921,15 +4674,10 @@ export interface SearchCollection {
   id: string;
   title?: string | null;
   priority?: number | null;
-  doc:
-    | {
-        relationTo: 'blog';
-        value: string | Blog;
-      }
-    | {
-        relationTo: 'generic-page';
-        value: string | GenericPage;
-      };
+  doc: {
+    relationTo: 'generic-page';
+    value: string | GenericPage;
+  };
   /**
    * This field is used for search indexing. It is automatically filled and not editable.
    */
@@ -4947,15 +4695,10 @@ export interface Go {
   urlSlug: string;
   to?: {
     type?: ('reference' | 'custom') | null;
-    reference?:
-      | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
-      | ({
-          relationTo: 'generic-page';
-          value: string | GenericPage;
-        } | null);
+    reference?: {
+      relationTo: 'generic-page';
+      value: string | GenericPage;
+    } | null;
     url?: string | null;
   };
   updatedAt: string;
@@ -5197,10 +4940,13 @@ export interface PayloadJob {
           | 'sendBills'
           | 'sendWeeklyReport'
           | 'sendPflichtangabenReminders'
+          | 'runDailyBilling'
           | 'writeBackPayments'
           | 'cleanupTemporaryFormFiles'
+          | 'refreshUserHoefe'
           | 'syncFunktionen'
           | 'autoCheckoutPresence'
+          | 'sendScheduleReminders'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -5252,10 +4998,13 @@ export interface PayloadJob {
         | 'sendBills'
         | 'sendWeeklyReport'
         | 'sendPflichtangabenReminders'
+        | 'runDailyBilling'
         | 'writeBackPayments'
         | 'cleanupTemporaryFormFiles'
+        | 'refreshUserHoefe'
         | 'syncFunktionen'
         | 'autoCheckoutPresence'
+        | 'sendScheduleReminders'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -5285,10 +5034,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'generic-page';
         value: string | GenericPage;
-      } | null)
-    | ({
-        relationTo: 'blog';
-        value: string | Blog;
       } | null)
     | ({
         relationTo: 'timeline';
@@ -5381,6 +5126,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'bill-participants';
         value: string | BillParticipant;
+      } | null)
+    | ({
+        relationTo: 'bill-payments';
+        value: string | BillPayment;
       } | null)
     | ({
         relationTo: 'bill-pdfs';
@@ -5519,12 +5268,6 @@ export interface GenericPageSelect<T extends boolean = true> {
                   };
               mediaText?: T | MediaTextBlockSelect<T>;
               processSteps?: T | ProcessStepsBlockSelect<T>;
-              blogPostsOverview?:
-                | T
-                | {
-                    id?: T;
-                    blockName?: T;
-                  };
               formBlock?: T | FormBlockSelect<T>;
               approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
               photoCarousel?:
@@ -5548,14 +5291,7 @@ export interface GenericPageSelect<T extends boolean = true> {
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
               instagramEmbed?: T | InstagramEmbeddingSelect<T>;
               swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
-              fileDownload?:
-                | T
-                | {
-                    file?: T;
-                    openInNewTab?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
+              fileDownload?: T | FileDownloadBlockSelect<T>;
               detailsTable?: T | DetailsTableSelect<T>;
               accordion?: T | AccordionBlocksSelect<T>;
               summaryBox?: T | SummaryBoxSelect<T>;
@@ -5829,6 +5565,22 @@ export interface SwisstopoMapEmbeddingSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FileDownloadBlock_select".
+ */
+export interface FileDownloadBlockSelect<T extends boolean = true> {
+  groups?:
+    | T
+    | {
+        title?: T;
+        files?: T;
+        id?: T;
+      };
+  openInNewTab?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "DetailsTable_select".
  */
 export interface DetailsTableSelect<T extends boolean = true> {
@@ -5871,14 +5623,7 @@ export interface AccordionBlocksSelect<T extends boolean = true> {
               accordionTimelineElement?: T | AccordionTimelineElementBlockSelect<T>;
               titleOnlyAccordionValueBlock?: T | TitleOnlyAccordionValueBlockSelect<T>;
               nestedAccordion?: T | NestedAccordionBlocksSelect<T>;
-              fileDownload?:
-                | T
-                | {
-                    file?: T;
-                    openInNewTab?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
+              fileDownload?: T | FileDownloadBlockSelect<T>;
             };
         id?: T;
       };
@@ -5941,14 +5686,7 @@ export interface AccordionTimelineElementBlockSelect<T extends boolean = true> {
         accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
         accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
-        fileDownload?:
-          | T
-          | {
-              file?: T;
-              openInNewTab?: T;
-              id?: T;
-              blockName?: T;
-            };
+        fileDownload?: T | FileDownloadBlockSelect<T>;
       };
   id?: T;
   blockName?: T;
@@ -5977,14 +5715,7 @@ export interface NestedAccordionBlocksSelect<T extends boolean = true> {
               accordionPlainTextBlock?: T | PlainTextBlockSelect<T>;
               accordionTeamMembersBlock?: T | TeamMembersBlockSelect<T>;
               formBlock?: T | FormBlockSelect<T>;
-              fileDownload?:
-                | T
-                | {
-                    file?: T;
-                    openInNewTab?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
+              fileDownload?: T | FileDownloadBlockSelect<T>;
               accordionTimelineElement?: T | AccordionTimelineElementBlockSelect<T>;
               titleOnlyAccordionValueBlock?: T | TitleOnlyAccordionValueBlockSelect<T>;
             };
@@ -6146,12 +5877,6 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
-        blogPostsOverview?:
-          | T
-          | {
-              id?: T;
-              blockName?: T;
-            };
         formBlock?: T | FormBlockSelect<T>;
         approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
         photoCarousel?:
@@ -6173,14 +5898,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
         youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
         instagramEmbed?: T | InstagramEmbeddingSelect<T>;
         swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
-        fileDownload?:
-          | T
-          | {
-              file?: T;
-              openInNewTab?: T;
-              id?: T;
-              blockName?: T;
-            };
+        fileDownload?: T | FileDownloadBlockSelect<T>;
         detailsTable?: T | DetailsTableSelect<T>;
         accordion?: T | AccordionBlocksSelect<T>;
         summaryBox?: T | SummaryBoxSelect<T>;
@@ -6253,12 +5971,6 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
-        blogPostsOverview?:
-          | T
-          | {
-              id?: T;
-              blockName?: T;
-            };
         formBlock?: T | FormBlockSelect<T>;
         approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
         photoCarousel?:
@@ -6280,14 +5992,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
         youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
         instagramEmbed?: T | InstagramEmbeddingSelect<T>;
         swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
-        fileDownload?:
-          | T
-          | {
-              file?: T;
-              openInNewTab?: T;
-              id?: T;
-              blockName?: T;
-            };
+        fileDownload?: T | FileDownloadBlockSelect<T>;
         detailsTable?: T | DetailsTableSelect<T>;
         accordion?: T | AccordionBlocksSelect<T>;
         summaryBox?: T | SummaryBoxSelect<T>;
@@ -6450,12 +6155,6 @@ export interface TabsBlockSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
-              blogPostsOverview?:
-                | T
-                | {
-                    id?: T;
-                    blockName?: T;
-                  };
               formBlock?: T | FormBlockSelect<T>;
               approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
               photoCarousel?:
@@ -6477,14 +6176,7 @@ export interface TabsBlockSelect<T extends boolean = true> {
               youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
               instagramEmbed?: T | InstagramEmbeddingSelect<T>;
               swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
-              fileDownload?:
-                | T
-                | {
-                    file?: T;
-                    openInNewTab?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
+              fileDownload?: T | FileDownloadBlockSelect<T>;
               detailsTable?: T | DetailsTableSelect<T>;
               accordion?: T | AccordionBlocksSelect<T>;
               summaryBox?: T | SummaryBoxSelect<T>;
@@ -6550,165 +6242,6 @@ export interface TabsBlockSelect<T extends boolean = true> {
       };
   id?: T;
   blockName?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "blog_select".
- */
-export interface BlogSelect<T extends boolean = true> {
-  publishingStatus?: T;
-  _localized_status?: T;
-  _disable_unpublishing?: T;
-  _locale?: T;
-  internalPageName?: T;
-  authors?: T;
-  internalStatus?: T;
-  content?:
-    | T
-    | {
-        blogH1?: T;
-        bannerImage?: T;
-        releaseDate?: T;
-        permissions?: T;
-        blogShortTitle?: T;
-        mainContent?:
-          | T
-          | {
-              heroSection?: T | HeroSectionBlockSelect<T>;
-              posterHero?: T | PosterHeroBlockSelect<T>;
-              sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
-              richTextSection?:
-                | T
-                | {
-                    richTextSection?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              mediaText?: T | MediaTextBlockSelect<T>;
-              processSteps?: T | ProcessStepsBlockSelect<T>;
-              blogPostsOverview?:
-                | T
-                | {
-                    id?: T;
-                    blockName?: T;
-                  };
-              formBlock?: T | FormBlockSelect<T>;
-              approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
-              photoCarousel?:
-                | T
-                | {
-                    images?: T;
-                    aspectRatio?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              photoContestBlock?: T | PhotoContestBlockSelect<T>;
-              hofDashboardBlock?: T | HofDashboardBlockSelect<T>;
-              singlePicture?:
-                | T
-                | {
-                    image?: T;
-                    aspectRatio?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
-              instagramEmbed?: T | InstagramEmbeddingSelect<T>;
-              swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
-              fileDownload?:
-                | T
-                | {
-                    file?: T;
-                    openInNewTab?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              detailsTable?: T | DetailsTableSelect<T>;
-              accordion?: T | AccordionBlocksSelect<T>;
-              summaryBox?: T | SummaryBoxSelect<T>;
-              timelineEntries?: T | TimelineEntriesSelect<T>;
-              countdown?: T | CountdownSelect<T>;
-              whiteSpace?:
-                | T
-                | {
-                    id?: T;
-                    blockName?: T;
-                  };
-              callToAction?:
-                | T
-                | {
-                    label?: T;
-                    linkField?:
-                      | T
-                      | {
-                          type?: T;
-                          reference?: T;
-                          fragment?: T;
-                          url?: T;
-                          email?: T;
-                          openInNewTab?: T;
-                        };
-                    inverted?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              donationCta?: T | DonationCtaBlockSelect<T>;
-              donationBarometer?: T | DonationBarometerBlockSelect<T>;
-              newsCard?:
-                | T
-                | {
-                    linkField?:
-                      | T
-                      | {
-                          type?: T;
-                          reference?: T;
-                          fragment?: T;
-                          url?: T;
-                          email?: T;
-                          openInNewTab?: T;
-                        };
-                    headline?: T;
-                    date?: T;
-                    image?: T;
-                    paragraph?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              campScheduleEntryBlock?:
-                | T
-                | {
-                    date?: T;
-                    location?: T;
-                    id?: T;
-                    blockName?: T;
-                  };
-              cardGrid?: T | CardGridBlockSelect<T>;
-              contactPerson?: T | ContactPersonBlockSelect<T>;
-              twoColumnBlock?: T | TwoColumnBlockSelect<T>;
-              sponsorGrid?: T | SponsorGridBlockSelect<T>;
-              featuredSection?: T | FeaturedSectionBlockSelect<T>;
-              tabsBlock?: T | TabsBlockSelect<T>;
-            };
-      };
-  seo?:
-    | T
-    | {
-        urlSlug?: T;
-        metaTitle?: T;
-        metaDescription?: T;
-        keywords?: T;
-        urlSlugHistory?:
-          | T
-          | {
-              slug?: T;
-              id?: T;
-            };
-      };
-  lastEditedByUser?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  deletedAt?: T;
-  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -7116,6 +6649,8 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
  */
 export interface QuartiereSelect<T extends boolean = true> {
   name?: T;
+  number?: T;
+  rufname?: T;
   mapAnnotation?: T;
   hoefe?: T;
   updatedAt?: T;
@@ -7224,14 +6759,7 @@ export interface HelperShiftsSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
-        fileDownload?:
-          | T
-          | {
-              file?: T;
-              openInNewTab?: T;
-              id?: T;
-              blockName?: T;
-            };
+        fileDownload?: T | FileDownloadBlockSelect<T>;
         accordion?: T | AccordionBlocksSelect<T>;
         whiteSpace?:
           | T
@@ -7309,6 +6837,7 @@ export interface UsersSelect<T extends boolean = true> {
   profilePictureVersion?: T;
   description?: T;
   hidden?: T;
+  testAccount?: T;
   presentAtCamp?: T;
   presenceLogs?: T;
   lastEditedByUser?: T;
@@ -7346,38 +6875,11 @@ export interface PresenceLogsSelect<T extends boolean = true> {
  * via the `definition` "bill-participants_select".
  */
 export interface BillParticipantsSelect<T extends boolean = true> {
-  participationUuid?: T;
-  userId?: T;
-  eventId?: T;
-  groupId?: T;
-  eventName?: T;
-  firstName?: T;
-  lastName?: T;
-  nickname?: T;
-  fullName?: T;
-  roleType?: T;
-  street?: T;
-  zip?: T;
-  zipCode?: T;
-  town?: T;
-  email?: T;
-  anmeldestatus?: T;
-  birthday?: T;
-  gender?: T;
-  active?: T;
-  enrollmentDate?: T;
-  firstSyncDate?: T;
-  lastSyncDate?: T;
-  billCreatedDate?: T;
-  billSentDate?: T;
-  paidDate?: T;
-  paidAmount?: T;
-  paymentTransactionReference?: T;
+  status?: T;
   financeNote?: T;
-  removedDate?: T;
-  reAddedDate?: T;
-  referenceNumber?: T;
   invoiceNumber?: T;
+  registrationNumber?: T;
+  referenceNumber?: T;
   invoiceAmount?: T;
   netAmount?: T;
   vatExempt?: T;
@@ -7391,6 +6893,8 @@ export interface BillParticipantsSelect<T extends boolean = true> {
         vatAmount?: T;
         id?: T;
       };
+  billCreatedDate?: T;
+  billSentDate?: T;
   billPdfs?: T;
   issuedBills?:
     | T
@@ -7403,12 +6907,69 @@ export interface BillParticipantsSelect<T extends boolean = true> {
         cancelReason?: T;
         id?: T;
       };
-  status?: T;
+  paidDate?: T;
+  paidAmount?: T;
+  paymentTransactionReference?: T;
+  doublePayment?: T;
+  payments?: T;
+  matchedPayments?: T;
+  fullName?: T;
+  firstName?: T;
+  lastName?: T;
+  nickname?: T;
+  email?: T;
+  street?: T;
+  zipCode?: T;
+  zip?: T;
+  town?: T;
+  birthday?: T;
+  gender?: T;
+  eventName?: T;
+  anmeldestatus?: T;
+  roleType?: T;
+  active?: T;
   missingStammdaten?: T;
   missingAnmeldeangaben?: T;
-  syncHistory?: T;
+  enrollmentDate?: T;
+  removedDate?: T;
+  reAddedDate?: T;
+  participationUuid?: T;
+  userId?: T;
+  eventId?: T;
+  groupId?: T;
   relatedEmails?: T;
   reminderEmails?: T;
+  firstSyncDate?: T;
+  lastSyncDate?: T;
+  syncHistory?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bill-payments_select".
+ */
+export interface BillPaymentsSelect<T extends boolean = true> {
+  transactionReference?: T;
+  amount?: T;
+  currency?: T;
+  bookingDate?: T;
+  reference?: T;
+  payer?: T;
+  message?: T;
+  matchedParticipant?: T;
+  importOutcome?: T;
+  importedBy?: T;
+  importMessage?: T;
+  allocations?:
+    | T
+    | {
+        participant?: T;
+        amount?: T;
+        id?: T;
+      };
+  refundedDate?: T;
+  note?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -7738,6 +7299,19 @@ export interface FormsSelect<T extends boolean = true> {
                           id?: T;
                           blockName?: T;
                         };
+                    visitDaySelection?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          personCountField?: T;
+                          dayField?: T;
+                          registrationNumberField?: T;
+                          required?: T;
+                          placement?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
                     dateSlotSelection?:
                       | T
                       | {
@@ -7944,6 +7518,19 @@ export interface FormsSelect<T extends boolean = true> {
                                   | {
                                       name?: T;
                                       label?: T;
+                                      required?: T;
+                                      placement?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                visitDaySelection?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      personCountField?: T;
+                                      dayField?: T;
+                                      registrationNumberField?: T;
                                       required?: T;
                                       placement?: T;
                                       id?: T;
@@ -8356,16 +7943,19 @@ export interface Header {
   _localized_status: LocalizedPublishingStatus;
   _locale: string;
   _disable_unpublishing?: boolean | null;
+  /**
+   * Each entry with sub entries becomes a column of the menu, the entries without sub entries are listed together in the column "More". Pinned entries are also shown directly in the header bar on large screens.
+   */
   mainMenu?:
     | {
         label: string;
+        /**
+         * Shown next to "Menu" on large screens. An entry with sub entries opens the menu at its column. Entries that do not fit are left out of the bar, never out of the menu.
+         */
+        pinnedToHeader?: boolean | null;
         linkField?: {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
-            | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
             | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
@@ -8401,10 +7991,6 @@ export interface Header {
                 type?: ('reference' | 'custom' | 'email') | null;
                 reference?:
                   | ({
-                      relationTo: 'blog';
-                      value: string | Blog;
-                    } | null)
-                  | ({
                       relationTo: 'generic-page';
                       value: string | GenericPage;
                     } | null)
@@ -8439,10 +8025,6 @@ export interface Header {
                       type?: ('reference' | 'custom' | 'email') | null;
                       reference?:
                         | ({
-                            relationTo: 'blog';
-                            value: string | Blog;
-                          } | null)
-                        | ({
                             relationTo: 'generic-page';
                             value: string | GenericPage;
                           } | null)
@@ -8476,10 +8058,6 @@ export interface Header {
                           linkField?: {
                             type?: ('reference' | 'custom' | 'email') | null;
                             reference?:
-                              | ({
-                                  relationTo: 'blog';
-                                  value: string | Blog;
-                                } | null)
                               | ({
                                   relationTo: 'generic-page';
                                   value: string | GenericPage;
@@ -8592,10 +8170,6 @@ export interface Footer {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
             | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
-            | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
               } | null)
@@ -8643,10 +8217,6 @@ export interface Footer {
         linkField?: {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
-            | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
             | ({
                 relationTo: 'generic-page';
                 value: string | GenericPage;
@@ -8757,6 +8327,18 @@ export interface DonationBarometer {
  */
 export interface AppLandingPage {
   id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _locale: string;
+  _disable_unpublishing?: boolean | null;
   /**
    * The title displayed in the app header bar on the dashboard (e.g. "Konekta App").
    */
@@ -8791,11 +8373,6 @@ export interface AppLandingPage {
           }
         | MediaTextBlock
         | ProcessStepsBlock
-        | {
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'blogPostsOverview';
-          }
         | FormBlock
         | ApprovedFormSubmissionsBlock
         | {
@@ -8823,13 +8400,7 @@ export interface AppLandingPage {
         | YoutubeEmbedding
         | InstagramEmbedding
         | SwisstopoMapEmbedding
-        | {
-            file: string | Document;
-            openInNewTab?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'fileDownload';
-          }
+        | FileDownloadBlock
         | DetailsTable
         | AccordionBlocks
         | SummaryBox
@@ -8848,10 +8419,6 @@ export interface AppLandingPage {
             linkField?: {
               type?: ('reference' | 'custom' | 'email') | null;
               reference?:
-                | ({
-                    relationTo: 'blog';
-                    value: string | Blog;
-                  } | null)
                 | ({
                     relationTo: 'generic-page';
                     value: string | GenericPage;
@@ -8894,10 +8461,6 @@ export interface AppLandingPage {
             linkField?: {
               type?: ('reference' | 'custom' | 'email') | null;
               reference?:
-                | ({
-                    relationTo: 'blog';
-                    value: string | Blog;
-                  } | null)
                 | ({
                     relationTo: 'generic-page';
                     value: string | GenericPage;
@@ -8967,6 +8530,7 @@ export interface AppLandingPage {
    * When enabled, the action cards (quick links to app features) are shown on the dashboard.
    */
   showActionCards?: boolean | null;
+  _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -9300,9 +8864,26 @@ export interface BillSetting {
    * Comma-separated list of email addresses for the weekly bill overview (Excel).
    */
   financeEmailRecipients?: string | null;
+  /**
+   * Generates the bills once a day after the nightly sync and emails every generated bill that has not been sent yet, with the template below. Runs only once that day’s sync has run to the end.
+   */
+  dailyBillingRun?: {
+    enabled?: boolean | null;
+    /**
+     * The earliest start. If the sync is not done by then, it is checked again every hour until midnight.
+     */
+    hour?: number | null;
+    /**
+     * Written by the scheduler. Also what stops a second run on the same day.
+     */
+    lastRunAt?: string | null;
+  };
+  /**
+   * Same placeholders as the email body.
+   */
   invoiceEmailSubject?: string | null;
   /**
-   * Use {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}} as placeholders.
+   * Use {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}}, {{registrationNumber}} as placeholders. {{registrationNumber}} is the Registration Number printed on the PDF.
    */
   invoiceEmailBody?: string | null;
   updatedAt?: string | null;
@@ -9338,6 +8919,35 @@ export interface HofDashboardSetting {
   createdAt?: string | null;
 }
 /**
+ * The days relatives may visit, the places per day and the Höfe the registration offers. The registration form picks the day from the Quartier of the Hof chosen.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visit-day".
+ */
+export interface VisitDaySetting {
+  id: string;
+  days?:
+    | {
+        date: string;
+        /**
+         * Every person registered takes one place, children included.
+         */
+        capacity: number;
+        /**
+         * The relatives of the Höfe in these Quartiere visit on this day.
+         */
+        quartiere: (string | Quartier)[];
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Not offered in the registration, e.g. a Hof for testing. A Hof without a Quartier is never offered.
+   */
+  hiddenHoefe?: (string | Hof)[] | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "registration-management".
  */
@@ -9347,6 +8957,24 @@ export interface RegistrationManagement {
    * Session cookie of a signed-in Cevi.DB browser. Highly sensitive, write-only: the value is never shown after saving. Sign in with "Remember me" ticked and paste the whole Cookie header, including remember_person_token. The app uses the session every ten minutes to keep it alive, but signing out of Cevi.DB in that browser ends it for good. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.
    */
   browserCookie?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Write {{signatur}} in an email to end it with this signature, or {{signatur :: Ressort Finanzen}} to add a line under the name. Works in the emails of the forms and in the billing texts. A field left empty uses the official value.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-signature".
+ */
+export interface EmailSignatureSetting {
+  id: string;
+  name?: string | null;
+  /**
+   * Only in the emails, never on the website.
+   */
+  whatsapp?: string | null;
+  email?: string | null;
+  website?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -9381,6 +9009,7 @@ export interface HeaderSelect<T extends boolean = true> {
     | T
     | {
         label?: T;
+        pinnedToHeader?: T;
         linkField?:
           | T
           | {
@@ -9551,6 +9180,10 @@ export interface DonationBarometerSelect<T extends boolean = true> {
  * via the `definition` "app-landing-page_select".
  */
 export interface AppLandingPageSelect<T extends boolean = true> {
+  publishingStatus?: T;
+  _localized_status?: T;
+  _locale?: T;
+  _disable_unpublishing?: T;
   title?: T;
   pageContent?:
     | T
@@ -9567,12 +9200,6 @@ export interface AppLandingPageSelect<T extends boolean = true> {
             };
         mediaText?: T | MediaTextBlockSelect<T>;
         processSteps?: T | ProcessStepsBlockSelect<T>;
-        blogPostsOverview?:
-          | T
-          | {
-              id?: T;
-              blockName?: T;
-            };
         formBlock?: T | FormBlockSelect<T>;
         approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
         photoCarousel?:
@@ -9596,14 +9223,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
         youtubeEmbed?: T | YoutubeEmbeddingSelect<T>;
         instagramEmbed?: T | InstagramEmbeddingSelect<T>;
         swisstopoEmbed?: T | SwisstopoMapEmbeddingSelect<T>;
-        fileDownload?:
-          | T
-          | {
-              file?: T;
-              openInNewTab?: T;
-              id?: T;
-              blockName?: T;
-            };
+        fileDownload?: T | FileDownloadBlockSelect<T>;
         detailsTable?: T | DetailsTableSelect<T>;
         accordion?: T | AccordionBlocksSelect<T>;
         summaryBox?: T | SummaryBoxSelect<T>;
@@ -9671,6 +9291,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
         tabsBlock?: T | TabsBlockSelect<T>;
       };
   showActionCards?: T;
+  _status?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -9860,6 +9481,13 @@ export interface BillSettingsSelect<T extends boolean = true> {
         lastSentAt?: T;
       };
   financeEmailRecipients?: T;
+  dailyBillingRun?:
+    | T
+    | {
+        enabled?: T;
+        hour?: T;
+        lastRunAt?: T;
+      };
   invoiceEmailSubject?: T;
   invoiceEmailBody?: T;
   updatedAt?: T;
@@ -9892,10 +9520,41 @@ export interface HofDashboardSettingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visit-day_select".
+ */
+export interface VisitDaySelect<T extends boolean = true> {
+  days?:
+    | T
+    | {
+        date?: T;
+        capacity?: T;
+        quartiere?: T;
+        id?: T;
+      };
+  hiddenHoefe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "registration-management_select".
  */
 export interface RegistrationManagementSelect<T extends boolean = true> {
   browserCookie?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-signature_select".
+ */
+export interface EmailSignatureSelect<T extends boolean = true> {
+  name?: T;
+  whatsapp?: T;
+  email?: T;
+  website?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -10056,7 +9715,9 @@ export interface TaskSyncParticipants {
  * via the `definition` "TaskGenerateBills".
  */
 export interface TaskGenerateBills {
-  input?: unknown;
+  input: {
+    sendAfterwards?: boolean | null;
+  };
   output?: unknown;
 }
 /**
@@ -10080,6 +9741,14 @@ export interface TaskSendWeeklyReport {
  * via the `definition` "TaskSendPflichtangabenReminders".
  */
 export interface TaskSendPflichtangabenReminders {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskRunDailyBilling".
+ */
+export interface TaskRunDailyBilling {
   input?: unknown;
   output?: unknown;
 }
@@ -10111,6 +9780,14 @@ export interface TaskCleanupTemporaryFormFiles {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskRefreshUserHoefe".
+ */
+export interface TaskRefreshUserHoefe {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskSyncFunktionen".
  */
 export interface TaskSyncFunktionen {
@@ -10129,6 +9806,14 @@ export interface TaskAutoCheckoutPresence {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendScheduleReminders".
+ */
+export interface TaskSendScheduleReminders {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCreateCollectionExport".
  */
 export interface TaskCreateCollectionExport {
@@ -10138,7 +9823,6 @@ export interface TaskCreateCollectionExport {
     batchSize?: number | null;
     collectionSlug:
       | 'generic-page'
-      | 'blog'
       | 'timeline'
       | 'timelineCategory'
       | 'images'
@@ -10162,6 +9846,7 @@ export interface TaskCreateCollectionExport {
       | 'funktionen'
       | 'presence-logs'
       | 'bill-participants'
+      | 'bill-payments'
       | 'bill-pdfs'
       | 'hoefe'
       | 'outgoing-emails'

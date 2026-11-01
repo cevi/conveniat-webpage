@@ -239,7 +239,7 @@ export const DashboardWelcomeBannerClient: React.FC<DashboardWelcomeBannerClient
                 <button
                   type="button"
                   onClick={() => openModal('reset-instance')}
-                  className="font-heading cursor-pointer rounded-[8px] border border-red-700 px-4 py-2 text-sm font-bold text-red-700 duration-100 hover:bg-red-700 hover:text-white"
+                  className="font-heading cursor-pointer rounded-[8px] border border-(--theme-error-600) bg-transparent px-4 py-2 text-sm font-bold text-(--theme-error-600) duration-100 hover:bg-(--theme-error-600) hover:text-(--theme-elevation-0)"
                 >
                   {resetInstanceTitle[locale]}
                 </button>
@@ -247,7 +247,7 @@ export const DashboardWelcomeBannerClient: React.FC<DashboardWelcomeBannerClient
               <button
                 type="button"
                 onClick={() => openModal('flush-cache')}
-                className="font-heading border-conveniat-green text-conveniat-green hover:bg-conveniat-green cursor-pointer rounded-[8px] border px-4 py-2 text-sm font-bold duration-100 hover:text-white"
+                className="font-heading cursor-pointer rounded-[8px] border border-(--theme-elevation-800) bg-transparent px-4 py-2 text-sm font-bold text-(--theme-text) duration-100 hover:bg-(--theme-elevation-800) hover:text-(--theme-elevation-0)"
               >
                 {flushCacheTitle[locale]}
               </button>

@@ -31,7 +31,7 @@ export const IncidentPhotoField: React.FC<{
         {/* eslint-disable-next-line @next/next/no-img-element -- a local object URL */}
         <img src={upload.previewUrl} alt={text.photo[locale]} className="h-28 rounded-lg" />
         <MaterialButton
-          variant="secondary"
+          variant="outlined"
           className="absolute top-1 right-1 size-11 p-0"
           aria-label={labels.cancel[locale]}
           onClick={upload.clear}
@@ -43,7 +43,7 @@ export const IncidentPhotoField: React.FC<{
   }
 
   return (
-    <label className="flex h-11 w-fit cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-400 px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+    <label className="border-rail hover:bg-quiet flex h-11 w-fit cursor-pointer items-center gap-2 rounded-lg border border-dashed px-4 text-sm font-semibold text-green-700">
       {upload.isUploading ? (
         <Loader2 className="size-4 animate-spin" aria-hidden />
       ) : (

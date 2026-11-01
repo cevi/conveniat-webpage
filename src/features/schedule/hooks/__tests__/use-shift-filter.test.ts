@@ -5,6 +5,7 @@
 import type { CampCategory } from '@/features/payload-cms/payload-types';
 import type { HelperShiftFrontendType } from '@/features/schedule/api/get-helper-shifts';
 import { useShiftFilters } from '@/features/schedule/hooks/use-shift-filter';
+import { noFilters } from '@/features/schedule/utils/schedule-filters';
 import { act, renderHook } from '@testing-library/react';
 
 const kitchen = {
@@ -65,10 +66,8 @@ describe('useShiftFilters', () => {
 
     act(() => {
       result.current.handleFiltersChange({
-        searchText: '',
-        selectedLocations: [],
+        ...noFilters,
         selectedCategory: { id: kitchen.id, title: kitchen.title },
-        starredOnly: false,
       });
     });
 

@@ -46,6 +46,12 @@ const LEVEL_VALUES: Record<LogLevel, number> = {
 const isLogLevel = (value: string): value is LogLevel => value in LEVEL_VALUES;
 
 /**
+ * Not `Date.now()`, which Next.js forbids while prerendering a Server Component.
+ * @see https://nextjs.org/docs/messages/blocking-prerender-current-time
+ */
+const now = (): number => Math.round(performance.timeOrigin + performance.now());
+
+/**
  * Debug output is on by default outside production, off inside it. Override with
  * `LOG_LEVEL` (one of the level names) to turn it back on for an environment.
  */
@@ -114,7 +120,7 @@ export const createLogger = (name: string, options: LoggerOptions = {}): ServerL
 
     const record = {
       level: LEVEL_VALUES[level],
-      time: Date.now(),
+      time: now(),
       pid,
       hostname,
       name,
@@ -127,7 +133,7 @@ export const createLogger = (name: string, options: LoggerOptions = {}): ServerL
       line = `${JSON.stringify(record)}\n`;
     } catch {
       // A circular attribute must not cost us the message itself.
-      line = `${JSON.stringify({ level: LEVEL_VALUES[level], time: Date.now(), pid, hostname, name, msg: message })}\n`;
+      line = `${JSON.stringify({ level: LEVEL_VALUES[level], time: now(), pid, hostname, name, msg: message })}\n`;
     }
 
     try {

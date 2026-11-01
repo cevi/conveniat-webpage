@@ -5,6 +5,24 @@
  * admin API module reads the validated environment at import time.
  */
 
+import { BillingJobStatus } from '@/features/billing/types';
+
+/**
+ * How a job document reads to the pipeline: failed, done, or not finished yet.
+ *
+ * A job without `completedAt` and without an error counts as pending, which includes one
+ * a crashed worker left behind.
+ */
+export function getJobDerivedStatus(job: {
+  completedAt?: string | null;
+  hasError?: boolean | null;
+}): BillingJobStatus {
+  if (job.hasError === true) return BillingJobStatus.Failed;
+  if (typeof job.completedAt === 'string' && job.completedAt.length > 0)
+    return BillingJobStatus.Success;
+  return BillingJobStatus.Pending;
+}
+
 /**
  * Picks the log entry that describes what a job actually did.
  *

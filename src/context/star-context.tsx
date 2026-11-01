@@ -1,9 +1,9 @@
 'use client';
 
+import { useStoredRows } from '@/hooks/use-stored-rows';
 import { starsCollection } from '@/lib/tanstack-db';
 import { trpc } from '@/trpc/client';
 import type { StarContextType } from '@/types/types';
-import { useLiveQuery } from '@tanstack/react-db';
 import { useSession } from 'next-auth/react';
 import React, {
   createContext,
@@ -30,8 +30,7 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
   const isInitializedReference = useRef(false);
   const { status } = useSession();
 
-  // Use TanStack DB's useLiveQuery for reactive data
-  const { data: starItems } = useLiveQuery((q) => q.from({ star: starsCollection }), []);
+  const starItems = useStoredRows(starsCollection);
 
   // Memoize starredEntries to prevent unnecessary re-renders
   const starredEntries = useMemo(() => new Set(starItems.map((item) => item.id)), [starItems]);

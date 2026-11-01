@@ -6,7 +6,7 @@ import { useNativePush } from '@/hooks/use-native-push';
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
 import { Cookie, type Locale, type StaticTranslationString } from '@/types/types';
 import Cookies from 'js-cookie';
-import { Bell, Bug, Check, Share2, X } from 'lucide-react';
+import { Bug, Check, Share2, X } from 'lucide-react';
 import { signIn, useSession } from 'next-auth/react';
 import React, { useCallback, useState } from 'react';
 
@@ -17,15 +17,22 @@ const pushNotificationSettingsTitle: StaticTranslationString = {
 };
 
 const pushNotificationDescription: StaticTranslationString = {
-  de: 'Erhalte wichtige Updates',
-  en: 'Get important updates',
-  fr: 'Recevez des mises à jour importantes',
+  de: 'Wichtige Updates zum Lager',
+  en: 'Important updates about the camp',
+  fr: 'Mises à jour importantes sur le camp',
 };
 
 const pleaseSignInForPushText: StaticTranslationString = {
   de: 'Bitte anmelden für Push-Benachrichtigungen',
   en: 'Please sign in for Push Notifications',
   fr: 'Veuillez vous connecter pour les notifications push',
+};
+
+// one line, like the description it replaces, so the row keeps its height once it is known
+const blockedText: StaticTranslationString = {
+  de: 'Im Browser blockiert',
+  en: 'Blocked in this browser',
+  fr: 'Bloquées par le navigateur',
 };
 
 const notSupportedText: StaticTranslationString = {
@@ -39,6 +46,7 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
   const isAuthenticated = authStatus === 'authenticated';
 
   const {
+    isChecked: isWebChecked,
     isSupported: isWebSupported,
     isSubscribed: isWebSubscribed,
     isLoading: isWebLoading,
@@ -113,9 +121,17 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
   let subtitle = notSupportedText[locale];
   if (isUnauthenticated) {
     subtitle = pleaseSignInForPushText[locale];
-  } else if (isSupported) {
+  } else if (isSupported || (!isNativeApp && !isWebChecked)) {
+    // until the browser was asked, the row says what it is for rather than "not supported"
     subtitle = pushNotificationDescription[locale];
   }
+  // the hook's message spells out where to unblock; the row has room for one line. Read after
+  // the check only, which runs in the browser, so the first render matches the server's.
+  const isBlockedInBrowser =
+    errorMessage !== undefined &&
+    !isNativeApp &&
+    'Notification' in globalThis &&
+    globalThis.Notification.permission === 'denied';
 
   const handleToggle = (): void => {
     Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
@@ -237,16 +253,16 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
   return (
     <div onClick={handleTap} className="select-none">
       <SettingsRow
-        icon={Bell}
         title={pushNotificationSettingsTitle[locale]}
         subtitle={subtitle}
-        error={errorMessage}
+        error={isBlockedInBrowser ? blockedText[locale] : errorMessage}
         action={
           <Switch
             checked={isSubscribed}
             onCheckedChange={handleToggle}
             disabled={!isSupported || isLoading || !!errorMessage}
             loading={isLoading}
+            aria-label={pushNotificationSettingsTitle[locale]}
           />
         }
       >

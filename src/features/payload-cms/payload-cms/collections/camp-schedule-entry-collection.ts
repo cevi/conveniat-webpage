@@ -1,12 +1,23 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
 import { makeInjectEnrollmentCount } from '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count';
+import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
+import { youtubeEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/youtube-embed-block';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
-import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
+import {
+  flushPageCacheOnChange,
+  flushPageCacheOnDelete,
+} from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
 import { CourseType } from '@/lib/prisma';
+import {
+  BlocksFeature,
+  defaultEditorLexicalConfig,
+  HeadingFeature,
+  lexicalEditor,
+} from '@payloadcms/richtext-lexical';
 import type { CollectionAfterReadHook, CollectionConfig, TextFieldSingleValidation } from 'payload';
 
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
@@ -14,6 +25,19 @@ import { campScheduleOrganiserExportHandler } from '@/features/payload-cms/paylo
 import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
 import { handleParticipantMutation } from '@/features/payload-cms/payload-cms/endpoints/course-participants-manager';
 import { syncOrganisers } from '@/features/payload-cms/payload-cms/utils/sync-organisers';
+
+/**
+ * The description of a block can hold a YouTube video, such as the introduction to a
+ * Geländespiel. The detail page plays it inline and in full screen.
+ */
+const scheduleDescriptionLexicalEditorSettings = lexicalEditor({
+  features: [
+    ...minimalEditorFeatures,
+    HeadingFeature({ enabledHeadingSizes: ['h3'] }),
+    BlocksFeature({ blocks: [youtubeEmbedBlock] }),
+  ],
+  lexical: defaultEditorLexicalConfig,
+});
 
 /**
  * Set on a request that may read the part of a block written for Leitende. The schedule's
@@ -35,16 +59,37 @@ export const hideLeaderNotes: CollectionAfterReadHook<CampScheduleEntry> = ({ do
   if (req.context[LEADER_NOTES_CONTEXT] === true) return doc;
   if (req.user !== null && hasAdminOrWebAccess({ req })) return doc;
 
-  const publicPart = { ...doc };
+  const publicPart: CampScheduleEntry & { hasLeaderSection?: boolean } = { ...doc };
+  // Whether there is a part for Leitende at all, for the programme's filter "Für Leitende".
+  // Only a yes or no, so everybody may have it, and the cached list stays the same for all.
+  // A read that did not select the notes cannot tell, so it says nothing.
+  if ('leaders' in doc) publicPart.hasLeaderSection = hasLeaderNotes(doc.leaders);
   delete publicPart.leaders;
   return publicPart;
 };
+
+const hasText = (value: string | null | undefined): boolean =>
+  typeof value === 'string' && value.trim() !== '';
+
+/**
+ * Whether a block has anything written for Leitende: material, attachments, or a note on
+ * safety, PSA or bad weather, i.e. whether its page shows them a leader tab.
+ */
+export const hasLeaderNotes = (leaders: CampScheduleEntry['leaders'] | null): boolean =>
+  leaders !== null &&
+  leaders !== undefined &&
+  ((leaders.materials ?? []).length > 0 ||
+    (leaders.attachments ?? []).length > 0 ||
+    hasText(leaders.safety) ||
+    hasText(leaders.safeguarding) ||
+    hasText(leaders.badWeather));
 
 export const CampScheduleEntryCollection: CollectionConfig = {
   slug: 'camp-schedule-entry',
   trash: true,
   hooks: {
     afterChange: [flushPageCacheOnChange, syncOrganisers],
+    afterDelete: [flushPageCacheOnDelete],
     afterRead: [hideLeaderNotes, makeInjectEnrollmentCount(CourseType.PROGRAM)],
   },
   endpoints: [
@@ -230,7 +275,7 @@ export const CampScheduleEntryCollection: CollectionConfig = {
                   fr: "La description de l'entrée",
                 },
               },
-              editor: mapAnnotationDescriptionLexicalEditorSettings,
+              editor: scheduleDescriptionLexicalEditorSettings,
               hooks: patchRichTextLinkHook,
             },
             {

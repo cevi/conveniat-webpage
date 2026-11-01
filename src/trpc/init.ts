@@ -12,6 +12,7 @@ import { createLogger } from '@/utils/server-logger';
 import { initTRPC, TRPCError } from '@trpc/server';
 import { cache } from 'react';
 import superjson from 'superjson';
+import { z } from 'zod';
 
 const logger = createLogger('trpc:context');
 
@@ -26,7 +27,7 @@ export const createTRPCContext = cache(async () => {
       const result = HitobitoNextAuthUserSchema.safeParse(session.user);
       if (!result.success) {
         logger.warn('Session rejected, it does not match the expected schema', {
-          'session.schema.error': JSON.stringify(result.error.format()),
+          'session.schema.error': JSON.stringify(z.treeifyError(result.error)),
         });
       }
     }

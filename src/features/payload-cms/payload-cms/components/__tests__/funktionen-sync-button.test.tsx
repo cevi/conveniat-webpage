@@ -6,7 +6,6 @@ import type { FunktionenSyncState } from '@/features/payload-cms/payload-cms/com
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 
-let mockPermissions: { update?: boolean } = {};
 let mockState: FunktionenSyncState;
 
 jest.mock('@payloadcms/ui', () => ({
@@ -21,9 +20,10 @@ jest.mock('@payloadcms/ui', () => ({
       {children}
     </button>
   ),
-  useAuth: (): unknown => ({ permissions: { collections: { funktionen: mockPermissions } } }),
+  // rendered open, so the tests see what the drawer shows
+  Drawer: ({ children }: { children: React.ReactNode }): React.ReactElement => <>{children}</>,
   useListQuery: (): unknown => ({ query: {}, refineListData: jest.fn() }),
-  useLocale: (): unknown => ({ code: 'de' }),
+  useModal: (): unknown => ({ openModal: jest.fn() }),
 }));
 jest.mock(
   '@/features/payload-cms/payload-cms/components/funktionen-sync/use-funktionen-sync',
@@ -47,22 +47,20 @@ const IDLE: FunktionenSyncState = {
 };
 
 describe('FunktionenSyncButton', () => {
-  it('offers the sync to whoever may edit the functions', () => {
-    mockPermissions = { update: true };
+  it('offers the sync', () => {
     mockState = IDLE;
-    render(<FunktionenSyncButton />);
+    render(<FunktionenSyncButton locale="de" />);
+    expect(screen.getByText('Aus Cevi.DB abgleichen')).toBeInTheDocument();
     expect(screen.getByText('Jetzt aus Cevi.DB abgleichen')).toBeInTheDocument();
   });
 
-  it('hides it from everyone else', () => {
-    mockPermissions = { update: false };
-    mockState = IDLE;
-    const { container } = render(<FunktionenSyncButton />);
-    expect(container).toBeEmptyDOMElement();
+  it('shows on its button that a sync is running', () => {
+    mockState = { ...IDLE, phase: 'discovering' };
+    render(<FunktionenSyncButton locale="de" />);
+    expect(screen.getAllByText('Gleiche mit der Cevi.DB ab...')).toHaveLength(2);
   });
 
   it('shows how far a running sync has got and the groups it found', () => {
-    mockPermissions = { update: true };
     mockState = {
       ...IDLE,
       phase: 'reading',
@@ -70,7 +68,7 @@ describe('FunktionenSyncButton', () => {
       totalGroups: 12,
       found: [{ groupId: '4087', groupName: 'Ressort Infrastruktur', leaders: 2 }],
     };
-    render(<FunktionenSyncButton />);
+    render(<FunktionenSyncButton locale="de" />);
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '25');
     expect(screen.getByText('3/12 Gruppen')).toBeInTheDocument();
     expect(screen.getByText('Ressort Infrastruktur')).toBeInTheDocument();
@@ -78,7 +76,6 @@ describe('FunktionenSyncButton', () => {
   });
 
   it('reports what a finished sync changed', () => {
-    mockPermissions = { update: true };
     mockState = {
       ...IDLE,
       phase: 'done',
@@ -86,7 +83,7 @@ describe('FunktionenSyncButton', () => {
       totalGroups: 12,
       result: { groups: 12, created: 2, updated: 1, removed: 0, usersWritten: 3 },
     };
-    render(<FunktionenSyncButton />);
+    render(<FunktionenSyncButton locale="de" />);
     expect(
       screen.getByText('2 neu, 1 aktualisiert, 0 entfernt; 3 Personen nachgeführt.'),
     ).toBeInTheDocument();

@@ -3,6 +3,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import { labels } from '@/features/material/components/material-labels';
 import { MaterialNav } from '@/features/material/components/material-nav';
 import type { Locale } from '@/types/types';
+import { DesignCodes } from '@/utils/design-codes';
 import { io } from 'next/cache';
 import { notFound } from 'next/navigation';
 import type React from 'react';
@@ -22,17 +23,17 @@ const MaterialFeatureGate: React.FC<{ children: React.ReactNode }> = async ({ ch
 
 const MaterialLayout: React.FC<{
   children: React.ReactNode;
-  params: Promise<{ locale: Locale }>;
+  params: Promise<{ locale: Locale; design: DesignCodes }>;
 }> = async ({ children, params }) => {
-  const { locale } = await params;
+  const { locale, design } = await params;
 
   return (
-    <div className="min-h-dvh bg-gray-50">
+    <div className="bg-page min-h-dvh">
       <div className="mx-auto max-w-6xl px-4">
         <SetDynamicPageTitle newTitle={labels.pageTitle[locale]} />
         <Suspense>
           <MaterialFeatureGate>
-            <MaterialNav />
+            <MaterialNav inAppDesign={design === DesignCodes.APP_DESIGN} />
             <div className="pt-4 pb-6">{children}</div>
           </MaterialFeatureGate>
         </Suspense>

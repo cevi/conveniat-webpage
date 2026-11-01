@@ -1,7 +1,8 @@
 'use client';
 
+import { IconTile } from '@/components/ui/icon-tile';
+import { ListRow } from '@/components/ui/list-row';
 import {
-  HolderAvatar,
   holderName,
   loanSummary,
   positionCount,
@@ -10,9 +11,9 @@ import {
 } from '@/features/material/components/counter-ui';
 import { format, formatDay, labels } from '@/features/material/components/material-labels';
 import { MaterialQueryError } from '@/features/material/components/material-query-error';
+import { chip, chipTone } from '@/features/material/components/material-status-badge';
 import {
   EmptyState,
-  focusRing,
   LoadingState,
   MaterialButton,
   Panel,
@@ -40,7 +41,7 @@ import { parseScan } from '@/features/material/utils/scan';
 import { trpc } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Building2, ChevronRight, Hash, PackageCheck, SlidersHorizontal, User } from 'lucide-react';
+import { Building2, Check, ChevronRight, Hash, User } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
@@ -123,29 +124,29 @@ const DueCard: React.FC<{
   };
 
   return (
-    <Panel className="space-y-3 p-3">
+    <Panel className="space-y-3 p-4">
       <div className="flex items-start gap-3">
-        {/* the badge and the date say "overdue" already, a red tile would say it a third time */}
-        <HolderAvatar name={name} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {group.holder.kind === 'PERSON' && (
-              <User className="size-4 shrink-0 text-gray-500" aria-hidden />
+              <User className="size-4 shrink-0 text-green-500" aria-hidden />
             )}
-            <span className="min-w-0 truncate font-bold text-gray-900">{name}</span>
+            <span className="min-w-0 truncate font-bold text-green-900">{name}</span>
             {announced && (
-              <span className="ml-auto shrink-0 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-800 ring-1 ring-blue-600/30">
+              <span className={cn(chip, chipTone.ready, 'ml-auto')}>
                 {labels.returnAnnounced[locale]}
               </span>
             )}
             {overdue && !announced && (
-              <span className="ml-auto shrink-0 rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-semibold text-white">
+              <span className={cn(chip, chipTone.warning, 'ml-auto')}>
                 {labels.overdue[locale]}
               </span>
             )}
           </div>
-          <p className="line-clamp-2 text-sm text-gray-600">{loanSummary(group.loans)}</p>
-          <p className={cn('text-xs', overdue ? 'font-semibold text-red-700' : 'text-gray-500')}>
+          <p className="line-clamp-2 text-sm text-green-700">{loanSummary(group.loans)}</p>
+          <p
+            className={cn('text-xs', overdue ? 'text-danger-text font-semibold' : 'text-green-700')}
+          >
             {oldest !== undefined && overdue
               ? format(labels.overdueSince, locale, { day: formatDay(oldest.endDate, locale) })
               : format(labels.dueOn, locale, { day: formatDay(oldest?.endDate ?? now, locale) })}
@@ -153,12 +154,12 @@ const DueCard: React.FC<{
         </div>
       </div>
       {asking ? (
-        <div className="space-y-2 rounded-xl bg-gray-50 p-2">
-          <p className="px-1 text-sm font-semibold text-gray-800">
+        <div className="bg-quiet space-y-2 rounded-xl p-2">
+          <p className="px-1 text-sm font-semibold text-green-900">
             {format(text.allOkAsk, locale, { lines })}
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <MaterialButton variant="ghost" onClick={() => setAsking(false)}>
+            <MaterialButton variant="outlined" onClick={() => setAsking(false)}>
               {labels.cancel[locale]}
             </MaterialButton>
             <MaterialButton loading={giveBack.isPending} onClick={takeBackAll}>
@@ -168,12 +169,12 @@ const DueCard: React.FC<{
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-[minmax(0,1fr)_auto]">
+          {/* primary on every card, as on the hand-out: each return is its own task */}
           <MaterialButton onClick={() => setAsking(true)}>
-            <PackageCheck aria-hidden />
+            <Check aria-hidden />
             {text.allOk[locale]}
           </MaterialButton>
-          <MaterialButton variant="secondary" onClick={() => onOpen(group.holder)}>
-            <SlidersHorizontal aria-hidden />
+          <MaterialButton variant="outlined" onClick={() => onOpen(group.holder)}>
             {text.deviation[locale]}
           </MaterialButton>
         </div>
@@ -210,11 +211,7 @@ const DueReturns: React.FC<{ onOpen: (holder: LoanHolder) => void }> = ({ onOpen
   );
 };
 
-const rowButton = cn(
-  'flex min-h-14 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left hover:bg-gray-50',
-  focusRing,
-  'focus-visible:ring-inset',
-);
+const rowButton = 'py-2';
 
 /** Everybody with material out, found by name, or a loan by the number on its label. */
 const HolderSearch: React.FC<{
@@ -263,32 +260,25 @@ const HolderSearch: React.FC<{
       />
       <Panel>
         {loanNumber !== undefined && (
-          <button
-            type="button"
-            className={rowButton}
-            onClick={() => onOpenLoan(Number(loanNumber))}
-          >
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-700">
-              <Hash className="size-5" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1 truncate font-semibold text-gray-900">
+          <ListRow className={rowButton} onClick={() => onOpenLoan(Number(loanNumber))}>
+            <IconTile icon={Hash} />
+            <span className="min-w-0 flex-1 truncate font-semibold text-green-900">
               {format(text.openLoan, locale, { n: loanNumber })}
             </span>
-            <ChevronRight className="size-4 shrink-0 text-gray-400" aria-hidden />
-          </button>
+            <ChevronRight className="size-4 shrink-0 text-green-500" aria-hidden />
+          </ListRow>
         )}
         {holders.isLoading && <LoadingState text={labels.loading[locale]} />}
         {!holders.isLoading && rows.length === 0 && loanNumber === undefined && (
           <EmptyState text={needle === '' ? text.nobodyOut[locale] : labels.empty[locale]} />
         )}
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-line divide-y">
           {rows.map((row) => (
             <li key={`${row.holder.kind}:${row.holder.id}`}>
-              <button type="button" className={rowButton} onClick={() => onOpen(row.holder)}>
-                <HolderAvatar name={row.name} />
+              <ListRow className={rowButton} onClick={() => onOpen(row.holder)}>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold text-gray-900">{row.name}</span>
-                  <span className="flex items-center gap-1 text-xs text-gray-500">
+                  <span className="block truncate font-semibold text-green-900">{row.name}</span>
+                  <span className="flex items-center gap-1 text-xs text-green-500">
                     {row.holder.kind === 'HOF' ? (
                       <Building2 className="size-3" aria-hidden />
                     ) : (
@@ -297,8 +287,8 @@ const HolderSearch: React.FC<{
                     {format(text.out, locale, { n: row.out })}
                   </span>
                 </span>
-                <ChevronRight className="size-4 shrink-0 text-gray-400" aria-hidden />
-              </button>
+                <ChevronRight className="size-4 shrink-0 text-green-500" aria-hidden />
+              </ListRow>
             </li>
           ))}
         </ul>
@@ -317,7 +307,7 @@ const ScannedLoan: React.FC<{ number: number; onClose: () => void }> = ({ number
     return (
       <div className="space-y-3">
         <MaterialQueryError error={loan.error} />
-        <MaterialButton variant="secondary" className="w-full" onClick={onClose}>
+        <MaterialButton variant="outlined" className="w-full" onClick={onClose}>
           {labels.back[locale]}
         </MaterialButton>
       </div>

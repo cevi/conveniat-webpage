@@ -30,6 +30,11 @@ jest.mock('@/features/payload-cms/payload-cms/utils/email-outbox', () => ({
   discardQueuedEmailsFor: jest.fn(),
   queueBackgroundEmail: jest.fn().mockResolvedValue({ success: true, outgoingEmailId: 'mail-2' }),
 }));
+const mockMarkBillMailNotQueued = jest.fn();
+jest.mock('@/features/billing/services/bill-mail-status', () => ({
+  ...jest.requireActual<object>('@/features/billing/services/bill-mail-status'),
+  markBillMailNotQueued: (...args: unknown[]): unknown => mockMarkBillMailNotQueued(...args),
+}));
 jest.mock('@/lib/hitobito', () => ({
   HITOBITO_CONFIG: { baseUrl: 'http://mock', apiToken: 'mock' },
 }));
@@ -61,12 +66,13 @@ const participantRow = (overrides: Record<string, unknown> = {}): Record<string,
 const payloadDouble = (
   row: Record<string, unknown>,
   browserCookie = 'cookie',
+  billSettings: Record<string, unknown> = {},
 ): { payload: Payload; updates: Record<string, unknown>[] } => {
   const updates: Record<string, unknown>[] = [];
   const payload = {
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
     findGlobal: ({ slug }: { slug: string }) =>
-      Promise.resolve(slug === 'registration-management' ? { browserCookie } : {}),
+      Promise.resolve(slug === 'registration-management' ? { browserCookie } : billSettings),
     find: () => Promise.resolve({ docs: [row] }),
     findByID: () => Promise.resolve({ filename: 'bill.pdf' }),
     update: ({ data }: { data: Record<string, unknown> }) => {
@@ -99,11 +105,27 @@ describe('sendBills writes the Anmeldestatus back to the Cevi.DB', () => {
       'Rechnung gestellt',
       ['definitiv'],
     );
-    // The status is written first, so a failing write-back cannot cost the bill its
-    // place in the queue; the answer follows in a second update.
+    expect(updates).toHaveLength(1);
     expect(updates[0]?.['status']).toBe('bill_mail_pending');
-    expect(updates[1]?.['anmeldestatus']).toBe('Rechnung gestellt');
+    expect(updates[0]?.['anmeldestatus']).toBe('Rechnung gestellt');
     expect(summary.errors).toHaveLength(0);
+  });
+
+  it('tells the Cevi.DB before the mail can leave, so a failed mail finds what to put back', async () => {
+    const { payload, updates } = payloadDouble(participantRow());
+    const update = jest.fn().mockResolvedValue({ changed: true, previous: 'erfasst durch AVP' });
+    (queueBackgroundEmail as jest.Mock).mockClear();
+
+    await sendBills(payload, undefined, { hitobitoService: hitobitoDouble(update) });
+
+    const [writtenAt] = update.mock.invocationCallOrder;
+    const [queuedAt] = (queueBackgroundEmail as jest.Mock).mock.invocationCallOrder;
+    expect(writtenAt).toBeLessThan(queuedAt ?? 0);
+    const history = updates[0]?.['syncHistory'] as { action: string; previous?: string }[];
+    expect(history.at(-1)).toMatchObject({
+      action: 'anmeldestatus_written_to_cevidb',
+      previous: 'erfasst durch AVP',
+    });
   });
 
   it('never touches a registration that is already definitiv', async () => {
@@ -130,10 +152,11 @@ describe('sendBills writes the Anmeldestatus back to the Cevi.DB', () => {
     expect(summary.queuedCount).toBe(1);
     expect(summary.failedCount).toBe(0);
     expect(summary.errors[0]).toContain('Max Mustermann');
-    const history = updates[1]?.['syncHistory'] as { action: string }[];
+    expect(updates[0]?.['status']).toBe('bill_mail_pending');
+    const history = updates[0]?.['syncHistory'] as { action: string }[];
     expect(history.at(-1)?.action).toBe('anmeldestatus_writeback_failed');
     // The failed write-back must not invent a value on the row.
-    expect(updates[1]?.['anmeldestatus']).toBe('erfasst durch AVP');
+    expect(updates[0]?.['anmeldestatus']).toBe('erfasst durch AVP');
   });
 
   it('links the operator to the Cevi.DB session settings when no cookie is configured', async () => {
@@ -177,6 +200,23 @@ describe('sendBills hands a bulk run to the outgoing mail queue', () => {
     expect(summary).toMatchObject({ sentCount: 0, queuedCount: 1, failedCount: 0 });
   });
 
+  it('parks the bill when its mail cannot be queued, after the Cevi.DB was told', async () => {
+    (queueBackgroundEmail as jest.Mock).mockRejectedValueOnce(new Error('S3 unreachable'));
+    const { payload, updates } = payloadDouble(participantRow());
+
+    const summary = await sendBills(payload, undefined, {
+      hitobitoService: hitobitoDouble(
+        jest.fn().mockResolvedValue({ changed: true, previous: 'erfasst durch AVP' }),
+      ),
+    });
+
+    // The row recorded the write-back before the mail was attempted, so the park can revert it.
+    expect(updates[0]?.['status']).toBe('bill_mail_pending');
+    expect(mockMarkBillMailNotQueued).toHaveBeenCalledWith(payload, 'doc-1', 'S3 unreachable');
+    expect(summary.queuedCount ?? 0).toBe(0);
+    expect(summary.failedCount).toBe(1);
+  });
+
   it('sends a single bill an operator asked for on the spot', async () => {
     const { payload, updates } = payloadDouble(participantRow({ status: 'bill_mail_pending' }));
 
@@ -191,6 +231,26 @@ describe('sendBills hands a bulk run to the outgoing mail queue', () => {
     expect(updates[0]?.['status']).toBe('bill_sent');
     expect(typeof updates[0]?.['billSentDate']).toBe('string');
     expect(summary).toMatchObject({ sentCount: 1, failedCount: 0 });
+  });
+
+  it('does not mark a single bill as sent when the mail server refuses it', async () => {
+    (sendTrackedEmail as jest.Mock).mockResolvedValueOnce({
+      success: false,
+      outgoingEmailId: 'mail-1',
+      error: '550 mailbox unavailable',
+    });
+    const { payload, updates } = payloadDouble(participantRow());
+    const update = jest.fn();
+
+    const summary = await sendBills(payload, 'doc-1', {
+      hitobitoService: hitobitoDouble(update),
+    });
+
+    // The failed mail has parked the bill for review; nothing here may overwrite that.
+    expect(updates).toHaveLength(0);
+    expect(update).not.toHaveBeenCalled();
+    expect(summary).toMatchObject({ sentCount: 0, failedCount: 1 });
+    expect(summary.errors[0]).toContain('550 mailbox unavailable');
   });
 
   it.each(['paid', 'removed'])(
@@ -208,4 +268,57 @@ describe('sendBills hands a bulk run to the outgoing mail queue', () => {
       expect(summary.errors[0]).toContain('Max Mustermann');
     },
   );
+});
+
+/** The mail a bulk run queues for the one participant, under the given bill settings. */
+const queuedBillMail = async (
+  billSettings: Record<string, unknown>,
+  row: Record<string, unknown> = participantRow(),
+): Promise<{ subject: string; text: string }> => {
+  (queueBackgroundEmail as jest.Mock).mockClear();
+  const { payload } = payloadDouble(row, 'cookie', billSettings);
+
+  await sendBills(payload, undefined, {
+    hitobitoService: hitobitoDouble(jest.fn().mockResolvedValue({ changed: false })),
+  });
+
+  const [, mail] = (queueBackgroundEmail as jest.Mock).mock.calls[0] as [
+    unknown,
+    { subject: string; text: string },
+  ];
+  return mail;
+};
+
+describe('sendBills names the Anmeldenummer in the bill mail', () => {
+  it('uses the number stored with the bill, even after the template changed', async () => {
+    const mail = await queuedBillMail(
+      {
+        customReferenceTemplate: '{{year}}-{{participation-id}}',
+        invoiceEmailSubject: 'conveniat27 – Rechnung {{registrationNumber}}',
+      },
+      participantRow({ registrationNumber: 'event-1-part-1' }),
+    );
+
+    expect(mail.subject).toBe('conveniat27 – Rechnung event-1-part-1');
+  });
+
+  it('fills it from the template for a bill created before the number was stored', async () => {
+    const mail = await queuedBillMail({
+      customReferenceTemplate: '{{event-id}}-{{participation-id}}',
+      invoiceEmailSubject: 'conveniat27 – Rechnung {{registrationNumber}}',
+      invoiceEmailBody: 'Deine Anmeldenummer: {{registrationNumber}}',
+    });
+
+    expect(mail.subject).toBe('conveniat27 – Rechnung event-1-part-1');
+    expect(mail.text).toBe('Deine Anmeldenummer: event-1-part-1');
+  });
+
+  it('leaves no dangling placeholder when no Anmeldenummer is configured', async () => {
+    const mail = await queuedBillMail({
+      customReferenceTemplate: '',
+      invoiceEmailSubject: 'conveniat27 – Rechnung {{registrationNumber}}',
+    });
+
+    expect(mail.subject).toBe('conveniat27 – Rechnung');
+  });
 });

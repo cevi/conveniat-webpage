@@ -18,6 +18,8 @@ export const PUSH_TIME_TO_LIVE_SECONDS: Record<PushNotificationKind, number> = {
   CHAT: DAY,
   ANNOUNCEMENT: DAY,
   SYSTEM: HOUR,
+  // "beginnt in 15 min" is wrong once the block has started
+  REMINDER: 15 * MINUTE,
 };
 
 /**
@@ -31,6 +33,8 @@ export const PUSH_PRIORITY: Record<PushNotificationKind, number> = {
   SUPPORT: 2,
   CHAT: 1,
   SYSTEM: 1,
+  // due at a set minute, and late is as good as never
+  REMINDER: 1,
   ANNOUNCEMENT: 0,
 };
 

@@ -35,30 +35,30 @@ export const FailedMessageActions: React.FC<{ message: ChatMessage; locale: Loca
   const { retry, discard } = useFailedMessageActions();
 
   return (
-    <div className="font-body mt-1 flex items-center gap-1.5 pr-1 text-xs text-red-600">
+    <div className="text-danger-text flex items-center gap-1 pr-1 text-xs">
       <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
       <span>{notSentText[locale]}</span>
       <span aria-hidden="true">·</span>
       <button
         type="button"
-        className="cursor-pointer font-semibold underline-offset-2 hover:underline"
+        className="group min-h-11 cursor-pointer px-1 font-semibold underline-offset-2 hover:underline focus-visible:outline-none"
         onClick={(event) => {
           event.stopPropagation();
           retry(message);
         }}
       >
-        {retryText[locale]}
+        <span className="group-focus-visible:focus-text">{retryText[locale]}</span>
       </button>
       <span aria-hidden="true">·</span>
       <button
         type="button"
-        className="cursor-pointer text-gray-500 underline-offset-2 hover:underline"
+        className="group min-h-11 cursor-pointer px-1 text-green-700 underline-offset-2 hover:underline focus-visible:outline-none"
         onClick={(event) => {
           event.stopPropagation();
           discard(message);
         }}
       >
-        {deleteText[locale]}
+        <span className="group-focus-visible:focus-text">{deleteText[locale]}</span>
       </button>
     </div>
   );

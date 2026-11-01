@@ -32,7 +32,7 @@ const isPubliclyReadable = async (
 };
 
 /**
- * Keeps everything but public pages and blog posts out of the search index, and removes the
+ * Keeps everything but public pages out of the search index, and removes the
  * entry of a document that stopped being public.
  *
  * The plugin treats an error thrown here as "do not skip" and indexes the document, so every

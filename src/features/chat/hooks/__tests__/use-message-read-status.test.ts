@@ -18,11 +18,17 @@ jest.mock('@/lib/prisma', () => ({
 }));
 
 const mockMarkChatAsRead = jest.fn();
+const mockMarkChatUnread = jest.fn();
+let mockCachedChats: { id: string; isMarkedUnread?: boolean }[] | undefined;
 
 jest.mock('@/trpc/client', () => ({
   trpc: {
     useUtils: (): unknown => ({ chat: { chats: { setData: jest.fn(), invalidate: jest.fn() } } }),
-    chat: { markChatAsRead: { useMutation: (): unknown => ({ mutate: mockMarkChatAsRead }) } },
+    chat: {
+      markChatAsRead: { useMutation: (): unknown => ({ mutate: mockMarkChatAsRead }) },
+      markChatUnread: { useMutation: (): unknown => ({ mutate: mockMarkChatUnread }) },
+      chats: { useQuery: (): unknown => ({ data: mockCachedChats }) },
+    },
   },
 }));
 
@@ -89,6 +95,8 @@ describe('useMessageReadStatus', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     mockMarkChatAsRead.mockClear();
+    mockMarkChatUnread.mockClear();
+    mockCachedChats = undefined;
     visibilityState = 'visible';
   });
 
@@ -168,5 +176,24 @@ describe('useMessageReadStatus', () => {
       chatId: 'chat-burst',
       lastMessageId: 'msg-3',
     });
+  });
+
+  it('takes back "Als ungelesen markieren" when the chat is opened, even with nothing new to read', () => {
+    mockCachedChats = [{ id: 'chat-marked', isMarkedUnread: true }];
+    // the reader's own message is the newest: no read receipt goes out
+    render('chat-marked', {
+      sortedMessages: [message('msg-1', { senderId: CURRENT_USER })],
+      isAtBottom: true,
+    });
+
+    expect(mockMarkChatAsRead).not.toHaveBeenCalled();
+    expect(mockMarkChatUnread).toHaveBeenCalledWith({ chatId: 'chat-marked', unread: false });
+  });
+
+  it('leaves a chat that is not marked unread alone', () => {
+    mockCachedChats = [{ id: 'chat-plain', isMarkedUnread: false }];
+    render('chat-plain', { sortedMessages: [message('msg-1')], isAtBottom: true });
+
+    expect(mockMarkChatUnread).not.toHaveBeenCalled();
   });
 });

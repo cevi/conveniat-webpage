@@ -88,11 +88,11 @@ const InventoryList: React.FC = () => {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-        <MaterialButton variant="secondary" onClick={() => setCreating(true)}>
+        <MaterialButton variant="outlined" onClick={() => setCreating(true)}>
           <Plus aria-hidden />
           {text.newItem[locale]}
         </MaterialButton>
-        <MaterialButton variant="secondary" onClick={() => setEditingCategories(true)}>
+        <MaterialButton variant="outlined" onClick={() => setEditingCategories(true)}>
           <Tags aria-hidden />
           {text.categories[locale]}
         </MaterialButton>
@@ -128,7 +128,7 @@ const InventoryList: React.FC = () => {
 
       <div ref={listTop} className="@container scroll-mt-20">
         <Panel>
-          <p className="border-b border-gray-100 px-4 py-2 text-xs text-gray-500 tabular-nums">
+          <p className="border-line border-b px-4 py-2 text-xs text-green-500 tabular-nums">
             {format(text.count, locale, { n: visible.length, total: items.data.length })}
           </p>
           {visible.length === 0 && <EmptyState text={labels.empty[locale]} />}

@@ -33,6 +33,23 @@ const nestedAttributesForm = `
 </form>
 `;
 
+/**
+ * A single-choice question as the Cevi.DB edit page renders it, with a choice an organiser
+ * misspelled.
+ */
+const radioForm = `
+<form>
+  <input autocomplete="off" type="hidden" value="13656" name="event_participation[answers_attributes][12][question_id]" />
+  <div class='mb-2'>
+    <label for="event_participation_answers_attributes_12_answer">Anmeldestatus</label>
+    <div class="form-check"><input class="form-check-input" type="radio" value="erfasst durch AVP" name="event_participation[answers_attributes][12][answer]" /></div>
+    <div class="form-check"><input class="form-check-input" type="radio" value="Rechnung gestellt" checked="checked" name="event_participation[answers_attributes][12][answer]" /></div>
+    <div class="form-check"><input class="form-check-input" type="radio" value="definitv" name="event_participation[answers_attributes][12][answer]" /></div>
+  </div>
+  <input autocomplete="off" type="hidden" value="340422" name="event_participation[answers_attributes][12][id]" />
+</form>
+`;
+
 /** The older markup, which the answers scraper has always read. */
 const flatForm = `
 <form>
@@ -72,6 +89,16 @@ describe('parseParticipationAnswerFields', () => {
     expect(ahv?.label).toBe('AHV-Nummer?');
   });
 
+  it('reads a question the Cevi.DB renders as radio buttons, with the choices it offers', () => {
+    const anmeldestatus = parseParticipationAnswerFields(radioForm).find(
+      (field) => field.questionId === '13656',
+    );
+
+    expect(anmeldestatus?.value).toBe('Rechnung gestellt');
+    // The Cevi.DB stores whatever is posted, so a write-back has to check against these.
+    expect(anmeldestatus?.choices).toEqual(['erfasst durch AVP', 'Rechnung gestellt', 'definitv']);
+  });
+
   it('still reads the older flat markup', () => {
     const fields = parseParticipationAnswerFields(flatForm);
 
@@ -82,12 +109,14 @@ describe('parseParticipationAnswerFields', () => {
         // The trailing colon is decoration and is stripped, as it always was.
         label: 'Administrationsangaben Anmeldestatus',
         value: 'erfasst durch AVP',
+        choices: ['erfasst durch AVP', 'definitiv'],
       },
       {
         questionId: '13700',
         fieldName: 'participation[answer_13700]',
         label: 'Essgewohnheit',
         value: 'vegetarisch',
+        choices: [],
       },
     ]);
   });

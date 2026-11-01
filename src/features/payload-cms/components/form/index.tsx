@@ -1,10 +1,11 @@
 'use client';
 
+import { useRevalidateFieldsWithErrors } from '@/features/payload-cms/components/form/hooks/use-revalidate-fields-with-errors';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { usePostHog } from '@/providers/posthog-context';
 import type { Locale } from '@/types/types'; // Import Locale
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useMemo } from 'react';
 import {
   FormProvider,
@@ -78,6 +79,7 @@ export const FormBlock: React.FC<
     reValidateMode: 'onChange',
     defaultValues: initialFormState,
   });
+  useRevalidateFieldsWithErrors(formMethods);
 
   // Restore form state from sessionStorage on mount. An embedded form with preset answers
   // starts from them: what was left in another context is not this one's.

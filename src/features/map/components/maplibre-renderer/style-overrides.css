@@ -1,5 +1,41 @@
+/* 44px, the touch target every other control on the map has */
 .maplibregl-ctrl-compass,
 .maplibregl-ctrl-geolocate {
-  width: 40px !important;
-  height: 40px !important;
+  width: 44px !important;
+  height: 44px !important;
+}
+
+/* The page draws its own locate button next to the search, which takes the top of the map, below
+   the website's logo where it hangs over the map (see the app pages layout). */
+.map-has-own-locate-button .maplibregl-ctrl-group:has(> .maplibregl-ctrl-geolocate) {
+  display: none;
+}
+
+.map-has-own-locate-button .maplibregl-ctrl-top-right {
+  top: calc(56px + var(--app-logo-overhang, 0px));
+}
+
+/* the compass is round and floats like the locate button above it, on the same right edge */
+.map-has-own-locate-button .maplibregl-ctrl-top-right .maplibregl-ctrl-group {
+  margin: 8px 16px 0 0;
+  overflow: hidden;
+  border-radius: 9999px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.15);
+}
+
+/* MapLibre's controls focus with a blue glow and take the outline away; they get the app's focus
+   instead, the quiet surface and a ring inside like a button (`focus-surface` in globals.scss),
+   because the round group clips anything outside it. MapLibre's own rule has the same selector, so
+   this one is scoped to the map to win whichever stylesheet loads last. */
+.maplibregl-map .maplibregl-ctrl-group button:focus:focus-visible {
+  outline: none;
+  background-color: #eef1ee;
+  box-shadow:
+    inset 0 0 0 4px #eef1ee,
+    inset 0 0 0 6px #47564c;
+}
+
+/* the map itself fills its box, which clips a ring outside it */
+.maplibregl-canvas:focus-visible {
+  outline-offset: -2px;
 }

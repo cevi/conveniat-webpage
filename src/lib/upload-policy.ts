@@ -19,7 +19,7 @@ export interface UploadPolicy<ContentType extends string = string> {
  */
 export const uploadInputShape = <ContentType extends string>(
   policy: UploadPolicy<ContentType>,
-): { contentType: z.ZodEnum<[ContentType, ...ContentType[]]>; contentLength: z.ZodNumber } => ({
+): { contentType: z.ZodEnum<{ [K in ContentType]: K }>; contentLength: z.ZodNumber } => ({
   contentType: z.enum(Object.keys(policy.extensions) as [ContentType, ...ContentType[]]),
   contentLength: z.number().int().positive().max(policy.maxBytes),
 });

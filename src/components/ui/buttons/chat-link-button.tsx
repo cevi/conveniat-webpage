@@ -1,12 +1,12 @@
 'use client';
 
 import { Button } from '@/components/ui/buttons/button';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Loader2, MessageSquare } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
@@ -47,10 +47,10 @@ export const ChatLinkButton: React.FC<ChatLinkButtonProperties> = ({
 
   return (
     <Button
-      variant="outline"
-      size="sm"
+      variant="outlined"
+      size="touch"
       className={cn(
-        'h-9 gap-2 transition-all duration-200 active:scale-95',
+        'transition-all duration-200 active:scale-95',
         isBusy && 'opacity-80',
         className,
       )}

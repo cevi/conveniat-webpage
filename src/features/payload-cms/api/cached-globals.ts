@@ -249,29 +249,45 @@ export const getAppFeatureFlagsCached = cache(async (): Promise<AppFeatureFlags>
  */
 type AppLandingPageContent = Pick<AppLandingPage, 'title' | 'pageContent' | 'showActionCards'>;
 
+const queryAppLandingPage = async (
+  locale: Locale,
+  draft: boolean,
+): Promise<AppLandingPageContent> => {
+  const payload = await getPayload({ config });
+  return await payload.findGlobal({
+    slug: 'app-landing-page',
+    locale,
+    draft,
+    select: {
+      title: true,
+      pageContent: true,
+      showActionCards: true,
+    },
+  });
+};
+
 const readAppLandingPage = async (locale: Locale): Promise<AppLandingPageContent> => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'app-landing-page', 'global:app-landing-page');
 
-  return await withSpan('getAppLandingPageCached', async () => {
-    const payload = await getPayload({ config });
-    return await payload.findGlobal({
-      slug: 'app-landing-page',
-      locale,
-      select: {
-        title: true,
-        pageContent: true,
-        showActionCards: true,
-      },
-    });
-  });
+  return await withSpan(
+    'getAppLandingPageCached',
+    async () => await queryAppLandingPage(locale, false),
+  );
 };
 
 export const getAppLandingPageCached = cache(
-  async (locale: Locale): Promise<AppLandingPageContent> => {
+  async (locale: Locale, draft: boolean = false): Promise<AppLandingPageContent> => {
     if (isBuildPhase()) {
       return { title: '', showActionCards: false };
+    }
+    // Preview reads must reflect unpublished edits immediately, so they skip the persistent cache.
+    if (draft) {
+      return await withSpan(
+        'getAppLandingPageCached',
+        async () => await queryAppLandingPage(locale, true),
+      );
     }
     return await readAppLandingPage(locale);
   },

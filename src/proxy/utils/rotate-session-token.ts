@@ -3,6 +3,7 @@ import {
   trackSessionToken,
 } from '@/features/next-auth/utils/session-token-change';
 import { auth } from '@/utils/auth';
+import type { Session } from 'next-auth';
 import type { NextFetchEvent, NextRequest, NextResponse } from 'next/server';
 
 function propagateCookieToRequest(request: NextRequest, cookieString: string): void {
@@ -34,16 +35,25 @@ function propagateCookieToRequest(request: NextRequest, cookieString: string): v
  * If NextAuth rotates the token and sets a new session cookie, this helper
  * propagates the `Set-Cookie` header to the final `response`. A session whose token stayed the
  * same is not handed that token again.
+ *
+ * @returns the session the check read, `null` without one
  */
 export async function rotateSessionToken(
   request: NextRequest,
   event: NextFetchEvent,
   response: NextResponse,
-): Promise<void> {
-  const authMiddleware = auth as unknown as (
-    request_: NextRequest,
-    event_: NextFetchEvent,
-  ) => Promise<Response | NextResponse | undefined>;
+): Promise<Session | null> {
+  // The wrapper form runs the same check as `auth(request, event)` and hands the session it read
+  // to the callback, so nothing later in the proxy has to run the check a second time.
+  // eslint-disable-next-line unicorn/no-null -- `null` is what Auth.js answers for no session
+  let session: Session | null = null;
+  const authMiddleware = (
+    auth as unknown as (
+      callback: (request_: NextRequest & { auth: Session | null }) => void,
+    ) => (request_: NextRequest, event_: NextFetchEvent) => Promise<Response | undefined>
+  )((request_) => {
+    session = request_.auth;
+  });
 
   const { result: authResponse, isTokenKept } = await trackSessionToken(() =>
     authMiddleware(request, event),
@@ -72,4 +82,5 @@ export async function rotateSessionToken(
       }
     }
   }
+  return session;
 }

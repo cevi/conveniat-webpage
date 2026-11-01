@@ -26,7 +26,7 @@ const tooManyReactionsText: StaticTranslationString = {
 };
 
 const toggleReactionInputSchema = z.object({
-  messageId: z.string().uuid('Invalid message ID format.'),
+  messageId: z.uuid('Invalid message ID format.'),
   emoji: z.string().min(1, 'Emoji cannot be empty.').max(EMOJI_MAX_LENGTH, 'Emoji is too long.'),
 });
 
@@ -53,6 +53,11 @@ export const toggleReaction = trpcBaseProcedure
         code: 'NOT_FOUND',
         message: 'Message not found.',
       });
+    }
+
+    // a deleted message has nothing left to react to, see `deleteMessage`
+    if (message.deletedAt instanceof Date) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'This message was deleted.' });
     }
 
     // 2. Fetch the chat details and the user's membership
@@ -101,7 +106,8 @@ export const toggleReaction = trpcBaseProcedure
     });
 
     if (existingReaction) {
-      await prisma.messageReaction.delete({
+      // a second tap that crossed the first may already have removed it
+      await prisma.messageReaction.deleteMany({
         where: {
           uuid: existingReaction.uuid,
         },
@@ -114,12 +120,11 @@ export const toggleReaction = trpcBaseProcedure
         throw new TRPCError({ code: 'BAD_REQUEST', message: tooManyReactionsText[locale] });
       }
 
-      await prisma.messageReaction.create({
-        data: {
-          messageId,
-          userId: user.uuid,
-          emoji,
-        },
+      // Two taps that cross both find no reaction. Skipping the duplicate keeps the second from
+      // failing on the unique index, which would also abort the transaction it runs in.
+      await prisma.messageReaction.createMany({
+        data: [{ messageId, userId: user.uuid, emoji }],
+        skipDuplicates: true,
       });
     }
 

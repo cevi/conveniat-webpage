@@ -31,9 +31,10 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProperties>(
         onClick={handleClick}
         ref={reference}
         className={cn(
-          'peer inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+          // the track is 24px high, the hit area the 44px a thumb needs
+          "peer site:focus-visible:ring-2 site:focus-visible:ring-gray-950 site:focus-visible:ring-offset-2 site:focus-visible:ring-offset-white site:focus-visible:outline-none relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors before:absolute before:inset-x-0 before:-inset-y-2.5 before:content-[''] disabled:cursor-not-allowed disabled:opacity-50",
           !disabled && !loading && 'cursor-pointer',
-          checked ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-800',
+          checked ? 'bg-conveniat-green' : 'bg-chip',
           className,
         )}
         {...properties}
@@ -51,7 +52,9 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProperties>(
             'pointer-events-none flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-lg ring-0',
           )}
         >
-          {loading && <Loader2 className="h-3 w-3 animate-spin text-gray-400" />}
+          {loading && (
+            <Loader2 className="h-3 w-3 animate-spin text-green-500" aria-hidden="true" />
+          )}
         </motion.span>
       </button>
     );

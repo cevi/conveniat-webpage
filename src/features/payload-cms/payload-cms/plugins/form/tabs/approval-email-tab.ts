@@ -1,22 +1,7 @@
-import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
+import { formEmailEditor } from '@/features/payload-cms/payload-cms/plugins/form/tabs/form-email-editor';
 import { EMAIL_SENDER_DOMAIN } from '@/features/payload-cms/payload-cms/utils/email-sender';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
-import {
-  defaultEditorLexicalConfig,
-  HeadingFeature,
-  lexicalEditor,
-} from '@payloadcms/richtext-lexical';
 import type { Field, Tab } from 'payload';
-
-const formLexicalEditorSettings = lexicalEditor({
-  features: [
-    ...minimalEditorFeatures,
-    HeadingFeature({
-      enabledHeadingSizes: ['h3'],
-    }),
-  ],
-  lexical: defaultEditorLexicalConfig,
-});
 
 const formApprovalEmailField: Field = {
   name: 'approvalEmails',
@@ -24,9 +9,9 @@ const formApprovalEmailField: Field = {
   access: {},
   admin: {
     description: {
-      en: "Send custom emails when a form submission is approved (set to Freigegeben). Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email.",
-      de: 'Senden Sie benutzerdefinierte E-Mails, wenn eine Formular-Antwort freigegeben wird. Verwenden Sie durch Kommas getrennte Listen, um dieselbe E-Mail an mehrere Empfänger zu senden. Um auf einen Wert aus diesem Formular zu verweisen, schließen Sie den Namen dieses Felds in doppelte geschweifte Klammern ein, z. B. {{firstName}}. Sie können einen Platzhalter {{*}} verwenden, um alle Daten auszugeben, und {{*:table}}, um sie als HTML-Tabelle in der E-Mail zu formatieren.',
-      fr: "Envoyez des e-mails personnalisés lorsqu'une soumission de formulaire est approuvée (marquée comme Freigegeben). Utilisez des listes séparées par des virgules pour envoyer le même e-mail à plusieurs destinataires. Pour faire référence à une valeur de ce formulaire, entourez le nom de ce champ de doubles accolades, par exemple {{firstName}}. Vous pouvez utiliser un joker {{*}} pour afficher toutes les données et {{*:table}} pour les formater sous forme de tableau HTML.",
+      en: "Send custom emails when a form submission is approved (set to Freigegeben). Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email. {{signatur}} (or {{signatur :: Ressort Programm}}) ends the email with the official signature.",
+      de: 'Senden Sie benutzerdefinierte E-Mails, wenn eine Formular-Antwort freigegeben wird. Verwenden Sie durch Kommas getrennte Listen, um dieselbe E-Mail an mehrere Empfänger zu senden. Um auf einen Wert aus diesem Formular zu verweisen, schließen Sie den Namen dieses Felds in doppelte geschweifte Klammern ein, z. B. {{firstName}}. Sie können einen Platzhalter {{*}} verwenden, um alle Daten auszugeben, und {{*:table}}, um sie als HTML-Tabelle in der E-Mail zu formatieren. {{signatur}} (oder {{signatur :: Ressort Programm}}) beendet die E-Mail mit der offiziellen Signatur.',
+      fr: "Envoyez des e-mails personnalisés lorsqu'une soumission de formulaire est approuvée (marquée comme Freigegeben). Utilisez des listes séparées par des virgules pour envoyer le même e-mail à plusieurs destinataires. Pour faire référence à une valeur de ce formulaire, entourez le nom de ce champ de doubles accolades, par exemple {{firstName}}. Vous pouvez utiliser un joker {{*}} pour afficher toutes les données et {{*:table}} pour les formater sous forme de tableau HTML. {{signatur}} (ou {{signatur :: Ressort Programm}}) termine l’e-mail par la signature officielle.",
     },
   },
   fields: [
@@ -109,7 +94,7 @@ const formApprovalEmailField: Field = {
       admin: { description: 'Enter the message that should be sent in this approval email.' },
       label: 'Message',
       localized: true,
-      editor: formLexicalEditorSettings,
+      editor: formEmailEditor,
       hooks: patchRichTextLinkHook,
     },
   ],

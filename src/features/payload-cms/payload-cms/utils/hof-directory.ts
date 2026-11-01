@@ -1,10 +1,33 @@
 import type { Payload } from 'payload';
 
-/** What the camp may know about a Hof: its name and the name of its Quartier. */
+/** A Quartier as the camp knows it: "Quartier 5 - Greif", number 5, Rufname "Greif". */
+export interface HofQuartier {
+  id: string;
+  name: string;
+  /** absent until the editors number the Quartier */
+  number?: number | undefined;
+  rufname?: string | undefined;
+}
+
+/** What the camp may know about a Hof: its name and its Quartier. */
 export interface HofLabel {
   name: string;
-  quartier: { id: string; name: string } | undefined;
+  quartier: HofQuartier | undefined;
 }
+
+const toHofQuartier = (quartier: {
+  id: string;
+  name: string;
+  number?: number | null;
+  rufname?: string | null;
+}): HofQuartier => ({
+  id: quartier.id,
+  name: quartier.name,
+  ...(typeof quartier.number === 'number' ? { number: quartier.number } : {}),
+  ...(typeof quartier.rufname === 'string' && quartier.rufname !== ''
+    ? { rufname: quartier.rufname }
+    : {}),
+});
 
 /**
  * Every Hof by id, with its name and its Quartier. Selects nothing else, so the address fields
@@ -17,7 +40,7 @@ export const getHofDirectory = async (payload: Payload): Promise<Map<string, Hof
     pagination: false,
     overrideAccess: true,
     select: { name: true, quartier: true },
-    populate: { quartiere: { name: true } },
+    populate: { quartiere: { name: true, number: true, rufname: true } },
   });
   return new Map(
     docs.map((hof) => [
@@ -26,7 +49,7 @@ export const getHofDirectory = async (payload: Payload): Promise<Map<string, Hof
         name: hof.name,
         quartier:
           typeof hof.quartier === 'object' && hof.quartier !== null
-            ? { id: hof.quartier.id, name: hof.quartier.name }
+            ? toHofQuartier(hof.quartier)
             : undefined,
       },
     ]),

@@ -1,8 +1,7 @@
 'use client';
 
+import { ChatCreationGate } from '@/features/chat/components/chat-overview-view/chat-creation-gate';
 import { CreateChatSkeleton } from '@/features/chat/components/chat-overview-view/create-chat-skeleton';
-import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
-import { trpc } from '@/trpc/client';
 import dynamic from 'next/dynamic';
 import type React from 'react';
 
@@ -17,31 +16,10 @@ const CreateNewChatPage = dynamic(
   },
 );
 
-const NewChatPage: React.FC = () => {
-  const { data: createChatsEnabled, isLoading: isLoadingCapability } =
-    trpc.chat.checkCapability.useQuery(
-      {
-        action: CapabilityAction.Create,
-        subject: CapabilitySubject.Chat,
-      },
-      {
-        staleTime: 1000 * 60 * 5,
-        refetchOnWindowFocus: false,
-        networkMode: 'offlineFirst',
-      },
-    );
-
-  if (!isLoadingCapability && !createChatsEnabled) {
-    return (
-      <div className="flex h-screen items-center justify-center p-4">
-        <p className="font-body text-center font-semibold text-gray-600">
-          Chat creation is currently paused by administrators.
-        </p>
-      </div>
-    );
-  }
-
-  return <CreateNewChatPage />;
-};
+const NewChatPage: React.FC = () => (
+  <ChatCreationGate>
+    <CreateNewChatPage />
+  </ChatCreationGate>
+);
 
 export default NewChatPage;

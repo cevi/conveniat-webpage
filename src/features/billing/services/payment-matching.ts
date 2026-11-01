@@ -10,20 +10,24 @@ import type { BillParticipant } from '@/features/payload-cms/payload-types';
 /**
  * Decides, for every payment in the bank file, which bill it settles, if any.
  *
- * A payment only books a bill when both its QR reference and its amount match. Everything
- * else is reported back for the finance team to resolve by hand: guessing at a payment
- * would mark someone paid who is not, and nobody would look at that registration again.
+ * A payment only books a bill when its QR reference matches and it pays at least the bill's
+ * amount, and at most `OVERPAYMENT_TOLERANCE` more. Everything else is reported back for the
+ * finance team to resolve by hand: guessing at a payment would mark someone paid who is not,
+ * and nobody would look at that registration again.
  *
  * Kept free of Payload runtime imports, like `billing-status`, so it can be tested on its own.
  */
 
 export type PaymentOutcome =
-  /** Reference and amount match an open bill; the import marks it paid. */
+  /** The reference matches an open bill and the amount pays it; the import marks it paid. */
   | 'booked'
   /** The same bank transaction is already booked on this bill: the file was imported before. */
   | 'already_booked'
-  /** The bill is already paid by another transaction: possibly paid twice. */
-  | 'already_paid'
+  /**
+   * The bill is already paid by another transaction. The payment is linked to the bill
+   * anyway and the bill is flagged, so finance can refund it or assign it to another bill.
+   */
+  | 'double_payment'
   | 'amount_mismatch'
   | 'unknown_reference'
   | 'invalid_reference'
@@ -37,6 +41,41 @@ export type PaymentOutcome =
   | 'invalid_amount'
   /** Without the bank's transaction id a booking could not be traced back to the payment. */
   | 'missing_transaction_reference';
+
+/** How each outcome reads where finance sees it, on a stored payment. */
+export const PAYMENT_OUTCOME_LABELS: Record<
+  PaymentOutcome,
+  { de: string; en: string; fr: string }
+> = {
+  booked: { de: 'Verbucht', en: 'Booked', fr: 'Comptabilisé' },
+  already_booked: { de: 'Bereits importiert', en: 'Already imported', fr: 'Déjà importé' },
+  double_payment: { de: 'Doppelzahlung', en: 'Double payment', fr: 'Double paiement' },
+  amount_mismatch: { de: 'Betrag passt nicht', en: 'Amount mismatch', fr: 'Montant différent' },
+  unknown_reference: {
+    de: 'Unbekannte Referenz',
+    en: 'Unknown reference',
+    fr: 'Référence inconnue',
+  },
+  invalid_reference: {
+    de: 'Ungültige Referenz',
+    en: 'Invalid reference',
+    fr: 'Référence invalide',
+  },
+  superseded_bill: {
+    de: 'Ersetzte Rechnung',
+    en: 'Replaced bill',
+    fr: 'Facture remplacée',
+  },
+  cancelled: { de: 'Anmeldung storniert', en: 'Registration cancelled', fr: 'Inscription annulée' },
+  not_payable: { de: 'Keine offene Rechnung', en: 'No open bill', fr: 'Aucune facture ouverte' },
+  wrong_currency: { de: 'Andere Währung', en: 'Other currency', fr: 'Autre devise' },
+  invalid_amount: { de: 'Kein Zahlungseingang', en: 'Not a credit', fr: 'Pas un crédit' },
+  missing_transaction_reference: {
+    de: 'Ohne Transaktionsreferenz',
+    en: 'No transaction reference',
+    fr: 'Sans référence de transaction',
+  },
+};
 
 export interface PaymentMatch {
   payment: BankPayment;
@@ -64,7 +103,25 @@ const QR_REFERENCE = /^\d{27}$/;
 /** What a number looks like once Excel has had it: `-9.22337E+18`. */
 const SPREADSHEET_NUMBER = /^-?\d+(?:[.,]\d+)?e[+-]?\d+$/i;
 
-const toRappen = (amount: number): number => Math.round(amount * 100);
+/**
+ * Whether a reference was turned into a number by whatever saved the file, so the row says
+ * nothing about the payment it came from anymore.
+ */
+export const isConvertedReference = (reference: string): boolean =>
+  SPREADSHEET_NUMBER.test(reference) || reference.startsWith('-');
+
+/** Amounts are compared in Rappen, so 0.1 + 0.2 never decides whether a bill is paid. */
+export const toRappen = (amount: number): number => Math.round(amount * 100);
+
+/**
+ * How much more than the bill a payment may be and still settle it, in CHF.
+ *
+ * Bills carry amounts like CHF 172.96, and whoever types the amount instead of scanning the
+ * QR code rounds it up. Refunding a few francs costs more than it is worth, so the finance
+ * team books the difference as rounding instead. An underpayment is never booked: the bill
+ * would read as settled while money is still owed.
+ */
+export const OVERPAYMENT_TOLERANCE = 5;
 
 /** `CHF 1'274.50`, the way the bill prints it. */
 export const formatChf = (amount: number | null | undefined): string =>
@@ -82,7 +139,7 @@ const describeInvalidReference = (reference: string): string | undefined => {
   if (reference === '') {
     return 'Die Zahlung hat keine QR-Referenz. Bitte von Hand zuordnen.';
   }
-  if (SPREADSHEET_NUMBER.test(reference) || reference.startsWith('-')) {
+  if (isConvertedReference(reference)) {
     return (
       `Die Referenz «${reference}» ist keine QR-Referenz mehr, sondern eine umgewandelte Zahl. ` +
       'Das passiert, wenn die Datei in Excel geöffnet und wieder gespeichert wird. ' +
@@ -125,10 +182,13 @@ const indexByReference = (participants: MatchableParticipant[]): ReferenceIndex 
  *
  * @param participants every registration whose current or earlier bill carries one of the
  *   file's references
+ * @param knownTransactions the transactions already stored as payments, so a file imported
+ *   a second time adds nothing
  */
 export function matchPayments(
   payments: BankPayment[],
   participants: MatchableParticipant[],
+  knownTransactions: ReadonlySet<string> = new Set(),
 ): PaymentMatch[] {
   const index = indexByReference(participants);
   // Bills booked earlier in this same file, so a payment listed twice is not booked twice.
@@ -146,6 +206,16 @@ export function matchPayments(
       message: `${prefix}: ${reason}`,
       ...(participant === undefined ? {} : { participantId: participant.id }),
     });
+
+    if (
+      payment.transactionReference !== '' &&
+      knownTransactions.has(payment.transactionReference)
+    ) {
+      return reject(
+        'already_booked',
+        `Transaktion ${payment.transactionReference}: bereits importiert.`,
+      );
+    }
 
     const invalidReference = describeInvalidReference(payment.reference);
     if (invalidReference !== undefined) return reject('invalid_reference', invalidReference);
@@ -192,8 +262,9 @@ export function matchPayments(
     }
     if (participant.status === PAID || earlierInFile !== undefined) {
       return reject(
-        'already_paid',
-        `${who} ist bereits bezahlt. Möglicherweise wurde doppelt bezahlt.`,
+        'double_payment',
+        `${who} ist bereits bezahlt. Die Zahlung ist als Doppelzahlung bei der Anmeldung ` +
+          'hinterlegt: bitte zurückerstatten oder unter «Zahlungen» einer anderen Rechnung zuordnen.',
         participant,
       );
     }
@@ -215,10 +286,14 @@ export function matchPayments(
     }
 
     const invoiceAmount = participant.invoiceAmount;
+    const overpaidRappen =
+      invoiceAmount === null || invoiceAmount === undefined
+        ? undefined
+        : toRappen(payment.amount) - toRappen(invoiceAmount);
     if (
-      invoiceAmount === null ||
-      invoiceAmount === undefined ||
-      toRappen(invoiceAmount) !== toRappen(payment.amount)
+      overpaidRappen === undefined ||
+      overpaidRappen < 0 ||
+      overpaidRappen > toRappen(OVERPAYMENT_TOLERANCE)
     ) {
       return reject(
         'amount_mismatch',

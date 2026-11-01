@@ -137,7 +137,7 @@ export const minimalEditorFeatures = [
             }
             const targetDocument = siblingData['doc'] as { relationTo?: string } | undefined;
             const relationTo = targetDocument?.relationTo;
-            return !relationTo || relationTo === 'generic-page' || relationTo === 'blog';
+            return !relationTo || relationTo === 'generic-page';
           },
           description: {
             de: 'Optionale Sprungmarke / Anker (z. B. "projektleitung" für den Akkordeon-Block)',
@@ -147,7 +147,6 @@ export const minimalEditorFeatures = [
         },
       },
     ],
-    // we only allow links to pages or blog posts
     // TODO: we should list the title or slug instead of the ID in the overview
     /* ATTENTION: if a collection was added here:
       make sure to:
@@ -156,7 +155,6 @@ export const minimalEditorFeatures = [
       */
     enabledCollections: [
       'generic-page',
-      'blog',
       'images',
       'documents',
       ...(environmentVariables.FEATURE_ENABLE_APP_FEATURE

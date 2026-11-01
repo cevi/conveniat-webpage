@@ -34,6 +34,8 @@ import { generateBillsTask } from '@/features/payload-cms/payload-cms/tasks/gene
 import { generatePdfThumbnailTask } from '@/features/payload-cms/payload-cms/tasks/generate-pdf-thumbnail';
 import { keepCeviDatabaseSessionAliveTask } from '@/features/payload-cms/payload-cms/tasks/keep-cevidb-session-alive';
 import { publishScheduledAnnouncementsTask } from '@/features/payload-cms/payload-cms/tasks/publish-scheduled-announcements';
+import { refreshUserHoefeTask } from '@/features/payload-cms/payload-cms/tasks/refresh-user-hoefe';
+import { runDailyBillingTask } from '@/features/payload-cms/payload-cms/tasks/run-daily-billing';
 import { sendBillsTask } from '@/features/payload-cms/payload-cms/tasks/send-bills';
 import { sendPflichtangabenRemindersTask } from '@/features/payload-cms/payload-cms/tasks/send-pflichtangaben-reminders';
 import { sendWeeklyReportTask } from '@/features/payload-cms/payload-cms/tasks/send-weekly-report';
@@ -44,8 +46,10 @@ import { syncParticipantsTask } from '@/features/payload-cms/payload-cms/tasks/s
 import { writeBackPaymentsTask } from '@/features/payload-cms/payload-cms/tasks/write-back-payments';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import { autoCheckoutPresenceTask } from '@/features/presence/payload-cms/tasks/auto-checkout-presence';
+import { sendScheduleRemindersTask } from '@/features/schedule/payload-cms/tasks/send-schedule-reminders';
 import type { RoutableConfig } from '@/types/types';
 import { redirectsTranslations } from '@payloadcms/plugin-redirects';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -54,15 +58,21 @@ import {
   isFullAdmin,
   shouldHideInAdminPanel,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { localizeUploadTooLarge } from '@/features/payload-cms/payload-cms/hooks/localize-upload-too-large';
 import { instrumentTasks } from '@/features/payload-cms/payload-cms/utils/instrument-task';
 import {
   customPayloadLoggerConfig,
   setQueriedJobSlugs,
 } from '@/features/payload-cms/payload-cms/utils/job-logger';
 import {
+  MAX_UPLOAD_FILE_BYTES,
+  MAX_UPLOAD_REQUEST_BYTES,
+} from '@/features/payload-cms/payload-cms/utils/upload-size-limit';
+import {
   enabledWidgets,
   widgetDefaultLayout,
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
+import { withVisitDayPlaces } from '@/features/visit-day/payload-cms/visit-day-submission-hooks';
 import { dbConfig } from '@/lib/db/mongodb';
 import type { CollectionAfterOperationHook, Endpoint, JobsConfig, MetaConfig } from 'payload';
 import { de } from 'payload/i18n/de';
@@ -117,6 +127,7 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
       },
     ],
     Nav: '@/features/payload-cms/payload-cms/components/admin-nav/admin-nav',
+    providers: ['@/features/payload-cms/payload-cms/components/upload-size-guard#UploadSizeGuard'],
     views: {
       accessOverview: {
         Component: '@/features/payload-cms/payload-cms/views/access-overview-view#default',
@@ -152,14 +163,7 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
     // The default locale 'de' omits the prefix.
     url: `${env.APP_HOST_URL}/preview-fallback?preview=true`,
     breakpoints: smartphoneBreakpoints,
-    collections: [
-      'blog',
-      'generic-page',
-      'timeline',
-      'forms',
-      'camp-map-annotations',
-      'announcements',
-    ],
+    collections: ['generic-page', 'timeline', 'forms', 'camp-map-annotations', 'announcements'],
   },
   dashboard: {
     widgets: enabledWidgets,
@@ -372,10 +376,13 @@ const jobsConfig: JobsConfig = {
       sendBillsTask,
       sendWeeklyReportTask,
       sendPflichtangabenRemindersTask,
+      runDailyBillingTask,
       writeBackPaymentsTask,
       cleanupTemporaryFormFilesTask,
+      refreshUserHoefeTask,
       syncFunktionenTask,
       autoCheckoutPresenceTask,
+      sendScheduleRemindersTask,
     ].map((task) => withActiveJobTracking(task)),
   ),
   workflows: [brevoContactWorkflow].map((workflow) => withActiveWorkflowTracking(workflow)),
@@ -421,8 +428,17 @@ export const payloadConfig: RoutableConfig = {
   collections: collectionsConfig,
   editor: lexicalEditor,
   globals: globalConfig,
+  hooks: {
+    afterError: [localizeUploadTooLarge],
+  },
   upload: {
     uploadTimeout: 300_000,
+    limits: { fileSize: MAX_UPLOAD_FILE_BYTES },
+    requestSizeLimit: MAX_UPLOAD_REQUEST_BYTES,
+    // Spool uploads to disk rather than holding them in the container's memory. The default
+    // directory is the relative `tmp`, which resolves under /app, where the app user cannot write.
+    useTempFiles: true,
+    tempFileDir: os.tmpdir(),
   },
   localization: {
     locales,
@@ -446,7 +462,8 @@ export const payloadConfig: RoutableConfig = {
   sharp: sharp,
   telemetry: false,
   plugins: [
-    formPluginConfiguration,
+    // the Besuchstag takes its places before the form builder sends the confirmation email
+    withVisitDayPlaces(formPluginConfiguration),
     ...s3StoragePlugins,
     searchPluginConfiguration,
     redirectsPluginConfiguration,

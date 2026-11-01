@@ -11,11 +11,11 @@ import {
   serializeMaterialAnswer,
   stepQuantity,
 } from '@/features/payload-cms/components/form/utils/material-list';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Minus, Plus } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useId, useMemo, useRef, useState } from 'react';
 import { useController, useFormContext, type FieldError } from 'react-hook-form';

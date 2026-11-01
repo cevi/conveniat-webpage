@@ -103,6 +103,9 @@ interface Membership {
   chatId: string;
   chatPermission: string;
   lastReadSeq: number | null;
+  pinnedAt: Date | null;
+  mutedAt: Date | null;
+  markedUnread: boolean;
 }
 
 /**
@@ -120,8 +123,12 @@ const createPrisma = (
     userId,
     chatId,
     chatPermission: 'MEMBER',
-    // eslint-disable-next-line unicorn/no-null
+    /* eslint-disable unicorn/no-null -- what Postgres answers for an untouched membership */
     lastReadSeq: null,
+    pinnedAt: null,
+    mutedAt: null,
+    /* eslint-enable unicorn/no-null */
+    markedUnread: false,
   });
   const memberships: Membership[] = [
     membership(caller.uuid, ONE_TO_ONE_ID),

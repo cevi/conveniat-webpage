@@ -1,11 +1,11 @@
 import { Required } from '@/features/payload-cms/components/form/required';
 import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
 import type { FileUploadBlock } from '@/features/payload-cms/components/form/types';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { AlertCircle, Check, FileText, Upload, X } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   useController,
