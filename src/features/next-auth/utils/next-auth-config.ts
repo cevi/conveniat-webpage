@@ -2,6 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import type { HitobitoProfile } from '@/features/next-auth/types/hitobito-profile';
 import { createAuthJsLogger } from '@/features/next-auth/utils/auth-js-logger';
 import { reportSessionTokenKept } from '@/features/next-auth/utils/session-token-change';
+import { shareRefreshAcrossReplicas } from '@/features/next-auth/utils/shared-refresh';
 import type { User } from '@/features/payload-cms/payload-types';
 import { withCeviDatabaseUserAgent } from '@/lib/hitobito/user-agent';
 import { formatUserFullName } from '@/utils/format-user-name';
@@ -334,8 +335,9 @@ const SESSION_ENDED = null;
 
 /**
  * Refreshes in flight, by refresh token. Requests that carry the same session share one call to
- * Cevi.DB, because the second use of a refresh token is refused. Two devices of one user hold
- * different refresh tokens, so neither ever receives the other's result.
+ * Cevi.DB, because the second use of a refresh token is refused. This covers one process, and
+ * `shareRefreshAcrossReplicas` the other replicas. Two devices of one user hold different refresh
+ * tokens, so neither ever receives the other's result.
  */
 const inflightRefreshes = new Map<string, Promise<JWT | null | undefined>>();
 
@@ -351,7 +353,9 @@ async function refreshAccessToken(
   }
 
   // Start the actual refresh and store the promise
-  const refreshPromise = doRefreshAccessToken(token, reason).finally(() => {
+  const refreshPromise = shareRefreshAcrossReplicas(refreshToken, () =>
+    doRefreshAccessToken(token, reason),
+  ).finally(() => {
     // Clean up after a short delay to handle near-simultaneous arrivals
     setTimeout(() => inflightRefreshes.delete(refreshToken), 1000);
   });

@@ -96,4 +96,30 @@ describe('proxy - authSessionProxy', () => {
 
     expect(rotateSessionToken).toHaveBeenCalledWith(request, mockFetchEvent, expect.anything());
   });
+
+  // Cevi.DB revokes a refresh token once its successor is used. A route that still read the old
+  // cookie would refresh with the revoked one, be refused and end the session it was just given.
+  it.each(['/api/auth/session', '/api/trpc/schedule.star.syncStars', '/admin', '/entrypoint'])(
+    'hands a rotated session cookie on to %s',
+    async (pathname) => {
+      jest.mocked(rotateSessionToken).mockImplementationOnce((request_) => {
+        request_.headers.set('cookie', 'authjs.session-token=rotated');
+        // eslint-disable-next-line unicorn/no-null -- `null` is what Auth.js answers for no session
+        return Promise.resolve(null);
+      });
+      const request = {
+        nextUrl: new URL(`https://konekta.ch${pathname}`),
+        url: `https://konekta.ch${pathname}`,
+        headers: new Headers({ cookie: 'authjs.session-token=expired' }),
+        cookies: { get: jest.fn(), set: jest.fn() },
+      } as unknown as NextRequest;
+
+      const result = await proxy(request, mockFetchEvent, NextResponse.next());
+
+      expect(result.headers.get('x-middleware-override-headers')).toContain('cookie');
+      expect(result.headers.get('x-middleware-request-cookie')).toBe(
+        'authjs.session-token=rotated',
+      );
+    },
+  );
 });
