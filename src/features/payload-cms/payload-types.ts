@@ -192,6 +192,7 @@ export interface Config {
     'app-feature-flags': AppFeatureFlag;
     'bill-settings': BillSetting;
     'hof-dashboard-settings': HofDashboardSetting;
+    'visit-day': VisitDaySetting;
     'registration-management': RegistrationManagement;
     'email-signature': EmailSignatureSetting;
     'payload-jobs-stats': PayloadJobsStat;
@@ -211,6 +212,7 @@ export interface Config {
     'app-feature-flags': AppFeatureFlagsSelect<false> | AppFeatureFlagsSelect<true>;
     'bill-settings': BillSettingsSelect<false> | BillSettingsSelect<true>;
     'hof-dashboard-settings': HofDashboardSettingsSelect<false> | HofDashboardSettingsSelect<true>;
+    'visit-day': VisitDaySelect<false> | VisitDaySelect<true>;
     'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
     'email-signature': EmailSignatureSelect<false> | EmailSignatureSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
@@ -1565,6 +1567,30 @@ export interface Form {
                 name: string;
                 label: string;
                 /**
+                 * The name of the field asking how many persons come, e.g. "anzahl_personen". Each takes one place.
+                 */
+                personCountField: string;
+                /**
+                 * The day is stored under this name, so an email can name it, e.g. {{besuchstag}}.
+                 */
+                dayField: string;
+                /**
+                 * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter. Stored under this name for the email, e.g. {{anmeldenummer}}.
+                 */
+                registrationNumberField: string;
+                required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'visitDaySelection';
+              }
+            | {
+                name: string;
+                label: string;
+                /**
                  * First day a helper can mark.
                  */
                 startDate: string;
@@ -1887,6 +1913,30 @@ export interface Form {
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'hofSelection';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          /**
+                           * The name of the field asking how many persons come, e.g. "anzahl_personen". Each takes one place.
+                           */
+                          personCountField: string;
+                          /**
+                           * The day is stored under this name, so an email can name it, e.g. {{besuchstag}}.
+                           */
+                          dayField: string;
+                          /**
+                           * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter. Stored under this name for the email, e.g. {{anmeldenummer}}.
+                           */
+                          registrationNumberField: string;
+                          required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'visitDaySelection';
                         }
                       | {
                           name: string;
@@ -7246,6 +7296,19 @@ export interface FormsSelect<T extends boolean = true> {
                           id?: T;
                           blockName?: T;
                         };
+                    visitDaySelection?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          personCountField?: T;
+                          dayField?: T;
+                          registrationNumberField?: T;
+                          required?: T;
+                          placement?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
                     dateSlotSelection?:
                       | T
                       | {
@@ -7452,6 +7515,19 @@ export interface FormsSelect<T extends boolean = true> {
                                   | {
                                       name?: T;
                                       label?: T;
+                                      required?: T;
+                                      placement?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                visitDaySelection?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      personCountField?: T;
+                                      dayField?: T;
+                                      registrationNumberField?: T;
                                       required?: T;
                                       placement?: T;
                                       id?: T;
@@ -8840,6 +8916,35 @@ export interface HofDashboardSetting {
   createdAt?: string | null;
 }
 /**
+ * The days relatives may visit, the places per day and the Höfe the registration offers. The registration form picks the day from the Quartier of the Hof chosen.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visit-day".
+ */
+export interface VisitDaySetting {
+  id: string;
+  days?:
+    | {
+        date: string;
+        /**
+         * Every person registered takes one place, children included.
+         */
+        capacity: number;
+        /**
+         * The relatives of the Höfe in these Quartiere visit on this day.
+         */
+        quartiere: (string | Quartier)[];
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Not offered in the registration, e.g. a Hof for testing. A Hof without a Quartier is never offered.
+   */
+  hiddenHoefe?: (string | Hof)[] | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "registration-management".
  */
@@ -9406,6 +9511,24 @@ export interface HofDashboardSettingsSelect<T extends boolean = true> {
         area?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visit-day_select".
+ */
+export interface VisitDaySelect<T extends boolean = true> {
+  days?:
+    | T
+    | {
+        date?: T;
+        capacity?: T;
+        quartiere?: T;
+        id?: T;
+      };
+  hiddenHoefe?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

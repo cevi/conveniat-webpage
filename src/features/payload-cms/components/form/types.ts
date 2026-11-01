@@ -26,7 +26,24 @@ export interface MaterialListBlock {
   placement?: 'sidebar' | 'main';
 }
 
-export type FormFieldBlock = (PayloadFormFieldBlock | FileUploadBlock | MaterialListBlock) & {
+/** The Hof relatives register for on the Besuchstag; the day follows from its Quartier. */
+export interface VisitDaySelectionBlock {
+  blockType: 'visitDaySelection';
+  name: string;
+  label?: string;
+  required?: boolean;
+  /** the field asking how many persons come */
+  personCountField: string;
+  /** the answer the server stores the day under */
+  dayField: string;
+  /** the answer the server stores the registration number under */
+  registrationNumberField: string;
+  placement?: 'sidebar' | 'main';
+}
+
+export type FormFieldBlock = (
+  PayloadFormFieldBlock | FileUploadBlock | MaterialListBlock | VisitDaySelectionBlock
+) & {
   placement?: 'sidebar' | 'main';
 };
 

@@ -120,6 +120,7 @@ import { DoublePaymentsDownloadButton as DoublePaymentsDownloadButton_41d9ab8795
 import { ReferenceNumberExplainer as ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64 } from '@/features/billing/components/reference-number-explainer'
 import { BillPreviewComponent as BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236 } from '@/features/billing/components/bill-preview-component'
 import { FieldsRowLabel as FieldsRowLabel_ca3224a51f3b058ed80bfbc2a7b266ae } from '@/features/hof-dashboard/payload-cms/components/fields-row-label'
+import { VisitDayExportButton as VisitDayExportButton_4b6e952f6d29976647b1e0579eb03e30 } from '@/features/visit-day/components/visit-day-export-button'
 import { default as default_ca24980ef56b9b5023ff164dd084145b } from '@/features/payload-cms/payload-cms/components/admin-nav/admin-nav'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
 import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page'
@@ -261,6 +262,7 @@ export const importMap = {
   "@/features/billing/components/reference-number-explainer#ReferenceNumberExplainer": ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64,
   "@/features/billing/components/bill-preview-component#BillPreviewComponent": BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236,
   "@/features/hof-dashboard/payload-cms/components/fields-row-label#FieldsRowLabel": FieldsRowLabel_ca3224a51f3b058ed80bfbc2a7b266ae,
+  "@/features/visit-day/components/visit-day-export-button#VisitDayExportButton": VisitDayExportButton_4b6e952f6d29976647b1e0579eb03e30,
   "@/features/payload-cms/payload-cms/components/admin-nav/admin-nav#default": default_ca24980ef56b9b5023ff164dd084145b,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
   "@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page#default": default_d432a7de1921f0e10a01eefbe71b022a,

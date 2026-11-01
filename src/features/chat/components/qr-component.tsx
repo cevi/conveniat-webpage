@@ -3,7 +3,6 @@
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { EmptyState } from '@/components/ui/empty-state';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
-import { APP_USER_AGENT, QR_CODE_BACKEND_URL } from '@/config/constants';
 import { environmentVariables } from '@/config/environment-variables';
 import { PersonName } from '@/features/chat/components/ui/person-name';
 import { useChatInviteUrl } from '@/features/chat/hooks/use-chat-invite-url';
@@ -12,6 +11,7 @@ import { isRateLimitError } from '@/features/chat/utils/send-errors';
 import { QRCodeImage } from '@/features/payload-cms/payload-cms/components/qr-code/qr-code-image';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useQrScanner } from '@/hooks/use-qr-scanner';
+import { fetchCeviQrCodeSvg } from '@/lib/cevi-qr-code';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -81,33 +81,6 @@ const text = {
   },
 } satisfies Record<string, StaticTranslationString>;
 
-/** Renders a QR code for `text` through the Cevi QR code backend. */
-const fetchQrCodeSvg = async (value: string): Promise<string> => {
-  const response = await fetch(`${QR_CODE_BACKEND_URL}/svg`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'User-Agent': APP_USER_AGENT,
-    },
-    body: JSON.stringify({
-      text: value,
-      options: { color_scheme: 'cevi' },
-    }),
-  });
-  if (!response.ok) {
-    throw new Error(`QR code fetch failed: ${response.status}`);
-  }
-  const rawSvg = await response.text();
-  return rawSvg
-    .replaceAll(/b(['"])([\s\S]*?)\1/g, (_, _q: string, p1: string) => {
-      return p1
-        .replaceAll(String.raw`\n`, '\n')
-        .replaceAll(String.raw`\'`, "'")
-        .replaceAll(String.raw`\"`, '"');
-    })
-    .replaceAll('ns0:', '');
-};
-
 /**
  * The QR code itself. It mounts with the sheet, so each opening shows a new single-use code,
  * and stays mounted while the scanner is shown, so switching back does not mint another one.
@@ -118,7 +91,7 @@ const ChatInviteQrCode: React.FC<{ locale: Locale }> = ({ locale }) => {
   const qrImage = useQuery({
     queryKey: ['qrCodeSvgImage', inviteUrl.data],
     meta: { persist: false },
-    queryFn: () => fetchQrCodeSvg(inviteUrl.data ?? ''),
+    queryFn: () => fetchCeviQrCodeSvg(inviteUrl.data ?? ''),
     enabled: inviteUrl.data !== undefined,
     gcTime: 0,
     staleTime: Infinity,

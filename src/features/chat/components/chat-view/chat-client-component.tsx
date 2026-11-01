@@ -6,6 +6,7 @@ import { ChatHeader, ChatHeaderSkeleton } from '@/features/chat/components/chat-
 import { ChatSkeleton } from '@/features/chat/components/chat-view/chat-skeleton';
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
+import { PhonePushHint } from '@/features/chat/components/chat-view/phone-push-hint';
 import { ThreadView } from '@/features/chat/components/chat-view/thread-view';
 import { RealtimeSyncBanner } from '@/features/chat/components/realtime-sync-banner';
 import { ChatActionsProvider, useChatActions } from '@/features/chat/context/chat-actions-context';
@@ -126,6 +127,7 @@ const ChatClientContent: React.FC = () => {
       <div className="flex-1 overflow-hidden">
         <MessageList />
       </div>
+      <PhonePushHint chatId={chatId} />
       <div className="border-line border-t bg-white px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <ChatTextAreaInput />
       </div>
