@@ -4,6 +4,7 @@ import {
   refreshHoefeAfterRegistrationChange,
   refreshHoefeAfterRegistrationDelete,
 } from '@/features/billing/collections/refresh-registered-hoefe';
+import { splitNameSearchHook } from '@/features/billing/collections/split-name-search';
 import {
   canTransition,
   describeRefusedTransition,
@@ -48,6 +49,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     // searched too, so a payment against a replaced bill still finds its registration, the
     // same two places the payment import matches on. The Anmeldenummer is what a participant
     // quotes from their bill.
+    // "Vorname Nachname / Ceviname" is split across fullName and nickname, see splitNameSearch.
     listSearchableFields: [
       'fullName',
       'referenceNumber',
@@ -74,6 +76,7 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
   },
   hooks: {
+    beforeOperation: [splitNameSearchHook],
     beforeChange: [
       ({ data, originalDoc, operation }): Record<string, unknown> => {
         // The one place every status write passes through. The transitions used to be
