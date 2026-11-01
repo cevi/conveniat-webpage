@@ -323,7 +323,6 @@ test.describe('Exhaustive Offline User Flows & Screenshot Verification Suite', (
                       },
                     ],
                     campMapAnnotationPolygons: [],
-                    schedules: {},
                   },
                 },
               },
