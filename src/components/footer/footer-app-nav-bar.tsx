@@ -10,8 +10,9 @@ import type { Config } from '@/features/payload-cms/payload-types';
 import { useKeyboardShrinksPage } from '@/hooks/use-keyboard-shrinks-page';
 import { cn } from '@/utils/tailwindcss-override';
 import { House } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
-import React, { useMemo, useState, useTransition } from 'react';
+import { usePathname } from 'next/navigation';
+import type React from 'react';
+import { useMemo } from 'react';
 
 export interface FooterAppNavBarProperties {
   locale: Config['locale'];
@@ -26,7 +27,6 @@ export const FooterAppNavBar: React.FC<FooterAppNavBarProperties> = ({
   railOnDesktop = false,
 }) => {
   const pathname = usePathname();
-  const router = useRouter();
   const keyboardShrinksPage = useKeyboardShrinksPage();
 
   const navItems = useMemo(() => {
@@ -43,20 +43,6 @@ export const FooterAppNavBar: React.FC<FooterAppNavBarProperties> = ({
       return accumulator;
     }, '');
   }, [navItems, pathname]);
-
-  const [isPending, startTransition] = useTransition();
-  const [loadingHref, setLoadingHref] = useState<string | undefined>();
-
-  const handleNavClick = (href: string): void => {
-    if (href === longestMatch) return;
-
-    setLoadingHref(href);
-    startTransition(() => {
-      router.push(href);
-    });
-  };
-
-  const currentLoadingHref = isPending ? loadingHref : undefined;
 
   return (
     <div
@@ -77,7 +63,6 @@ export const FooterAppNavBar: React.FC<FooterAppNavBarProperties> = ({
         )}
       >
         {navItems.map((item) => {
-          const isActive = longestMatch === item.href || currentLoadingHref === item.href;
           const IconComponent = APP_NAV_BAR_ICONS[item.iconName] ?? House;
 
           return (
@@ -86,12 +71,8 @@ export const FooterAppNavBar: React.FC<FooterAppNavBarProperties> = ({
               href={item.href}
               icon={IconComponent}
               label={item.label}
-              isActive={isActive}
               isCurrent={longestMatch === item.href}
               color={item.color}
-              onClick={handleNavClick}
-              isLoading={isPending}
-              loadingHref={currentLoadingHref}
               className={cn(railOnDesktop && 'xl:h-auto xl:w-full xl:flex-none')}
             />
           );
