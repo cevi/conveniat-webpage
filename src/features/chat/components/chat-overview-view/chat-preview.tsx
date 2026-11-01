@@ -1,6 +1,7 @@
 'use client';
 import { ChatAvatar } from '@/features/chat/components/ui/chat-avatar';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
+import { LinkPendingSpinner } from '@/features/chat/components/ui/link-pending-spinner';
 import { PersonName } from '@/features/chat/components/ui/person-name';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useLongPress } from '@/features/chat/hooks/use-long-press';
@@ -13,7 +14,7 @@ import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
-import { BellOff, Check, Clock, Loader2, Pin } from 'lucide-react';
+import { BellOff, Check, Clock, Pin } from 'lucide-react';
 import Link, { useLinkStatus } from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
@@ -61,36 +62,20 @@ const ChatPreviewRow: React.FC<{ children: React.ReactNode }> = ({ children }) =
   );
 };
 
-/**
- * The date of the last message, crossfaded to a small spinner while a tap takes a while, as it
- * does offline, so it is not mistaken for one that did nothing. A chat opened from the cache
- * still takes a render, about 160 ms on a Pixel 6, so the spinner waits half a second and never
- * flashes on a tap that is fast. Both stay in place, so nothing in the row moves.
- */
+/** The date of the last message; a spinner takes its place while a tap takes a while. */
 const ChatTimestamp: React.FC<{ timestamp: string; className: string; locale: Locale }> = ({
   timestamp,
   className,
   locale,
-}) => {
-  const { pending } = useLinkStatus();
-  return (
-    <span className={cn(className, 'relative')}>
-      <span className={cn('transition-opacity', pending && 'opacity-0 delay-500')}>
-        {timestamp}
-      </span>
-      <span
-        className={cn(
-          'absolute inset-y-0 right-0 flex items-center opacity-0 transition-opacity',
-          pending && 'opacity-100 delay-500',
-        )}
-        aria-hidden="true"
-      >
-        <Loader2 className="h-4 w-4 animate-spin text-green-500" />
-      </span>
-      {pending && <span className="sr-only">{openingText[locale]}</span>}
-    </span>
-  );
-};
+}) => (
+  <LinkPendingSpinner
+    className={className}
+    spinnerClassName="h-4 w-4 text-green-500"
+    pendingLabel={openingText[locale]}
+  >
+    {timestamp}
+  </LinkPendingSpinner>
+);
 
 const groupCreatedText: StaticTranslationString = {
   de: 'Du hast die Gruppe erstellt',
