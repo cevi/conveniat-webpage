@@ -43,7 +43,7 @@ export const ImageViewer: React.FC<ImageViewerProperties> = ({
           event.stopPropagation();
           onClose();
         }}
-        className="fixed inset-0 z-[99999] flex flex-col items-center justify-center gap-3 p-4 pt-[max(3.5rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] focus:outline-none"
+        className="fixed inset-0 z-[99999] flex flex-col items-center justify-center gap-3 p-4 pt-[max(3.5rem,var(--status-bar-height))] pb-[max(1rem,env(safe-area-inset-bottom))] focus:outline-none"
       >
         <DialogPrimitive.Title className="sr-only">{alt}</DialogPrimitive.Title>
         <img src={src} alt={alt} className="min-h-0 max-w-full flex-1 object-contain" />
@@ -55,7 +55,7 @@ export const ImageViewer: React.FC<ImageViewerProperties> = ({
             variant="quiet"
             size="touchIcon"
             aria-label={closeText[locale]}
-            className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3"
+            className="absolute top-[max(0.75rem,var(--status-bar-height))] right-3"
           >
             <X aria-hidden="true" />
           </Button>
