@@ -141,7 +141,8 @@ const FooterLayoutCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
             className="rounded-full p-2 transition-colors duration-200"
             aria-label={youTubeAriaLabel[locale]}
           >
-            <SiYoutube className="h-5 w-5" />
+            {/* the logo spans its whole viewBox, so its anti-aliased sides fall outside the box */}
+            <SiYoutube className="h-5 w-5 overflow-visible" />
           </LinkComponent>
         )}
       </div>
