@@ -185,7 +185,7 @@ export const MessageStatusLine: React.FC<{
         break;
       }
       case MessageEventType.READ: {
-        icon = <DoubleCheck className="text-conveniat-green" />;
+        icon = <DoubleCheck read />;
         break;
       }
       default: {
