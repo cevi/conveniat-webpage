@@ -16,51 +16,56 @@ import { z } from 'zod';
 export const mapRouter = createTRPCRouter({
   /**
    * Get all map annotations (polygons and markers).
-   * Used by the mini map to show context with all annotations.
+   * Used by the mini map to show context with all annotations. Takes the locale as input
+   * rather than from the cookie, so the persisted query cache keeps one answer per language.
    */
-  getAnnotations: publicProcedure.query(async () => {
-    const payload = await getPayload({ config });
+  getAnnotations: publicProcedure
+    .input(z.object({ locale: z.enum(['en', 'de', 'fr']) }))
+    .query(async ({ input }) => {
+      const payload = await getPayload({ config });
 
-    const annotations = await payload.find({
-      collection: 'camp-map-annotations',
-      limit: 100,
-      depth: 1,
-    });
-
-    // Transform to simplified frontend format
-    const polygons = annotations.docs
-      .filter(
-        (document_) => document_.annotationType === 'polygon' && !document_.hiddenOnDefaultMap,
-      )
-      .map((document_) => {
-        interface CoordinateObject {
-          longitude?: number;
-          latitude?: number;
-          lng?: number;
-          lat?: number;
-        }
-
-        const rawCoords = document_.polygonCoordinates as unknown as CoordinateObject[] | undefined;
-
-        return {
-          id: document_.id,
-          title: document_.title,
-          color: formatHexColor(document_.color) ?? '#47564c',
-          coordinates:
-            rawCoords
-              ?.map((coord) => {
-                const lng = coord.longitude ?? coord.lng;
-                const lat = coord.latitude ?? coord.lat;
-                return typeof lng === 'number' && typeof lat === 'number'
-                  ? ([lng, lat] as [number, number])
-                  : undefined;
-              })
-              .filter((c): c is [number, number] => c !== undefined) ?? [],
-        };
+      const annotations = await payload.find({
+        collection: 'camp-map-annotations',
+        limit: 100,
+        depth: 1,
+        locale: input.locale,
       });
 
-    return { polygons };
-  }),
+      // Transform to simplified frontend format
+      const polygons = annotations.docs
+        .filter(
+          (document_) => document_.annotationType === 'polygon' && !document_.hiddenOnDefaultMap,
+        )
+        .map((document_) => {
+          interface CoordinateObject {
+            longitude?: number;
+            latitude?: number;
+            lng?: number;
+            lat?: number;
+          }
+
+          const rawCoords = document_.polygonCoordinates as unknown as
+            CoordinateObject[] | undefined;
+
+          return {
+            id: document_.id,
+            title: document_.title,
+            color: formatHexColor(document_.color) ?? '#47564c',
+            coordinates:
+              rawCoords
+                ?.map((coord) => {
+                  const lng = coord.longitude ?? coord.lng;
+                  const lat = coord.latitude ?? coord.lat;
+                  return typeof lng === 'number' && typeof lat === 'number'
+                    ? ([lng, lat] as [number, number])
+                    : undefined;
+                })
+                .filter((c): c is [number, number] => c !== undefined) ?? [],
+          };
+        });
+
+      return { polygons };
+    }),
 
   /**
    * Get all map annotations (points and polygons) and related schedules.

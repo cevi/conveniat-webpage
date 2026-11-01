@@ -344,8 +344,9 @@ export const syncAllOfflineData = async (
     safePrefetch(trpcUtils.map.getMapAnnotations.fetch({ locale: 'de' })),
     safePrefetch(trpcUtils.map.getMapAnnotations.fetch({ locale: 'en' })),
     safePrefetch(trpcUtils.map.getMapAnnotations.fetch({ locale: 'fr' })),
-    // eslint-disable-next-line unicorn/no-useless-undefined
-    safePrefetch(trpcUtils.map.getAnnotations.fetch(undefined)),
+    safePrefetch(trpcUtils.map.getAnnotations.fetch({ locale: 'de' })),
+    safePrefetch(trpcUtils.map.getAnnotations.fetch({ locale: 'en' })),
+    safePrefetch(trpcUtils.map.getAnnotations.fetch({ locale: 'fr' })),
     // eslint-disable-next-line unicorn/no-useless-undefined
     safePrefetch(trpcUtils.presence.getPresence.fetch(undefined)),
     // eslint-disable-next-line unicorn/no-useless-undefined
