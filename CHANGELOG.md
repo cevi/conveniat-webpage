@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.42.1](https://github.com/cevi/conveniat-webpage/compare/v1.42.0...v1.42.1) (2026-11-01)
+
+
+### Bug Fixes
+
+* **cms:** serve drafts only to those who may edit them ([43514e9](https://github.com/cevi/conveniat-webpage/commit/43514e9763b6b97789c54ec605b92bdeccc0d6f7))
+* **cms:** serve drafts only to those who may edit them ([ee83906](https://github.com/cevi/conveniat-webpage/commit/ee8390624e3acc39ec1f82d836a75316fb83136a))
+* **emergency:** list only published emergency cards over the API ([f13c134](https://github.com/cevi/conveniat-webpage/commit/f13c13437fb0c2c342750d260d69b99d77f84451))
+* **emergency:** list only published emergency cards over the API ([9aebdd9](https://github.com/cevi/conveniat-webpage/commit/9aebdd9914382f4a38548dd0ce522ee483c58186))
+* **mcp:** run every key as its full user, groups included ([2756905](https://github.com/cevi/conveniat-webpage/commit/27569055bfcddc3965a03181ae631f366bab1158))
+* **mcp:** run every key as its full user, groups included ([ec92904](https://github.com/cevi/conveniat-webpage/commit/ec929040826adce39a60c1dd101f69d54068b094))
+
 ## [1.42.0](https://github.com/cevi/conveniat-webpage/compare/v1.41.4...v1.42.0) (2026-10-31)
 
 
