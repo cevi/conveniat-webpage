@@ -5,6 +5,7 @@ import type React from 'react';
 import type { ChatDetails } from '@/features/chat/api/types';
 import type { ChatAvatarChat } from '@/features/chat/components/ui/chat-avatar';
 import { ChatAvatar } from '@/features/chat/components/ui/chat-avatar';
+import { LinkPendingSpinner } from '@/features/chat/components/ui/link-pending-spinner';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
@@ -15,8 +16,8 @@ import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { ArrowLeft, Loader2 } from 'lucide-react';
-import Link, { useLinkStatus } from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 const onlineText: StaticTranslationString = {
   de: 'Online',
@@ -62,24 +63,13 @@ const headerClassName =
 const iconButtonClassName =
   'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900 hover:bg-quiet';
 
-/**
- * The back arrow turns into a spinner until the overview has loaded, so a tap that takes a while,
- * as it does offline, is not mistaken for one that did nothing.
- */
-const BackIcon: React.FC = () => {
-  const { pending } = useLinkStatus();
-  return pending ? (
-    <Loader2 className="h-[22px] w-[22px] animate-spin" aria-hidden="true" />
-  ) : (
-    <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
-  );
-};
-
 const BackLink: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   return (
     <Link href="/app/chat" aria-label={backText[locale]} className={iconButtonClassName}>
-      <BackIcon />
+      <LinkPendingSpinner spinnerClassName="h-[22px] w-[22px]">
+        <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
+      </LinkPendingSpinner>
     </Link>
   );
 };
