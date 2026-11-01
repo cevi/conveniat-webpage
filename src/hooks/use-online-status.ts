@@ -93,6 +93,11 @@ const getServerSnapshot = (): boolean => {
 };
 
 /**
+ * The same state for code outside React, such as TanStack Query's `onlineManager`.
+ */
+export const onlineStatusStore = { subscribe, getSnapshot } as const;
+
+/**
  * Hook to track online/offline status.
  * Returns false when the device has no network, and when it has one that does not answer.
  */
