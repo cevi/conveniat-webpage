@@ -18,8 +18,9 @@ const json = (body: Record<string, string>, status: number): Response =>
 /**
  * The healthcheck of Swarm and Traefik. Answers 503 once initializing Payload failed in this
  * process, which happens when Mongo is unreachable or a migration throws, and until Postgres has
- * answered once. Swarm then stops the rollout of a release that cannot reach its databases, and
- * replaces a replica Payload will not initialize again.
+ * answered once. Swarm then replaces a replica Payload will not initialize again. A rollout only
+ * stops on it when the failure shows within the stack's `update_config.monitor` window, which
+ * Postgres does on the first probe but Mongo and the migrations may not.
  *
  * A replica that is still initializing answers ok: how long the pending migrations take is not
  * bounded by the healthcheck's start period, and a request waits for the initialization anyway.
