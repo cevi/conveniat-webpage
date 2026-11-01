@@ -69,12 +69,8 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
   const { entries: localEntries } = useScheduleEntries();
 
   // 2. Also check the schedule list cache from tRPC (direct cache read + query hook)
-  const { data: scheduleList } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
-
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-  });
+  // eslint-disable-next-line unicorn/no-useless-undefined
+  const { data: scheduleList } = trpc.schedule.getScheduleEntries.useQuery(undefined);
   const trpcDirectEntries = trpcUtils.schedule.getScheduleEntries.getData();
   const allEntries = scheduleList ?? trpcDirectEntries ?? localEntries;
 
@@ -103,13 +99,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     isLoading,
     error,
     isFetched,
-  } = trpc.schedule.getById.useQuery(
-    { id },
-    {
-      staleTime: 1000 * 60 * 5,
-      refetchOnWindowFocus: false,
-    },
-  );
+  } = trpc.schedule.getById.useQuery({ id });
 
   // Prefer fetched/cached entry
   const entry =
