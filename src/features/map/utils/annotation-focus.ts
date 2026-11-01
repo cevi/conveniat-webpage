@@ -35,11 +35,13 @@ export const ANNOTATION_DRAWER_ATTRIBUTE = 'data-annotation-drawer';
  * Space that has to stay free around an annotation for it to count as "comfortably visible".
  *
  * Markers are anchored at their bottom tip and their icon extends roughly 72px upwards,
- * hence considerably more headroom is required above the projected coordinate than below it.
+ * hence considerably more headroom is required above the projected coordinate than below it. On
+ * the right the locate and compass buttons take a column of 60px, 44px wide and 16px from the
+ * edge, which a place behind them would share.
  */
 export const ANNOTATION_FOCUS_MARGINS: EdgeMargins = {
   top: 88,
-  right: 56,
+  right: 76,
   bottom: 56,
   left: 56,
 };

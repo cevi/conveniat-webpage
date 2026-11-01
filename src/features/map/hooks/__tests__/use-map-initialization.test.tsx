@@ -4,13 +4,14 @@
 
 const mapConstructor = jest.fn();
 const removeMock = jest.fn();
+const resizeMock = jest.fn();
 const addControlMock = jest.fn();
 const setWorkerUrlMock = jest.fn();
 
 jest.mock('maplibre-gl', () => ({
   Map: jest.fn().mockImplementation((options: unknown) => {
     mapConstructor(options);
-    return { addControl: addControlMock, remove: removeMock, on: jest.fn() };
+    return { addControl: addControlMock, remove: removeMock, resize: resizeMock, on: jest.fn() };
   }),
   AttributionControl: jest.fn().mockImplementation(() => ({})),
   getVersion: (): string => '6.13.0',
@@ -20,8 +21,10 @@ jest.mock('maplibre-gl', () => ({
 }));
 
 import { useMapInitialization } from '@/features/map/hooks/use-map-initialization';
-import { renderHook } from '@testing-library/react';
+import { render, renderHook } from '@testing-library/react';
 import { Map as MapLibre } from 'maplibre-gl';
+import type React from 'react';
+import { Activity, useState } from 'react';
 
 const options = {
   initialMapPose: { initialMapCenter: [8.5, 47.4] as [number, number], zoom: 15 },
@@ -29,6 +32,19 @@ const options = {
   validateStyle: true,
   locale: 'de' as const,
 };
+
+/** Renders its own container, as the map renderer does, so React owns when it leaves the page. */
+const MapHost: React.FC = () => {
+  const [container, setContainer] = useState<HTMLDivElement | undefined>();
+  useMapInitialization(container, options);
+  return <div ref={(element) => setContainer(element ?? undefined)} />;
+};
+
+const Page: React.FC<{ mode: 'visible' | 'hidden' }> = ({ mode }) => (
+  <Activity mode={mode}>
+    <MapHost />
+  </Activity>
+);
 
 describe('useMapInitialization', () => {
   let container: HTMLDivElement;
@@ -86,10 +102,45 @@ describe('useMapInitialization', () => {
     expect(mapConstructor).not.toHaveBeenCalled();
   });
 
-  it('removes the map instance on unmount', () => {
-    const { unmount } = renderHook(() => useMapInitialization(container, options));
+  it('removes the map when its page unmounts', () => {
+    const { unmount } = render(<MapHost />);
 
     unmount();
+
+    expect(removeMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the map while the page is hidden and shows the same one on return', () => {
+    const { rerender } = render(<Page mode="visible" />);
+
+    rerender(<Page mode="hidden" />);
+    rerender(<Page mode="visible" />);
+    rerender(<Page mode="hidden" />);
+    rerender(<Page mode="visible" />);
+
+    expect(mapConstructor).toHaveBeenCalledTimes(1);
+    expect(removeMock).not.toHaveBeenCalled();
+  });
+
+  it('measures a map again when its page is shown', () => {
+    const width = jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(400);
+    const { rerender } = render(<Page mode="visible" />);
+
+    rerender(<Page mode="hidden" />);
+    rerender(<Page mode="visible" />);
+
+    expect(resizeMock).toHaveBeenCalledTimes(1);
+    width.mockRestore();
+  });
+
+  it('removes a hidden map once its page is dropped and another map initializes', () => {
+    const hidden = render(<Page mode="visible" />);
+    hidden.rerender(<Page mode="hidden" />);
+    // the page leaves the document without running the cleanup a second time
+    hidden.unmount();
+    expect(removeMock).not.toHaveBeenCalled();
+
+    render(<MapHost />);
 
     expect(removeMock).toHaveBeenCalledTimes(1);
   });
