@@ -127,6 +127,13 @@ export const ChosenPeople: React.FC<{
   </div>
 );
 
+/**
+ * The edges of the chat list and of the contacts under it: out to the screen on a phone, in the
+ * centred column from `sm`, and out to the panel's edges again on a desktop, so the rows of both
+ * line up and their hover reaches the same edges.
+ */
+export const chatListBleedClassName = '-mx-4 sm:mx-0 xl:-mx-4';
+
 /** The row of a contact list; the line between rows starts at the text, as on the chat list. */
 export const contactRowItemClassName =
   'after:bg-line relative after:absolute after:right-0 after:bottom-0 after:left-[72px] after:h-px last:after:hidden';
