@@ -317,7 +317,7 @@ export const QRCodeClientComponent: React.FC = () => {
         onClick={() => onOpenChange(true)}
         aria-haspopup="dialog"
         aria-label={text.myCode[locale]}
-        className="hover:bg-quiet flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-green-900"
+        className="focus-visible:focus-surface hover:bg-quiet flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-green-900"
       >
         <QrCode className="h-[22px] w-[22px]" aria-hidden="true" />
       </button>

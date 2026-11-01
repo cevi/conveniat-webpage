@@ -587,7 +587,7 @@ const QuotedMessagePreview: React.FC<{
         type="button"
         onClick={onCancel}
         aria-label={cancelQuoteText[locale]}
-        className="hover:bg-chip flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700"
+        className="focus-visible:focus-surface hover:bg-chip flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700"
       >
         <X className="h-5 w-5" aria-hidden="true" />
       </button>

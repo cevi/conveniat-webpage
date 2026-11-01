@@ -139,7 +139,7 @@ export const contactRowItemClassName =
   'after:bg-line relative after:absolute after:right-0 after:bottom-0 after:left-[72px] after:h-px last:after:hidden';
 
 const backButtonClassName =
-  'hover:bg-quiet flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900';
+  'focus-visible:focus-surface hover:bg-quiet flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900';
 
 /**
  * The full-screen frame of starting a chat: a back arrow, the title with an optional line

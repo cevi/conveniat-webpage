@@ -171,7 +171,7 @@ export const ChatNameSection: React.FC<ChatNameSectionProperties> = ({
           {canRename && (
             <button
               type="button"
-              className="hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700"
+              className="focus-visible:focus-surface hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700"
               onClick={() => {
                 setName(currentName);
                 setIsEditing(true);

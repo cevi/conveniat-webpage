@@ -66,7 +66,7 @@ const LeadCard: React.FC<{
   return (
     <Link
       href={hrefOf(entry)}
-      className="border-line hover:bg-quiet block rounded-[14px] border bg-white px-4 py-3.5"
+      className="focus-visible:focus-surface border-line hover:bg-quiet block rounded-[14px] border bg-white px-4 py-3.5"
     >
       <span className="flex items-start justify-between gap-3">
         <span

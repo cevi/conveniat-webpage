@@ -10,7 +10,7 @@ import React from 'react';
 
 /** a round white button floating over the map at the top of a block's or a shift's page */
 export const floatingButtonClassName =
-  'hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white p-0 text-green-900 shadow-[0_2px_8px_rgba(0,0,0,0.16)] transition-colors';
+  'focus-visible:focus-surface hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white p-0 text-green-900 shadow-[0_2px_8px_rgba(0,0,0,0.16)] transition-colors';
 
 interface CoordinateObject {
   lat?: number;

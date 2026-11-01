@@ -152,7 +152,7 @@ export const BottomSheet: React.FC<{
                   {showClose && (
                     <DialogPrimitive.Close
                       aria-label={closeLabel[locale]}
-                      className="bg-quiet hover:bg-chip flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900 transition-colors"
+                      className="focus-visible:focus-surface bg-quiet hover:bg-chip flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900 transition-colors"
                     >
                       <X className="h-5 w-5" aria-hidden="true" />
                     </DialogPrimitive.Close>

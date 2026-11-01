@@ -61,7 +61,7 @@ export const describeMembers = (names: string[], locale: Locale): string => {
 const headerClassName =
   'border-line flex h-[60px] shrink-0 items-center gap-1 border-b bg-white pr-2 pl-1';
 const iconButtonClassName =
-  'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900 hover:bg-quiet';
+  'focus-visible:focus-surface flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900 hover:bg-quiet';
 
 const BackLink: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -168,7 +168,7 @@ export const ChatHeader: React.FC = () => {
       <Link
         href={`/app/chat/${chatId}/details`}
         aria-label={`${chat.name}, ${openDetailsText[locale]}`}
-        className="hover:bg-quiet flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-[12px] py-1 pr-2 pl-1"
+        className="focus-visible:focus-surface hover:bg-quiet flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-[12px] py-1 pr-2 pl-1"
       >
         <ChatAvatar chat={chat} />
         <span className="flex min-w-0 flex-1 flex-col">

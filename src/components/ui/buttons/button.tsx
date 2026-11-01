@@ -23,11 +23,13 @@ const buttonVariants = cva(
           'site:hover:bg-neutral-100 site:hover:text-neutral-900 site:dark:hover:bg-neutral-800 site:dark:hover:text-neutral-50',
         link: 'text-neutral-900 underline-offset-4 hover:underline dark:text-neutral-50',
         // the app's design language: one primary action in brand green, the others quiet
-        primary: 'bg-conveniat-green font-semibold text-white hover:bg-green-700',
-        quiet: 'bg-quiet font-semibold text-green-900 hover:bg-chip',
-        outlined: 'border border-rail bg-white font-semibold text-green-900 hover:bg-quiet',
+        primary:
+          'bg-conveniat-green font-semibold text-white hover:bg-green-700 focus-visible:focus-surface-filled',
+        quiet: 'bg-quiet font-semibold text-green-900 hover:bg-chip focus-visible:focus-surface',
+        outlined:
+          'border border-rail bg-white font-semibold text-green-900 hover:bg-quiet focus-visible:focus-surface',
         /** a button without a surface, like an icon in a row: it shows its surface on hover */
-        plain: 'text-green-700 hover:bg-quiet hover:text-green-900',
+        plain: 'text-green-700 hover:bg-quiet hover:text-green-900 focus-visible:focus-surface',
         /** a destructive action: `outlined` in red; it asks first or can be undone right after */
         danger:
           'border border-danger-line bg-white font-semibold text-danger-text hover:bg-danger-soft focus-visible:outline-danger',

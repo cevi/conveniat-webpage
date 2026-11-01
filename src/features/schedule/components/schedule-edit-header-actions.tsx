@@ -68,7 +68,7 @@ export const ScheduleEditHeaderActions: React.FC<ScheduleEditHeaderActionsProper
             type="button"
             onClick={onSave}
             disabled={isSaving}
-            className="bg-conveniat-green flex h-11 cursor-pointer items-center gap-1.5 rounded-full px-4 text-[15px] font-semibold text-white shadow-[0_2px_8px_rgba(0,0,0,0.16)] transition-colors hover:bg-green-700 disabled:opacity-50"
+            className="focus-visible:focus-surface-filled bg-conveniat-green flex h-11 cursor-pointer items-center gap-1.5 rounded-full px-4 text-[15px] font-semibold text-white shadow-[0_2px_8px_rgba(0,0,0,0.16)] transition-colors hover:bg-green-700 disabled:opacity-50"
           >
             {isSaving ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />

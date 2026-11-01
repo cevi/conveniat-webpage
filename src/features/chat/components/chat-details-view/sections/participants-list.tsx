@@ -179,7 +179,7 @@ export const ParticipantsList: React.FC<ParticipantsListProperties> = ({
                   onClick={action.run}
                   aria-label={actionsForText[locale].replace('{name}', displayName)}
                   aria-haspopup="dialog"
-                  className="hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700"
+                  className="focus-visible:focus-surface hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700"
                 >
                   <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
                 </button>
