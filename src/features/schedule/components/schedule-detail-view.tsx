@@ -25,7 +25,7 @@ import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { AlertTriangle, ArrowLeft, CalendarX } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CalendarDays, CalendarX } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useMemo, useState } from 'react';
 
@@ -42,10 +42,34 @@ const labels = {
 
 /**
  * below the preview banner, when there is one, and above the bottom navigation; on a desktop in
- * the free area beside the menu and the tabs, under the header
+ * the free area beside the menu and the tabs, under the header, right of the Programm's list,
+ * which is 400px wide there (see the schedule page)
  */
 const containerClassName =
-  'fixed inset-x-0 top-(--app-top-inset) bottom-(--app-tab-bar-height) z-[110] flex flex-col overflow-hidden bg-page xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0';
+  'fixed inset-x-0 top-(--app-top-inset) bottom-(--app-tab-bar-height) z-[110] flex flex-col overflow-hidden bg-page xl:top-(--app-content-top) xl:left-[calc(var(--app-content-left)+400px)] xl:z-0';
+
+const pickBlockLabels = {
+  title: { de: 'Wähle einen Block', en: 'Choose a block', fr: 'Choisis un bloc' },
+  description: {
+    de: 'Er öffnet sich hier, das Programm bleibt daneben.',
+    en: 'It opens here, next to the program.',
+    fr: 'Il s’ouvre ici, à côté du programme.',
+  },
+} as const;
+
+/** What a desktop shows beside the Programm while no block is open; a phone shows the list. */
+export const NoBlockSelected: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+  return (
+    <div className={cn(containerClassName, 'hidden items-center justify-center xl:flex')}>
+      <EmptyState
+        icon={CalendarDays}
+        title={pickBlockLabels.title[locale]}
+        description={pickBlockLabels.description[locale]}
+      />
+    </div>
+  );
+};
 
 interface ScheduleDetailViewProperties {
   id: string;

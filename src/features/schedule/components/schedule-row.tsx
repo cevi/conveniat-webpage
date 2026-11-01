@@ -71,6 +71,8 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
   const [, end = ''] = primary.timeslot.time.split(' - ');
   const slot = slotOf(primary);
   const isGrouped = stop.slots.length > 1;
+  // the slot open beside the list on a desktop; on a phone the list is hidden while one is open
+  const openId = stop.slots.find(({ id }) => id === searchParameters.get('id'))?.id;
 
   const hrefOf = (entry: Entry): string => {
     const parameters = new URLSearchParams(searchParameters.toString());
@@ -119,11 +121,14 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
             ? 'border-line has-[>a:hover]:border-rail'
             : 'border-live-line',
           isPast ? 'bg-quiet border-transparent' : 'bg-white',
+          openId !== undefined && 'border-conveniat-green has-[>a:hover]:border-conveniat-green',
         )}
       >
         <Link
           href={hrefOf(primary)}
           onClick={openBlock}
+          // where the slots have links of their own, the open one says it
+          aria-current={openId === primary.id && !(showSlots && isGrouped) ? 'page' : undefined}
           className="block py-3 pr-12 pl-3.5 focus-visible:outline-none"
         >
           {eyebrow.length > 0 && (
@@ -181,6 +186,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
                   <Link
                     href={hrefOf(entry)}
                     onClick={openBlock}
+                    aria-current={openId === entry.id ? 'page' : undefined}
                     // px, not rem: the root font is larger on desktop. The Quartiere of a slot
                     // are one chip, so the row keeps to one line beside its time.
                     className={cn(

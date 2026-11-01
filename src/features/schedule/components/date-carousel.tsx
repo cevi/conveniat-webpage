@@ -22,9 +22,10 @@ const nextDayAriaLabel: StaticTranslationString = {
   fr: 'Jour suivant',
 };
 
-// a phone swipes the strip; the arrows are for wider screens, where seven days leave them room
+// a phone swipes the strip; the arrows are for a wider strip, where seven days leave them room,
+// which the Programm's narrow column beside an open block on a desktop is not
 const arrowClassName =
-  'hidden h-[58px] w-7 shrink-0 cursor-pointer rounded-lg p-0 text-green-500 hover:bg-transparent hover:text-green-900 disabled:pointer-events-none disabled:opacity-25 sm:flex';
+  'hidden h-[58px] w-7 shrink-0 cursor-pointer rounded-lg p-0 text-green-500 hover:bg-transparent hover:text-green-900 disabled:pointer-events-none disabled:opacity-25 @lg:flex';
 
 interface DateCarouselProperties {
   allDates: Date[];
@@ -47,7 +48,7 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
     useDayStripScroll(formattedCurrentDate, allDates.length);
 
   return (
-    <div className="flex w-full items-center gap-1.5">
+    <div className="@container flex w-full items-center gap-1.5">
       <Button
         variant="plain"
         size="sm"
