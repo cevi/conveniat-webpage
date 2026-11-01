@@ -2,7 +2,7 @@
 
 import { trpc } from '@/trpc/client';
 import { getOrCreateDeviceId } from '@/utils/device-id';
-import { unsubscribeFromPushNotifications } from '@/utils/push-notifications/push-subscription';
+import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
 import { useCallback } from 'react';
 
 /**
@@ -17,14 +17,22 @@ import { useCallback } from 'react';
  * the shell re-emits it on every page load and it is registered to whoever is signed in then.
  *
  * Failures are logged, not thrown, so a flaky connection never keeps someone from logging out.
+ * Neither half may wait for the connection either. The release runs with `networkMode:
+ * 'always'`, because a paused mutation would hold the logout and, once the network returned,
+ * run under whoever signed in next. For the same reason the browser half is not
+ * `unsubscribeFromPushNotifications`: its Server Action is replayed by Next's `useOffline`
+ * after the connection returns, never failed. A row the release misses, from before rows
+ * carried a device id, points at the endpoint unsubscribed here and is pruned by the next send.
  */
 export function useReleasePushSubscriptions(): () => Promise<void> {
-  const { mutateAsync: releaseDevice } = trpc.nativePush.releaseDevice.useMutation();
+  const { mutateAsync: releaseDevice } = trpc.nativePush.releaseDevice.useMutation({
+    networkMode: 'always',
+  });
 
   return useCallback(async (): Promise<void> => {
     const results = await Promise.allSettled([
       releaseDevice({ deviceId: getOrCreateDeviceId() }),
-      unsubscribeFromPushNotifications(),
+      getPushSubscription().then((subscription) => subscription?.unsubscribe()),
     ]);
     for (const result of results) {
       if (result.status === 'rejected') {
