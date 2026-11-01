@@ -56,7 +56,7 @@ export const MessagesSkeleton: React.FC<{ className?: string }> = ({ className }
 export const ChatSkeleton: React.FC<{ header?: React.ReactNode }> = ({
   header = <ChatHeaderSkeleton />,
 }) => (
-  <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
+  <div className="bg-page fixed top-(--app-top-inset) z-[110] flex h-[calc(100dvh-var(--app-top-inset))] w-screen flex-col xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
     <AppFooterController hideAppFooter />
     {header}
     <MessagesSkeleton className="flex-1" />

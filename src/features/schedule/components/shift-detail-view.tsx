@@ -80,7 +80,7 @@ const notFoundLabel: StaticTranslationString = {
 };
 
 const containerClassName =
-  'bg-page fixed inset-x-0 top-(--preview-banner-height) bottom-0 z-[110] flex flex-col overflow-hidden';
+  'bg-page fixed inset-x-0 top-(--app-top-inset) bottom-0 z-[110] flex flex-col overflow-hidden';
 
 /**
  * Everything about one shift, as a screen of its own.

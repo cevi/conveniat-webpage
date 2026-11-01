@@ -81,6 +81,11 @@ const TopNavHeader: React.FC<{
 
   return (
     <header className="fixed top-0 left-0 z-[100] h-[60px] w-full xl:h-16">
+      {/* room for the status bar, see --app-top-inset */}
+      <div
+        aria-hidden="true"
+        className="h-[env(safe-area-inset-top,0px)] bg-white/95 backdrop-blur-md"
+      />
       <React.Suspense fallback={<div className="bg-gray-900" />}>
         <PreviewModeBannerServerComponent />
       </React.Suspense>
@@ -155,6 +160,8 @@ const SideNavHeader: React.FC<{
 
   return (
     <header className="fixed top-0 left-0 z-[100] h-[60px] w-full">
+      {/* room for the status bar, see --app-top-inset */}
+      <div aria-hidden="true" className="h-[env(safe-area-inset-top,0px)] bg-white" />
       <React.Suspense fallback={<div className="bg-gray-900" />}>
         <PreviewModeBannerServerComponent />
       </React.Suspense>
