@@ -3,6 +3,7 @@
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { fitToVisualViewport } from '@/utils/fit-to-visual-viewport';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import type { PanInfo } from 'framer-motion';
 import { motion, useDragControls, useReducedMotion } from 'framer-motion';
@@ -87,7 +88,10 @@ export const BottomSheet: React.FC<{
           }}
         >
           <motion.div
-            className="fixed inset-x-0 bottom-0 z-[201] mx-auto flex max-h-[90dvh] w-full max-w-xl flex-col rounded-t-[24px] bg-white pb-[env(safe-area-inset-bottom)] focus:outline-none"
+            // the keyboard only shrinks the visual viewport, so the sheet follows it rather than
+            // the bottom of the page, which stays behind the keyboard with its search and button
+            ref={fitToVisualViewport}
+            className="fixed inset-x-0 bottom-[var(--visual-viewport-bottom,0px)] z-[201] mx-auto flex max-h-[calc(var(--visual-viewport-height,100dvh)*0.9)] w-full max-w-xl flex-col rounded-t-[24px] bg-white pb-[env(safe-area-inset-bottom)] focus:outline-none"
             initial={reduceMotion ? false : { y: '100%' }}
             animate={{ y: 0 }}
             transition={{ type: 'tween', duration: reduceMotion ? 0 : 0.24, ease: 'easeOut' }}
