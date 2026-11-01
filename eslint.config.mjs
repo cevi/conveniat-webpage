@@ -58,6 +58,7 @@ const features_folder = [
   'photo-contest',
   'material',
   'hof-dashboard',
+  'visit-day',
 ];
 
 const featuresDirectory = path.join(__dirname, 'src', 'features');

@@ -530,7 +530,6 @@ export async function POST(request: Request): Promise<Response> {
 
       try {
         revalidateTag('payload', 'max');
-        revalidateTag('collection:form-submissions', 'max');
       } catch {
         // Non-critical revalidation failure
       }

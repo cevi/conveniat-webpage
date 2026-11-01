@@ -309,17 +309,16 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         </span>
       );
     }
-    // sent and delivered stay faint; read takes a colour of its own, so it shows at a glance
+    // the ticks take the time's colour; read fills them instead of changing colour
     switch (message.status) {
       case MessageEventType.STORED: {
-        return <Check className="ml-1 h-3.5 w-3.5 text-white/60" strokeWidth={2.5} />;
+        return <Check className="ml-1 h-3.5 w-3.5" strokeWidth={2.5} />;
       }
       case MessageEventType.RECEIVED: {
-        return <DoubleCheck className="ml-1 text-white/60" />;
+        return <DoubleCheck surface="brand" className="ml-1" />;
       }
       case MessageEventType.READ: {
-        // 6:1 on the bubble, and a colour of its own beside the faint white of delivered
-        return <DoubleCheck className="text-read-on-brand ml-1" />;
+        return <DoubleCheck read surface="brand" className="ml-1" />;
       }
 
       default: {
@@ -671,7 +670,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                     }}
                     aria-label={messageActionsText[activeLocale]}
                     title={messageActionsText[activeLocale]}
-                    className="hover:bg-quiet flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-green-700 hover:text-green-900"
+                    className="focus-visible:focus-surface hover:bg-quiet flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-green-700 hover:text-green-900"
                   >
                     <Ellipsis className="h-4 w-4" aria-hidden="true" />
                   </button>

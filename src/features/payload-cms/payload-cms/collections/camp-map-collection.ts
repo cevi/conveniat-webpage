@@ -4,7 +4,10 @@ import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugin
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import { MapCoordinates } from '@/features/payload-cms/payload-cms/shared-fields/map-coordinates/map-coordinates';
 import { MapPolygon } from '@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon';
-import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
+import {
+  flushPageCacheOnChange,
+  flushPageCacheOnDelete,
+} from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
@@ -35,7 +38,7 @@ AnnotationPointField.admin = {
 export const CampMapAnnotationsCollection: CollectionConfig = {
   slug: 'camp-map-annotations',
   trash: true,
-  hooks: { afterChange: [flushPageCacheOnChange] },
+  hooks: { afterChange: [flushPageCacheOnChange], afterDelete: [flushPageCacheOnDelete] },
 
   labels: {
     singular: {

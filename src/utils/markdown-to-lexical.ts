@@ -46,6 +46,28 @@ interface ListNode {
   indent: number;
 }
 
+interface YoutubeEmbedBlockNode {
+  type: 'block';
+  version: 2;
+  format: '';
+  fields: {
+    id: string;
+    blockName: string;
+    blockType: 'youtubeEmbed';
+    links: { id: string; link: string }[];
+  };
+}
+
+/** A line that is nothing but a YouTube link stands for an embedded video. */
+const YOUTUBE_LINE_PATTERN =
+  /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)[\w-]{11}\S*$/;
+
+/** A new id in the shape Payload gives blocks and array rows. */
+const createObjectId = (): string =>
+  Array.from(globalThis.crypto.getRandomValues(new Uint8Array(12)), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('');
+
 /**
  * Converts simple Markdown text to Lexical JSON format.
  * Supports:
@@ -53,12 +75,32 @@ interface ListNode {
  * - Bold: **text** or __text__
  * - Italic: *text* or _text_
  * - Bullet lists: lines starting with "- " or "* "
+ * - YouTube videos: lines holding nothing but a YouTube link, consecutive ones in one block
  */
 export function convertMarkdownToLexical(markdown: string): SerializedEditorState {
   const lines = markdown.split('\n');
   const children: SerializedLexicalNode[] = [];
 
   let currentListItems: ListItemNode[] = [];
+  let currentVideoLinks: string[] = [];
+
+  const flushVideos = (): void => {
+    if (currentVideoLinks.length > 0) {
+      const blockNode: YoutubeEmbedBlockNode = {
+        type: 'block',
+        version: 2,
+        format: '',
+        fields: {
+          id: createObjectId(),
+          blockName: '',
+          blockType: 'youtubeEmbed',
+          links: currentVideoLinks.map((link) => ({ id: createObjectId(), link })),
+        },
+      };
+      children.push(blockNode);
+      currentVideoLinks = [];
+    }
+  };
 
   const flushList = (): void => {
     if (currentListItems.length > 0) {
@@ -80,6 +122,13 @@ export function convertMarkdownToLexical(markdown: string): SerializedEditorStat
 
   for (const line of lines) {
     const trimmedLine = line.trim();
+
+    if (YOUTUBE_LINE_PATTERN.test(trimmedLine)) {
+      flushList();
+      currentVideoLinks.push(trimmedLine);
+      continue;
+    }
+    flushVideos();
 
     // Check for bullet list item
     if (/^[-*]\s+/.test(trimmedLine)) {
@@ -104,8 +153,9 @@ export function convertMarkdownToLexical(markdown: string): SerializedEditorStat
     }
   }
 
-  // Flush any remaining list items
+  // Flush any remaining list items and videos
   flushList();
+  flushVideos();
 
   return {
     root: {
@@ -210,13 +260,13 @@ export function convertLexicalToMarkdown(
   const lines: string[] = [];
 
   for (const node of rootChildren) {
-    lines.push(nodeToMarkdown(node as unknown as ParagraphNode | ListNode));
+    lines.push(nodeToMarkdown(node as unknown as ParagraphNode | ListNode | YoutubeEmbedBlockNode));
   }
 
   return lines.join('\n\n');
 }
 
-function nodeToMarkdown(node: ParagraphNode | ListNode): string {
+function nodeToMarkdown(node: ParagraphNode | ListNode | YoutubeEmbedBlockNode): string {
   if (node.type === 'paragraph') {
     return childrenToMarkdown(node.children as unknown as TextNode[]);
   }
@@ -232,6 +282,16 @@ function nodeToMarkdown(node: ParagraphNode | ListNode): string {
           : '';
         return `- ${content}`;
       })
+      .join('\n');
+  }
+
+  // a video stays one link per line, so saving an edit keeps it
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (node.type === 'block' && node.fields?.blockType === 'youtubeEmbed') {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    return (Array.isArray(node.fields.links) ? node.fields.links : [])
+      .map((row) => row.link)
+      .filter((link) => typeof link === 'string' && link.trim() !== '')
       .join('\n');
   }
 

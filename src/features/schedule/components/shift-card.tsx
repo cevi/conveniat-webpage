@@ -87,7 +87,7 @@ export const ShiftCard: React.FC<{
       <div
         className={cn(
           // the link fills the card, which clips it: the card shows its focus
-          'has-[>a:focus-visible]:focus-ring mb-3.5 overflow-hidden rounded-[14px] border',
+          'has-[>a:focus-visible]:focus-surface mb-3.5 overflow-hidden rounded-[14px] border',
           isPast ? 'bg-quiet border-transparent' : 'border-line bg-white',
         )}
       >

@@ -2,10 +2,12 @@
 
 import type React from 'react';
 
-import { IconTile } from '@/components/ui/icon-tile';
-import { PersonAvatar } from '@/components/ui/person-avatar';
 import type { ChatDetails } from '@/features/chat/api/types';
+import type { ChatAvatarChat } from '@/features/chat/components/ui/chat-avatar';
+import { ChatAvatar } from '@/features/chat/components/ui/chat-avatar';
+import { LinkPendingSpinner } from '@/features/chat/components/ui/link-pending-spinner';
 import { useChatId } from '@/features/chat/context/chat-id-context';
+import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
@@ -14,8 +16,8 @@ import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { ArrowLeft, Loader2, Megaphone } from 'lucide-react';
-import Link, { useLinkStatus } from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 const onlineText: StaticTranslationString = {
   de: 'Online',
@@ -59,26 +61,15 @@ export const describeMembers = (names: string[], locale: Locale): string => {
 const headerClassName =
   'border-line flex h-[60px] shrink-0 items-center gap-1 border-b bg-white pr-2 pl-1';
 const iconButtonClassName =
-  'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900 hover:bg-quiet';
-
-/**
- * The back arrow turns into a spinner until the overview has loaded, so a tap that takes a while,
- * as it does offline, is not mistaken for one that did nothing.
- */
-const BackIcon: React.FC = () => {
-  const { pending } = useLinkStatus();
-  return pending ? (
-    <Loader2 className="h-[22px] w-[22px] animate-spin" aria-hidden="true" />
-  ) : (
-    <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
-  );
-};
+  'focus-visible:focus-surface flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900 hover:bg-quiet';
 
 const BackLink: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   return (
     <Link href="/app/chat" aria-label={backText[locale]} className={iconButtonClassName}>
-      <BackIcon />
+      <LinkPendingSpinner spinnerClassName="h-[22px] w-[22px]">
+        <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
+      </LinkPendingSpinner>
     </Link>
   );
 };
@@ -95,47 +86,40 @@ export const ChatHeaderSkeleton: React.FC = () => (
   </div>
 );
 
-const stackedAvatarClassName = 'h-8 w-8 text-[11px] ring-2 ring-white';
+/** Who the chat is with, as far as its header shows it. */
+type HeaderChat = ChatAvatarChat & Pick<ChatWithMessagePreview, 'caseNumber'>;
 
 /**
- * Who the chat is with: the other person of a private chat, the first two others of a group,
- * one over the other, and the megaphone of an announcement channel, where the members are not
- * listed.
+ * The chat for the header: from its details once they are there, before that from the chat
+ * list, which the phone keeps, so a chat tapped in the list opens with its name and picture
+ * instead of a skeleton. Both give the same values, so nothing changes when the details land.
  */
-const ChatAvatar: React.FC<{ chat: ChatDetails; currentUser: string | undefined }> = ({
-  chat,
-  currentUser,
-}) => {
-  if (chat.type === ChatType.ANNOUNCEMENT) return <IconTile icon={Megaphone} />;
-  const others = chat.participants.filter((participant) => participant.id !== currentUser);
-  const [first, second] = others;
-  if (first === undefined) return <></>;
-  if (chat.type === ChatType.ONE_TO_ONE || second === undefined) {
-    return (
-      <PersonAvatar
-        seed={first.id}
-        name={first.name}
-        pictureUrl={first.pictureUrl}
-        className="h-10 w-10 text-sm"
-      />
-    );
-  }
-  return (
-    <span className="relative h-11 w-12 shrink-0" aria-hidden="true">
-      <PersonAvatar
-        seed={first.id}
-        name={first.name}
-        pictureUrl={first.pictureUrl}
-        className={cn(stackedAvatarClassName, 'absolute top-0 left-0')}
-      />
-      <PersonAvatar
-        seed={second.id}
-        name={second.name}
-        pictureUrl={second.pictureUrl}
-        className={cn(stackedAvatarClassName, 'absolute right-0 bottom-0')}
-      />
-    </span>
+const useHeaderChat = (
+  chatId: string,
+  chatDetails: ChatDetails | undefined,
+  currentUser: string | undefined,
+): HeaderChat | undefined => {
+  // only reads what the list loaded; a chat opened from a push has no list entry yet
+  const { data: listEntry } = trpc.chat.chats.useQuery(
+    {},
+    { enabled: false, select: (chats) => chats.find((chat) => chat.id === chatId) },
   );
+
+  if (chatDetails === undefined) return listEntry;
+
+  const chatType = chatDetails.type as ChatType;
+  const partner =
+    chatType === ChatType.ONE_TO_ONE
+      ? chatDetails.participants.find((participant) => participant.id !== currentUser)
+      : undefined;
+  return {
+    id: chatId,
+    name: chatDetails.name,
+    chatType,
+    caseNumber: chatDetails.caseNumber,
+    partner:
+      partner === undefined ? undefined : { userId: partner.id, pictureUrl: partner.pictureUrl },
+  };
 };
 
 export const ChatHeader: React.FC = () => {
@@ -144,27 +128,29 @@ export const ChatHeader: React.FC = () => {
   const { data: user } = trpc.chat.user.useQuery({});
   const { data: chatDetails } = trpc.chat.chatDetails.useQuery({ chatId });
   const isOnline = useOnlineStatus();
+  const chat = useHeaderChat(chatId, chatDetails, user);
 
-  if (!chatDetails) {
+  if (chat === undefined) {
     return <ChatHeaderSkeleton />;
   }
 
-  // Only a partner who is online is shown, as a label saying "Offline" read as if it were about
-  // the user, and while the user is offline the presence it would show is stale.
-  const isPartnerOnline =
-    isOnline && chatDetails.participants.some((p) => p.id !== user && p.isOnline);
-  const isOneToOne = chatDetails.type === ChatType.ONE_TO_ONE;
-  const isAnnouncement = chatDetails.type === ChatType.ANNOUNCEMENT;
+  const isOneToOne = chat.chatType === ChatType.ONE_TO_ONE;
+  // the line under the name of a group lists its members; it keeps its room while they load
+  const hasMemberLine = !isOneToOne && chat.chatType !== ChatType.ANNOUNCEMENT;
 
   let subtitle: React.ReactNode;
-  if (isOneToOne) {
+  if (chatDetails !== undefined && isOneToOne) {
+    // Only a partner who is online is shown, as a label saying "Offline" read as if it were
+    // about the user, and while the user is offline the presence it would show is stale.
+    const isPartnerOnline =
+      isOnline && chatDetails.participants.some((p) => p.id !== user && p.isOnline);
     subtitle = isPartnerOnline && (
       <span className="text-conveniat-green flex items-center gap-1.5 font-semibold">
         <span className="bg-conveniat-green h-1.5 w-1.5 rounded-full" aria-hidden="true" />
         {onlineText[locale]}
       </span>
     );
-  } else if (!isAnnouncement) {
+  } else if (chatDetails !== undefined && hasMemberLine) {
     subtitle = describeMembers(
       chatDetails.participants
         .filter((participant) => participant.id !== user)
@@ -172,6 +158,7 @@ export const ChatHeader: React.FC = () => {
       locale,
     );
   }
+  const hasSubtitle = subtitle !== undefined && subtitle !== false && subtitle !== '';
 
   return (
     <div className={headerClassName}>
@@ -180,30 +167,36 @@ export const ChatHeader: React.FC = () => {
       {/* the whole of who the chat is with leads to its details */}
       <Link
         href={`/app/chat/${chatId}/details`}
-        aria-label={`${chatDetails.name}, ${openDetailsText[locale]}`}
-        className="hover:bg-quiet flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-[12px] py-1 pr-2 pl-1"
+        aria-label={`${chat.name}, ${openDetailsText[locale]}`}
+        className="focus-visible:focus-surface hover:bg-quiet flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-[12px] py-1 pr-2 pl-1"
       >
-        <ChatAvatar chat={chatDetails} currentUser={user} />
+        <ChatAvatar chat={chat} />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="flex min-w-0 items-center gap-2">
             <span className="font-heading text-heading truncate text-[17px] leading-tight font-bold">
-              {chatDetails.name}
+              {chat.name}
             </span>
-            {chatDetails.caseNumber != undefined && chatDetails.caseNumber !== '' && (
+            {chat.caseNumber != undefined && chat.caseNumber !== '' && (
               <span
                 className={cn(
                   'shrink-0 rounded-md px-1.5 py-0.5 font-mono text-xs font-bold',
-                  chatDetails.type === ChatType.EMERGENCY
+                  chat.chatType === ChatType.EMERGENCY
                     ? 'bg-red-50 text-red-700'
                     : 'bg-chip text-green-900',
                 )}
               >
-                {chatDetails.caseNumber}
+                {chat.caseNumber}
               </span>
             )}
           </span>
-          {subtitle !== undefined && subtitle !== false && subtitle !== '' && (
-            <span className="mt-0.5 truncate text-[13px] text-green-700">{subtitle}</span>
+          {(hasSubtitle || hasMemberLine) && (
+            <span className="mt-0.5 h-[18px] truncate text-[13px] leading-[18px] text-green-700">
+              {hasSubtitle && (
+                <span className="transition-opacity duration-300 starting:opacity-0">
+                  {subtitle}
+                </span>
+              )}
+            </span>
           )}
         </span>
       </Link>

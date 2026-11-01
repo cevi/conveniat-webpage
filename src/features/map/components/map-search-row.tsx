@@ -10,7 +10,6 @@ import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Loader2, LocateFixed, LocateOff } from 'lucide-react';
 import type React from 'react';
-import { useState } from 'react';
 
 const searchLabel: StaticTranslationString = {
   de: 'Ort oder Quartier suchen',
@@ -50,19 +49,14 @@ const floatingClassName = 'bg-white shadow-[0_2px_10px_rgba(0,0,0,0.15)]';
  * be found, say so under the row.
  */
 export const MapSearchRow: React.FC<{
+  value: string;
   onSearch: (searchTerm: string) => void;
   results: readonly (CampMapAnnotationPoint | CampMapAnnotationPolygon)[];
-}> = ({ onSearch, results }) => {
+}> = ({ value, onSearch, results }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const [value, setValue] = useState('');
   const { locate, tryLocate, state: locateState } = useLocateControl();
   useLocateOnArrival(tryLocate);
   useFitToSearchResults(value, results);
-
-  const search = (next: string): void => {
-    setValue(next);
-    onSearch(next);
-  };
 
   let message: string | undefined;
   if (locateState === 'denied') message = locateDeniedLabel[locale];
@@ -83,8 +77,8 @@ export const MapSearchRow: React.FC<{
           onPage
           placeholder={searchLabel[locale]}
           value={value}
-          onChange={(event) => search(event.target.value)}
-          onClear={() => search('')}
+          onChange={(event) => onSearch(event.target.value)}
+          onClear={() => onSearch('')}
           className={cn('flex-1', floatingClassName)}
         />
         <button
@@ -97,8 +91,8 @@ export const MapSearchRow: React.FC<{
             'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors',
             floatingClassName,
             locateState === 'active'
-              ? 'bg-conveniat-green text-white hover:bg-green-700'
-              : 'hover:bg-quiet text-green-900',
+              ? 'bg-conveniat-green focus-visible:focus-surface-filled text-white hover:bg-green-700'
+              : 'hover:bg-quiet focus-visible:focus-surface text-green-900',
           )}
         >
           <LocateIcon

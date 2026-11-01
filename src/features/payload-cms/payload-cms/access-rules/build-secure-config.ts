@@ -8,9 +8,12 @@ import {
 import { stripControlCharactersPlugin } from '@/features/payload-cms/payload-cms/plugins/strip-control-characters-plugin';
 import type {
   Access,
+  CollectionBeforeOperationHook,
   CollectionConfig,
   Config,
+  GlobalBeforeOperationHook,
   GlobalConfig,
+  PayloadRequest,
   Plugin,
   SanitizedConfig,
 } from 'payload';
@@ -52,6 +55,74 @@ export const applyDefaultAccess = (config: {
   }
 };
 
+interface ReadOperation {
+  args?: unknown;
+  operation: string;
+  overrideAccess?: boolean | undefined;
+  req: PayloadRequest;
+}
+
+/**
+ * Turns a read with `draft: true` into a read of the published state, unless the reader may see
+ * the versions or edit the document. Payload swaps in the newest draft after checking `read`
+ * alone, never `readVersions`, so `?draft=true` on anything everybody may read, like the header
+ * or the emergency cards, handed out every unpublished edit.
+ *
+ * `update` counts as well because the program team edits the pages it was named on without
+ * holding `readVersions`. A `Where` counts as permission, the `read` rule already narrows the
+ * documents the draft can come from.
+ */
+const withoutForeignDrafts = async (
+  access: Partial<Record<'readVersions' | 'update', Access>>,
+  { args, operation, overrideAccess, req }: ReadOperation,
+): Promise<unknown> => {
+  if (operation !== 'read' || overrideAccess === true) return args;
+  if (typeof args !== 'object' || args === null || !('draft' in args) || args.draft !== true) {
+    return args;
+  }
+
+  for (const rule of [access.readVersions, access.update]) {
+    if (rule !== undefined && (await rule({ req })) !== false) return args;
+  }
+  return { ...args, draft: false };
+};
+
+const withoutForeignDraftsOfCollection: CollectionBeforeOperationHook = async (operation) =>
+  (await withoutForeignDrafts(operation.collection.access, operation)) as typeof operation.args;
+
+const withoutForeignDraftsOfGlobal: GlobalBeforeOperationHook = async (operation) =>
+  await withoutForeignDrafts(operation.global.access, operation);
+
+const hasDrafts = (entity: { versions?: unknown }): boolean =>
+  typeof entity.versions === 'object' &&
+  entity.versions !== null &&
+  Boolean((entity.versions as { drafts?: unknown }).drafts);
+
+/**
+ * Keeps the drafts of every draft-enabled collection and global to those who may see its
+ * versions or edit it, see `withoutForeignDrafts`.
+ */
+export const keepDraftsToEditors = (config: {
+  collections?: Pick<CollectionConfig, 'hooks' | 'versions'>[];
+  globals?: Pick<GlobalConfig, 'hooks' | 'versions'>[];
+}): void => {
+  for (const global of (config.globals ?? []).filter((entity) => hasDrafts(entity))) {
+    global.hooks = {
+      ...global.hooks,
+      beforeOperation: [...(global.hooks?.beforeOperation ?? []), withoutForeignDraftsOfGlobal],
+    };
+  }
+  for (const collection of (config.collections ?? []).filter((entity) => hasDrafts(entity))) {
+    collection.hooks = {
+      ...collection.hooks,
+      beforeOperation: [
+        ...(collection.hooks?.beforeOperation ?? []),
+        withoutForeignDraftsOfCollection,
+      ],
+    };
+  }
+};
+
 /**
  * Runs after every other plugin, so it also reaches the collections a plugin adds: the forms,
  * the redirects, the search index, the imports and exports, the MCP API keys. Applied to the
@@ -60,6 +131,7 @@ export const applyDefaultAccess = (config: {
  */
 const defaultAccessPlugin: Plugin = (config) => {
   applyDefaultAccess(config);
+  keepDraftsToEditors(config);
   return config;
 };
 

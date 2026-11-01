@@ -3,15 +3,14 @@ import { renderToString } from 'react-dom/server';
 
 let pathname = '/';
 jest.mock('next/navigation', () => ({ usePathname: (): string => pathname }));
-jest.mock('@/components/app-advertisement', () => ({
-  AppAdvertisement: (): React.JSX.Element => <aside>advertisement</aside>,
+jest.mock('@/components/get-the-app', () => ({
+  ShowGetTheAppButton: (): React.JSX.Element => <aside>get the app</aside>,
 }));
 
 const renderFooterAt = (path: string): string => {
   pathname = path;
   return renderToString(
     <GlobalAppFooterClientWrapper
-      locale="de"
       isAppMode={false}
       appNavBar={<nav>navigation</nav>}
       copyrightArea={<footer>copyright</footer>}
@@ -21,9 +20,9 @@ const renderFooterAt = (path: string): string => {
 
 describe('the footer in the browser', () => {
   it.each(['/app/dashboard', '/fr/app/map', '/app'])(
-    'advertises the app instead of the copyright area on %s',
+    'offers the app in the header instead of the copyright area on %s',
     (path) => {
-      expect(renderFooterAt(path)).toBe('<aside>advertisement</aside>');
+      expect(renderFooterAt(path)).toBe('<aside>get the app</aside>');
     },
   );
 

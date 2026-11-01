@@ -1,4 +1,4 @@
-import { DynamicAppTitleName } from '@/components/header/dynamic-app-title-name';
+import { GetTheAppButton } from '@/components/get-the-app';
 import { AppHeaderTitle } from '@/components/header/header-actions';
 import { PreviewModeBannerServerComponent } from '@/components/header/preview-mode-banner-server';
 import { AppFeatures } from '@/components/menu/app-features';
@@ -81,11 +81,15 @@ const TopNavHeader: React.FC<{
 
   return (
     <header className="fixed top-0 left-0 z-[100] h-[60px] w-full xl:h-16">
+      {/* room for the status bar, see --app-top-inset */}
+      <div aria-hidden="true" className="h-(--status-bar-height) bg-white/95 backdrop-blur-md" />
       <React.Suspense fallback={<div className="bg-gray-900" />}>
         <PreviewModeBannerServerComponent />
       </React.Suspense>
 
-      <div className="mb-[32px] border-b-2 border-gray-200 bg-white/95 backdrop-blur-md">
+      {/* No backdrop filter here: it would make this bar the containing block of the fixed menu
+          below it, which then sits the preview banner's height too low. */}
+      <div className="mb-[32px] border-b-2 border-gray-200 bg-white">
         {/* Full-width container spanning full screen width */}
         <div className="text-conveniat-green relative flex h-[60px] w-full items-center justify-between px-6 xl:h-16 xl:px-12">
           {/* Logo & Brand Title */}
@@ -93,7 +97,13 @@ const TopNavHeader: React.FC<{
             href={`/${languagePrefix}`}
             aria-label={landingPageAreaLinktText[locale]}
             prefetch
-            className="group flex shrink-0 items-center gap-3 focus:outline-hidden"
+            className={cn(
+              'group flex shrink-0 items-center gap-3 focus:outline-hidden',
+              // in the app the logo shows on a desktop only; on a phone the link would be an
+              // empty stop for the keyboard
+              inAppDesign &&
+                'focus-visible:focus-surface -m-1.5 hidden rounded-[14px] p-1.5 pr-3.5 xl:-mr-3.5 xl:flex',
+            )}
           >
             {/* Mobile Logo */}
             {!inAppDesign && (
@@ -113,9 +123,7 @@ const TopNavHeader: React.FC<{
           {inAppDesign ? (
             <AppHeaderTitle inAppDesign inlineOnDesktop />
           ) : (
-            <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:hidden">
-              <DynamicAppTitleName />
-            </span>
+            <AppHeaderTitle inAppDesign={false} hiddenOnDesktop />
           )}
 
           {/* Full Width Desktop Top Navigation, taking whatever width the logo leaves */}
@@ -125,6 +133,8 @@ const TopNavHeader: React.FC<{
             <React.Suspense fallback={<TopNavContent locale={locale} inAppDesign={inAppDesign} />}>
               <TopNavContent locale={locale} inAppDesign={inAppDesign} withDraftForEditors />
             </React.Suspense>
+            {/* on the app's pages in a browser; below xl it sits with the page's buttons */}
+            <GetTheAppButton className="ml-2 hidden xl:flex" />
           </div>
 
           {/* Mobile Drawer, opened from the left in the app */}
@@ -155,6 +165,8 @@ const SideNavHeader: React.FC<{
 
   return (
     <header className="fixed top-0 left-0 z-[100] h-[60px] w-full">
+      {/* room for the status bar, see --app-top-inset */}
+      <div aria-hidden="true" className="h-(--status-bar-height) bg-white" />
       <React.Suspense fallback={<div className="bg-gray-900" />}>
         <PreviewModeBannerServerComponent />
       </React.Suspense>

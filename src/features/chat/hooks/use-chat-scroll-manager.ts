@@ -102,8 +102,10 @@ export const useChatScrollManager = ({
     previousLeadingIdsReference.current = [sortedMessages[0]?.id, sortedMessages[1]?.id];
   }, [sortedMessages, isFetchingNextPage]);
 
-  // Initial scroll to bottom, follow new messages while at the bottom, count them otherwise
-  useEffect(() => {
+  // Initial scroll to bottom, follow new messages while at the bottom, count them otherwise.
+  // Before paint: a chat opens in a navigation, whose passive effects run after the first
+  // frame, so the conversation showed its oldest messages for a frame and then jumped.
+  useLayoutEffect(() => {
     if (sortedMessages.length === 0) return;
 
     const previousLastId = previousLastIdReference.current;

@@ -3,10 +3,13 @@ import {
   shouldHideInAdminPanel,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { flushPageCacheOnDelete } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import type { CollectionConfig } from 'payload';
 
 export const TimelineEntryCategory: CollectionConfig = {
   slug: 'timelineCategory',
+  // No afterChange: a page shows the entries of a category, never its name or description.
+  hooks: { afterDelete: [flushPageCacheOnDelete] },
 
   labels: {
     singular: {

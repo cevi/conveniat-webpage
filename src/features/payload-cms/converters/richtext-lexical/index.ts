@@ -6,6 +6,7 @@ import {
 } from '@/features/payload-cms/converters/richtext-lexical/list-converter';
 import { ParagraphJSXConverter } from '@/features/payload-cms/converters/richtext-lexical/paragraph-converter';
 import { QuoteJSXConverter } from '@/features/payload-cms/converters/richtext-lexical/quote-converter';
+import { YoutubeEmbedJSXConverter } from '@/features/payload-cms/converters/richtext-lexical/youtube-embed-converter';
 import type { Locale } from '@/types/types';
 import type { SerializedHeadingNode } from '@payloadcms/richtext-lexical';
 import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
@@ -28,6 +29,7 @@ export const getJsxConverters = (locale?: Locale): JSXConverters<SerializedHeadi
   ...ListItemJSXConverter,
   ...QuoteJSXConverter,
   ...LinebreakJSXConverter,
+  ...YoutubeEmbedJSXConverter,
 });
 
 /**

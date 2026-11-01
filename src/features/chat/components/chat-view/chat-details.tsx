@@ -282,7 +282,7 @@ export const ChatDetails: React.FC = () => {
   }));
 
   return (
-    <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
+    <div className="bg-page fixed top-(--app-top-inset) z-[110] flex h-[calc(100dvh-var(--app-top-inset))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
       <AppFooterController hideAppFooter />
 
       <ChatDetailsHeader chatId={chatId} locale={locale} />

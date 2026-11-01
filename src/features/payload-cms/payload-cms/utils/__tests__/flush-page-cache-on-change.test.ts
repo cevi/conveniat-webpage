@@ -1,6 +1,8 @@
 import {
+  flushManifestCacheOnChange,
   flushPageCacheOnChange,
   flushPageCacheOnChangeGlobal,
+  flushPageCacheOnDelete,
   rememberDraftSave,
   rememberDraftSaveGlobal,
   rememberLinkTarget,
@@ -31,6 +33,7 @@ const header = {
 
 type CollectionSave = Parameters<typeof rememberDraftSave>[0];
 type CollectionChange = Parameters<typeof flushPageCacheOnChange>[0];
+type CollectionDelete = Parameters<typeof flushPageCacheOnDelete>[0];
 type GlobalSave = Parameters<typeof rememberDraftSaveGlobal>[0];
 type GlobalChange = Parameters<typeof flushPageCacheOnChangeGlobal>[0];
 
@@ -219,6 +222,37 @@ describe('flushPageCacheOnChange', () => {
   });
 });
 
+/** Runs the hook of one permanent delete. */
+const deleteDocument = async (collection: SanitizedCollectionConfig, id: string): Promise<void> => {
+  await flushPageCacheOnDelete({
+    collection,
+    doc: { id },
+    id,
+    req: requestReading(),
+  } as unknown as CollectionDelete);
+};
+
+describe('flushPageCacheOnDelete', () => {
+  beforeEach(() => {
+    jest.mocked(revalidateTag).mockReset();
+    mockMarkPublishedPageSlugsChanged.mockReset().mockResolvedValue();
+  });
+
+  it('flushes everything when an image is deleted', async () => {
+    await deleteDocument(images, 'image-1');
+
+    expect(flushedTags()).toEqual(['payload', 'collection:images', 'doc:images:image-1']);
+    expect(mockMarkPublishedPageSlugsChanged).not.toHaveBeenCalled();
+  });
+
+  it('tells the proxy that the slug of a deleted page is gone', async () => {
+    await deleteDocument(pages, PAGE_ID);
+
+    expect(flushedTags()).toContain('payload');
+    expect(mockMarkPublishedPageSlugsChanged).toHaveBeenCalledTimes(1);
+  });
+});
+
 /** Runs the hooks of one save of the header in the order Payload runs them. */
 const saveHeader = async (operationArguments: {
   draft?: boolean;
@@ -253,5 +287,20 @@ describe('flushPageCacheOnChangeGlobal', () => {
     await saveHeader({ draft: true, data: { _status: 'published' } });
 
     expect(flushedTags()).toEqual(['payload', 'global:header']);
+  });
+});
+
+describe('flushManifestCacheOnChange', () => {
+  beforeEach(() => jest.mocked(revalidateTag).mockClear());
+
+  it('flushes the tag the manifest is cached under', async () => {
+    await flushManifestCacheOnChange({
+      doc: {},
+      global: { slug: 'PWA' },
+      req: requestReading(),
+    } as unknown as Parameters<typeof flushManifestCacheOnChange>[0]);
+
+    // `generate-manifest.ts` tags its entry `global:PWA`
+    expect(flushedTags()).toEqual(['global:PWA']);
   });
 });

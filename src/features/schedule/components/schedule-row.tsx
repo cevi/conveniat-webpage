@@ -117,7 +117,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
       <div
         className={cn(
           // the link fills the card, which clips it: the card shows its focus
-          'has-[>a:focus-visible]:focus-ring relative mb-3.5 overflow-hidden rounded-[14px] border transition-colors',
+          'has-[>a:focus-visible]:focus-surface relative mb-3.5 overflow-hidden rounded-[14px] border transition-colors',
           runningLabel === undefined
             ? 'border-line has-[>a:hover]:border-rail'
             : 'border-live-line',

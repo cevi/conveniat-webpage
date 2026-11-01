@@ -163,7 +163,7 @@ export const DateInput: React.FC<{
           aria-label={labels.clearDate[locale]}
           onClick={() => onChange('')}
           className={cn(
-            'hover:bg-quiet absolute top-0 right-0 z-[2] flex size-11 cursor-pointer items-center justify-center rounded-full text-green-500 hover:text-green-900',
+            'focus-visible:focus-surface hover:bg-quiet absolute top-0 right-0 z-[2] flex size-11 cursor-pointer items-center justify-center rounded-full text-green-500 hover:text-green-900',
           )}
         >
           <X className="size-4" aria-hidden />

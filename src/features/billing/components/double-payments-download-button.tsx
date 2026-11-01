@@ -1,6 +1,6 @@
 'use client';
 
-import { ReportDownloadCard } from '@/features/billing/components/report-download-card';
+import { ReportDownloadCard } from '@/features/payload-cms/payload-cms/components/shared/report-download-card';
 import type React from 'react';
 
 /** Downloads the double payment report (PDF) the weekly finance mail attaches. */

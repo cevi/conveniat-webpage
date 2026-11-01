@@ -16,7 +16,7 @@ const Bar: React.FC<{ className: string }> = ({ className }) => (
 export const ChatDetailsPageSkeleton: React.FC = () => (
   <div
     aria-hidden="true"
-    className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto"
+    className="bg-page fixed top-(--app-top-inset) z-[110] flex h-[calc(100dvh-var(--app-top-inset))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto"
   >
     <AppFooterController hideAppFooter />
     <div className="border-line flex h-[60px] shrink-0 items-center gap-1 border-b bg-white pr-2 pl-1">

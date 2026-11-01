@@ -609,7 +609,7 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
                         onClick={() => handleRemovePoint(image.id)}
                         disabled={myPoints === 0}
                         aria-label={t('removePoint')}
-                        className="border-rail hover:bg-quiet flex size-11 cursor-pointer items-center justify-center rounded-full border bg-white text-green-900 transition-colors disabled:cursor-not-allowed disabled:opacity-30"
+                        className="focus-visible:focus-surface border-rail hover:bg-quiet flex size-11 cursor-pointer items-center justify-center rounded-full border bg-white text-green-900 transition-colors disabled:cursor-not-allowed disabled:opacity-30"
                       >
                         <Minus className="size-4" />
                       </button>
@@ -632,7 +632,7 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
                           (pointsRemaining === 0 || myPoints >= maxPointsPerImage)
                         }
                         aria-label={t('addPoint')}
-                        className="bg-conveniat-green flex size-11 cursor-pointer items-center justify-center rounded-full text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-30"
+                        className="focus-visible:focus-surface-filled bg-conveniat-green flex size-11 cursor-pointer items-center justify-center rounded-full text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-30"
                       >
                         <Plus className="size-4" />
                       </button>

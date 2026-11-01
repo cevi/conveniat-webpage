@@ -36,7 +36,9 @@ export const NavLink: React.FC<{
       onClick={() => onClick(href)}
       aria-current={isCurrent ? 'page' : undefined}
       className={cn(
-        'flex h-full flex-1 flex-col items-center justify-center space-y-1 py-2',
+        // keyboard focus like a row: the quiet surface and a ring inside, which the bar would clip
+        // outside
+        'focus-visible:focus-row relative flex h-full flex-1 flex-col items-center justify-center space-y-1 py-2',
         { 'text-blue-600': isActive },
         className,
       )}
