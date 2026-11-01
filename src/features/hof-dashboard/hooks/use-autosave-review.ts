@@ -71,13 +71,17 @@ export const useAutosaveReview = (
         lastSaved.current = next;
         wrote = true;
       }
-      setState(wrote ? 'saved' : 'idle');
-      if (wrote) await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
     } catch {
       setState(globalThis.navigator.onLine ? 'error' : 'offline');
+      return;
     } finally {
       inFlight.current = false;
     }
+    setState(wrote ? 'saved' : 'idle');
+    // Reloading the dashboard is not part of the write. Feedback typed while it reloaded used to
+    // find the write still under way and leave itself to it, after that write had stopped
+    // looking: it was never sent, and the pill said saved.
+    if (wrote) await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
   }, [hofId, submissionId, mutation, utils]);
 
   const change = (next: ReviewValues, debounce: boolean): void => {
