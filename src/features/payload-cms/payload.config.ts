@@ -58,6 +58,7 @@ import {
   isFullAdmin,
   shouldHideInAdminPanel,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { keepPublicErrorData } from '@/features/payload-cms/payload-cms/hooks/keep-public-error-data';
 import { localizeUploadTooLarge } from '@/features/payload-cms/payload-cms/hooks/localize-upload-too-large';
 import { instrumentTasks } from '@/features/payload-cms/payload-cms/utils/instrument-task';
 import {
@@ -429,7 +430,7 @@ export const payloadConfig: RoutableConfig = {
   editor: lexicalEditor,
   globals: globalConfig,
   hooks: {
-    afterError: [localizeUploadTooLarge],
+    afterError: [keepPublicErrorData, localizeUploadTooLarge],
   },
   upload: {
     uploadTimeout: 300_000,
