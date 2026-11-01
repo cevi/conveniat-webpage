@@ -10,10 +10,14 @@
 
    Above the banner the header leaves room for the status bar, for a shell that lets the page draw
    under it, so that a full-screen scrim also dims the status bar. --app-top-inset is both together,
-   the room above the header's bar, and what everything placed below the header moves by. */
+   the room above the header's bar, and what everything placed below the header moves by.
+
+   --status-bar-height is that room. The native app passes it in as --safe-area-inset-top, because
+   Android WebView before 140 reports env(safe-area-inset-top) as 0; everywhere else env() holds. */
 :root {
   --preview-banner-height: 0px;
-  --app-top-inset: calc(env(safe-area-inset-top, 0px) + var(--preview-banner-height));
+  --status-bar-height: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --app-top-inset: calc(var(--status-bar-height) + var(--preview-banner-height));
 }
 
 :root:has([data-preview-banner]) {

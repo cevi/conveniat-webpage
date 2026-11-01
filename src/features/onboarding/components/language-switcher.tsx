@@ -28,7 +28,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProperties> = ({
   currentLocale,
 }) => {
   return (
-    <div className="fixed top-[calc(1rem+env(safe-area-inset-top,0px))] right-4 z-50">
+    <div className="fixed top-[calc(1rem+var(--status-bar-height))] right-4 z-50">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
