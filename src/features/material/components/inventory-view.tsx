@@ -15,7 +15,6 @@ import {
   Panel,
 } from '@/features/material/components/material-ui';
 import { RoleGate } from '@/features/material/components/role-gate';
-import { useKeptScrollPosition } from '@/features/material/hooks/use-kept-scroll-position';
 import { usePagination } from '@/features/material/hooks/use-list-state';
 import {
   materialQueryOptions,
@@ -23,6 +22,7 @@ import {
   type MaterialItem,
 } from '@/features/material/hooks/use-material';
 import { catalogItemPath, itemPath, loanPath, parseScan } from '@/features/material/utils/scan';
+import { useKeptScrollPosition } from '@/hooks/use-kept-scroll-position';
 import { trpc } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { AlertTriangle, Plus, Tags } from 'lucide-react';

@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { useKeptScrollPosition } from '@/features/material/hooks/use-kept-scroll-position';
+import { useKeptScrollPosition } from '@/hooks/use-kept-scroll-position';
 import { act, renderHook } from '@testing-library/react';
 
 const scrollBy = (y: number): void => {

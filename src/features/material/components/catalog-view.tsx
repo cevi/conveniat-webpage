@@ -21,12 +21,12 @@ import {
 } from '@/features/material/components/material-ui';
 import { RequestSheet } from '@/features/material/components/request-sheet';
 import { RoleGate } from '@/features/material/components/role-gate';
-import { useKeptScrollPosition } from '@/features/material/hooks/use-kept-scroll-position';
 import { usePagination } from '@/features/material/hooks/use-list-state';
 import { materialQueryOptions, useMaterialLocale } from '@/features/material/hooks/use-material';
 import { useSearchHistory } from '@/features/material/hooks/use-search-history';
 import { basketTotals, orderStepOf } from '@/features/material/utils/basket';
 import { catalogItemPath, itemPath, parseScan } from '@/features/material/utils/scan';
+import { useKeptScrollPosition } from '@/hooks/use-kept-scroll-position';
 import { trpc, type RouterOutputs } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
