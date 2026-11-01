@@ -103,7 +103,6 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '50mb',
     },
-    inlineCss: true,
     authInterrupts: true,
 
     // enable server source maps for better error tracking
