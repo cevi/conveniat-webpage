@@ -110,12 +110,15 @@ const TopNavHeader: React.FC<{
               <ConveniatLogo className="absolute top-[12px] left-[24px] z-[105] xl:hidden" />
             )}
 
-            {/* Desktop Contained Logo + Brand Title */}
+            {/* Desktop Contained Logo + Brand Title; the app names the page there instead, as
+                its users know which app they are in */}
             <div className="hidden items-center gap-3 xl:flex">
               <ConveniatLogo className="size-10 transition-transform duration-200 group-hover:scale-105" />
-              <span className="text-conveniat-green font-['Montserrat'] text-xl font-extrabold tracking-tight">
-                conveniat27
-              </span>
+              {!inAppDesign && (
+                <span className="text-conveniat-green font-['Montserrat'] text-xl font-extrabold tracking-tight">
+                  conveniat27
+                </span>
+              )}
             </div>
           </LinkComponent>
 

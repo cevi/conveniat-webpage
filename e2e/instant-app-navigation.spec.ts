@@ -1,6 +1,9 @@
 import { instant } from '@next/playwright';
-import type { BrowserContext, Locator, Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
+
+import { ensureChatWithMessage, GROUP_CHAT_NAME } from './fixtures/chat-with-message';
+import { signIn } from './fixtures/sign-in';
 
 /**
  * The app's main navigations are instant: a tap shows the destination from what the router
@@ -24,25 +27,6 @@ test.use({
   navigationTimeout: 15_000,
 });
 
-/** One pass through the fake Cevi.DB OAuth login, as a camp participant without extra rights. */
-const attemptSignIn = async (context: BrowserContext): Promise<boolean> => {
-  const { request } = context;
-  const csrfResponse = await request.get('/api/auth/csrf');
-  const csrf = (await csrfResponse.json()) as { csrfToken: string };
-
-  const start = await request.post('/api/auth/signin/cevi-db', {
-    form: { csrfToken: csrf.csrfToken, callbackUrl: '/app/dashboard' },
-    maxRedirects: 0,
-  });
-  const callbackUrl = new URL(start.headers()['location'] ?? '').searchParams.get('redirect_uri');
-  expect(callbackUrl, 'the sign-in should redirect to the Cevi.DB login').toBeTruthy();
-  await request.get(`${callbackUrl}?code=fake-auth-code-3`, { maxRedirects: 0 });
-
-  const sessionResponse = await request.get('/api/auth/session');
-  const session = (await sessionResponse.json()) as { user?: unknown } | null;
-  return Boolean(session?.user);
-};
-
 /** The text of an element, without the whitespace around it. */
 const textOf = async (locator: Locator): Promise<string> => {
   const text = await locator.textContent();
@@ -51,11 +35,8 @@ const textOf = async (locator: Locator): Promise<string> => {
 
 /** Signs in and opens the app in app mode, the way the installed app runs. */
 const openApp = async (page: Page, baseURL: string | undefined, path: string): Promise<void> => {
-  let signedIn = false;
-  for (let attempt = 0; attempt < 3 && !signedIn; attempt += 1) {
-    signedIn = await attemptSignIn(page.context());
-  }
-  expect(signedIn, 'the Cevi.DB sign-in should leave a session').toBe(true);
+  await signIn(page.context());
+  await ensureChatWithMessage(baseURL);
   await page
     .context()
     .addCookies([{ name: 'design-mode', value: 'design-mode-app', url: baseURL ?? '' }]);
@@ -64,8 +45,12 @@ const openApp = async (page: Page, baseURL: string | undefined, path: string): P
   await expect(tab(page, '/app/dashboard')).toBeVisible();
 };
 
-/** A tab of the bottom tab bar. */
-const tab = (page: Page, href: string): Locator => page.locator(`nav a[href="${href}"]`);
+/**
+ * A tab of the bottom tab bar. Visible only: Next.js keeps pages the user left in the document,
+ * hidden, and with them a second copy of what they render.
+ */
+const tab = (page: Page, href: string): Locator =>
+  page.locator(`nav a[href="${href}"]`).filter({ visible: true });
 
 /** Taps a tab and waits until its page is the one shown. */
 const tapTab = async (page: Page, href: string): Promise<void> => {
@@ -88,7 +73,8 @@ const tabs: Record<string, TabContract> = {
     href: '/app/chat',
     from: '/app/dashboard',
     shell: (page) => page.locator('header').getByText('Chats', { exact: true }),
-    content: (page) => page.locator('main a[href^="/app/chat/"]:not([href^="/app/chat/new"])'),
+    content: (page) =>
+      page.locator('main a[href^="/app/chat/"]:not([href^="/app/chat/new"])').first(),
   },
   Notfall: {
     href: '/app/emergency',
@@ -208,7 +194,10 @@ test('a chat opens with its name and recent messages', async ({ page, baseURL })
   test.setTimeout(90_000);
   await openApp(page, baseURL, '/app/chat');
 
-  const row = page.locator('main a[href^="/app/chat/"]:not([href^="/app/chat/new"])').first();
+  // the group chat: its row names it in a paragraph, a private chat's row in the person's name
+  const row = page
+    .locator('main a[href^="/app/chat/"]:not([href^="/app/chat/new"])')
+    .filter({ hasText: GROUP_CHAT_NAME, visible: true });
   await expect(row).toBeVisible({ timeout: 20_000 });
   const href = (await row.getAttribute('href')) ?? '';
   const chatName = await textOf(row.locator('p').first());

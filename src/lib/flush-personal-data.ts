@@ -2,6 +2,7 @@
 
 import { clearUnsentChatData } from '@/lib/chat-local-storage';
 import { withKeyvalStore } from '@/lib/idb-keyval-store';
+import { forgetOnboardingComplete } from '@/lib/onboarding-complete';
 import { clearPersonalPreferences } from '@/lib/preferences';
 import { starsCollection } from '@/lib/tanstack-db';
 import { Cookie } from '@/types/types';
@@ -32,6 +33,7 @@ const LEGACY_STARS_KEY = 'starredItems';
  *   pages rendered for the user, together with the offline download made with their cookie
  * - TanStack DB `stars` collection (personal starred items)
  * - Personal preferences (onboarding state etc.), see `clearPersonalPreferences`
+ * - The record that the onboarding is done, so the next start runs it again
  * - Legacy `starredItems` localStorage key
  * - Unsent chat messages and drafts, unless `keepUnsentChatMessages` is set
  *
@@ -65,6 +67,8 @@ export function flushPersonalData({
   void withKeyvalStore('readwrite', (store) => {
     store.delete(PERSISTED_QUERY_CACHE_IDB_KEY);
   });
+
+  forgetOnboardingComplete();
 
   // The offline download goes with the cached pages, so the next person must be offered it
   // again instead of inheriting "skipped" from the previous one.

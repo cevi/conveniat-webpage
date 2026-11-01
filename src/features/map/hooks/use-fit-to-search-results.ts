@@ -3,7 +3,7 @@
 import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 import { LngLatBounds } from 'maplibre-gl';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 /** waits for a pause in typing, so the map does not jump with every letter */
 const SETTLE_MS = 350;
@@ -32,14 +32,23 @@ export const useFitToSearchResults = (
   results: readonly (CampMapAnnotationPoint | CampMapAnnotationPolygon)[],
 ): void => {
   const map = useMap();
+  // The map moves when the search changes, not whenever this effect runs again: the results are
+  // refreshed in the background, and a page shown again runs its effects anew. Either moved the
+  // map back to the search while the user looked at something else.
+  const fittedSearchTerm = useRef('');
 
   useEffect(() => {
-    if (map === undefined || searchTerm.trim() === '') return;
+    if (searchTerm.trim() === '') {
+      fittedSearchTerm.current = '';
+      return;
+    }
+    if (map === undefined || searchTerm === fittedSearchTerm.current) return;
     const coordinates = results.flatMap((annotation) => cornersOf(annotation));
     const [first] = coordinates;
     if (first === undefined) return;
 
     const timer = setTimeout(() => {
+      fittedSearchTerm.current = searchTerm;
       const bounds = coordinates.reduce(
         (sum, point) => sum.extend(point),
         new LngLatBounds(first, first),

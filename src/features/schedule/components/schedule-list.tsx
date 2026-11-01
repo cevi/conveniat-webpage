@@ -31,6 +31,8 @@ interface ScheduleListProperties {
   groupSlots: boolean;
   /** the day and the minutes past midnight when the list shows today, `undefined` otherwise */
   now: { dayKey: string; minutes: number } | undefined;
+  /** the block shown beside the list on a desktop, marked in it */
+  openId?: string | undefined;
 }
 
 /** The slot of an item that is running now, the user's own one first. */
@@ -62,6 +64,7 @@ export const ScheduleList: React.FC<ScheduleListProperties> = ({
   myQuartierIds,
   groupSlots,
   now,
+  openId,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const listReference = useRef<HTMLOListElement>(null);
@@ -113,6 +116,7 @@ export const ScheduleList: React.FC<ScheduleListProperties> = ({
                 showSlots={groupSlots}
                 isPast={isPast}
                 runningLabel={runningLabel}
+                openId={openId}
               />
             ) : (
               <ScheduleFixedRow stop={item} isPast={isPast} runningLabel={runningLabel} />

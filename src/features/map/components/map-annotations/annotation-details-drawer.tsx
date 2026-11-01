@@ -6,11 +6,7 @@ import { AnnotationDescriptionSection } from '@/features/map/components/map-anno
 import { AnnotationForumAndReportSection } from '@/features/map/components/map-annotations/sections/forum-and-report-section';
 import { AnnotationImagesSection } from '@/features/map/components/map-annotations/sections/image-section';
 import { AnnotationOpeningHoursSection } from '@/features/map/components/map-annotations/sections/opening-hours-section';
-import type {
-  CampMapAnnotationPoint,
-  CampMapAnnotationPolygon,
-  CampScheduleEntry,
-} from '@/features/map/types/types';
+import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 import { ANNOTATION_DRAWER_ATTRIBUTE } from '@/features/map/utils/annotation-focus';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -22,9 +18,8 @@ const CLOSE_THRESHOLD = 15; // If height is less than 15vh on release, close the
 export const AnnotationDetailsDrawer: React.FC<{
   closeDrawer: () => void;
   annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon;
-  schedule: CampScheduleEntry[] | undefined;
   locale: Locale;
-}> = ({ closeDrawer, annotation, schedule, locale }) => {
+}> = ({ closeDrawer, annotation, locale }) => {
   const [drawerHeight, setDrawerHeight] = useState(50);
   const [isResizing, setIsResizing] = useState(false);
   const drawerReference = useRef<HTMLDivElement>(null);
@@ -118,54 +113,46 @@ export const AnnotationDetailsDrawer: React.FC<{
       ref={drawerReference}
       // marks the drawer for `useFlyToAnnotation`, which measures how much of the map it covers
       {...{ [ANNOTATION_DRAWER_ATTRIBUTE]: '' }}
-      className="fixed right-0 bottom-(--app-tab-bar-height) left-0 z-[999] overflow-hidden rounded-t-2xl bg-white shadow-[0px_-4px_38px_-19px_rgba(1,1,1,0.5)] xl:left-(--app-content-left)"
+      className="fixed right-0 bottom-(--app-tab-bar-height) left-0 z-[999] flex flex-col overflow-hidden rounded-t-2xl bg-white shadow-[0px_-4px_38px_-19px_rgba(1,1,1,0.5)] select-none xl:left-(--app-content-left)"
       style={{ height: `${drawerHeight}vh` }}
+      onDragStart={(event) => event.preventDefault()}
     >
+      {/* the grabber and the header sit above the scrolling content rather than sticking inside
+          it: iPad Safari let the content scroll through a gap above a sticky header */}
+      <div className="shrink-0 px-4" onMouseDown={handleMouseDown} onTouchStart={handleTouchStart}>
+        <div className="flex cursor-ns-resize justify-center pt-2 pb-3">
+          <div className="bg-rail-dash h-1 w-9 rounded-full"></div>
+        </div>
+
+        <AnnotationDrawerHeader closeDrawer={closeDrawer} annotation={annotation} locale={locale} />
+      </div>
+
       <div
         ref={scrollableContentReference}
-        className={cn('flex h-full flex-col px-4 pt-4 select-none', {
+        className={cn('min-h-0 flex-1 px-4', {
           'overflow-hidden': isResizing,
           'overflow-y-auto': !isResizing,
         })}
-        onDragStart={(event) => event.preventDefault()}
       >
-        <div className="relative">
-          <div
-            className="sticky top-0 z-20 bg-white pt-4"
-            onMouseDown={handleMouseDown}
-            onTouchStart={handleTouchStart}
-          >
-            <div className="absolute top-[-16px] right-0 left-0 z-30 flex h-4 cursor-ns-resize items-center justify-center bg-white pt-2">
-              <div className="bg-rail-dash mt-2 mb-4 h-1 w-9 rounded-full"></div>
-            </div>
+        <AnnotationDescriptionSection description={annotation.description} />
 
-            <AnnotationDrawerHeader
-              closeDrawer={closeDrawer}
-              annotation={annotation}
-              locale={locale}
-            />
-          </div>
+        <AnnotationOpeningHoursSection openingHours={annotation.openingHours} locale={locale} />
 
-          <AnnotationDescriptionSection description={annotation.description} />
+        <AnnotationImagesSection images={annotation.images} locale={locale} />
 
-          <AnnotationOpeningHoursSection openingHours={annotation.openingHours} locale={locale} />
+        <AnnotationScheduleTableComponent locale={locale} placeId={annotation.id} />
 
-          <AnnotationImagesSection images={annotation.images} locale={locale} />
-
-          {schedule && <AnnotationScheduleTableComponent locale={locale} schedule={schedule} />}
-
-          {(annotation.enableSupportChat ?? true) && (
-            <AnnotationForumAndReportSection
-              coordinates={((): [number, number] | undefined => {
-                if (!('geometry' in annotation)) return undefined;
-                if (Array.isArray(annotation.geometry.coordinates[0])) {
-                  return annotation.geometry.coordinates[0];
-                }
-                return annotation.geometry.coordinates as [number, number];
-              })()}
-            />
-          )}
-        </div>
+        {(annotation.enableSupportChat ?? true) && (
+          <AnnotationForumAndReportSection
+            coordinates={((): [number, number] | undefined => {
+              if (!('geometry' in annotation)) return undefined;
+              if (Array.isArray(annotation.geometry.coordinates[0])) {
+                return annotation.geometry.coordinates[0];
+              }
+              return annotation.geometry.coordinates as [number, number];
+            })()}
+          />
+        )}
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { PullToRefresh } from '@/components/ui/pull-to-refresh';
 import { SectionLabel } from '@/components/ui/section-label';
 import { ChatActionsSheet } from '@/features/chat/components/chat-overview-view/chat-actions-sheet';
+import { ChatDeletedBanner } from '@/features/chat/components/chat-overview-view/chat-deleted-banner';
 import { ChatFilterChips } from '@/features/chat/components/chat-overview-view/chat-filter-chips';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
 import { ChatSearchContacts } from '@/features/chat/components/chat-overview-view/chat-search-contacts';
@@ -17,6 +18,7 @@ import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view
 import { RealtimeSyncBanner } from '@/features/chat/components/realtime-sync-banner';
 import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
 import { useChatId } from '@/features/chat/context/chat-id-context';
+import { usePendingChatDeletionContext } from '@/features/chat/context/pending-chat-deletion-context';
 import { useChatListActions } from '@/features/chat/hooks/use-chat-list-actions';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChats } from '@/features/chat/hooks/use-chats';
@@ -243,6 +245,7 @@ export const ChatsOverviewClientComponent: React.FC<{
   // the chat open beside the list on a desktop
   const openChatId = useChatId();
   const isDesktop = useIsDesktop();
+  const pendingDeletion = usePendingChatDeletionContext();
 
   // Filter chats based on a search query. Pinned chats go first; the sort is stable, so both
   // groups keep the server's most-recent-first order, and chats added optimistically at the
@@ -258,6 +261,8 @@ export const ChatsOverviewClientComponent: React.FC<{
           previewText = rawPreview[locale];
         }
 
+        // deleted, though the server only hears of it once the moment to undo has passed
+        if (chat.id === pendingDeletion.pending?.chatId) return false;
         if (!matchesChatListFilter(chat, listFilter)) return false;
         const chatName = chat.name;
         return (
@@ -303,42 +308,21 @@ export const ChatsOverviewClientComponent: React.FC<{
           each copy would open its sheet from the `?qr=` parameter. */}
       <SetHeaderActions>{isDesktop ? undefined : qrCodeButton}</SetHeaderActions>
 
-      <span id={actionsHintId} hidden>
-        {actionsHintText[locale]}
-      </span>
-      {listActions.hasFailed && (
-        <p
-          role="alert"
-          className="bg-danger-soft text-danger-text flex min-h-11 items-center justify-between gap-3 rounded-xl py-1 pr-1 pl-4 text-sm"
-        >
-          {actionFailedText[locale]}
-          <button
-            type="button"
-            onClick={listActions.dismissFailure}
-            aria-label={dismissText[locale]}
-            className="hover:bg-danger-line/40 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full"
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </button>
-        </p>
-      )}
-      <ChatActionsSheet
-        chat={actionsChat}
-        onClose={() => setActionsChatId(undefined)}
-        actions={listActions}
-        locale={locale}
-      />
-
-      <RealtimeSyncBanner
-        status={realtimeStatus}
-        onReconnect={reconnectRealtime}
-        className="border-danger-line rounded-[14px] border"
-      />
-
       {/* The search, once there is something to search, and on a desktop the list's actions
-          beside it, at the top of the list the way WhatsApp Web has them. */}
+          beside it, at the top of the list the way WhatsApp Web has them, first so it can take
+          over the room above it. */}
       {(hasChats || isDesktop) && (
-        <div className="flex flex-col gap-3">
+        <div
+          className={cn(
+            // Kept under the header while the chats scroll beneath it, and in place while a pull
+            // to refresh moves them. It takes over the room above and below it, so it stands
+            // where it did and covers the rows scrolling under it edge to edge. In a browser
+            // that room includes the band under the hanging logo, see the app pages' layout.
+            'sticky top-[calc(var(--app-content-top)-var(--app-logo-overhang))] z-20 -mx-4 -mb-4 flex flex-col gap-3 bg-white px-4 pb-4',
+            'mt-[calc(-1*(var(--app-logo-overhang)+1rem))] pt-[calc(var(--app-logo-overhang)+1rem)]',
+            'sm:mx-0 sm:px-0 xl:top-0 xl:-mx-4 xl:-mt-4 xl:px-4 xl:pt-4',
+          )}
+        >
           <div className="flex items-center gap-1">
             {hasChats && (
               <div className="min-w-0 flex-1">
@@ -376,6 +360,38 @@ export const ChatsOverviewClientComponent: React.FC<{
         </div>
       )}
 
+      <span id={actionsHintId} hidden>
+        {actionsHintText[locale]}
+      </span>
+      {listActions.hasFailed && (
+        <p
+          role="alert"
+          className="bg-danger-soft text-danger-text flex min-h-11 items-center justify-between gap-3 rounded-xl py-1 pr-1 pl-4 text-sm"
+        >
+          {actionFailedText[locale]}
+          <button
+            type="button"
+            onClick={listActions.dismissFailure}
+            aria-label={dismissText[locale]}
+            className="hover:bg-danger-line/40 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </p>
+      )}
+      <ChatActionsSheet
+        chat={actionsChat}
+        onClose={() => setActionsChatId(undefined)}
+        actions={listActions}
+        locale={locale}
+      />
+
+      <RealtimeSyncBanner
+        status={realtimeStatus}
+        onReconnect={reconnectRealtime}
+        className="border-danger-line rounded-[14px] border"
+      />
+
       {/* Loading State - only when there is nothing cached to render */}
       {isInitialLoad && <ChatsOverviewSkeleton />}
 
@@ -392,8 +408,10 @@ export const ChatsOverviewClientComponent: React.FC<{
                 {filteredChats.map((chat) => (
                   <li
                     key={chat.id}
-                    // the line between rows starts at the text, as the avatar marks each row; above the swipe layer
-                    className="after:bg-line relative after:absolute after:right-0 after:bottom-0 after:left-[72px] after:z-20 after:h-px last:after:hidden"
+                    // the line between rows starts at the text, as the avatar marks each row. It sits
+                    // in a pixel of its own below the row, so a swipe's red ends at the same height
+                    // left and right of where the line starts.
+                    className="after:bg-line relative pb-px after:absolute after:right-0 after:bottom-0 after:left-[72px] after:h-px last:pb-0 last:after:hidden"
                   >
                     <SwipeToDeleteChat chat={chat}>
                       <ChatPreview
@@ -422,9 +440,21 @@ export const ChatsOverviewClientComponent: React.FC<{
         </PullToRefresh>
       )}
 
-      {/* the screen's main action floats over the list, above the tab bar */}
-      {!isDesktop && createChatsEnabled === undefined && <NewChatButtonSkeleton />}
-      {!isDesktop && createChatsEnabled === true && (
+      {/* the screen's main action floats over the list, above the tab bar, and gives its place
+          to the undo of a delete for the moment it lasts */}
+      {pendingDeletion.pending !== undefined && (
+        <ChatDeletedBanner
+          key={pendingDeletion.pending.chatId}
+          forEveryone={pendingDeletion.pending.forEveryone}
+          onUndo={pendingDeletion.undo}
+          onHold={pendingDeletion.hold}
+          locale={locale}
+        />
+      )}
+      {!isDesktop && pendingDeletion.pending === undefined && createChatsEnabled === undefined && (
+        <NewChatButtonSkeleton />
+      )}
+      {!isDesktop && pendingDeletion.pending === undefined && createChatsEnabled === true && (
         <Link
           href="/app/chat/new"
           className="focus-visible:focus-surface-filled bg-conveniat-green fixed right-4 bottom-[calc(var(--app-tab-bar-height)+16px)] z-30 flex h-12 items-center gap-2 rounded-2xl px-5 text-[15px] font-semibold text-white shadow-lg hover:bg-green-700"

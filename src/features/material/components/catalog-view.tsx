@@ -26,13 +26,14 @@ import { materialQueryOptions, useMaterialLocale } from '@/features/material/hoo
 import { useSearchHistory } from '@/features/material/hooks/use-search-history';
 import { basketTotals, orderStepOf } from '@/features/material/utils/basket';
 import { catalogItemPath, itemPath, parseScan } from '@/features/material/utils/scan';
+import { useKeptScrollPosition } from '@/hooks/use-kept-scroll-position';
 import { trpc, type RouterOutputs } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ArrowLeft, Plus, Send } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
-import { useMemo, useRef, useState } from 'react';
+import { Activity, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 type CatalogItem = RouterOutputs['material']['getCatalog'][number];
@@ -382,21 +383,25 @@ const CatalogScreen: React.FC = () => {
       return quantity <= 0 ? others : [...others, { itemId: item.id, quantity }];
     });
 
+  const itemCode = code !== null && code !== '' ? code : undefined;
+  useKeptScrollPosition(itemCode !== undefined);
+
   if (catalog.isLoading) return <LoadingState text={labels.loading[locale]} />;
   if (!catalog.data) return <MaterialQueryError error={catalog.error} />;
 
-  const itemCode = code !== null && code !== '' ? code : undefined;
-
   return (
     <div>
-      {itemCode === undefined ? (
+      {/* hidden, not unmounted, under an open article: its filters and its page survive the
+          visit, the way Next.js keeps a page the user left */}
+      <Activity mode={itemCode === undefined ? 'visible' : 'hidden'}>
         <CatalogList
           items={catalog.data}
           quantityOf={quantityOf}
           onChange={setQuantity}
           onOpen={(next) => history.open(`item=${encodeURIComponent(next)}`)}
         />
-      ) : (
+      </Activity>
+      {itemCode !== undefined && (
         // brings its own bar at the bottom, with the article's button next to the request's
         <CatalogItemView
           key={itemCode}

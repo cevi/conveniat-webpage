@@ -41,15 +41,15 @@ import {
   type SubmissionProgress,
 } from '@/features/hof-dashboard/utils/submission-progress';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { useReleasePushSubscriptions } from '@/hooks/use-release-push-subscriptions';
-import { flushPersonalData } from '@/lib/flush-personal-data';
+import { signOutNeedsConnectionText, useSignOut } from '@/hooks/use-sign-out';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { reloadPage } from '@/utils/reload-page';
 import { cn } from '@/utils/tailwindcss-override';
 import { TabGroup, TabPanel, TabPanels } from '@headlessui/react';
 import { ChevronLeft, FileText, LayoutGrid, LogOut } from 'lucide-react';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import type React from 'react';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
 
@@ -120,27 +120,38 @@ const RetryMessage: React.FC<{ locale: Locale; onRetry: () => void }> = ({ local
  * phone the next person needs to see whose they are and switch.
  */
 const SignedInLine: React.FC<{ name: string; locale: Locale }> = ({ name, locale }) => {
-  const releasePushSubscriptions = useReleasePushSubscriptions();
+  const signOut = useSignOut();
+  const [failed, setFailed] = useState(false);
 
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-green-700">
-      <span>
-        {translate('signedInAs', locale, { name: '' })}
-        <span className="font-semibold text-green-900">{name}</span>
-      </span>
-      <button
-        type="button"
-        className={SECONDARY_BUTTON_CLASS}
-        onClick={() => {
-          void releasePushSubscriptions().then(() => {
-            flushPersonalData({ clearCachedPages: true });
-            return signOut({ redirectTo: globalThis.location.href });
-          });
-        }}
-      >
-        <LogOut aria-hidden />
-        {translate('signOut', locale)}
-      </button>
+    <div className="flex flex-col gap-1">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-green-700">
+        <span>
+          {translate('signedInAs', locale, { name: '' })}
+          <span className="font-semibold text-green-900">{name}</span>
+        </span>
+        <button
+          type="button"
+          className={SECONDARY_BUTTON_CLASS}
+          onClick={() => {
+            setFailed(false);
+            void signOut()
+              .then(reloadPage)
+              .catch((error: unknown) => {
+                console.warn('Signing out of the Hof dashboard failed', error);
+                setFailed(true);
+              });
+          }}
+        >
+          <LogOut aria-hidden />
+          {translate('signOut', locale)}
+        </button>
+      </div>
+      {failed && (
+        <p role="alert" className="text-danger-text text-[13px] leading-[18px] font-medium">
+          {signOutNeedsConnectionText[locale]}
+        </p>
+      )}
     </div>
   );
 };

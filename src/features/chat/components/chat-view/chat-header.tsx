@@ -60,8 +60,9 @@ export const describeMembers = (names: string[], locale: Locale): string => {
   return `${named} and you`;
 };
 
+// on a desktop the list stands beside the chat, so there is nothing to go back to
 const headerClassName =
-  'border-line flex h-[60px] shrink-0 items-center gap-1 border-b bg-white pr-2 pl-1';
+  'border-line flex h-[60px] shrink-0 items-center gap-1 border-b bg-white pr-2 pl-1 xl:pl-3';
 const iconButtonClassName =
   'focus-visible:focus-surface flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900 hover:bg-quiet';
 
@@ -88,7 +89,7 @@ const BackLink: React.FC = () => {
       href="/app/chat"
       onClick={goBack}
       aria-label={backText[locale]}
-      className={iconButtonClassName}
+      className={cn(iconButtonClassName, 'xl:hidden')}
     >
       <LinkPendingSpinner spinnerClassName="h-[22px] w-[22px]">
         <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
@@ -101,7 +102,7 @@ const BackLink: React.FC = () => {
 export const ChatHeaderSkeleton: React.FC = () => (
   <div className={headerClassName}>
     <BackLink />
-    <div className="bg-quiet h-10 w-10 shrink-0 animate-pulse rounded-full" />
+    <div className="bg-quiet h-9 w-9 shrink-0 animate-pulse rounded-full" />
     <div className="flex min-w-0 flex-1 flex-col gap-1.5 pl-2">
       <div className="bg-quiet h-[18px] w-40 animate-pulse rounded" />
       <div className="bg-quiet h-3 w-28 animate-pulse rounded" />
@@ -193,7 +194,7 @@ export const ChatHeader: React.FC = () => {
         aria-label={`${chat.name}, ${openDetailsText[locale]}`}
         className="focus-visible:focus-surface hover:bg-quiet flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-[12px] py-1 pr-2 pl-1"
       >
-        <ChatAvatar chat={chat} />
+        <ChatAvatar chat={chat} size="header" />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="flex min-w-0 items-center gap-2">
             <span className="font-heading text-heading truncate text-[17px] leading-tight font-bold">

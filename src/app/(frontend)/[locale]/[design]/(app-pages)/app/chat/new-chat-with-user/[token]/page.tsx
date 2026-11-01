@@ -52,6 +52,16 @@ const labels = {
     de: 'Jeder QR-Code startet nur einen Chat und läuft nach wenigen Minuten ab. Lass dir einen neuen zeigen.',
     fr: "Chaque code QR ne démarre qu'une seule discussion et expire après quelques minutes. Demandez-en un nouveau.",
   },
+  ownInvite: {
+    en: 'This is your own QR code.',
+    de: 'Das ist dein eigener QR-Code.',
+    fr: 'Ceci est votre propre code QR.',
+  },
+  showOwnInvite: {
+    en: 'Show it to someone else to start a chat with them.',
+    de: 'Zeig ihn jemand anderem, um mit dieser Person einen Chat zu starten.',
+    fr: "Montrez-le à quelqu'un d'autre pour démarrer une discussion avec cette personne.",
+  },
   tryAgainLater: {
     en: 'Please try again later.',
     de: 'Bitte versuche es später noch einmal.',
@@ -78,6 +88,7 @@ const NewChatWithUserPage: React.FC<{
     | 'notLoggedIn'
     | 'cannotCreateChat'
     | 'invalidInvite'
+    | 'ownInvite'
     | 'failedToCreate'
     | { type: 'redirect'; url: string }
     | 'error';
@@ -106,7 +117,8 @@ const NewChatWithUserPage: React.FC<{
       } else if (redemption.status === 'invalid') {
         result = 'invalidInvite';
       } else if (redemption.status === 'ownInvite') {
-        result = { type: 'redirect', url: `/app/chat` };
+        // said, not a silent return to the list, which read as if the scan had failed
+        result = 'ownInvite';
       } else {
         result = { type: 'redirect', url: `/app/chat/${redemption.chatId}` };
       }
@@ -135,6 +147,11 @@ const NewChatWithUserPage: React.FC<{
       icon: QrCode,
       title: labels.invalidInvite[locale],
       description: labels.askForNewInvite[locale],
+    },
+    ownInvite: {
+      icon: QrCode,
+      title: labels.ownInvite[locale],
+      description: labels.showOwnInvite[locale],
     },
     failedToCreate: {
       icon: MessageSquareOff,

@@ -99,7 +99,7 @@ export const useAnnotationPolygons = (
     ClickedFeaturesState | undefined
   >();
 
-  // Effect for setting up and tearing down map sources and layers
+  // Effect for adding the sources and layers the areas are drawn with, once per map
   useEffect(() => {
     if (!map) return;
 
@@ -133,6 +133,22 @@ export const useAnnotationPolygons = (
             },
           })),
       };
+    };
+
+    const updatePolygonFilters = (): void => {
+      const zoom = map.getZoom();
+
+      const filter: FilterSpecification = [
+        'any',
+        ['==', ['get', 'importance'], 'high'],
+        ['all', ['==', ['get', 'importance'], 'medium'], zoom >= 14],
+        ['all', ['==', ['get', 'importance'], 'low'], zoom >= 16],
+      ];
+
+      map.setFilter(POLYGONS_FILL_LAYER_ID, filter);
+      map.setFilter(POLYGONS_OUTLINE_LAYER_ID, filter);
+      map.setFilter(POLYGONS_WASH_LAYER_ID, filter);
+      map.setFilter(POLYGON_LABELS_LAYER_ID, filter);
     };
 
     const setupLayers = (): void => {
@@ -230,22 +246,6 @@ export const useAnnotationPolygons = (
         );
       }
 
-      const updatePolygonFilters = (): void => {
-        const zoom = map.getZoom();
-
-        const filter: FilterSpecification = [
-          'any',
-          ['==', ['get', 'importance'], 'high'],
-          ['all', ['==', ['get', 'importance'], 'medium'], zoom >= 14],
-          ['all', ['==', ['get', 'importance'], 'low'], zoom >= 16],
-        ];
-
-        map.setFilter(POLYGONS_FILL_LAYER_ID, filter);
-        map.setFilter(POLYGONS_OUTLINE_LAYER_ID, filter);
-        map.setFilter(POLYGONS_WASH_LAYER_ID, filter);
-        map.setFilter(POLYGON_LABELS_LAYER_ID, filter);
-      };
-
       updatePolygonFilters();
       map.on('zoom', updatePolygonFilters);
 
@@ -310,56 +310,32 @@ export const useAnnotationPolygons = (
       }
     };
 
-    const cleanupLayers = (): void => {
-      if (!isStyleReady()) return;
-
-      // Remove the single selection layer and source
-      if (map.getLayer(SELECTED_POLYGON_LAYER_ID)) map.removeLayer(SELECTED_POLYGON_LAYER_ID);
-      if (map.getLayer(SELECTED_POLYGON_CASING_LAYER_ID)) {
-        map.removeLayer(SELECTED_POLYGON_CASING_LAYER_ID);
-      }
-      if (map.getSource(SELECTED_POLYGON_SOURCE_ID)) map.removeSource(SELECTED_POLYGON_SOURCE_ID);
-
-      // Remove the batched polygon layers and sources
-      if (map.getLayer(POLYGON_LABELS_LAYER_ID)) map.removeLayer(POLYGON_LABELS_LAYER_ID);
-      if (map.getSource(POLYGON_LABELS_SOURCE_ID)) map.removeSource(POLYGON_LABELS_SOURCE_ID);
-      if (map.getLayer(POLYGONS_WASH_LAYER_ID)) map.removeLayer(POLYGONS_WASH_LAYER_ID);
-      if (map.getLayer(POLYGONS_OUTLINE_LAYER_ID)) map.removeLayer(POLYGONS_OUTLINE_LAYER_ID);
-      if (map.getLayer(POLYGONS_FILL_LAYER_ID)) map.removeLayer(POLYGONS_FILL_LAYER_ID);
-      if (map.getSource(POLYGONS_SOURCE_ID)) map.removeSource(POLYGONS_SOURCE_ID);
-    };
-
+    // `isStyleLoaded` is false while tiles are still loading, long after `load` has fired, so a
+    // map that is not ready yet is waited for until it next settles
     if (isStyleReady()) {
       setupLayers();
     } else {
-      map.on('load', setupLayers);
+      map.once('idle', setupLayers);
     }
 
+    // The layers stay when the annotations change or the page is hidden: the effects below set
+    // their data in place, and removing the map removes them. Taking them down here redrew every
+    // area after each refresh, each search keystroke and each return to the Karte.
     return (): void => {
-      try {
-        if (isStyleReady()) cleanupLayers();
-      } catch (error) {
-        console.error('Error during cleanup of polygon layers:', error);
-      }
-      map.off('load', setupLayers);
+      map.off('idle', setupLayers);
+      map.off('zoom', updatePolygonFilters);
     };
+    // the selection only seeds the outline when the layers are first added; the selection
+    // effect below keeps it current
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, annotations]); // This effect now only depends on map and the list of annotations
+  }, [map, annotations]);
 
   // Effect for updating the polygon source data when annotations change (after initial setup)
   useEffect(() => {
     if (!map) return;
 
-    const isStyleReady = (): boolean => {
-      try {
-        return map.isStyleLoaded() === true;
-      } catch {
-        return false;
-      }
-    };
-
-    if (!isStyleReady()) return;
-
+    // Not gated on `isStyleLoaded`, which is false whenever tiles load. A source exists once the
+    // setup above has added it, and that setup reads the annotations of its own render.
     const source = map.getSource(POLYGONS_SOURCE_ID);
     if (!source) return;
     const sourceTyped = source as GeoJSONSource;
@@ -393,9 +369,7 @@ export const useAnnotationPolygons = (
 
   // Effect for updating the single polygon outline layer based on selection
   useEffect(() => {
-    const isStyleReady = (): boolean => map?.isStyleLoaded() === true;
-
-    if (!isStyleReady() || map === undefined) return;
+    if (map === undefined) return;
 
     const source = map.getSource(SELECTED_POLYGON_SOURCE_ID);
     if (source === undefined) return;

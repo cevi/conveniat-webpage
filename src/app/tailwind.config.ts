@@ -1,6 +1,22 @@
 /** @type {import('tailwindcss').Config} */
 import twAnimate from 'tailwindcss-animate';
 import colors from 'tailwindcss/colors';
+// Tailwind loads this file itself and knows no `@/` alias.
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import { type DeploymentColor, deploymentColors } from './deployment-colors';
+
+/** Overlays the colours of this deployment, see `deployment-colors.ts`. */
+const withDeploymentColors = (
+  base: Record<string, DeploymentColor>,
+): Record<string, DeploymentColor> =>
+  Object.fromEntries(
+    Object.entries(base).map(([name, color]) => {
+      const replacement = deploymentColors[name];
+      if (replacement === undefined) return [name, color];
+      if (typeof color === 'string' || typeof replacement === 'string') return [name, replacement];
+      return [name, { ...color, ...replacement }];
+    }),
+  );
 
 // eslint-disable-next-line unicorn/prefer-module
 module.exports = {
@@ -31,7 +47,7 @@ module.exports = {
       body: ['var(--font-inter)', 'Inter', 'Helvetica', 'Arial', 'sans-serif'],
     },
 
-    colors: {
+    colors: withDeploymentColors({
       gray: {
         50: '#F5F5F6',
         100: '#E6E6E7',
@@ -126,6 +142,6 @@ module.exports = {
       orange: {
         500: '#FFA500',
       },
-    },
+    }),
   },
 };

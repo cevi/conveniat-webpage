@@ -1,8 +1,9 @@
-import { TIMEOUTS } from '@/features/service-worker/constants';
+import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
 import {
   forgetCachedSession,
   handleFetchEvent,
 } from '@/features/service-worker/offline-support/fetch-handler';
+import { ANSWERED_BY_SERVICE_WORKER_HEADER } from '@/utils/service-worker-messages';
 import type { Serwist } from 'serwist';
 
 jest.mock('@/features/service-worker/offline-support/map-viewer', () => ({
@@ -59,8 +60,15 @@ describe('service worker session check', () => {
       match: jest.fn(() => Promise.resolve(cached?.clone())),
       put: authCachePut,
     };
+    const otherCache = {
+      match: jest.fn(() => Promise.resolve()),
+      put: jest.fn(() => Promise.resolve()),
+      delete: jest.fn(() => Promise.resolve(true)),
+    };
     globalThis.caches = {
-      open: jest.fn(() => Promise.resolve(authCache)),
+      open: jest.fn((name: string) =>
+        Promise.resolve(name === CACHE_NAMES.AUTH_SESSION ? authCache : otherCache),
+      ),
       match: jest.fn(() => Promise.resolve()),
       delete: jest.fn(() => Promise.resolve(true)),
     } as unknown as CacheStorage;
@@ -84,6 +92,20 @@ describe('service worker session check', () => {
     await jest.advanceTimersByTimeAsync(TIMEOUTS.SESSION_FETCH);
 
     await expect(nameIn(await answer)).resolves.toBe('Lena Muster');
+  });
+
+  it('marks a cached answer as its own and leaves the answer of the server unmarked', async () => {
+    useCachedSession(sessionOf('Lena Muster'));
+    globalThis.fetch = jest.fn(hangingFetch);
+    const fromCache = requestSession();
+    await jest.advanceTimersByTimeAsync(TIMEOUTS.SESSION_FETCH);
+    const cachedAnswer = await fromCache.answer;
+    expect(cachedAnswer.headers.get(ANSWERED_BY_SERVICE_WORKER_HEADER)).toBe('1');
+
+    globalThis.fetch = jest.fn(() => Promise.resolve(sessionOf('Lena Muster')));
+    const fromServer = requestSession();
+    const serverAnswer = await fromServer.answer;
+    expect(serverAnswer.headers.has(ANSWERED_BY_SERVICE_WORKER_HEADER)).toBe(false);
   });
 
   it('keeps waiting for the network when no session is cached', async () => {

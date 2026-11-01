@@ -1,6 +1,8 @@
 import type { BrowserContext, Locator, Page, Route } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 
+import { signIn } from './fixtures/sign-in';
+
 /**
  * A map annotation edited in the CMS has to reach an installed app, and the persisted query cache
  * must not stop it from doing so, neither when a screen opens nor when the user presses "Update"
@@ -20,8 +22,8 @@ const SCHEDULE_ENTRY_TITLE = 'Hofprogramm Cevi Uster: Seilbrücke bauen';
 /** Name of the annotation as the editor saved it in the given version. */
 const annotationTitle = (version: string): string => `Treffpunkt Cevi Uster ${version}`;
 
-/** The map query trusts its data for 30 minutes (`staleTime` in map-renderer.tsx). */
-const MAP_STALE_TIME_MS = 30 * 60 * 1000;
+/** The map query trusts its data for two minutes (`CAMP_CONTENT_REFRESH_INTERVAL`). */
+const MAP_STALE_TIME_MS = 2 * 60 * 1000;
 const OLDER_THAN_STALE_TIME_MS = MAP_STALE_TIME_MS + 60 * 1000;
 
 /** Where src/trpc/client.tsx persists the TanStack Query cache. */
@@ -90,7 +92,6 @@ const patchMapAnswer = (entry: TrpcBatchEntry | undefined, version: string): Trp
         json: {
           campMapAnnotationPoints: [...otherPoints, createAnnotation(version)],
           campMapAnnotationPolygons: real?.campMapAnnotationPolygons ?? [],
-          schedules: { [ANNOTATION_ID]: [] },
         },
       },
     },
@@ -157,43 +158,6 @@ const installFakeServer = async (context: BrowserContext): Promise<FakeServer> =
   return server;
 };
 
-/** One pass through the fake Cevi.DB OAuth login; true once a session exists. */
-const attemptSignIn = async (context: BrowserContext): Promise<boolean> => {
-  const { request } = context;
-  const csrfResponse = await request.get('/api/auth/csrf');
-  const csrf = (await csrfResponse.json()) as { csrfToken: string };
-
-  const start = await request.post('/api/auth/signin/cevi-db', {
-    form: { csrfToken: csrf.csrfToken, callbackUrl: '/app/dashboard' },
-    maxRedirects: 0,
-  });
-  const authorizeUrl = new URL(start.headers()['location'] ?? '');
-  const callbackUrl = authorizeUrl.searchParams.get('redirect_uri');
-  expect(callbackUrl, 'the sign-in should redirect to the Cevi.DB login').toBeTruthy();
-
-  // what the fake login page does when a user is picked
-  await request.get(`${callbackUrl}?code=fake-auth-code-3`, { maxRedirects: 0 });
-
-  const sessionResponse = await request.get('/api/auth/session');
-  const session = (await sessionResponse.json()) as { user?: unknown } | null;
-  return Boolean(session?.user);
-};
-
-/**
- * Signs in through the fake Cevi.DB OAuth server, the way a camp participant does.
- *
- * On a freshly reset stack, two workers signing in the same new user at the same moment race on
- * creating that user and one callback fails (CallbackRouteError). That is setup, not what these
- * tests are about, so it is tried again.
- */
-const signIn = async (context: BrowserContext): Promise<void> => {
-  let signedIn = false;
-  for (let attempt = 0; attempt < 3 && !signedIn; attempt += 1) {
-    signedIn = await attemptSignIn(context);
-  }
-  expect(signedIn, 'the Cevi.DB sign-in should leave a session').toBe(true);
-};
-
 interface PersistedMapQuery {
   titles: string[];
   dataUpdatedAt: number;
@@ -257,7 +221,7 @@ const persistedMapTitle = async (page: Page): Promise<string | undefined> => {
 };
 
 /**
- * Moves every persisted query back in time, as if the app had last been open half an hour ago.
+ * Moves every persisted query back in time, as if the app had last been open longer ago than the map trusts it.
  * Runs on a page outside the app, so no mounted query client writes the blob back meanwhile.
  */
 const agePersistedCache = async (page: Page, byMs: number): Promise<void> => {
@@ -381,7 +345,7 @@ const pressUpdateAndWait = async (page: Page, timeout: number): Promise<number> 
 test.describe('Map annotations edited in the CMS reach an installed app', () => {
   test.describe.configure({ timeout: 180_000 });
 
-  test('A: online, a map opened after half an hour shows the edited annotation', async ({
+  test('A: online, a map opened after two minutes shows the edited annotation', async ({
     page,
     context,
   }) => {
@@ -393,7 +357,7 @@ test.describe('Map annotations edited in the CMS reach an installed app', () => 
       .poll(() => persistedMapTitle(page), { timeout: 15_000 })
       .toBe(annotationTitle('v1'));
 
-    // an editor renames the annotation; the app is opened again half an hour later
+    // an editor renames the annotation; the app is opened again a few minutes later
     server.mapVersion = 'v2';
     await agePersistedCache(page, OLDER_THAN_STALE_TIME_MS);
     const requestsBeforeReopen = server.mapRequests;
@@ -409,7 +373,7 @@ test.describe('Map annotations edited in the CMS reach an installed app', () => 
       .toBe(annotationTitle('v2'));
   });
 
-  test('A2: online, a map opened within half an hour does not ask the server again', async ({
+  test('A2: online, a map opened within two minutes does not ask the server again', async ({
     page,
     context,
   }) => {

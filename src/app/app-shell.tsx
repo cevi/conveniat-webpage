@@ -13,6 +13,7 @@ import { OfflineBanner } from '@/components/offline-banner';
 import { useHideBackgroundLogo } from '@/components/ui/hide-background-logo-context';
 import { ClientProviders } from '@/context/client-providers';
 import { OfflineQueueSync } from '@/features/chat/hooks/use-offline-queue-processor';
+import { OnboardingRecheck } from '@/features/onboarding/components/onboarding-recheck';
 import { PostHogProvider } from '@/providers/post-hog-provider';
 import { TRPCProvider } from '@/trpc/client';
 import type { Locale, NavigationMode } from '@/types/types';
@@ -51,6 +52,7 @@ export const AppShell: React.FC<AppShellProperties> = ({
       <TRPCProvider>
         <ClientProviders>
           <OfflineQueueSync />
+          <OnboardingRecheck />
           <NativePushProvider>
             <HideHeaderProvider>
               <DynamicAppTitleProvider>

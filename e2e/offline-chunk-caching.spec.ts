@@ -1,134 +1,47 @@
 import { expect, test } from '@playwright/test';
 
+import {
+  downloadOfflinePages,
+  emergencyCard,
+  mockAppBackend,
+  NATIVE_APP_USER_AGENT,
+  waitForPersisted,
+  waitForServiceWorker,
+} from './fixtures/offline-app-data';
+import { signIn } from './fixtures/sign-in';
+
+test.use({ userAgent: NATIVE_APP_USER_AGENT });
+
 test.describe('Offline Static JS/CSS Chunk & Manifest Resilience', () => {
-  test.beforeEach(async ({ page }) => {
-    // Mock NextAuth session endpoint
-    await page.route('**/api/auth/session', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          user: { name: 'Test User', email: 'test@cevi.ch', id: 'user-123' },
-          expires: new Date(Date.now() + 86_400_000).toISOString(),
-        }),
-      });
-    });
-
-    // Mock tRPC procedures
-    await page.route('**/api/trpc/**', async (route) => {
-      const url = new URL(route.request().url());
-      const pathname = url.pathname;
-      const trpcMarker = '/api/trpc/';
-      const markerIndex = pathname.indexOf(trpcMarker);
-      const proceduresPart =
-        markerIndex === -1 ? pathname : pathname.slice(markerIndex + trpcMarker.length);
-      const procedures = proceduresPart.split(',');
-
-      interface TrpcResult {
-        result: {
-          data: {
-            json: unknown;
-          };
-        };
-      }
-      const response: TrpcResult[] = [];
-
-      for (const proc of procedures) {
-        switch (proc) {
-          case 'chat.user': {
-            response.push({ result: { data: { json: 'user-123' } } });
-            break;
-          }
-          case 'chat.chats': {
-            response.push({
-              result: {
-                data: {
-                  json: [
-                    {
-                      id: 'chat-chunk-1',
-                      name: 'Chunk Test Chat',
-                      type: 'ONE_TO_ONE',
-                      lastMessage: {
-                        content: 'Chunk test content',
-                        createdAt: new Date().toISOString(),
-                      },
-                    },
-                  ],
-                },
-              },
-            });
-            break;
-          }
-          case 'emergency.getAlertSettings': {
-            response.push({
-              result: {
-                data: {
-                  json: {
-                    emergencyPhoneNumber: '+41 79 000 00 00',
-                    campsiteName: 'Cevi Camp',
-                  },
-                },
-              },
-            });
-            break;
-          }
-          case 'emergency.getEmergencyCards': {
-            response.push({
-              result: {
-                data: {
-                  json: [
-                    {
-                      id: 'card-chunk-1',
-                      title: 'First Aid Emergency Guide',
-                      description: 'Instructions for emergency situations',
-                    },
-                  ],
-                },
-              },
-            });
-            break;
-          }
-          default: {
-            response.push({ result: { data: { json: {} } } });
-          }
-        }
-      }
-
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(response),
-      });
-    });
+  test.beforeEach(async ({ context }) => {
+    await signIn(context);
+    await mockAppBackend(context);
   });
 
   test('should navigate to emergency page offline without ChunkLoadError or manifest failures', async ({
     page,
     context,
   }) => {
-    // 1. Visit dashboard online
-    await page.goto('/de/default/app/dashboard', { waitUntil: 'networkidle' });
-    await expect(page.locator('body')).toBeVisible();
+    // the dashboard online, then the download; the emergency page itself was never opened
+    await page.goto('/app/dashboard', { waitUntil: 'networkidle' });
+    await waitForServiceWorker(page);
+    await downloadOfflinePages(page);
+    await page.goto('/app/emergency');
+    await expect(page.getByText(emergencyCard.title)).toBeVisible();
+    await waitForPersisted(page, 'emergency.getEmergencyCards');
+    await page.goto('/app/dashboard');
 
-    // 2. Go offline before visiting /app/emergency
-    await context.setOffline(true);
-
-    // 3. Track console errors for ChunkLoadError
-    const consoleErrors: string[] = [];
+    const chunkErrors: string[] = [];
     page.on('console', (message) => {
-      if (message.type() === 'error') {
-        consoleErrors.push(message.text());
+      if (message.type() === 'error' && message.text().includes('ChunkLoadError')) {
+        chunkErrors.push(message.text());
       }
     });
+    await context.setOffline(true);
 
-    // 4. Navigate offline to /app/emergency
-    await page.goto('/de/default/app/emergency', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('body')).toBeVisible();
+    await page.goto('/app/emergency');
 
-    // 5. Verify no ChunkLoadError occurred
-    const chunkErrors = consoleErrors.filter((errorString) =>
-      errorString.includes('ChunkLoadError'),
-    );
+    await expect(page.getByText(emergencyCard.title)).toBeVisible();
     expect(chunkErrors).toHaveLength(0);
   });
 });
