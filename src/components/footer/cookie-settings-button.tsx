@@ -12,7 +12,7 @@ export const CookieSettingsButton: React.FC<{ locale: Locale }> = ({ locale }) =
   return (
     <button
       onClick={() => setAnalyticsConsent('unanswered')}
-      className="mb-2 cursor-pointer text-xs underline"
+      className="inline-flex min-h-11 cursor-pointer items-center whitespace-nowrap"
     >
       {cookieSettingsText[locale]}
     </button>

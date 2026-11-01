@@ -26,7 +26,11 @@ interface Arguments {
   children: React.ReactNode;
 }
 
-const FooterLayoutCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
+// children pass through the cache untouched, so a client button can sit in the cached link row
+const FooterLayoutCached: React.FC<{ locale: Locale; children?: React.ReactNode }> = async ({
+  locale,
+  children,
+}) => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'footer');
@@ -50,17 +54,20 @@ const FooterLayoutCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
 
   return (
     <>
-      <div className="mb-2 flex justify-center gap-x-4 text-xs">
+      {/* the row wraps rather than scrolling a small phone sideways, a label never breaks */}
+      <div className="mb-2 flex flex-wrap justify-center gap-x-5 text-sm md:text-xs">
         {minimalFooterMenu?.map((footerMenuElement) => (
           <Fragment key={footerMenuElement.id}>
             <LinkComponent
               href={getURLForLinkField(footerMenuElement.linkField, locale) ?? ''}
               openInNewTab={openURLInNewTab(footerMenuElement.linkField)}
+              className="inline-flex min-h-11 items-center whitespace-nowrap"
             >
               {footerMenuElement.label}
             </LinkComponent>
           </Fragment>
         ))}
+        {children}
       </div>
 
       {sponsors !== undefined && sponsors !== null && sponsors.length > 0 && (
@@ -125,7 +132,7 @@ const FooterLayoutCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
             hideExternalIcon
             openInNewTab
             rel="noopener noreferrer"
-            className="rounded-full p-2 transition-colors duration-200"
+            className="flex size-11 items-center justify-center rounded-full transition-colors duration-200"
             aria-label={instagramAriaLabel[locale]}
           >
             <SiInstagram className="h-5 w-5" />
@@ -138,7 +145,7 @@ const FooterLayoutCached: React.FC<{ locale: Locale }> = async ({ locale }) => {
             hideExternalIcon
             openInNewTab
             rel="noopener noreferrer"
-            className="rounded-full p-2 transition-colors duration-200"
+            className="flex size-11 items-center justify-center rounded-full transition-colors duration-200"
             aria-label={youTubeAriaLabel[locale]}
           >
             {/* the logo spans its whole viewBox, so its anti-aliased sides fall outside the box */}
@@ -200,29 +207,26 @@ export const FooterCopyrightArea: React.FC<{
         <div className="mb-[20px]">
           <CeviSchweiz className="h-12 w-56" />
         </div>
-        {!inAppDesign && <CookieSettingsButton locale={locale} />}
-        {
-          /* The build info may not be available in (local) development mode */
-          build !== undefined && (
-            <div className="mb-[16px] flex flex-col text-center">
-              <ForceDynamicOnBuild>
-                <FooterLayoutCached locale={locale} />
-              </ForceDynamicOnBuild>
+        <div className="mb-[16px] flex w-full flex-col px-6 text-center">
+          <ForceDynamicOnBuild>
+            <FooterLayoutCached locale={locale}>
+              {!inAppDesign && <CookieSettingsButton locale={locale} />}
+            </FooterLayoutCached>
+          </ForceDynamicOnBuild>
 
-              {!inAppDesign && (
-                <>
-                  <FooterBuildInfoText>
-                    Version {build.version}
-                    <NativeAppVersionInfo />
-                  </FooterBuildInfoText>
-                  <FooterBuildInfoText>
-                    Build {build.git.hash} {footerCopyrightText[locale]} {build.timestamp}
-                  </FooterBuildInfoText>
-                </>
-              )}
-            </div>
-          )
-        }
+          {/* The build info may not be available in (local) development mode */}
+          {!inAppDesign && build !== undefined && (
+            <>
+              <FooterBuildInfoText>
+                Version {build.version}
+                <NativeAppVersionInfo />
+              </FooterBuildInfoText>
+              <FooterBuildInfoText>
+                Build {build.git.hash} {footerCopyrightText[locale]} {build.timestamp}
+              </FooterBuildInfoText>
+            </>
+          )}
+        </div>
       </div>
     </>
   );
