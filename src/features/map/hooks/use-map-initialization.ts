@@ -11,6 +11,14 @@ const minZoomLevelForSwitzerland = 4;
 const BASE_MAP_STYLE = '/vector-map/base_style.json';
 
 /**
+ * The attribution the swisstopo tiles of both map styles carry. MapLibre only learns it once the
+ * tiles' description has loaded, and the attribution then pushed the scale bar above it up: the
+ * one layout shift of a first open. Given up front, it is in place from the first frame, and the
+ * identical one from the tiles changes nothing.
+ */
+const SWISSTOPO_ATTRIBUTION = '© swisstopo';
+
+/**
  * Maps whose page is hidden, by their container. Next.js drops a hidden page from its cache
  * after a few navigations without running any cleanup, so the map of a container that has left
  * the document is removed the next time any map initializes.
@@ -97,7 +105,9 @@ export const useMapInitialization = (
           locale: mapLibreLocaleOf(locale),
         });
 
-        mapInstance.addControl(new AttributionControl({ compact: true }));
+        mapInstance.addControl(
+          new AttributionControl({ compact: true, customAttribution: SWISSTOPO_ATTRIBUTION }),
+        );
       } catch (error) {
         console.warn('Failed to initialize the map, rendering fallback instead:', error);
         // eslint-disable-next-line react-hooks/set-state-in-effect
