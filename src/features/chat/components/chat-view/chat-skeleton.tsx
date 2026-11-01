@@ -49,13 +49,16 @@ export const MessagesSkeleton: React.FC<{ className?: string }> = ({ className }
 );
 
 /**
- * A conversation while it loads, in its layout: the header with the avatars, the day, runs of
- * bubbles on both sides, and the composer, whose frame is real and does not pulse.
+ * A conversation while it loads, in its layout: the header, the day, runs of bubbles on both
+ * sides, and the composer, whose frame is real and does not pulse. Inside a chat's route the
+ * header is the real one, which names the chat from the chat list before its details are there.
  */
-export const ChatSkeleton: React.FC = () => (
+export const ChatSkeleton: React.FC<{ header?: React.ReactNode }> = ({
+  header = <ChatHeaderSkeleton />,
+}) => (
   <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
     <AppFooterController hideAppFooter />
-    <ChatHeaderSkeleton />
+    {header}
     <MessagesSkeleton className="flex-1" />
     <div className="border-line border-t bg-white px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <div className="flex items-end gap-2">

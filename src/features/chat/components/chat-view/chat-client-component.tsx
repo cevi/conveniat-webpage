@@ -86,7 +86,8 @@ const ChatClientContent: React.FC = () => {
   );
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (isLoading && errorUpdateCount === 0 && chatDetails === undefined) return <ChatSkeleton />;
+  if (isLoading && errorUpdateCount === 0 && chatDetails === undefined)
+    return <ChatSkeleton header={<ChatHeader />} />;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (isPaused && isPending && chatDetails === undefined) {
     return (

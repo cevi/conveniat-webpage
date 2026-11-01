@@ -1,5 +1,5 @@
 'use client';
-import { PersonAvatar } from '@/components/ui/person-avatar';
+import { ChatAvatar } from '@/features/chat/components/ui/chat-avatar';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { PersonName } from '@/features/chat/components/ui/person-name';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
@@ -13,19 +13,7 @@ import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
-import type { LucideIcon } from 'lucide-react';
-import {
-  BellOff,
-  CalendarDays,
-  Check,
-  Clock,
-  LifeBuoy,
-  Loader2,
-  Megaphone,
-  Pin,
-  Siren,
-  Users,
-} from 'lucide-react';
+import { BellOff, Check, Clock, Loader2, Pin } from 'lucide-react';
 import Link, { useLinkStatus } from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
@@ -100,49 +88,6 @@ const ChatTimestamp: React.FC<{ timestamp: string; className: string; locale: Lo
         <Loader2 className="h-4 w-4 animate-spin text-green-500" />
       </span>
       {pending && <span className="sr-only">{openingText[locale]}</span>}
-    </span>
-  );
-};
-
-/** The round picture at the start of a row: the partner, or what kind of chat it is. */
-export const ChatAvatar: React.FC<{ chat: ChatWithMessagePreview }> = ({ chat }) => {
-  if (chat.chatType === ChatType.ONE_TO_ONE) {
-    return (
-      <PersonAvatar
-        seed={chat.partner?.userId ?? chat.id}
-        name={chat.name}
-        pictureUrl={chat.partner?.pictureUrl}
-        className="h-11 w-11 text-sm"
-      />
-    );
-  }
-  if (chat.chatType === ChatType.GROUP) {
-    // a group gets its initials like a person, marked as a group by a small badge
-    return (
-      <span className="relative shrink-0">
-        <PersonAvatar seed={chat.id} name={chat.name} className="h-11 w-11 text-sm" />
-        <span className="ring-line absolute -right-0.5 -bottom-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-white ring-1">
-          <Users className="h-3 w-3 text-green-700" aria-hidden="true" />
-        </span>
-      </span>
-    );
-  }
-  if (chat.chatType === ChatType.EMERGENCY) {
-    return (
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-50 ring-2 ring-red-500">
-        <Siren className="h-5 w-5 text-red-600" aria-hidden="true" />
-      </span>
-    );
-  }
-  const icons: Partial<Record<ChatType, LucideIcon>> = {
-    [ChatType.SUPPORT_GROUP]: LifeBuoy,
-    [ChatType.ANNOUNCEMENT]: Megaphone,
-    [ChatType.COURSE_GROUP]: CalendarDays,
-  };
-  const Icon = icons[chat.chatType] ?? Users;
-  return (
-    <span className="text-conveniat-green bg-tint flex h-11 w-11 shrink-0 items-center justify-center rounded-full">
-      <Icon className="h-5 w-5" aria-hidden="true" />
     </span>
   );
 };
