@@ -12,6 +12,10 @@ jest.mock('next/navigation', () => ({ usePathname: (): string => navigation.path
 jest.mock('@/features/chat/context/chat-id-context', () => ({
   ChatIdProvider: ({ children }: { children: React.ReactNode }): React.ReactNode => children,
 }));
+jest.mock('@/features/chat/context/pending-chat-deletion-context', () => ({
+  PendingChatDeletionProvider: ({ children }: { children: React.ReactNode }): React.ReactNode =>
+    children,
+}));
 
 const Probe: React.FC = () => <span>{useListIsPrevious() ? 'list before' : 'no list before'}</span>;
 
