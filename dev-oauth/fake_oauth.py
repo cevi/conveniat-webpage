@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from flask import Flask, render_template, request, redirect, jsonify, send_from_directory
 import os
 import time
@@ -271,18 +273,22 @@ def home():
         users=FAKE_USERS,
         selectable_groups=SELECTABLE_GROUPS,
         redirect_uri="",
+        state="",
     )
 
 @app.route("/oauth/authorize")
 def authorize():
     """OAuth2 Authorization Endpoint - User selects an account"""
     redirect_uri = request.args.get("redirect_uri") or ""
+    # Returned unchanged with the code, as a real authorization server does (RFC 6749 4.1.2).
+    state = request.args.get("state") or ""
 
     return render_template(
         "login.html",
         users=FAKE_USERS,
         selectable_groups=SELECTABLE_GROUPS,
         redirect_uri=redirect_uri,
+        state=state,
     )
 
 @app.route("/login", methods=["POST"])
@@ -314,7 +320,9 @@ def login():
     fake_auth_code = f"fake-auth-code-{user['id']}"
     target_url = redirect_uri or "http://localhost:3000"
     separator = "&" if "?" in target_url else "?"
-    return redirect(f"{target_url}{separator}code={fake_auth_code}")
+    state = request.form.get("state") or ""
+    state_parameter = f"&state={quote(state, safe='')}" if state else ""
+    return redirect(f"{target_url}{separator}code={fake_auth_code}{state_parameter}")
 
 @app.route("/oauth/token", methods=["POST"])
 def token():

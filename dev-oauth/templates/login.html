@@ -20,6 +20,7 @@
               <h4 class="card-title mb-3">Custom login</h4>
               <form method="POST" action="/login">
                 <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}" />
+                <input type="hidden" name="state" value="{{ state }}" />
                 <input type="hidden" name="custom_login" value="true" />
 
                 <div class="row g-3 mb-3">
@@ -74,6 +75,7 @@
 
           <form method="POST" action="/login">
             <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}" />
+            <input type="hidden" name="state" value="{{ state }}" />
 
             <div class="row justify-content-center">
               <div class="col-12">
