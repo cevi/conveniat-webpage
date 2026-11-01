@@ -48,6 +48,20 @@ describe('Onboarding Finite State Machine', () => {
       expect(step).toBe(OnboardingStep.Loading);
     });
 
+    it('keeps a user whose session expired on the login while the network does not answer', () => {
+      const step = determineNextStep({
+        ...initialOnboardingContext,
+        hasAnsweredCookieBanner: true,
+        authStatus: 'unauthenticated',
+        hasSkippedLogin: false,
+        hasPushSubscription: true,
+        hasCachedContent: true,
+        isOnline: false,
+        isSessionExpired: true,
+      });
+      expect(step).toBe(OnboardingStep.Login);
+    });
+
     it('shows NoInternet instead of Login to an offline user without cached content', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
