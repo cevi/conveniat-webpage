@@ -1,4 +1,4 @@
-import { DynamicAppTitleName } from '@/components/header/dynamic-app-title-name';
+import { GetTheAppButton } from '@/components/get-the-app';
 import { AppHeaderTitle } from '@/components/header/header-actions';
 import { PreviewModeBannerServerComponent } from '@/components/header/preview-mode-banner-server';
 import { AppFeatures } from '@/components/menu/app-features';
@@ -120,9 +120,7 @@ const TopNavHeader: React.FC<{
           {inAppDesign ? (
             <AppHeaderTitle inAppDesign inlineOnDesktop />
           ) : (
-            <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:hidden">
-              <DynamicAppTitleName />
-            </span>
+            <AppHeaderTitle inAppDesign={false} hiddenOnDesktop />
           )}
 
           {/* Full Width Desktop Top Navigation, taking whatever width the logo leaves */}
@@ -132,6 +130,8 @@ const TopNavHeader: React.FC<{
             <React.Suspense fallback={<TopNavContent locale={locale} inAppDesign={inAppDesign} />}>
               <TopNavContent locale={locale} inAppDesign={inAppDesign} withDraftForEditors />
             </React.Suspense>
+            {/* on the app's pages in a browser; below xl it sits with the page's buttons */}
+            <GetTheAppButton className="ml-2 hidden xl:flex" />
           </div>
 
           {/* Mobile Drawer, opened from the left in the app */}
