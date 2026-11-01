@@ -18,15 +18,15 @@ import {
   openChatFailedText,
   useOpenChatWithContact,
 } from '@/features/chat/hooks/use-open-chat-with-contact';
+import { useSearchClearedOnLeave } from '@/features/chat/hooks/use-search-cleared-on-leave';
 import { groupContactsByLetter, matchesContactSearch } from '@/features/chat/utils/contact-search';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Loader2, QrCode, UserPlus, Users } from 'lucide-react';
-import { usePathname } from 'next/navigation';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const text = {
   newGroup: { de: 'Neue Gruppe', en: 'New group', fr: 'Nouveau groupe' },
@@ -60,22 +60,12 @@ const actionRowClassName = 'py-2 text-[15px] font-semibold text-green-900';
 export const CreateNewChatPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { data: allContacts, isLoading } = trpc.chat.contacts.useQuery({});
-  const [searchQuery, setSearchQuery] = useState('');
+  // the route stays mounted, hidden, after leaving it; coming back starts from a clean screen
+  const [searchQuery, setSearchQuery] = useSearchClearedOnLeave();
   const [isQrOpen, setIsQrOpen] = useState(false);
   const [qrTab, setQrTab] = useState<ChatQrTab>('scan');
-  const pathname = usePathname();
   // `replace`: going back from the chat belongs to the list, not to this screen
-  const { openChatWith, openingUserId, hasOpenFailed, reset } = useOpenChatWithContact('replace');
-
-  // The route stays mounted, hidden, after leaving it; coming back starts from a clean screen.
-  const isOnRoute = /\/app\/chat\/new\/?$/.test(pathname);
-  useEffect(() => {
-    if (isOnRoute) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSearchQuery('');
-    // the chat has opened: nothing here stays busy for the next visit
-    reset();
-  }, [isOnRoute, reset]);
+  const { openChatWith, openingUserId, hasOpenFailed } = useOpenChatWithContact('replace');
 
   const openScanner = (): void => {
     setQrTab('scan');
