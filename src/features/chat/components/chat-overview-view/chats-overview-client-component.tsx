@@ -303,42 +303,19 @@ export const ChatsOverviewClientComponent: React.FC<{
           each copy would open its sheet from the `?qr=` parameter. */}
       <SetHeaderActions>{isDesktop ? undefined : qrCodeButton}</SetHeaderActions>
 
-      <span id={actionsHintId} hidden>
-        {actionsHintText[locale]}
-      </span>
-      {listActions.hasFailed && (
-        <p
-          role="alert"
-          className="bg-danger-soft text-danger-text flex min-h-11 items-center justify-between gap-3 rounded-xl py-1 pr-1 pl-4 text-sm"
-        >
-          {actionFailedText[locale]}
-          <button
-            type="button"
-            onClick={listActions.dismissFailure}
-            aria-label={dismissText[locale]}
-            className="hover:bg-danger-line/40 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full"
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </button>
-        </p>
-      )}
-      <ChatActionsSheet
-        chat={actionsChat}
-        onClose={() => setActionsChatId(undefined)}
-        actions={listActions}
-        locale={locale}
-      />
-
-      <RealtimeSyncBanner
-        status={realtimeStatus}
-        onReconnect={reconnectRealtime}
-        className="border-danger-line rounded-[14px] border"
-      />
-
       {/* The search, once there is something to search, and on a desktop the list's actions
-          beside it, at the top of the list the way WhatsApp Web has them. */}
+          beside it, at the top of the list the way WhatsApp Web has them, first so it can take
+          over the room above it. */}
       {(hasChats || isDesktop) && (
-        <div className="flex flex-col gap-3">
+        <div
+          className={cn(
+            // Kept under the header while the chats scroll beneath it, and in place while a pull
+            // to refresh moves them. It takes over the room above and below it, so it stands
+            // where it did and covers the rows scrolling under it edge to edge.
+            'sticky top-(--app-content-top) z-20 -mx-4 -mt-4 -mb-4 flex flex-col gap-3 bg-white px-4 pt-4 pb-4',
+            'sm:mx-0 sm:px-0 xl:top-0 xl:-mx-4 xl:px-4',
+          )}
+        >
           <div className="flex items-center gap-1">
             {hasChats && (
               <div className="min-w-0 flex-1">
@@ -375,6 +352,38 @@ export const ChatsOverviewClientComponent: React.FC<{
           )}
         </div>
       )}
+
+      <span id={actionsHintId} hidden>
+        {actionsHintText[locale]}
+      </span>
+      {listActions.hasFailed && (
+        <p
+          role="alert"
+          className="bg-danger-soft text-danger-text flex min-h-11 items-center justify-between gap-3 rounded-xl py-1 pr-1 pl-4 text-sm"
+        >
+          {actionFailedText[locale]}
+          <button
+            type="button"
+            onClick={listActions.dismissFailure}
+            aria-label={dismissText[locale]}
+            className="hover:bg-danger-line/40 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </p>
+      )}
+      <ChatActionsSheet
+        chat={actionsChat}
+        onClose={() => setActionsChatId(undefined)}
+        actions={listActions}
+        locale={locale}
+      />
+
+      <RealtimeSyncBanner
+        status={realtimeStatus}
+        onReconnect={reconnectRealtime}
+        className="border-danger-line rounded-[14px] border"
+      />
 
       {/* Loading State - only when there is nothing cached to render */}
       {isInitialLoad && <ChatsOverviewSkeleton />}

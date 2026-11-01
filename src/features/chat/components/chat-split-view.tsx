@@ -53,7 +53,9 @@ export const ChatSplitView: React.FC<{
             )}
           >
             <ChatIdProvider>
-              <div className="xl:min-h-0 xl:flex-1 xl:overflow-y-auto">
+              {/* The column scrolls on its own on a desktop. Without its bounce the search
+                  stays put while a pull to refresh moves only the chats, as on a phone. */}
+              <div className="xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-y-none">
                 <div className="container mx-auto px-4 pt-4 pb-[168px] sm:px-6 md:px-8 xl:flex xl:min-h-full xl:flex-col xl:px-4 xl:pb-4">
                   <div className="mx-auto w-full max-w-2xl xl:flex xl:flex-1 xl:flex-col">
                     {list}
