@@ -217,12 +217,22 @@ const textOfRichText = (node: unknown): string => {
   return Array.isArray(children) ? children.map((child) => textOfRichText(child)).join(' ') : '';
 };
 
+/** Whether rich text holds a block, such as a video, which says something without words. */
+const holdsBlock = (node: unknown): boolean => {
+  if (typeof node !== 'object' || node === null) return false;
+  const { type, children, root } = node as { type?: unknown; children?: unknown; root?: unknown };
+  if (type === 'block') return true;
+  if (root !== undefined) return holdsBlock(root);
+  return Array.isArray(children) && children.some((child) => holdsBlock(child));
+};
+
 /**
  * Whether a block's description says nothing the title does not: empty, or the title again, as
  * in "Ballspiele." under "Ballspiele". Drafts skip validation, so a description in any shape is
- * read for its words, and one without any counts as empty.
+ * read for its words, and one without any counts as empty. A video is never redundant.
  */
 export const isDescriptionRedundant = (description: unknown, title: string): boolean => {
+  if (holdsBlock(description)) return false;
   const normalized = normalizedText(textOfRichText(description));
   return normalized === '' || normalized === normalizedText(title);
 };
