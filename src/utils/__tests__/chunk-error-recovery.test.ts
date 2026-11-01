@@ -2,7 +2,11 @@
  * @jest-environment jsdom
  */
 
-import { attemptStaleBundleRecovery, isStaleBundleError } from '@/utils/chunk-error-recovery';
+import {
+  attemptMixedBuildRecovery,
+  attemptStaleBundleRecovery,
+  isStaleBundleError,
+} from '@/utils/chunk-error-recovery';
 import { reloadPage } from '@/utils/reload-page';
 
 jest.mock('@/utils/reload-page', () => ({
@@ -141,5 +145,94 @@ describe('attemptStaleBundleRecovery', () => {
     await jest.advanceTimersByTimeAsync(3000);
     expect(mockedReloadPage).toHaveBeenCalledTimes(1);
     jest.useRealTimers();
+  });
+});
+
+// what 1.45.0 threw: a chunk of 1.44.0 reading an export the current module renamed
+const renamedExport = new TypeError(
+  "undefined is not an object (evaluating 'o.f.OFFLINE_DOWNLOAD_PROGRESS')",
+);
+
+/** A page controlled by a worker whose precache holds `precached`, running `scripts`. */
+const setUpPage = (scripts: string[], precached: string[]): void => {
+  Object.defineProperty(globalThis.navigator, 'serviceWorker', {
+    value: { controller: {}, getRegistrations: jest.fn().mockResolvedValue([]) },
+    configurable: true,
+  });
+  const precache = {
+    keys: jest
+      .fn()
+      .mockResolvedValue(precached.map((path) => ({ url: `${location.origin}${path}` }))),
+  };
+  Object.defineProperty(globalThis, 'caches', {
+    value: {
+      keys: jest
+        .fn()
+        .mockResolvedValue(['pages-cache-v1', `serwist-precache-v2-${location.origin}/`]),
+      open: jest.fn().mockResolvedValue(precache),
+    },
+    configurable: true,
+  });
+  document.head.innerHTML = '';
+  for (const source of scripts) {
+    const script = document.createElement('script');
+    script.src = source;
+    document.head.append(script);
+  }
+  const inline = document.createElement('script');
+  inline.textContent = 'self.__next_f = []';
+  document.head.append(inline);
+};
+
+describe('attemptMixedBuildRecovery', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
+    setOnline(true);
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('reloads when the page runs a chunk the current build does not ship', async () => {
+    setUpPage(
+      ['/_next/static/chunks/current-a.js', '/_next/static/chunks/previous-build.js'],
+      ['/_next/static/chunks/current-a.js', '/_next/static/chunks/current-b.js'],
+    );
+
+    await expect(attemptMixedBuildRecovery(renamedExport)).resolves.toBe(true);
+    expect(mockedReloadPage).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves an error in a page of the current build to the error page', async () => {
+    setUpPage(
+      ['/_next/static/chunks/current-a.js', 'https://eu-assets.i.posthog.com/static/array.js'],
+      ['/_next/static/chunks/current-a.js'],
+    );
+
+    await expect(attemptMixedBuildRecovery(renamedExport)).resolves.toBe(false);
+    expect(mockedReloadPage).not.toHaveBeenCalled();
+  });
+
+  it('reloads only once when the mixed page comes back straight away', async () => {
+    setUpPage(['/_next/static/chunks/previous-build.js'], ['/_next/static/chunks/current-a.js']);
+
+    await expect(attemptMixedBuildRecovery(renamedExport)).resolves.toBe(true);
+    await expect(attemptMixedBuildRecovery(renamedExport)).resolves.toBe(false);
+    expect(mockedReloadPage).toHaveBeenCalledTimes(1);
+  });
+
+  it('cannot tell without a worker controlling the page, and does not reload', async () => {
+    setUpPage(['/_next/static/chunks/previous-build.js'], ['/_next/static/chunks/current-a.js']);
+    Object.defineProperty(globalThis.navigator, 'serviceWorker', {
+      value: { controller: undefined },
+      configurable: true,
+    });
+
+    await expect(attemptMixedBuildRecovery(renamedExport)).resolves.toBe(false);
+    expect(mockedReloadPage).not.toHaveBeenCalled();
   });
 });

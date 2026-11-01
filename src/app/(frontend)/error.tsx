@@ -5,7 +5,10 @@ import { TeaserText } from '@/components/ui/typography/teaser-text';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { attemptStaleBundleRecovery } from '@/utils/chunk-error-recovery';
+import {
+  attemptMixedBuildRecovery,
+  attemptStaleBundleRecovery,
+} from '@/utils/chunk-error-recovery';
 import { isDraftOrPreviewMode } from '@/utils/draft-mode';
 import {
   errorMessageTranslation,
@@ -108,7 +111,8 @@ const ErrorPage: React.FC<{
           // above, so the skew stays visible in PostHog. Preview is excluded: the live-preview
           // iframe has its own reload handling in `global-error.tsx`.
           .finally(() => {
-            attemptStaleBundleRecovery(error);
+            // a chunk of an older build in this page fails with an ordinary-looking error
+            if (!attemptStaleBundleRecovery(error)) void attemptMixedBuildRecovery(error);
           });
       }
     }

@@ -102,20 +102,43 @@ const updateServiceWorker = async (): Promise<void> => {
 };
 
 /**
- * Reloads onto the current build when `error` is a stale-bundle error, and reports whether it
- * started a reload so callers can skip work the reload would throw away.
+ * Whether this page runs a chunk that the build of the active service worker does not ship.
  *
- * Declines to reload when the browser is offline, because the chunk is then merely unreachable
- * and Serwist's offline fallbacks own that case, and when a recovery reload already happened
- * within the last ten seconds, because reloading demonstrably did not help and the error page
- * is more useful than a loop.
+ * Turbopack keeps a module's id from one build to the next but renames its exports. A chunk of
+ * an older build that ends up in a current page therefore finds the current module under its
+ * id and fails on the renamed export, with nothing but a `TypeError` to show for it: after
+ * 1.45.0 the settings page threw `undefined is not an object (evaluating
+ * 'o.f.OFFLINE_DOWNLOAD_PROGRESS')`, and "Try again" ran the same chunk again until the app was
+ * closed. That message reads like any bug, so the chunks are compared instead: the worker
+ * precaches every chunk of its build, and Turbopack loads each chunk with a `<script>`.
  *
- * @param error the thrown value
- * @param fallbackMessage message to match when `error` carries none, e.g. `ErrorEvent.message`
+ * Without a controlling worker there is nothing to compare against, and the answer is false.
  */
-export const attemptStaleBundleRecovery = (error: unknown, fallbackMessage = ''): boolean => {
-  if (!isStaleBundleError(error, fallbackMessage)) return false;
+export const runsChunkOfAnotherBuild = async (): Promise<boolean> => {
+  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return false;
+  try {
+    const cacheNames = await caches.keys();
+    const precacheName = cacheNames.find((name) => name.includes('precache'));
+    if (precacheName === undefined) return false;
+    const precache = await caches.open(precacheName);
+    const precached = await precache.keys();
+    const shipped = new Set(precached.map((request) => new URL(request.url).pathname));
+    return [...document.scripts].some((script) => {
+      if (script.src === '') return false;
+      const { pathname } = new URL(script.src);
+      return pathname.startsWith('/_next/static/chunks/') && !shipped.has(pathname);
+    });
+  } catch {
+    // the Cache API can refuse access (private mode); then this is not known to be a mixed build
+    return false;
+  }
+};
 
+/**
+ * The reload shared by both recoveries, with their conditions: online, and no recovery reload in
+ * the last ten seconds.
+ */
+const reloadOntoCurrentBuild = (error: unknown, updateWorkerFirst: boolean): boolean => {
   if (!navigator.onLine) {
     console.warn('[chunk-recovery] Offline, leaving this to the offline fallbacks:', error);
     return false;
@@ -131,10 +154,7 @@ export const attemptStaleBundleRecovery = (error: unknown, fallbackMessage = '')
 
   console.warn('[chunk-recovery] Stale bundle detected, reloading onto the current build:', error);
 
-  if (
-    requiresServiceWorkerUpdate(messageOf(error, fallbackMessage)) &&
-    'serviceWorker' in navigator
-  ) {
+  if (updateWorkerFirst && 'serviceWorker' in navigator) {
     // On a network too slow to answer the update check, the reload is still worth trying.
     const timeout = new Promise<void>((resolve) => {
       setTimeout(resolve, SERVICE_WORKER_UPDATE_TIMEOUT_MS);
@@ -151,4 +171,38 @@ export const attemptStaleBundleRecovery = (error: unknown, fallbackMessage = '')
 
   reloadPage();
   return true;
+};
+
+/**
+ * Reloads onto the current build when `error` is a stale-bundle error, and reports whether it
+ * started a reload so callers can skip work the reload would throw away.
+ *
+ * Declines to reload when the browser is offline, because the chunk is then merely unreachable
+ * and Serwist's offline fallbacks own that case, and when a recovery reload already happened
+ * within the last ten seconds, because reloading demonstrably did not help and the error page
+ * is more useful than a loop.
+ *
+ * @param error the thrown value
+ * @param fallbackMessage message to match when `error` carries none, e.g. `ErrorEvent.message`
+ */
+export const attemptStaleBundleRecovery = (error: unknown, fallbackMessage = ''): boolean => {
+  if (!isStaleBundleError(error, fallbackMessage)) return false;
+  return reloadOntoCurrentBuild(
+    error,
+    requiresServiceWorkerUpdate(messageOf(error, fallbackMessage)),
+  );
+};
+
+/**
+ * Reloads onto the current build when the page that threw `error` runs a chunk of another
+ * build (see {@link runsChunkOfAnotherBuild}), under the same conditions as
+ * {@link attemptStaleBundleRecovery}. For the errors an error boundary catches that the message
+ * alone does not mark as stale.
+ *
+ * @param error the thrown value
+ */
+export const attemptMixedBuildRecovery = async (error: unknown): Promise<boolean> => {
+  if (!(await runsChunkOfAnotherBuild())) return false;
+  // the worker is the build the chunks were compared against, so it needs no update
+  return reloadOntoCurrentBuild(error, false);
 };
