@@ -2,7 +2,6 @@ import {
   daysUntil,
   getSubmissionProgress,
   isOpen,
-  percentDone,
   type SubmissionProgressInput,
 } from '@/features/hof-dashboard/utils/submission-progress';
 
@@ -98,12 +97,5 @@ describe('getSubmissionProgress', () => {
 
   it('still asks for what is missing while a form takes submissions', () => {
     expect(isOpen(getSubmissionProgress(input({}), new Date('2027-02-10T10:00:00Z')))).toBe(true);
-  });
-});
-
-describe('percentDone', () => {
-  it('rounds the share of done items and treats an empty list as nothing done', () => {
-    expect(percentDone(['done', 'open', 'overdue'])).toBe(33);
-    expect(percentDone([])).toBe(0);
   });
 });

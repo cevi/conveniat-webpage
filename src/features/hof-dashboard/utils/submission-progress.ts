@@ -91,9 +91,3 @@ export const getSubmissionProgress = (
 /** Whether a form still asks something of the Hof: counted in the tabs and "Als Nächstes". */
 export const isOpen = (progress: SubmissionProgress): boolean =>
   progress.state !== 'done' && progress.state !== 'closed';
-
-/** Share of done items, as a whole percentage; an empty list is not progress. */
-export const percentDone = (states: readonly SubmissionState[]): number =>
-  states.length === 0
-    ? 0
-    : Math.round((states.filter((state) => state === 'done').length / states.length) * 100);

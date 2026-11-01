@@ -14,7 +14,8 @@ const Layout: React.FC<LayoutProperties> = ({ children }) => {
   return (
     <>
       <SetDynamicPageTitle newTitle={DEFAULT_APP_TITLE} />
-      <div className="min-w-full overflow-x-hidden pt-8 pb-24 xl:px-12">{children}</div>
+      {/* clip, not hidden: hidden makes a scroll container, which stops sticky headers inside */}
+      <div className="min-w-full overflow-x-clip pt-8 pb-24 xl:px-12">{children}</div>
     </>
   );
 };

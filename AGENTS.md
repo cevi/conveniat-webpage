@@ -345,6 +345,10 @@ by its role once a second screen needs it, not before.
   `BottomSheet`, over the dimmed page; a menu of actions on one item does not float but expands in
   place. The one floating button is a screen's main action where its list scrolls under it, like
   "Neuer Chat"; nothing else floats over content the user needs, except a map's controls.
+- **Desktops.** The same choice may open as a popup under the button that opened it: pass that
+  button to the shared `BottomSheet` as its `anchor`, and it is a popup from Tailwind's `xl` up
+  and a sheet below. There is one component for both, never a popover or dropdown of its own,
+  and nothing floats on a phone.
 
 ## Git and pull requests
 
