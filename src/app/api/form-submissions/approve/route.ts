@@ -9,7 +9,6 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
-import { revalidateTag } from 'next/cache';
 import { getPayload } from 'payload';
 
 /** How the review history names an approval given through an email's approval link. */
@@ -527,12 +526,6 @@ export async function POST(request: Request): Promise<Response> {
         // nobody is signed in here: the review history of a Hof's submission names the link
         context: { hofReviewer: { id: '', name: APPROVED_BY_LINK } },
       });
-
-      try {
-        revalidateTag('payload', 'max');
-      } catch {
-        // Non-critical revalidation failure
-      }
     }
 
     const { details } = await describeSubmission(submission, locale, 'accepted');
