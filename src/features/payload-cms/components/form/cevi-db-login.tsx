@@ -8,14 +8,11 @@ import {
 } from '@/features/payload-cms/components/form/static-form-texts';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { useReleasePushSubscriptions } from '@/hooks/use-release-push-subscriptions';
-import { flushPersonalData } from '@/lib/flush-personal-data';
-import { PERSISTER_THROTTLE_MS } from '@/trpc/query-persistence';
+import { useSignOut } from '@/hooks/use-sign-out';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { useQueryClient } from '@tanstack/react-query';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import React, { useEffect } from 'react';
 import type { FieldError, FieldErrorsImpl, FieldValues, Merge } from 'react-hook-form';
 import { useFormContext } from 'react-hook-form';
@@ -51,8 +48,7 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
   const { data: session } = useSession();
   const currentLocale = useCurrentLocale(i18nConfig);
   const locale = (currentLocale ?? 'en') as Locale;
-  const releasePushSubscriptions = useReleasePushSubscriptions();
-  const queryClient = useQueryClient();
+  const signOutAndForget = useSignOut();
 
   const handleLogin = (): void => {
     const values = getValues();
@@ -91,19 +87,8 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
     // Switching to another person has to drop what was cached for this one, like a logout does:
     // without it the next account saw the previous user's chats, emergency cards and shifts,
     // and the pages the service worker cached for them.
-    // Only once the sign-out went through (offline it fails, and the user stays signed in with
-    // their data), and the in-memory cache goes too, or the persister writes it straight back.
-    void releasePushSubscriptions()
-      .then(() => signOut({ redirect: false }))
-      .then(async () => {
-        queryClient.clear();
-        // Clearing makes the persister write once per removed query, throttled: the first write
-        // still holds most of the cache, the last one is empty. Wait for that last write, or the
-        // stored blob outlives the flush and the next account restores this one's data.
-        await new Promise((resolve) => setTimeout(resolve, PERSISTER_THROTTLE_MS + 200));
-        flushPersonalData({ clearCachedPages: true });
-        void signIn('cevi-db', signInOptions);
-      })
+    void signOutAndForget()
+      .then(() => signIn('cevi-db', signInOptions))
       .catch((switchError: unknown) => {
         console.warn('Switching the Cevi.DB login failed', switchError);
       });
