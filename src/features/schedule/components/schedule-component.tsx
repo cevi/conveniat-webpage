@@ -72,16 +72,9 @@ export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({
   const { syncFromServer, entries: localEntries } = useScheduleEntries();
   const { myQuartiere, myQuartierIds, scope, setScope } = useScheduleScope();
 
-  // Fetch schedule entries via tRPC (CSR) with 5 min staleTime for instant offline cache rendering
-  const { data: scheduleEntries, isLoading } = trpc.schedule.getScheduleEntries.useQuery(
-    undefined,
-    {
-      staleTime: 1000 * 60 * 5,
-
-      refetchOnMount: true,
-      refetchOnWindowFocus: true,
-    },
-  );
+  // rendered from the persisted query cache at once, and refreshed as `query-client.ts` sets
+  // eslint-disable-next-line unicorn/no-useless-undefined
+  const { data: scheduleEntries, isLoading } = trpc.schedule.getScheduleEntries.useQuery(undefined);
 
   // Sync fresh server entries into local offline storage
   useEffect(() => {

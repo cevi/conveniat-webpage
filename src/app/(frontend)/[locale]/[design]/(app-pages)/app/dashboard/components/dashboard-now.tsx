@@ -161,8 +161,6 @@ const JetztContent: React.FC<{
 export const DashboardNow: React.FC<{ locale: Locale }> = ({ locale }) => {
   const { entries: localEntries } = useScheduleEntries();
   const { data: scheduleEntries } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
-    refetchOnMount: true,
     // a failed background revalidation must not throw away the cached entries, but without
     // any entries, cached or downloaded, there is nothing to show but the error
     throwOnError: (_error, query) => query.state.data === undefined && localEntries.length === 0,

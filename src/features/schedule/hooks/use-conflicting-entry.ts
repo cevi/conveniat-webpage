@@ -35,7 +35,6 @@ export const useConflictingEntry = (
   });
 
   const { data: entries } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
     enabled: entryId !== undefined && !isShift,
   });
 
