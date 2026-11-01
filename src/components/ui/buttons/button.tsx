@@ -32,7 +32,7 @@ const buttonVariants = cva(
         plain: 'text-green-700 hover:bg-quiet hover:text-green-900 focus-visible:focus-surface',
         /** a destructive action: `outlined` in red; it asks first or can be undone right after */
         danger:
-          'border border-danger-line bg-white font-semibold text-danger-text hover:bg-danger-soft focus-visible:outline-danger',
+          'border border-danger-line bg-white font-semibold text-danger-text hover:bg-danger-soft focus-visible:focus-surface-danger',
       },
       size: {
         default: 'h-9 px-4 py-2',

@@ -26,10 +26,11 @@
 
    - a row of a list or a card, see `ListRow`, uses `focus-row`: it takes the hover surface and
      draws the ring 4px inside itself with its own radius, so a card's corner never clips it.
-     It needs `relative`. A red row uses `focus-row-danger`, a red button `outline-danger`.
+     It needs `relative`. A red row uses `focus-row-danger`.
    - a button with a surface, see `Button`, uses `focus-surface`: the same quiet surface and a
      ring 4px inside its own edge, so a button and a row look focused alike. A filled green
-     button keeps its colour and takes `focus-surface-filled`, a white ring.
+     button keeps its colour and takes `focus-surface-filled`, a white ring, and a red one takes
+     `focus-surface-danger`, the danger surface with a red ring, as a red row does.
    - another element whose ring would be clipped, like a tab or a segment, uses `focus-ring-inset`
    - a control whose hit area is larger than what it shows, like a filter chip, puts the ring on
      the visible part with `group-focus-visible:focus-ring` and drops its own
@@ -70,6 +71,15 @@
   box-shadow:
     inset 0 0 0 4px theme('colors.conveniat-green'),
     inset 0 0 0 6px white;
+}
+
+@utility focus-surface-danger {
+  outline: none;
+  border-color: transparent;
+  background-color: theme('colors.danger.soft');
+  box-shadow:
+    inset 0 0 0 4px theme('colors.danger.soft'),
+    inset 0 0 0 6px theme('colors.danger.DEFAULT');
 }
 
 @layer base {

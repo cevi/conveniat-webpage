@@ -93,7 +93,7 @@ AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayNam
 
 /**
  * A destructive button, `outlined` in red: for the confirm in a dialog and for the button that
- * opens it. Its keyboard focus stays a red ring outside, not the quiet surface of the others.
+ * opens it.
  */
 export const destructiveButtonClassName = buttonVariants({ variant: 'danger', size: 'touch' });
 
