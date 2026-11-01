@@ -230,7 +230,10 @@ async function offlineFallback(
   const isServerAction = request.headers.has('Next-Action');
 
   // Strategy A: Server Actions
-  // Server Actions fail with native Response.error() so React Flight client handles errors cleanly via Error Boundary
+  // A Server Action gets a network error. With `experimental.useOffline` the action does not
+  // reject on it: Next waits for the connection and replays it, so the caller's promise stays
+  // pending while offline. Anything that has to finish offline, like the logout, cannot await
+  // a Server Action.
   if (isServerAction) {
     console.warn(`[SW] Server Action offline fallback for: ${url.pathname}`);
     return Response.error();
