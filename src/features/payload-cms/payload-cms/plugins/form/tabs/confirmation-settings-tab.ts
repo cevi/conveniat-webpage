@@ -1,11 +1,6 @@
-import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
+import { formEmailEditor } from '@/features/payload-cms/payload-cms/plugins/form/tabs/form-email-editor';
 import { EMAIL_SENDER_DOMAIN } from '@/features/payload-cms/payload-cms/utils/email-sender';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
-import {
-  defaultEditorLexicalConfig,
-  HeadingFeature,
-  lexicalEditor,
-} from '@payloadcms/richtext-lexical';
 import type { Field, Tab } from 'payload';
 
 const formSubmitButtonLabelField: Field = {
@@ -14,16 +9,6 @@ const formSubmitButtonLabelField: Field = {
   required: true,
   localized: true,
 };
-
-const formLexicalEditorSettings = lexicalEditor({
-  features: [
-    ...minimalEditorFeatures,
-    HeadingFeature({
-      enabledHeadingSizes: ['h3'],
-    }),
-  ],
-  lexical: defaultEditorLexicalConfig,
-});
 
 const formConfirmationTypeField: Field = {
   name: 'confirmationType',
@@ -191,7 +176,7 @@ const formEmailField: Field = {
       admin: { description: 'Enter the message that should be sent in this email.' },
       label: 'Message',
       localized: true,
-      editor: formLexicalEditorSettings,
+      editor: formEmailEditor,
       hooks: patchRichTextLinkHook,
     },
   ],
@@ -205,7 +190,7 @@ const formConfirmationMessageField: Field = {
   },
   localized: true,
   required: true,
-  editor: formLexicalEditorSettings,
+  editor: formEmailEditor,
   hooks: patchRichTextLinkHook,
 };
 
