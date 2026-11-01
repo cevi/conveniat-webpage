@@ -48,6 +48,7 @@ import { AnnouncementPushSummaryField as AnnouncementPushSummaryField_52ba1255fb
 import { AnnouncementTranslateMissingLanguages as AnnouncementTranslateMissingLanguages_1519d81df2f98fe32884c13868eadfc1 } from '@/features/payload-cms/payload-cms/components/announcement-translate-missing-languages'
 import { default as default_5e6e3bcc43a18e826de12d19a3b1de10 } from '@/features/payload-cms/payload-cms/components/fields/icon-select-field'
 import { default as default_4c4fde438445a819805cfbe983551661 } from '@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field'
+import { BlocksFeatureClient as BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ParticipantsAdminUI as ParticipantsAdminUI_6073fbd2f4ec389b3079bf8bb78b9c59 } from '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui'
 import { default as default_9a47e1efa5ebe7e17cc6bea1c1b3bad9 } from '@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell'
 import { CampScheduleOrganiserExport as CampScheduleOrganiserExport_2f5bf8d677cca7cfe25e44ae3a73b945 } from '@/features/payload-cms/payload-cms/components/camp-schedule-organiser-export'
@@ -188,6 +189,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/announcement-translate-missing-languages#AnnouncementTranslateMissingLanguages": AnnouncementTranslateMissingLanguages_1519d81df2f98fe32884c13868eadfc1,
   "@/features/payload-cms/payload-cms/components/fields/icon-select-field#default": default_5e6e3bcc43a18e826de12d19a3b1de10,
   "@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field#default": default_4c4fde438445a819805cfbe983551661,
+  "@payloadcms/richtext-lexical/client#BlocksFeatureClient": BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI": ParticipantsAdminUI_6073fbd2f4ec389b3079bf8bb78b9c59,
   "@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell#default": default_9a47e1efa5ebe7e17cc6bea1c1b3bad9,
   "@/features/payload-cms/payload-cms/components/camp-schedule-organiser-export#CampScheduleOrganiserExport": CampScheduleOrganiserExport_2f5bf8d677cca7cfe25e44ae3a73b945,
