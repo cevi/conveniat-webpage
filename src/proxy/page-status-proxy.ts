@@ -2,23 +2,31 @@ import type { PublishedPageSlugs } from '@/features/payload-cms/api/published-pa
 import {
   fetchPublishedPageSlugs,
   readPublishedPageSlugsVersion,
+  restrictedPageKey,
 } from '@/features/payload-cms/api/published-page-slugs';
 import type { ProxyModule } from '@/proxy/types';
+import { requestSession } from '@/proxy/utils/request-session';
 import { Header } from '@/types/types';
+import { hasPermissions } from '@/utils/has-permissions';
 import { createLogger } from '@/utils/server-logger';
+import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-const logger = createLogger('proxy:not-found');
+const logger = createLogger('proxy:page-status');
 
 /** The route every path that resolves to no CMS page is rewritten to, below its locale and design. */
 export const NOT_FOUND_SEGMENT = '~not-found';
+/** The route a page that needs a login is rewritten to for a visitor without one. */
+export const UNAUTHORIZED_SEGMENT = '~unauthorized';
+/** The route a page is rewritten to for a signed-in visitor it is not meant for. */
+export const FORBIDDEN_SEGMENT = '~forbidden';
 
 /**
  * First segments below `[locale]/[design]` that the catch-all CMS route does not resolve by slug:
  * routes of their own, the special pages, the preview-only collection prefixes and the redirect
  * to the admin panel. Paths under them are left to their route.
  *
- * `not-found-proxy.test.ts` checks this list against the route folders and the route tables.
+ * `page-status-proxy.test.ts` checks this list against the route folders and the route tables.
  */
 export const SEGMENTS_NOT_RESOLVED_BY_SLUG = new Set([
   // routes under src/app/(frontend)/[locale]/[design]
@@ -28,6 +36,8 @@ export const SEGMENTS_NOT_RESOLVED_BY_SLUG = new Set([
   'preview-fallback',
   '~offline',
   NOT_FOUND_SEGMENT,
+  UNAUTHORIZED_SEGMENT,
+  FORBIDDEN_SEGMENT,
   // special pages, see special-pages-table.ts
   'suche',
   'search',
@@ -188,6 +198,28 @@ const mayResolve = async (segments: string[]): Promise<boolean> => {
   return current.slugs === undefined || hasPublishedPage(segments, current.slugs);
 };
 
+/**
+ * The route that refuses the page to this visitor, `undefined` when the page route may show it or
+ * the proxy cannot tell. The rule is the page route's own, `hasPermissions`, with the session the
+ * proxy already read, so a visitor is refused here exactly when the page route would refuse them.
+ *
+ * Only called after {@link mayResolve}, so the slugs in memory are the ones it just checked.
+ */
+const refusingSegment = async (
+  request: NextRequest,
+  locale: string,
+  segments: string[],
+): Promise<string | undefined> => {
+  const permission = index?.slugs?.restrictedPages.get(
+    restrictedPageKey(locale, segments.join('/')),
+  );
+  if (permission === undefined) return undefined;
+
+  const session = requestSession(request);
+  if (session === undefined || (await hasPermissions(permission, session))) return undefined;
+  return session === null ? UNAUTHORIZED_SEGMENT : FORBIDDEN_SEGMENT;
+};
+
 const decodeSegments = (pathname: string): string[] | undefined => {
   try {
     return pathname
@@ -201,19 +233,20 @@ const decodeSegments = (pathname: string): string[] | undefined => {
 
 /**
  * Rewrites a path that resolves to no published CMS page to the prerendered `~not-found` route,
- * so that it answers 404.
+ * so that it answers 404, and a page the visitor may not see to `~unauthorized` or `~forbidden`,
+ * so that it answers 401 or 403.
  *
  * The catch-all CMS route is partially prerendered, and Next.js answers with the status of its
  * prerendered shell. The slug is only known per request, so that shell is stored with 200 and the
- * `notFound()` of the page cannot change it any more. Next.js recommends checking the slug in
- * Proxy for this, see "Status codes" in the `loading.js` reference. The check reads the published
- * slugs, not the pages, and keeps them in memory until a save announces a change through Redis,
- * see `flushPageCacheOnChange`.
+ * `notFound()`, `unauthorized()` and `forbidden()` of the page cannot change it any more. Next.js
+ * recommends checking in Proxy for this, see "Status codes" in the `loading.js` reference. The
+ * check reads the published slugs and permissions, not the pages, and keeps them in memory until
+ * a save announces a change through Redis, see `flushPageCacheOnChange`.
  *
  * Runs after the design rewrite, whose target names the locale and the design. A preview is left
  * alone: its draft is not in the published slugs.
  */
-export const notFoundProxy: ProxyModule = (next) => async (request, event, response) => {
+export const pageStatusProxy: ProxyModule = (next) => async (request, event, response) => {
   const rewrite = response.headers.get(Header.MIDDLEWARE_REWRITES);
   const isPageRead = request.method === 'GET' || request.method === 'HEAD';
   const isPreview = request.nextUrl.searchParams.get('preview') === 'true';
@@ -222,11 +255,26 @@ export const notFoundProxy: ProxyModule = (next) => async (request, event, respo
   }
 
   const [locale, design, ...segments] = decodeSegments(new URL(rewrite).pathname) ?? [];
-  if (locale === undefined || design === undefined || (await mayResolve(segments))) {
+  if (locale === undefined || design === undefined) {
     return next(request, event, response);
   }
 
-  logger.debug('Rewriting a path without a CMS page to the 404 page', { locale });
-  const notFoundUrl = new URL(`/${locale}/${design}/${NOT_FOUND_SEGMENT}`, request.url);
-  return next(request, event, NextResponse.rewrite(notFoundUrl, response));
+  let target: string | undefined;
+  if (!(await mayResolve(segments))) {
+    target = NOT_FOUND_SEGMENT;
+    logger.debug('Rewriting a path without a CMS page to the 404 page', { locale });
+  } else if (isResolvedBySlug(segments)) {
+    target = await refusingSegment(request, locale, segments);
+    if (target !== undefined) {
+      logger.debug('Rewriting a page the visitor may not see to the page refusing it', {
+        locale,
+        'page.slug': segments.join('/'),
+        target,
+      });
+    }
+  }
+  if (target === undefined) return next(request, event, response);
+
+  const targetUrl = new URL(`/${locale}/${design}/${target}`, request.url);
+  return next(request, event, NextResponse.rewrite(targetUrl, response));
 };

@@ -169,14 +169,17 @@ const changedOwnContentOnly = async (
   }
 };
 
-/** The collection whose slugs the proxy checks a path against, see `not-found-proxy.ts`. */
-const COLLECTION_WITH_PUBLISHED_SLUGS = 'generic-page';
+/**
+ * The collections the proxy reads its slugs from, see `page-status-proxy.ts`: the pages, and the
+ * permissions that decide which of them answer 401 or 403.
+ */
+const COLLECTIONS_IN_PUBLISHED_SLUGS = new Set<string>(['generic-page', 'permissions']);
 
 /**
  * Tells the proxy of every replica to read the published slugs again. Called when a save changed
- * a slug, published or unpublished a page, or moved it to the trash or out of it, and when a page
- * is deleted for good; otherwise a path whose page just went away answers 200 until the proxy
- * reads them again by itself.
+ * a slug, a permission or who a page is for, published or unpublished a page, or moved it to the
+ * trash or out of it, and when a page is deleted for good; otherwise a path whose page just went
+ * away answers 200 until the proxy reads them again by itself.
  */
 const announceChangedSlugs = async (
   request: PayloadRequest,
@@ -202,7 +205,7 @@ const flushDocument = async (
   flushEverything: boolean,
 ): Promise<void> => {
   // Before `revalidateTag`, which throws when the hook runs outside a request.
-  if (flushEverything && collectionSlug === COLLECTION_WITH_PUBLISHED_SLUGS) {
+  if (flushEverything && COLLECTIONS_IN_PUBLISHED_SLUGS.has(collectionSlug)) {
     await announceChangedSlugs(request, collectionSlug);
   }
 

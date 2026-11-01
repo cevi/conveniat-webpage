@@ -27,29 +27,36 @@ jest.mock('@/config/environment-variables', () => ({
 const SESSION_COOKIE = 'authjs.session-token';
 const CSRF_COOKIE = 'authjs.csrf-token=csrf; Path=/; HttpOnly';
 
-// Stands in for Auth.js, which runs the `jwt` callback and then sets the session cookie whatever
-// came out of it: re-signed for a token, emptied for none.
+// Stands in for Auth.js in its wrapper form, which runs the `jwt` callback, hands the session to
+// the wrapped callback and then sets the session cookie whatever came out of it: re-signed for a
+// token, emptied for none.
 let sessionToken: JWT | undefined;
 jest.mock('@/utils/auth', () => ({
-  auth: async (): Promise<Response> => {
-    // Read before the first await, so that overlapping requests each keep their own token.
-    const token = sessionToken;
-    const { authOptions } = await import('@/features/next-auth/utils/next-auth-config');
-    const jwt = authOptions.callbacks?.jwt as unknown as (parameters: {
-      token: JWT;
-    }) => Promise<JWT | null>;
-    const headers = new Headers({ 'set-cookie': CSRF_COOKIE });
-    if (token !== undefined) {
-      const resolved = await jwt({ token });
-      headers.append(
-        'set-cookie',
-        resolved === null
-          ? `${SESSION_COOKIE}=; Max-Age=0; Path=/`
-          : `${SESSION_COOKIE}=signed-${resolved.access_token}; Path=/; HttpOnly`,
-      );
-    }
-    return new Response(undefined, { headers });
-  },
+  auth:
+    (callback: (request: { auth: { user: { group_ids: number[] | undefined } } | null }) => void) =>
+    async (): Promise<Response> => {
+      // Read before the first await, so that overlapping requests each keep their own token.
+      const token = sessionToken;
+      const { authOptions } = await import('@/features/next-auth/utils/next-auth-config');
+      const jwt = authOptions.callbacks?.jwt as unknown as (parameters: {
+        token: JWT;
+      }) => Promise<JWT | null>;
+      const headers = new Headers({ 'set-cookie': CSRF_COOKIE });
+      // eslint-disable-next-line unicorn/no-null -- `null` is what Auth.js answers for no session
+      const resolved = token === undefined ? null : await jwt({ token });
+      callback({
+        auth: resolved === null ? resolved : { user: { group_ids: resolved.group_ids } },
+      });
+      if (token !== undefined) {
+        headers.append(
+          'set-cookie',
+          resolved === null
+            ? `${SESSION_COOKIE}=; Max-Age=0; Path=/`
+            : `${SESSION_COOKIE}=signed-${resolved.access_token}; Path=/; HttpOnly`,
+        );
+      }
+      return new Response(undefined, { headers });
+    },
 }));
 
 import { withoutUnchangedSessionCookie } from '@/features/next-auth/utils/session-token-change';
@@ -103,6 +110,24 @@ describe('the session cookie on a response', () => {
   beforeEach(() => {
     fetchMock.mockReset();
     globalThis.fetch = fetchMock as unknown as typeof fetch;
+  });
+
+  it('hands the session it read on to the rest of the proxy', async () => {
+    sessionToken = session();
+    const handedOn = await rotateSessionToken(
+      new NextRequest('https://conveniat27.test/intern'),
+      {} as NextFetchEvent,
+      NextResponse.next(),
+    );
+    sessionToken = undefined;
+    const withoutSession = await rotateSessionToken(
+      new NextRequest('https://conveniat27.test/intern'),
+      {} as NextFetchEvent,
+      NextResponse.next(),
+    );
+
+    expect(handedOn?.user.group_ids).toEqual([541]);
+    expect(withoutSession).toBeNull();
   });
 
   it('is left out while the session is valid, so it cannot overwrite a newer one', async () => {

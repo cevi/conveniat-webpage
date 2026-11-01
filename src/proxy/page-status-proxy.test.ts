@@ -1,6 +1,8 @@
 import type { PublishedPageSlugs } from '@/features/payload-cms/api/published-page-slugs';
+import type { Permission } from '@/features/payload-cms/payload-types';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
+import type { Session } from 'next-auth';
 import type { NextFetchEvent } from 'next/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { readdirSync } from 'node:fs';
@@ -17,21 +19,48 @@ jest.mock('@/features/payload-cms/page-layouts/forms-preview-page', () => ({
 const mockFetchPublishedPageSlugs = jest.fn<Promise<PublishedPageSlugs>, []>();
 const mockReadPublishedPageSlugsVersion = jest.fn<Promise<string>, []>();
 jest.mock('@/features/payload-cms/api/published-page-slugs', () => ({
+  ...jest.requireActual<object>('@/features/payload-cms/api/published-page-slugs'),
   fetchPublishedPageSlugs: (): Promise<PublishedPageSlugs> => mockFetchPublishedPageSlugs(),
   readPublishedPageSlugsVersion: (): Promise<string> => mockReadPublishedPageSlugsVersion(),
 }));
 
-type NotFoundProxyModule = typeof import('@/proxy/not-found-proxy');
+const mockRequestSession = jest.fn<Session | null | undefined, []>();
+jest.mock('@/proxy/utils/request-session', () => ({
+  requestSession: (): Session | null | undefined => mockRequestSession(),
+}));
 
-const published = (genericPages: string[]): PublishedPageSlugs => ({
+type PageStatusProxyModule = typeof import('@/proxy/page-status-proxy');
+
+const published = (
+  genericPages: string[],
+  restrictedPages: Record<string, Permission> = {},
+): PublishedPageSlugs => ({
   genericPages: new Set(genericPages),
+  restrictedPages: new Map(Object.entries(restrictedPages)),
+});
+
+const permission = (
+  special: Permission['special_permissions'],
+  groupIds: number[] = [],
+): Permission =>
+  ({
+    special_permissions: special,
+    permissions: groupIds.map((group_id) => ({ group_id })),
+  }) as unknown as Permission;
+
+const forMembers = permission({ logged_in: true });
+const forAdmins = permission({}, [541]);
+
+const signedIn = (groupIds: number[]): Session => ({
+  user: { group_ids: groupIds },
+  expires: '2027-08-06T00:00:00Z',
 });
 
 /** Loads the module fresh, so every test starts without slugs in memory. */
-const loadModule = (): NotFoundProxyModule => {
-  let loaded: NotFoundProxyModule | undefined;
+const loadModule = (): PageStatusProxyModule => {
+  let loaded: PageStatusProxyModule | undefined;
   jest.isolateModules(() => {
-    loaded = jest.requireActual<NotFoundProxyModule>('@/proxy/not-found-proxy');
+    loaded = jest.requireActual<PageStatusProxyModule>('@/proxy/page-status-proxy');
   });
   if (loaded === undefined) throw new Error('module did not load');
   return loaded;
@@ -39,7 +68,7 @@ const loadModule = (): NotFoundProxyModule => {
 
 /** Runs the proxy on a request the design rewrite already sent to `rewrittenPath`. */
 const run = async (
-  proxyModule: NotFoundProxyModule,
+  proxyModule: PageStatusProxyModule,
   url: string,
   rewrittenPath: string,
   method = 'GET',
@@ -48,7 +77,7 @@ const run = async (
   const response = NextResponse.next();
   response.headers.set('x-middleware-rewrite', new URL(rewrittenPath, request.url).toString());
 
-  const result = await proxyModule.notFoundProxy((_request, _event, final) => final)(
+  const result = await proxyModule.pageStatusProxy((_request, _event, final) => final)(
     request,
     {} as NextFetchEvent,
     response,
@@ -57,12 +86,14 @@ const run = async (
   return rewrite === null ? undefined : new URL(rewrite).pathname;
 };
 
-describe('notFoundProxy', () => {
+describe('pageStatusProxy', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     mockFetchPublishedPageSlugs.mockReset();
     mockReadPublishedPageSlugsVersion.mockReset();
     mockReadPublishedPageSlugsVersion.mockResolvedValue('0');
+    // eslint-disable-next-line unicorn/no-null -- `null` is the session of a visitor without one
+    mockRequestSession.mockReset().mockReturnValue(null);
   });
 
   afterEach(() => {
@@ -210,6 +241,78 @@ describe('notFoundProxy', () => {
     await expect(
       run(proxyModule, '/does-not-exist', '/de/design-mode-web/does-not-exist'),
     ).resolves.toBe('/de/design-mode-web/does-not-exist');
+  });
+
+  it('rewrites a page that needs a login to the 401 route for a visitor without one', async () => {
+    mockFetchPublishedPageSlugs.mockResolvedValue(
+      published(['intern', 'internal'], { 'de/intern': forMembers, 'en/internal': forMembers }),
+    );
+    const proxyModule = loadModule();
+
+    await expect(run(proxyModule, '/intern', '/de/design-mode-web/intern')).resolves.toBe(
+      '/de/design-mode-web/~unauthorized',
+    );
+    await expect(run(proxyModule, '/en/internal', '/en/design-mode-app/internal')).resolves.toBe(
+      '/en/design-mode-app/~unauthorized',
+    );
+  });
+
+  it('rewrites a page to the 403 route for a signed-in visitor it is not meant for', async () => {
+    mockFetchPublishedPageSlugs.mockResolvedValue(published(['faq'], { 'de/faq': forAdmins }));
+    mockRequestSession.mockReturnValue(signedIn([102]));
+    const proxyModule = loadModule();
+
+    await expect(run(proxyModule, '/faq', '/de/design-mode-web/faq')).resolves.toBe(
+      '/de/design-mode-web/~forbidden',
+    );
+  });
+
+  it('leaves a page to the page route for a visitor it is meant for', async () => {
+    mockFetchPublishedPageSlugs.mockResolvedValue(
+      published(['intern', 'faq'], { 'de/intern': forMembers, 'de/faq': forAdmins }),
+    );
+    mockRequestSession.mockReturnValue(signedIn([541, 102]));
+    const proxyModule = loadModule();
+
+    for (const page of ['/intern', '/faq']) {
+      await expect(run(proxyModule, page, `/de/design-mode-web${page}`)).resolves.toBe(
+        `/de/design-mode-web${page}`,
+      );
+    }
+  });
+
+  it('leaves a restricted slug to the page route in a locale it does not belong to', async () => {
+    mockFetchPublishedPageSlugs.mockResolvedValue(
+      published(['intern'], { 'de/intern': forMembers }),
+    );
+    const proxyModule = loadModule();
+
+    await expect(run(proxyModule, '/fr/intern', '/fr/design-mode-web/intern')).resolves.toBe(
+      '/fr/design-mode-web/intern',
+    );
+  });
+
+  it('leaves a restricted page to the page route when the proxy read no session', async () => {
+    mockFetchPublishedPageSlugs.mockResolvedValue(
+      published(['intern'], { 'de/intern': forMembers }),
+    );
+    mockRequestSession.mockReturnValue(undefined); // eslint-disable-line unicorn/no-useless-undefined -- no session was read
+    const proxyModule = loadModule();
+
+    await expect(run(proxyModule, '/intern', '/de/design-mode-web/intern')).resolves.toBe(
+      '/de/design-mode-web/intern',
+    );
+  });
+
+  it('leaves a restricted page to the page route in a preview', async () => {
+    mockFetchPublishedPageSlugs.mockResolvedValue(
+      published(['intern'], { 'de/intern': forMembers }),
+    );
+    const proxyModule = loadModule();
+
+    await expect(
+      run(proxyModule, '/intern?preview=true', '/de/design-mode-web/intern'),
+    ).resolves.toBe('/de/design-mode-web/intern');
   });
 
   it('leaves every path to the page route while the slugs cannot be read', async () => {
