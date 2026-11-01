@@ -15,9 +15,15 @@ const pickChatDescription: StaticTranslationString = {
   fr: 'La conversation s’ouvre ici, à côté de la liste.',
 };
 
-/** What a desktop shows beside the chat list while no chat is open; a phone shows the list. */
+/**
+ * What a desktop shows beside the chat list while no chat is open; a phone shows the list.
+ *
+ * On a phone it stays an empty, invisible box at the top of the screen rather than `hidden`:
+ * Next.js scrolls a navigation to the page's own element, never to a layout's, and finds nothing
+ * to scroll to in a `display: none` page, so the list would open at the previous page's scroll.
+ */
 export const NoChatSelected: React.FC<{ locale: Locale }> = ({ locale }) => (
-  <div className="hidden h-full items-center justify-center xl:flex">
+  <div className="invisible absolute top-0 h-0 overflow-hidden xl:visible xl:static xl:flex xl:h-full xl:items-center xl:justify-center xl:overflow-visible">
     <EmptyState
       icon={MessageSquare}
       title={pickChatTitle[locale]}
