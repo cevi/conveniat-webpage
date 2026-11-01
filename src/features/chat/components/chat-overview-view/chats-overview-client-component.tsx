@@ -392,8 +392,10 @@ export const ChatsOverviewClientComponent: React.FC<{
                 {filteredChats.map((chat) => (
                   <li
                     key={chat.id}
-                    // the line between rows starts at the text, as the avatar marks each row; above the swipe layer
-                    className="after:bg-line relative after:absolute after:right-0 after:bottom-0 after:left-[72px] after:z-20 after:h-px last:after:hidden"
+                    // the line between rows starts at the text, as the avatar marks each row. It sits
+                    // in a pixel of its own below the row, so a swipe's red ends at the same height
+                    // left and right of where the line starts.
+                    className="after:bg-line relative pb-px after:absolute after:right-0 after:bottom-0 after:left-[72px] after:h-px last:pb-0 last:after:hidden"
                   >
                     <SwipeToDeleteChat chat={chat}>
                       <ChatPreview
