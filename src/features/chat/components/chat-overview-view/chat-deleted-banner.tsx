@@ -71,10 +71,11 @@ const useBannerHold = (
 
 /**
  * Tells that a chat was deleted and offers to take it back while the delete waits, see
- * `usePendingChatDeletion`. It takes the place of "Neuer Chat" above the tab bar on a phone and
- * stands at the foot of the list on a desktop. The line along its bottom runs out with the time
- * left, stays full while the user is on the banner and starts over when they leave it. Give the
- * banner the chat's id as `key`, so another chat starts it over too.
+ * `usePendingChatDeletion`. It takes the place of "Neuer Chat" above the tab bar on a phone. On a
+ * desktop it sticks to the bottom of the list's scrolling part, so it never covers what stands
+ * under the list, like the card that leads to the app. The line along its bottom runs out with
+ * the time left, stays full while the user is on the banner and starts over when they leave it.
+ * Give the banner the chat's id as `key`, so another chat starts it over too.
  */
 export const ChatDeletedBanner: React.FC<{
   /** says the chat is gone for every member, not only from the user's list */
@@ -90,7 +91,7 @@ export const ChatDeletedBanner: React.FC<{
     <div
       role="status"
       {...handlers}
-      className="bg-quiet border-line fixed inset-x-4 bottom-[calc(var(--app-tab-bar-height)+16px)] z-30 mx-auto flex min-h-[52px] max-w-md items-center gap-3 overflow-hidden rounded-[14px] border py-1 pr-1 pl-4 shadow-lg xl:absolute xl:bottom-4 xl:max-w-none"
+      className="bg-quiet border-line fixed inset-x-4 bottom-[calc(var(--app-tab-bar-height)+16px)] z-30 mx-auto flex min-h-[52px] max-w-md items-center gap-3 overflow-hidden rounded-[14px] border py-1 pr-1 pl-4 shadow-lg xl:sticky xl:inset-x-auto xl:bottom-4 xl:mx-0 xl:max-w-none"
     >
       <Trash2 className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
       {/* a longer text wraps rather than squeezing the button */}

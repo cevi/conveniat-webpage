@@ -50,7 +50,7 @@ export const ChatSplitView: React.FC<{
           clear of the tab bar and the "Neuer Chat" button on a phone. */}
             <div
               className={cn(
-                'xl:border-line min-h-[calc(100dvh-var(--app-content-top))] bg-white xl:relative xl:flex xl:min-h-0 xl:w-[400px] xl:shrink-0 xl:flex-col xl:border-r',
+                'xl:border-line min-h-[calc(100dvh-var(--app-content-top))] bg-white xl:flex xl:min-h-0 xl:w-[400px] xl:shrink-0 xl:flex-col xl:border-r',
                 !isOverview && 'hidden',
               )}
             >
