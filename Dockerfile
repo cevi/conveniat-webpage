@@ -49,6 +49,13 @@ ENV NEXT_PUBLIC_ENABLED_LOCALES=${NEXT_PUBLIC_ENABLED_LOCALES}
 ARG NEXT_PUBLIC_HITOBITO_API_URL=https://db.cevi.ch
 ENV NEXT_PUBLIC_HITOBITO_API_URL=${NEXT_PUBLIC_HITOBITO_API_URL}
 
+# The app in the stores, offered to a browser on the app pages. Inlined at build time like the
+# rest. konekta's own Dockerfile sets neither, so it offers no app.
+ARG NEXT_PUBLIC_APP_STORE_URL=https://apps.apple.com/ch/app/conveniat-27/id6817359538
+ENV NEXT_PUBLIC_APP_STORE_URL=${NEXT_PUBLIC_APP_STORE_URL}
+ARG NEXT_PUBLIC_PLAY_STORE_URL=https://play.google.com/store/apps/details?id=ch.cevi.conveniat27.conveniat27app
+ENV NEXT_PUBLIC_PLAY_STORE_URL=${NEXT_PUBLIC_PLAY_STORE_URL}
+
 COPY . .
 
 # Copy the dev icons for the dev build

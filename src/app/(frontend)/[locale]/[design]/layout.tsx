@@ -42,7 +42,6 @@ const GlobalAppFooterWrapper: React.FC<{
 
   return (
     <GlobalAppFooterClientWrapper
-      locale={locale}
       isAppMode={isInAppDesign}
       appNavBar={<AppNavBarServer locale={locale} railOnDesktop={navigationMode === 'top-nav'} />}
       copyrightArea={<FooterCopyrightArea locale={locale} inAppDesign={isInAppDesign} />}

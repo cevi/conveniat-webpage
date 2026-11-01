@@ -11,7 +11,6 @@ const ChatPage: React.FC<{
 }> = async ({ params }) => {
   const { locale } = await params;
 
-  // the bar advertising the app comes with the global footer on every `/app` page
   return <NoChatSelected locale={locale} />;
 };
 

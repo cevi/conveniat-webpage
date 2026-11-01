@@ -19,10 +19,7 @@ export const ChatSplitView: React.FC<{
   list: ReactNode;
   /** under the list on a desktop, kept in place while the list scrolls */
   listFoot?: ReactNode;
-  /**
-   * In the app the tab bar stays below the panes. In a browser nothing does on a desktop: the
-   * bar advertising the app gives way to the list's foot there, so the panes reach the bottom.
-   */
+  /** whether the chats are shown in the app; a browser gets the list's foot and other hints */
   inAppDesign: boolean;
   children: ReactNode;
 }> = ({ list, listFoot, inAppDesign, children }) => {
@@ -30,15 +27,7 @@ export const ChatSplitView: React.FC<{
 
   return (
     <InAppDesignContext value={inAppDesign}>
-      <div
-        className={cn(
-          'xl:flex',
-          // the app pages keep the bar's room below them, which a browser's desktop chat takes back
-          inAppDesign
-            ? 'xl:h-[calc(100dvh-var(--app-content-top)-var(--app-tab-bar-height))]'
-            : 'xl:-mb-(--app-tab-bar-height) xl:h-[calc(100dvh-var(--app-content-top))]',
-        )}
-      >
+      <div className="xl:flex xl:h-[calc(100dvh-var(--app-content-top)-var(--app-tab-bar-height))]">
         {/* The screen is white like the design, so the grey search contrasts, from the header
           down to the tab bar however few chats there are. The bottom room keeps the last row
           clear of the tab bar and the "Neuer Chat" button on a phone. */}

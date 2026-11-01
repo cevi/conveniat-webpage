@@ -3,6 +3,7 @@
 import { BackgroundLogo } from '@/components/background-logo';
 import { AppErrorFallback } from '@/components/error-boundary/app-error-fallback';
 import { FooterClientWrapper } from '@/components/footer/footer-client-wrapper';
+import { GetTheAppProvider } from '@/components/get-the-app';
 import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-name';
 import { HeaderActionsProvider } from '@/components/header/header-actions';
 import { HeaderClientWrapper } from '@/components/header/header-client-wrapper';
@@ -54,60 +55,62 @@ export const AppShell: React.FC<AppShellProperties> = ({
             <HideHeaderProvider>
               <DynamicAppTitleProvider>
                 <HeaderActionsProvider>
-                  <HeaderClientWrapper>{header}</HeaderClientWrapper>
+                  <GetTheAppProvider>
+                    <HeaderClientWrapper>{header}</HeaderClientWrapper>
 
-                  {/* Background Logo, on the website only: in the app it shows through the content */}
-                  {!hideBackgroundLogo && !inAppDesign && (
-                    <div
-                      className={cn(
-                        'absolute top-0 z-[-999] h-screen w-full p-[56px]',
-                        isTopNavMode ? 'lg:hidden' : 'xl:pl-[480px]',
-                      )}
-                    >
-                      <BackgroundLogo className="max-h-[60vh]" />
-                    </div>
-                  )}
+                    {/* Background Logo, on the website only: in the app it shows through the content */}
+                    {!hideBackgroundLogo && !inAppDesign && (
+                      <div
+                        className={cn(
+                          'absolute top-0 z-[-999] h-screen w-full p-[56px]',
+                          isTopNavMode ? 'lg:hidden' : 'xl:pl-[480px]',
+                        )}
+                      >
+                        <BackgroundLogo className="max-h-[60vh]" />
+                      </div>
+                    )}
 
-                  {/* Main Content Area */}
-                  {/* --app-header-height is the height of the fixed header above, for anything
+                    {/* Main Content Area */}
+                    {/* --app-header-height is the height of the fixed header above, for anything
                     that sticks right below it. --app-content-top and --app-content-left are the
                     corner of the free area under the header and right of the side panel, for
                     anything positioned with `fixed`: side-nav has a panel, the app in top-nav its
                     rail of tabs, and the top-nav header grows on wide screens. All three include
                     --app-top-inset, the status bar and the preview banner above the header.
                     --app-tab-bar-height is the room the app's tab bar takes at the bottom, none
-                    once it is the rail. The wrapper itself starts
+                    once it is the rail, and none in a browser. The wrapper itself starts
                     at --app-content-top too: the top-nav header is sized in rem, taller than 62px
                     and taller still with a larger browser font. */}
-                  <div
-                    className={cn(
-                      'wco-content-wrapper mt-(--app-content-top) h-[calc(100dvh-var(--app-content-top))] [--app-content-left:0px] [--app-content-top:calc(62px+var(--app-top-inset))] [--app-header-height:calc(60px+var(--app-top-inset))] [--app-tab-bar-height:5rem]',
-                      isTopNavMode
-                        ? 'xl:[--app-content-top:calc(4rem+2px+var(--app-top-inset))] xl:[--app-header-height:calc(4rem+var(--app-top-inset))]'
-                        : 'xl:ml-[480px] xl:[--app-content-left:480px]',
-                      isTopNavMode &&
-                        inAppDesign &&
-                        'xl:ml-20 xl:[--app-content-left:5rem] xl:[--app-tab-bar-height:0px]',
-                    )}
-                  >
-                    <main className="flex min-h-full flex-col justify-between">
-                      {/* below xl the round logo hangs out of the header, over the banner's start */}
-                      <OfflineBanner
-                        locale={locale}
-                        className="sticky top-(--app-header-height) z-40 pl-28 xl:pl-4"
-                      />
-                      <div className="flex-1">
-                        <ErrorBoundary FallbackComponent={AppErrorFallback}>
-                          {children}
-                        </ErrorBoundary>
-                      </div>
-                      {footer !== null && footer !== undefined && (
-                        <FooterClientWrapper keepOnDesktop={inAppDesign}>
-                          {footer}
-                        </FooterClientWrapper>
+                    <div
+                      className={cn(
+                        'wco-content-wrapper mt-(--app-content-top) h-[calc(100dvh-var(--app-content-top))] [--app-content-left:0px] [--app-content-top:calc(62px+var(--app-top-inset))] [--app-header-height:calc(60px+var(--app-top-inset))]',
+                        // a browser keeps no bar at the bottom of the app's pages, the app its tab bar
+                        inAppDesign ? '[--app-tab-bar-height:5rem]' : '[--app-tab-bar-height:0px]',
+                        isTopNavMode
+                          ? 'xl:[--app-content-top:calc(4rem+2px+var(--app-top-inset))] xl:[--app-header-height:calc(4rem+var(--app-top-inset))]'
+                          : 'xl:ml-[480px] xl:[--app-content-left:480px]',
+                        isTopNavMode &&
+                          inAppDesign &&
+                          'xl:ml-20 xl:[--app-content-left:5rem] xl:[--app-tab-bar-height:0px]',
                       )}
-                    </main>
-                  </div>
+                    >
+                      <main className="flex min-h-full flex-col justify-between">
+                        {/* below xl the round logo hangs out of the header, over the banner's start */}
+                        <OfflineBanner
+                          locale={locale}
+                          className="sticky top-(--app-header-height) z-40 pl-28 xl:pl-4"
+                        />
+                        <div className="flex-1">
+                          <ErrorBoundary FallbackComponent={AppErrorFallback}>
+                            {children}
+                          </ErrorBoundary>
+                        </div>
+                        {footer !== null && footer !== undefined && (
+                          <FooterClientWrapper>{footer}</FooterClientWrapper>
+                        )}
+                      </main>
+                    </div>
+                  </GetTheAppProvider>
                 </HeaderActionsProvider>
               </DynamicAppTitleProvider>
             </HideHeaderProvider>

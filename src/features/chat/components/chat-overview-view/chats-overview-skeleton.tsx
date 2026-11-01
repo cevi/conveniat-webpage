@@ -44,6 +44,9 @@ export const ChatsOverviewSkeleton: React.FC = () => (
 export const NewChatButtonSkeleton: React.FC = () => (
   <div
     aria-hidden="true"
-    className={cn(pulse, 'fixed right-4 bottom-[calc(5rem+16px)] z-30 h-12 w-[148px] rounded-2xl')}
+    className={cn(
+      pulse,
+      'fixed right-4 bottom-[calc(var(--app-tab-bar-height)+16px)] z-30 h-12 w-[148px] rounded-2xl',
+    )}
   />
 );

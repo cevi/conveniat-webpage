@@ -1,5 +1,6 @@
 'use client';
 
+import { isAppOffered } from '@/components/get-the-app';
 import { environmentVariables } from '@/config/environment-variables';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
@@ -41,7 +42,8 @@ const NOT_A_CHAT = new Set(['new', 'new-chat-with-user']);
  * The foot of the chat list on a desktop browser: a Cevi QR code that opens the chat beside it,
  * or the chats without one, on the phone. The app lives on the phone, not on the computer the
  * user sits at, so the way there is a code to scan rather than a store link. The link carries no locale: the phone
- * opens it in its own language. Without the code, offline say, the card stays away.
+ * opens it in its own language. Without the code, offline say, or in a deployment that offers no
+ * app, the card stays away.
  */
 export const ContinueOnPhoneCard: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -57,13 +59,13 @@ export const ContinueOnPhoneCard: React.FC = () => {
     meta: { persist: false },
     queryFn: () => fetchCeviQrCodeSvg(url),
     // a phone never shows the card, so it never asks for a code
-    enabled: isDesktop,
+    enabled: isDesktop && isAppOffered,
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     retry: 1,
   });
 
-  if (!isDesktop || qrCode.isError) return <></>;
+  if (!isDesktop || !isAppOffered || qrCode.isError) return <></>;
 
   return (
     <aside className="bg-quiet m-4 flex shrink-0 items-center gap-3.5 rounded-[14px] p-3.5">
