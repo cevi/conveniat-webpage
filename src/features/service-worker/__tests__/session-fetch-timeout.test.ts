@@ -1,4 +1,4 @@
-import { TIMEOUTS } from '@/features/service-worker/constants';
+import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
 import {
   forgetCachedSession,
   handleFetchEvent,
@@ -59,8 +59,15 @@ describe('service worker session check', () => {
       match: jest.fn(() => Promise.resolve(cached?.clone())),
       put: authCachePut,
     };
+    const otherCache = {
+      match: jest.fn(() => Promise.resolve()),
+      put: jest.fn(() => Promise.resolve()),
+      delete: jest.fn(() => Promise.resolve(true)),
+    };
     globalThis.caches = {
-      open: jest.fn(() => Promise.resolve(authCache)),
+      open: jest.fn((name: string) =>
+        Promise.resolve(name === CACHE_NAMES.AUTH_SESSION ? authCache : otherCache),
+      ),
       match: jest.fn(() => Promise.resolve()),
       delete: jest.fn(() => Promise.resolve(true)),
     } as unknown as CacheStorage;

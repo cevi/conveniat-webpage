@@ -11,6 +11,7 @@ import {
   handleFetchEvent,
 } from '@/features/service-worker/offline-support/fetch-handler';
 import { registerMapOfflineSupport } from '@/features/service-worker/offline-support/map-viewer';
+import { reportNetworkStatus } from '@/features/service-worker/offline-support/network-reachability';
 import { clearPersonalCaches } from '@/features/service-worker/offline-support/personal-caches';
 import {
   cachePageAndScrape,
@@ -165,6 +166,10 @@ self.addEventListener('message', (event) => {
         }
       })(),
     );
+  }
+
+  if (data?.type === ServiceWorkerMessages.NETWORK_STATUS && event.source instanceof Client) {
+    event.waitUntil(reportNetworkStatus(event.source));
   }
 
   if (data?.type === ServiceWorkerMessages.CHECK_OFFLINE_READY && event.source instanceof Client) {

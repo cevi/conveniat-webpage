@@ -7,6 +7,11 @@ import {
 import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
 import { normalizeTileUrl } from '@/features/service-worker/offline-support/map-viewer';
 import {
+  isNetworkUnreachable,
+  markNetworkReachable,
+  markNetworkUnreachable,
+} from '@/features/service-worker/offline-support/network-reachability';
+import {
   offlinePageHtml,
   offlinePageLocale,
   reconnectingPageHtml,
@@ -417,6 +422,20 @@ const APP_MODE_NETWORK_GIVE_UP_MS = 15_000;
 const noop = (): void => {};
 
 /**
+ * Records a failed network request as "no answer", unless the page cancelled it: a navigation
+ * away aborts the requests of the page it leaves, which says nothing about the network.
+ */
+function recordNetworkFailure(event: FetchEvent, error: unknown, requestStartedAt: number): void {
+  if (error instanceof DOMException && error.name === 'AbortError') return;
+  event.waitUntil(markNetworkUnreachable(requestStartedAt));
+}
+
+/** How long a request waits for the network before a cached copy answers. */
+async function networkTimeout(usual: number): Promise<number> {
+  return (await isNetworkUnreachable()) ? TIMEOUTS.UNREACHABLE_NETWORK : usual;
+}
+
+/**
  * Stores an App Mode page or RSC payload for offline use. RSC payloads are buffered and stored
  * without `Vary`, so later lookups match regardless of the request headers.
  */
@@ -536,29 +555,40 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     // refreshes the cache when it lands; aborting it meant a slow network never refreshed
     // anything. Without a cached copy there is nothing better to show, so the worker keeps
     // waiting for the network, up to APP_MODE_NETWORK_GIVE_UP_MS, instead of giving up on a page
-    // that would have arrived.
+    // that would have arrived. Once a request went unanswered, the next ones wait only briefly
+    // (see network-reachability.ts).
     if (isAppMode && (isDocument || isRsc)) {
       // Only navigation payloads are cached. Offline, `matchCachedRsc` answers a navigation
       // with any entry for the same path, and a prefetch response there (a route tree or a
       // single segment) is one the router cannot use, so it reloaded the whole page.
       const isPrefetch = event.request.headers.has('Next-Router-Prefetch');
 
-      const fromNetwork = fetch(requestToHandle).then((networkResponse) => {
-        if (networkResponse.ok && !isPrefetch) {
-          event.waitUntil(storeAppModeResponse(networkResponse.clone(), url, isRsc));
-        }
-        return networkResponse;
-      });
+      const startedAt = Date.now();
+      const fromNetwork = fetch(requestToHandle).then(
+        (networkResponse) => {
+          event.waitUntil(markNetworkReachable());
+          if (networkResponse.ok && !isPrefetch) {
+            event.waitUntil(storeAppModeResponse(networkResponse.clone(), url, isRsc));
+          }
+          return networkResponse;
+        },
+        (error: unknown) => {
+          recordNetworkFailure(event, error, startedAt);
+          throw error;
+        },
+      );
 
+      const waitMs = await networkTimeout(APP_MODE_NETWORK_TIMEOUT_MS);
       let timeoutId: ReturnType<typeof setTimeout> | undefined;
       const slowNetwork = new Promise<'slow'>((resolve) => {
-        timeoutId = setTimeout(() => resolve('slow'), APP_MODE_NETWORK_TIMEOUT_MS);
+        timeoutId = setTimeout(() => resolve('slow'), waitMs);
       });
 
       try {
         const first = await Promise.race([fromNetwork, slowNetwork]);
         clearTimeout(timeoutId);
         if (first !== 'slow') return isRsc ? sanitizeRscResponse(first) : first;
+        event.waitUntil(markNetworkUnreachable(startedAt));
 
         // A prefetch blocks nobody, so it waits for the network rather than getting a cached
         // navigation payload in a shape it does not expect.
@@ -573,10 +603,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
         }
 
         const givingUp = new Promise<'give-up'>((resolve) => {
-          timeoutId = setTimeout(
-            () => resolve('give-up'),
-            APP_MODE_NETWORK_GIVE_UP_MS - APP_MODE_NETWORK_TIMEOUT_MS,
-          );
+          timeoutId = setTimeout(() => resolve('give-up'), APP_MODE_NETWORK_GIVE_UP_MS - waitMs);
         });
         const late = await Promise.race([fromNetwork, givingUp]);
         clearTimeout(timeoutId);
@@ -768,20 +795,30 @@ export const handleFetchEvent =
           // never aborted: it may carry a rotated session cookie, and its answer refreshes the
           // cache when it lands.
           const generation = sessionGeneration;
-          const fromNetwork = fetch(event.request).then(async (networkResponse) => {
-            await rememberSession(event.request, networkResponse, generation);
-            return networkResponse;
-          });
+          const startedAt = Date.now();
+          const fromNetwork = fetch(event.request).then(
+            async (networkResponse) => {
+              event.waitUntil(markNetworkReachable());
+              await rememberSession(event.request, networkResponse, generation);
+              return networkResponse;
+            },
+            (error: unknown) => {
+              recordNetworkFailure(event, error, startedAt);
+              throw error;
+            },
+          );
 
+          const waitMs = await networkTimeout(TIMEOUTS.SESSION_FETCH);
           let timeoutId: ReturnType<typeof setTimeout> | undefined;
           const slowNetwork = new Promise<'slow'>((resolve) => {
-            timeoutId = setTimeout(() => resolve('slow'), TIMEOUTS.SESSION_FETCH);
+            timeoutId = setTimeout(() => resolve('slow'), waitMs);
           });
 
           try {
             const first = await Promise.race([fromNetwork, slowNetwork]);
             clearTimeout(timeoutId);
             if (first !== 'slow') return first;
+            event.waitUntil(markNetworkUnreachable(startedAt));
 
             const cachedSession = await cachedSessionFor(event.request);
             if (cachedSession) {
@@ -824,6 +861,7 @@ export const handleFetchEvent =
         (async (): Promise<Response> => {
           const controller = isTrpcRequest ? new AbortController() : undefined;
           const timeoutId = controller ? setTimeout(() => controller.abort(), 10_000) : undefined;
+          const startedAt = Date.now();
 
           try {
             const response = await fetch(
@@ -832,9 +870,16 @@ export const handleFetchEvent =
                 : event.request,
             );
             if (timeoutId) clearTimeout(timeoutId);
+            event.waitUntil(markNetworkReachable());
             return response;
           } catch (error) {
             if (timeoutId) clearTimeout(timeoutId);
+            // our own timeout is an unanswered request, the page's abort is not
+            if (controller?.signal.aborted === true) {
+              event.waitUntil(markNetworkUnreachable(startedAt));
+            } else {
+              recordNetworkFailure(event, error, startedAt);
+            }
 
             const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
             if (isOffline && isTrpcRequest) {
