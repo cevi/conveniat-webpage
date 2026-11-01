@@ -24,6 +24,8 @@ export const TabsBlock: React.FC<
       <PageSectionsConverter
         {...props}
         blocks={tab.content}
+        // The tabs block already sits in a padded section; the blocks inside take its width.
+        sectionClassName="w-full"
         {...(renderInPreviewMode === undefined ? {} : { renderInPreviewMode })}
       />
     ) : undefined,
