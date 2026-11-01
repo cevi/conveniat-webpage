@@ -1,7 +1,5 @@
-import { AppAdvertisement } from '@/components/app-advertisement';
 import { NoChatSelected } from '@/features/chat/components/chat-overview-view/no-chat-selected';
 import type { Locale } from '@/types/types';
-import { DesignCodes } from '@/utils/design-codes';
 import type React from 'react';
 
 /**
@@ -9,16 +7,11 @@ import type React from 'react';
  * desktop; the page is what stands next to it while no chat is open.
  */
 const ChatPage: React.FC<{
-  params: Promise<{ locale: Locale; design: DesignCodes }>;
+  params: Promise<{ locale: Locale }>;
 }> = async ({ params }) => {
-  const { locale, design } = await params;
+  const { locale } = await params;
 
-  return (
-    <>
-      <NoChatSelected locale={locale} />
-      {design !== DesignCodes.APP_DESIGN && <AppAdvertisement locale={locale} type="chat" />}
-    </>
-  );
+  return <NoChatSelected locale={locale} />;
 };
 
 export default ChatPage;

@@ -24,12 +24,15 @@
 }
 
 /* MapLibre's controls focus with a blue glow and take the outline away; they get the app's focus
-   ring instead (see globals.scss), inside the button because the round group clips anything
-   outside it */
-.maplibregl-ctrl-group button:focus:focus-visible {
-  box-shadow: none;
-  outline: 2px solid #47564c;
-  outline-offset: -2px;
+   instead, the quiet surface and a ring inside like a button (`focus-surface` in globals.scss),
+   because the round group clips anything outside it. MapLibre's own rule has the same selector, so
+   this one is scoped to the map to win whichever stylesheet loads last. */
+.maplibregl-map .maplibregl-ctrl-group button:focus:focus-visible {
+  outline: none;
+  background-color: #eef1ee;
+  box-shadow:
+    inset 0 0 0 4px #eef1ee,
+    inset 0 0 0 6px #47564c;
 }
 
 /* the map itself fills its box, which clips a ring outside it */

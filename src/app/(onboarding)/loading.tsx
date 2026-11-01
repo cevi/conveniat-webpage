@@ -4,7 +4,7 @@ import React from 'react';
 
 const Loading: React.FC = () => {
   // Matches the footer used in OnboardingProcess for consisteny
-  const footer = <div className="invisible h-6">Spacer</div>;
+  const footer = <div className="invisible h-11">Spacer</div>;
 
   return (
     <div className="relative mx-auto flex h-screen max-w-96 flex-col items-center justify-center p-4">

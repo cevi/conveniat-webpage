@@ -1,5 +1,7 @@
 import type { LocaleCode } from '@/features/payload-cms/payload-cms/locales';
 import { enabledLocales } from '@/features/payload-cms/payload-cms/locales';
+import type { Permission } from '@/features/payload-cms/payload-types';
+import { isPermissionPublic } from '@/utils/has-permissions';
 import { withSpan } from '@/utils/tracing-helpers';
 
 /**
@@ -11,14 +13,24 @@ import { withSpan } from '@/utils/tracing-helpers';
  */
 export interface PublishedPageSlugs {
   genericPages: Set<string>;
+  /**
+   * The permission of every page that is not public, by `{locale}/{slug}`. Only the current slug
+   * in its own locale is listed: that is the one the page route answers with 401 or 403, an old
+   * slug or another locale redirects.
+   */
+  restrictedPages: Map<string, Permission>;
 }
 
-interface SeoSlugs {
+interface SlugsAndPermission {
   seo?: { urlSlug?: string | null; urlSlugHistory?: { slug?: string | null }[] | null };
+  content?: { permissions?: string | Permission | null };
 }
+
+/** The key of a page in {@link PublishedPageSlugs.restrictedPages}. */
+export const restrictedPageKey = (locale: string, slug: string): string => `${locale}/${slug}`;
 
 /**
- * Reads the slugs of every published Generic Page, and nothing else of them.
+ * Reads the slugs and the permission of every published Generic Page, and nothing else of them.
  *
  * Payload is imported lazily: the proxy calls this, and its bundle should not load the CMS
  * config before the first request that needs it.
@@ -31,26 +43,38 @@ export const fetchPublishedPageSlugs = async (): Promise<PublishedPageSlugs> => 
     ]);
     const payload = await getPayload({ config });
 
-    const readSlugs = async (locale: LocaleCode): Promise<SeoSlugs[]> => {
+    // depth 1 populates the permission as the page route reads it
+    const readSlugs = async (locale: LocaleCode): Promise<SlugsAndPermission[]> => {
       const result = await payload.find({
         collection: 'generic-page',
         locale,
         fallbackLocale: false,
-        depth: 0,
+        depth: 1,
         pagination: false,
         where: { _localized_status: { equals: { published: true } } },
-        select: { seo: { urlSlug: true, urlSlugHistory: true } },
+        select: { seo: { urlSlug: true, urlSlugHistory: true }, content: { permissions: true } },
       });
       return result.docs;
     };
 
     const genericPages = new Set<string>();
+    const restrictedPages = new Map<string, Permission>();
 
     await Promise.all(
       enabledLocales.map((locale) =>
         readSlugs(locale).then((documents) => {
-          for (const { seo } of documents) {
-            if (typeof seo?.urlSlug === 'string') genericPages.add(seo.urlSlug);
+          for (const { seo, content } of documents) {
+            const permission = content?.permissions;
+            if (typeof seo?.urlSlug === 'string') {
+              genericPages.add(seo.urlSlug);
+              if (
+                typeof permission === 'object' &&
+                permission !== null &&
+                !isPermissionPublic(permission)
+              ) {
+                restrictedPages.set(restrictedPageKey(locale, seo.urlSlug), permission);
+              }
+            }
             for (const { slug } of seo?.urlSlugHistory ?? []) {
               if (typeof slug === 'string') genericPages.add(slug);
             }
@@ -59,7 +83,7 @@ export const fetchPublishedPageSlugs = async (): Promise<PublishedPageSlugs> => 
       ),
     );
 
-    return { genericPages };
+    return { genericPages, restrictedPages };
   });
 };
 

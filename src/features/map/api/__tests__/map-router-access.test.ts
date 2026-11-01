@@ -65,8 +65,42 @@ describe('the camp map for a guest who skipped the login', () => {
   });
 
   it("gets the areas for a schedule entry's mini map", async () => {
-    const { polygons } = await guest.getAnnotations();
+    const { polygons } = await guest.getAnnotations({ locale: 'de' });
 
     expect(polygons.map((polygon) => polygon.title)).toEqual(['Quartier 1']);
+  });
+});
+
+describe('the camp map in French', () => {
+  beforeEach(() => {
+    // Payload answers in German unless it is asked for another locale
+    const find = jest.fn(({ collection, locale }: { collection: string; locale?: string }) => {
+      if (collection !== 'camp-map-annotations') return Promise.resolve({ docs: [] });
+      const french = locale === 'fr';
+      return Promise.resolve({
+        docs: [
+          { ...kiosk, title: french ? 'Kiosque' : 'Kiosk' },
+          { ...quartier, title: french ? 'Quartier des tentes' : 'Zeltquartier' },
+        ],
+      });
+    });
+    jest
+      .mocked(getPayload)
+      .mockResolvedValue({ find } as unknown as Awaited<ReturnType<typeof getPayload>>);
+  });
+
+  it('names the places of the map in French', async () => {
+    const map = await guest.getMapAnnotations({ locale: 'fr' });
+
+    expect(map.campMapAnnotationPoints.map((point) => point.title)).toEqual(['Kiosque']);
+    expect(map.campMapAnnotationPolygons.map((polygon) => polygon.title)).toEqual([
+      'Quartier des tentes',
+    ]);
+  });
+
+  it("names the areas of a schedule entry's mini map in French", async () => {
+    const { polygons } = await guest.getAnnotations({ locale: 'fr' });
+
+    expect(polygons.map((polygon) => polygon.title)).toEqual(['Quartier des tentes']);
   });
 });

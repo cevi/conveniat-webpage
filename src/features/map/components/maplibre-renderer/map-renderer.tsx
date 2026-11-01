@@ -7,6 +7,7 @@ import { MapUnavailableFallback } from '@/features/map/components/map-unavailabl
 import { MapContextProvider } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import { MaplibreMap } from '@/features/map/components/maplibre-renderer/maplibre-map';
 import { useMapInitialization } from '@/features/map/hooks/use-map-initialization';
+import { useMapSearchTerm } from '@/features/map/hooks/use-map-search-term';
 import { useMapUrlSync } from '@/features/map/hooks/use-map-url-sync';
 import type {
   CampMapAnnotationPoint,
@@ -100,7 +101,7 @@ export const MapLibreRenderer = ({
     }
     return;
   });
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useMapSearchTerm();
 
   const closeDrawer = useCallback(() => setOpenAnnotation(undefined), []);
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -260,7 +261,7 @@ export const MapLibreRenderer = ({
         setOpenAnnotation(undefined);
       }
     },
-    [openAnnotation, filteredAnnotationPoints, filteredAnnotationPolygons],
+    [openAnnotation, filteredAnnotationPoints, filteredAnnotationPolygons, setSearchTerm],
   );
 
   // MapLibre could not acquire a WebGL context; degrade instead of crashing the page.
@@ -279,7 +280,9 @@ export const MapLibreRenderer = ({
         />
       )}
       <div className="h-full w-full" ref={(element) => setMapContainer(element ?? undefined)} />
-      {enableSearch && <MapSearchRow onSearch={handleSearch} results={searchResults} />}
+      {enableSearch && (
+        <MapSearchRow value={searchTerm} onSearch={handleSearch} results={searchResults} />
+      )}
       <MaplibreMap
         openAnnotation={openAnnotation}
         setOpenAnnotation={setOpenAnnotation}

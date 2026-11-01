@@ -1,0 +1,42 @@
+import { environmentVariables } from '@/config/environment-variables';
+import { countTakenPlaces } from '@/features/visit-day/api/visit-day-places';
+import type { VisitDayHof } from '@/features/visit-day/visit-day-settings';
+import { listVisitDayHoefe, loadVisitDaySettings } from '@/features/visit-day/visit-day-settings';
+import { createTRPCRouter, publicProcedure } from '@/trpc/init';
+import config from '@payload-config';
+import { getPayload } from 'payload';
+
+/** A Besuchstag with the places still free on it. */
+export interface VisitDayPlaces {
+  /** `YYYY-MM-DD` */
+  date: string;
+  capacity: number;
+  free: number;
+}
+
+/**
+ * The Besuchstag registration, for the relatives filling it in. Public: they have no Cevi.DB
+ * login. It tells nothing a visitor of the website may not know: the names of the Höfe, the day
+ * each Hof's relatives visit and how many places a day has left.
+ */
+export const visitDayRouter = createTRPCRouter({
+  getVisitDayHofList: publicProcedure.query(async (): Promise<VisitDayHof[]> => {
+    if (!environmentVariables.FEATURE_ENABLE_VISIT_DAY) return [];
+    const payload = await getPayload({ config });
+    return listVisitDayHoefe(payload, await loadVisitDaySettings(payload));
+  }),
+
+  getVisitDayList: publicProcedure.query(async ({ ctx }): Promise<VisitDayPlaces[]> => {
+    if (!environmentVariables.FEATURE_ENABLE_VISIT_DAY) return [];
+    const payload = await getPayload({ config });
+    const [settings, taken] = await Promise.all([
+      loadVisitDaySettings(payload),
+      countTakenPlaces(ctx.prisma),
+    ]);
+    return settings.days.map((day) => ({
+      date: day.date,
+      capacity: day.capacity,
+      free: Math.max(0, day.capacity - (taken.get(day.date) ?? 0)),
+    }));
+  }),
+});

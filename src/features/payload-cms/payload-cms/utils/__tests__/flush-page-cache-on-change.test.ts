@@ -26,6 +26,11 @@ const pages = {
 
 const images = { slug: 'images', versions: false } as unknown as SanitizedCollectionConfig;
 
+const permissions = {
+  slug: 'permissions',
+  versions: false,
+} as unknown as SanitizedCollectionConfig;
+
 const header = {
   slug: 'header',
   versions: { drafts: { autosave: true } },
@@ -100,6 +105,25 @@ describe('flushPageCacheOnChange', () => {
     const request = requestReading(linkTarget('anmeldung', true), linkTarget('anmeldung', false));
 
     await savePage(request, { data: { _status: 'published' } });
+
+    expect(mockMarkPublishedPageSlugsChanged).toHaveBeenCalledTimes(1);
+  });
+
+  it('tells the proxy when a page is given to someone else', async () => {
+    const forEveryone = { ...linkTarget('intern', true), content: { permissions: 'public' } };
+    const forMembers = { ...linkTarget('intern', true), content: { permissions: 'logged-in' } };
+
+    await savePage(requestReading(forEveryone, forMembers), { data: { _status: 'published' } });
+
+    expect(mockMarkPublishedPageSlugsChanged).toHaveBeenCalledTimes(1);
+  });
+
+  it('tells the proxy when a permission changes', async () => {
+    await flushPageCacheOnChange({
+      collection: permissions,
+      doc: { id: 'logged-in' },
+      req: requestReading(),
+    } as unknown as CollectionChange);
 
     expect(mockMarkPublishedPageSlugsChanged).toHaveBeenCalledTimes(1);
   });

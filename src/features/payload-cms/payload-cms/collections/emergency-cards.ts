@@ -30,7 +30,10 @@ export const EmergencyCardsCollection: CollectionConfig = asLocalizedCollection(
     },
   },
   access: {
-    read: () => true, // Anyone should be able to view emergency procedures
+    // Anyone may read the emergency procedures, but only once they are published in the locale
+    // read. A card that was never published is still a document, and the REST API would list it.
+    read: ({ req }) =>
+      hasAdminOrWebAccess({ req }) || { _localized_status: { equals: { published: true } } },
     create: hasAdminOrWebAccess,
     update: hasAdminOrWebAccess,
     delete: hasAdminOrWebAccess,

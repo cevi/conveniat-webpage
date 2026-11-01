@@ -283,7 +283,7 @@ export async function sendWeeklyReport(
       if (doublePaymentAttachment) financeAttachments.push(doublePaymentAttachment);
 
       const defaultFinanceBody =
-        'Guten Morgen\n\nAnbei die aktuelle Rechnungsübersicht für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDie detaillierten Buchungszeilen befinden sich in der angehängten Excel-Datei.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen';
+        'Guten Morgen\n\nAnbei die aktuelle Rechnungsübersicht für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDie detaillierten Buchungszeilen befinden sich in der angehängten Excel-Datei.\n\nFreundliche Grüsse\n\n{{signatur :: Ressort Finanzen}}';
 
       const subject = applyReportPlaceholders(
         config?.financeSubject ?? 'conveniat27 – Rechnungsübersicht vom {{date}}',

@@ -1,6 +1,7 @@
 'use client';
-import { PersonAvatar } from '@/components/ui/person-avatar';
+import { ChatAvatar } from '@/features/chat/components/ui/chat-avatar';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
+import { LinkPendingSpinner } from '@/features/chat/components/ui/link-pending-spinner';
 import { PersonName } from '@/features/chat/components/ui/person-name';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useLongPress } from '@/features/chat/hooks/use-long-press';
@@ -13,19 +14,7 @@ import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
-import type { LucideIcon } from 'lucide-react';
-import {
-  BellOff,
-  CalendarDays,
-  Check,
-  Clock,
-  LifeBuoy,
-  Loader2,
-  Megaphone,
-  Pin,
-  Siren,
-  Users,
-} from 'lucide-react';
+import { BellOff, Check, Clock, Pin } from 'lucide-react';
 import Link, { useLinkStatus } from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
@@ -73,70 +62,20 @@ const ChatPreviewRow: React.FC<{ children: React.ReactNode }> = ({ children }) =
   );
 };
 
-/**
- * The date of the last message, or a small spinner in its place from the tap until the chat
- * has opened, so a tap that takes a while, as it does offline, is not mistaken for one that did
- * nothing. The row itself stays still.
- */
+/** The date of the last message; a spinner takes its place while a tap takes a while. */
 const ChatTimestamp: React.FC<{ timestamp: string; className: string; locale: Locale }> = ({
   timestamp,
   className,
   locale,
-}) => {
-  const { pending } = useLinkStatus();
-  if (pending) {
-    return (
-      <span className={cn(className, 'flex items-center')}>
-        <Loader2 className="h-4 w-4 animate-spin text-green-500" aria-hidden="true" />
-        <span className="sr-only">{openingText[locale]}</span>
-      </span>
-    );
-  }
-  return <span className={className}>{timestamp}</span>;
-};
-
-/** The round picture at the start of a row: the partner, or what kind of chat it is. */
-export const ChatAvatar: React.FC<{ chat: ChatWithMessagePreview }> = ({ chat }) => {
-  if (chat.chatType === ChatType.ONE_TO_ONE) {
-    return (
-      <PersonAvatar
-        seed={chat.partner?.userId ?? chat.id}
-        name={chat.name}
-        pictureUrl={chat.partner?.pictureUrl}
-        className="h-11 w-11 text-sm"
-      />
-    );
-  }
-  if (chat.chatType === ChatType.GROUP) {
-    // a group gets its initials like a person, marked as a group by a small badge
-    return (
-      <span className="relative shrink-0">
-        <PersonAvatar seed={chat.id} name={chat.name} className="h-11 w-11 text-sm" />
-        <span className="ring-line absolute -right-0.5 -bottom-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-white ring-1">
-          <Users className="h-3 w-3 text-green-700" aria-hidden="true" />
-        </span>
-      </span>
-    );
-  }
-  if (chat.chatType === ChatType.EMERGENCY) {
-    return (
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-50 ring-2 ring-red-500">
-        <Siren className="h-5 w-5 text-red-600" aria-hidden="true" />
-      </span>
-    );
-  }
-  const icons: Partial<Record<ChatType, LucideIcon>> = {
-    [ChatType.SUPPORT_GROUP]: LifeBuoy,
-    [ChatType.ANNOUNCEMENT]: Megaphone,
-    [ChatType.COURSE_GROUP]: CalendarDays,
-  };
-  const Icon = icons[chat.chatType] ?? Users;
-  return (
-    <span className="text-conveniat-green bg-tint flex h-11 w-11 shrink-0 items-center justify-center rounded-full">
-      <Icon className="h-5 w-5" aria-hidden="true" />
-    </span>
-  );
-};
+}) => (
+  <LinkPendingSpinner
+    className={className}
+    spinnerClassName="h-4 w-4 text-green-500"
+    pendingLabel={openingText[locale]}
+  >
+    {timestamp}
+  </LinkPendingSpinner>
+);
 
 const groupCreatedText: StaticTranslationString = {
   de: 'Du hast die Gruppe erstellt',
@@ -161,7 +100,7 @@ const SentStatus: React.FC<{ status: MessageEventType; locale: Locale }> = ({ st
   } else if (status === MessageEventType.STORED) {
     icon = <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />;
   } else {
-    icon = <DoubleCheck className={status === MessageEventType.READ ? 'text-read' : ''} />;
+    icon = <DoubleCheck read={status === MessageEventType.READ} />;
   }
   return (
     <span role="img" aria-label={label} className="mr-1 inline-flex align-[-2px] text-green-500">
@@ -252,10 +191,12 @@ export const ChatPreview: React.FC<{
       href={chatDetailLink}
       // an emergency chat is the one row that may be red, so it stands out of the list
       className={cn(
-        'hover:bg-quiet focus-visible:focus-ring-inset block w-full bg-white select-none',
+        'hover:bg-quiet focus-visible:focus-row relative block w-full bg-white select-none',
         hasUnread && 'bg-tint',
-        isSelected && 'bg-quiet',
-        isEmergency && 'border-l-4 border-l-red-600 bg-red-50 hover:bg-red-100',
+        // darker than the hover, so the open chat stays told apart from the row under the mouse
+        isSelected && 'bg-chip hover:bg-chip',
+        isEmergency &&
+          'focus-visible:focus-row-danger border-l-4 border-l-red-600 bg-red-50 hover:bg-red-100',
       )}
       data-allow-red={isEmergency ? '' : undefined}
       aria-current={isSelected ? 'page' : undefined}

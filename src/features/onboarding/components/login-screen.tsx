@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/buttons/button';
 import type { StaticTranslationString } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
 import { Loader2 } from 'lucide-react';
@@ -70,15 +71,15 @@ export const LoginScreen: React.FC<{ locale: 'de' | 'fr' | 'en' }> = ({ locale }
 
   return (
     <>
-      <p className="mb-8 text-lg text-balance text-gray-700">{loginText[locale]}</p>
-      <button
+      <p className="mb-8 text-[15px] leading-normal text-balance text-green-700">
+        {loginText[locale]}
+      </p>
+      <Button
+        variant="primary"
+        size="touch"
+        className="w-full"
         onClick={handleLoginClick}
         disabled={isLoading}
-        className={`font-heading flex min-h-[52px] w-full transform items-center justify-center gap-2 rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 shadow-md duration-100 ${
-          isLoading
-            ? 'cursor-wait'
-            : 'cursor-pointer hover:scale-[1.02] hover:bg-red-800 active:scale-[0.98]'
-        }`}
       >
         {isLoading ? (
           <>
@@ -88,9 +89,9 @@ export const LoginScreen: React.FC<{ locale: 'de' | 'fr' | 'en' }> = ({ locale }
         ) : (
           loginButtonText[locale]
         )}
-      </button>
+      </Button>
       {hasError && (
-        <p className="mt-4 text-center text-sm text-red-600" role="alert">
+        <p className="text-danger-text mt-4 text-center text-[15px]" role="alert">
           {errorText[locale]}
         </p>
       )}

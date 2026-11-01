@@ -1,5 +1,6 @@
 'use client';
 
+import { ListRow } from '@/components/ui/list-row';
 import type { RealtimeConnectionStatus } from '@/features/chat/utils/realtime-connection';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
@@ -47,13 +48,12 @@ export const RealtimeSyncBanner: React.FC<RealtimeSyncBannerProperties> = ({
   if (status !== 'offline' || !isOnline) return <></>;
 
   return (
-    <button
-      type="button"
+    <ListRow
+      tone="danger"
       onClick={onReconnect}
       aria-live="polite"
       className={cn(
-        'bg-danger-soft text-danger-text flex min-h-11 w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-[13px]',
-        'border-danger-line border-y',
+        'bg-danger-soft border-danger-line min-h-11 gap-2 border-y py-2 text-[13px]',
         className,
       )}
     >
@@ -63,6 +63,6 @@ export const RealtimeSyncBanner: React.FC<RealtimeSyncBannerProperties> = ({
         <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
         {reconnectText[locale]}
       </span>
-    </button>
+    </ListRow>
   );
 };

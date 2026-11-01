@@ -44,7 +44,7 @@ export const HelpSettings: React.FC<{ locale: Locale; webBuild: WebBuild | undef
       <SettingsCard>
         <LinkComponent
           href={supportMailLink(environmentVariables.APP_SUPPORT_EMAIL, locale, userId)}
-          className="hover:bg-quiet block transition-colors"
+          className="hover:bg-quiet focus-visible:focus-row relative block transition-colors"
           hideExternalIcon
         >
           <SettingsRow

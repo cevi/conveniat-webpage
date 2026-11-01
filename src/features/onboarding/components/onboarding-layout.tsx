@@ -10,7 +10,7 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProperties> = ({ childre
   return (
     <div className="flex w-full max-w-sm flex-col items-center">
       {/* Card Section */}
-      <div className="flex min-h-[300px] w-full flex-col items-center justify-center rounded-2xl bg-white p-8 text-center shadow-lg">
+      <div className="border-line flex min-h-[300px] w-full flex-col items-center justify-center rounded-[14px] border bg-white p-8 text-center">
         <CenteredConveniatLogo />
         {children}
       </div>

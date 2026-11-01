@@ -3,6 +3,7 @@
 import { JetztSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
 import { selectJetzt } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/utils/select-jetzt';
 import { Card } from '@/components/ui/card';
+import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import { useScheduleEntries } from '@/context/schedule-entries-context';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
@@ -65,7 +66,7 @@ const LeadCard: React.FC<{
   return (
     <Link
       href={hrefOf(entry)}
-      className="border-line hover:bg-quiet block rounded-[14px] border bg-white px-4 py-3.5"
+      className="focus-visible:focus-surface border-line hover:bg-quiet block rounded-[14px] border bg-white px-4 py-3.5"
     >
       <span className="flex items-start justify-between gap-3">
         <span
@@ -132,10 +133,7 @@ const JetztContent: React.FC<{
             const slot = slotOf(entry);
             return (
               <li key={entry.id}>
-                <Link
-                  href={hrefOf(entry)}
-                  className="hover:bg-quiet flex min-h-[52px] items-center gap-3 px-4 py-2.5"
-                >
+                <ListRow href={hrefOf(entry)} className="min-h-[52px]">
                   <time className="w-12 shrink-0 text-[15px] font-bold text-green-900 tabular-nums">
                     {slot === undefined ? entry.timeslot.time : formatMinutesAsTime(slot.start)}
                   </time>
@@ -143,7 +141,7 @@ const JetztContent: React.FC<{
                     {entry.title}
                   </span>
                   <ChevronRight className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />
-                </Link>
+                </ListRow>
               </li>
             );
           })}
@@ -191,9 +189,10 @@ export const DashboardNow: React.FC<{ locale: Locale }> = ({ locale }) => {
         <SectionLabel>{programmeLabels.now[locale]}</SectionLabel>
         <Link
           href="/app/schedule"
-          className="text-conveniat-green -my-3 flex min-h-11 items-center text-[13px] font-semibold underline-offset-2 hover:underline"
+          // the target is 44px high, the focus marks only the words
+          className="text-conveniat-green group -my-3 flex min-h-11 items-center text-[13px] font-semibold underline-offset-2 hover:underline focus-visible:outline-none"
         >
-          {wholeProgramme[locale]}
+          <span className="group-focus-visible:focus-text">{wholeProgramme[locale]}</span>
         </Link>
       </div>
       {scheduleEntries === undefined && localEntries.length === 0 ? (

@@ -24,7 +24,7 @@ export const ChatDetailsHeader: React.FC<{ chatId: string; locale: Locale }> = (
     <Link
       href={`/app/chat/${chatId}`}
       aria-label={backText[locale]}
-      className="hover:bg-quiet flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900"
+      className="focus-visible:focus-surface hover:bg-quiet flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900"
     >
       <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
     </Link>

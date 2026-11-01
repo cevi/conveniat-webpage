@@ -845,6 +845,118 @@ const formHofSelectionBlock: Block = {
   labels: { plural: 'Hof Selection Blocks', singular: 'Hof Selection' },
 };
 
+/**
+ * The Hof whose relatives register for the Besuchstag. The day follows from the Hof's Quartier,
+ * set in the Besuchstag global, and the field shows the places that day has left.
+ */
+const formVisitDaySelectionBlock: Block = {
+  slug: 'visitDaySelection',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Visiting Day Hof',
+            de: 'Besuchstag Hof',
+            fr: 'Hof de la journée des visites',
+          },
+        },
+      },
+    },
+  },
+  fields: [
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
+          required: true,
+          admin: { width: '50%' },
+        },
+        {
+          name: 'label',
+          required: true,
+          type: 'text',
+          label: 'Label',
+          localized: true,
+          admin: { width: '50%' },
+        },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'personCountField',
+          type: 'text',
+          label: {
+            en: 'Field with the number of persons',
+            de: 'Feld mit der Anzahl Personen',
+            fr: 'Champ du nombre de personnes',
+          },
+          validate: formNameValidation,
+          required: true,
+          admin: {
+            width: '50%',
+            description: {
+              en: 'The name of the field asking how many persons come, e.g. "anzahl_personen". Each takes one place.',
+              de: 'Der Name des Felds, das nach der Anzahl Personen fragt, z.B. "anzahl_personen". Jede belegt einen Platz.',
+              fr: 'Le nom du champ qui demande le nombre de personnes, p. ex. « anzahl_personen ». Chacune occupe une place.',
+            },
+          },
+        },
+        {
+          name: 'dayField',
+          type: 'text',
+          label: {
+            en: 'Answer with the day',
+            de: 'Antwort mit dem Tag',
+            fr: 'Réponse avec le jour',
+          },
+          validate: formNameValidation,
+          required: true,
+          defaultValue: 'besuchstag',
+          admin: {
+            width: '50%',
+            description: {
+              en: 'The day is stored under this name, so an email can name it, e.g. {{besuchstag}}.',
+              de: 'Der Tag wird unter diesem Namen gespeichert, damit ihn eine E-Mail nennen kann, z.B. {{besuchstag}}.',
+              fr: 'Le jour est enregistré sous ce nom, pour qu’un e-mail puisse le citer, p. ex. {{besuchstag}}.',
+            },
+          },
+        },
+      ],
+    },
+    {
+      name: 'registrationNumberField',
+      type: 'text',
+      label: {
+        en: 'Answer with the registration number',
+        de: 'Antwort mit der Anmeldenummer',
+        fr: 'Réponse avec le numéro d’inscription',
+      },
+      validate: formNameValidation,
+      required: true,
+      defaultValue: 'anmeldenummer',
+      admin: {
+        width: '50%',
+        description: {
+          en: 'Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter. Stored under this name for the email, e.g. {{anmeldenummer}}.',
+          de: 'Jede Anmeldung erhält eine Nummer wie 5321-B007: der Cevi.DB-Anlass des Hofs und sein Zähler. Unter diesem Namen gespeichert für die E-Mail, z.B. {{anmeldenummer}}.',
+          fr: 'Chaque inscription reçoit un numéro comme 5321-B007 : l’événement Cevi.DB du Hof et son compteur. Enregistré sous ce nom pour l’e-mail, p. ex. {{anmeldenummer}}.',
+        },
+      },
+    },
+    { name: 'required', type: 'checkbox', label: 'Required', defaultValue: true },
+    placementField(),
+  ],
+  labels: { plural: 'Visiting Day Hof Blocks', singular: 'Visiting Day Hof' },
+};
+
 const formDateSlotSelectionBlock: Block = {
   slug: 'dateSlotSelection',
   admin: {
@@ -1246,6 +1358,7 @@ const formBlocks: Block[] = [
   formCeviDatabaseLoginBlock,
   formJobSelectionBlock,
   formHofSelectionBlock,
+  formVisitDaySelectionBlock,
   formDateSlotSelectionBlock,
   formFileUploadBlock,
   formMaterialListBlock,
@@ -1254,13 +1367,20 @@ const formBlocks: Block[] = [
 /** Fields that only mean something on the Hof dashboard. */
 const HOF_DASHBOARD_BLOCK_SLUGS = new Set([formHofSelectionBlock.slug, formMaterialListBlock.slug]);
 
-/** The form fields an editor is offered: the Hof dashboard's own only where it is on. */
-const formBlockOptions: NonNullable<BlocksField['filterOptions']> = () =>
-  environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD
-    ? true
-    : [...formBlocks, conditionedBlock]
-        .map((block) => block.slug)
-        .filter((slug) => !HOF_DASHBOARD_BLOCK_SLUGS.has(slug));
+/**
+ * The form fields an editor is offered: the Hof dashboard's own and the Besuchstag's only where
+ * they are on.
+ */
+const formBlockOptions: NonNullable<BlocksField['filterOptions']> = () => {
+  const hidden = new Set<string>([
+    ...(environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD ? [] : HOF_DASHBOARD_BLOCK_SLUGS),
+    ...(environmentVariables.FEATURE_ENABLE_VISIT_DAY ? [] : [formVisitDaySelectionBlock.slug]),
+  ]);
+  if (hidden.size === 0) return true;
+  return [...formBlocks, conditionedBlock]
+    .map((block) => block.slug)
+    .filter((slug) => !hidden.has(slug));
+};
 
 const conditionedBlock: Block = {
   slug: 'conditionedBlock',

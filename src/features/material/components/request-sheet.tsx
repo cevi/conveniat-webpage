@@ -251,7 +251,7 @@ export const RequestSheet: React.FC<{
                   aria-label={`${labels.remove[locale]}: ${name}`}
                   onClick={() => onLinesChange(lines.filter((entry) => entry !== line))}
                   className={cn(
-                    'hover:bg-quiet flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-500 hover:text-green-900',
+                    'focus-visible:focus-surface hover:bg-quiet flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-500 hover:text-green-900',
                   )}
                 >
                   <Trash2 className="size-4" aria-hidden />

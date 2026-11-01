@@ -92,13 +92,10 @@ const AlertDialogDescription = React.forwardRef<
 AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayName;
 
 /**
- * What sets a destructive button apart from an ordinary `outlined` one: red. For the confirm in a
- * dialog and for the button that opens it.
+ * A destructive button, `outlined` in red: for the confirm in a dialog and for the button that
+ * opens it.
  */
-export const destructiveButtonClassName = cn(
-  buttonVariants({ variant: 'outlined', size: 'touch' }),
-  'border-danger-line text-danger-text hover:bg-danger-soft',
-);
+export const destructiveButtonClassName = buttonVariants({ variant: 'danger', size: 'touch' });
 
 /**
  * The confirming button: `primary` by default. A confirm that destroys something, like leaving

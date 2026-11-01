@@ -89,8 +89,8 @@ const useFocusMenuSection = (
 
 /**
  * The opened menu: every column side by side, in the order the editors gave them, and the entries
- * without entries below them collected in a last column. Opened from a pinned entry, that entry's
- * column is marked. In the app, the app's features come first.
+ * without entries below them collected in a last column. Opened from a pinned entry, the focus
+ * moves into that entry's column. In the app, the app's features come first.
  */
 const MenuPanel: React.FC<{
   id: string;
@@ -124,7 +124,7 @@ const MenuPanel: React.FC<{
       id={id}
       ref={panelReference}
       onClick={onLinkClick}
-      className="animate-in fade-in-0 slide-in-from-top-1 border-line fixed top-[calc(4rem+var(--preview-banner-height))] right-0 left-0 z-50 max-h-[calc(100dvh-4rem-var(--preview-banner-height))] overflow-y-auto border-b-2 bg-white duration-150"
+      className="animate-in fade-in-0 slide-in-from-top-1 border-line fixed top-[calc(4rem+var(--app-top-inset))] right-0 left-0 z-50 max-h-[calc(100dvh-4rem-var(--app-top-inset))] overflow-y-auto border-b-2 bg-white duration-150"
     >
       <div className="mx-auto grid max-w-7xl grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-x-6 gap-y-8 px-12 py-10">
         {appFeatures !== undefined && (
@@ -139,10 +139,7 @@ const MenuPanel: React.FC<{
             key={item.id}
             data-menu-section={item.id}
             aria-label={item.label}
-            className={cn(
-              '-m-3 rounded-[14px] p-3 transition-colors',
-              highlightedId === item.id && 'bg-tint',
-            )}
+            className="-m-3 p-3"
           >
             <MenuEntryLabel
               node={item}
@@ -471,7 +468,7 @@ export const DesktopNav: React.FC<{
           <div
             aria-hidden
             onClick={closeMenu}
-            className="animate-in fade-in-0 fixed inset-x-0 top-[calc(4rem+var(--preview-banner-height))] z-40 h-dvh bg-gray-950/30"
+            className="animate-in fade-in-0 fixed inset-x-0 top-[calc(4rem+var(--app-top-inset))] z-40 h-dvh bg-gray-950/30"
           />
           {/* the app's links mark the open page with it */}
           <CurrentMenuPathContext value={pathname}>

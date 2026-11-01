@@ -192,7 +192,9 @@ export interface Config {
     'app-feature-flags': AppFeatureFlag;
     'bill-settings': BillSetting;
     'hof-dashboard-settings': HofDashboardSetting;
+    'visit-day': VisitDaySetting;
     'registration-management': RegistrationManagement;
+    'email-signature': EmailSignatureSetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
@@ -210,7 +212,9 @@ export interface Config {
     'app-feature-flags': AppFeatureFlagsSelect<false> | AppFeatureFlagsSelect<true>;
     'bill-settings': BillSettingsSelect<false> | BillSettingsSelect<true>;
     'hof-dashboard-settings': HofDashboardSettingsSelect<false> | HofDashboardSettingsSelect<true>;
+    'visit-day': VisitDaySelect<false> | VisitDaySelect<true>;
     'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
+    'email-signature': EmailSignatureSelect<false> | EmailSignatureSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
@@ -241,6 +245,7 @@ export interface Config {
       runDailyBilling: TaskRunDailyBilling;
       writeBackPayments: TaskWriteBackPayments;
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
+      refreshUserHoefe: TaskRefreshUserHoefe;
       syncFunktionen: TaskSyncFunktionen;
       autoCheckoutPresence: TaskAutoCheckoutPresence;
       sendScheduleReminders: TaskSendScheduleReminders;
@@ -1563,6 +1568,30 @@ export interface Form {
                 name: string;
                 label: string;
                 /**
+                 * The name of the field asking how many persons come, e.g. "anzahl_personen". Each takes one place.
+                 */
+                personCountField: string;
+                /**
+                 * The day is stored under this name, so an email can name it, e.g. {{besuchstag}}.
+                 */
+                dayField: string;
+                /**
+                 * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter. Stored under this name for the email, e.g. {{anmeldenummer}}.
+                 */
+                registrationNumberField: string;
+                required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'visitDaySelection';
+              }
+            | {
+                name: string;
+                label: string;
+                /**
                  * First day a helper can mark.
                  */
                 startDate: string;
@@ -1890,6 +1919,30 @@ export interface Form {
                           name: string;
                           label: string;
                           /**
+                           * The name of the field asking how many persons come, e.g. "anzahl_personen". Each takes one place.
+                           */
+                          personCountField: string;
+                          /**
+                           * The day is stored under this name, so an email can name it, e.g. {{besuchstag}}.
+                           */
+                          dayField: string;
+                          /**
+                           * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter. Stored under this name for the email, e.g. {{anmeldenummer}}.
+                           */
+                          registrationNumberField: string;
+                          required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'visitDaySelection';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          /**
                            * First day a helper can mark.
                            */
                           startDate: string;
@@ -2002,7 +2055,7 @@ export interface Form {
     url: string;
   };
   /**
-   * Send custom emails when the form submits. Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data, {{*:table}} to format it as an HTML table in the email, and {{approval-link}} (or {{approval-link :: Link Text}}) to insert an approval link for the submission.
+   * Send custom emails when the form submits. Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data, {{*:table}} to format it as an HTML table in the email, and {{approval-link}} (or {{approval-link :: Link Text}}) to insert an approval link for the submission. {{signatur}} (or {{signatur :: Ressort Programm}}) ends the email with the official signature.
    */
   emails?:
     | {
@@ -2045,7 +2098,7 @@ export interface Form {
       }[]
     | null;
   /**
-   * Send custom emails when a form submission is approved (set to Freigegeben). Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email.
+   * Send custom emails when a form submission is approved (set to Freigegeben). Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email. {{signatur}} (or {{signatur :: Ressort Programm}}) ends the email with the official signature.
    */
   approvalEmails?:
     | {
@@ -4890,6 +4943,7 @@ export interface PayloadJob {
           | 'runDailyBilling'
           | 'writeBackPayments'
           | 'cleanupTemporaryFormFiles'
+          | 'refreshUserHoefe'
           | 'syncFunktionen'
           | 'autoCheckoutPresence'
           | 'sendScheduleReminders'
@@ -4947,6 +5001,7 @@ export interface PayloadJob {
         | 'runDailyBilling'
         | 'writeBackPayments'
         | 'cleanupTemporaryFormFiles'
+        | 'refreshUserHoefe'
         | 'syncFunktionen'
         | 'autoCheckoutPresence'
         | 'sendScheduleReminders'
@@ -7244,6 +7299,19 @@ export interface FormsSelect<T extends boolean = true> {
                           id?: T;
                           blockName?: T;
                         };
+                    visitDaySelection?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          personCountField?: T;
+                          dayField?: T;
+                          registrationNumberField?: T;
+                          required?: T;
+                          placement?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
                     dateSlotSelection?:
                       | T
                       | {
@@ -7450,6 +7518,19 @@ export interface FormsSelect<T extends boolean = true> {
                                   | {
                                       name?: T;
                                       label?: T;
+                                      required?: T;
+                                      placement?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                visitDaySelection?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      personCountField?: T;
+                                      dayField?: T;
+                                      registrationNumberField?: T;
                                       required?: T;
                                       placement?: T;
                                       id?: T;
@@ -8848,6 +8929,35 @@ export interface HofDashboardSetting {
   createdAt?: string | null;
 }
 /**
+ * The days relatives may visit, the places per day and the Höfe the registration offers. The registration form picks the day from the Quartier of the Hof chosen.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visit-day".
+ */
+export interface VisitDaySetting {
+  id: string;
+  days?:
+    | {
+        date: string;
+        /**
+         * Every person registered takes one place, children included.
+         */
+        capacity: number;
+        /**
+         * The relatives of the Höfe in these Quartiere visit on this day.
+         */
+        quartiere: (string | Quartier)[];
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Not offered in the registration, e.g. a Hof for testing. A Hof without a Quartier is never offered.
+   */
+  hiddenHoefe?: (string | Hof)[] | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "registration-management".
  */
@@ -8857,6 +8967,24 @@ export interface RegistrationManagement {
    * Session cookie of a signed-in Cevi.DB browser. Highly sensitive, write-only: the value is never shown after saving. Sign in with "Remember me" ticked and paste the whole Cookie header, including remember_person_token. The app uses the session every ten minutes to keep it alive, but signing out of Cevi.DB in that browser ends it for good. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.
    */
   browserCookie?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Write {{signatur}} in an email to end it with this signature, or {{signatur :: Ressort Finanzen}} to add a line under the name. Works in the emails of the forms and in the billing texts. A field left empty uses the official value.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-signature".
+ */
+export interface EmailSignatureSetting {
+  id: string;
+  name?: string | null;
+  /**
+   * Only in the emails, never on the website.
+   */
+  whatsapp?: string | null;
+  email?: string | null;
+  website?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -9409,10 +9537,41 @@ export interface HofDashboardSettingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visit-day_select".
+ */
+export interface VisitDaySelect<T extends boolean = true> {
+  days?:
+    | T
+    | {
+        date?: T;
+        capacity?: T;
+        quartiere?: T;
+        id?: T;
+      };
+  hiddenHoefe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "registration-management_select".
  */
 export interface RegistrationManagementSelect<T extends boolean = true> {
   browserCookie?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-signature_select".
+ */
+export interface EmailSignatureSelect<T extends boolean = true> {
+  name?: T;
+  whatsapp?: T;
+  email?: T;
+  website?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -9633,6 +9792,14 @@ export interface TaskWriteBackPayments {
  * via the `definition` "TaskCleanupTemporaryFormFiles".
  */
 export interface TaskCleanupTemporaryFormFiles {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskRefreshUserHoefe".
+ */
+export interface TaskRefreshUserHoefe {
   input?: unknown;
   output?: unknown;
 }

@@ -40,10 +40,10 @@ export const ChatFilterChips: React.FC<{
         >
           <span
             className={cn(
-              'group-focus-visible:focus-ring flex h-8 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold',
+              'flex h-8 items-center gap-1.5 rounded-full border px-3.5 text-sm font-semibold',
               isChosen
-                ? 'bg-conveniat-green border-transparent text-white'
-                : 'border-rail group-hover:bg-quiet bg-white text-green-900',
+                ? 'bg-conveniat-green group-focus-visible:focus-surface-filled-tight border-transparent text-white'
+                : 'border-rail group-hover:bg-quiet group-focus-visible:focus-surface-tight bg-white text-green-900',
             )}
           >
             {labels[filter][locale]}

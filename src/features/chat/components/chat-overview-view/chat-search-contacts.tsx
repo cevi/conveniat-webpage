@@ -1,7 +1,9 @@
 'use client';
 
+import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import {
+  chatListBleedClassName,
   contactListName,
   ContactRowContent,
   contactRowItemClassName,
@@ -65,12 +67,7 @@ export const ChatSearchContacts: React.FC<{
   if ((hasFoundChats || !isLoading) && matches.length === 0) return fallback;
 
   return (
-    <div
-      className={cn(
-        '-mx-4 bg-white sm:mx-0',
-        hasFoundChats ? 'border-quiet border-t-8' : 'border-line border-t',
-      )}
-    >
+    <div className={cn(chatListBleedClassName, 'border-line border-t bg-white')}>
       {!hasFoundChats && (
         <p className="bg-quiet flex min-h-10 items-center gap-2 px-4 py-2 text-[13px] text-green-700">
           <MessageSquare className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -98,13 +95,12 @@ export const ChatSearchContacts: React.FC<{
             <ul>
               {matches.map((contact) => (
                 <li key={contact.userId} className={contactRowItemClassName}>
-                  <button
-                    type="button"
+                  <ListRow
                     onClick={() => openChatWith(contact)}
                     aria-busy={openingUserId === contact.userId}
                     // one chat opens at a time; the row that opens shows a spinner and stays still
                     disabled={openingUserId !== undefined && openingUserId !== contact.userId}
-                    className="hover:bg-quiet focus-visible:focus-ring-inset flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left disabled:cursor-default"
+                    className="min-h-16 disabled:cursor-default disabled:opacity-100"
                   >
                     <ContactRowContent contact={contact} />
                     {openingUserId === contact.userId ? (
@@ -114,11 +110,12 @@ export const ChatSearchContacts: React.FC<{
                       />
                     ) : (
                       <MessageSquarePlus
-                        className="text-conveniat-green h-5 w-5 shrink-0"
+                        // quiet: the green button over the list is the view's one primary action
+                        className="h-5 w-5 shrink-0 text-green-500"
                         aria-hidden="true"
                       />
                     )}
-                  </button>
+                  </ListRow>
                 </li>
               ))}
             </ul>

@@ -21,12 +21,6 @@ jest.mock('next/link', () => ({
   ),
 }));
 
-jest.mock('@/features/schedule/hooks/use-scroll-restoration', () => ({
-  useScrollRestoration: (): { saveScrollPosition: jest.Mock } => ({
-    saveScrollPosition: jest.fn(),
-  }),
-}));
-
 const setReminder = jest.fn();
 let isReminderOn = false;
 jest.mock('@/features/schedule/hooks/use-reminder', () => ({
