@@ -73,14 +73,17 @@ export const AppShell: React.FC<AppShellProperties> = ({
                     that sticks right below it. --app-content-top and --app-content-left are the
                     corner of the free area under the header and right of the side panel, for
                     anything positioned with `fixed`: side-nav has a panel, the app in top-nav its
-                    rail of tabs, and the top-nav header grows on wide screens. All three include the
-                    preview banner above the header. --app-tab-bar-height is the room the app's
-                    tab bar takes at the bottom, none once it is the rail. */}
+                    rail of tabs, and the top-nav header grows on wide screens. All three include
+                    --app-top-inset, the status bar and the preview banner above the header.
+                    --app-tab-bar-height is the room the app's tab bar takes at the bottom, none
+                    once it is the rail. The wrapper itself starts
+                    at --app-content-top too: the top-nav header is sized in rem, taller than 62px
+                    and taller still with a larger browser font. */}
                   <div
                     className={cn(
-                      'wco-content-wrapper mt-[calc(62px+var(--preview-banner-height))] h-[calc(100dvh-62px-var(--preview-banner-height))] [--app-content-left:0px] [--app-content-top:calc(62px+var(--preview-banner-height))] [--app-header-height:calc(60px+var(--preview-banner-height))] [--app-tab-bar-height:5rem]',
+                      'wco-content-wrapper mt-(--app-content-top) h-[calc(100dvh-var(--app-content-top))] [--app-content-left:0px] [--app-content-top:calc(62px+var(--app-top-inset))] [--app-header-height:calc(60px+var(--app-top-inset))] [--app-tab-bar-height:5rem]',
                       isTopNavMode
-                        ? 'xl:[--app-content-top:calc(4rem+2px+var(--preview-banner-height))] xl:[--app-header-height:calc(4rem+var(--preview-banner-height))]'
+                        ? 'xl:[--app-content-top:calc(4rem+2px+var(--app-top-inset))] xl:[--app-header-height:calc(4rem+var(--app-top-inset))]'
                         : 'xl:ml-[480px] xl:[--app-content-left:480px]',
                       isTopNavMode &&
                         inAppDesign &&

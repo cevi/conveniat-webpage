@@ -184,6 +184,31 @@ describe('isDescriptionRedundant', () => {
       false,
     );
   });
+
+  it('keeps a description that only repeats the title but holds a video', () => {
+    const withVideo = {
+      root: {
+        type: 'root',
+        version: 1,
+        children: [
+          {
+            type: 'paragraph',
+            version: 1,
+            children: [{ type: 'text', version: 1, text: 'Spiel' }],
+          },
+          {
+            type: 'block',
+            version: 2,
+            fields: {
+              blockType: 'youtubeEmbed',
+              links: [{ link: 'https://youtu.be/abcdefghijk' }],
+            },
+          },
+        ],
+      },
+    };
+    expect(isDescriptionRedundant(withVideo, 'Spiel')).toBe(false);
+  });
 });
 
 describe('findWhatComesNext', () => {

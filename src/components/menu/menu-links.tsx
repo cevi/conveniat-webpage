@@ -115,7 +115,7 @@ export const MenuLinks: React.FC<{
               depth === 3 && 'text-[15px] font-medium text-green-700',
               depth > 3 && 'text-[14px] font-medium text-green-500',
               node.hasLink && 'hover:bg-tint',
-              current && 'bg-conveniat-green hover:bg-conveniat-green text-white',
+              current && 'bg-tint text-heading',
             )}
           />
         </li>

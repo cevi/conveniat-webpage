@@ -180,7 +180,7 @@ const ReturnLine: React.FC<{
           onClick={onShowLabel}
           aria-label={`${text.loanLabel[locale]} #${loan.number}`}
           className={cn(
-            'hover:bg-quiet flex h-11 shrink-0 cursor-pointer items-center gap-1 rounded-lg px-2 text-xs text-green-500 tabular-nums',
+            'focus-visible:focus-surface hover:bg-quiet flex h-11 shrink-0 cursor-pointer items-center gap-1 rounded-lg px-2 text-xs text-green-500 tabular-nums',
           )}
         >
           <QrCode className="size-4" aria-hidden />#{loan.number}

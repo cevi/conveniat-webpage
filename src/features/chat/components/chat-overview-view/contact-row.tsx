@@ -127,12 +127,19 @@ export const ChosenPeople: React.FC<{
   </div>
 );
 
+/**
+ * The edges of the chat list and of the contacts under it: out to the screen on a phone, in the
+ * centred column from `sm`, and out to the panel's edges again on a desktop, so the rows of both
+ * line up and their hover reaches the same edges.
+ */
+export const chatListBleedClassName = '-mx-4 sm:mx-0 xl:-mx-4';
+
 /** The row of a contact list; the line between rows starts at the text, as on the chat list. */
 export const contactRowItemClassName =
   'after:bg-line relative after:absolute after:right-0 after:bottom-0 after:left-[72px] after:h-px last:after:hidden';
 
 const backButtonClassName =
-  'hover:bg-quiet flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900';
+  'focus-visible:focus-surface hover:bg-quiet flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900';
 
 /**
  * The full-screen frame of starting a chat: a back arrow, the title with an optional line
@@ -162,7 +169,7 @@ export const NewChatFrame: React.FC<{
   onWhite = false,
   children,
 }) => (
-  <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
+  <div className="bg-page fixed top-(--app-top-inset) z-[110] flex h-[calc(100dvh-var(--app-top-inset))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
     <AppFooterController hideAppFooter />
 
     <div className="border-line shrink-0 border-b bg-white">

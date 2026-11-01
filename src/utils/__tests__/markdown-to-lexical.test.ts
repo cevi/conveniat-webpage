@@ -169,6 +169,39 @@ describe('convertMarkdownToLexical', () => {
     expect(convertLexicalToMarkdown(convertMarkdownToLexical(markdown))).toBe(markdown);
   });
 
+  it('keeps a video through an edit, as its link on a line of its own', () => {
+    const markdown =
+      'Schaut das Video vor dem Spiel.\n\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ';
+    const state = convertMarkdownToLexical(markdown);
+
+    expect(state.root.children[1]).toMatchObject({
+      type: 'block',
+      fields: {
+        blockType: 'youtubeEmbed',
+        links: [{ link: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }],
+      },
+    });
+    expect(convertLexicalToMarkdown(state)).toBe(markdown);
+  });
+
+  it('puts consecutive video links in one block and leaves a link inside text as text', () => {
+    const state = convertMarkdownToLexical(
+      'https://youtu.be/dQw4w9WgXcQ\nhttps://youtube.com/shorts/abcdefghijk\nSiehe https://youtu.be/dQw4w9WgXcQ',
+    );
+
+    expect(state.root.children).toHaveLength(2);
+    expect(state.root.children[0]).toMatchObject({
+      type: 'block',
+      fields: {
+        links: [
+          { link: 'https://youtu.be/dQw4w9WgXcQ' },
+          { link: 'https://youtube.com/shorts/abcdefghijk' },
+        ],
+      },
+    });
+    expect(state.root.children[1]).toMatchObject({ type: 'paragraph' });
+  });
+
   it('produces an empty document for an empty string', () => {
     expect(convertLexicalToMarkdown(convertMarkdownToLexical(''))).toBe('');
   });

@@ -1,6 +1,7 @@
 'use client';
 import { EmptyState } from '@/components/ui/empty-state';
 import { IconTile } from '@/components/ui/icon-tile';
+import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import {
   contactListName,
@@ -23,7 +24,6 @@ import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Loader2, QrCode, UserPlus, Users } from 'lucide-react';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type React from 'react';
 import { useEffect, useState } from 'react';
@@ -50,8 +50,7 @@ const text = {
 } satisfies Record<string, StaticTranslationString>;
 
 /** An action at the head of the list: an icon tile and its label, 56px high. */
-const actionRowClassName =
-  'hover:bg-quiet flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2 text-left text-[15px] font-semibold text-green-900 focus-visible:focus-ring-inset';
+const actionRowClassName = 'py-2 text-[15px] font-semibold text-green-900';
 
 /**
  * Starting a chat: a new group, scanning someone's code, or one of the contacts, listed by
@@ -109,21 +108,16 @@ export const CreateNewChatPage: React.FC = () => {
       {!isSearching && (
         <ul className="border-quiet border-b-8 bg-white">
           <li>
-            <Link href="/app/chat/new/group" className={actionRowClassName}>
+            <ListRow href="/app/chat/new/group" className={actionRowClassName}>
               <IconTile icon={UserPlus} />
               {text.newGroup[locale]}
-            </Link>
+            </ListRow>
           </li>
           <li>
-            <button
-              type="button"
-              onClick={openScanner}
-              aria-haspopup="dialog"
-              className={actionRowClassName}
-            >
+            <ListRow onClick={openScanner} aria-haspopup="dialog" className={actionRowClassName}>
               <IconTile icon={QrCode} />
               {text.scanCode[locale]}
-            </button>
+            </ListRow>
           </li>
         </ul>
       )}
@@ -168,13 +162,12 @@ export const CreateNewChatPage: React.FC = () => {
               <ul>
                 {contacts.map((contact) => (
                   <li key={contact.userId} className={contactRowItemClassName}>
-                    <button
-                      type="button"
+                    <ListRow
                       onClick={() => openChatWith(contact)}
                       aria-busy={openingUserId === contact.userId}
                       // one chat opens at a time; the row that opens shows a spinner and stays still
                       disabled={openingUserId !== undefined && openingUserId !== contact.userId}
-                      className="hover:bg-quiet focus-visible:focus-ring-inset flex min-h-16 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left disabled:cursor-default"
+                      className="min-h-16 disabled:cursor-default disabled:opacity-100"
                     >
                       <ContactRowContent contact={contact} />
                       {openingUserId === contact.userId && (
@@ -183,7 +176,7 @@ export const CreateNewChatPage: React.FC = () => {
                           aria-hidden="true"
                         />
                       )}
-                    </button>
+                    </ListRow>
                   </li>
                 ))}
               </ul>

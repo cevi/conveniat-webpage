@@ -9,6 +9,9 @@ import { z } from 'zod';
 
 const logger = createLogger('native-push:router');
 
+/** After a month without renewal Firebase considers a registration token stale. */
+const PHONE_TOKEN_STALE_MS = 30 * 24 * 60 * 60 * 1000;
+
 export const nativePushRouter = createTRPCRouter({
   registerDevice: trpcBaseProcedure
     .input(
@@ -285,6 +288,37 @@ export const nativePushRouter = createTRPCRouter({
       });
       return { success: true };
     }),
+
+  /**
+   * Whether a phone of the signed-in user takes push through the native app. Nothing is sent to
+   * find out: the app registers its token again on every launch and resume, which renews
+   * `lastUsedAt`, and a send that meets an uninstalled app deletes the row. A token the app has
+   * not renewed for a month counts as gone, the age Firebase itself calls stale.
+   */
+  getPhonePushStatus: trpcBaseProcedure.query(async ({ ctx }) => {
+    const payload = await getPayload({ config });
+    const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
+    if (!payloadUser) return { hasActivePhone: false };
+
+    const { totalDocs } = await payload.count({
+      collection: 'push-notification-subscriptions',
+      where: {
+        and: [
+          { user: { equals: payloadUser.id } },
+          { platform: { in: ['ios', 'android'] } },
+          {
+            lastUsedAt: { greater_than: new Date(Date.now() - PHONE_TOKEN_STALE_MS).toISOString() },
+          },
+        ],
+      },
+    });
+
+    logger.debug('Phone push status read', {
+      'user.id': payloadUser.id,
+      'device.count': totalDocs,
+    });
+    return { hasActivePhone: totalDocs > 0 };
+  }),
 
   sendWebPushNotification: trpcAdminProcedure
     .input(

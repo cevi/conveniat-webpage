@@ -28,6 +28,15 @@ jest.mock('@/features/payload-cms/payload-cms/utils/link-field-logic', () => ({
 jest.mock('@/features/payload-cms/payload-cms/collections/camp-map-collection', () => ({
   mapAnnotationDescriptionLexicalEditorSettings: {},
 }));
+jest.mock('@/features/payload-cms/payload-cms/plugins/lexical-editor', () => ({
+  minimalEditorFeatures: [],
+}));
+jest.mock('@payloadcms/richtext-lexical', () => ({
+  BlocksFeature: jest.fn(),
+  defaultEditorLexicalConfig: {},
+  HeadingFeature: jest.fn(),
+  lexicalEditor: jest.fn(),
+}));
 jest.mock('@/features/payload-cms/payload-cms/endpoints/course-organiser-export', () => ({}));
 jest.mock('@/features/payload-cms/payload-cms/endpoints/course-participants-export', () => ({}));
 jest.mock('@/features/payload-cms/payload-cms/endpoints/course-participants-manager', () => ({}));

@@ -3,6 +3,7 @@
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { fitToVisualViewport } from '@/utils/fit-to-visual-viewport';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import type { PanInfo } from 'framer-motion';
 import { motion, useDragControls, useReducedMotion } from 'framer-motion';
@@ -61,6 +62,9 @@ export const BottomSheet: React.FC<{
   // Radix hands focus back to a Dialog.Trigger only, and these sheets open from a long press, a
   // row's button or a key, so the sheet remembers what had focus itself
   const openerReference = useRef<HTMLElement | undefined>(undefined);
+  // whether the last input before the sheet closed was a finger or a mouse rather than a key:
+  // after typing in the sheet's search, Chromium would otherwise ring the opener after a tap
+  const closedByPointerReference = useRef(false);
 
   const onDragEnd = (_: unknown, info: PanInfo): void => {
     if (info.offset.y > CLOSE_OFFSET || info.velocity.y > CLOSE_VELOCITY) onOpenChange(false);
@@ -75,6 +79,7 @@ export const BottomSheet: React.FC<{
           // the title names the sheet; a description is read with it where there is one
           {...(description === undefined ? { 'aria-describedby': undefined } : {})}
           onOpenAutoFocus={() => {
+            closedByPointerReference.current = false;
             const opener = document.activeElement;
             openerReference.current =
               opener instanceof HTMLElement && opener !== document.body ? opener : undefined;
@@ -83,11 +88,28 @@ export const BottomSheet: React.FC<{
             const opener = openerReference.current;
             if (opener?.isConnected !== true) return;
             event.preventDefault();
-            opener.focus({ preventScroll: true });
+            // `focusVisible` is not in TypeScript's DOM types yet; a browser without it ignores it
+            const options: FocusOptions & { focusVisible: boolean } = {
+              preventScroll: true,
+              focusVisible: !closedByPointerReference.current,
+            };
+            opener.focus(options);
+          }}
+          onPointerDownOutside={() => {
+            closedByPointerReference.current = true;
+          }}
+          onPointerDownCapture={() => {
+            closedByPointerReference.current = true;
+          }}
+          onKeyDownCapture={() => {
+            closedByPointerReference.current = false;
           }}
         >
           <motion.div
-            className="fixed inset-x-0 bottom-0 z-[201] mx-auto flex max-h-[90dvh] w-full max-w-xl flex-col rounded-t-[24px] bg-white pb-[env(safe-area-inset-bottom)] focus:outline-none"
+            // the keyboard only shrinks the visual viewport, so the sheet follows it rather than
+            // the bottom of the page, which stays behind the keyboard with its search and button
+            ref={fitToVisualViewport}
+            className="fixed inset-x-0 bottom-[var(--visual-viewport-bottom,0px)] z-[201] mx-auto flex max-h-[calc(var(--visual-viewport-height,100dvh)*0.9)] w-full max-w-xl flex-col rounded-t-[24px] bg-white pb-[env(safe-area-inset-bottom)] focus:outline-none"
             initial={reduceMotion ? false : { y: '100%' }}
             animate={{ y: 0 }}
             transition={{ type: 'tween', duration: reduceMotion ? 0 : 0.24, ease: 'easeOut' }}
@@ -130,7 +152,7 @@ export const BottomSheet: React.FC<{
                   {showClose && (
                     <DialogPrimitive.Close
                       aria-label={closeLabel[locale]}
-                      className="bg-quiet hover:bg-chip flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900 transition-colors"
+                      className="focus-visible:focus-surface bg-quiet hover:bg-chip flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900 transition-colors"
                     >
                       <X className="h-5 w-5" aria-hidden="true" />
                     </DialogPrimitive.Close>

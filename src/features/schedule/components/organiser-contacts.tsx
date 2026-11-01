@@ -56,7 +56,7 @@ export const OrganiserContacts: React.FC<{
               {/* at least 44px high, like every other control on the page */}
               <ChatLinkButton
                 userId={organiser.id}
-                className="border-rail hover:bg-quiet h-11 shrink-0 rounded-xl bg-white px-4 text-[15px] font-semibold text-green-900 shadow-none hover:text-green-900"
+                className="focus-visible:focus-surface border-rail hover:bg-quiet h-11 shrink-0 rounded-xl bg-white px-4 text-[15px] font-semibold text-green-900 shadow-none hover:text-green-900"
               />
             </li>
           );

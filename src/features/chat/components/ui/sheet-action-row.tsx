@@ -1,10 +1,9 @@
+import { ListRow } from '@/components/ui/list-row';
 import { cn } from '@/utils/tailwindcss-override';
 import type { LucideIcon } from 'lucide-react';
-import Link from 'next/link';
 import type React from 'react';
 
-const rowClassName =
-  'focus-visible:focus-ring-inset flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-[12px] px-3 text-left text-[15px] font-medium';
+const rowClassName = 'min-h-12 rounded-[12px] px-3 py-0 text-[15px] font-medium';
 
 /**
  * One action in a sheet of actions on a chat, a message or a member: an icon and what it does,
@@ -37,10 +36,11 @@ export const SheetActionRow: React.FC<{
 }) => {
   const className = cn(
     rowClassName,
-    destructive ? 'text-danger-text hover:bg-danger-soft' : 'hover:bg-quiet text-green-900',
+    !destructive && 'text-green-900',
     hint !== undefined && 'py-2',
-    disabled && 'cursor-not-allowed opacity-60 hover:bg-transparent',
+    disabled && 'opacity-60 hover:bg-transparent disabled:opacity-60',
   );
+  const tone = destructive ? 'danger' : 'default';
   const body = (
     <>
       <Icon
@@ -60,13 +60,18 @@ export const SheetActionRow: React.FC<{
   return (
     <li>
       {href === undefined ? (
-        <button type="button" onClick={onClick} disabled={disabled} className={className}>
+        <ListRow tone={tone} onClick={onClick} disabled={disabled} className={className}>
           {body}
-        </button>
+        </ListRow>
       ) : (
-        <Link href={href} className={className} {...(onClick === undefined ? {} : { onClick })}>
+        <ListRow
+          tone={tone}
+          href={href}
+          className={className}
+          {...(onClick === undefined ? {} : { onClick })}
+        >
           {body}
-        </Link>
+        </ListRow>
       )}
     </li>
   );

@@ -9,7 +9,7 @@ import type React from 'react';
  * component, can draw the same icons.
  */
 export const headerButtonClassName =
-  'hover:bg-quiet relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-green-900 transition-colors';
+  'focus-visible:focus-surface hover:bg-quiet relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-green-900 transition-colors';
 
 /**
  * The search and the filter in the app header while the page loads, where and as they will be,

@@ -81,11 +81,18 @@ const TopNavHeader: React.FC<{
 
   return (
     <header className="fixed top-0 left-0 z-[100] h-[60px] w-full xl:h-16">
+      {/* room for the status bar, see --app-top-inset */}
+      <div
+        aria-hidden="true"
+        className="h-[env(safe-area-inset-top,0px)] bg-white/95 backdrop-blur-md"
+      />
       <React.Suspense fallback={<div className="bg-gray-900" />}>
         <PreviewModeBannerServerComponent />
       </React.Suspense>
 
-      <div className="mb-[32px] border-b-2 border-gray-200 bg-white/95 backdrop-blur-md">
+      {/* No backdrop filter here: it would make this bar the containing block of the fixed menu
+          below it, which then sits the preview banner's height too low. */}
+      <div className="mb-[32px] border-b-2 border-gray-200 bg-white">
         {/* Full-width container spanning full screen width */}
         <div className="text-conveniat-green relative flex h-[60px] w-full items-center justify-between px-6 xl:h-16 xl:px-12">
           {/* Logo & Brand Title */}
@@ -155,6 +162,8 @@ const SideNavHeader: React.FC<{
 
   return (
     <header className="fixed top-0 left-0 z-[100] h-[60px] w-full">
+      {/* room for the status bar, see --app-top-inset */}
+      <div aria-hidden="true" className="h-[env(safe-area-inset-top,0px)] bg-white" />
       <React.Suspense fallback={<div className="bg-gray-900" />}>
         <PreviewModeBannerServerComponent />
       </React.Suspense>

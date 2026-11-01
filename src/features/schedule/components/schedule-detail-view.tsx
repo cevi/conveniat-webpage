@@ -45,7 +45,7 @@ const labels = {
  * the free area beside the menu and the tabs, under the header
  */
 const containerClassName =
-  'fixed inset-x-0 top-(--preview-banner-height) bottom-(--app-tab-bar-height) z-[110] flex flex-col overflow-hidden bg-page xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0';
+  'fixed inset-x-0 top-(--app-top-inset) bottom-(--app-tab-bar-height) z-[110] flex flex-col overflow-hidden bg-page xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0';
 
 interface ScheduleDetailViewProperties {
   id: string;

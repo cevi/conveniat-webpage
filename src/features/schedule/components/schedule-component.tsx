@@ -233,7 +233,7 @@ export const ScheduleComponent: React.FC = () => {
         <button
           type="button"
           onClick={() => actions.handleDateSelect(today)}
-          className="bg-quiet hover:bg-chip mb-3 flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3.5 py-2 text-left text-[13px] text-green-700 transition-colors"
+          className="focus-visible:focus-surface bg-quiet hover:bg-chip mb-3 flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3.5 py-2 text-left text-[13px] text-green-700 transition-colors"
         >
           <span className="min-w-0 truncate">
             {programmeLabels[nowAndNext.current === undefined ? 'upNext' : 'now'][locale]}:{' '}

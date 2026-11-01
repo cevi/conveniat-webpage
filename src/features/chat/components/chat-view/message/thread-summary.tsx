@@ -56,7 +56,7 @@ export const ThreadSummary: React.FC<{
         event.stopPropagation();
         onOpen();
       }}
-      className="bg-quiet hover:bg-chip mt-1 flex min-h-11 max-w-full cursor-pointer items-center gap-2 rounded-[12px] py-1.5 pr-2 pl-2.5 text-left text-[13px]"
+      className="focus-visible:focus-surface bg-quiet hover:bg-chip mt-1 flex min-h-11 max-w-full cursor-pointer items-center gap-2 rounded-[12px] py-1.5 pr-2 pl-2.5 text-left text-[13px]"
     >
       {repliers.length > 0 && (
         <span className="flex shrink-0 -space-x-1.5" aria-hidden="true">

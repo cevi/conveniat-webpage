@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { hasAccessToThis, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { composeEmailBody } from '@/features/payload-cms/payload-cms/utils/email-body';
 import {
   loadQueuedAttachments,
   releaseQueuedAttachments,
@@ -62,17 +63,17 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
       );
     }
 
-    // Prepare email options
+    // Both parts and the signature, like a first send: a record from before both were stored
+    // has only one of them, and may still hold the placeholder
+    const body = await composeEmailBody(payload, {
+      html: emailDocument.html ?? undefined,
+      text: emailDocument.text ?? undefined,
+    });
     const emailOptions = {
       to: suppressed.length > 0 ? deliverable : emailDocument.to,
       subject: emailDocument.subject,
       ...(attachments.length > 0 ? { attachments } : {}),
-      ...(typeof emailDocument.html === 'string' && emailDocument.html.length > 0
-        ? { html: emailDocument.html }
-        : {}),
-      ...(typeof emailDocument.text === 'string' && emailDocument.text.length > 0
-        ? { text: emailDocument.text }
-        : {}),
+      ...body,
       ...(typeof environmentVariables.SMTP_USER === 'string' &&
       environmentVariables.SMTP_USER.length > 0
         ? {

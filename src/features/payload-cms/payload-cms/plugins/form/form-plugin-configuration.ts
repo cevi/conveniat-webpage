@@ -43,6 +43,7 @@ import type { Field, TabsField } from 'payload';
 
 import { markUploadedFilesPermanent } from '@/features/payload-cms/payload-cms/plugins/form/hooks/mark-uploaded-files-permanent';
 import { sendApprovalEmail } from '@/features/payload-cms/payload-cms/plugins/form/hooks/send-approval-email';
+import { resolveVisitDay } from '@/features/visit-day/payload-cms/visit-day-submission-hooks';
 
 /**
  * Field for the internal form title.
@@ -328,6 +329,7 @@ export const formPluginConfiguration = formBuilderPlugin({
         nameMaterialLines,
         linkJobSubmission,
         linkHofSubmission,
+        resolveVisitDay,
         checkHofDashboardSubmission,
         acceptOnApproval,
         recordHofReview,

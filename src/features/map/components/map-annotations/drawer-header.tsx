@@ -53,7 +53,7 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
         </div>
         <button
           type="button"
-          className="bg-quiet hover:bg-chip flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900 transition-colors"
+          className="focus-visible:focus-surface bg-quiet hover:bg-chip flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900 transition-colors"
           onClick={closeDrawer}
           aria-label={labels.close[locale]}
         >

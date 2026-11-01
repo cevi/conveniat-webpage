@@ -2,6 +2,7 @@ import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ListRow } from '@/components/ui/list-row';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import {
   ChosenPeople,
@@ -185,20 +186,16 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
                   key={contact.userId}
                   className={cn(contactRowItemClassName, 'after:left-[76px]')}
                 >
-                  <button
-                    type="button"
+                  <ListRow
                     role="checkbox"
                     aria-checked={isSelected}
                     onClick={() => onToggleSelection(contact)}
                     disabled={!isSelected && isAtGroupLimit}
-                    className={cn(
-                      'focus-visible:focus-ring-inset flex min-h-16 w-full cursor-pointer items-center gap-3 px-5 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50',
-                      isSelected ? 'bg-tint' : 'hover:bg-quiet',
-                    )}
+                    className={cn('min-h-16 px-5', isSelected && 'bg-tint hover:bg-tint')}
                   >
                     <ContactRowContent contact={contact} />
                     <SelectionMark isSelected={isSelected} />
-                  </button>
+                  </ListRow>
                 </li>
               );
             })}

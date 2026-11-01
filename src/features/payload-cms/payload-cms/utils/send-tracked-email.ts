@@ -1,4 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { composeEmailBody } from '@/features/payload-cms/payload-cms/utils/email-body';
 import {
   recipientAddresses,
   splitSuppressedRecipients,
@@ -47,6 +48,9 @@ export const sendTrackedEmail = async (
   }
 
   const subject = options.subject ?? 'No Subject';
+  // Both parts, with the signature filled in. Done here because every mail passes through,
+  // whether written as HTML (the forms) or as text (the billing).
+  const body = await composeEmailBody(payload, { html: options.html, text: options.text });
 
   let outgoingEmailId = existingOutgoingEmailId;
 
@@ -64,10 +68,7 @@ export const sendTrackedEmail = async (
     } = {
       to,
       subject,
-      ...(options.html === undefined ? {} : { html: options.html }),
-      // Billing mails and the Pflichtangaben reminders are plain text only; without this
-      // their record shows no content and a resend goes out empty.
-      ...(options.text === undefined ? {} : { text: options.text }),
+      ...body,
       deliveryStatus: 'pending',
     };
 
@@ -131,6 +132,7 @@ export const sendTrackedEmail = async (
     } else {
       responseOrError = await payload.sendEmail({
         ...emailOptions,
+        ...body,
         ...(suppressed.length > 0 ? { to: deliverable, ...copies } : {}),
         ...(typeof environmentVariables.SMTP_USER === 'string' &&
         environmentVariables.SMTP_USER.length > 0
@@ -192,6 +194,8 @@ export const sendTrackedEmail = async (
       collection: 'outgoing-emails',
       id: outgoingEmailId,
       data: {
+        // a record written before sending, by the forms or the queue, gets what was sent
+        ...body,
         smtpResults: results,
         rawSmtpResults: results,
         deliveryStatus: success ? 'success' : 'error',
