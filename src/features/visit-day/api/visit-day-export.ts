@@ -2,6 +2,8 @@ import ExcelJS from 'exceljs';
 
 export interface ExportVisitor {
   id: string;
+  /** e.g. "5321-B007" */
+  registrationNumber: string;
   submissionId: string;
   personNumber: number;
   hofId: string;
@@ -16,7 +18,15 @@ export interface ExportSubmission {
 
 const PERSON_SUFFIX = /^(.+)_(\d+)$/;
 
-const FIXED_COLUMNS = ['Besucher-ID', 'Besuchstag', 'Hof', 'Person', 'Anmelde-ID', 'Angemeldet am'];
+const FIXED_COLUMNS = [
+  'Anmeldenummer',
+  'Person',
+  'Besucher-ID',
+  'Besuchstag',
+  'Hof',
+  'Angemeldet am',
+  'Formular-Eintrag',
+];
 
 /**
  * One row per visitor. A registration's answers are shared by all its persons, except those
@@ -32,12 +42,13 @@ export const buildVisitorRows = (
   const rows = visitors.map((visitor) => {
     const submission = submissions.get(visitor.submissionId);
     const row: Record<string, string | number> = {
+      Anmeldenummer: visitor.registrationNumber,
+      Person: visitor.personNumber,
       'Besucher-ID': visitor.id,
       Besuchstag: visitor.date,
       Hof: hofNames.get(visitor.hofId) ?? visitor.hofId,
-      Person: visitor.personNumber,
-      'Anmelde-ID': visitor.submissionId,
       'Angemeldet am': submission?.createdAt.slice(0, 10) ?? '',
+      'Formular-Eintrag': visitor.submissionId,
     };
     for (const answer of submission?.answers ?? []) {
       const match = PERSON_SUFFIX.exec(answer.field);

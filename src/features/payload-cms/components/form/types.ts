@@ -36,6 +36,8 @@ export interface VisitDaySelectionBlock {
   personCountField: string;
   /** the answer the server stores the day under */
   dayField: string;
+  /** the answer the server stores the registration number under */
+  registrationNumberField: string;
   placement?: 'sidebar' | 'main';
 }
 

@@ -3,47 +3,78 @@ import type { PrismaClient } from '@/lib/prisma';
 
 /** The places taken on each day, by `YYYY-MM-DD`. A day nobody registered for is absent. */
 export const countTakenPlaces = async (prisma: PrismaClient): Promise<Map<string, number>> => {
-  const groups = await prisma.visitDayVisitor.groupBy({
-    by: ['visitDate'],
-    _count: { _all: true },
+  const registrations = await prisma.visitDayRegistration.findMany({
+    select: { visitDate: true, _count: { select: { visitors: true } } },
   });
-  return new Map(
-    groups.map((group) => [group.visitDate.toISOString().slice(0, 10), group._count._all]),
-  );
+  const taken = new Map<string, number>();
+  for (const registration of registrations) {
+    const day = registration.visitDate.toISOString().slice(0, 10);
+    taken.set(day, (taken.get(day) ?? 0) + registration._count.visitors);
+  }
+  return taken;
 };
+
+/** The places taken on one day. */
+export const countTakenPlacesOn = async (
+  prisma: Pick<PrismaClient, 'visitDayVisitor'>,
+  day: string,
+): Promise<number> =>
+  prisma.visitDayVisitor.count({ where: { registration: { visitDate: toDatabaseDate(day) } } });
+
+/** e.g. "5321-B007": the Hof's Cevi.DB event, then its counter, three digits at least. */
+export const formatRegistrationNumber = (eventId: string, counter: number): string =>
+  `${eventId}-B${String(counter).padStart(3, '0')}`;
 
 export interface PlaceRequest {
   submissionId: string;
   hofId: string;
+  /** the Cevi.DB event of the Hof, the first part of the registration number */
+  hofEventId: string;
   /** `YYYY-MM-DD` */
   date: string;
   persons: number;
   capacity: number;
 }
 
+export type PlaceResult = { status: 'reserved'; number: string } | { status: 'full' };
+
 /**
- * Takes the places of one registration, or none of them when the day has too few left.
+ * Takes the places of one registration and gives it the next number of its Hof, or does
+ * neither when the day has too few places left.
  *
- * The count and the new rows run under an advisory lock for that day, so registrations for the
- * same day are written one after the other and two of them cannot both take the last places.
- * Registrations for the other day do not wait.
+ * Everything runs under two advisory locks, the day's first and then the Hof's, always in that
+ * order: two registrations for the last places of a day cannot both get in, and two of one Hof
+ * cannot get the same number, even while an editor moves its Quartier to the other day.
  */
 export const reservePlaces = async (
   prisma: PrismaClient,
   request: PlaceRequest,
-): Promise<'reserved' | 'full'> =>
-  prisma.$transaction(async (transaction) => {
+): Promise<PlaceResult> =>
+  prisma.$transaction(async (transaction): Promise<PlaceResult> => {
     await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`visit-day:${request.date}`}))`;
-    const visitDate = toDatabaseDate(request.date);
-    const taken = await transaction.visitDayVisitor.count({ where: { visitDate } });
-    if (taken + request.persons > request.capacity) return 'full';
-    await transaction.visitDayVisitor.createMany({
-      data: Array.from({ length: request.persons }, (_, index) => ({
-        submissionId: request.submissionId,
-        personNumber: index + 1,
-        hofId: request.hofId,
-        visitDate,
-      })),
+    await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`visit-day-hof:${request.hofId}`}))`;
+    const taken = await countTakenPlacesOn(transaction, request.date);
+    if (taken + request.persons > request.capacity) return { status: 'full' };
+
+    const last = await transaction.visitDayRegistration.aggregate({
+      where: { hofId: request.hofId },
+      _max: { counter: true },
     });
-    return 'reserved';
+    const counter = (last._max.counter ?? 0) + 1;
+    const number = formatRegistrationNumber(request.hofEventId, counter);
+    await transaction.visitDayRegistration.create({
+      data: {
+        number,
+        hofId: request.hofId,
+        counter,
+        submissionId: request.submissionId,
+        visitDate: toDatabaseDate(request.date),
+        visitors: {
+          create: Array.from({ length: request.persons }, (_, index) => ({
+            personNumber: index + 1,
+          })),
+        },
+      },
+    });
+    return { status: 'reserved', number };
   });

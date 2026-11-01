@@ -1572,6 +1572,10 @@ export interface Form {
                  * The day is stored under this name, so an email can name it, e.g. {{besuchstag}}.
                  */
                 dayField: string;
+                /**
+                 * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter. Stored under this name for the email, e.g. {{anmeldenummer}}.
+                 */
+                registrationNumberField: string;
                 required?: boolean | null;
                 /**
                  * Where this field is rendered when "Split" layout is selected for the section.
@@ -1919,6 +1923,10 @@ export interface Form {
                            * The day is stored under this name, so an email can name it, e.g. {{besuchstag}}.
                            */
                           dayField: string;
+                          /**
+                           * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter. Stored under this name for the email, e.g. {{anmeldenummer}}.
+                           */
+                          registrationNumberField: string;
                           required?: boolean | null;
                           /**
                            * Where this field is rendered when "Split" layout is selected for the section.
@@ -7293,6 +7301,7 @@ export interface FormsSelect<T extends boolean = true> {
                           label?: T;
                           personCountField?: T;
                           dayField?: T;
+                          registrationNumberField?: T;
                           required?: T;
                           placement?: T;
                           id?: T;
@@ -7516,6 +7525,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       label?: T;
                                       personCountField?: T;
                                       dayField?: T;
+                                      registrationNumberField?: T;
                                       required?: T;
                                       placement?: T;
                                       id?: T;

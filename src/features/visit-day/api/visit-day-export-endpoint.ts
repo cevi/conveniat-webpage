@@ -16,9 +16,20 @@ export const visitDayExportHandler: PayloadHandler = async (request) => {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
-    const visitors = await prisma.visitDayVisitor.findMany({
-      orderBy: [{ visitDate: 'asc' }, { createdAt: 'asc' }, { personNumber: 'asc' }],
+    const registrations = await prisma.visitDayRegistration.findMany({
+      orderBy: [{ visitDate: 'asc' }, { number: 'asc' }],
+      include: { visitors: { orderBy: { personNumber: 'asc' } } },
     });
+    const visitors = registrations.flatMap((registration) =>
+      registration.visitors.map((visitor) => ({
+        id: visitor.id,
+        registrationNumber: registration.number,
+        submissionId: registration.submissionId,
+        personNumber: visitor.personNumber,
+        hofId: registration.hofId,
+        date: registration.visitDate.toISOString().slice(0, 10),
+      })),
+    );
     const submissionIds = [...new Set(visitors.map((visitor) => visitor.submissionId))];
     const [{ docs }, directory] = await Promise.all([
       request.payload.find({
@@ -39,17 +50,7 @@ export const visitDayExportHandler: PayloadHandler = async (request) => {
     );
     const hofNames = new Map([...directory].map(([id, hof]) => [id, hof.name]));
 
-    const workbook = await buildVisitorWorkbook(
-      visitors.map((visitor) => ({
-        id: visitor.id,
-        submissionId: visitor.submissionId,
-        personNumber: visitor.personNumber,
-        hofId: visitor.hofId,
-        date: visitor.visitDate.toISOString().slice(0, 10),
-      })),
-      submissions,
-      hofNames,
-    );
+    const workbook = await buildVisitorWorkbook(visitors, submissions, hofNames);
     request.payload.logger.info(`Besuchstag visitor list exported with ${visitors.length} rows.`);
 
     return new Response(new Uint8Array(workbook), {

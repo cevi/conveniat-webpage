@@ -18,6 +18,7 @@ describe('buildVisitorRows', () => {
     ]);
     const visitors = [1, 2].map((personNumber) => ({
       id: `visitor-${personNumber}`,
+      registrationNumber: '5321-B007',
       submissionId: 'submission-1',
       personNumber,
       hofId: 'hof-uster',
@@ -31,17 +32,24 @@ describe('buildVisitorRows', () => {
     );
 
     expect(columns).toEqual([
+      'Anmeldenummer',
+      'Person',
       'Besucher-ID',
       'Besuchstag',
       'Hof',
-      'Person',
-      'Anmelde-ID',
       'Angemeldet am',
+      'Formular-Eintrag',
       'vorname',
       'essen',
       'allergien',
     ]);
-    expect(rows[0]).toMatchObject({ Hof: 'Cevi Uster', Person: 1, vorname: 'Lea', essen: 'Vegi' });
+    expect(rows[0]).toMatchObject({
+      Anmeldenummer: '5321-B007',
+      Hof: 'Cevi Uster',
+      Person: 1,
+      vorname: 'Lea',
+      essen: 'Vegi',
+    });
     expect(rows[0]).not.toHaveProperty('allergien');
     expect(rows[1]).toMatchObject({
       'Besucher-ID': 'visitor-2',

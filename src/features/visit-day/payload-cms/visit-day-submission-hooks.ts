@@ -1,13 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { getFormBlocks } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
 import type { FormSubmission } from '@/features/payload-cms/payload-types';
-import { reservePlaces } from '@/features/visit-day/api/visit-day-places';
+import { countTakenPlacesOn, reservePlaces } from '@/features/visit-day/api/visit-day-places';
 import { formatVisitDay } from '@/features/visit-day/format-visit-day';
-import {
-  listVisitDayHoefe,
-  loadVisitDaySettings,
-  toDatabaseDate,
-} from '@/features/visit-day/visit-day-settings';
+import { listVisitDayHoefe, loadVisitDaySettings } from '@/features/visit-day/visit-day-settings';
 import prisma from '@/lib/db/prisma';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type {
@@ -28,11 +24,22 @@ interface SubmissionField {
 /** What the place check needs from the checked submission, kept on the request until it is saved. */
 interface PendingVisit {
   hofId: string;
+  hofEventId: string;
   date: string;
   persons: number;
   capacity: number;
+  /** the answer the registration number is stored under */
+  numberField: string;
   /** set once the places are taken, so a failure after it gives them back */
   submissionId?: string;
+}
+
+/** The settings of a form's Besuchstag field. */
+interface VisitDayBlock {
+  name: string;
+  personCountField: string;
+  dayField: string;
+  registrationNumberField: string;
 }
 
 const PENDING_VISIT = 'visitDayPendingVisit';
@@ -65,8 +72,9 @@ const refuse = (message: StaticTranslationString, locale: Locale): never => {
 /**
  * Checks a new Besuchstag registration and fills in what the person does not pick: the Hof's
  * name in place of its id, and the day, found through the Hof's Quartier, as an answer of its
- * own so the confirmation email can name it. The places are taken once the submission is saved,
- * by {@link reserveVisitDayPlaces}; refusing a full day here already spares that work.
+ * own so the confirmation email can name it. The places and the registration number are taken
+ * once the submission is saved, by {@link reserveVisitDayPlaces}; refusing a full day here
+ * already spares that work.
  */
 export const resolveVisitDay: CollectionBeforeChangeHook<FormSubmission> = async ({
   data,
@@ -83,12 +91,16 @@ export const resolveVisitDay: CollectionBeforeChangeHook<FormSubmission> = async
         'visitDaySelection',
       ),
     )
-    .at(0) as { name: string; personCountField: string; dayField: string } | undefined;
+    .at(0) as VisitDayBlock | undefined;
   if (block === undefined) return data;
 
   const locale = localeOf(req);
+  // the day and the number are the server's to fill in, never the sender's
   const answers = Array.isArray(data.submissionData)
-    ? (data.submissionData as SubmissionField[]).filter((answer) => answer.field !== block.dayField)
+    ? (data.submissionData as SubmissionField[]).filter(
+        (answer) =>
+          answer.field !== block.dayField && answer.field !== block.registrationNumberField,
+      )
     : [];
   const hofAnswer = answers.find((answer) => answer.field === block.name);
   const hofId = hofAnswer?.value;
@@ -105,10 +117,19 @@ export const resolveVisitDay: CollectionBeforeChangeHook<FormSubmission> = async
   const persons = Number(answers.find((answer) => answer.field === block.personCountField)?.value);
   if (!Number.isInteger(persons) || persons < 1) return refuse(invalidPersonCountMessage, locale);
 
-  const taken = await prisma.visitDayVisitor.count({
-    where: { visitDate: toDatabaseDate(day.date) },
-  });
+  const taken = await countTakenPlacesOn(prisma, day.date);
   if (taken + persons > day.capacity) refuse(dayFullMessage, locale);
+
+  const hofDocument = await req.payload.findByID({
+    collection: 'hoefe',
+    id: hof.id,
+    depth: 0,
+    overrideAccess: true,
+    select: { groupId: true, events: true },
+    req,
+  });
+  // every Hof has its Hof-Lager in Cevi.DB; its group is the fallback should one not
+  const hofEventId = hofDocument.events?.[0]?.eventId ?? hofDocument.groupId;
 
   hofAnswer.value = hof.name;
   // in German like the rest of the confirmation email, which is written in the default locale
@@ -117,17 +138,20 @@ export const resolveVisitDay: CollectionBeforeChangeHook<FormSubmission> = async
 
   const pending: PendingVisit = {
     hofId: hof.id,
+    hofEventId,
     date: day.date,
     persons,
     capacity: day.capacity,
+    numberField: block.registrationNumberField,
   };
   req.context[PENDING_VISIT] = pending;
   return data;
 };
 
 /**
- * Takes the places of a saved registration, one row per person, or refuses it when the day
- * filled up in the meantime: the submission is removed again and nothing is sent. It runs before
+ * Takes the places of a saved registration, one row per person, and gives it its number, which
+ * is stored as an answer so the confirmation email and the admin panel show it. When the day
+ * filled up in the meantime, the submission is removed again and nothing is sent. It runs before
  * the form builder sends its emails, see {@link withVisitDayPlaces}.
  */
 export const reserveVisitDayPlaces: CollectionAfterChangeHook<FormSubmission> = async ({
@@ -139,7 +163,7 @@ export const reserveVisitDayPlaces: CollectionAfterChangeHook<FormSubmission> = 
   if (operation !== 'create' || pending === undefined) return doc;
 
   const result = await reservePlaces(prisma, { ...pending, submissionId: doc.id });
-  if (result === 'full') {
+  if (result.status === 'full') {
     req.context[PENDING_VISIT] = undefined;
     await req.payload.delete({
       collection: 'form-submissions',
@@ -150,10 +174,23 @@ export const reserveVisitDayPlaces: CollectionAfterChangeHook<FormSubmission> = 
     req.payload.logger.info(
       `Besuchstag ${pending.date} is full: registration ${doc.id} for ${pending.persons} persons refused.`,
     );
-    refuse(dayFullMessage, localeOf(req));
+    return refuse(dayFullMessage, localeOf(req));
   }
   pending.submissionId = doc.id;
-  return doc;
+
+  const submissionData = [
+    ...(doc.submissionData ?? []),
+    { field: pending.numberField, value: result.number },
+  ];
+  // straight to the database: the number is the server's, and the update hooks of a submission
+  // are for editors reviewing it
+  await req.payload.db.updateOne({
+    collection: 'form-submissions',
+    id: doc.id,
+    data: { submissionData },
+    req,
+  });
+  return { ...doc, submissionData };
 };
 
 /**
@@ -173,7 +210,8 @@ export const releaseVisitDayPlacesOnError: AfterErrorHook = async ({ req }) => {
     select: {},
   });
   if (submission !== null) return;
-  await prisma.visitDayVisitor.deleteMany({ where: { submissionId: pending.submissionId } });
+  // its visitors go with it
+  await prisma.visitDayRegistration.deleteMany({ where: { submissionId: pending.submissionId } });
   req.payload.logger.warn(
     `Besuchstag places of registration ${pending.submissionId} released after a failed save.`,
   );

@@ -931,6 +931,26 @@ const formVisitDaySelectionBlock: Block = {
         },
       ],
     },
+    {
+      name: 'registrationNumberField',
+      type: 'text',
+      label: {
+        en: 'Answer with the registration number',
+        de: 'Antwort mit der Anmeldenummer',
+        fr: 'Réponse avec le numéro d’inscription',
+      },
+      validate: formNameValidation,
+      required: true,
+      defaultValue: 'anmeldenummer',
+      admin: {
+        width: '50%',
+        description: {
+          en: 'Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter. Stored under this name for the email, e.g. {{anmeldenummer}}.',
+          de: 'Jede Anmeldung erhält eine Nummer wie 5321-B007: der Cevi.DB-Anlass des Hofs und sein Zähler. Unter diesem Namen gespeichert für die E-Mail, z.B. {{anmeldenummer}}.',
+          fr: 'Chaque inscription reçoit un numéro comme 5321-B007 : l’événement Cevi.DB du Hof et son compteur. Enregistré sous ce nom pour l’e-mail, p. ex. {{anmeldenummer}}.',
+        },
+      },
+    },
     { name: 'required', type: 'checkbox', label: 'Required', defaultValue: true },
     placementField(),
   ],

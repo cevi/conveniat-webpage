@@ -1,28 +1,48 @@
-/// One person coming to the Besuchstag. A registration in the Besuchstag form adds one row per
-/// person it names, so the rows of a day are the places taken on that day.
+/// One registration for the Besuchstag, as a form submission names it. It carries the number
+/// the person finds in their confirmation email, so a question about it can be traced.
 ///
-/// The registration itself, with all its answers, stays a form submission in MongoDB; this table
-/// holds what has to be transactional: the capacity of a day is checked and the rows are written
-/// under an advisory lock for that day, so two registrations for the last places cannot both get in.
-model VisitDayVisitor {
-  /// the visitor's id, printed on the ticket later
+/// The registration itself, with all its answers, stays a form submission in MongoDB; these
+/// tables hold what has to be transactional: the capacity of a day and the counter of a Hof are
+/// checked and written under advisory locks, so two registrations cannot both take the last
+/// places or the same number.
+model VisitDayRegistration {
   id String @id @default(uuid(7))
 
-  /// the objectID of the registration in the `form-submissions` collection in MongoDB
-  submissionId String
-
-  /// which person of the registration this is, 1 or 2
-  personNumber Int
+  /// e.g. "5321-B007": the Cevi.DB event of the Hof, then the Hof's counter
+  number String @unique
 
   /// the objectID of the visited Hof in the `hoefe` collection in MongoDB
   hofId String
 
-  /// the Besuchstag this person comes on, taken from the Quartier of the Hof
+  /// counts the registrations of one Hof from 1
+  counter Int
+
+  /// the objectID of the registration in the `form-submissions` collection in MongoDB
+  submissionId String @unique
+
+  /// the Besuchstag, taken from the Quartier of the Hof
   visitDate DateTime @db.Date
 
   createdAt DateTime @default(now())
 
-  @@unique([submissionId, personNumber])
+  visitors VisitDayVisitor[]
+
+  @@unique([hofId, counter])
   @@index([visitDate])
-  @@index([hofId])
+}
+
+/// One person coming to the Besuchstag. The rows of a day are the places taken on that day.
+model VisitDayVisitor {
+  /// the visitor's id, printed on the ticket later
+  id String @id @default(uuid(7))
+
+  registrationId String
+  registration   VisitDayRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  /// which person of the registration this is, 1 or 2
+  personNumber Int
+
+  createdAt DateTime @default(now())
+
+  @@unique([registrationId, personNumber])
 }

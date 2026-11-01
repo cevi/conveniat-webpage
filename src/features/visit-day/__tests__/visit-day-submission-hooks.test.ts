@@ -1,8 +1,16 @@
-const visitorRows = { count: jest.fn(), createMany: jest.fn() };
+const visitorRows = { count: jest.fn() };
+const registrationRows = {
+  aggregate: jest.fn().mockResolvedValue({ _max: { counter: 6 } }),
+  create: jest.fn<Promise<unknown>, [unknown]>().mockResolvedValue({}),
+};
 const fakePrisma = {
   visitDayVisitor: visitorRows,
   $transaction: (work: (transaction: unknown) => Promise<unknown>): Promise<unknown> =>
-    work({ $executeRaw: jest.fn(), visitDayVisitor: visitorRows }),
+    work({
+      $executeRaw: jest.fn(),
+      visitDayVisitor: visitorRows,
+      visitDayRegistration: registrationRows,
+    }),
 };
 
 // read lazily: the mock factory runs before the constants above are initialised
@@ -43,6 +51,7 @@ const form = {
             name: 'hof',
             personCountField: 'anzahl_personen',
             dayField: 'besuchstag',
+            registrationNumberField: 'anmeldenummer',
           },
         ],
       },
@@ -50,13 +59,19 @@ const form = {
   ],
 };
 
-const fakeRequest = (): { request: PayloadRequest; remove: jest.Mock } => {
+const fakeRequest = (): { request: PayloadRequest; remove: jest.Mock; store: jest.Mock } => {
   const remove = jest.fn().mockResolvedValue({});
+  const store = jest.fn().mockResolvedValue({});
   const request = {
     locale: 'de',
     context: {},
     payload: {
-      findByID: jest.fn().mockResolvedValue(form),
+      findByID: jest.fn(({ collection }: { collection: string }) =>
+        Promise.resolve(
+          collection === 'hoefe' ? { groupId: '4242', events: [{ eventId: '5321' }] } : form,
+        ),
+      ),
+      db: { updateOne: store },
       findGlobal: jest.fn().mockResolvedValue({
         days: [{ date: '2027-07-28T10:00:00.000Z', capacity: 500, quartiere: ['q5'] }],
         hiddenHoefe: [],
@@ -68,7 +83,7 @@ const fakeRequest = (): { request: PayloadRequest; remove: jest.Mock } => {
       logger: { info: jest.fn(), warn: jest.fn() },
     },
   } as unknown as PayloadRequest;
-  return { request, remove };
+  return { request, remove, store };
 };
 
 const register = async (request: PayloadRequest, persons: string): Promise<Answer[]> => {
@@ -86,37 +101,66 @@ const register = async (request: PayloadRequest, persons: string): Promise<Answe
   return (data as { submissionData: Answer[] }).submissionData;
 };
 
-const save = async (request: PayloadRequest): Promise<void> => {
-  await reserveVisitDayPlaces({
-    doc: { id: 'submission-1' },
+const save = async (request: PayloadRequest, answers: Answer[] = []): Promise<Answer[]> => {
+  const document_: unknown = await reserveVisitDayPlaces({
+    doc: { id: 'submission-1', submissionData: answers },
     req: request,
     operation: 'create',
   } as never);
+  return (document_ as { submissionData: Answer[] }).submissionData;
 };
 
 beforeEach(() => {
   visitorRows.count.mockReset();
-  visitorRows.createMany.mockReset();
+  registrationRows.create.mockClear();
 });
 
 describe('a Besuchstag registration', () => {
-  it('names the Hof and its day and takes one place per person', async () => {
+  it('names the Hof, its day and its number, and takes one place per person', async () => {
     visitorRows.count.mockResolvedValue(0);
-    const { request } = fakeRequest();
+    const { request, store } = fakeRequest();
 
     const answers = await register(request, '2');
-    await save(request);
+    const saved = await save(request, answers);
 
     expect(answers).toEqual([
       { field: 'hof', value: 'Cevi Uster' },
       { field: 'anzahl_personen', value: '2' },
       { field: 'besuchstag', value: 'Mittwoch, 28. Juli 2027' },
     ]);
-    expect(visitorRows.createMany).toHaveBeenCalledWith({
-      data: [
-        expect.objectContaining({ submissionId: 'submission-1', hofId: 'uster', personNumber: 1 }),
-        expect.objectContaining({ submissionId: 'submission-1', hofId: 'uster', personNumber: 2 }),
-      ],
+    expect(saved).toContainEqual({ field: 'anmeldenummer', value: '5321-B007' });
+    expect(store).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'submission-1', data: { submissionData: saved } }),
+    );
+    expect(registrationRows.create.mock.calls[0]?.[0]).toMatchObject({
+      data: {
+        number: '5321-B007',
+        hofId: 'uster',
+        visitors: { create: [{ personNumber: 1 }, { personNumber: 2 }] },
+      },
+    });
+  });
+
+  it('does not take a number the sender made up', async () => {
+    visitorRows.count.mockResolvedValue(0);
+    const { request } = fakeRequest();
+
+    const data: unknown = await resolveVisitDay({
+      data: {
+        form: 'form-1',
+        submissionData: [
+          { field: 'hof', value: 'uster' },
+          { field: 'anzahl_personen', value: '1' },
+          { field: 'anmeldenummer', value: '5321-B001' },
+        ],
+      },
+      req: request,
+      operation: 'create',
+    } as never);
+
+    expect((data as { submissionData: Answer[] }).submissionData).not.toContainEqual({
+      field: 'anmeldenummer',
+      value: '5321-B001',
     });
   });
 
@@ -135,7 +179,7 @@ describe('a Besuchstag registration', () => {
     await register(request, '1');
     await expect(save(request)).rejects.toThrow('nicht mehr genug Plätze');
 
-    expect(visitorRows.createMany).not.toHaveBeenCalled();
+    expect(registrationRows.create).not.toHaveBeenCalled();
     expect(remove).toHaveBeenCalledWith(
       expect.objectContaining({ collection: 'form-submissions', id: 'submission-1' }),
     );
