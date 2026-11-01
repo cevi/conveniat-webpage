@@ -59,7 +59,7 @@ const ChatUnavailable: React.FC<{ icon: LucideIcon; title: string; description?:
   title,
   description,
 }) => (
-  <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
+  <div className="bg-page fixed top-(--app-top-inset) z-[110] flex h-[calc(100dvh-var(--app-top-inset))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
     <ChatHeaderSkeleton />
     <div className="flex flex-1 items-center justify-center">
       <EmptyState icon={icon} title={title} description={description} />
@@ -116,7 +116,7 @@ const ChatClientContent: React.FC = () => {
   return (
     <div
       ref={fitToVisualViewport}
-      className="bg-page fixed top-[calc(var(--visual-viewport-top,0px)+var(--preview-banner-height))] z-[110] flex h-[calc(var(--visual-viewport-height,100dvh)-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto"
+      className="bg-page fixed top-[calc(var(--visual-viewport-top,0px)+var(--app-top-inset))] z-[110] flex h-[calc(var(--visual-viewport-height,100dvh)-var(--app-top-inset))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto"
     >
       <AppFooterController hideAppFooter />
       <ChatHeader />

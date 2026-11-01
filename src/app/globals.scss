@@ -6,9 +6,14 @@
 /***************************************************/
 
 /* The preview banner sits on top of the fixed header and pushes it down, so everything placed
-   below the header has to move with it. Zero unless the banner is on the page. */
+   below the header has to move with it. Zero unless the banner is on the page.
+
+   Above the banner the header leaves room for the status bar, for a shell that lets the page draw
+   under it, so that a full-screen scrim also dims the status bar. --app-top-inset is both together,
+   the room above the header's bar, and what everything placed below the header moves by. */
 :root {
   --preview-banner-height: 0px;
+  --app-top-inset: calc(env(safe-area-inset-top, 0px) + var(--preview-banner-height));
 }
 
 :root:has([data-preview-banner]) {
