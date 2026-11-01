@@ -12,3 +12,10 @@ export const ServiceWorkerMessages = {
   /** Worker to page: `{ reachable }`. Page to worker: a request for the current state. */
   NETWORK_STATUS: 'NETWORK_STATUS',
 } as const;
+
+/**
+ * Set on a session answer the service worker made up rather than got from the network: the
+ * cached session, or `null` when there is none. Whoever needs the server's verdict, like the
+ * background session check, ignores such an answer and asks again once the network answers.
+ */
+export const ANSWERED_BY_SERVICE_WORKER_HEADER = 'X-Answered-By-Service-Worker';

@@ -1,5 +1,12 @@
 import type { StaticTranslationString } from '@/types/types';
 
+/**
+ * Where the app sends a user whose session has expired. The parameter keeps the onboarding on
+ * the login even when the network does not answer: otherwise it lets the user into the cached
+ * app, the app sends them back here once the network answers, and on flaky wifi that repeats.
+ */
+export const SESSION_EXPIRED_ENTRYPOINT = '/entrypoint?session=expired';
+
 export const offlineContentTitle: StaticTranslationString = {
   en: 'Offline Content',
   de: 'Offline Inhalte',

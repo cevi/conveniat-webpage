@@ -13,6 +13,20 @@ const subscribeToNothing = (): (() => void) => noopUnsubscribe;
 const getServerIsNative = (): boolean => false;
 
 /**
+ * Whether a `native-push-status` payload from the bridge reports push as usable: permission
+ * granted and an FCM token present.
+ */
+export const isNativePushActive = (payload: Record<string, unknown>): boolean => {
+  const label = payload['authorizationLabel'] ?? payload['status'];
+  const hasToken =
+    payload['hasToken'] === true ||
+    payload['hasToken'] === 'true' ||
+    (typeof payload['token'] === 'string' && payload['token'] !== '');
+  const isGranted = label === 'authorized' || label === 'granted' || label === 'provisional';
+  return isGranted && hasToken;
+};
+
+/**
  * Lightweight hook that tracks whether the native push subscription is active.
  *
  * Unlike `useNativePush`, this hook has NO tRPC/mutation dependencies and is

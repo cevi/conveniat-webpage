@@ -24,7 +24,10 @@ import {
 } from '@/features/service-worker/offline-support/rsc-utils';
 import { DesignModeTriggers } from '@/utils/design-codes';
 import { isDraftMode } from '@/utils/draft-mode';
-import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
+import {
+  ANSWERED_BY_SERVICE_WORKER_HEADER,
+  ServiceWorkerMessages,
+} from '@/utils/service-worker-messages';
 import { isNativeAppUserAgent } from '@/utils/standalone-check';
 import type { Serwist } from 'serwist';
 
@@ -733,10 +736,12 @@ async function cachedSessionFor(request: Request): Promise<Response | undefined>
     sessionData.expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     return new Response(JSON.stringify(sessionData), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', [ANSWERED_BY_SERVICE_WORKER_HEADER]: '1' },
     });
   } catch {
-    return cachedSession;
+    const headers = new Headers(cachedSession.headers);
+    headers.set(ANSWERED_BY_SERVICE_WORKER_HEADER, '1');
+    return new Response(cachedSession.body, { status: cachedSession.status, headers });
   }
 }
 
@@ -838,7 +843,10 @@ export const handleFetchEvent =
             // devices without one.
             return new Response('null', {
               status: 200,
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                [ANSWERED_BY_SERVICE_WORKER_HEADER]: '1',
+              },
             });
           }
         })(),
