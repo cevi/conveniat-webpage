@@ -3,6 +3,7 @@ import { SetHeaderActions } from '@/components/header/header-actions';
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PullToRefresh } from '@/components/ui/pull-to-refresh';
+import { SectionLabel } from '@/components/ui/section-label';
 import { ChatActionsSheet } from '@/features/chat/components/chat-overview-view/chat-actions-sheet';
 import { ChatFilterChips } from '@/features/chat/components/chat-overview-view/chat-filter-chips';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
@@ -11,6 +12,7 @@ import {
   ChatsOverviewSkeleton,
   NewChatButtonSkeleton,
 } from '@/features/chat/components/chat-overview-view/chats-overview-skeleton';
+import { chatListBleedClassName } from '@/features/chat/components/chat-overview-view/contact-row';
 import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view/swipe-to-delete-chat';
 import { RealtimeSyncBanner } from '@/features/chat/components/realtime-sync-banner';
 import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
@@ -27,6 +29,7 @@ import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { CheckCheck, MessageSquare, MessageSquarePlus, Users, X } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
@@ -96,6 +99,12 @@ const showAllText: StaticTranslationString = {
   de: 'Alle Chats zeigen',
   en: 'Show all chats',
   fr: 'Afficher tous les chats',
+};
+
+const chatsFoundText: StaticTranslationString = {
+  de: 'Chats',
+  en: 'Chats',
+  fr: 'Conversations',
 };
 
 const actionsHintText: StaticTranslationString = {
@@ -374,24 +383,30 @@ export const ChatsOverviewClientComponent: React.FC<{
       {!isInitialLoad && (
         <PullToRefresh onRefresh={handleRefresh}>
           {filteredChats.length > 0 && (
-            <ul className="border-line -mx-4 border-t bg-white sm:mx-0 xl:-mx-4">
-              {filteredChats.map((chat) => (
-                <li
-                  key={chat.id}
-                  // the line between rows starts at the text, as the avatar marks each row; above the swipe layer
-                  className="after:bg-line relative after:absolute after:right-0 after:bottom-0 after:left-[72px] after:z-20 after:h-px last:after:hidden"
-                >
-                  <SwipeToDeleteChat chat={chat}>
-                    <ChatPreview
-                      chat={chat}
-                      onOpenActions={(pressed) => setActionsChatId(pressed.id)}
-                      actionsHintId={actionsHintId}
-                      isSelected={chat.id === openChatId}
-                    />
-                  </SwipeToDeleteChat>
-                </li>
-              ))}
-            </ul>
+            <div className={cn(chatListBleedClassName, 'border-line border-t bg-white')}>
+              {/* under a search the people to start a chat with follow, each part under its label */}
+              {searchesContacts && (
+                <SectionLabel className="px-4 pt-4 pb-2">{chatsFoundText[locale]}</SectionLabel>
+              )}
+              <ul>
+                {filteredChats.map((chat) => (
+                  <li
+                    key={chat.id}
+                    // the line between rows starts at the text, as the avatar marks each row; above the swipe layer
+                    className="after:bg-line relative after:absolute after:right-0 after:bottom-0 after:left-[72px] after:z-20 after:h-px last:after:hidden"
+                  >
+                    <SwipeToDeleteChat chat={chat}>
+                      <ChatPreview
+                        chat={chat}
+                        onOpenActions={(pressed) => setActionsChatId(pressed.id)}
+                        actionsHintId={actionsHintId}
+                        isSelected={chat.id === openChatId}
+                      />
+                    </SwipeToDeleteChat>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
           {/* the people one could start a chat with come last, under every chat found */}
           {searchesContacts ? (

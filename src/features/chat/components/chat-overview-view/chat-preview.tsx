@@ -193,7 +193,8 @@ export const ChatPreview: React.FC<{
       className={cn(
         'hover:bg-quiet focus-visible:focus-ring-inset block w-full bg-white select-none',
         hasUnread && 'bg-tint',
-        isSelected && 'bg-quiet',
+        // darker than the hover, so the open chat stays told apart from the row under the mouse
+        isSelected && 'bg-chip hover:bg-chip',
         isEmergency && 'border-l-4 border-l-red-600 bg-red-50 hover:bg-red-100',
       )}
       data-allow-red={isEmergency ? '' : undefined}
