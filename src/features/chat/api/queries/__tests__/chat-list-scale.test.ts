@@ -102,7 +102,7 @@ interface Membership {
   userId: string;
   chatId: string;
   chatPermission: string;
-  lastReadMessageId: string | undefined;
+  lastReadSeq: number | null;
   pinnedAt: Date | null;
   mutedAt: Date | null;
   markedUnread: boolean;
@@ -123,8 +123,8 @@ const createPrisma = (
     userId,
     chatId,
     chatPermission: 'MEMBER',
-    lastReadMessageId: undefined,
     /* eslint-disable unicorn/no-null -- what Postgres answers for an untouched membership */
+    lastReadSeq: null,
     pinnedAt: null,
     mutedAt: null,
     /* eslint-enable unicorn/no-null */

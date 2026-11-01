@@ -13,7 +13,7 @@ export interface UnreadMarker {
 
 /**
  * Where the "Neue Nachrichten" line goes when the reader opens a chat: before the first
- * message after their read high-water mark (`ChatMembership.lastReadMessageId`), counting
+ * message after their read marker (`ChatMembership.lastReadSeq`), counting
  * what the chat list counts as unread there: messages of others and of the system in the
  * conversation, not in threads, and not deleted ones. Their own messages never are.
  *
@@ -28,7 +28,7 @@ export const getUnreadMarker = trpcBaseProcedure
 
     const membership = await prisma.chatMembership.findUnique({
       where: { userId_chatId: { userId: user.uuid, chatId } },
-      select: { lastReadMessageId: true },
+      select: { lastReadSeq: true },
     });
     if (membership === null) {
       throw new TRPCError({
@@ -37,42 +37,19 @@ export const getUnreadMarker = trpcBaseProcedure
       });
     }
 
-    const lastRead =
-      membership.lastReadMessageId === null
-        ? null
-        : await prisma.message.findFirst({
-            where: { uuid: membership.lastReadMessageId, chatId },
-            select: { uuid: true, createdAt: true },
-          });
-
     const where: Prisma.MessageWhereInput = {
       chatId,
       parentId: null,
       deletedAt: null,
-      AND: [
-        {
-          OR: [
-            { senderId: { not: user.uuid } },
-            { senderId: null },
-            { type: MessageType.SYSTEM_MSG },
-          ],
-        },
-        // never read anything, or the mark points at a message that is gone: all of it
-        lastRead === null
-          ? {}
-          : {
-              OR: [
-                { createdAt: { gt: lastRead.createdAt } },
-                { createdAt: lastRead.createdAt, uuid: { gt: lastRead.uuid } },
-              ],
-            },
-      ],
+      // never read anything: all of it
+      ...(membership.lastReadSeq === null ? {} : { seq: { gt: membership.lastReadSeq } }),
+      OR: [{ senderId: { not: user.uuid } }, { senderId: null }, { type: MessageType.SYSTEM_MSG }],
     };
 
     const [firstUnread, unreadCount] = await Promise.all([
       prisma.message.findFirst({
         where,
-        orderBy: [{ createdAt: 'asc' }, { uuid: 'asc' }],
+        orderBy: { seq: 'asc' },
         select: { uuid: true },
       }),
       prisma.message.count({ where }),

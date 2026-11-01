@@ -35,7 +35,10 @@ export interface AnnouncementPushStats {
   pending: number;
   /** The part of {@link pending} whose waiting push already failed once and will be retried. */
   retrying: number;
-  /** People who read the announcement in the chat, whether they got a push or not. */
+  /**
+   * Current members of the channel who read up to the announcement in the chat, whether they
+   * got a push or not. Someone who left the channel since is no longer counted.
+   */
   readInChat: number;
 }
 
@@ -92,6 +95,27 @@ export const summarizePushLogs = (
 };
 
 /**
+ * How many members of the channel have read up to the announcement, its sender aside. This
+ * counts read markers, not READ events: a chat past `LARGE_CHAT_THRESHOLD` members has none,
+ * and a member who catches up on several announcements at once gets one on the newest only.
+ */
+const countChatReaders = async (chatMessageUuid: string): Promise<number> => {
+  const message = await prisma.message.findUnique({
+    where: { uuid: chatMessageUuid },
+    select: { chatId: true, seq: true, senderId: true },
+  });
+  if (message === null) return 0;
+
+  return prisma.chatMembership.count({
+    where: {
+      chatId: message.chatId,
+      lastReadSeq: { gte: message.seq },
+      ...(message.senderId === null ? {} : { userId: { not: message.senderId } }),
+    },
+  });
+};
+
+/**
  * Loads the push and read statistics of the chat message an announcement was published as.
  *
  * A push sent through the delivery queue is found by its message id. Pushes from before the
@@ -105,7 +129,7 @@ export const getAnnouncementPushStats = async (
     where: { messageId: chatMessageUuid },
     select: { id: true, createdAt: true, completedAt: true },
   });
-  const [logs, readers] = await Promise.all([
+  const [logs, readInChat] = await Promise.all([
     prisma.pushNotificationLog.findMany({
       where:
         notifications.length > 0
@@ -113,11 +137,7 @@ export const getAnnouncementPushStats = async (
           : { content: { contains: `"messageId":"${chatMessageUuid}"` } },
       select: { userId: true, status: true, deliveredAt: true, interactionType: true, error: true },
     }),
-    prisma.messageEvent.groupBy({
-      by: ['userId'],
-      // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
-      where: { messageId: chatMessageUuid, type: 'READ', userId: { not: null } },
-    }),
+    countChatReaders(chatMessageUuid),
   ]);
 
   // An announcement goes out as one message with one push, so this is normally one row.
@@ -134,5 +154,5 @@ export const getAnnouncementPushStats = async (
               ? new Date(Math.max(...completions))
               : undefined,
         };
-  return { stats: summarizePushLogs(logs, readers.length), delivery };
+  return { stats: summarizePushLogs(logs, readInChat), delivery };
 };

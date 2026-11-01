@@ -23,7 +23,14 @@ import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 
 const CHAT_ID = '0192f3a4-0000-7000-8000-000000000001';
 const MESSAGE_ID = '0192f3a4-0000-7000-8000-000000000002';
+const OLDER_MESSAGE_ID = '0192f3a4-0000-7000-8000-000000000003';
 const READER = 'reader';
+
+/** The position of each message in the chat, see `Message.seq`. */
+const positions = new Map([
+  [OLDER_MESSAGE_ID, 4],
+  [MESSAGE_ID, 7],
+]);
 
 interface ReadEvent {
   messageId: string;
@@ -31,32 +38,47 @@ interface ReadEvent {
   type: string;
 }
 
+interface MarkerWhere {
+  userId: string;
+  chatId: string;
+  OR: [{ lastReadSeq: null }, { lastReadSeq: { lt: number } }];
+}
+
 let memberIds: string[];
 /** The reader's own unread mark, see `markChatUnread`. */
 let markedUnread: boolean;
-/** Whether the read message is newer than the stored high-water mark, so the mark moves. */
-let readsNewerMessage: boolean;
 let readEvents: ReadEvent[];
+let lastReadSeq: number | null;
 /** How many membership rows the procedure made the database look at. */
 let membershipRowsRead: number;
 
 /** The chat tables, with just enough of Prisma's behaviour for this procedure. */
 const prisma = {
   message: {
-    findFirst: ({ where }: { where: { uuid: string } }): Promise<{ uuid: string } | null> =>
+    findFirst: ({ where }: { where: { uuid: string } }): Promise<{ seq: number } | null> => {
+      const seq = positions.get(where.uuid);
       // eslint-disable-next-line unicorn/no-null
-      Promise.resolve(where.uuid === MESSAGE_ID ? { uuid: MESSAGE_ID } : null),
-  },
-  // Advancing the high-water mark has its own SQL; this stands in for what that statement
-  // writes besides the mark.
-  $executeRaw: (sql: TemplateStringsArray): Promise<number> => {
-    if (!readsNewerMessage) return Promise.resolve(0);
-    if (sql.join('?').includes('"markedUnread" = false')) markedUnread = false;
-    return Promise.resolve(1);
+      return Promise.resolve(seq === undefined ? null : { seq });
+    },
   },
   chatMembership: {
     findUnique: (): Promise<{ userId: string; markedUnread: boolean }> =>
       Promise.resolve({ userId: READER, markedUnread }),
+    updateMany: ({
+      where,
+      data,
+    }: {
+      where: MarkerWhere;
+      data: { lastReadSeq: number; markedUnread?: boolean };
+    }): Promise<{ count: number }> => {
+      const below = where.OR[1].lastReadSeq.lt;
+      if (where.userId !== READER || (lastReadSeq !== null && lastReadSeq >= below)) {
+        return Promise.resolve({ count: 0 });
+      }
+      lastReadSeq = data.lastReadSeq;
+      if (data.markedUnread !== undefined) markedUnread = data.markedUnread;
+      return Promise.resolve({ count: 1 });
+    },
     update: ({ data }: { data: { markedUnread?: boolean } }): Promise<unknown> => {
       if (data.markedUnread !== undefined) markedUnread = data.markedUnread;
       return Promise.resolve({});
@@ -86,14 +108,28 @@ const chatWithMembers = (count: number): string[] =>
   Array.from({ length: count }, (_, index) => (index === 0 ? READER : `member-${index}`));
 
 beforeEach(() => {
+  memberIds = chatWithMembers(3);
+  // eslint-disable-next-line unicorn/no-null
+  lastReadSeq = null;
+  markedUnread = false;
   readEvents = [];
   membershipRowsRead = 0;
-  markedUnread = false;
-  readsNewerMessage = true;
-  memberIds = chatWithMembers(2);
 });
 
 describe('marking a chat as read', () => {
+  it('moves the read marker to the position of the message', async () => {
+    await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: MESSAGE_ID });
+
+    expect(lastReadSeq).toBe(7);
+  });
+
+  it('keeps the marker where it is when an older message is marked read late', async () => {
+    await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: MESSAGE_ID });
+    await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: OLDER_MESSAGE_ID });
+
+    expect(lastReadSeq).toBe(7);
+  });
+
   it('records a READ event for the read ticks of a small chat', async () => {
     memberIds = chatWithMembers(LARGE_CHAT_THRESHOLD - 1);
 
@@ -120,7 +156,7 @@ describe('marking a chat as read', () => {
 });
 
 describe('reading a chat the reader marked unread', () => {
-  it('takes the mark away when the read moves the high-water mark', async () => {
+  it('takes the mark away when the read moves the read marker', async () => {
     markedUnread = true;
 
     await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: MESSAGE_ID });
@@ -128,12 +164,12 @@ describe('reading a chat the reader marked unread', () => {
     expect(markedUnread).toBe(false);
   });
 
-  // A message older than the stored high-water mark, read late on a slow connection.
-  it('takes the mark away when the high-water mark stays', async () => {
-    markedUnread = true;
-    readsNewerMessage = false;
-
+  // A message older than the stored read marker, read late on a slow connection.
+  it('takes the mark away when the read marker stays', async () => {
     await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: MESSAGE_ID });
+    markedUnread = true;
+
+    await caller.markChatAsRead({ chatId: CHAT_ID, lastMessageId: OLDER_MESSAGE_ID });
 
     expect(markedUnread).toBe(false);
   });
