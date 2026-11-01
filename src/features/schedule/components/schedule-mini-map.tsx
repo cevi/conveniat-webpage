@@ -172,7 +172,6 @@ export const ScheduleMiniMap: React.FC<{ location: CampMapAnnotation }> = ({ loc
               : []
           }
           campMapAnnotationPolygons={polygonAnnotations}
-          schedules={{}}
           limitUsage={false}
           mapControlOptions={{
             showSearch: false,

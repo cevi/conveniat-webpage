@@ -12,7 +12,6 @@ import { useMapUrlSync } from '@/features/map/hooks/use-map-url-sync';
 import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
-  CampScheduleEntry,
   CeviLogoMarker,
   InitialMapPose,
   MapControlOptions,
@@ -24,7 +23,6 @@ import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { quartierRufnameOf, shortQuartierName } from '@/utils/quartier-names';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
-import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -58,7 +56,6 @@ export const MapLibreRenderer = ({
   ceviLogoMarkers,
   campMapAnnotationPoints,
   campMapAnnotationPolygons,
-  schedules,
   limitUsage = true,
   validateStyle = true,
   mapControlOptions,
@@ -74,7 +71,6 @@ export const MapLibreRenderer = ({
   ceviLogoMarkers: CeviLogoMarker[];
   campMapAnnotationPoints: CampMapAnnotationPoint[];
   campMapAnnotationPolygons: CampMapAnnotationPolygon[];
-  schedules: { [id: string]: CampScheduleEntry[] };
   limitUsage?: boolean;
   validateStyle?: boolean;
   mapControlOptions?: MapControlOptions | undefined;
@@ -106,61 +102,25 @@ export const MapLibreRenderer = ({
   const closeDrawer = useCallback(() => setOpenAnnotation(undefined), []);
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
-  const [annotationPoints, setAnnotationPoints] =
-    useState<CampMapAnnotationPoint[]>(campMapAnnotationPoints);
-  const [annotationPolygons, setAnnotationPolygons] =
-    useState<CampMapAnnotationPolygon[]>(campMapAnnotationPolygons);
-  const [schedulesState, setSchedulesState] = useState<{ [id: string]: CampScheduleEntry[] }>(
-    schedules,
+  // The places come from the query cache: restored from the device at once, offline as well,
+  // and refreshed in the background, see `query-client.ts`. The props only stand in until the
+  // cache holds a copy.
+  const { data: mapData } = trpc.map.getMapAnnotations.useQuery({ locale });
+  // the persisted query cache may hold anything an older version stored under this key
+  const annotationPoints = useMemo(
+    () =>
+      Array.isArray(mapData?.campMapAnnotationPoints)
+        ? mapData.campMapAnnotationPoints
+        : campMapAnnotationPoints,
+    [mapData, campMapAnnotationPoints],
   );
-
-  // Sync state if props change (e.g. key/prop changes)
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAnnotationPoints(campMapAnnotationPoints);
-  }, [campMapAnnotationPoints]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAnnotationPolygons(campMapAnnotationPolygons);
-  }, [campMapAnnotationPolygons]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSchedulesState(schedules);
-  }, [schedules]);
-
-  // Fetch updated map data when online
-  const { data: updatedMapData } = trpc.map.getMapAnnotations.useQuery(
-    { locale },
-    {
-      // every annotation and schedule entry in one answer, and the map is mounted in chats,
-      // the schedule and CMS pages too, so it is not asked for again within half an hour
-      staleTime: 30 * 60 * 1000,
-      // an installed app is resumed with the map still mounted, so returning to it is the only
-      // moment an edit made in the meantime can reach the user; nothing pushes map changes
-      refetchOnWindowFocus: true,
-    },
+  const annotationPolygons = useMemo(
+    () =>
+      Array.isArray(mapData?.campMapAnnotationPolygons)
+        ? mapData.campMapAnnotationPolygons
+        : campMapAnnotationPolygons,
+    [mapData, campMapAnnotationPolygons],
   );
-
-  useEffect(() => {
-    if (updatedMapData) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAnnotationPoints(updatedMapData.campMapAnnotationPoints);
-
-      setAnnotationPolygons(updatedMapData.campMapAnnotationPolygons);
-
-      setSchedulesState(updatedMapData.schedules);
-
-      // Trigger background update of the PWA offline cache for `/app/map` page & RSC
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-          type: ServiceWorkerMessages.UPDATE_MAP_CACHE,
-          locale,
-        });
-      }
-    }
-  }, [updatedMapData, locale]);
 
   /*
    * Keep the selected annotation resolved against the annotations actually on the map.
@@ -276,7 +236,6 @@ export const MapLibreRenderer = ({
           closeDrawer={closeDrawer}
           annotation={openAnnotation}
           locale={locale}
-          schedule={schedulesState[openAnnotation.id]}
         />
       )}
       <div className="h-full w-full" ref={(element) => setMapContainer(element ?? undefined)} />

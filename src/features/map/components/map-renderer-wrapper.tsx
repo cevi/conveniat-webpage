@@ -5,7 +5,6 @@ import { useIntersectionObserver } from '@/features/map/hooks/use-intersection-o
 import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
-  CampScheduleEntry,
   CeviLogoMarker,
   InitialMapPose,
   MapControlOptions,
@@ -61,7 +60,6 @@ export interface MapLibreRendererProperties {
   ceviLogoMarkers: CeviLogoMarker[];
   campMapAnnotationPoints?: CampMapAnnotationPoint[];
   campMapAnnotationPolygons?: CampMapAnnotationPolygon[];
-  schedules: { [id: string]: CampScheduleEntry[] };
   limitUsage?: boolean;
   /** URL of the MapLibre style; the swisstopo base map when omitted. */
   mapStyle?: string;
@@ -81,7 +79,6 @@ export const MapLibreRenderer = ({
   ceviLogoMarkers,
   campMapAnnotationPoints,
   campMapAnnotationPolygons,
-  schedules,
   limitUsage = true,
   validateStyle = true,
   mapControlOptions,
@@ -109,7 +106,6 @@ export const MapLibreRenderer = ({
             ceviLogoMarkers={ceviLogoMarkers}
             campMapAnnotationPoints={campMapAnnotationPoints}
             campMapAnnotationPolygons={campMapAnnotationPolygons}
-            schedules={schedules}
             limitUsage={limitUsage}
             validateStyle={validateStyle}
             mapControlOptions={mapControlOptions}
@@ -134,7 +130,6 @@ export const MiniMapLibreRenderer = ({
   ceviLogoMarkers,
   campMapAnnotationPoints,
   campMapAnnotationPolygons,
-  schedules,
   limitUsage = true,
   validateStyle = true,
   mapControlOptions,
@@ -162,7 +157,6 @@ export const MiniMapLibreRenderer = ({
             ceviLogoMarkers={ceviLogoMarkers}
             campMapAnnotationPoints={campMapAnnotationPoints}
             campMapAnnotationPolygons={campMapAnnotationPolygons}
-            schedules={schedules}
             limitUsage={limitUsage}
             validateStyle={validateStyle}
             mapControlOptions={mapControlOptions}

@@ -68,8 +68,8 @@ export const mapRouter = createTRPCRouter({
     }),
 
   /**
-   * Get all map annotations (points and polygons) and related schedules.
-   * Used for updating annotations dynamically when online.
+   * The places of the camp map, its markers and areas. The map reads them from this query
+   * only, so the persisted copy shows them offline and the background refresh keeps them current.
    */
   getMapAnnotations: publicProcedure
     .input(

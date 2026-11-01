@@ -33,17 +33,14 @@ export const generateMetadata = async ({
   };
 };
 
-const MapPage: React.FC<{ params: Promise<{ locale: Locale }> }> = ({ params }) => {
-  const locale = params.then((p) => p.locale);
-
-  return (
-    <>
-      <MapPageHeader />
-      <ForceDynamicOnBuild>
-        <CampMapComponent locale={locale} />
-      </ForceDynamicOnBuild>
-    </>
-  );
-};
+const MapPage: React.FC = () => (
+  <>
+    <MapPageHeader />
+    {/* the initial pose comes from the environment of the running deployment, not of the build */}
+    <ForceDynamicOnBuild>
+      <CampMapComponent />
+    </ForceDynamicOnBuild>
+  </>
+);
 
 export default MapPage;

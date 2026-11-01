@@ -1,11 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { loadMapAnnotations } from '@/features/map/api/load-map-annotations';
 import { MapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
 import type { InitialMapPose } from '@/features/map/types/types';
-import type { Locale } from '@/types/types';
-import config from '@payload-config';
-import { cacheLife, cacheTag } from 'next/cache';
-import { getPayload } from 'payload';
 import type React from 'react';
 import 'server-only';
 
@@ -33,49 +28,19 @@ const initialMapPoseObergoms: InitialMapPose = {
 };
 
 /**
- * Cached body of the camp map.
- *
- * Takes the *resolved* locale rather than a Promise. A Promise is a new object identity on every
- * render, so passing one as an argument to a `'use cache'` function makes the cache key
- * non-deterministic: the entry written during the cache-warming pass is never found again during
- * the final prerender pass, which surfaces as "Unexpected cache miss after cache warming phase
- * during prerendering" and re-runs the whole (DB-heavy) render.
+ * The camp map. It carries no places: the map reads them, and the programme at each place, from
+ * the query cache, which keeps them on the device for offline use and refreshes them in the
+ * background. Rendering them here as well sent the whole set a second time inside every copy of
+ * this page, the offline one included.
  */
-const CampMapComponentCached: React.FC<{
-  locale: Locale;
-}> = async ({ locale }) => {
-  'use cache';
-  cacheLife('hours');
-  cacheTag('payload', 'camp-map-annotations', 'camp-schedule-entry');
-
-  const payload = await getPayload({ config });
-
-  const { campMapAnnotationPoints, campMapAnnotationPolygons, schedules } =
-    await loadMapAnnotations(payload, locale);
-
-  return (
-    <div className="fixed top-[calc(var(--app-header-height)+var(--offline-banner-height,0px))] left-0 h-[calc(100dvh-var(--app-header-height)-var(--offline-banner-height,0px))] w-full pb-(--app-tab-bar-height) xl:left-(--app-content-left) xl:w-[calc(100vw-var(--app-content-left))]">
-      <MapLibreRenderer
-        initialMapPose={initialMapPoseObergoms}
-        ceviLogoMarkers={[]}
-        campMapAnnotationPoints={campMapAnnotationPoints}
-        campMapAnnotationPolygons={campMapAnnotationPolygons}
-        validateStyle={environmentVariables.NODE_ENV !== 'production'}
-        mapStyle="/vector-map/camp_style.json"
-        schedules={schedules}
-        enableSearch
-      />
-    </div>
-  );
-};
-
-/**
- * Resolves the locale Promise outside of the cached scope, so the cached render below is keyed on
- * a plain, deterministic string.
- */
-export const CampMapComponent: React.FC<{
-  locale: Promise<Locale>;
-}> = async ({ locale: localeAsPromise }) => {
-  const locale = await localeAsPromise;
-  return <CampMapComponentCached locale={locale} />;
-};
+export const CampMapComponent: React.FC = () => (
+  <div className="fixed top-[calc(var(--app-header-height)+var(--offline-banner-height,0px))] left-0 h-[calc(100dvh-var(--app-header-height)-var(--offline-banner-height,0px))] w-full pb-(--app-tab-bar-height) xl:left-(--app-content-left) xl:w-[calc(100vw-var(--app-content-left))]">
+    <MapLibreRenderer
+      initialMapPose={initialMapPoseObergoms}
+      ceviLogoMarkers={[]}
+      validateStyle={environmentVariables.NODE_ENV !== 'production'}
+      mapStyle="/vector-map/camp_style.json"
+      enableSearch
+    />
+  </div>
+);
