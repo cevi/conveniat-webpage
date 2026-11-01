@@ -9,4 +9,6 @@ export const ServiceWorkerMessages = {
   GET_CLIENT_URL: 'GET_CLIENT_URL',
   CACHE_DYNAMIC_ROUTES: 'CACHE_DYNAMIC_ROUTES',
   CLEAR_PERSONAL_CACHES: 'CLEAR_PERSONAL_CACHES',
+  /** Worker to page: `{ reachable }`. Page to worker: a request for the current state. */
+  NETWORK_STATUS: 'NETWORK_STATUS',
 } as const;
