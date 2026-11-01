@@ -10,6 +10,21 @@ const minZoomLevelForSwitzerland = 4;
 
 const BASE_MAP_STYLE = '/vector-map/base_style.json';
 
+/**
+ * Maps whose page is hidden, by their container. Next.js drops a hidden page from its cache
+ * after a few navigations without running any cleanup, so the map of a container that has left
+ * the document is removed the next time any map initializes.
+ */
+const hiddenMaps = new Map<HTMLElement, MapLibre>();
+
+const removeMapsOfRemovedContainers = (): void => {
+  for (const [container, hiddenMap] of hiddenMaps) {
+    if (container.isConnected) continue;
+    hiddenMap.remove();
+    hiddenMaps.delete(container);
+  }
+};
+
 export interface MapInitialization {
   /** The MapLibre instance, or `undefined` while initializing or after a failure. */
   map: MapLibre | undefined;
@@ -51,45 +66,60 @@ export const useMapInitialization = (
   const { initialMapPose, limitUsage, validateStyle, style = BASE_MAP_STYLE, locale } = options;
 
   useEffect(() => {
-    if (!mapContainer || map) return;
+    if (!mapContainer) return;
+    removeMapsOfRemovedContainers();
 
-    let mapInstance: MapLibre;
+    let mapInstance = hiddenMaps.get(mapContainer);
+    hiddenMaps.delete(mapContainer);
+    // a map shown again still has the size of its last visible frame; MapLibre would measure the
+    // page by itself only a moment later, and the picture jumps when it does
+    if (mapInstance !== undefined && mapContainer.clientWidth > 0) mapInstance.resize();
 
-    try {
-      configureMapLibreWorker();
-      mapInstance = new MapLibre({
-        container: mapContainer,
-        validateStyle,
-        style,
-        ...(!limitUsage && {
-          cooperativeGestures: true,
-          touchZoomRotate: false,
-        }),
-        dragRotate: false,
-        pitchWithRotate: false,
-        touchPitch: false,
-        center: initialMapPose.initialMapCenter,
-        zoom: initialMapPose.zoom,
-        bearing: initialMapPose.bearing ?? 0,
-        minZoom: minZoomLevelForSwitzerland,
-        attributionControl: false,
-        locale: mapLibreLocaleOf(locale),
-      });
+    if (mapInstance === undefined) {
+      try {
+        configureMapLibreWorker();
+        mapInstance = new MapLibre({
+          container: mapContainer,
+          validateStyle,
+          style,
+          ...(!limitUsage && {
+            cooperativeGestures: true,
+            touchZoomRotate: false,
+          }),
+          dragRotate: false,
+          pitchWithRotate: false,
+          touchPitch: false,
+          center: initialMapPose.initialMapCenter,
+          zoom: initialMapPose.zoom,
+          bearing: initialMapPose.bearing ?? 0,
+          minZoom: minZoomLevelForSwitzerland,
+          attributionControl: false,
+          locale: mapLibreLocaleOf(locale),
+        });
 
-      mapInstance.addControl(new AttributionControl({ compact: true }));
-    } catch (error) {
-      console.warn('Failed to initialize the map, rendering fallback instead:', error);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setInitializationFailed(true);
-      return;
+        mapInstance.addControl(new AttributionControl({ compact: true }));
+      } catch (error) {
+        console.warn('Failed to initialize the map, rendering fallback instead:', error);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setInitializationFailed(true);
+        return;
+      }
     }
 
+    const instance = mapInstance;
     setInitializationFailed(false);
-    setMap(mapInstance);
+    setMap(instance);
 
-    // Cleanup function to run when the component unmounts
     return (): void => {
-      mapInstance.remove();
+      // Next.js hides a page the user leaves with <Activity> and runs this cleanup, but keeps
+      // its DOM. Removing the map here rebuilt it on every return to the Karte: a new WebGL
+      // context, the style, every tile parsed again. A container still in the document is only
+      // hidden, so the map waits for it; one taken out of the document is gone for good.
+      if (mapContainer.isConnected) {
+        hiddenMaps.set(mapContainer, instance);
+        return;
+      }
+      instance.remove();
       setMap(undefined);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
