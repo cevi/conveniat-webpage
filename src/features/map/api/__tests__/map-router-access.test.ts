@@ -104,3 +104,46 @@ describe('the camp map in French', () => {
     expect(polygons.map((polygon) => polygon.title)).toEqual(['Quartier des tentes']);
   });
 });
+
+describe('the camp map in French, where nobody has translated a place yet', () => {
+  beforeEach(() => {
+    // what Payload does with `localization.fallback` off: a missing translation stays empty
+    // unless the call names a fallback locale
+    const find = jest.fn(
+      ({
+        collection,
+        locale,
+        fallbackLocale,
+      }: {
+        collection: string;
+        locale?: string;
+        fallbackLocale?: string;
+      }) => {
+        if (collection !== 'camp-map-annotations') return Promise.resolve({ docs: [] });
+        const untranslated = locale === 'fr' && fallbackLocale !== 'de';
+        return Promise.resolve({
+          docs: [
+            { ...kiosk, title: untranslated ? undefined : 'Kiosk' },
+            { ...quartier, title: untranslated ? undefined : 'Zeltquartier' },
+          ],
+        });
+      },
+    );
+    jest
+      .mocked(getPayload)
+      .mockResolvedValue({ find } as unknown as Awaited<ReturnType<typeof getPayload>>);
+  });
+
+  it('keeps the German names on the map', async () => {
+    const map = await guest.getMapAnnotations({ locale: 'fr' });
+
+    expect(map.campMapAnnotationPoints.map((point) => point.title)).toEqual(['Kiosk']);
+    expect(map.campMapAnnotationPolygons.map((polygon) => polygon.title)).toEqual(['Zeltquartier']);
+  });
+
+  it("keeps the German names on a schedule entry's mini map", async () => {
+    const { polygons } = await guest.getAnnotations({ locale: 'fr' });
+
+    expect(polygons.map((polygon) => polygon.title)).toEqual(['Zeltquartier']);
+  });
+});
