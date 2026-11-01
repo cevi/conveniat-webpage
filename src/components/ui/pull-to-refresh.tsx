@@ -15,12 +15,16 @@ interface PullToRefreshProperties {
   pullThreshold?: number;
 }
 
-const getScrollTop = (): number => {
-  // eslint-disable-next-line unicorn/prefer-global-this
-  if (typeof window === 'undefined') return 0;
-  if (globalThis.scrollY > 0) return globalThis.scrollY;
-  if (document.documentElement.scrollTop > 0) return document.documentElement.scrollTop;
-  return 0;
+/**
+ * How far the list is scrolled from its top. A phone scrolls the window, a wide screen the
+ * column the list sits in, so any scrolled ancestor counts: reading the window alone let a pull
+ * in a scrolled column refresh instead of scrolling back up.
+ */
+const getScrollTop = (element: HTMLElement | null): number => {
+  for (let node = element?.parentElement; node; node = node.parentElement) {
+    if (node.scrollTop > 0) return node.scrollTop;
+  }
+  return Math.max(globalThis.scrollY, 0);
 };
 
 export const PullToRefresh: React.FC<PullToRefreshProperties> = ({
@@ -62,7 +66,7 @@ export const PullToRefresh: React.FC<PullToRefreshProperties> = ({
   const handleTouchStart = useCallback(
     (event: React.TouchEvent<HTMLDivElement>): void => {
       const touch = event.touches[0];
-      const scrollTop = getScrollTop();
+      const scrollTop = getScrollTop(containerReference.current);
       if (scrollTop <= 0 && !isRefreshing && touch) {
         startYReference.current = touch.clientY;
         startXReference.current = touch.clientX;
@@ -90,7 +94,7 @@ export const PullToRefresh: React.FC<PullToRefreshProperties> = ({
       const currentX = touch.clientX;
       const dy = currentY - startYReference.current;
       const dx = currentX - startXReference.current;
-      const scrollTop = getScrollTop();
+      const scrollTop = getScrollTop(containerReference.current);
 
       // Enforce directional locking:
       // If horizontal gesture is stronger than vertical gesture, ignore pull-to-refresh (user is swiping a card!)

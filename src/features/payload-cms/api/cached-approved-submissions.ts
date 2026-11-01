@@ -10,6 +10,9 @@ import { cache } from 'react';
  * Reads with `depth: 0` and selects only `submissionData`. At the default depth the populated
  * form would carry its email and workflow configuration and, through its `submissions` join, other
  * submissions of the same form, approved or not.
+ *
+ * `cache` only deduplicates within one request, so an approval shows on the next page load
+ * without expiring any tag. Moving this behind `'use cache'` needs a tag that approving expires.
  */
 export const getApprovedFormSubmissionsCached = cache(
   async (formId: string): Promise<Pick<FormSubmission, 'id' | 'submissionData'>[]> => {
