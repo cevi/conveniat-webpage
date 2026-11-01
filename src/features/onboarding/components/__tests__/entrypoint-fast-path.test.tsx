@@ -32,6 +32,10 @@ describe('starting the app once the onboarding is done', () => {
     expect(startApp('/entrypoint?app-mode=true', done)).toBe('/app/dashboard');
   });
 
+  it('goes straight to the dashboard with the network hint of the native app', () => {
+    expect(startApp('/entrypoint?app-mode=true&network=unvalidated', done)).toBe('/app/dashboard');
+  });
+
   it('runs the onboarding while it is not done', () => {
     expect(startApp('/entrypoint?app-mode=true')).toBeUndefined();
   });

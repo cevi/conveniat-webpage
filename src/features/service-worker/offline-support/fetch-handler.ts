@@ -518,6 +518,14 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     );
   }
 
+  // The native app on Android adds `network=unvalidated` to its start URL when the system did not
+  // reach the internet through the current network (see `network-reachability.ts`). Read before
+  // the first request waits for anything: on wifi without an uplink that saves the full timeout
+  // of the first page.
+  if (isNavigation && url.searchParams.get('network') === 'unvalidated') {
+    await markNetworkUnreachable();
+  }
+
   // 2. Targeted Injection (Header Strategy)
   // App Mode travels as a header, never as a query param. Only documents and RSC requests
   // get it: API requests never reach the router, handleFetchEvent leaves them to the browser.

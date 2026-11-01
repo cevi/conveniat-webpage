@@ -20,8 +20,11 @@ export function entrypointFastPath(
   try {
     if (location.pathname !== '/entrypoint') return;
     // the plain app start and nothing else; no iteration, which the compiler may turn into a
-    // helper the inline script cannot reach
-    if (new URLSearchParams(location.search).toString() !== 'app-mode=true') return;
+    // helper the inline script cannot reach. `network` is the native app's hint for the
+    // service worker, which has read it by now.
+    const parameters = new URLSearchParams(location.search);
+    parameters.delete('network');
+    if (parameters.toString() !== 'app-mode=true') return;
     if (storage.local.getItem(key) !== 'true') return;
     if (
       storage.session.getItem('pending_push_redirect') !== null ||

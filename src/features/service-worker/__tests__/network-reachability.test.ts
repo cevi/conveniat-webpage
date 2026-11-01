@@ -55,8 +55,14 @@ const request = (
   let answer: Promise<Response> | undefined;
   const lifetime: Promise<unknown>[] = [];
   const startedAt = Date.now();
+  const fetchRequest = new Request(`${ORIGIN}${path}`, init);
+  if (path.startsWith('/entrypoint')) {
+    // a page load; the Request constructor cannot make one
+    Object.defineProperty(fetchRequest, 'mode', { value: 'navigate' });
+    Object.defineProperty(fetchRequest, 'destination', { value: 'document' });
+  }
   worker({
-    request: new Request(`${ORIGIN}${path}`, init),
+    request: fetchRequest,
     clientId: '',
     resultingClientId: '',
     respondWith: (response: Promise<Response>) => {
@@ -99,6 +105,10 @@ describe('a network that stops answering', () => {
       [`${ORIGIN}/app/schedule?_rsc`, new Response('cached schedule')],
     ]);
     entries.set(CACHE_NAMES.RSC, rscCache);
+    entries.set(
+      CACHE_NAMES.PAGES,
+      new Map([[`${ORIGIN}/entrypoint`, new Response('cached entrypoint')]]),
+    );
     Object.defineProperty(globalThis, 'navigator', { value: { onLine: true }, configurable: true });
     Object.defineProperty(globalThis, 'self', {
       value: {
@@ -275,5 +285,12 @@ describe('a network that stops answering', () => {
       type: ServiceWorkerMessages.NETWORK_STATUS,
       payload: { reachable: true },
     });
+  });
+
+  it('takes the native app at its word that Android found no internet on this network', async () => {
+    const worker = await startWorker();
+    const coldStart = request(worker, '/entrypoint?app-mode=true&network=unvalidated');
+    await jest.advanceTimersByTimeAsync(500);
+    await expect(coldStart.answeredAfter).resolves.toBe(500);
   });
 });
