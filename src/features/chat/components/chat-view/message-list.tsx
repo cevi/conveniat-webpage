@@ -1,6 +1,7 @@
 'use client';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SectionLabel } from '@/components/ui/section-label';
+import { MessagesSkeleton } from '@/features/chat/components/chat-view/chat-skeleton';
 import { MessageComponent } from '@/features/chat/components/chat-view/message';
 import { TypingIndicator } from '@/features/chat/components/chat-view/typing-indicator';
 import { useChatId } from '@/features/chat/context/chat-id-context';
@@ -93,7 +94,12 @@ export const MessageList: React.FC<{
     [chatDetails?.participants],
   );
 
-  const { sortedMessages, isFetchingNextPage, topSentinelReference } = useMessageInfiniteScroll({
+  const {
+    sortedMessages,
+    isLoading: isLoadingMessages,
+    isFetchingNextPage,
+    topSentinelReference,
+  } = useMessageInfiniteScroll({
     chatId,
     parentId: parentId ?? undefined,
     parentMessage: undefined,
@@ -233,7 +239,11 @@ export const MessageList: React.FC<{
             </div>
           )}
 
-          {!isThread && sortedMessages.length === 0 && (
+          {/* a chat whose details are cached but not its messages is not an empty chat */}
+          {!isThread && sortedMessages.length === 0 && isLoadingMessages && (
+            <MessagesSkeleton className="-mx-2 -my-4" />
+          )}
+          {!isThread && sortedMessages.length === 0 && !isLoadingMessages && (
             <EmptyState
               icon={MessagesSquare}
               title={emptyChatTitleText[locale]}

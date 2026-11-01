@@ -25,30 +25,41 @@ const IncomingRun: React.FC<{ widths: string[] }> = ({ widths }) => (
 );
 
 /**
- * A conversation while it loads, in its layout: the header with the avatars, the day, runs of
- * bubbles on both sides, and the composer, whose frame is real and does not pulse.
+ * The messages while they load: the day, then runs of bubbles on both sides, at the bottom
+ * where the newest messages will be.
  */
-export const ChatSkeleton: React.FC = () => (
+export const MessagesSkeleton: React.FC<{ className?: string }> = ({ className }) => (
+  <div
+    aria-hidden="true"
+    className={cn('flex flex-col justify-end gap-3 overflow-hidden px-2 py-4', className)}
+  >
+    <div className="flex justify-center py-1">
+      <Pulse className="h-7 w-16 rounded-full" />
+    </div>
+    <IncomingRun widths={['w-60', 'w-48']} />
+    <div className="flex flex-col items-end gap-0.5 pr-2">
+      <Pulse className="h-12 w-56 rounded-[16px]" />
+    </div>
+    <IncomingRun widths={['w-64']} />
+    <div className="flex flex-col items-end gap-0.5 pr-2">
+      <Pulse className="h-12 w-44 rounded-[16px]" />
+      <Pulse className="h-12 w-60 rounded-[16px]" />
+    </div>
+  </div>
+);
+
+/**
+ * A conversation while it loads, in its layout: the header, the day, runs of bubbles on both
+ * sides, and the composer, whose frame is real and does not pulse. Inside a chat's route the
+ * header is the real one, which names the chat from the chat list before its details are there.
+ */
+export const ChatSkeleton: React.FC<{ header?: React.ReactNode }> = ({
+  header = <ChatHeaderSkeleton />,
+}) => (
   <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
     <AppFooterController hideAppFooter />
-    <ChatHeaderSkeleton />
-    <div
-      aria-hidden="true"
-      className="flex flex-1 flex-col justify-end gap-3 overflow-hidden px-2 py-4"
-    >
-      <div className="flex justify-center py-1">
-        <Pulse className="h-7 w-16 rounded-full" />
-      </div>
-      <IncomingRun widths={['w-60', 'w-48']} />
-      <div className="flex flex-col items-end gap-0.5 pr-2">
-        <Pulse className="h-12 w-56 rounded-[16px]" />
-      </div>
-      <IncomingRun widths={['w-64']} />
-      <div className="flex flex-col items-end gap-0.5 pr-2">
-        <Pulse className="h-12 w-44 rounded-[16px]" />
-        <Pulse className="h-12 w-60 rounded-[16px]" />
-      </div>
-    </div>
+    {header}
+    <MessagesSkeleton className="flex-1" />
     <div className="border-line border-t bg-white px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <div className="flex items-end gap-2">
         <div className={cn(formFieldClassName, 'flex-1 px-[14px]')}>
