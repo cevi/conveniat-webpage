@@ -29,6 +29,8 @@ export const mapRouter = createTRPCRouter({
         limit: 100,
         depth: 1,
         locale: input.locale,
+        // an area nobody has translated yet keeps its German name, see `loadMapAnnotations`
+        fallbackLocale: 'de',
       });
 
       // Transform to simplified frontend format
@@ -68,8 +70,8 @@ export const mapRouter = createTRPCRouter({
     }),
 
   /**
-   * Get all map annotations (points and polygons) and related schedules.
-   * Used for updating annotations dynamically when online.
+   * The places of the camp map, its markers and areas. The map reads them from this query
+   * only, so the persisted copy shows them offline and the background refresh keeps them current.
    */
   getMapAnnotations: publicProcedure
     .input(

@@ -7,9 +7,11 @@ import { Suspense } from 'react';
 import '@/app/globals.scss';
 import { BackgroundLogo } from '@/components/background-logo';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
+import { StylesheetRecovery } from '@/components/stylesheet-recovery';
 import { environmentVariables } from '@/config/environment-variables';
 import { BootHydrationMarker } from '@/features/onboarding/components/boot-hydration-marker';
 import { BootWatchdog } from '@/features/onboarding/components/boot-watchdog';
+import { EntrypointFastPath } from '@/features/onboarding/components/entrypoint-fast-path';
 import { PostHogProvider } from '@/providers/post-hog-provider';
 import { TRPCProvider } from '@/trpc/client';
 import { sharedFontClassName } from '@/utils/fonts';
@@ -37,6 +39,7 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
       lang={locale}
     >
       <head>
+        <StylesheetRecovery />
         <AppStatusBarMeta />
         {!environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST && (
           <link rel="manifest" href="/manifest.webmanifest" />
@@ -46,6 +49,11 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
         suppressHydrationWarning
         className="flex h-svh w-screen flex-col overflow-x-hidden overflow-y-hidden overscroll-y-none bg-[#f8fafc] pt-(--status-bar-height)"
       >
+        {/*
+          First, so a start whose onboarding is done leaves before anything else loads; it only
+          acts on /entrypoint, this layout also wraps /login.
+        */}
+        <EntrypointFastPath />
         {/*
           Early capture script for native push notification clicks on cold start.
           When the app is killed and a push notification is tapped, the native shell

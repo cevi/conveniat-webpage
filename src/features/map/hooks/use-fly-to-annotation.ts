@@ -64,31 +64,62 @@ export const useFlyToAnnotation = (
     const coordinates = getAnnotationFocusCoordinates(annotation);
     if (!coordinates) return;
 
-    const canvas = map.getCanvas();
-    const canvasSize = { width: canvas.clientWidth, height: canvas.clientHeight };
-    // the map has not been laid out (yet); there is nothing meaningful to center into
-    if (canvasSize.width <= 0 || canvasSize.height <= 0) return;
+    /** Moves the map, once it has a size. Returns whether it could tell where to. */
+    const focus = (): boolean => {
+      const container = map.getContainer();
+      // the page is hidden or not laid out yet; there is nothing meaningful to center into
+      if (container.clientWidth <= 0 || container.clientHeight <= 0) return false;
 
-    const unobstructedRegion = getUnobstructedRegion(canvasSize, measureDrawerObstruction(map));
-    const annotationPoint = map.project(coordinates);
+      // A kept map shown again still has the size of its last visible frame until MapLibre
+      // measures the page, a moment after this effect. Computed against that size, the flight
+      // ends with the place where the drawer covers it.
+      const canvas = map.getCanvas();
+      if (
+        canvas.clientWidth !== container.clientWidth ||
+        canvas.clientHeight !== container.clientHeight
+      ) {
+        map.resize();
+      }
+      const canvasSize = { width: canvas.clientWidth, height: canvas.clientHeight };
 
-    if (
-      isAnnotationComfortablyVisible(annotationPoint, unobstructedRegion, ANNOTATION_FOCUS_MARGINS)
-    ) {
-      return;
-    }
+      const unobstructedRegion = getUnobstructedRegion(canvasSize, measureDrawerObstruction(map));
+      const annotationPoint = map.project(coordinates);
 
-    const targetPoint = getFocusTargetPoint(unobstructedRegion, ANNOTATION_FOCUS_MARGINS);
-    const recenteredPoint = getRecenteredMapCenterPoint(
-      map.project(map.getCenter()),
-      annotationPoint,
-      targetPoint,
-    );
+      if (
+        isAnnotationComfortablyVisible(
+          annotationPoint,
+          unobstructedRegion,
+          ANNOTATION_FOCUS_MARGINS,
+        )
+      ) {
+        return true;
+      }
 
-    map.flyTo({
-      center: map.unproject([recenteredPoint.x, recenteredPoint.y]),
-      animate: true,
-      duration: FLY_TO_DURATION_IN_MS,
-    });
+      const targetPoint = getFocusTargetPoint(unobstructedRegion, ANNOTATION_FOCUS_MARGINS);
+      const recenteredPoint = getRecenteredMapCenterPoint(
+        map.project(map.getCenter()),
+        annotationPoint,
+        targetPoint,
+      );
+
+      map.flyTo({
+        center: map.unproject([recenteredPoint.x, recenteredPoint.y]),
+        animate: true,
+        duration: FLY_TO_DURATION_IN_MS,
+      });
+      return true;
+    };
+
+    if (focus()) return;
+
+    // A kept map whose page is still hidden can get the place it is asked to show before its page
+    // is back, with no size to measure. It flies once MapLibre has measured the page again.
+    const focusOnceLaidOut = (): void => {
+      if (focus()) map.off('resize', focusOnceLaidOut);
+    };
+    map.on('resize', focusOnceLaidOut);
+    return (): void => {
+      map.off('resize', focusOnceLaidOut);
+    };
   }, [map, annotation, enabled]);
 };

@@ -298,7 +298,9 @@ const mockBackend = async (
           (input as { hofId?: string } | undefined)?.hofId === hofId,
       ).length,
   };
-  await page.route('**/api/auth/session', async (route) => {
+  // on the context: once the service worker controls the page it sends these requests itself,
+  // and a route on the page no longer sees them; the real server then signs the app out
+  await page.context().route('**/api/auth/session', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -313,7 +315,7 @@ const mockBackend = async (
       ),
     });
   });
-  await page.route('**/api/form-submissions', async (route) => {
+  await page.context().route('**/api/form-submissions', async (route) => {
     if (route.request().method() !== 'POST') return route.fallback();
     backend.submissions.push(route.request().postDataJSON() as Backend['submissions'][number]);
     onSubmission?.();
@@ -323,7 +325,7 @@ const mockBackend = async (
       body: JSON.stringify({ message: 'created', doc: { id: 'new-submission' } }),
     });
   });
-  await page.route('**/api/trpc/**', async (route) => {
+  await page.context().route('**/api/trpc/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     const procedures = url.pathname.split('/api/trpc/')[1]?.split(',') ?? [];

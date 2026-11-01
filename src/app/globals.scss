@@ -45,6 +45,12 @@
 @custom-variant site (&:where(:not([data-app] *)));
 @custom-variant app (&:where([data-app] *));
 
+/* While a field the user types into has focus. `:read-write` is what takes text: text-like inputs,
+   textareas and contenteditable, not checkboxes, buttons or read-only fields. On Android a field
+   keeps its focus when the keyboard is closed with Back, so pair it with a sign that the keyboard
+   is really open, see `useKeyboardShrinksPage`. */
+@custom-variant typing (&:where(:root:has(:read-write:focus) *));
+
 @utility focus-ring {
   outline: 2px solid theme('colors.conveniat-green');
   outline-offset: 2px;

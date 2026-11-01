@@ -106,7 +106,9 @@ describe('getFocusTargetPoint', () => {
 
   it('shifts the target down so that the marker icon is centered', () => {
     const target = getFocusTargetPoint(rectangle(0, 400, 400, 0), ANNOTATION_FOCUS_MARGINS);
-    expect(target.x).toBe(200);
+    expect(target.x).toBe(
+      (ANNOTATION_FOCUS_MARGINS.left + 400 - ANNOTATION_FOCUS_MARGINS.right) / 2,
+    );
     expect(target.y).toBeGreaterThan(200);
   });
 

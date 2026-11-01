@@ -2,8 +2,7 @@
 
 import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
-import type { CampScheduleEntry } from '@/features/map/types/types';
-import { trpc } from '@/trpc/client';
+import { trpc, type RouterOutputs } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { campClockOf } from '@/utils/camp-clock';
 import { ChevronRight } from 'lucide-react';
@@ -16,12 +15,22 @@ const scheduleTableTitle: StaticTranslationString = {
   fr: 'Programme à cet endroit',
 };
 
+type CampScheduleEntry = RouterOutputs['schedule']['getScheduleEntries'][number];
+
 interface ScheduleRow {
   entry: CampScheduleEntry;
   dayKey: string;
   start: string;
   end: string;
 }
+
+const idOf = (value: unknown): string | undefined => {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value !== null && 'id' in value) {
+    return typeof value.id === 'string' ? value.id : undefined;
+  }
+  return undefined;
+};
 
 const quartierIdsOf = (entry: CampScheduleEntry): string[] =>
   (entry.quartiere ?? []).flatMap((quartier) => {
@@ -77,10 +86,24 @@ const dayLabelOf = (dayKey: string, locale: Locale): string =>
     .replace(/\.,/, '')
     .replace(',', '');
 
+/**
+ * The programme at a place, read from the same schedule query as the Programm, so a device holds
+ * it once, offline as well, and an edit reaches the map as soon as it reaches the Programm.
+ */
 export const AnnotationScheduleTableComponent: React.FC<{
-  schedule: CampScheduleEntry[] | undefined;
+  placeId: string;
   locale: Locale;
-}> = ({ schedule, locale }) => {
+}> = ({ placeId, locale }) => {
+  // eslint-disable-next-line unicorn/no-useless-undefined
+  const { data: scheduleEntries } = trpc.schedule.getScheduleEntries.useQuery(undefined);
+  const schedule = useMemo(
+    () =>
+      // the persisted query cache may hold anything an older version stored under this key
+      (Array.isArray(scheduleEntries) ? scheduleEntries : []).filter(
+        (entry) => idOf(entry.location) === placeId,
+      ),
+    [scheduleEntries, placeId],
+  );
   const { data: myQuartiere } = trpc.schedule.getMyQuartiere.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
   });
@@ -99,10 +122,7 @@ export const AnnotationScheduleTableComponent: React.FC<{
     const time = `${String(Math.floor(clock.minutes / 60)).padStart(2, '0')}:${String(clock.minutes % 60).padStart(2, '0')}`;
     return { dayKey: clock.dayKey, time };
   });
-  const rows = useMemo(
-    () => rowsOf(schedule ?? [], myQuartierIds, now),
-    [schedule, myQuartierIds, now],
-  );
+  const rows = useMemo(() => rowsOf(schedule, myQuartierIds, now), [schedule, myQuartierIds, now]);
 
   if (rows.length === 0) return <></>;
 

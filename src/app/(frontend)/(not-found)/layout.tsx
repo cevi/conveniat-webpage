@@ -3,6 +3,7 @@ import { AppStatusBarMeta } from '@/components/header/app-status-bar-meta';
 import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-name';
 import { HeaderComponent } from '@/components/header/header-component';
 import { HideHeaderProvider } from '@/components/header/hide-header-context';
+import { StylesheetRecovery } from '@/components/stylesheet-recovery';
 import { PostHogProvider } from '@/providers/post-hog-provider';
 import { i18nConfig } from '@/types/types';
 import { sharedFontClassName } from '@/utils/fonts';
@@ -30,6 +31,7 @@ const RootLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   return (
     <html className={sharedFontClassName} lang={i18nConfig.defaultLocale}>
       <head>
+        <StylesheetRecovery />
         <AppStatusBarMeta />
       </head>
       <body className="bg-page flex h-dvh w-dvw flex-col overflow-x-hidden">

@@ -1,11 +1,7 @@
 'use client';
 import { ListRow } from '@/components/ui/list-row';
-import {
-  ArchiveChatConfirmDialog,
-  localizedDeleteChat,
-} from '@/features/chat/components/archive-chat-confirm-dialog';
 import { useChatId } from '@/features/chat/context/chat-id-context';
-import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-mutation';
+import { usePendingChatDeletionContext } from '@/features/chat/context/pending-chat-deletion-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useUpdateChatMutation } from '@/features/chat/hooks/use-update-chat-mutation';
 import { useUserCanArchiveChat } from '@/features/chat/hooks/use-user-can-archive';
@@ -17,12 +13,18 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React from 'react';
+import type React from 'react';
 const localizedRoleNames: Record<ChatMembershipPermission, StaticTranslationString> = {
   [ChatMembershipPermission.OWNER]: { en: 'Owner', de: 'Besitzer', fr: 'Propriétaire' },
   [ChatMembershipPermission.ADMIN]: { en: 'Admin', de: 'Admin', fr: 'Admin' },
   [ChatMembershipPermission.MEMBER]: { en: 'Member', de: 'Mitglied', fr: 'Membre' },
   [ChatMembershipPermission.GUEST]: { en: 'Guest', de: 'Gast', fr: 'Invité' },
+};
+
+const localizedDeleteChat: StaticTranslationString = {
+  en: 'Delete Chat',
+  de: 'Chat löschen',
+  fr: 'Supprimer la discussion',
 };
 
 const deleteForEveryoneText: StaticTranslationString = {
@@ -57,7 +59,7 @@ export const DeleteChat: React.FC = () => {
   const router = useRouter();
   const chatId = useChatId();
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const deleteChatMutation = useArchiveChatMutation();
+  const { deleteChat } = usePendingChatDeletionContext();
   const updateChatMutation = useUpdateChatMutation();
 
   const canUserArchiveChat = useUserCanArchiveChat(chatId);
@@ -68,25 +70,6 @@ export const DeleteChat: React.FC = () => {
   const currentUserMembership = chatDetails?.participants.find((p) => p.id === currentUser);
   const userRole = currentUserMembership?.chatPermission ?? ChatMembershipPermission.GUEST;
 
-  /*
-   * We need a state for the dialog open/close to properly handle the
-   * programmatic closing after deletion if needed, although router push happens.
-   * But mostly to control the confirm action.
-   */
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-
-  const handleDeleteChat = (): void => {
-    deleteChatMutation.mutate(
-      { chatUuid: chatId },
-      {
-        onSuccess: () => {
-          setIsDialogOpen(false);
-          router.push('/app/chat');
-        },
-      },
-    );
-  };
-
   const isForEveryone = chatDetails === undefined || !isChatArchived(chatDetails);
   const participantCount = chatDetails?.participants.length ?? 0;
   let subtitle = getCannotDeleteExplanation(userRole, locale);
@@ -96,33 +79,27 @@ export const DeleteChat: React.FC = () => {
       : localizedRemoveFromViewText[locale];
   }
 
-  return (
-    <>
-      {/* red: it deletes the chat for everybody and cannot be undone, and it says so */}
-      <ListRow
-        tone="danger"
-        className="disabled:opacity-60"
-        onClick={() => setIsDialogOpen(true)}
-        disabled={
-          !canUserArchiveChat || updateChatMutation.isPending || deleteChatMutation.isPending
-        }
-      >
-        <Trash2 className="text-danger-text h-5 w-5 shrink-0" aria-hidden="true" />
-        <span className="min-w-0">
-          <span className="text-danger-text block text-[15px] font-semibold">
-            {isForEveryone ? deleteForEveryoneText[locale] : localizedDeleteChat[locale]}
-          </span>
-          <span className="block text-[13px] text-green-700">{subtitle}</span>
-        </span>
-      </ListRow>
+  // no question first: back on the list, the chat is gone with a moment to undo, as on a swipe
+  const handleDeleteChat = (): void => {
+    deleteChat({ chatId, forEveryone: isForEveryone });
+    router.push('/app/chat');
+  };
 
-      <ArchiveChatConfirmDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        onConfirm={handleDeleteChat}
-        isPending={deleteChatMutation.isPending}
-        archivesForEveryone={isForEveryone}
-      />
-    </>
+  return (
+    // red: it deletes the chat for everybody, and it says so
+    <ListRow
+      tone="danger"
+      className="disabled:opacity-60"
+      onClick={handleDeleteChat}
+      disabled={!canUserArchiveChat || updateChatMutation.isPending}
+    >
+      <Trash2 className="text-danger-text h-5 w-5 shrink-0" aria-hidden="true" />
+      <span className="min-w-0">
+        <span className="text-danger-text block text-[15px] font-semibold">
+          {isForEveryone ? deleteForEveryoneText[locale] : localizedDeleteChat[locale]}
+        </span>
+        <span className="block text-[13px] text-green-700">{subtitle}</span>
+      </span>
+    </ListRow>
   );
 };

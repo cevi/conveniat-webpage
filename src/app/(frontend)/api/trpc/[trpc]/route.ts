@@ -1,3 +1,4 @@
+import { withEntityTag } from '@/trpc/conditional-response';
 import { createTRPCContext } from '@/trpc/init';
 import { EXPECTED_ERROR_CODES } from '@/trpc/middleware/tracing';
 import { appRouter } from '@/trpc/routers/_app';
@@ -6,7 +7,7 @@ import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 
 const logger = createLogger('trpc');
 
-const handler = (request: Request): Promise<Response> =>
+const handleTrpcRequest = (request: Request): Promise<Response> =>
   fetchRequestHandler({
     endpoint: '/api/trpc',
     req: request,
@@ -56,5 +57,8 @@ const handler = (request: Request): Promise<Response> =>
       });
     },
   });
+
+const handler = async (request: Request): Promise<Response> =>
+  withEntityTag(request, await handleTrpcRequest(request));
 
 export { handler as GET, handler as POST };

@@ -3,6 +3,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import { withKeyvalStore } from '@/lib/idb-keyval-store';
+import { followOnlineStatus } from '@/trpc/follow-online-status';
 import { makeQueryClient } from '@/trpc/query-client';
 import {
   deserializePersistedClient,
@@ -160,6 +161,9 @@ const persistOptions = {
   maxAge: PERSISTED_QUERY_CACHE_MAX_AGE,
   dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
 };
+
+// the browser only; the server renders this provider too
+if (typeof document !== 'undefined') followOnlineStatus();
 
 export const TRPCProvider: React.FC<{
   children: React.ReactNode;
