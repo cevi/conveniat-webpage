@@ -3,8 +3,8 @@
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { useCreateChat } from '@/features/chat/hooks/use-create-chat';
 import type { StaticTranslationString } from '@/types/types';
-import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 /** What a list says when {@link useOpenChatWithContact} could not open the chat. */
 export const openChatFailedText: StaticTranslationString = {
@@ -15,7 +15,8 @@ export const openChatFailedText: StaticTranslationString = {
 
 /**
  * Opens the private chat with a contact, the one already there or a new one, from a list of
- * contacts. One chat opens at a time; the row of the contact being opened can show it.
+ * contacts. One chat opens at a time; the row of the contact being opened can show it until the
+ * chat's route is reached, so the list is ready again when the user comes back to it.
  *
  * @param navigation - `replace` when the list is a step on the way to the chat that going
  * back should skip, `push` when going back should return to it
@@ -27,13 +28,22 @@ export const useOpenChatWithContact = (
   /** the contact whose chat is opening */
   openingUserId: string | undefined;
   hasOpenFailed: boolean;
-  /** forgets the opening chat and the failure, for a list that is shown again */
-  reset: () => void;
 } => {
   const [openingUserId, setOpeningUserId] = useState<string | undefined>();
   const [hasOpenFailed, setHasOpenFailed] = useState(false);
   const router = useRouter();
   const { createChat } = useCreateChat();
+
+  // The chat has opened once the route changed. Set while rendering, not in an effect: Next.js
+  // keeps a route the user left mounted, hidden in an `<Activity>`, where effects do not run,
+  // and a list whose row still spun when shown again ignored every tap.
+  const pathname = usePathname();
+  const [shownPathname, setShownPathname] = useState(pathname);
+  if (pathname !== shownPathname) {
+    setShownPathname(pathname);
+    setOpeningUserId(undefined);
+    setHasOpenFailed(false);
+  }
 
   const openChatWith = (contact: Contact): void => {
     if (openingUserId !== undefined) return;
@@ -51,10 +61,5 @@ export const useOpenChatWithContact = (
     }
   };
 
-  const reset = useCallback((): void => {
-    setOpeningUserId(undefined);
-    setHasOpenFailed(false);
-  }, []);
-
-  return { openChatWith, openingUserId, hasOpenFailed, reset };
+  return { openChatWith, openingUserId, hasOpenFailed };
 };
