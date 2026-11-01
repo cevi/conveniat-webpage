@@ -112,7 +112,7 @@ const HofBars: React.FC<{
         >
           <button
             type="button"
-            className="min-h-9 cursor-pointer truncate text-left text-sm text-green-900 hover:underline"
+            className="min-h-9 cursor-pointer truncate text-left text-sm text-green-900 hover:underline @min-[900px]/dashboard:pointer-fine:min-h-[28px] @min-[900px]/dashboard:pointer-fine:text-[14px]"
             aria-label={translate('openOrder', locale, { hof: order.hofName })}
             onClick={() => onOpen(order.hofId)}
           >
@@ -124,7 +124,7 @@ const HofBars: React.FC<{
               style={{ width: `${(order.quantity / largest) * 100}%` }}
             />
           </span>
-          <span className="text-right text-sm font-semibold text-green-900 tabular-nums">
+          <span className="text-right text-sm font-semibold text-green-900 tabular-nums @min-[900px]/dashboard:pointer-fine:text-[14px]">
             {formatNumber(order.quantity, locale)}
           </span>
         </li>
@@ -132,6 +132,9 @@ const HofBars: React.FC<{
     </ul>
   );
 };
+
+/** A row's 44px target, which a mouse does not need: on a desktop the rows sit closer. */
+const DESKTOP_ROW = '@min-[900px]/dashboard:pointer-fine:min-h-[32px]';
 
 /** The line under a sticky header, so rows scrolling under it stay apart from it. */
 const STICKY_HEAD = 'sticky z-20 bg-page shadow-[0_1px_0] shadow-line';
@@ -189,7 +192,8 @@ const TotalTable: React.FC<{
   );
 
   return (
-    <table className="w-full text-base">
+    // a mouse needs no 44px target, so on a desktop the rows sit closer and more fit on a screen
+    <table className="w-full text-base @min-[900px]/dashboard:pointer-fine:text-[15px]">
       {/* stays under the site's header while the list scrolls */}
       <thead className={cn(STICKY_HEAD, 'top-(--app-header-height)')}>
         <tr className={LABEL_CLASS}>
@@ -208,7 +212,7 @@ const TotalTable: React.FC<{
                 colSpan={4}
                 className={cn(
                   LABEL_CLASS,
-                  'border-line border-t px-5 pt-5 pb-2 text-left @xl:px-6',
+                  'border-line border-t px-5 pt-5 pb-2 text-left @xl:px-6 @min-[900px]/dashboard:pointer-fine:pt-[16px] @min-[900px]/dashboard:pointer-fine:pb-[6px]',
                 )}
               >
                 {section}
@@ -219,15 +223,23 @@ const TotalTable: React.FC<{
             const open = expanded === item.id;
             return [
               <tr key={item.id} className={cn(open && 'bg-gray-50')}>
-                <th scope="row" className="px-5 py-1 text-left font-normal @xl:px-6">
+                <th
+                  scope="row"
+                  className="px-5 py-1 text-left font-normal @xl:px-6 @min-[900px]/dashboard:pointer-fine:py-0"
+                >
                   {orders.length === 0 ? (
-                    <span className="flex min-h-11 items-center text-green-700">{item.name}</span>
+                    <span className={cn('flex min-h-11 items-center text-green-700', DESKTOP_ROW)}>
+                      {item.name}
+                    </span>
                   ) : (
                     <button
                       type="button"
                       aria-expanded={open}
                       aria-label={translate('showHoefeOf', locale, { material: item.name })}
-                      className="flex min-h-11 w-full cursor-pointer items-center gap-2 text-left text-green-900"
+                      className={cn(
+                        'flex min-h-11 w-full cursor-pointer items-center gap-2 text-left text-green-900',
+                        DESKTOP_ROW,
+                      )}
                       onClick={() => setExpanded(open ? undefined : item.id)}
                     >
                       <ChevronDown
@@ -294,7 +306,7 @@ const PerHofTable: React.FC<{
   return (
     // as tall as the window under the site's header, so its own header can stay in place
     <div className="max-h-[calc(100dvh-var(--app-header-height)-2rem)] overflow-auto overscroll-x-contain">
-      <table className="w-max min-w-full text-sm">
+      <table className="w-max min-w-full text-sm @min-[900px]/dashboard:pointer-fine:text-[14px]">
         <thead className={cn(STICKY_HEAD, 'top-0')}>
           {hasSections && (
             <tr className={LABEL_CLASS}>
@@ -327,7 +339,7 @@ const PerHofTable: React.FC<{
                 sort={sort}
                 onSort={toggle}
                 align="right"
-                className="max-w-32 min-w-20 text-xs font-semibold [overflow-wrap:anywhere] hyphens-auto text-green-800"
+                className="max-w-32 min-w-20 text-xs font-semibold [overflow-wrap:anywhere] hyphens-auto text-green-800 @min-[900px]/dashboard:pointer-fine:text-[12px]"
               >
                 {item.name}
               </SortableHeader>
@@ -341,12 +353,15 @@ const PerHofTable: React.FC<{
                 scope="row"
                 className={cn(
                   STICKY_COLUMN,
-                  'bg-white px-5 py-1 text-left font-normal group-hover:bg-gray-50',
+                  'bg-white px-5 py-1 text-left font-normal group-hover:bg-gray-50 @min-[900px]/dashboard:pointer-fine:py-0',
                 )}
               >
                 <button
                   type="button"
-                  className="flex min-h-11 max-w-60 cursor-pointer items-center gap-2 text-left text-green-900 hover:underline"
+                  className={cn(
+                    'flex min-h-11 max-w-60 cursor-pointer items-center gap-2 text-left text-green-900 hover:underline',
+                    DESKTOP_ROW,
+                  )}
                   aria-label={translate('openOrder', locale, { hof: hof.hofName })}
                   onClick={() => onOpen(hof.hofId)}
                 >
@@ -380,12 +395,18 @@ const PerHofTable: React.FC<{
           <tr className="font-semibold">
             <th
               scope="row"
-              className={cn(STICKY_COLUMN, 'bg-white px-5 py-3 text-left text-green-900')}
+              className={cn(
+                STICKY_COLUMN,
+                'bg-white px-5 py-3 text-left text-green-900 @min-[900px]/dashboard:pointer-fine:py-[8px]',
+              )}
             >
               {translate('xlsxTotal', locale)}
             </th>
             {form.items.map((item) => (
-              <td key={item.id} className="px-3 py-3 text-right text-green-900 tabular-nums">
+              <td
+                key={item.id}
+                className="px-3 py-3 text-right text-green-900 tabular-nums @min-[900px]/dashboard:pointer-fine:py-[8px]"
+              >
                 {formatNumber(
                   form.hoefe.reduce((sum, hof) => sum + (hof.quantities[item.id] ?? 0), 0),
                   locale,

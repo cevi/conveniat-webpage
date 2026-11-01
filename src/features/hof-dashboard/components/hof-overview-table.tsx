@@ -161,8 +161,8 @@ const AreaCell: React.FC<{ area: HofDashboardArea; summary: HofAreaSummary; loca
   const count = (state: HofFormState): number =>
     summary.formStates.filter((candidate) => candidate === state).length;
   return (
-    <div className="space-y-1.5">
-      <p className="text-sm text-green-800 tabular-nums">
+    <div className="space-y-1.5 @min-[900px]/dashboard:pointer-fine:space-y-[4px]">
+      <p className="text-sm text-green-800 tabular-nums @min-[900px]/dashboard:pointer-fine:text-[14px]">
         {translate('progressShort', locale, { done: summary.done, total: summary.forms })}
         {summary.overdue > 0 && (
           <span className="text-danger-text">
@@ -286,7 +286,14 @@ export const HofOverviewTable: React.FC<{
         ) : (
           <div className="border-line border-t">
             {/* the column heads of the wide layout; a narrow one names each area in its card */}
-            <div aria-hidden className={cn('bg-page hidden px-6 py-3', LABEL_CLASS, ROW_GRID)}>
+            <div
+              aria-hidden
+              className={cn(
+                'bg-page hidden px-6 py-3 @min-[900px]/dashboard:pointer-fine:py-[8px]',
+                LABEL_CLASS,
+                ROW_GRID,
+              )}
+            >
               <span>{translate('hof', locale)}</span>
               {HOF_DASHBOARD_AREAS.map((area) => (
                 <span key={area} className="flex items-center gap-2">
@@ -304,14 +311,14 @@ export const HofOverviewTable: React.FC<{
                   <li
                     key={hof.id}
                     className={cn(
-                      'relative space-y-3 px-5 py-4 transition hover:bg-gray-50 @xl:px-6 @3xl:space-y-0',
+                      'relative space-y-3 px-5 py-4 transition hover:bg-gray-50 @xl:px-6 @3xl:space-y-0 @min-[900px]/dashboard:pointer-fine:py-[8px]',
                       ROW_GRID,
                     )}
                   >
                     {/* the whole row opens the Hof; the ZIP link sits above it */}
                     <button
                       type="button"
-                      className="cursor-pointer text-left text-base font-semibold text-green-900 after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-[-2px] focus-visible:after:outline-green-600"
+                      className="cursor-pointer text-left text-base font-semibold text-green-900 after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-[-2px] focus-visible:after:outline-green-600 @min-[900px]/dashboard:pointer-fine:text-[15px]"
                       aria-label={translate('openHof', locale, { hof: hof.name })}
                       onClick={() => onOpen(hof.id)}
                     >
@@ -347,7 +354,7 @@ export const HofOverviewTable: React.FC<{
                           <a
                             href={`/api/hof-dashboard/${encodeURIComponent(hof.id)}/files`}
                             download
-                            className="text-conveniat-green relative z-10 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold underline-offset-2 hover:underline"
+                            className="text-conveniat-green relative z-10 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold underline-offset-2 hover:underline @min-[900px]/dashboard:pointer-fine:min-h-[32px] @min-[900px]/dashboard:pointer-fine:text-[14px]"
                             aria-label={translate('downloadFiles', locale, { hof: hof.name })}
                           >
                             <Download className="h-4 w-4" aria-hidden />

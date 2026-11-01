@@ -37,8 +37,9 @@ export const SortableHeader = <Key extends string>({
       <button
         type="button"
         className={cn(
-          // a button drops the case and spacing of the head it sits in; it keeps them here
-          'group flex min-h-11 w-full cursor-pointer items-end gap-1 px-3 py-3 [letter-spacing:inherit] [text-transform:inherit] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-green-600',
+          // a button drops the case and spacing of the head it sits in; it keeps them here.
+          // A mouse needs no 44px target, so on a desktop the head is as low as its rows.
+          'group flex min-h-11 w-full cursor-pointer items-end gap-1 px-3 py-3 [letter-spacing:inherit] [text-transform:inherit] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-green-600 @min-[900px]/dashboard:pointer-fine:min-h-[32px] @min-[900px]/dashboard:pointer-fine:py-[8px]',
           align === 'right' ? 'justify-end text-right' : 'justify-start text-left',
         )}
         onClick={() => onSort(sortKey)}

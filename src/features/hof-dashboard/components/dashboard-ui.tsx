@@ -85,19 +85,34 @@ export const SectionHeading: React.FC<{
  */
 type StatusTone = 'done' | 'neutral' | 'warning' | 'attention' | 'alert';
 
+/**
+ * Only what needs someone's attention is a coloured pill; done and open are a grey icon and
+ * text, so the pills that remain stand out.
+ */
 const TONE_STYLE: Record<
   StatusTone,
   { icon: React.FC<{ className?: string }>; className: string }
 > = {
-  done: { icon: CheckCircle2, className: 'bg-tint text-green-800 ring-tint-line' },
-  neutral: { icon: Clock, className: 'bg-white text-gray-700 ring-gray-200' },
-  warning: { icon: Clock, className: 'bg-amber-50 text-amber-800 ring-amber-200' },
+  done: { icon: CheckCircle2, className: 'text-green-700 [&>svg]:text-green-500' },
+  neutral: { icon: Clock, className: 'text-green-700 [&>svg]:text-green-500' },
+  warning: {
+    icon: Clock,
+    className:
+      'rounded-full px-2 py-0.5 ring-1 ring-inset bg-amber-50 text-amber-800 ring-amber-200',
+  },
   // the Hof has to act: amber like due soon, marked like an alert
-  attention: { icon: AlertCircle, className: 'bg-amber-50 text-amber-800 ring-amber-200' },
-  alert: { icon: AlertCircle, className: 'bg-red-50 text-red-800 ring-red-200' },
+  attention: {
+    icon: AlertCircle,
+    className:
+      'rounded-full px-2 py-0.5 ring-1 ring-inset bg-amber-50 text-amber-800 ring-amber-200',
+  },
+  alert: {
+    icon: AlertCircle,
+    className: 'rounded-full px-2 py-0.5 ring-1 ring-inset bg-red-50 text-red-800 ring-red-200',
+  },
 };
 
-/** A short status with its icon, tinted by how urgent it is. */
+/** A short status with its icon: a pill tinted by urgency, or quiet when nothing is due. */
 export const StatusPill: React.FC<{ tone: StatusTone; children: React.ReactNode }> = ({
   tone,
   children,
@@ -106,7 +121,7 @@ export const StatusPill: React.FC<{ tone: StatusTone; children: React.ReactNode 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ring-1 ring-inset',
+        'inline-flex items-center gap-1 text-xs font-semibold whitespace-nowrap',
         className,
       )}
     >
