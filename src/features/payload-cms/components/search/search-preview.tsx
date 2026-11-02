@@ -161,6 +161,8 @@ export const SearchPreview: React.FC<{
           <div className="mt-4">
             <LinkComponent
               href={result.url}
+              // the previewed page is the likely next one, so it is prefetched in full
+              prefetch
               className={buttonVariants({ variant: 'primary', size: 'touch' })}
             >
               {openLabel[locale]}

@@ -36,6 +36,7 @@ import { cn } from '@/utils/tailwindcss-override';
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react';
 import { keepPreviousData } from '@tanstack/react-query';
 import { ChevronRight, CornerDownLeft, SearchX, WifiOff } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useRef, useState } from 'react';
@@ -66,15 +67,20 @@ const InstantResultRow: React.FC<{
   isSelected: boolean;
   onHover: () => void;
   onOpen: () => void;
-  rowReference: (element: HTMLButtonElement | null) => void;
+  rowReference: (element: HTMLAnchorElement | null) => void;
 }> = ({ result, words, locale, isSelected, onHover, onOpen, rowReference }) => {
   const Icon = resultTypeIcons[result.type];
+  const isDocument = result.type === 'document';
   return (
-    <button
+    <Link
       ref={rowReference}
-      type="button"
+      href={result.url}
       role="option"
       aria-selected={isSelected}
+      // the chosen page is prefetched in full, so opening it shows the page and not its loading
+      // state; only the chosen one, not a server render for every result of every keystroke
+      prefetch={!isDocument && isSelected}
+      {...(isDocument ? { target: '_blank', rel: 'noopener' } : {})}
       onMouseMove={onHover}
       onClick={onOpen}
       className={cn(
@@ -101,7 +107,7 @@ const InstantResultRow: React.FC<{
         </span>
       </span>
       {isSelected && <CornerDownLeft className="h-4 w-4 shrink-0" aria-hidden="true" />}
-    </button>
+    </Link>
   );
 };
 
@@ -134,7 +140,7 @@ export const InstantSearchDialog: React.FC<{
   const [query, setQuery] = useState('');
   const [types, setTypes] = useState<SearchResultType[]>([]);
   const [selectedKey, setSelectedKey] = useState<string | undefined>();
-  const rowReferences = useRef<(HTMLButtonElement | null)[]>([]);
+  const rowReferences = useRef<(HTMLAnchorElement | null)[]>([]);
 
   const debouncedQuery = useDebouncedValue(query.trim(), QUERY_DELAY_MS);
   const isSearchable = debouncedQuery.length >= MIN_QUERY_LENGTH;
@@ -259,7 +265,7 @@ export const InstantSearchDialog: React.FC<{
                       locale={locale}
                       isSelected={result.key === selected?.key}
                       onHover={() => setSelectedKey(result.key)}
-                      onOpen={() => openResult(result)}
+                      onOpen={close}
                       rowReference={(element) => {
                         rowReferences.current[rowIndex] = element;
                       }}
