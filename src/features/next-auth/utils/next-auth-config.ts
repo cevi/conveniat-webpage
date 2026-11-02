@@ -2,6 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import type { HitobitoProfile } from '@/features/next-auth/types/hitobito-profile';
 import { createAuthJsLogger } from '@/features/next-auth/utils/auth-js-logger';
 import { reportSessionTokenKept } from '@/features/next-auth/utils/session-token-change';
+import { shareRefreshAcrossReplicas } from '@/features/next-auth/utils/shared-refresh';
 import type { User } from '@/features/payload-cms/payload-types';
 import { withCeviDatabaseUserAgent } from '@/lib/hitobito/user-agent';
 import { formatUserFullName } from '@/utils/format-user-name';
@@ -69,6 +70,15 @@ const HITOBITO_BASE_URL = environmentVariables.HITOBITO_BASE_URL;
 const HITOBITO_FORWARD_URL = environmentVariables.HITOBITO_FORWARD_URL;
 const CEVI_DB_CLIENT_ID = environmentVariables.CEVI_DB_CLIENT_ID;
 const CEVI_DB_CLIENT_SECRET = environmentVariables.CEVI_DB_CLIENT_SECRET;
+
+/**
+ * How long a session lives after its last token refresh, in seconds. Hitobito keeps a refresh
+ * token for `oidc.refresh_token_expires_in`, 7 days, counted from the refresh that issued it, and
+ * its cleanup job deletes it after that. A session cookie that outlived it would only be refused
+ * at its next refresh. The cookie is issued anew with every refresh, so with the same lifetime it
+ * always ends first, and the user is simply signed out instead.
+ */
+const CEVI_DB_REFRESH_TOKEN_LIFETIME = 7 * 24 * 60 * 60;
 
 type UserGroup = NonNullable<User['groups']>[number];
 
@@ -334,8 +344,9 @@ const SESSION_ENDED = null;
 
 /**
  * Refreshes in flight, by refresh token. Requests that carry the same session share one call to
- * Cevi.DB, because the second use of a refresh token is refused. Two devices of one user hold
- * different refresh tokens, so neither ever receives the other's result.
+ * Cevi.DB, because the second use of a refresh token is refused. This covers one process, and
+ * `shareRefreshAcrossReplicas` the other replicas. Two devices of one user hold different refresh
+ * tokens, so neither ever receives the other's result.
  */
 const inflightRefreshes = new Map<string, Promise<JWT | null | undefined>>();
 
@@ -351,7 +362,9 @@ async function refreshAccessToken(
   }
 
   // Start the actual refresh and store the promise
-  const refreshPromise = doRefreshAccessToken(token, reason).finally(() => {
+  const refreshPromise = shareRefreshAcrossReplicas(refreshToken, () =>
+    doRefreshAccessToken(token, reason),
+  ).finally(() => {
     // Clean up after a short delay to handle near-simultaneous arrivals
     setTimeout(() => inflightRefreshes.delete(refreshToken), 1000);
   });
@@ -500,6 +513,49 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT | n
   }
 }
 
+/**
+ * Tells Cevi.DB at sign-out that the session's tokens are no longer needed (RFC 7009), so its
+ * refresh token cannot be used for the rest of its lifetime. Revoking the refresh token revokes
+ * the access token issued with it. A failure keeps nobody signed in: Auth.js clears the cookie
+ * either way, and the token runs out on its own.
+ */
+async function revokeRefreshToken(token: JWT): Promise<void> {
+  const refreshToken = token.refresh_token;
+  if (refreshToken === undefined || refreshToken === '') return;
+
+  try {
+    const response = await fetch(
+      `${HITOBITO_BASE_URL}/oauth/revoke`,
+      withCeviDatabaseUserAgent({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: CEVI_DB_CLIENT_ID,
+          client_secret: CEVI_DB_CLIENT_SECRET,
+          token: refreshToken,
+          token_type_hint: 'refresh_token',
+        }),
+        cache: 'no-store',
+      }),
+    );
+    if (response.ok) {
+      logger.info('Revoked the Cevi.DB tokens of a signed out session', {
+        'auth.user_uuid': token.uuid,
+      });
+    } else {
+      logger.warn('Cevi.DB refused to revoke the tokens of a signed out session', {
+        'auth.user_uuid': token.uuid,
+        'http.status_code': response.status,
+      });
+    }
+  } catch (error) {
+    logger.warn('Could not revoke the Cevi.DB tokens of a signed out session', {
+      'auth.user_uuid': token.uuid,
+      error,
+    });
+  }
+}
+
 export const authOptions: NextAuthConfig = {
   providers: [
     {
@@ -522,6 +578,11 @@ export const authOptions: NextAuthConfig = {
       },
 
       issuer: 'cevi-db',
+
+      // PKCE alone protects the login (Cevi.DB enforces the verifier once a challenge was sent).
+      // `state` additionally ties a callback to the attempt that started it, which the native app
+      // handoff relies on to tell an app login from a later website login in the same browser.
+      checks: ['pkce', 'state'],
 
       // This custom is used as soon as we would like to use a scope different from 'email'.
       // As Hitobito uses the 'X-Scopes' header to pass the scopes, and not the 'scope' parameter,
@@ -552,6 +613,13 @@ export const authOptions: NextAuthConfig = {
   logger: createAuthJsLogger(logger),
   session: {
     strategy: 'jwt',
+    maxAge: CEVI_DB_REFRESH_TOKEN_LIFETIME,
+  },
+
+  events: {
+    async signOut(message) {
+      if ('token' in message && message.token !== null) await revokeRefreshToken(message.token);
+    },
   },
 
   callbacks: {

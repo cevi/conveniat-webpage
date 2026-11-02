@@ -5,6 +5,10 @@ jest.mock('next-auth', () => ({ customFetch: Symbol('customFetch') }));
 jest.mock('payload', () => ({ getPayload: jest.fn() }));
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('undici', () => ({ Agent: jest.fn(), setGlobalDispatcher: jest.fn() }));
+// Without Redis every refresh runs in this process, which is what these tests look at.
+jest.mock('@/lib/db/redis', () => ({
+  redis: { get: (): Promise<never> => Promise.reject(new Error('Redis is not part of this test')) },
+}));
 jest.mock('@/utils/server-logger', () => ({
   createLogger: (): Record<string, jest.Mock> => ({
     debug: jest.fn(),

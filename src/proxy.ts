@@ -1,7 +1,7 @@
 import { designRewriteProxy } from '@/proxy/design-rewrite-proxy';
 import { i18nProxy } from '@/proxy/i18n-proxy';
 import { pageStatusProxy } from '@/proxy/page-status-proxy';
-import { proxyChain } from '@/proxy/proxy-chain';
+import { forwardRequestHeaders, proxyChain } from '@/proxy/proxy-chain';
 
 import type { ProxyModule } from '@/proxy/types';
 import { isExcludedFromPathRewrites } from '@/proxy/utils/is-excluded-from-path-rewrites';
@@ -54,7 +54,7 @@ const authSessionProxy: ProxyModule = (next) => {
 
 const skipExcludedPaths: ProxyModule = (next) => {
   return async (request, _event, response) => {
-    if (isExcludedFromPathRewrites(request)) return response;
+    if (isExcludedFromPathRewrites(request)) return forwardRequestHeaders(request, response);
     return next(request, _event, response);
   };
 };

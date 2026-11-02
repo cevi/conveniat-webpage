@@ -6,6 +6,7 @@ import {
   withdrawHofSubmission,
 } from '@/features/hof-dashboard/api/hof-dashboard-mutations';
 import { getHofOverview } from '@/features/hof-dashboard/api/hof-overview';
+import { getMaterialOrders } from '@/features/hof-dashboard/api/material-orders';
 import { HOF_DASHBOARD_AREAS, HOF_REVIEW_CHOICES } from '@/features/hof-dashboard/constants';
 import { findHoefe } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { enabledLocales, LOCALE } from '@/features/payload-cms/payload-cms/locales';
@@ -41,6 +42,12 @@ export const hofDashboardRouter = createTRPCRouter({
       ? { isReviewer: true, hoefe: await getHofOverview(await ctx.accessibleHoefe(), ctx.locale) }
       : { isReviewer: false, hoefe: [] },
   ),
+
+  /** Every Hof's material orders by form, for the reviewers. */
+  getMaterialOrderList: hofDashboardProcedure.query(async ({ ctx }) => {
+    if (!ctx.isReviewer) throw new TRPCError({ code: 'FORBIDDEN' });
+    return await getMaterialOrders(await ctx.accessibleHoefe(), ctx.locale);
+  }),
 
   /** Everything one Hof's dashboard shows. */
   getHofDashboard: hofDashboardProcedure

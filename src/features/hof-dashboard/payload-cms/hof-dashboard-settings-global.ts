@@ -221,5 +221,46 @@ export const HofDashboardSettingsGlobal: GlobalConfig = {
         },
       ],
     },
+    {
+      // written by the Excel export of the material orders alone, so the Ressort sees which
+      // orders changed after it; one time per form, since a form can be exported on its own
+      name: 'materialOrderExports',
+      type: 'array',
+      label: {
+        de: 'Letzter Export der Materialbestellungen',
+        en: 'Last export of the material orders',
+        fr: 'Dernier export des commandes de matériel',
+      },
+      labels: {
+        singular: { de: 'Export', en: 'Export', fr: 'Export' },
+        plural: { de: 'Exporte', en: 'Exports', fr: 'Exports' },
+      },
+      access: { create: () => false, update: () => false },
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        description: {
+          de: 'Wird beim Excel-Export im Hof-Dashboard gesetzt.',
+          en: 'Set by the Excel export on the Hof dashboard.',
+          fr: 'Mis à jour par l’export Excel du tableau de bord des Hofs.',
+        },
+      },
+      fields: [
+        {
+          name: 'form',
+          type: 'relationship',
+          relationTo: 'forms',
+          required: true,
+          label: { de: 'Formular', en: 'Form', fr: 'Formulaire' },
+        },
+        {
+          name: 'exportedAt',
+          type: 'date',
+          required: true,
+          label: { de: 'Exportiert am', en: 'Exported on', fr: 'Exporté le' },
+          admin: { date: { pickerAppearance: 'dayAndTime', displayFormat: 'dd.MM.yyyy HH:mm' } },
+        },
+      ],
+    },
   ],
 };
