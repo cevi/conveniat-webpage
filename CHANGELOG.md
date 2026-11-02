@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.47.0](https://github.com/cevi/conveniat-webpage/compare/v1.46.2...v1.47.0) (2026-11-02)
+
+
+### Features
+
+* **app:** quiet offline banner on one line ([6344234](https://github.com/cevi/conveniat-webpage/commit/6344234ed1ef5f34e350f0914a98c343b913d76c))
+* **app:** quiet offline banner on one line ([8a37995](https://github.com/cevi/conveniat-webpage/commit/8a379951575d9304f58241b93ea200ad5e3b49af))
+* **tracing:** keep the trace of every reported request error ([0747ef2](https://github.com/cevi/conveniat-webpage/commit/0747ef2b16268a53dafc5f302043d8fee128ad49))
+* **tracing:** keep the trace of every reported request error ([18eb9cc](https://github.com/cevi/conveniat-webpage/commit/18eb9cc6252bb1e41f2a4fb3a6fe2aa95ceb6204))
+
+
+### Bug Fixes
+
+* **cms:** migrate form version placeholders through the raw driver ([f9c6304](https://github.com/cevi/conveniat-webpage/commit/f9c6304194f6ae0ddf1139f3915bb3da1e1e7880))
+* **cms:** migrate form version placeholders through the raw driver ([3fa5bb3](https://github.com/cevi/conveniat-webpage/commit/3fa5bb34e2b9ee2b19aa9673196f17f70d9059c8))
+* **logging:** request error reports name the request and the trace's sampling ([4f78a1a](https://github.com/cevi/conveniat-webpage/commit/4f78a1ac0949ad59b84a62a39964196dc6393c6f))
+* **logging:** request error reports name the request and the trace's sampling ([4d2f7a4](https://github.com/cevi/conveniat-webpage/commit/4d2f7a499b9798ddbd0741ae9f05dac73e8b75d0))
+* pointer cursor on buttons ([079b5a2](https://github.com/cevi/conveniat-webpage/commit/079b5a2532995a8b5a6019a11676e31d139dfa38))
+* pointer cursor on buttons ([c232312](https://github.com/cevi/conveniat-webpage/commit/c23231266b86e7841523a20c96738b2cbc3c7664))
+* **schedule:** drop the comment on the removed hook ([cb9c738](https://github.com/cevi/conveniat-webpage/commit/cb9c7387caf0996c46c61bb01d5e1e71ab7f014f))
+* **schedule:** shift enrollment reads offline like the banner ([5f99a9c](https://github.com/cevi/conveniat-webpage/commit/5f99a9c8528c4ef86d5190a480305ce54d1fd593))
+* **schedule:** shift enrollment reads offline like the banner ([5f47a5e](https://github.com/cevi/conveniat-webpage/commit/5f47a5e736396714d8b933be5db871a8095f259a))
+
 ## [1.46.2](https://github.com/cevi/conveniat-webpage/compare/v1.46.1...v1.46.2) (2026-11-02)
 
 
