@@ -1,5 +1,5 @@
 import type { BrowserContext, Page } from '@playwright/test';
-import { devices, expect } from '@playwright/test';
+import { devices, expect, test } from '@playwright/test';
 import superjson from 'superjson';
 
 import type { RouterOutputs } from '@/trpc/client';
@@ -161,11 +161,24 @@ export const trpcAnswer = (url: string): string => {
 };
 
 /**
+ * Skips the running test outside Chromium. A mocked answer has to reach the service worker, and
+ * Playwright routes the requests a service worker makes in Chromium only: elsewhere the mock never
+ * answers, and the test would check the real backend's empty data instead of the offline caches.
+ */
+export const requireServiceWorkerRouting = (): void => {
+  test.skip(
+    test.info().project.name !== 'chromium',
+    'Playwright routes the requests a service worker makes in Chromium only',
+  );
+};
+
+/**
  * Serves the signed-in session and the tRPC answers above. On the context, not the page: once the
  * service worker controls the page it makes these requests itself, and `page.route` never sees
  * them.
  */
 export const mockAppBackend = async (context: BrowserContext): Promise<void> => {
+  requireServiceWorkerRouting();
   await context.route('**/api/auth/session', async (route) => {
     await route.fulfill({
       status: 200,

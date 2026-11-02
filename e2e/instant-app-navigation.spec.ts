@@ -41,7 +41,11 @@ const openApp = async (page: Page, baseURL: string | undefined, path: string): P
     .context()
     .addCookies([{ name: 'design-mode', value: 'design-mode-app', url: baseURL ?? '' }]);
 
+  // the session is fetched in the browser once the app opens; a tap before it arrived would show
+  // Home's greeting as a skeleton, which is right on a cold start but not what is tested here
+  const session = page.waitForResponse((response) => response.url().includes('/api/auth/session'));
   await page.goto(path);
+  await session;
   await expect(tab(page, '/app/dashboard')).toBeVisible();
 };
 
@@ -101,7 +105,8 @@ const tabs: Record<string, TabContract> = {
   Programm: {
     href: '/app/schedule',
     from: '/app/dashboard',
-    shell: (page) => page.locator('button[aria-current="date"]'),
+    // the day strip is drawn from the data, so before any has been loaded only the title is the page's
+    shell: (page) => page.locator('header').getByText('Programm', { exact: true }),
     content: (page) => page.locator('main a[href*="/app/schedule?"][href*="id="]').first(),
   },
 };
