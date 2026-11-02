@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.46.0](https://github.com/cevi/conveniat-webpage/compare/v1.45.1...v1.46.0) (2026-11-02)
+
+
+### Features
+
+* **auth:** let the native apps log in through the system browser ([d9a58c0](https://github.com/cevi/conveniat-webpage/commit/d9a58c060867bc8881b2110b6c2f50e36110ef38))
+* **auth:** let the native apps log in through the system browser ([4662a1a](https://github.com/cevi/conveniat-webpage/commit/4662a1afc2c378f65ad88ff6392411596255a389))
+* **billing:** find a registration by "Vorname Nachname / Ceviname" ([1253906](https://github.com/cevi/conveniat-webpage/commit/12539063a740ce2f41038ab243958fdc6c6a00d9))
+* **billing:** find a registration by "Vorname Nachname / Ceviname" ([c765178](https://github.com/cevi/conveniat-webpage/commit/c765178fefe1ad98ac4a095740b800e910789e6a))
+* **hof-dashboard:** desktop layout, a Ressort overview to work from, and material order totals ([0cf576d](https://github.com/cevi/conveniat-webpage/commit/0cf576d31047906373c1b950f532ce94a005d25d))
+
+
+### Bug Fixes
+
+* **auth:** a session ends with the Cevi.DB refresh token, after 7 days ([33f9293](https://github.com/cevi/conveniat-webpage/commit/33f929396f851d61439036403d1ca12d44ed899b))
+* **auth:** a session ends with the Cevi.DB refresh token, after 7 days ([b3da30b](https://github.com/cevi/conveniat-webpage/commit/b3da30b808a7b6851c658df75a94e4422beeacc4))
+* **auth:** a token refresh no longer ends the session it renewed ([9c2e86d](https://github.com/cevi/conveniat-webpage/commit/9c2e86d7c662622d98c1a93b1fdc5f9c5143aa2c))
+* **auth:** a token refresh no longer ends the session it renewed ([f0c88d3](https://github.com/cevi/conveniat-webpage/commit/f0c88d38cee42bbab9366e840247780a95e8c898)), closes [#1661](https://github.com/cevi/conveniat-webpage/issues/1661)
+* **auth:** signing out revokes the session's tokens at Cevi.DB ([9f2fbe8](https://github.com/cevi/conveniat-webpage/commit/9f2fbe87698a42ff471bbc91ed2b5db69f98724b))
+* **auth:** signing out revokes the session's tokens at Cevi.DB ([de881ca](https://github.com/cevi/conveniat-webpage/commit/de881ca222c11a0b17e6c769c168b839edc7f529))
+* **onboarding:** the login button stops waiting when the app comes back from the browser ([4f3edbb](https://github.com/cevi/conveniat-webpage/commit/4f3edbb4547a8de2d7ff29901e7a6cd2e2719132))
+* **onboarding:** the login button stops waiting when the app comes back from the browser ([e516d17](https://github.com/cevi/conveniat-webpage/commit/e516d1730e62cbb68bfc8cae8187a6c2e2cd9b3f))
+* **schedule:** a block opened directly renders on the server again ([940beff](https://github.com/cevi/conveniat-webpage/commit/940beff4cbd11ded352e5c3f4f892447992cf884))
+* **schedule:** a block opened directly renders on the server again ([eab5a2f](https://github.com/cevi/conveniat-webpage/commit/eab5a2f859757e47bf623cf380214105cc6b7ae2))
+
 ## [1.45.1](https://github.com/cevi/conveniat-webpage/compare/v1.45.0...v1.45.1) (2026-11-01)
 
 
