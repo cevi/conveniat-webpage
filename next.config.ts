@@ -1,4 +1,5 @@
 import { cachingHeaders, optimizedImageMinimumCacheTTL } from '@/cache-control';
+import { deploymentId } from '@/deployment-id';
 import { logStartupBanner } from '@/utils/startup-banner';
 import bundleAnalyzer from '@next/bundle-analyzer';
 import { withPayload } from '@payloadcms/next/withPayload';
@@ -78,6 +79,9 @@ const nextConfig: NextConfig = {
     cacheHandlers: {
       default: require.resolve('./src/cache-handlers/default.cjs'),
     },
+    // Without it, a page of one build decodes Flight responses of the other while a release
+    // rolls, and runs their chunks. See `@/deployment-id`.
+    deploymentId,
   }),
 
   // enable react compiler for better error messages and performance

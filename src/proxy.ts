@@ -1,3 +1,4 @@
+import { deploymentSkewProxy } from '@/proxy/deployment-skew-proxy';
 import { designRewriteProxy } from '@/proxy/design-rewrite-proxy';
 import { i18nProxy } from '@/proxy/i18n-proxy';
 import { pageStatusProxy } from '@/proxy/page-status-proxy';
@@ -67,6 +68,7 @@ const pathnameProxy: ProxyModule = (next) => {
 };
 
 export const proxy = proxyChain([
+  { proxy: deploymentSkewProxy, name: 'deploymentSkew' },
   { proxy: rejectUnhandledFormPosts, name: 'rejectUnhandledFormPosts' },
   { proxy: authSessionProxy, name: 'authSession' },
   { proxy: skipExcludedPaths, name: 'skipExcludedPaths' },
