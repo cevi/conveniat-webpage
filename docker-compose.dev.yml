@@ -127,7 +127,10 @@ services:
       - payload
 
   mongo:
-    image: mongo:latest
+    # Pinned: a stack deploy re-resolves floating tags, and `latest` moved this database from
+    # 8.3.11 to 9.0.4 on 2026-11-02 without anyone choosing it. Upgrade by changing this tag,
+    # together with mongo-backup below. The feature compatibility version is still 8.0.
+    image: mongo:9.0.4
     command:
       - --storageEngine=wiredTiger
     volumes:
@@ -231,7 +234,8 @@ services:
   # observability-net.
 
   redis:
-    image: redis:alpine
+    # Pinned for the same reason as mongo; `alpine` alone follows every major release.
+    image: redis:8.10.3-alpine
     networks:
       - backend-net
     volumes:
