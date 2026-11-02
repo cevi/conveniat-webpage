@@ -1,4 +1,7 @@
-import type { DoublePaymentReport } from '@/features/billing/services/double-payment-report';
+import type {
+  DoublePaymentReport,
+  ResolvedDoublePaymentPayment,
+} from '@/features/billing/services/double-payment-report';
 import { formatChf } from '@/features/billing/services/payment-matching';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -23,6 +26,21 @@ const formatIsoDate = (iso: string | undefined): string => {
   if (iso === undefined || iso === '') return '–';
   const [year, month, day] = iso.slice(0, 10).split('-');
   return `${day ?? ''}.${month ?? ''}.${year ?? ''}`;
+};
+
+/** Where the money of a payment went: `zählt hier CHF 160.00`, `zugeordnet zu Mia Muster (2026-0412) CHF 160.00`. */
+const describeFate = (payment: ResolvedDoublePaymentPayment): string => {
+  if (payment.refundedDate !== undefined) {
+    return `zurückerstattet am ${formatIsoDate(payment.refundedDate)}`;
+  }
+  const parts = [
+    ...(payment.countsHere > 0 ? [`zählt hier ${formatChf(payment.countsHere)}`] : []),
+    ...payment.elsewhere.map(
+      (share) =>
+        `zugeordnet zu ${share.fullName} (${share.invoiceNumber}) ${formatChf(share.amount)}`,
+    ),
+  ];
+  return parts.length === 0 ? 'keiner Rechnung zugeordnet' : parts.join(' · ');
 };
 
 export async function renderDoublePaymentReportPdf(report: DoublePaymentReport): Promise<Buffer> {
@@ -83,8 +101,9 @@ export async function renderDoublePaymentReportPdf(report: DoublePaymentReport):
 
     // ── Headline figures ─────────────────────────────────────────────────────
     const tiles = [
-      { label: 'Rechnungen', value: String(report.entries.length) },
+      { label: 'Offen', value: String(report.entries.length) },
       { label: 'Zu viel bezahlt', value: formatChf(report.totalExcess) },
+      { label: 'Erledigt', value: String(report.resolved.length) },
     ];
     const tileWidth = contentWidth / 4;
     for (const [index, tile] of tiles.entries()) {
@@ -116,9 +135,16 @@ export async function renderDoublePaymentReportPdf(report: DoublePaymentReport):
       { label: 'Zu viel', width: mm2pt(30), align: 'right' as const },
     ];
 
-    const drawRow = (cells: string[], font: string, colors: string[]): void => {
+    type Column = (typeof columns)[number];
+
+    const drawRow = (
+      cells: string[],
+      font: string,
+      colors: string[],
+      rowColumns: Column[] = columns,
+    ): void => {
       let x = left;
-      for (const [index, column] of columns.entries()) {
+      for (const [index, column] of rowColumns.entries()) {
         document_
           .font(font)
           .fontSize(9)
@@ -134,11 +160,12 @@ export async function renderDoublePaymentReportPdf(report: DoublePaymentReport):
       y += mm2pt(5.2);
     };
 
-    const drawHeader = (): void => {
+    const drawHeader = (rowColumns: Column[] = columns): void => {
       drawRow(
-        columns.map((column) => column.label),
+        rowColumns.map((column) => column.label),
         'Helvetica-Bold',
-        columns.map(() => MUTED),
+        rowColumns.map(() => MUTED),
+        rowColumns,
       );
       document_
         .moveTo(left, y - 3)
@@ -193,6 +220,90 @@ export async function renderDoublePaymentReportPdf(report: DoublePaymentReport):
           width: mm2pt(30),
           align: 'right',
           lineBreak: false,
+        });
+        y += mm2pt(4.4);
+      }
+
+      document_.moveTo(left, y).lineTo(right, y).lineWidth(0.5).strokeColor(RULE).stroke();
+      y += mm2pt(3);
+    }
+
+    // ── Resolved ─────────────────────────────────────────────────────────────
+    // The flag clears once a payment is moved or refunded, and with it the bill would leave
+    // the report. Finance still has to see later what was paid twice and where it went.
+    const resolvedColumns: Column[] = [
+      { label: 'Anmeldung', width: contentWidth - mm2pt(105), align: 'left' },
+      { label: 'Rechnung', width: mm2pt(25), align: 'left' },
+      { label: 'Betrag', width: mm2pt(25), align: 'right' },
+      { label: 'Erkannt', width: mm2pt(25), align: 'right' },
+      { label: 'Erledigt', width: mm2pt(30), align: 'right' },
+    ];
+
+    if (y + mm2pt(25) > mm2pt(268)) {
+      document_.addPage();
+      y = mm2pt(20);
+    } else {
+      y += mm2pt(6);
+    }
+    document_.font(headingFont()).fontSize(11).fillColor(ACCENT);
+    document_.text('Erledigte Doppelzahlungen', left, y, { width: contentWidth });
+    y = document_.y + 4;
+    document_.moveTo(left, y).lineTo(right, y).lineWidth(0.8).strokeColor(ACCENT).stroke();
+    y += 8;
+
+    if (report.resolved.length === 0) {
+      document_.font('Helvetica').fontSize(9).fillColor(MUTED);
+      document_.text('Bisher keine erledigten Doppelzahlungen.', left, y, { width: contentWidth });
+      y = document_.y + mm2pt(4);
+    } else {
+      drawHeader(resolvedColumns);
+    }
+
+    for (const entry of report.resolved) {
+      const height = mm2pt(5.2) + mm2pt(4) * 2 + mm2pt(4.4) * entry.payments.length + mm2pt(3);
+      if (y + height > mm2pt(268)) {
+        document_.addPage();
+        y = mm2pt(20);
+        drawHeader(resolvedColumns);
+      }
+
+      drawRow(
+        [
+          entry.fullName,
+          entry.invoiceNumber,
+          formatChf(entry.invoiceAmount),
+          formatIsoDate(entry.detectedAt),
+          formatIsoDate(entry.resolvedAt),
+        ],
+        'Helvetica-Bold',
+        [INK, INK, INK, INK, INK],
+        resolvedColumns,
+      );
+      const details = [entry.eventName, entry.resolvedBy].filter((detail) => detail !== '');
+      if (details.length > 0) {
+        document_.font('Helvetica').fontSize(8).fillColor(MUTED);
+        document_.text(details.join(' · '), left, y - mm2pt(1.2), {
+          width: contentWidth,
+          lineBreak: false,
+          ellipsis: true,
+        });
+        y += mm2pt(4);
+      }
+
+      for (const payment of entry.payments) {
+        document_.font('Helvetica').fontSize(8).fillColor(MUTED);
+        document_.text(
+          `${formatIsoDate(payment.bookingDate)} · ${payment.transactionReference} · ${formatChf(payment.amount)}` +
+            (payment.payer === '' ? '' : ` · ${payment.payer}`),
+          left + mm2pt(4),
+          y,
+          { width: contentWidth / 2 - mm2pt(4), lineBreak: false, ellipsis: true },
+        );
+        document_.text(describeFate(payment), left + contentWidth / 2, y, {
+          width: contentWidth / 2,
+          align: 'right',
+          lineBreak: false,
+          ellipsis: true,
         });
         y += mm2pt(4.4);
       }

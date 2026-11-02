@@ -8676,10 +8676,6 @@ export interface AppFeatureFlag {
    * Toggles visibility of the conveniat27 Forum menu item in the app.
    */
   forumEnabled?: boolean | null;
-  /**
-   * Toggles the redesigned inline top navigation bar on desktop screens.
-   */
-  redesignedMainMenuEnabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -9399,7 +9395,6 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   photoContestEnabled?: T;
   reservationsEnabled?: T;
   forumEnabled?: T;
-  redesignedMainMenuEnabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

@@ -537,7 +537,9 @@ test.describe('Map annotations edited in the CMS reach an installed app', () => 
       .poll(() => persistedMapTitle(page), { timeout: 15_000 })
       .toBe(annotationTitle('v1'));
     await page.goto('/app/schedule');
-    await expect(page.getByText(SCHEDULE_ENTRY_TITLE)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('link', { name: SCHEDULE_ENTRY_TITLE })).toBeVisible({
+      timeout: 20_000,
+    });
     // the persister writes at most once a second
     await page.waitForTimeout(2000);
     await expect
@@ -560,9 +562,11 @@ test.describe('Map annotations edited in the CMS reach an installed app', () => 
     await expectNoErrorScreen(page);
 
     await page.goto('/app/schedule', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByText(SCHEDULE_ENTRY_TITLE)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('link', { name: SCHEDULE_ENTRY_TITLE })).toBeVisible({
+      timeout: 15_000,
+    });
     await page.waitForTimeout(10_000);
-    await expect(page.getByText(SCHEDULE_ENTRY_TITLE)).toBeVisible();
+    await expect(page.getByRole('link', { name: SCHEDULE_ENTRY_TITLE })).toBeVisible();
     await expectNoErrorScreen(page);
 
     expect(pageErrors).toEqual([]);

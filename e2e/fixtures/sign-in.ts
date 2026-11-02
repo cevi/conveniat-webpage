@@ -13,11 +13,15 @@ const attemptSignIn = async (request: APIRequestContext, fakeUser: number): Prom
     form: { csrfToken: csrf.csrfToken, callbackUrl: '/app/dashboard' },
     maxRedirects: 0,
   });
-  const callbackUrl = new URL(start.headers()['location'] ?? '').searchParams.get('redirect_uri');
+  const authorize = new URL(start.headers()['location'] ?? '').searchParams;
+  const callbackUrl = authorize.get('redirect_uri');
   expect(callbackUrl, 'the sign-in should redirect to the Cevi.DB login').toBeTruthy();
 
-  // what the fake login page does when a user is picked
-  await request.get(`${callbackUrl}?code=fake-auth-code-${fakeUser}`, { maxRedirects: 0 });
+  // What the fake login page does when a user is picked. Auth.js checks the `state` it sent.
+  const callback = new URL(callbackUrl ?? '');
+  callback.searchParams.set('code', `fake-auth-code-${fakeUser}`);
+  callback.searchParams.set('state', authorize.get('state') ?? '');
+  await request.get(callback.toString(), { maxRedirects: 0 });
 
   const sessionResponse = await request.get('/api/auth/session');
   const session = (await sessionResponse.json()) as { user?: unknown } | null;
