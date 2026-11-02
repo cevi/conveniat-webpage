@@ -241,7 +241,10 @@ async function offlineFallback(
 
   // Strategy D: RSC Stream (Flight Payload) Fallback
   if (isRsc) {
-    const cachedRsc = await matchCachedRsc(url.toString());
+    const cachedRsc = await matchCachedRsc(
+      url.toString(),
+      request.headers.get('x-deployment-id') ?? undefined,
+    );
     if (cachedRsc) return cachedRsc;
 
     // A request for the page already on screen stays a network error. With
@@ -608,7 +611,12 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
         // navigation payload in a shape it does not expect.
         let cached: Response | undefined;
         if (!isPrefetch) {
-          cached = isRsc ? await matchCachedRsc(url.toString()) : await cachedDocumentFor(url);
+          cached = isRsc
+            ? await matchCachedRsc(
+                url.toString(),
+                event.request.headers.get('x-deployment-id') ?? undefined,
+              )
+            : await cachedDocumentFor(url);
         }
         if (cached) {
           console.log(`[SW] Slow network for ${url.pathname}, serving the cached copy meanwhile`);

@@ -118,25 +118,44 @@ export function sanitizeRscResponse(response: Response): Response {
 
 /**
  * Robustly attempts to find a cached RSC response using O(1) lookups and fallback matching.
+ *
+ * With `clientDeploymentId`, the `x-deployment-id` the page sent, an entry another build wrote is
+ * no match. The router reads a payload before it compares builds, and reading it runs the chunks
+ * of that build in the page (see `@/proxy/deployment-skew-proxy`). The cache holds such entries
+ * while the worker of the previous build still controls a page of the new one, and when the
+ * offline download fetched a page from the other replica during a rollout.
  */
-export async function matchCachedRsc(originalUrl: string): Promise<Response | undefined> {
+export async function matchCachedRsc(
+  originalUrl: string,
+  clientDeploymentId?: string,
+): Promise<Response | undefined> {
+  const usable = (match: Response | undefined): Response | undefined => {
+    if (match === undefined) return undefined;
+    if (
+      clientDeploymentId !== undefined &&
+      match.headers.get('x-nextjs-deployment-id') !== clientDeploymentId
+    ) {
+      return undefined;
+    }
+    return sanitizeRscResponse(match);
+  };
   const rscCache = await caches.open(CACHE_NAMES.RSC);
   const urlObject = new URL(originalUrl);
   const cleanPath = getCleanAppPath(urlObject.pathname);
 
   // 1. Try Exact Match (Fastest)
-  const exactMatch = await rscCache.match(originalUrl, { ignoreVary: true });
-  if (exactMatch) return sanitizeRscResponse(exactMatch);
+  const exactMatch = usable(await rscCache.match(originalUrl, { ignoreVary: true }));
+  if (exactMatch) return exactMatch;
 
   // 2. Try Normalized Match (Standard Strategy)
   const normalizedUrl = getNormalizedRscUrl(originalUrl);
-  const normalizedMatch = await rscCache.match(normalizedUrl, { ignoreVary: true });
-  if (normalizedMatch) return sanitizeRscResponse(normalizedMatch);
+  const normalizedMatch = usable(await rscCache.match(normalizedUrl, { ignoreVary: true }));
+  if (normalizedMatch) return normalizedMatch;
 
   // 3. Try Clean URL Match without query parameters (except _rsc)
   const cleanRscUrl = `${urlObject.origin}${cleanPath}?_rsc`;
-  const cleanRscMatch = await rscCache.match(cleanRscUrl, { ignoreVary: true });
-  if (cleanRscMatch) return sanitizeRscResponse(cleanRscMatch);
+  const cleanRscMatch = usable(await rscCache.match(cleanRscUrl, { ignoreVary: true }));
+  if (cleanRscMatch) return cleanRscMatch;
 
   // 4. Exact Pathname Match across cached keys
   const keys = await rscCache.keys();
@@ -147,8 +166,8 @@ export async function matchCachedRsc(originalUrl: string): Promise<Response | un
 
   if (matchingKey) {
     console.log(`[SW] RSC Pathname Hit for: ${originalUrl} -> ${matchingKey.url}`);
-    const pathnameMatch = await rscCache.match(matchingKey, { ignoreVary: true });
-    if (pathnameMatch) return sanitizeRscResponse(pathnameMatch);
+    const pathnameMatch = usable(await rscCache.match(matchingKey, { ignoreVary: true }));
+    if (pathnameMatch) return pathnameMatch;
   }
 
   // 5. Replayable Dynamic Route Shell (e.g. /app/chat/<a>/details -> /app/chat/<b>/details).
@@ -157,8 +176,8 @@ export async function matchCachedRsc(originalUrl: string): Promise<Response | un
   const siblingKey = findReplayableSiblingKey(keys, cleanPath);
   if (siblingKey) {
     console.log(`[SW] RSC Route Shell Hit for: ${originalUrl} -> ${siblingKey.url}`);
-    const siblingMatch = await rscCache.match(siblingKey, { ignoreVary: true });
-    if (siblingMatch) return sanitizeRscResponse(siblingMatch);
+    const siblingMatch = usable(await rscCache.match(siblingKey, { ignoreVary: true }));
+    if (siblingMatch) return siblingMatch;
   }
 
   // 6. Parent Route Shell Fallback (e.g. /app/schedule/123 -> /app/schedule)
@@ -176,8 +195,8 @@ export async function matchCachedRsc(originalUrl: string): Promise<Response | un
 
       if (shellKey) {
         console.log(`[SW] RSC Parent Shell Hit for: ${originalUrl} -> ${shellKey.url}`);
-        const shellMatch = await rscCache.match(shellKey, { ignoreVary: true });
-        if (shellMatch) return sanitizeRscResponse(shellMatch);
+        const shellMatch = usable(await rscCache.match(shellKey, { ignoreVary: true }));
+        if (shellMatch) return shellMatch;
       }
     }
   }

@@ -35,9 +35,16 @@ class MemoryCache {
 
 const cacheStorage = new Map<string, MemoryCache>();
 
-const fetchRsc = async (path: string, headers: Record<string, string>): Promise<Response> => {
+const fetchRsc = async (
+  path: string,
+  headers: Record<string, string>,
+  sentFrom = '/app/dashboard',
+): Promise<Response> => {
   const event = {
-    request: new Request(`${ORIGIN}${path}`, { headers: { RSC: '1', ...headers } }),
+    request: new Request(`${ORIGIN}${path}`, {
+      headers: { RSC: '1', ...headers },
+      referrer: `${ORIGIN}${sentFrom}`,
+    }),
     clientId: APP_CLIENT,
     resultingClientId: '',
     respondWith: jest.fn(),
@@ -53,6 +60,19 @@ const fetchRsc = async (path: string, headers: Record<string, string>): Promise<
 
 const setOnline = (onLine: boolean): void => {
   Object.defineProperty(globalThis.navigator, 'onLine', { value: onLine, configurable: true });
+};
+
+/** Stores the chat payload the way the worker does online, as answered by `build`. */
+const storeChatPayloadOf = async (build: string): Promise<void> => {
+  globalThis.fetch = jest.fn(() =>
+    Promise.resolve(
+      new Response(`chat of ${build}`, {
+        headers: { 'Content-Type': 'text/x-component', 'x-nextjs-deployment-id': build },
+      }),
+    ),
+  );
+  setOnline(true);
+  await fetchRsc('/app/chat?_rsc=online', { 'x-deployment-id': build });
 };
 
 describe('offline RSC answers for navigations', () => {
@@ -107,5 +127,33 @@ describe('offline RSC answers for navigations', () => {
     });
 
     expect(await response.text()).toBe('navigation payload');
+  });
+
+  describe('a payload of another build', () => {
+    /**
+     * Reading a payload runs the chunks it names before the router compares builds, so a payload
+     * the previous build stored put that build's code into the page of the new one.
+     */
+    test('is not served to the page of the new build, which then loads the page as a document', async () => {
+      await storeChatPayloadOf('1_46_1-6b1e0a2c');
+
+      setOnline(false);
+      const response = await fetchRsc('/app/chat?_rsc=offline', {
+        'x-deployment-id': '1_46_2-0ca1769e',
+      });
+
+      expect(response.status).toBe(503);
+    });
+
+    test('is still served to a page of the build that stored it', async () => {
+      await storeChatPayloadOf('1_46_2-0ca1769e');
+
+      setOnline(false);
+      const response = await fetchRsc('/app/chat?_rsc=offline', {
+        'x-deployment-id': '1_46_2-0ca1769e',
+      });
+
+      expect(await response.text()).toBe('chat of 1_46_2-0ca1769e');
+    });
   });
 });
