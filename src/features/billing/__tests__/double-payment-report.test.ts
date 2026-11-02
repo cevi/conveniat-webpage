@@ -1,4 +1,7 @@
-import { buildDoublePaymentReport } from '@/features/billing/services/double-payment-report';
+import {
+  buildDoublePaymentReport,
+  buildResolvedDoublePayments,
+} from '@/features/billing/services/double-payment-report';
 import type { BillPayment } from '@/features/payload-cms/payload-types';
 
 const NOW = new Date('2026-10-21T07:00:00Z');
@@ -90,5 +93,101 @@ describe('buildDoublePaymentReport', () => {
 
     expect(report.entries[0]?.excess).toBe(100);
     expect(report.entries[0]?.payments.map((entry) => entry.amount)).toEqual([160, 100]);
+  });
+});
+
+describe('buildResolvedDoublePayments', () => {
+  const flaggedAndResolved = [
+    {
+      date: '2026-10-14T09:00:00.000Z',
+      action: 'double_payment_detected',
+      value: 'CHF 320.00 erhalten für die Rechnung über CHF 160.00',
+    },
+    {
+      date: '2026-10-15T16:30:00.000Z',
+      action: 'double_payment_resolved',
+      value: 'zugeordnet von Finanzen',
+    },
+  ];
+  const resolvedLea = { ...lea, doublePayment: false, syncHistory: flaggedAndResolved };
+  const noah = { id: 'noah', fullName: 'Noah Muster', invoiceNumber: '2026-0412' };
+
+  it('keeps a bill whose second payment was moved to a sibling, and says where it went', () => {
+    const resolved = buildResolvedDoublePayments(
+      [resolvedLea],
+      [
+        payment({ matchedParticipant: 'lea', allocations: [{ participant: 'lea', amount: 160 }] }),
+        payment({
+          transactionReference: 'GS00000000000002',
+          matchedParticipant: 'lea',
+          allocations: [{ participant: 'noah', amount: 160 }],
+        }),
+      ],
+      [noah],
+    );
+
+    expect(resolved).toEqual([
+      expect.objectContaining({
+        fullName: 'Lea Muster',
+        detectedAt: '2026-10-14T09:00:00.000Z',
+        resolvedAt: '2026-10-15T16:30:00.000Z',
+        resolvedBy: 'zugeordnet von Finanzen',
+        payments: [
+          expect.objectContaining({
+            transactionReference: 'GS00000000000001',
+            countsHere: 160,
+            elsewhere: [],
+          }),
+          expect.objectContaining({
+            transactionReference: 'GS00000000000002',
+            countsHere: 0,
+            elsewhere: [{ fullName: 'Noah Muster', invoiceNumber: '2026-0412', amount: 160 }],
+          }),
+        ],
+      }),
+    ]);
+  });
+
+  it('says when the second payment went back', () => {
+    const [entry] = buildResolvedDoublePayments(
+      [resolvedLea],
+      [
+        payment({ allocations: [{ participant: 'lea', amount: 160 }] }),
+        payment({
+          transactionReference: 'GS00000000000002',
+          refundedDate: '2026-10-25T00:00:00.000Z',
+          allocations: [{ participant: 'lea', amount: 160 }],
+        }),
+      ],
+      [],
+    );
+
+    expect(entry?.payments[1]).toEqual(
+      expect.objectContaining({
+        countsHere: 0,
+        elsewhere: [],
+        refundedDate: '2026-10-25T00:00:00.000Z',
+      }),
+    );
+  });
+
+  it('leaves a bill that is paid twice again to the open list', () => {
+    const resolved = buildResolvedDoublePayments(
+      [{ ...resolvedLea, doublePayment: true }],
+      [payment({ allocations: [{ participant: 'lea', amount: 160 }] })],
+      [],
+    );
+
+    expect(resolved).toEqual([]);
+  });
+
+  it('ignores a bill that was flagged but never resolved', () => {
+    const resolved = buildResolvedDoublePayments(
+      [{ ...resolvedLea, syncHistory: flaggedAndResolved.slice(0, 1) }],
+      [],
+      [],
+    );
+
+    expect(resolved).toEqual([]);
   });
 });
