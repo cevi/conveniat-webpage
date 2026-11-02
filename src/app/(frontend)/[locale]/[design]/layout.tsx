@@ -11,8 +11,6 @@ import { StylesheetRecovery } from '@/components/stylesheet-recovery';
 import { HideBackgroundLogoProvider } from '@/components/ui/hide-background-logo-context';
 import { CookieBanner } from '@/components/utils/cookie-banner';
 import { environmentVariables } from '@/config/environment-variables';
-import { getFeatureFlagForPrerender } from '@/lib/db/redis';
-import { FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED } from '@/lib/feature-flags';
 import type { Locale, NavigationMode } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
@@ -57,9 +55,6 @@ const validDesigns = new Set<string>(Object.values(DesignCodes));
 const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
   const { locale, design } = await params;
   const isInAppDesign = design === DesignCodes.APP_DESIGN;
-  const isRedesignedMenuEnabled = await getFeatureFlagForPrerender(
-    FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED,
-  );
 
   // `[locale]/[design]` matches any two segments, so a path this app does not own — a
   // `/_next/static/...` asset dropped from the current build, say — would otherwise render
@@ -67,15 +62,15 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
   // JavaScript ("Unexpected token '<'") and the service worker caches it under the asset's
   // URL, so the failure survives reloads.
   //
-  // This has to run *after* the cached read above, never before it: skipping a cached call on
-  // one prerender pass and making it on the other is what produces "Unexpected cache miss
-  // after cache warming phase".
+  // A cached read added to this layout has to run before this check, never after it: skipping
+  // a cached call on one prerender pass and making it on the other is what produces
+  // "Unexpected cache miss after cache warming phase".
   if (!validLocales.has(locale) || !validDesigns.has(design)) {
     notFound();
   }
 
   // the app follows the website's menu, so both look the same on a desktop
-  const navigationMode: NavigationMode = isRedesignedMenuEnabled ? 'top-nav' : 'side-nav';
+  const navigationMode: NavigationMode = environmentVariables.NEXT_PUBLIC_NAVIGATION_MODE;
 
   return (
     <html

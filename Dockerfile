@@ -56,6 +56,11 @@ ENV NEXT_PUBLIC_APP_STORE_URL=${NEXT_PUBLIC_APP_STORE_URL}
 ARG NEXT_PUBLIC_PLAY_STORE_URL=https://play.google.com/store/apps/details?id=ch.cevi.conveniat27.conveniat27app
 ENV NEXT_PUBLIC_PLAY_STORE_URL=${NEXT_PUBLIC_PLAY_STORE_URL}
 
+# The website's menu, `top-nav` or `side-nav`. Prerendered into every page's shell, so it is a
+# build value. No default here: konekta keeps the side menu by not passing it.
+ARG NEXT_PUBLIC_NAVIGATION_MODE
+ENV NEXT_PUBLIC_NAVIGATION_MODE=${NEXT_PUBLIC_NAVIGATION_MODE}
+
 COPY . .
 
 # Copy the dev icons for the dev build

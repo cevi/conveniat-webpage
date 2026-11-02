@@ -170,6 +170,15 @@ export const environmentVariables = createEnv({
      */
     NEXT_PUBLIC_APP_STORE_URL: z.url().optional(),
     NEXT_PUBLIC_PLAY_STORE_URL: z.url().optional(),
+    /**
+     * The website's menu: `top-nav` (conveniat27) or `side-nav` (konekta, and the default).
+     *
+     * A build time value, not a feature flag: the root layout draws it into the shell that
+     * `next build` prerenders, and the build cannot read Redis. A runtime flag left that shell
+     * with the build's default, so the first request to every page after a deploy showed the
+     * other menu.
+     */
+    NEXT_PUBLIC_NAVIGATION_MODE: z.enum(['top-nav', 'side-nav']),
   },
 
   experimental__runtimeEnv: {
@@ -184,6 +193,9 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_HITOBITO_API_URL: process.env['NEXT_PUBLIC_HITOBITO_API_URL'],
     NEXT_PUBLIC_APP_STORE_URL: process.env['NEXT_PUBLIC_APP_STORE_URL'],
     NEXT_PUBLIC_PLAY_STORE_URL: process.env['NEXT_PUBLIC_PLAY_STORE_URL'],
+    // compared here, not defaulted by the schema: the production build skips validation
+    NEXT_PUBLIC_NAVIGATION_MODE:
+      process.env['NEXT_PUBLIC_NAVIGATION_MODE'] === 'top-nav' ? 'top-nav' : 'side-nav',
   },
 
   /**
