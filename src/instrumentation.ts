@@ -66,7 +66,7 @@ const toReportableError = (error: unknown): unknown => {
 
 export const onRequestError = async (
   error: unknown,
-  request: { headers: Record<string, string | string[] | undefined> },
+  request: { path: string; method: string; headers: Record<string, string | string[] | undefined> },
   context: unknown,
 ): Promise<void> => {
   // eslint-disable-next-line n/no-process-env
@@ -110,6 +110,18 @@ export const onRequestError = async (
         Object.assign(properties, context);
       }
 
+      // `path` is the request URL with its query string, which can carry a `preview-token`, so
+      // only the pathname is reported. Under `$pathname` the issue page breaks errors down by it.
+      properties['$pathname'] = request.path.split('?')[0];
+      properties['method'] = request.method;
+
+      // Which branch of the server action handler a POST took depends on these two: a fetch
+      // action sends `next-action`, a form post without it falls through to a page render.
+      if (request.headers['content-type'] !== undefined)
+        properties['content-type'] = request.headers['content-type'];
+      if (request.headers['next-action'] !== undefined)
+        properties['next-action'] = request.headers['next-action'];
+
       if (request.headers['referer'] !== undefined)
         properties['referer'] = request.headers['referer'];
       if (request.headers['user-agent'] !== undefined)
@@ -126,11 +138,17 @@ export const onRequestError = async (
       //
       // Both are best effort: without a registered SDK, or for an error that escapes the span,
       // `getActiveSpan()` is undefined and the report goes out without them.
-      const { trace, INVALID_TRACEID } = await import('@opentelemetry/api');
+      //
+      // Deployments sample traces at the root (`OTEL_TRACES_SAMPLER_ARG`, 0.25 in production), so
+      // most requests carry a valid trace id that never reaches Tempo. The id still joins the Loki
+      // lines, which are exported whether or not the trace is, so it is reported either way and
+      // `trace_sampled` says whether the Tempo trace exists.
+      const { trace, INVALID_TRACEID, TraceFlags } = await import('@opentelemetry/api');
       const spanContext = trace.getActiveSpan()?.spanContext();
       if (spanContext !== undefined && spanContext.traceId !== INVALID_TRACEID) {
         properties['trace_id'] = spanContext.traceId;
         properties['span_id'] = spanContext.spanId;
+        properties['trace_sampled'] = (spanContext.traceFlags & TraceFlags.SAMPLED) !== 0;
       }
 
       let errorMessage = '';

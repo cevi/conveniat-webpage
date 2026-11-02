@@ -1,6 +1,6 @@
 import { onRequestError } from '@/instrumentation';
 import type { Span } from '@opentelemetry/api';
-import { trace } from '@opentelemetry/api';
+import { trace, TraceFlags } from '@opentelemetry/api';
 
 const capturedCalls: unknown[][] = [];
 const captureException = jest.fn((...parameters: unknown[]): void => {
@@ -30,7 +30,7 @@ jest.mock('@/lib/posthog-server', () => ({
 // eslint-disable-next-line n/no-process-env
 process.env['NEXT_RUNTIME'] = 'nodejs';
 
-const emptyRequest = { headers: {} };
+const emptyRequest = { path: '/', method: 'GET', headers: {} };
 
 /**
  * The shape Next.js throws for a bail-out or a control-flow signal: an `Error` constructed with
@@ -50,9 +50,9 @@ const capturedProperties = (): Record<string, unknown> =>
  * SDK in the test environment, so without this the context manager is the no-op one and
  * `getActiveSpan()` always returns undefined.
  */
-const withActiveSpan = (traceId: string, spanId: string): void => {
+const withActiveSpan = (traceId: string, spanId: string, traceFlags = TraceFlags.SAMPLED): void => {
   jest.spyOn(trace, 'getActiveSpan').mockReturnValue({
-    spanContext: () => ({ traceId, spanId, traceFlags: 1 }),
+    spanContext: () => ({ traceId, spanId, traceFlags }),
   } as unknown as Span);
 };
 
@@ -119,6 +119,19 @@ describe('onRequestError', () => {
     expect(capturedProperties()).toMatchObject({
       trace_id: '4bf92f3577b34da6a3ce929d0e0e4736',
       span_id: '00f067aa0ba902b7',
+      trace_sampled: true,
+    });
+  });
+
+  it('still reports the ids of an unsampled trace, marked as not in Tempo', async () => {
+    // Head sampling drops most production traces, but their ids still join the Loki lines.
+    withActiveSpan('4bf92f3577b34da6a3ce929d0e0e4736', '00f067aa0ba902b7', TraceFlags.NONE);
+
+    await onRequestError(new Error('database connection refused'), emptyRequest, {});
+
+    expect(capturedProperties()).toMatchObject({
+      trace_id: '4bf92f3577b34da6a3ce929d0e0e4736',
+      trace_sampled: false,
     });
   });
 
@@ -136,6 +149,53 @@ describe('onRequestError', () => {
     await onRequestError(new Error('database connection refused'), emptyRequest, {});
 
     expect(capturedProperties()).not.toHaveProperty('trace_id');
+  });
+
+  it('reports the pathname and method of the failing request', async () => {
+    await onRequestError(
+      new Error('database connection refused'),
+      { path: '/de/programm', method: 'POST', headers: {} },
+      {},
+    );
+
+    expect(capturedProperties()).toMatchObject({ $pathname: '/de/programm', method: 'POST' });
+  });
+
+  it('leaves the query string out of the reported pathname, since it can carry a preview token', async () => {
+    await onRequestError(
+      new Error('database connection refused'),
+      { path: '/de/programm?preview-token=secret', method: 'GET', headers: {} },
+      {},
+    );
+
+    expect(capturedProperties()['$pathname']).toBe('/de/programm');
+  });
+
+  it('reports the content type and the server action header of a POST', async () => {
+    await onRequestError(
+      new Error('database connection refused'),
+      {
+        path: '/de',
+        method: 'POST',
+        headers: { 'content-type': 'multipart/form-data; boundary=x', 'next-action': 'abc123' },
+      },
+      {},
+    );
+
+    expect(capturedProperties()).toMatchObject({
+      'content-type': 'multipart/form-data; boundary=x',
+      'next-action': 'abc123',
+    });
+  });
+
+  it('reports a form POST without a server action header as having none', async () => {
+    await onRequestError(
+      new Error('database connection refused'),
+      { path: '/de', method: 'POST', headers: { 'content-type': 'multipart/form-data' } },
+      {},
+    );
+
+    expect(capturedProperties()).not.toHaveProperty('next-action');
   });
 
   it('still drops a not-found sentinel instead of reporting it under its digest', async () => {
