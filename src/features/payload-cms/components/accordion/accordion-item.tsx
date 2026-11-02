@@ -26,7 +26,9 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
   return (
     <div
       className={cn(
-        'rounded-lg border-2 border-gray-200 shadow-xs',
+        // keyboard focus marks the header, the visible part, with the surface and ring of every
+        // card in the app; the card's own border gives way so it is not drawn twice
+        'has-[>button:focus-visible]:border-quiet rounded-[14px] border-2 border-gray-200 shadow-xs',
         'transition-transform duration-300',
         isNested === true ? 'bg-gray-50' : 'bg-white',
         {
@@ -38,7 +40,7 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
       <button
         type="button"
         onClick={onToggle}
-        className="focus-visible:outline-conveniat-blue flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="focus-visible:focus-surface flex w-full cursor-pointer items-center justify-between rounded-xl px-6 py-4 text-left"
         aria-expanded={isExpanded}
         aria-controls={`content-${blockId}`}
       >
