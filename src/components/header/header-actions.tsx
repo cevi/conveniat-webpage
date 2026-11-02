@@ -1,7 +1,6 @@
 'use client';
 
 import { GetTheAppButton, useIsGetTheAppShown } from '@/components/get-the-app';
-import { DynamicAppTitleName } from '@/components/header/dynamic-app-title-name';
 import { useHideHeader } from '@/components/header/hide-header-context';
 import { useIsMobileMenuOpen } from '@/hooks/use-mobile-menu-navigation';
 import { cn } from '@/utils/tailwindcss-override';
@@ -40,11 +39,13 @@ export const SetHeaderActions: React.FC<{ children?: ReactNode }> = ({ children 
  * a desktop, right of the logo, where the website's menu takes the rest of the header.
  */
 export const AppHeaderTitle: React.FC<{
+  /** the page's title, see `PageTitle` */
+  title: ReactNode;
   inAppDesign: boolean;
   inlineOnDesktop?: boolean;
   /** the website's top bar, whose menu takes the right of the header on a desktop */
   hiddenOnDesktop?: boolean;
-}> = ({ inAppDesign, inlineOnDesktop = false, hiddenOnDesktop = false }) => {
+}> = ({ title, inAppDesign, inlineOnDesktop = false, hiddenOnDesktop = false }) => {
   const actions = useContext(HeaderActionsContext);
   // in a browser, on the app's pages, the way to the app sits with the page's buttons
   const offersApp = useIsGetTheAppShown();
@@ -57,7 +58,7 @@ export const AppHeaderTitle: React.FC<{
   if (actions === undefined && !offersApp && !inAppDesign) {
     return (
       <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:hidden">
-        <DynamicAppTitleName />
+        {title}
       </span>
     );
   }
@@ -83,7 +84,7 @@ export const AppHeaderTitle: React.FC<{
             'xl:text-conveniat-green xl:block xl:max-w-64 xl:flex-none xl:text-xl xl:tracking-tight',
         )}
       >
-        <DynamicAppTitleName />
+        {title}
       </Title>
       {/* The open menu makes everything outside its dialog inert, the header included, which
           stays in sight above it: the buttons would show but do nothing. Hidden, not unmounted,

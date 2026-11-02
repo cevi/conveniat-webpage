@@ -1,4 +1,3 @@
-import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import {
   ChatQrCodeButton,
   QrCodeIconSkeleton,
@@ -7,7 +6,7 @@ import { ChatsOverviewClientComponent } from '@/features/chat/components/chat-ov
 import { ChatSplitView } from '@/features/chat/components/chat-split-view';
 import { ContinueOnPhoneCard } from '@/features/chat/components/continue-on-phone-card';
 import { SetOnlineStatus } from '@/features/chat/components/set-online-status';
-import type { Locale, StaticTranslationString } from '@/types/types';
+import type { Locale } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import type { ReactNode } from 'react';
 import React, { Suspense } from 'react';
@@ -20,12 +19,6 @@ interface LayoutProperties {
   }>;
 }
 
-const chatsTitle: StaticTranslationString = {
-  de: 'Chats',
-  en: 'Chats',
-  fr: 'Conversations',
-};
-
 /**
  * The chat list lives here rather than on the overview page, so a desktop keeps it beside the
  * open chat. It is rendered by a client component backed by the persisted (IndexedDB)
@@ -35,7 +28,7 @@ const chatsTitle: StaticTranslationString = {
  * boundary so it cannot turn the whole segment dynamic.
  */
 const Layout: React.FC<LayoutProperties> = async ({ children, params }) => {
-  const { locale, design } = await params;
+  const { design } = await params;
   const inAppDesign = design === DesignCodes.APP_DESIGN;
 
   const qrCodeButton = (
@@ -47,7 +40,6 @@ const Layout: React.FC<LayoutProperties> = async ({ children, params }) => {
   return (
     <>
       <SetOnlineStatus />
-      <SetDynamicPageTitle newTitle={chatsTitle[locale]} />
       <ChatSplitView
         list={<ChatsOverviewClientComponent qrCodeButton={qrCodeButton} />}
         // in a browser on a desktop, the way to the app on the phone

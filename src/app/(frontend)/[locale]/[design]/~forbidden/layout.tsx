@@ -1,6 +1,4 @@
 import { Forbidden } from '@/app/(frontend)/[locale]/[design]/(payload-pages)/[[...slugs]]/forbidden';
-import { DEFAULT_APP_TITLE } from '@/components/header/dynamic-app-title-name';
-import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import type { Locale } from '@/types/types';
 import type React from 'react';
 import type { ReactNode } from 'react';
@@ -19,7 +17,6 @@ const ForbiddenLayout: React.FC<{
 
   return (
     <>
-      <SetDynamicPageTitle newTitle={DEFAULT_APP_TITLE} />
       <div className="min-w-full overflow-x-hidden pt-8 pb-24 xl:px-12">
         <Forbidden locale={Promise.resolve(locale)} />
         {children}

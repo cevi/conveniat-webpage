@@ -1,6 +1,5 @@
 'use client';
 
-import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SectionLabel } from '@/components/ui/section-label';
@@ -35,12 +34,6 @@ const uploadError: StaticTranslationString = {
   en: 'Error uploading images',
   de: 'Fehler beim Hochladen der Bilder',
   fr: 'Erreur lors du téléchargement des images',
-};
-
-const pageTitle: StaticTranslationString = {
-  en: 'Image Upload',
-  de: 'Bild-Upload',
-  fr: "Téléchargement d'images",
 };
 
 const pageDescription: StaticTranslationString = {
@@ -324,7 +317,6 @@ const ImageUploadPage: React.FC = () => {
 
   return (
     <>
-      <SetDynamicPageTitle newTitle={pageTitle[locale]} />
       {showSuccessView ? (
         <div className="mx-auto max-w-2xl px-4 pt-4 pb-6">
           <EmptyState

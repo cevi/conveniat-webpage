@@ -43,7 +43,6 @@ export const conditionLabel: Record<MaterialCondition, StaticTranslationString> 
 };
 
 export const labels = {
-  pageTitle: { de: 'Materialdepot', en: 'Material depot', fr: 'Dépôt de matériel' },
   navOverview: { de: 'Übersicht', en: 'Overview', fr: 'Aperçu' },
   navHandOut: { de: 'Ausgeben', en: 'Hand out', fr: 'Remettre' },
   navTakeBack: { de: 'Zurück', en: 'Take back', fr: 'Retour' },
