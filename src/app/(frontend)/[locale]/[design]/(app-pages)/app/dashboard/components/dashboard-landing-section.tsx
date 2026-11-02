@@ -3,15 +3,13 @@
 import type { QuickAccessFlags } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-quick-access';
 import { DashboardQuickAccess } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-quick-access';
 import { QuickAccessSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
-import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import type React from 'react';
 
 /**
- * Title and Schnellzugriff of the dashboard. The CMS title is the app header's title; the CMS
- * switch "Aktionskarten anzeigen" decides whether the Schnellzugriff is shown, and its feature
- * flags which tiles it has.
+ * Schnellzugriff of the dashboard. The CMS switch "Aktionskarten anzeigen" decides whether it is
+ * shown, and its feature flags which tiles it has.
  *
  * The data is fetched client side through the persisted react-query cache:
  * when navigating back to the dashboard the previously loaded content is
@@ -51,7 +49,6 @@ export const DashboardLandingSection: React.FC<{
   return (
     <DashboardLanding
       locale={locale}
-      title={dashboardConfig.title}
       showActionCards={dashboardConfig.showActionCards}
       flags={{
         // guarded: a phone may restore a configuration cached before the flags existed
@@ -68,19 +65,18 @@ export const DashboardLandingSection: React.FC<{
 };
 
 /**
- * Home as the CMS configures it: the title in the app header, `children` and, if switched on,
- * the Schnellzugriff. The live preview of the landing page renders it with the draft.
+ * Home as the CMS configures it: `children` and, if switched on, the Schnellzugriff. The live
+ * preview of the landing page renders it with the draft. The CMS title names Home in the app
+ * header, which reads it itself, see `PageTitle`.
  */
 export const DashboardLanding: React.FC<{
   locale: Locale;
-  title: string;
   showActionCards: boolean;
   flags: QuickAccessFlags;
   supportEmail: string;
   children?: React.ReactNode;
-}> = ({ locale, title, showActionCards, flags, supportEmail, children }) => (
+}> = ({ locale, showActionCards, flags, supportEmail, children }) => (
   <>
-    <SetDynamicPageTitle newTitle={title} />
     {children}
     {showActionCards && (
       <DashboardQuickAccess locale={locale} supportEmail={supportEmail} flags={flags} />

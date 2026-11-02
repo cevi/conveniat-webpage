@@ -1,4 +1,3 @@
-import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { SectionLabel } from '@/components/ui/section-label';
 import { AnalyticsSettings } from '@/features/settings/analytics-settings';
 import { SettingsCard } from '@/features/settings/components/settings-row';
@@ -11,12 +10,6 @@ import { ReminderSettings } from '@/features/settings/reminder-settings';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
 import React from 'react';
-
-const settingsTitle: StaticTranslationString = {
-  de: 'Einstellungen',
-  en: 'Settings',
-  fr: 'Paramètres',
-};
 
 const appTitle: StaticTranslationString = {
   de: 'App',
@@ -40,9 +33,6 @@ const Settings: React.FC<{ params: Promise<{ locale: Locale }> }> = async ({ par
 
   return (
     <>
-      {/* Set the dynamic page title based on the locale */}
-      <SetDynamicPageTitle newTitle={settingsTitle[locale]} />
-
       <div className="mx-auto w-full max-w-2xl space-y-6 px-4 pt-5 pb-12">
         <ProfileDetails />
 

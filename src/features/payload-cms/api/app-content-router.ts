@@ -15,8 +15,9 @@ import { z } from 'zod';
  */
 export const appContentRouter = createTRPCRouter({
   /**
-   * Configuration of the app dashboard: the landing page title, whether the
-   * action cards are shown and the feature flags deciding which cards exist.
+   * Configuration of the app dashboard: whether the action cards are shown and
+   * the feature flags deciding which cards exist. The landing page title is read
+   * by the header on the server, see `PageTitle`.
    *
    * The welcome content blocks are intentionally not part of this payload:
    * they are rendered on the server since content blocks may require server
@@ -36,7 +37,6 @@ export const appContentRouter = createTRPCRouter({
       ]);
 
       return {
-        title: landingPage.title,
         showActionCards: landingPage.showActionCards ?? false,
         // a flag that has never been set explicitly counts as enabled
         featureFlags: {

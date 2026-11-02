@@ -1,26 +1,15 @@
 'use client';
 
-import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { ScheduleComponent } from '@/features/schedule/components/schedule-component';
 import {
   NoBlockSelected,
   ScheduleDetailView,
 } from '@/features/schedule/components/schedule-detail-view';
-import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { useKeptScrollPosition } from '@/hooks/use-kept-scroll-position';
-import type { Locale, StaticTranslationString } from '@/types/types';
-import { i18nConfig } from '@/types/types';
 import { useParams, useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { Activity } from 'react';
-
-// the same words as the tab that opens it
-const pageTitle: StaticTranslationString = {
-  de: 'Programm',
-  en: 'Program',
-  fr: 'Programme',
-};
 
 /** Beside the list on a desktop while no block is open: the one that matters most, see ScheduleComponent. */
 const renderSuggestion = (suggestedId: string | undefined): React.ReactNode =>
@@ -40,7 +29,6 @@ const renderSuggestion = (suggestedId: string | undefined): React.ReactNode =>
  * All data is fetched client-side via tRPC for offline support.
  */
 const SchedulePage: React.FC = () => {
-  const locale = useCurrentLocale(i18nConfig) as Locale;
   const params = useParams();
   const searchParameters = useSearchParams();
   const idParameter = params['id'];
@@ -59,7 +47,6 @@ const SchedulePage: React.FC = () => {
       {/* hidden, not unmounted, under an open block on a phone: its search, its filters and its
           place survive the visit, the way Next.js keeps a page the user left */}
       <Activity mode={isListHidden ? 'hidden' : 'visible'}>
-        <SetDynamicPageTitle newTitle={pageTitle[locale]} />
         {/* the width is where the block's pane starts, see ScheduleDetailView */}
         <div className="xl:border-line xl:min-h-[calc(100dvh-var(--app-content-top)-var(--app-tab-bar-height))] xl:w-[400px] xl:border-r">
           <ScheduleComponent

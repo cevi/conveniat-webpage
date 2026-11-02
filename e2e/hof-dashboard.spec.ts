@@ -910,6 +910,8 @@ test.describe('Hof dashboard', () => {
   });
 
   test("keeps the Hof's responsible people from Cevi.DB beside every section", async ({ page }) => {
+    // wide enough for the column beside the sections under the website's side menu as well
+    await page.setViewportSize({ width: 1920, height: 1080 });
     await mockBackend(page);
     await page.goto('/hof-dashboard');
 

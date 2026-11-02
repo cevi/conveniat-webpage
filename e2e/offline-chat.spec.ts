@@ -7,6 +7,7 @@ import {
   chatPreview,
   mockAppBackend,
   NATIVE_APP_USER_AGENT,
+  requireServiceWorkerRouting,
   USER_ID,
 } from './fixtures/offline-app-data';
 import { signIn } from './fixtures/sign-in';
@@ -37,6 +38,7 @@ const mockSendMessage = async (
   context: BrowserContext,
   backend: { sendMessage: SendMessageMode },
 ): Promise<void> => {
+  requireServiceWorkerRouting();
   await context.route('**/api/trpc/chat.sendMessage**', async (route) => {
     switch (backend.sendMessage) {
       case 'offline': {
