@@ -445,6 +445,14 @@ test.describe('Map annotations edited in the CMS reach an installed app', () => 
     await context.addCookies([
       { name: 'design-mode', value: 'design-mode-app', url: baseURL ?? 'http://localhost:3000' },
     ]);
+    // Playwright's WebKit build for Linux loses the settings page once the push settings ask the
+    // push API for a subscription; without the API the page offers no push, as on a browser
+    // that has none
+    if (test.info().project.name === 'webkit') {
+      await context.addInitScript(() => {
+        Reflect.deleteProperty(globalThis, 'PushManager');
+      });
+    }
     await signIn(context);
     await enableOfflineContent(page);
     await page.goto('/app/map');
