@@ -5,7 +5,19 @@ import {
   migratePlaceholderInBlock,
   migrateSectionsPlaceholders,
 } from '@/features/payload-cms/payload-cms/initialization/migrate-form-placeholders';
-import type { Payload } from 'payload';
+import type { BasePayload } from 'payload';
+
+/** A raw Mongo collection holding `documents`, as the migration reads and writes it. */
+const createMockCollection = (
+  documents: Record<string, unknown>[],
+  throwOnUpdate: boolean,
+): { find: jest.Mock; updateOne: jest.Mock } => ({
+  find: jest.fn().mockReturnValue(documents),
+  updateOne: jest.fn().mockImplementation(() => {
+    if (throwOnUpdate) return Promise.reject(new Error('Update failed'));
+    return Promise.resolve({});
+  }),
+});
 
 const createMockPayload = ({
   forms = [],
@@ -16,41 +28,26 @@ const createMockPayload = ({
   versions?: Record<string, unknown>[];
   throwOnUpdate?: boolean;
 } = {}): {
-  payload: Payload;
-  updateOne: jest.Mock;
-  updateVersion: jest.Mock;
+  payload: BasePayload;
+  formCollection: { find: jest.Mock; updateOne: jest.Mock };
+  versionCollection: { find: jest.Mock; updateOne: jest.Mock };
   info: jest.Mock;
-  warn: jest.Mock;
   error: jest.Mock;
 } => {
-  const updateOne = jest.fn().mockImplementation(() => {
-    if (throwOnUpdate) return Promise.reject(new Error('Update failed'));
-    return Promise.resolve({});
-  });
-  const updateVersion = jest.fn().mockImplementation(() => {
-    if (throwOnUpdate) return Promise.reject(new Error('Update failed'));
-    return Promise.resolve({});
-  });
+  const formCollection = createMockCollection(forms, throwOnUpdate);
+  const versionCollection = createMockCollection(versions, throwOnUpdate);
   const info = jest.fn();
-  const warn = jest.fn();
   const error = jest.fn();
 
   const payload = {
-    find: jest.fn().mockResolvedValue({ docs: forms }),
-    findVersions: jest.fn().mockResolvedValue({ docs: versions }),
     db: {
-      updateOne,
-      updateVersion,
+      collections: { forms: { collection: formCollection } },
+      versions: { forms: { collection: versionCollection } },
     },
-    logger: {
-      info,
-      warn,
-      error,
-      debug: jest.fn(),
-    },
-  } as unknown as Payload;
+    logger: { info, warn: jest.fn(), error, debug: jest.fn() },
+  } as unknown as BasePayload;
 
-  return { payload, updateOne, updateVersion, info, warn, error };
+  return { payload, formCollection, versionCollection, info, error };
 };
 
 describe('migratePlaceholderInBlock', () => {
@@ -225,10 +222,9 @@ describe('migrateFormDocumentPlaceholders', () => {
 });
 
 describe('migrateFormPlaceholders', () => {
-  it('migrates forms and versions with string placeholders', async () => {
+  it('sets only the migrated fields of forms and versions', async () => {
     const formDocument = {
-      id: 'form-1',
-      title: { de: 'Anmeldeformular' },
+      _id: 'form-1',
       sections: [
         {
           formSection: {
@@ -241,84 +237,70 @@ describe('migrateFormPlaceholders', () => {
       ],
     };
 
+    // an older version whose labels predate their localization, which a cast against the
+    // current schema rejects
     const versionDocument = {
-      id: 'ver-1',
-      parent: 'form-1',
+      _id: 'ver-1',
       version: {
-        title: { de: 'Anmeldeformular v1' },
         sections: [
           {
             formSection: {
-              fields: [{ id: 'f-3', blockType: 'select', placeholder: 'Bitte auswählen' }],
+              sectionTitle: 'Anmeldung',
+              fields: [
+                { id: 'f-3', blockType: 'select', label: 'Hof', placeholder: 'Bitte auswählen' },
+              ],
             },
           },
         ],
       },
     };
 
-    const { payload, updateOne, updateVersion, info } = createMockPayload({
+    const { payload, formCollection, versionCollection, info } = createMockPayload({
       forms: [formDocument],
       versions: [versionDocument],
     });
 
     await migrateFormPlaceholders(payload);
 
-    expect(payload.find).toHaveBeenCalledWith({
-      collection: 'forms',
-      depth: 0,
-      pagination: false,
-      overrideAccess: true,
-      locale: 'all',
-    });
-    expect(payload.findVersions).toHaveBeenCalledWith({
-      collection: 'forms',
-      depth: 0,
-      pagination: false,
-      overrideAccess: true,
-      locale: 'all',
-    });
-
-    expect(updateOne).toHaveBeenCalledTimes(1);
-    expect(updateOne).toHaveBeenCalledWith({
-      collection: 'forms',
-      where: { id: { equals: 'form-1' } },
-      data: {
-        sections: [
-          {
-            formSection: {
-              fields: [
-                { id: 'f-1', blockType: 'email', placeholder: { de: 'kontakt@cevi.ch' } },
-                { id: 'f-2', blockType: 'number', placeholder: { de: '1' } },
-              ],
-            },
-          },
-        ],
-      },
-    });
-
-    expect(updateVersion).toHaveBeenCalledTimes(1);
-    expect(updateVersion).toHaveBeenCalledWith({
-      collection: 'forms',
-      id: 'ver-1',
-      where: { id: { equals: 'ver-1' } },
-      versionData: {
-        id: 'ver-1',
-        parent: 'form-1',
-        version: {
-          title: { de: 'Anmeldeformular v1' },
+    expect(formCollection.updateOne).toHaveBeenCalledWith(
+      { _id: 'form-1' },
+      {
+        $set: {
           sections: [
             {
               formSection: {
                 fields: [
-                  { id: 'f-3', blockType: 'select', placeholder: { de: 'Bitte auswählen' } },
+                  { id: 'f-1', blockType: 'email', placeholder: { de: 'kontakt@cevi.ch' } },
+                  { id: 'f-2', blockType: 'number', placeholder: { de: '1' } },
                 ],
               },
             },
           ],
         },
       },
-    });
-
+    );
+    expect(versionCollection.updateOne).toHaveBeenCalledWith(
+      { _id: 'ver-1' },
+      {
+        $set: {
+          'version.sections': [
+            {
+              formSection: {
+                sectionTitle: 'Anmeldung',
+                fields: [
+                  {
+                    id: 'f-3',
+                    blockType: 'select',
+                    label: 'Hof',
+                    placeholder: { de: 'Bitte auswählen' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    );
     expect(info).toHaveBeenCalledWith(
       { forms: 1, versions: 1 },
       'Migrated placeholders to localized format across 1 forms and 1 versions',
@@ -327,7 +309,7 @@ describe('migrateFormPlaceholders', () => {
 
   it('is completely idempotent when placeholders are already localized', async () => {
     const alreadyMigratedForm = {
-      id: 'form-2',
+      _id: 'form-2',
       sections: [
         {
           formSection: {
@@ -337,7 +319,7 @@ describe('migrateFormPlaceholders', () => {
       ],
     };
     const alreadyMigratedVersion = {
-      id: 'ver-2',
+      _id: 'ver-2',
       version: {
         sections: [
           {
@@ -349,21 +331,21 @@ describe('migrateFormPlaceholders', () => {
       },
     };
 
-    const { payload, updateOne, updateVersion, info } = createMockPayload({
+    const { payload, formCollection, versionCollection, info } = createMockPayload({
       forms: [alreadyMigratedForm],
       versions: [alreadyMigratedVersion],
     });
 
     await migrateFormPlaceholders(payload);
 
-    expect(updateOne).not.toHaveBeenCalled();
-    expect(updateVersion).not.toHaveBeenCalled();
+    expect(formCollection.updateOne).not.toHaveBeenCalled();
+    expect(versionCollection.updateOne).not.toHaveBeenCalled();
     expect(info).not.toHaveBeenCalled();
   });
 
   it('logs an error when an individual form or version update fails, and continues', async () => {
     const formDocument = {
-      id: 'form-fail',
+      _id: 'form-fail',
       sections: [
         {
           formSection: {
@@ -374,7 +356,7 @@ describe('migrateFormPlaceholders', () => {
     };
 
     const versionDocument = {
-      id: 'ver-fail',
+      _id: 'ver-fail',
       version: {
         sections: [
           {
@@ -386,7 +368,7 @@ describe('migrateFormPlaceholders', () => {
       },
     };
 
-    const { payload, updateOne, updateVersion, error } = createMockPayload({
+    const { payload, formCollection, versionCollection, error } = createMockPayload({
       forms: [formDocument],
       versions: [versionDocument],
       throwOnUpdate: true,
@@ -394,22 +376,24 @@ describe('migrateFormPlaceholders', () => {
 
     await migrateFormPlaceholders(payload);
 
-    expect(updateOne).toHaveBeenCalledTimes(1);
-    expect(updateVersion).toHaveBeenCalledTimes(1);
+    expect(formCollection.updateOne).toHaveBeenCalledTimes(1);
+    expect(versionCollection.updateOne).toHaveBeenCalledTimes(1);
     expect(error).toHaveBeenCalledWith(
-      expect.objectContaining({ formId: 'form-fail' }),
-      'Failed to migrate placeholders on form',
+      expect.objectContaining({ source: 'forms', id: 'form-fail' }),
+      'Failed to migrate the placeholders of a form document',
     );
     expect(error).toHaveBeenCalledWith(
-      expect.objectContaining({ versionId: 'ver-fail' }),
-      'Failed to migrate placeholders on form version',
+      expect.objectContaining({ source: 'forms (versions)', id: 'ver-fail' }),
+      'Failed to migrate the placeholders of a form document',
     );
   });
 
   // so Payload leaves the migration unrecorded and runs it again on the next start
   it('rejects when the forms cannot be read', async () => {
-    const { payload } = createMockPayload();
-    payload.find = jest.fn().mockRejectedValue(new Error('Database unavailable'));
+    const { payload, formCollection } = createMockPayload();
+    formCollection.find.mockImplementation(() => {
+      throw new Error('Database unavailable');
+    });
 
     await expect(migrateFormPlaceholders(payload)).rejects.toThrow('Database unavailable');
   });

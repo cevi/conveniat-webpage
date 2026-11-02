@@ -3,6 +3,7 @@ import * as migration_20261031_090100_migrate_legacy_hoefe from './20261031_0901
 import * as migration_20261031_090200_localize_form_placeholders from './20261031_090200_localize_form_placeholders';
 import * as migration_20261031_090300_group_file_download_files from './20261031_090300_group_file_download_files';
 import * as migration_20261031_090400_backfill_bill_payments from './20261031_090400_backfill_bill_payments';
+import * as migration_20261102_090000_localize_form_version_placeholders from './20261102_090000_localize_form_version_placeholders';
 
 export const migrations = [
   {
@@ -29,5 +30,10 @@ export const migrations = [
     up: migration_20261031_090400_backfill_bill_payments.up,
     down: migration_20261031_090400_backfill_bill_payments.down,
     name: '20261031_090400_backfill_bill_payments',
+  },
+  {
+    up: migration_20261102_090000_localize_form_version_placeholders.up,
+    down: migration_20261102_090000_localize_form_version_placeholders.down,
+    name: '20261102_090000_localize_form_version_placeholders',
   },
 ];
