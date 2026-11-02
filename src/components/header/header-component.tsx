@@ -89,9 +89,9 @@ const PageTitleForEditors: React.FC<{ locale: Locale; dashboardTitle: string }> 
 const HeaderPageTitle: React.FC<{ locale: Locale }> = async ({ locale }) => {
   const { title } = await getAppLandingPageCached(locale);
   return (
-    <React.Suspense fallback={<PageTitle locale={locale} dashboardTitle={title} />}>
+    <StreamedPart fallback={<PageTitle locale={locale} dashboardTitle={title} />}>
       <PageTitleForEditors locale={locale} dashboardTitle={title} />
-    </React.Suspense>
+    </StreamedPart>
   );
 };
 
@@ -101,9 +101,9 @@ const HeaderPageTitle: React.FC<{ locale: Locale }> = async ({ locale }) => {
  * streams in, and the rest of the header stays in the shell.
  */
 const pageTitle = (locale: Locale): React.ReactNode => (
-  <React.Suspense>
+  <StreamedPart fallback={<></>}>
     <HeaderPageTitle locale={locale} />
-  </React.Suspense>
+  </StreamedPart>
 );
 
 /**
