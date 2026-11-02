@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.47.1](https://github.com/cevi/conveniat-webpage/compare/v1.47.0...v1.47.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* a page no longer runs code of the other build during a rolling release ([5f0d867](https://github.com/cevi/conveniat-webpage/commit/5f0d86709792c58c987bc6357d4c2f7f88423f9c))
+
 ## [1.47.0](https://github.com/cevi/conveniat-webpage/compare/v1.46.2...v1.47.0) (2026-11-02)
 
 
