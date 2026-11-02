@@ -201,7 +201,6 @@ type AppFeatureFlags = Pick<
   | 'photoContestEnabled'
   | 'reservationsEnabled'
   | 'forumEnabled'
-  | 'redesignedMainMenuEnabled'
 >;
 
 const readAppFeatureFlags = async (): Promise<AppFeatureFlags> => {
@@ -220,7 +219,6 @@ const readAppFeatureFlags = async (): Promise<AppFeatureFlags> => {
         photoContestEnabled: true,
         reservationsEnabled: true,
         forumEnabled: true,
-        redesignedMainMenuEnabled: true,
       },
     });
   });
@@ -235,7 +233,6 @@ export const getAppFeatureFlagsCached = cache(async (): Promise<AppFeatureFlags>
       photoContestEnabled: false,
       reservationsEnabled: false,
       forumEnabled: false,
-      redesignedMainMenuEnabled: false,
     };
   }
   return await readAppFeatureFlags();
