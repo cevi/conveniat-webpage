@@ -67,16 +67,16 @@ services:
     # deployment is version-controlled. These override any OTEL_* left in .env
     # (compose `environment:` beats `env_file:`).
     environment:
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://observability_tempo:4318/v1/traces
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://observability_otel-collector:4318/v1/traces
       OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: http://observability_loki:3100/otlp/v1/logs
       # Selects the tenant in Loki and Tempo.
       OTEL_TENANT_ID: conveniat27-prod
       OTEL_SERVICE_NAME: conveniat27-app
       OTEL_SERVICE_NAMESPACE: conveniat27
       DEPLOYMENT_ENV: production
-      # Head sampling. Measured at 38 MB/h of compressed blocks per service at
-      # 100%; 25% keeps production inside the shared 4 GB Tempo budget.
-      OTEL_TRACES_SAMPLER_ARG: '0.25'
+      # No head sampling: every trace goes to the collector, which keeps errors, slow requests
+      # and a share of the rest for Tempo (observability/otel-collector.yaml). Setting
+      # OTEL_TRACES_SAMPLER_ARG again would hide errors from it and skew the RED metrics.
 
     networks:
       - backend-net

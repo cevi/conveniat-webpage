@@ -213,10 +213,11 @@ const DEPLOYMENT_ENVIRONMENT = process.env['DEPLOYMENT_ENV'] ?? 'development';
 /**
  * Head sampling ratio, between 0 and 1.
  *
- * Traces were previously always sampled, which produced roughly 900 MB/day of
- * compressed blocks per service. The shared Tempo store has a 4 GB budget, so
- * deployments set this to 0.25 (production) or 0.10 (development). Local
- * development keeps every trace.
+ * Deployments leave this unset and send every trace to the OpenTelemetry
+ * Collector in the shared observability stack, which keeps errors, slow requests
+ * and a share of the rest for Tempo, and computes the RED metrics from all of
+ * them. A ratio below 1 here drops traces before the collector can see whether
+ * they failed. It remains for a deployment that exports straight to Tempo.
  */
 const SAMPLING_RATIO = ((): number => {
   // eslint-disable-next-line n/no-process-env
