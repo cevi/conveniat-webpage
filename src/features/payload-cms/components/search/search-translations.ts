@@ -163,18 +163,6 @@ export const updatedOnLabel = (date: string): StaticTranslationString => ({
 
 export const openLabel: StaticTranslationString = { de: 'Öffnen', en: 'Open', fr: 'Ouvrir' };
 
-export const openOnPageLabel = (page: number): StaticTranslationString => ({
-  de: `Öffnen auf S. ${page}`,
-  en: `Open on p. ${page}`,
-  fr: `Ouvrir à la p. ${page}`,
-});
-
-export const downloadLabel: StaticTranslationString = {
-  de: 'Herunterladen',
-  en: 'Download',
-  fr: 'Télécharger',
-};
-
 export const linkedFromLabel: StaticTranslationString = {
   de: 'Verlinkt auf',
   en: 'Linked on',
@@ -192,12 +180,6 @@ export const closePreviewLabel: StaticTranslationString = {
   en: 'Close preview',
   fr: "Fermer l'aperçu",
 };
-
-export const pageThumbnailLabel = (page: number, hasMatch: boolean): StaticTranslationString => ({
-  de: hasMatch ? `Seite ${page}, mit Fundstelle` : `Seite ${page}`,
-  en: hasMatch ? `Page ${page}, with a match` : `Page ${page}`,
-  fr: hasMatch ? `Page ${page}, avec une occurrence` : `Page ${page}`,
-});
 
 export const previousPageLabel: StaticTranslationString = {
   de: 'Zurück',

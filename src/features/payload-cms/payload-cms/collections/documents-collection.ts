@@ -192,11 +192,7 @@ export const DocumentsCollection: CollectionConfig = {
       admin: {
         hidden: true,
       },
-      fields: [
-        { name: 'text', type: 'textarea' },
-        { name: 'thumbnailUrl', type: 'text' },
-        { name: 'thumbnailId', type: 'text' },
-      ],
+      fields: [{ name: 'text', type: 'textarea' }],
     },
     {
       // the file pdfPages was read from, so a replaced file is read again

@@ -1091,8 +1091,6 @@ export interface Document {
   pdfPages?:
     | {
         text?: string | null;
-        thumbnailUrl?: string | null;
-        thumbnailId?: string | null;
         id?: string | null;
       }[]
     | null;
@@ -6460,8 +6458,6 @@ export interface DocumentsSelect<T extends boolean = true> {
     | T
     | {
         text?: T;
-        thumbnailUrl?: T;
-        thumbnailId?: T;
         id?: T;
       };
   pdfPagesSource?: T;

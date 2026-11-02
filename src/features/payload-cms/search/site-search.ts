@@ -267,27 +267,18 @@ const findDocumentResults = async (
 
     const pageTexts = (document.pdfPages ?? []).map((page) => page.text ?? '');
     const matches = findMatches(pageTexts, words);
-    const matchedPages = new Set(matches.map((match) => match.page));
     const fileUrl = withLocaleParameter(document.url, locale);
     const details: SearchDocumentDetails = {
       fileUrl,
+      filename: document.filename ?? '',
+      mimeType: document.mimeType ?? '',
+      updatedAt: document.updatedAt,
       typeLabel: fileTypeLabel(document.filename),
       isPdf: document.mimeType === 'application/pdf',
       filesize: document.filesize ?? undefined,
       pageCount: pageTexts.length > 0 ? pageTexts.length : undefined,
-      thumbnailUrl: document.pdfThumbnailUrl ?? document.pdfPages?.[0]?.thumbnailUrl ?? undefined,
+      thumbnailUrl: document.pdfThumbnailUrl ?? undefined,
       matches,
-      thumbnails: (document.pdfPages ?? []).flatMap((page, pageIndex) =>
-        typeof page.thumbnailUrl === 'string' && page.thumbnailUrl !== ''
-          ? [
-              {
-                page: pageIndex + 1,
-                url: page.thumbnailUrl,
-                hasMatch: matchedPages.has(pageIndex + 1),
-              },
-            ]
-          : [],
-      ),
       linkedFrom: linkedFrom.map(({ title, url }) => ({ title, url })),
     };
     return [

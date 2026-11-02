@@ -16,12 +16,6 @@ export interface SearchMatch {
   snippet: string;
 }
 
-export interface SearchPageThumbnail {
-  page: number;
-  url: string;
-  hasMatch: boolean;
-}
-
 export interface SearchLinkedPage {
   title: string;
   url: string;
@@ -30,6 +24,9 @@ export interface SearchLinkedPage {
 export interface SearchDocumentDetails {
   /** opens the file inline, in the language of the search */
   fileUrl: string;
+  filename: string;
+  mimeType: string;
+  updatedAt: string;
   /** "PDF", "DOCX": what visitors know a file type by */
   typeLabel: string | undefined;
   isPdf: boolean;
@@ -37,7 +34,6 @@ export interface SearchDocumentDetails {
   pageCount: number | undefined;
   thumbnailUrl: string | undefined;
   matches: SearchMatch[];
-  thumbnails: SearchPageThumbnail[];
   /** the public pages that link to the document, which are what makes it findable */
   linkedFrom: SearchLinkedPage[];
 }
