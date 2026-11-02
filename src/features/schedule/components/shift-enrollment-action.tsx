@@ -138,8 +138,6 @@ export const ShiftEnrollmentAction: React.FC<{
 
   const utils = trpc.useUtils();
 
-  // Not Next's `useOffline`: the service worker answers its requests from the cache, so it never
-  // sees one fail and reads online on wifi without an uplink. This is what the banner reads.
   const isOffline = !useOnlineStatus();
 
   const { status, isLoading, isFetching, refetch } = useShiftStatus(shiftId);
