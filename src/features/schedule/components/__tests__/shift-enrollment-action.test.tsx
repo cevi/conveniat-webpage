@@ -20,8 +20,8 @@ let mockQueryResult: {
 };
 const mockUseQuery = jest.fn<typeof mockQueryResult, [unknown, unknown]>(() => mockQueryResult);
 
-jest.mock('next/offline', () => ({
-  useOffline: (): boolean => mockIsOffline,
+jest.mock('@/hooks/use-online-status', () => ({
+  useOnlineStatus: (): boolean => !mockIsOffline,
 }));
 
 jest.mock('next-auth/react', () => ({
