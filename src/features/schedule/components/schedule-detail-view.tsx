@@ -225,11 +225,11 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({
   );
 
   // The block was the first page this document loaded, from a shared link or a push: there is
-  // nothing in the app to go back to.
+  // nothing in the app to go back to. The server render has a `performance` but no `location`.
   const [isEntryPage] = useState(
     () =>
-      typeof performance !== 'undefined' &&
-      performance.getEntriesByType('navigation')[0]?.name === globalThis.location.href,
+      typeof location !== 'undefined' &&
+      performance.getEntriesByType('navigation')[0]?.name === location.href,
   );
 
   /**
