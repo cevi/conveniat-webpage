@@ -1,6 +1,6 @@
 import { onRequestError } from '@/instrumentation';
 import type { Span } from '@opentelemetry/api';
-import { trace, TraceFlags } from '@opentelemetry/api';
+import { SpanStatusCode, trace, TraceFlags } from '@opentelemetry/api';
 
 const capturedCalls: unknown[][] = [];
 const captureException = jest.fn((...parameters: unknown[]): void => {
@@ -22,8 +22,10 @@ jest.mock('@/tracing', () => ({
 
 jest.mock('@/utils/otel-console-bridge', () => ({ installConsoleOtelBridge: jest.fn() }));
 
+// konekta ships without a PostHog key, and `getPostHogServer()` then returns undefined.
+let postHogConfigured = true;
 jest.mock('@/lib/posthog-server', () => ({
-  getPostHogServer: (): unknown => ({ captureException, flush }),
+  getPostHogServer: (): unknown => (postHogConfigured ? { captureException, flush } : undefined),
 }));
 
 // `onRequestError` only reports on the Node.js runtime.
@@ -50,16 +52,34 @@ const capturedProperties = (): Record<string, unknown> =>
  * SDK in the test environment, so without this the context manager is the no-op one and
  * `getActiveSpan()` always returns undefined.
  */
-const withActiveSpan = (traceId: string, spanId: string, traceFlags = TraceFlags.SAMPLED): void => {
-  jest.spyOn(trace, 'getActiveSpan').mockReturnValue({
-    spanContext: () => ({ traceId, spanId, traceFlags }),
-  } as unknown as Span);
+interface ActiveSpanStub {
+  setStatus: jest.Mock;
+  recordException: jest.Mock;
+}
+
+const withActiveSpan = (
+  traceId = '4bf92f3577b34da6a3ce929d0e0e4736',
+  spanId = '00f067aa0ba902b7',
+  traceFlags = TraceFlags.SAMPLED,
+): ActiveSpanStub => {
+  const span = {
+    spanContext: (): { traceId: string; spanId: string; traceFlags: number } => ({
+      traceId,
+      spanId,
+      traceFlags,
+    }),
+    setStatus: jest.fn(),
+    recordException: jest.fn(),
+  };
+  jest.spyOn(trace, 'getActiveSpan').mockReturnValue(span as unknown as Span);
+  return span;
 };
 
 describe('onRequestError', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     capturedCalls.length = 0;
+    postHogConfigured = true;
   });
 
   afterEach(() => {
@@ -196,6 +216,48 @@ describe('onRequestError', () => {
     );
 
     expect(capturedProperties()).not.toHaveProperty('next-action');
+  });
+
+  it('marks the span of a reported error as failed, so tail sampling keeps its trace', async () => {
+    const span = withActiveSpan();
+    const error = new Error('database connection refused');
+
+    await onRequestError(error, emptyRequest, {});
+
+    expect(span.setStatus).toHaveBeenCalledWith({
+      code: SpanStatusCode.ERROR,
+      message: 'database connection refused',
+    });
+    expect(span.recordException).toHaveBeenCalledWith(error);
+  });
+
+  it('marks the span on a deployment without PostHog as well', async () => {
+    postHogConfigured = false;
+    const span = withActiveSpan();
+
+    await onRequestError(new Error('database connection refused'), emptyRequest, {});
+
+    expect(span.setStatus).toHaveBeenCalledWith(
+      expect.objectContaining({ code: SpanStatusCode.ERROR }),
+    );
+    expect(captureException).not.toHaveBeenCalled();
+  });
+
+  it('leaves the span of a not-found request alone', async () => {
+    const span = withActiveSpan();
+
+    await onRequestError(messagelessError({ digest: 'NEXT_NOT_FOUND' }), emptyRequest, {});
+
+    expect(span.setStatus).not.toHaveBeenCalled();
+  });
+
+  it('leaves the span alone for a message on the noise list', async () => {
+    const span = withActiveSpan();
+
+    await onRequestError(new Error('Object Not Found Matching Id: 3'), emptyRequest, {});
+
+    expect(span.setStatus).not.toHaveBeenCalled();
+    expect(captureException).not.toHaveBeenCalled();
   });
 
   it('still drops a not-found sentinel instead of reporting it under its digest', async () => {
