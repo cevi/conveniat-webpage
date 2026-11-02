@@ -1,4 +1,4 @@
-import type { Payload } from 'payload';
+import type { BasePayload } from 'payload';
 
 /**
  * Block slugs whose placeholder fields were migrated from plain strings to localized strings.
@@ -136,19 +136,46 @@ export const migrateFormDocumentPlaceholders = (formDocument: FormDocumentData):
   return migrated;
 };
 
-interface DatabaseAdapterWithUpdate {
-  updateOne: (args: {
-    collection: string;
-    where: { id: { equals: number | string } };
-    data: Record<string, unknown>;
-  }) => Promise<unknown>;
-  updateVersion: (args: {
-    collection: string;
-    id: number | string;
-    where: { id: { equals: number | string } };
-    versionData: Record<string, unknown>;
-  }) => Promise<unknown>;
-}
+type MongoCollection = BasePayload['db']['collections'][string]['collection'];
+
+/** Rewrites the placeholders of one Mongo collection and returns how many documents it changed. */
+const migrateCollection = async (
+  payload: BasePayload,
+  name: string,
+  collection: MongoCollection,
+  prefix: '' | 'version.',
+): Promise<number> => {
+  const cursor = collection.find(
+    {},
+    { projection: { [`${prefix}sections`]: 1, [`${prefix}fields`]: 1 } },
+  );
+  let migrated = 0;
+
+  for await (const document of cursor) {
+    const stored: unknown = prefix === '' ? document : document['version'];
+    if (typeof stored !== 'object' || stored === null) continue;
+    const formDocument = stored as FormDocumentData;
+    if (!migrateFormDocumentPlaceholders(formDocument)) continue;
+
+    const { sections, fields } = formDocument;
+    const changes: Record<string, unknown> = {};
+    if (Array.isArray(sections)) changes[`${prefix}sections`] = sections;
+    if (Array.isArray(fields)) changes[`${prefix}fields`] = fields;
+
+    try {
+      // the raw driver, so an older version whose other fields predate the current schema
+      // is not cast against it, which failed for every such version with a CastError
+      await collection.updateOne({ _id: document._id }, { $set: changes });
+      migrated += 1;
+    } catch (error: unknown) {
+      payload.logger.error(
+        { err: error, source: name, id: String(document._id) },
+        'Failed to migrate the placeholders of a form document',
+      );
+    }
+  }
+  return migrated;
+};
 
 /**
  * Rewrites string placeholders on `email`, `number`, and `select` blocks in forms and their versions
@@ -158,89 +185,22 @@ interface DatabaseAdapterWithUpdate {
  * localized. Without this migration, saving a form in the admin panel keeps the placeholder
  * only in the locale the editor is editing and wipes it for the others.
  *
- * Runs once, as a Payload migration, and is idempotent: placeholders that are already localized
+ * Runs as a Payload migration, and is idempotent: placeholders that are already localized
  * objects or not strings are left untouched. A form or version that fails is logged and keeps its
  * plain placeholder, since nothing retries it.
  *
  * @param payload The Payload instance.
  */
-export const migrateFormPlaceholders = async (payload: Payload): Promise<void> => {
-  const { docs: forms } = await payload.find({
-    collection: 'forms',
-    depth: 0,
-    pagination: false,
-    overrideAccess: true,
-    locale: 'all',
-  });
+export const migrateFormPlaceholders = async (payload: BasePayload): Promise<void> => {
+  const forms = payload.db.collections['forms'];
+  const versions = payload.db.versions['forms'];
 
-  const db = payload.db as unknown as Partial<DatabaseAdapterWithUpdate>;
-
-  let migratedForms = 0;
-  for (const form of forms) {
-    const formDocument = form as unknown as FormDocumentData;
-    if (migrateFormDocumentPlaceholders(formDocument)) {
-      try {
-        if (typeof db.updateOne === 'function') {
-          await db.updateOne({
-            collection: 'forms',
-            where: { id: { equals: form.id } },
-            data: {
-              sections: formDocument.sections,
-              ...(Array.isArray(formDocument.fields) ? { fields: formDocument.fields } : {}),
-            },
-          });
-        }
-        migratedForms += 1;
-      } catch (error: unknown) {
-        payload.logger.error(
-          { err: error, formId: form.id },
-          'Failed to migrate placeholders on form',
-        );
-      }
-    }
-  }
-
-  let migratedVersions = 0;
-  const { docs: versions } = await payload.findVersions({
-    collection: 'forms',
-    depth: 0,
-    pagination: false,
-    overrideAccess: true,
-    locale: 'all',
-  });
-
-  for (const versionDocument of versions) {
-    const rawVersionDocument = versionDocument as unknown as {
-      id: number | string;
-      version?: unknown;
-    };
-    const versionData = rawVersionDocument.version;
-    if (
-      typeof versionData === 'object' &&
-      versionData !== null &&
-      migrateFormDocumentPlaceholders(versionData)
-    ) {
-      try {
-        if (typeof db.updateVersion === 'function') {
-          await db.updateVersion({
-            collection: 'forms',
-            id: rawVersionDocument.id,
-            where: { id: { equals: rawVersionDocument.id } },
-            versionData: {
-              ...versionDocument,
-              version: versionData,
-            },
-          });
-        }
-        migratedVersions += 1;
-      } catch (error: unknown) {
-        payload.logger.error(
-          { err: error, versionId: rawVersionDocument.id },
-          'Failed to migrate placeholders on form version',
-        );
-      }
-    }
-  }
+  const migratedForms =
+    forms === undefined ? 0 : await migrateCollection(payload, 'forms', forms.collection, '');
+  const migratedVersions =
+    versions === undefined
+      ? 0
+      : await migrateCollection(payload, 'forms (versions)', versions.collection, 'version.');
 
   if (migratedForms > 0 || migratedVersions > 0) {
     payload.logger.info(
