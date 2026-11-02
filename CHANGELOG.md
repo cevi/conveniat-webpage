@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.46.2](https://github.com/cevi/conveniat-webpage/compare/v1.46.1...v1.46.2) (2026-11-02)
+
+
+### Bug Fixes
+
+* **app:** a dropped connection no longer takes the header and page with it ([2fe8938](https://github.com/cevi/conveniat-webpage/commit/2fe8938458aeccb9095b929537daeb45720ed7d2))
+* **app:** a dropped connection no longer takes the header and page with it ([d787cac](https://github.com/cevi/conveniat-webpage/commit/d787cac5ff2261e8a622f702b0616543bee3036a))
+* **app:** the header names the page on the server ([9d9e97b](https://github.com/cevi/conveniat-webpage/commit/9d9e97ba40543d925c0ce7d07f3d9062b91bc7ee))
+* **app:** the header names the page on the server ([ec1bcb9](https://github.com/cevi/conveniat-webpage/commit/ec1bcb91fc99e8d2ba9d76c013813164a21e9a66))
+* **app:** the page title keeps its shell version when its stream drops ([0dae0b8](https://github.com/cevi/conveniat-webpage/commit/0dae0b8ad61b7d623f0b633d45225dea32aa0179))
+
 ## [1.46.1](https://github.com/cevi/conveniat-webpage/compare/v1.46.0...v1.46.1) (2026-11-02)
 
 
