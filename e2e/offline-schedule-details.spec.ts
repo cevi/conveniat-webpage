@@ -1,3 +1,4 @@
+import type { Locator, Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 
 import {
@@ -13,6 +14,10 @@ import { signIn } from './fixtures/sign-in';
 
 test.use({ userAgent: NATIVE_APP_USER_AGENT });
 
+/** The block's row in the list; on a wide screen the open block's page shows its title as well. */
+const scheduleListEntry = (page: Page): Locator =>
+  page.getByRole('link', { name: scheduleEntry.title });
+
 test.describe('Offline Schedule Details', () => {
   test.beforeEach(async ({ context }) => {
     await signIn(context);
@@ -27,7 +32,7 @@ test.describe('Offline Schedule Details', () => {
     await waitForServiceWorker(page);
     // once more with the worker in control, which keeps the page for offline use
     await page.goto('/app/schedule');
-    await expect(page.getByText(scheduleEntry.title)).toBeVisible();
+    await expect(scheduleListEntry(page)).toBeVisible();
     await page.goto('/app/dashboard');
     await waitForPersisted(page, 'schedule.getScheduleEntries');
 
@@ -36,11 +41,11 @@ test.describe('Offline Schedule Details', () => {
 
     const startTime = Date.now();
     await page.goto('/app/schedule');
-    await expect(page.getByText(scheduleEntry.title)).toBeVisible();
+    await expect(scheduleListEntry(page)).toBeVisible();
     // from the device's copies, not after a network timeout
     expect(Date.now() - startTime).toBeLessThan(2500);
 
-    await page.getByText(scheduleEntry.title).click();
+    await scheduleListEntry(page).click();
 
     await expect(page.getByRole('heading', { level: 1, name: scheduleEntry.title })).toBeVisible();
     expect(new URL(page.url()).searchParams.get('id')).toBe(scheduleEntry.id);

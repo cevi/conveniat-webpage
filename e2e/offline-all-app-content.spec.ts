@@ -63,12 +63,13 @@ test.describe('Comprehensive Offline App Data & Feature Caching', () => {
     context,
   }) => {
     await page.goto('/app/schedule');
-    await expect(page.getByText(scheduleEntry.title)).toBeVisible();
+    // the list entry: on a wide screen the open block's page shows the title as well
+    await expect(page.getByRole('link', { name: scheduleEntry.title })).toBeVisible();
 
     await goOffline(page, context, 'schedule.getScheduleEntries');
     await page.goto('/app/schedule');
 
-    await expect(page.getByText(scheduleEntry.title)).toBeVisible();
+    await expect(page.getByRole('link', { name: scheduleEntry.title })).toBeVisible();
     await expect(page.getByText('Kein Programm verfügbar')).not.toBeVisible();
   });
 
