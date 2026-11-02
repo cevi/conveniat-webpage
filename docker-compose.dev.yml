@@ -58,7 +58,7 @@ services:
     # (compose `environment:` beats `env_file:`), but the stale per-stack
     # endpoints should still be removed from .env to avoid confusion.
     environment:
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://observability_tempo:4318/v1/traces
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://observability_otel-collector:4318/v1/traces
       OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: http://observability_loki:3100/otlp/v1/logs
       # Selects the tenant in Loki and Tempo.
       OTEL_TENANT_ID: conveniat27-dev
@@ -67,7 +67,9 @@ services:
       # Distinguishes this deployment from production, which reports the same
       # service name into the same shared backend.
       DEPLOYMENT_ENV: development
-      OTEL_TRACES_SAMPLER_ARG: '0.10'
+      # No head sampling: every trace goes to the collector, which keeps errors, slow requests
+      # and a share of the rest for Tempo (observability/otel-collector.yaml). Setting
+      # OTEL_TRACES_SAMPLER_ARG again would hide errors from it and skew the RED metrics.
 
     networks:
       - backend-net

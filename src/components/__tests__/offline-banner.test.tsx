@@ -46,7 +46,7 @@ describe('OfflineBanner on wifi without an uplink', () => {
 
     render(<OfflineBanner locale="de" />);
 
-    expect(screen.getByRole('status')).toHaveTextContent('Du bist offline');
+    expect(screen.getByRole('status')).toHaveTextContent('Offline – zuletzt geladener Stand');
     worker.report(true);
   });
 
@@ -57,7 +57,7 @@ describe('OfflineBanner on wifi without an uplink', () => {
     expect(screen.queryByRole('status')).toBeNull();
 
     worker.report(false);
-    expect(screen.getByRole('status')).toHaveTextContent('Du bist offline');
+    expect(screen.getByRole('status')).toHaveTextContent('Offline – zuletzt geladener Stand');
 
     worker.report(true);
     expect(screen.queryByRole('status')).toBeNull();
@@ -70,7 +70,7 @@ describe('OfflineBanner on wifi without an uplink', () => {
     worker.askedForStatus.mockImplementation(() => worker.report(reachable));
     render(<OfflineBanner locale="de" />);
     worker.report(false);
-    expect(screen.getByRole('status')).toHaveTextContent('Du bist offline');
+    expect(screen.getByRole('status')).toHaveTextContent('Offline – zuletzt geladener Stand');
 
     reachable = true;
     act(() => {

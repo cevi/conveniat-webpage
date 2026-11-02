@@ -7,10 +7,11 @@ import { WifiOff } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 
+// short enough for one line on a 320px phone
 const offlineText: StaticTranslationString = {
-  de: 'Du bist offline. Du siehst den zuletzt geladenen Stand.',
-  en: 'You are offline. You are seeing what was last loaded.',
-  fr: 'Vous êtes hors ligne. Vous voyez le dernier état chargé.',
+  de: 'Offline – zuletzt geladener Stand',
+  en: 'Offline – last loaded version',
+  fr: 'Hors ligne – dernier état chargé',
 };
 
 /**
@@ -62,12 +63,12 @@ export const OfflineBanner: React.FC<{ locale: Locale; className?: string }> = (
       ref={bannerReference}
       role="status"
       className={cn(
-        'font-body flex w-full items-center gap-2 bg-gray-800 px-4 py-2 text-xs text-white',
+        'font-body border-line bg-quiet flex w-full items-center gap-2.5 border-b px-5 py-2.5 text-sm text-green-700',
         className,
       )}
     >
-      <WifiOff className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <span>{offlineText[locale]}</span>
+      <WifiOff className="h-4.5 w-4.5 shrink-0" aria-hidden="true" />
+      <span className="text-balance">{offlineText[locale]}</span>
     </div>
   );
 };

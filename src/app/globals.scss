@@ -127,6 +127,13 @@
   [data-app] :focus-visible {
     @apply focus-ring;
   }
+
+  // Tailwind 4's preflight gives buttons the default cursor; a utility like `cursor-default`
+  // still wins, since utilities come after the base layer
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 /* Adjust Size for Desktop */

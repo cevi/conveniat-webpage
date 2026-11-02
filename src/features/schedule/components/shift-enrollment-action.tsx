@@ -17,13 +17,13 @@ import { useShiftStatus } from '@/features/schedule/hooks/use-shift-status';
 import { useIsUnenrollmentClosed } from '@/features/schedule/hooks/use-unenrollment-window';
 import { UNENROLLMENT_DEADLINE_PASSED } from '@/features/schedule/utils/unenrollment-deadline';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { useOnlineStatus } from '@/hooks/use-online-status';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { AlertTriangle, CheckCircle, Loader2, Lock, RefreshCw, WifiOff } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useOffline } from 'next/offline';
 import React, { useState } from 'react';
 
 const localizedEnroll: StaticTranslationString = {
@@ -138,10 +138,7 @@ export const ShiftEnrollmentAction: React.FC<{
 
   const utils = trpc.useUtils();
 
-  // `navigator.onLine` only reports the OS network interface, so it stays `true` on a phone that
-  // is on WiFi with no upstream. Next's own signal is driven by real RSC fetch failures plus a
-  // polling connectivity probe, and it clears itself as soon as the connection is back.
-  const isOffline = useOffline();
+  const isOffline = !useOnlineStatus();
 
   const { status, isLoading, isFetching, refetch } = useShiftStatus(shiftId);
 

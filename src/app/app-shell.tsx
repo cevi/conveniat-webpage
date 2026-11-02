@@ -95,10 +95,14 @@ export const AppShell: React.FC<AppShellProperties> = ({
                     )}
                   >
                     <main className="flex min-h-full flex-col justify-between">
-                      {/* below xl the round logo hangs out of the header, over the banner's start */}
+                      {/* below xl the website's round logo hangs out of the header, over the
+                      banner's start; the app's header has none */}
                       <OfflineBanner
                         locale={locale}
-                        className="sticky top-(--app-header-height) z-40 pl-28 xl:pl-4"
+                        className={cn(
+                          'sticky top-(--app-header-height) z-40',
+                          !inAppDesign && 'pl-28 xl:pl-5',
+                        )}
                       />
                       <div className="flex-1">
                         <ErrorBoundary FallbackComponent={AppErrorFallback}>
