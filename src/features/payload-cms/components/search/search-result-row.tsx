@@ -14,6 +14,7 @@ import type { SearchResult } from '@/features/payload-cms/search/search-types';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
+import { useState } from 'react';
 
 /** Below `xl` there is no preview, so a document row lists its first Fundstellen itself. */
 const INLINE_MATCH_COUNT = 2;
@@ -132,7 +133,13 @@ export const SearchResultRow: React.FC<{
   isSelected: boolean;
   /** given on a desktop, where the preview shows the chosen result */
   onSelect: ((result: SearchResult) => void) | undefined;
-}> = ({ result, words, locale, isSelected, onSelect }) => {
+  /** called when the row opens its result */
+  onOpen: () => void;
+}> = ({ result, words, locale, isSelected, onSelect, onOpen }) => {
+  // a visible row prefetches the page up to its loading state; one the visitor points at, in
+  // full, so it opens without a spinner. Every row in full would be a server render each.
+  const [hasIntent, setHasIntent] = useState(false);
+  const showIntent = (): void => setHasIntent(true);
   const rowClassName = cn(
     'relative flex w-full cursor-pointer items-start gap-4 px-4 py-4 text-left transition-colors sm:px-5',
     isSelected
@@ -163,12 +170,21 @@ export const SearchResultRow: React.FC<{
           href={result.url}
           target="_blank"
           rel="noopener"
+          onClick={onOpen}
           className={cn(rowClassName, hasInlineMatches(result) && 'pb-1')}
         >
           {body}
         </a>
       ) : (
-        <LinkComponent href={result.url} className={rowClassName}>
+        <LinkComponent
+          href={result.url}
+          prefetch={hasIntent ? true : 'auto'}
+          onMouseEnter={showIntent}
+          onFocus={showIntent}
+          onTouchStart={showIntent}
+          onClick={onOpen}
+          className={rowClassName}
+        >
           {body}
         </LinkComponent>
       )}

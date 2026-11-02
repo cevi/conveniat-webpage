@@ -2,6 +2,7 @@
 
 import { SectionLabel } from '@/components/ui/section-label';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
+import { SkeletonBar } from '@/features/payload-cms/components/search/search-skeleton';
 import {
   periodLabel,
   periodLabels,
@@ -52,7 +53,8 @@ const periodText = (period: SearchPeriod, locale: Locale): string =>
  */
 export const SearchFilterPanel: React.FC<{
   filters: SearchFilters;
-  counts: Record<SearchResultType, number>;
+  /** undefined while the counts of the current query are on their way */
+  counts: Record<SearchResultType, number> | undefined;
   locale: Locale;
   onChange: (filters: Partial<SearchFilters>) => void;
 }> = ({ filters, counts, locale, onChange }) => {
@@ -70,7 +72,7 @@ export const SearchFilterPanel: React.FC<{
       <ul className="divide-line mt-2 flex flex-col divide-y">
         {SEARCH_RESULT_TYPES.map((type) => {
           const isChecked = filters.types.includes(type);
-          const isEmpty = counts[type] === 0 && !isChecked;
+          const isEmpty = counts?.[type] === 0 && !isChecked;
           return (
             <li key={type}>
               <label
@@ -98,7 +100,11 @@ export const SearchFilterPanel: React.FC<{
                   {isChecked && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
                 </span>
                 <span className="flex-1">{typeLabels[type][locale]}</span>
-                <span className="text-[14px] font-medium text-green-500">{counts[type]}</span>
+                {counts === undefined ? (
+                  <SkeletonBar className="h-3.5 w-4" />
+                ) : (
+                  <span className="text-[14px] font-medium text-green-500">{counts[type]}</span>
+                )}
               </label>
             </li>
           );

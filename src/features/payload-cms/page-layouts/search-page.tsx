@@ -9,8 +9,9 @@ import type React from 'react';
 const RESULTS_PER_PAGE = 20;
 
 /**
- * The search page, at `/suche?q=…`. It reads the session to filter the results by permission, so
- * it renders per request.
+ * The search page, at `/suche?q=…`. It renders the first answer for the query in the URL; later
+ * ones come from the browser while the visitor types. It reads the session to filter the results
+ * by permission, so it renders per request.
  */
 const SearchPage: React.FC<LocalizedPageType> = async ({
   searchParams: searchParametersPromise,
@@ -28,7 +29,16 @@ const SearchPage: React.FC<LocalizedPageType> = async ({
     });
 
     return (
-      <SearchResultsView locale={locale} query={query} filters={filters} response={response} />
+      <SearchResultsView
+        // a search opened from elsewhere, like the header, starts the page over; typing and
+        // filtering on the page itself change the URL without coming back here
+        key={JSON.stringify([query, page, filters])}
+        locale={locale}
+        query={query}
+        filters={filters}
+        page={page}
+        response={response}
+      />
     );
   });
 };

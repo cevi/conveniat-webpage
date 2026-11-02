@@ -95,6 +95,24 @@ export const noQueryDescription: StaticTranslationString = {
   fr: 'La recherche trouve des pages, des documents comme des PDF et des actualités.',
 };
 
+export const recentSearchesLabel: StaticTranslationString = {
+  de: 'Zuletzt gesucht',
+  en: 'Recent searches',
+  fr: 'Recherches récentes',
+};
+
+export const searchingLabel = (query: string): StaticTranslationString => ({
+  de: `Suche nach «${query}» …`,
+  en: `Searching for “${query}” …`,
+  fr: `Recherche de « ${query} » …`,
+});
+
+export const retryLabel: StaticTranslationString = {
+  de: 'Nochmals versuchen',
+  en: 'Try again',
+  fr: 'Réessayer',
+};
+
 export const noResultsTitle: StaticTranslationString = {
   de: 'Keine Resultate gefunden',
   en: 'No results found',

@@ -2,12 +2,18 @@
 
 import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { HighlightedText } from '@/features/payload-cms/components/search/highlighted-text';
+import { rememberSearch } from '@/features/payload-cms/components/search/recent-searches';
 import { filterChipClassName } from '@/features/payload-cms/components/search/search-filter-panel';
 import { SearchPreview } from '@/features/payload-cms/components/search/search-preview';
 import {
   resultMetaParts,
   resultTypeIcons,
 } from '@/features/payload-cms/components/search/search-result-meta';
+import {
+  InstantRowsSkeleton,
+  PreviewSkeleton,
+} from '@/features/payload-cms/components/search/search-skeleton';
+import { RecentSearches } from '@/features/payload-cms/components/search/search-suggestions';
 import {
   allTypesLabel,
   fullViewLabel,
@@ -22,6 +28,10 @@ import {
   searchPlaceholder,
   typeLabels,
 } from '@/features/payload-cms/components/search/search-translations';
+import {
+  MIN_QUERY_LENGTH,
+  QUERY_DELAY_MS,
+} from '@/features/payload-cms/components/search/use-live-search';
 import { parseSearchWords } from '@/features/payload-cms/search/search-text';
 import type { SearchResult, SearchResultType } from '@/features/payload-cms/search/search-types';
 import {
@@ -34,16 +44,11 @@ import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react';
-import { keepPreviousData } from '@tanstack/react-query';
 import { ChevronRight, CornerDownLeft, SearchX, WifiOff } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useRef, useState } from 'react';
-
-/** Short enough to feel instant, long enough not to query for every key typed. */
-const QUERY_DELAY_MS = 200;
-const MIN_QUERY_LENGTH = 2;
 
 const Key: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <kbd className="border-line text-heading rounded-[5px] border bg-white px-1.5 py-0.5 font-sans text-[11px] font-semibold">
@@ -142,19 +147,23 @@ export const InstantSearchDialog: React.FC<{
   const [selectedKey, setSelectedKey] = useState<string | undefined>();
   const rowReferences = useRef<(HTMLAnchorElement | null)[]>([]);
 
-  const debouncedQuery = useDebouncedValue(query.trim(), QUERY_DELAY_MS);
+  const trimmed = query.trim();
+  const debouncedQuery = useDebouncedValue(trimmed, QUERY_DELAY_MS);
+  const isTyping = trimmed !== debouncedQuery;
   const isSearchable = debouncedQuery.length >= MIN_QUERY_LENGTH;
-  const { data, isError } = trpc.search.getSearchResultList.useQuery(
+  const searchQuery = trpc.search.getSearchResultList.useQuery(
     { locale, query: debouncedQuery, types },
     {
       enabled: open && isSearchable && isOnline,
-      placeholderData: keepPreviousData,
       staleTime: 60_000,
       // a search is asked once and forgotten; it has no place in the cache kept offline
       meta: { persist: false },
     },
   );
 
+  // the answer for exactly what is typed: from the first keystroke on, the rows of the query
+  // before would be wrong, so they give way to skeletons until the new answer is there
+  const data = isTyping || !isSearchable ? undefined : searchQuery.data;
   const words = parseSearchWords(debouncedQuery);
   const groups = isSearchable && data !== undefined ? groupByType(data.results) : [];
   const ordered = groups.flatMap(([, group]) => group);
@@ -172,17 +181,19 @@ export const InstantSearchDialog: React.FC<{
     setTypes([]);
   };
 
-  const openResult = (result: SearchResult): void => {
-    if (result.type === 'document') {
-      globalThis.open(result.url, '_blank', 'noopener');
+  const openResult = (chosen: SearchResult): void => {
+    rememberSearch(trimmed);
+    if (chosen.type === 'document') {
+      globalThis.open(chosen.url, '_blank', 'noopener');
     } else {
-      router.push(result.url);
+      router.push(chosen.url);
     }
     close();
   };
 
   const openFullView = (): void => {
-    if (query.trim() === '') return;
+    if (trimmed === '') return;
+    rememberSearch(trimmed);
     router.push(fullViewHref);
     close();
   };
@@ -220,14 +231,15 @@ export const InstantSearchDialog: React.FC<{
         />
       );
     }
-    if (!isSearchable) {
+    if (trimmed.length < MIN_QUERY_LENGTH) {
       return (
-        <p className="px-6 py-12 text-center text-[15px] text-green-700">
-          {instantHintLabel[locale]}
-        </p>
+        <div className="px-5 py-6">
+          <p className="text-[15px] text-green-700">{instantHintLabel[locale]}</p>
+          <RecentSearches locale={locale} onPick={setQuery} className="mt-5" />
+        </div>
       );
     }
-    if (isError && data === undefined) {
+    if (!isTyping && searchQuery.isError && data === undefined) {
       return (
         <Notice
           icon={<SearchX className="h-7 w-7 text-green-500" aria-hidden="true" />}
@@ -235,13 +247,34 @@ export const InstantSearchDialog: React.FC<{
         />
       );
     }
-    if (data !== undefined && ordered.length === 0) {
+    if (data === undefined) {
       return (
-        <Notice
-          icon={<SearchX className="h-7 w-7 text-green-500" aria-hidden="true" />}
-          title={noResultsTitle[locale]}
-          description={noResultsDescription[locale]}
-        />
+        <div
+          aria-busy="true"
+          className="grid min-h-0 flex-1 grid-cols-[minmax(0,420px)_minmax(0,1fr)]"
+        >
+          <InstantRowsSkeleton />
+          <div className="border-line bg-page border-l px-6 py-5">
+            <PreviewSkeleton />
+          </div>
+        </div>
+      );
+    }
+    if (ordered.length === 0) {
+      return (
+        <>
+          <Notice
+            icon={<SearchX className="h-7 w-7 text-green-500" aria-hidden="true" />}
+            title={noResultsTitle[locale]}
+            description={noResultsDescription[locale]}
+          />
+          <RecentSearches
+            locale={locale}
+            current={trimmed}
+            onPick={setQuery}
+            className="px-5 pb-6"
+          />
+        </>
       );
     }
     let index = -1;
@@ -265,7 +298,10 @@ export const InstantSearchDialog: React.FC<{
                       locale={locale}
                       isSelected={result.key === selected?.key}
                       onHover={() => setSelectedKey(result.key)}
-                      onOpen={close}
+                      onOpen={() => {
+                        rememberSearch(trimmed);
+                        close();
+                      }}
                       rowReference={(element) => {
                         rowReferences.current[rowIndex] = element;
                       }}
