@@ -21,6 +21,7 @@ const buildRequest = (
   const deleteFromIndex = jest.fn(() => Promise.resolve({ docs: [] }));
   const logError = jest.fn();
   const request = {
+    context: {},
     payload: { findByID, delete: deleteFromIndex, logger: { error: logError } },
   } as unknown as PayloadRequest;
   return { request, deleteFromIndex, logError };
@@ -75,5 +76,19 @@ describe('skipSyncOfRestrictedDocuments', () => {
 
     expect(await skip('public', request)).toBe(true);
     expect(logError).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads the permission a document keeps beside its file, not in a content group', async () => {
+    const { request } = buildRequest();
+    const skipDocument = async (permissions: string): Promise<boolean> =>
+      await skipSyncOfRestrictedDocuments({
+        collectionSlug: 'documents',
+        doc: { id: 'document-1', permissions },
+        locale: 'de',
+        req: request,
+      });
+
+    expect(await skipDocument('public')).toBe(false);
+    expect(await skipDocument('group')).toBe(true);
   });
 });

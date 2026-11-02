@@ -8,13 +8,15 @@ import type { MenuNode } from '@/components/menu/menu-links';
 import { MenuEntryLabel, MenuLinks, visibleChildren } from '@/components/menu/menu-links';
 import { useFittingItemCount } from '@/components/menu/use-fitting-item-count';
 import { languageOptions } from '@/config/language-options';
+import { InstantSearchDialog } from '@/features/payload-cms/components/search/instant-search-dialog';
+import { useSearchShortcut } from '@/features/payload-cms/components/search/use-search-shortcut';
 import { usePreviewMode } from '@/hooks/use-preview-mode';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronDown, Languages, Menu as MenuIcon, Search, X } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 
 const menuButtonLabel: StaticTranslationString = {
   de: 'Menü',
@@ -26,12 +28,6 @@ const searchLabel: StaticTranslationString = {
   de: 'Suchen',
   fr: 'Rechercher',
   en: 'Search',
-};
-
-const searchPlaceholder: StaticTranslationString = {
-  de: 'Suchen...',
-  fr: 'Rechercher...',
-  en: 'Search...',
 };
 
 const pinnedItemClassName =
@@ -231,8 +227,9 @@ export const DesktopNav: React.FC<{
     searchParameters.get('menu') === 'open' ? true : undefined,
   );
   const [isLangOpen, setIsLangOpen] = useState(false);
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const openSearch = useCallback(() => setIsSearchOpen(true), []);
+  useSearchShortcut(openSearch);
 
   const menuId = useId();
   const barReference = useRef<HTMLDivElement>(null);
@@ -240,8 +237,6 @@ export const DesktopNav: React.FC<{
   const measureRowReference = useRef<HTMLDivElement>(null);
   const panelReference = useRef<HTMLDivElement>(null);
   const dismissReferences = [barReference];
-  const searchInputReference = useRef<HTMLInputElement>(null);
-  const router = useRouter();
   const pathname = usePathname();
 
   // Editors choose how many entries to pin and how long their labels are, so no breakpoint
@@ -290,25 +285,6 @@ export const DesktopNav: React.FC<{
     globalThis.location.assign(newPath);
   };
 
-  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
-    event.preventDefault();
-    const trimmedQuery = searchQuery.trim();
-    if (trimmedQuery !== '') {
-      router.push(`/${locale}${actionURL}?q=${encodeURIComponent(trimmedQuery)}`);
-    }
-  };
-
-  const toggleSearchExpand = (): void => {
-    if (isSearchExpanded) {
-      setIsSearchExpanded(false);
-    } else {
-      setIsSearchExpanded(true);
-      setTimeout(() => {
-        searchInputReference.current?.focus();
-      }, 50);
-    }
-  };
-
   return (
     <div ref={barReference} className="hidden min-w-0 flex-1 items-center gap-4 xl:flex">
       {/* The pinned entries that fit, measured by useFittingItemCount */}
@@ -348,7 +324,7 @@ export const DesktopNav: React.FC<{
         </div>
       </nav>
 
-      {/* Utilities: Language Switcher & Responsive Search Input */}
+      {/* Utilities: Language Switcher & Search */}
       <div className="relative flex h-8 shrink-0 items-center gap-2 border-l border-gray-200/80 pl-3">
         {/* Language Switcher */}
         <div
@@ -394,56 +370,26 @@ export const DesktopNav: React.FC<{
           )}
         </div>
 
-        {/* Responsive Search Input: Absolute Overlay on Narrow Screens, In-Line Expansion on Wide Screens */}
-        <div className="relative flex h-8 items-center justify-end">
-          <button
-            type="button"
-            onClick={toggleSearchExpand}
-            className={cn(
-              'hover:border-conveniat-green/40 hover:text-conveniat-green flex size-8 items-center justify-center rounded-xl border border-gray-200 bg-gray-50/80 text-gray-600 transition-all duration-200 hover:bg-white',
-              isSearchExpanded && '2xl:hidden',
-            )}
-            aria-label={searchLabel[locale]}
-            title={searchLabel[locale]}
-          >
-            <Search className="size-3.5 text-gray-500" />
-          </button>
-
-          {isSearchExpanded && (
-            <form
-              onSubmit={handleSearchSubmit}
-              className="animate-in fade-in-0 slide-in-from-right-2 absolute top-0 right-0 z-50 flex h-8 items-center 2xl:relative 2xl:top-auto 2xl:right-auto 2xl:z-auto"
-            >
-              <div className="relative flex h-8 items-center">
-                <input
-                  ref={searchInputReference}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  onBlur={() => {
-                    if (searchQuery.trim() === '') {
-                      setIsSearchExpanded(false);
-                    }
-                  }}
-                  placeholder={searchPlaceholder[locale]}
-                  className="h-8 w-56 rounded-xl border border-gray-200 bg-white pr-7 pl-8 text-xs text-gray-800 transition-all duration-200 focus:border-gray-300 focus:ring-0 focus:outline-hidden 2xl:w-64"
-                />
-                <Search className="pointer-events-none absolute left-2.5 size-3.5 text-gray-500" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setIsSearchExpanded(false);
-                  }}
-                  className="hover:text-conveniat-green absolute right-2 flex size-4 items-center justify-center text-gray-400"
-                >
-                  <X className="size-3" />
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={openSearch}
+          aria-keyshortcuts="Control+K Meta+K"
+          className="hover:border-conveniat-green/40 flex h-8 w-44 cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/80 pr-1.5 pl-2.5 text-xs text-gray-500 transition-all duration-200 hover:bg-white 2xl:w-56"
+        >
+          <Search className="size-3.5 shrink-0" aria-hidden="true" />
+          <span>{searchLabel[locale]}</span>
+          <kbd className="ml-auto rounded-md border border-gray-200 bg-white px-1.5 py-0.5 font-sans text-[10px] font-semibold text-gray-500">
+            Ctrl K
+          </kbd>
+        </button>
       </div>
+
+      <InstantSearchDialog
+        open={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        locale={locale}
+        searchPath={`/${locale}${actionURL}`}
+      />
 
       {hasMenu && (
         <button

@@ -39,7 +39,8 @@ export const TimelineEntry: React.FC<{
   };
 
   return (
-    <div>
+    // the anchor a search result for this news entry jumps to
+    <div id={`news-${timeline.id}`} className="scroll-mt-24">
       <div className="mt-[-6px] mb-[-14px] flex items-center">
         <div className="mx-[6px] mr-2 h-2 w-2 rounded-full bg-gray-500"></div>
         <span className="font-body my-2 ml-[6px] max-w-2xl text-left text-xs font-bold text-gray-500">

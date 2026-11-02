@@ -231,6 +231,7 @@ export interface Config {
     tasks: {
       fetchSmtpBounces: TaskFetchSmtpBounces;
       generatePdfThumbnail: TaskGeneratePdfThumbnail;
+      extractPdfPages: TaskExtractPdfPages;
       publishScheduledAnnouncements: TaskPublishScheduledAnnouncements;
       drainPushQueue: TaskDrainPushQueue;
       drainEmailOutbox: TaskDrainEmailOutbox;
@@ -1087,6 +1088,15 @@ export interface Document {
    */
   internalDescription?: string | null;
   pdfThumbnailUrl?: string | null;
+  pdfPages?:
+    | {
+        text?: string | null;
+        thumbnailUrl?: string | null;
+        thumbnailId?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  pdfPagesSource?: string | null;
   permissions?: (string | null) | Permission;
   lastEditedByUser?: (string | null) | User;
   _objectKey?: string | null;
@@ -4674,15 +4684,36 @@ export interface SearchCollection {
   id: string;
   title?: string | null;
   priority?: number | null;
-  doc: {
-    relationTo: 'generic-page';
-    value: string | GenericPage;
-  };
+  doc:
+    | {
+        relationTo: 'generic-page';
+        value: string | GenericPage;
+      }
+    | {
+        relationTo: 'documents';
+        value: string | Document;
+      }
+    | {
+        relationTo: 'timeline';
+        value: string | Timeline;
+      };
   /**
    * This field is used for search indexing. It is automatically filled and not editable.
    */
   search_content?: string | null;
   search_title?: string | null;
+  /**
+   * The date the search sorts and filters by: the release date of a page, the date of a news entry, the last change of a document.
+   */
+  search_date?: string | null;
+  /**
+   * The documents and news categories a page links to. A document or a news entry is only found through a page that shows it.
+   */
+  search_references?: string[] | null;
+  /**
+   * The categories of a news entry.
+   */
+  search_categories?: string[] | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -4929,6 +4960,7 @@ export interface PayloadJob {
           | 'inline'
           | 'fetchSmtpBounces'
           | 'generatePdfThumbnail'
+          | 'extractPdfPages'
           | 'publishScheduledAnnouncements'
           | 'drainPushQueue'
           | 'drainEmailOutbox'
@@ -4987,6 +5019,7 @@ export interface PayloadJob {
         | 'inline'
         | 'fetchSmtpBounces'
         | 'generatePdfThumbnail'
+        | 'extractPdfPages'
         | 'publishScheduledAnnouncements'
         | 'drainPushQueue'
         | 'drainEmailOutbox'
@@ -6423,6 +6456,15 @@ export interface DocumentsSelect<T extends boolean = true> {
   title?: T;
   internalDescription?: T;
   pdfThumbnailUrl?: T;
+  pdfPages?:
+    | T
+    | {
+        text?: T;
+        thumbnailUrl?: T;
+        thumbnailId?: T;
+        id?: T;
+      };
+  pdfPagesSource?: T;
   permissions?: T;
   lastEditedByUser?: T;
   _objectKey?: T;
@@ -7720,6 +7762,9 @@ export interface SearchCollectionSelect<T extends boolean = true> {
   doc?: T;
   search_content?: T;
   search_title?: T;
+  search_date?: T;
+  search_references?: T;
+  search_categories?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -9660,6 +9705,18 @@ export interface TaskGeneratePdfThumbnail {
   output: {
     success?: boolean | null;
     imageId?: string | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskExtractPdfPages".
+ */
+export interface TaskExtractPdfPages {
+  input: {
+    documentId: string;
+  };
+  output: {
+    pageCount?: number | null;
   };
 }
 /**

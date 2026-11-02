@@ -5,8 +5,24 @@ import type { PayloadRequest } from 'payload';
 
 interface DocumentWithPermission {
   id: string;
+  /** where pages keep their permission */
   content?: { permissions?: Permission | string | null };
+  /** where documents keep theirs */
+  permissions?: Permission | string | null;
 }
+
+/**
+ * The plugin passes the locale it syncs to `skipSync` but not to `beforeSync`, which runs right
+ * after it in the same request. `beforeSync` needs it to read the page in that locale, so it is
+ * handed over through the request context. See {@link getSyncLocale}.
+ */
+const SYNC_LOCALE_CONTEXT_KEY = 'searchSyncLocale';
+
+/** The locale the search plugin is syncing in this request, as `skipSync` last saw it. */
+export const getSyncLocale = (request: PayloadRequest): string | undefined => {
+  const locale = request.context[SYNC_LOCALE_CONTEXT_KEY];
+  return typeof locale === 'string' ? locale : undefined;
+};
 
 /**
  * A document is public when it carries no permission at all, or one that is marked public. This
@@ -16,7 +32,7 @@ const isPubliclyReadable = async (
   document: DocumentWithPermission,
   request: PayloadRequest,
 ): Promise<boolean> => {
-  const permission = document.content?.permissions;
+  const permission = document.content?.permissions ?? document.permissions;
   if (permission === undefined || permission === null) return true;
   if (typeof permission !== 'string') return isPermissionPublic(permission);
 
@@ -32,8 +48,9 @@ const isPubliclyReadable = async (
 };
 
 /**
- * Keeps everything but public pages out of the search index, and removes the
- * entry of a document that stopped being public.
+ * Keeps everything but public pages and documents out of the search index, and removes the entry
+ * of one that stopped being public. News entries have no permission of their own: they are found
+ * only through the public pages that show them.
  *
  * The plugin treats an error thrown here as "do not skip" and indexes the document, so every
  * failure is caught and answered with a skip instead.
@@ -41,9 +58,11 @@ const isPubliclyReadable = async (
 export const skipSyncOfRestrictedDocuments: NonNullable<SearchPluginConfig['skipSync']> = async ({
   collectionSlug,
   doc,
+  locale,
   req,
 }) => {
   const document = doc as DocumentWithPermission;
+  req.context[SYNC_LOCALE_CONTEXT_KEY] = locale;
 
   try {
     if (await isPubliclyReadable(document, req)) return false;

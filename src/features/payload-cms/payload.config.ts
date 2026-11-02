@@ -29,6 +29,7 @@ import {
 import { cleanupTemporaryFormFilesTask } from '@/features/payload-cms/payload-cms/tasks/cleanup-temporary-form-files';
 import { drainEmailOutboxTask } from '@/features/payload-cms/payload-cms/tasks/drain-email-outbox';
 import { drainPushQueueTask } from '@/features/payload-cms/payload-cms/tasks/drain-push-queue';
+import { extractPdfPagesTask } from '@/features/payload-cms/payload-cms/tasks/extract-pdf-pages';
 import { fetchSmtpBouncesTask } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces';
 import { generateBillsTask } from '@/features/payload-cms/payload-cms/tasks/generate-bills';
 import { generatePdfThumbnailTask } from '@/features/payload-cms/payload-cms/tasks/generate-pdf-thumbnail';
@@ -366,6 +367,7 @@ const jobsConfig: JobsConfig = {
     [
       fetchSmtpBouncesTask,
       generatePdfThumbnailTask,
+      extractPdfPagesTask,
       publishScheduledAnnouncementsTask,
       drainPushQueueTask,
       drainEmailOutboxTask,
