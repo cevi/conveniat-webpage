@@ -1,3 +1,4 @@
+import { StreamedPart } from '@/components/error-boundary/streamed-part';
 import { GetTheAppButton } from '@/components/get-the-app';
 import { AppHeaderTitle } from '@/components/header/header-actions';
 import { PageTitle } from '@/components/header/page-title';
@@ -19,7 +20,7 @@ import type { Locale, NavigationMode, StaticTranslationString } from '@/types/ty
 import { isAdminSession } from '@/utils/is-admin-session';
 import { ForceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import { cn } from '@/utils/tailwindcss-override';
-import React from 'react';
+import type React from 'react';
 
 interface HeaderComponentProperties {
   locale: Locale;
@@ -88,9 +89,9 @@ const PageTitleForEditors: React.FC<{ locale: Locale; dashboardTitle: string }> 
 const HeaderPageTitle: React.FC<{ locale: Locale }> = async ({ locale }) => {
   const { title } = await getAppLandingPageCached(locale);
   return (
-    <React.Suspense fallback={<PageTitle locale={locale} dashboardTitle={title} />}>
+    <StreamedPart fallback={<PageTitle locale={locale} dashboardTitle={title} />}>
       <PageTitleForEditors locale={locale} dashboardTitle={title} />
-    </React.Suspense>
+    </StreamedPart>
   );
 };
 
@@ -100,9 +101,9 @@ const HeaderPageTitle: React.FC<{ locale: Locale }> = async ({ locale }) => {
  * streams in, and the rest of the header stays in the shell.
  */
 const pageTitle = (locale: Locale): React.ReactNode => (
-  <React.Suspense>
+  <StreamedPart fallback={<></>}>
     <HeaderPageTitle locale={locale} />
-  </React.Suspense>
+  </StreamedPart>
 );
 
 /**
@@ -120,9 +121,9 @@ const TopNavHeader: React.FC<{
     <header className="fixed top-0 left-0 z-[100] h-[60px] w-full xl:h-16">
       {/* room for the status bar, see --app-top-inset */}
       <div aria-hidden="true" className="h-(--status-bar-height) bg-white/95 backdrop-blur-md" />
-      <React.Suspense fallback={<div className="bg-gray-900" />}>
+      <StreamedPart fallback={<div className="bg-gray-900" />}>
         <PreviewModeBannerServerComponent />
-      </React.Suspense>
+      </StreamedPart>
 
       {/* No backdrop filter here: it would make this bar the containing block of the fixed menu
           below it, which then sits the preview banner's height too low. */}
@@ -170,22 +171,22 @@ const TopNavHeader: React.FC<{
           <div className="flex min-w-0 flex-1 items-center justify-end pr-4">
             {/* The published bar is part of the prerendered shell and stays there when the
                 session read below cannot run, offline for one. */}
-            <React.Suspense fallback={<TopNavContent locale={locale} inAppDesign={inAppDesign} />}>
+            <StreamedPart fallback={<TopNavContent locale={locale} inAppDesign={inAppDesign} />}>
               <TopNavContent locale={locale} inAppDesign={inAppDesign} withDraftForEditors />
-            </React.Suspense>
+            </StreamedPart>
             {/* on the app's pages in a browser; below xl it sits with the page's buttons */}
             <GetTheAppButton className="ml-2 hidden xl:flex" />
           </div>
 
           {/* Mobile Drawer, opened from the left in the app */}
           <div className={cn(inAppDesign && 'order-first')}>
-            <React.Suspense fallback={<div className="h-[60px] xl:hidden" />}>
+            <StreamedPart fallback={<div className="h-[60px] xl:hidden" />}>
               <NavComponent showDesktopSidePanel={false} locale={locale}>
                 <ForceDynamicOnBuild>
                   <MainMenu locale={locale} inAppDesign={inAppDesign} />
                 </ForceDynamicOnBuild>
               </NavComponent>
-            </React.Suspense>
+            </StreamedPart>
           </div>
         </div>
       </div>
@@ -207,9 +208,9 @@ const SideNavHeader: React.FC<{
     <header className="fixed top-0 left-0 z-[100] h-[60px] w-full">
       {/* room for the status bar, see --app-top-inset */}
       <div aria-hidden="true" className="h-(--status-bar-height) bg-white" />
-      <React.Suspense fallback={<div className="bg-gray-900" />}>
+      <StreamedPart fallback={<div className="bg-gray-900" />}>
         <PreviewModeBannerServerComponent />
-      </React.Suspense>
+      </StreamedPart>
 
       <div className="mb-[32px] border-b-2 border-gray-200 bg-white">
         <div className="text-conveniat-green relative mx-auto h-[60px] w-full max-w-2xl xl:ml-4">
@@ -226,13 +227,13 @@ const SideNavHeader: React.FC<{
 
             <AppHeaderTitle title={pageTitle(locale)} inAppDesign={inAppDesign} />
 
-            <React.Suspense fallback={<div className="h-[60px] xl:hidden" />}>
+            <StreamedPart fallback={<div className="h-[60px] xl:hidden" />}>
               <NavComponent showDesktopSidePanel locale={locale}>
                 <ForceDynamicOnBuild>
                   <MainMenu locale={locale} inAppDesign={inAppDesign} />
                 </ForceDynamicOnBuild>
               </NavComponent>
-            </React.Suspense>
+            </StreamedPart>
           </div>
         </div>
       </div>
