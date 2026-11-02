@@ -232,8 +232,10 @@ export const SearchResultsView: React.FC<{
   const results = response?.results ?? [];
   const selected: SearchResult | undefined =
     results.find((result) => result.key === selectedKey) ?? results.at(0);
-  const hasPreviewColumn =
-    isDesktop && !isPreviewClosed && (status === 'loading' || selected !== undefined);
+  // the column is there in every state, so the field and the list keep their width while the
+  // visitor types; it only goes when they close it
+  const hasPreviewColumn = !isPreviewClosed;
+  const showsPreview = isDesktop && hasPreviewColumn;
   const hasFilters =
     filters.types.length > 0 ||
     filters.sort !== DEFAULT_FILTERS.sort ||
@@ -338,7 +340,7 @@ export const SearchResultsView: React.FC<{
                   result={result}
                   words={words}
                   locale={locale}
-                  isSelected={hasPreviewColumn && result.key === selected?.key}
+                  isSelected={showsPreview && result.key === selected?.key}
                   onSelect={isDesktop ? selectResult : undefined}
                   onOpen={() => rememberSearch(draft)}
                 />
@@ -449,10 +451,13 @@ export const SearchResultsView: React.FC<{
 
         {hasPreviewColumn && (
           <aside className="hidden xl:block">
-            <Card className="sticky top-24 mt-[76px] max-h-[calc(100dvh-7rem)] overflow-y-auto p-6">
-              {selected === undefined || status === 'loading' ? (
+            {status === 'loading' && (
+              <Card className="sticky top-24 mt-[76px] p-6">
                 <PreviewSkeleton />
-              ) : (
+              </Card>
+            )}
+            {status === 'ready' && selected !== undefined && (
+              <Card className="sticky top-24 mt-[76px] max-h-[calc(100dvh-7rem)] overflow-y-auto p-6">
                 <SearchPreview
                   key={selected.key}
                   result={selected}
@@ -460,8 +465,8 @@ export const SearchResultsView: React.FC<{
                   locale={locale}
                   onClose={() => setIsPreviewClosed(true)}
                 />
-              )}
-            </Card>
+              </Card>
+            )}
           </aside>
         )}
       </div>
