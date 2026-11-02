@@ -1,6 +1,7 @@
 import type { BrowserContext, Locator, Page, Route } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 
+import { requireServiceWorkerRouting } from './fixtures/offline-app-data';
 import { signIn } from './fixtures/sign-in';
 
 /**
@@ -104,6 +105,7 @@ const patchMapAnswer = (entry: TrpcBatchEntry | undefined, version: string): Trp
  * are caught as well.
  */
 const installFakeServer = async (context: BrowserContext): Promise<FakeServer> => {
+  requireServiceWorkerRouting();
   const server: FakeServer = {
     mapVersion: 'v1',
     failTrpc: false,

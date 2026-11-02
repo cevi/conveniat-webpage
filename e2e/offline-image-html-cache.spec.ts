@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
+import { requireServiceWorkerRouting } from './fixtures/offline-app-data';
 
 /**
  * An HTML page served under an image URL never ends up as the image.
@@ -58,6 +59,8 @@ test.describe('Image cache refuses HTML', () => {
   });
 
   test('does not serve an HTML page stored for an image earlier', async ({ page, context }) => {
+    // the service worker has to fetch the mocked image to replace the stored page
+    requireServiceWorkerRouting();
     await context.route(`**${PROBE_PATH}*`, (route) =>
       route.fulfill({ status: 200, contentType: 'image/png', body: PNG_PIXEL }),
     );

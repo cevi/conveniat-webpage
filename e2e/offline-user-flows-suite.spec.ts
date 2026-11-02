@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import * as fs from 'node:fs';
 import path from 'node:path';
+import { requireServiceWorkerRouting } from './fixtures/offline-app-data';
 
 const SCREENSHOT_DIR = path.join(process.cwd(), '.temp_test_artifacts', 'screenshots');
 const VIDEO_DIR = path.join(process.cwd(), '.temp_test_artifacts', 'videos');
@@ -17,6 +18,7 @@ test.use({ video: 'on' });
 
 test.describe('Exhaustive Offline User Flows & Screenshot Verification Suite', () => {
   test.beforeEach(async ({ page }) => {
+    requireServiceWorkerRouting();
     // 1. Mock NextAuth session endpoint
     await page.route('**/api/auth/session', async (route) => {
       await route.fulfill({
