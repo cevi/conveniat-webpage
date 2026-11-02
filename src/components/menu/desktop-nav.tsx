@@ -373,14 +373,12 @@ export const DesktopNav: React.FC<{
         <button
           type="button"
           onClick={openSearch}
+          aria-label={searchLabel[locale]}
           aria-keyshortcuts="Control+K Meta+K"
-          className="hover:border-conveniat-green/40 flex h-8 w-44 cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/80 pr-1.5 pl-2.5 text-xs text-gray-500 transition-all duration-200 hover:bg-white 2xl:w-56"
+          title={`${searchLabel[locale]} (Ctrl K)`}
+          className="hover:border-conveniat-green/40 hover:text-conveniat-green flex size-8 items-center justify-center rounded-xl border border-gray-200 bg-gray-50/80 text-gray-600 transition-all duration-200 hover:bg-white"
         >
-          <Search className="size-3.5 shrink-0" aria-hidden="true" />
-          <span>{searchLabel[locale]}</span>
-          <kbd className="ml-auto rounded-md border border-gray-200 bg-white px-1.5 py-0.5 font-sans text-[10px] font-semibold text-gray-500">
-            Ctrl K
-          </kbd>
+          <Search className="size-3.5 text-gray-500" aria-hidden="true" />
         </button>
       </div>
 
