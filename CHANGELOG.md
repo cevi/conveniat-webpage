@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.46.1](https://github.com/cevi/conveniat-webpage/compare/v1.46.0...v1.46.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* **accordion:** keyboard focus marks the card header instead of a square frame ([56d42a4](https://github.com/cevi/conveniat-webpage/commit/56d42a41d353285cfd1a3c386c469cd38469b8af))
+* **accordion:** keyboard focus marks the card header instead of a square frame ([ca72ade](https://github.com/cevi/conveniat-webpage/commit/ca72adebfc4a9de0920349384242d5bf701117eb))
+* **menu:** pages no longer open with the old menu after a deploy ([4625e22](https://github.com/cevi/conveniat-webpage/commit/4625e2249fded77d0f32fa16df9f228fe0dc919e))
+* **menu:** pages no longer open with the old menu after a deploy ([0ca1769](https://github.com/cevi/conveniat-webpage/commit/0ca1769e1ebb53a8640461be1e2c291b5c870969))
+
 ## [1.46.0](https://github.com/cevi/conveniat-webpage/compare/v1.45.1...v1.46.0) (2026-11-02)
 
 
