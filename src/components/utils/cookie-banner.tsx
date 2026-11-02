@@ -32,7 +32,7 @@ export const CookieBanner: React.FC<{ locale: Locale }> = ({ locale }) => {
   return (
     <div className="fixed right-0 bottom-0 left-0 z-[110] p-4">
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-800 px-4 py-2 text-white shadow-lg">
-        <span className="flex-1 basis-64">
+        <span className="flex-1 basis-64 text-balance">
           {asksForAnalytics ? (
             <>
               {analyticsConsentText[locale]}{' '}

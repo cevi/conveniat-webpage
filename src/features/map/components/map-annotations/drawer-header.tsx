@@ -40,7 +40,7 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
     <div className="pb-3">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1 pt-1.5">
-          <h2 className="font-heading text-heading text-[22px] leading-tight font-extrabold">
+          <h2 className="font-heading text-heading text-[22px] leading-tight font-extrabold text-balance">
             {annotation.title}
           </h2>
           {/* read defensively: a phone can restore a map from before the Quartier was an object */}
