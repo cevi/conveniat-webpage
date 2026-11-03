@@ -28,6 +28,9 @@ import { z } from 'zod';
 
 const logger = createLogger('schedule:router');
 
+/** The most course ids `getCourseStatuses` answers in one request. */
+const MAX_COURSE_IDS_PER_STATUS_REQUEST = 100;
+
 const enrollInCourseSchema = z.object({
   courseId: z.string(),
 });
@@ -103,15 +106,38 @@ export const scheduleRouter = createTRPCRouter({
       return null;
     }
 
-    const enrollments = await prisma.enrollment.findMany({
-      where: { courseId },
-      include: { user: true },
-    });
-
-    const isEnrolled = user
-      ? enrollments.some((enrollment_) => enrollment_.userId === user.uuid)
-      : false;
     const isOrganiser = isOrganiserOf(course.organiser, user?.uuid);
+    // see `participants` below for who gets the roster
+    const showsRoster = isOrganiser && course.hide_participant_list !== true;
+
+    const enrollmentWhere = { courseId, courseType: CourseType.PROGRAM };
+    let enrolledCount: number;
+    let isEnrolled: boolean;
+    let participants: { uuid: string; name: string }[] = [];
+    if (showsRoster) {
+      // The count and the names come from one read, so an enrolment in between cannot make
+      // the organiser see "5 angemeldet" next to four names.
+      const roster = await prisma.enrollment.findMany({
+        where: enrollmentWhere,
+        select: { user: { select: { uuid: true, name: true } } },
+      });
+      participants = roster.map((enrollment_) => enrollment_.user);
+      enrolledCount = participants.length;
+      isEnrolled = participants.some((participant) => participant.uuid === user?.uuid);
+    } else {
+      // Everybody else gets no names, so nobody else pays for joining `User`.
+      const [count, ownEnrollment] = await Promise.all([
+        prisma.enrollment.count({ where: enrollmentWhere }),
+        user
+          ? prisma.enrollment.findFirst({
+              where: { ...enrollmentWhere, userId: user.uuid },
+              select: { id: true },
+            })
+          : undefined,
+      ]);
+      enrolledCount = count;
+      isEnrolled = ownEnrollment !== null && ownEnrollment !== undefined;
+    }
 
     // Check if a group chat exists for this course
     const courseChat = await prisma.chat.findFirst({
@@ -120,7 +146,7 @@ export const scheduleRouter = createTRPCRouter({
     });
 
     return {
-      enrolledCount: enrollments.length,
+      enrolledCount,
       maxParticipants: course.participants_max ?? undefined,
       isEnrolled,
       /**
@@ -147,13 +173,7 @@ export const scheduleRouter = createTRPCRouter({
        * saved since - older courses carry `undefined`, which has to read as its `false`
        * default ("not hidden") rather than withhold the list.
        */
-      participants:
-        isOrganiser && course.hide_participant_list !== true
-          ? enrollments.map((enrollment_) => ({
-              uuid: enrollment_.user.uuid,
-              name: enrollment_.user.name,
-            }))
-          : [],
+      participants,
       // Markdown versions for editing
       descriptionMarkdown: isOrganiser ? convertLexicalToMarkdown(course.description) : undefined,
       targetGroupMarkdown: isOrganiser ? convertLexicalToMarkdown(course.target_group) : undefined,
@@ -164,7 +184,9 @@ export const scheduleRouter = createTRPCRouter({
    * Bulk fetch course statuses for multiple course IDs.
    */
   getCourseStatuses: publicProcedure
-    .input(z.object({ courseIds: z.array(z.string()) }))
+    // The client asks in chunks of 40 (`schedule-status-context.tsx`); the bound keeps an
+    // anonymous caller from sending the whole collection in one request.
+    .input(z.object({ courseIds: z.array(z.string()).max(MAX_COURSE_IDS_PER_STATUS_REQUEST) }))
     .query(async ({ input, ctx }) => {
       const { prisma, user } = ctx;
       const { courseIds } = input;
@@ -179,25 +201,40 @@ export const scheduleRouter = createTRPCRouter({
       const coursesResult = await payload.find({
         collection: 'camp-schedule-entry',
         where: { id: { in: courseIds } },
-        depth: 1,
+        depth: 0,
         limit: courseIds.length,
+        // nothing reads `totalDocs`; with pagination on, Payload runs a count query for it
+        pagination: false,
+        select: {
+          organiser: true,
+          participants_max: true,
+          enable_enrolment: true,
+          hide_participant_list: true,
+        },
       });
 
       const coursesMap = new Map(coursesResult.docs.map((c) => [c.id, c]));
 
-      // Batch fetch all enrollments for these courses
-      const allEnrollments = await prisma.enrollment.findMany({
-        where: { courseId: { in: courseIds } },
-        include: { user: true },
-      });
-
-      // Group enrollments by courseId
-      const enrollmentsByCourse = new Map<string, typeof allEnrollments>();
-      for (const enrollment of allEnrollments) {
-        const existing = enrollmentsByCourse.get(enrollment.courseId) ?? [];
-        existing.push(enrollment);
-        enrollmentsByCourse.set(enrollment.courseId, existing);
-      }
+      // Counted in Postgres rather than by loading every enrolment: both queries are answered
+      // from the unique index on (courseId, courseType, userId).
+      const enrollmentWhere = { courseId: { in: courseIds }, courseType: CourseType.PROGRAM };
+      const [enrollmentCounts, ownEnrollments] = await Promise.all([
+        prisma.enrollment.groupBy({
+          by: ['courseId'],
+          where: enrollmentWhere,
+          _count: { _all: true },
+        }),
+        user
+          ? prisma.enrollment.findMany({
+              where: { ...enrollmentWhere, userId: user.uuid },
+              select: { courseId: true },
+            })
+          : [],
+      ]);
+      const countByCourse = new Map(
+        enrollmentCounts.map((group) => [group.courseId, group._count._all]),
+      );
+      const ownCourseIds = new Set(ownEnrollments.map((enrollment_) => enrollment_.courseId));
 
       // Batch fetch all course chats
       const courseChats = await prisma.chat.findMany({
@@ -225,16 +262,12 @@ export const scheduleRouter = createTRPCRouter({
         const course = coursesMap.get(courseId);
         if (!course) continue;
 
-        const enrollments = enrollmentsByCourse.get(courseId) ?? [];
-        const isEnrolled = user
-          ? enrollments.some((enrollment_) => enrollment_.userId === user.uuid)
-          : false;
         const isOrganiser = isOrganiserOf(course.organiser, user?.uuid);
 
         result[courseId] = {
-          enrolledCount: enrollments.length,
+          enrolledCount: countByCourse.get(courseId) ?? 0,
           maxParticipants: course.participants_max ?? undefined,
-          isEnrolled,
+          isEnrolled: ownCourseIds.has(courseId),
           isAdmin: isOrganiser,
           isOrganiser,
           enableEnrolment: course.enable_enrolment,
