@@ -29,10 +29,11 @@ if (isBuild) {
   const adapter = new PrismaPg({
     connectionString: environmentVariables.CHAT_DATABASE_URL,
     max: 30,
-    // pg waits forever for a free connection by default. Give up after Prisma's 2 s
-    // `maxWait`, so a transaction that cannot start still fails with Prisma's own error, and
-    // before its 5 s transaction timeout, so a query stuck behind a full pool fails with an
-    // error that names the pool instead of timing out some other transaction.
+    // pg waits forever for a free connection by default. 3 s sits between the two
+    // transaction limits below: a transaction that cannot start still fails at `maxWait`
+    // with Prisma's own error, and a plain query stuck behind a full pool fails with pg's
+    // "timeout exceeded when trying to connect" instead of hanging until some transaction
+    // runs out. It also bounds opening a new connection, which takes milliseconds here.
     connectionTimeoutMillis: 3000,
   });
   prisma =
@@ -40,6 +41,8 @@ if (isBuild) {
     new PrismaClient({
       adapter,
       errorFormat: 'pretty',
+      // Prisma's defaults, spelled out because the pool timeout above is chosen against them.
+      transactionOptions: { maxWait: 2000, timeout: 5000 },
     });
 }
 if (environmentVariables.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
