@@ -22,7 +22,7 @@ const adressverwalter = (id: number): { id: number; role_class: string } => ({
 
 describe('isInChannelAudience', () => {
   it('reaches the Adressverwalter of a Hof group in an AVP channel', () => {
-    expect(isInChannelAudience([adressverwalter(USTER)], avps, context)).toBe(true);
+    expect(isInChannelAudience({ groups: [adressverwalter(USTER)] }, avps, context)).toBe(true);
   });
 
   it('reaches a Stellvertretung who holds the Adressverwalter role as well', () => {
@@ -30,16 +30,22 @@ describe('isInChannelAudience', () => {
       { id: ZUERI_11, role_class: 'Group::MitgliederorganisationExterne::Mitglied' },
       adressverwalter(ZUERI_11),
     ];
-    expect(isInChannelAudience(stellvertretung, avps, context)).toBe(true);
+    expect(isInChannelAudience({ groups: stellvertretung }, avps, context)).toBe(true);
+  });
+
+  it('reaches the main leader of a Hof camp, also without the role in the Hof group', () => {
+    expect(isInChannelAudience({ groups: [], avpHoefe: ['hof-uster'] }, avps, context)).toBe(true);
   });
 
   it('leaves out a plain member of a Hof group', () => {
     const member = [{ id: USTER, role_class: 'Group::MitgliederorganisationExterne::Mitglied' }];
-    expect(isInChannelAudience(member, avps, context)).toBe(false);
+    expect(isInChannelAudience({ groups: member }, avps, context)).toBe(false);
   });
 
   it('leaves out an Adressverwalter of a group that is no Hof', () => {
-    expect(isInChannelAudience([adressverwalter(ABTEILUNG_USTER)], avps, context)).toBe(false);
+    expect(isInChannelAudience({ groups: [adressverwalter(ABTEILUNG_USTER)] }, avps, context)).toBe(
+      false,
+    );
   });
 
   it('reaches the members of a picked Cevi.DB group and nobody else', () => {
@@ -47,18 +53,20 @@ describe('isInChannelAudience', () => {
       targetType: 'cevi_groups',
       targetCeviGroups: [{ groupId: ABTEILUNG_USTER }],
     };
-    expect(isInChannelAudience([{ id: ABTEILUNG_USTER }], audience, context)).toBe(true);
-    expect(isInChannelAudience([{ id: USTER }], audience, context)).toBe(false);
+    expect(isInChannelAudience({ groups: [{ id: ABTEILUNG_USTER }] }, audience, context)).toBe(
+      true,
+    );
+    expect(isInChannelAudience({ groups: [{ id: USTER }] }, audience, context)).toBe(false);
   });
 
   it('reaches the holders of a picked role', () => {
     const audience: ChannelAudience = { targetType: 'roles', targetRoles: ['program-team'] };
-    expect(isInChannelAudience([{ id: 210 }], audience, context)).toBe(true);
-    expect(isInChannelAudience([{ id: USTER }], audience, context)).toBe(false);
+    expect(isInChannelAudience({ groups: [{ id: 210 }] }, audience, context)).toBe(true);
+    expect(isInChannelAudience({ groups: [{ id: USTER }] }, audience, context)).toBe(false);
   });
 
   it('reaches a user without groups only in a channel for everyone', () => {
-    expect(isInChannelAudience(undefined, { targetType: 'all' }, context)).toBe(true);
-    expect(isInChannelAudience(undefined, avps, context)).toBe(false);
+    expect(isInChannelAudience({}, { targetType: 'all' }, context)).toBe(true);
+    expect(isInChannelAudience({}, avps, context)).toBe(false);
   });
 });

@@ -53,7 +53,7 @@ export const syncNewUserAnnouncementChatsTask: TaskConfig<{
       // 3. Split the channels into the ones this user belongs to and the rest
       const context = await loadAudienceContext(payload, channels, req);
       const matchingChannels = channels.filter((channel) =>
-        isInChannelAudience(user.groups, channel, context),
+        isInChannelAudience(user, channel, context),
       );
       const otherChatUuids = channels
         .filter((channel) => !matchingChannels.includes(channel))

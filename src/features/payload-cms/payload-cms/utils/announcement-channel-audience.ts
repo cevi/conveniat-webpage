@@ -1,5 +1,6 @@
 import { getAdministeredGroupIds } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { hasAccessToThisUser, isRole } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { toHofIds } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import type { AnnouncementChannel } from '@/features/payload-cms/payload-types';
 import type { Payload, PayloadRequest } from 'payload';
 
@@ -58,19 +59,26 @@ const toGroups = (groups: unknown): CeviDatabaseGroup[] =>
       )
     : [];
 
+/** What deciding an audience reads off a user: both fields are kept by the syncs. */
+export interface AudienceUser {
+  groups?: unknown;
+  avpHoefe?: unknown;
+}
+
 /**
- * Whether a user with these Cevi.DB groups belongs to a channel's audience.
+ * Whether a user belongs to a channel's audience.
  *
- * An AVP is whoever may open a Hof's dashboard: the Adressverwalter of a Hof's own Cevi.DB
- * group. Cevi.DB has no role of its own for the Stellvertretung; she counts once she holds
- * the Adressverwalter role too.
+ * Cevi.DB shows an AVP two ways: as Adressverwalter of the Hof's own group, which also opens
+ * the Hof dashboard, and, once enrolled in the Hauptlager, as main leader of the Hof's camp
+ * (`avpHoefe`). Either makes someone an AVP. Cevi.DB has no role of its own for the
+ * Stellvertretung; she counts once she holds one of the two.
  */
 export const isInChannelAudience = (
-  userGroups: unknown,
+  user: AudienceUser,
   audience: ChannelAudience,
   context: AudienceContext,
 ): boolean => {
-  const groups = toGroups(userGroups);
+  const groups = toGroups(user.groups);
   switch (audience.targetType) {
     case 'all': {
       return true;
@@ -86,7 +94,10 @@ export const isInChannelAudience = (
       return (audience.targetCeviGroups ?? []).some((target) => groupIds.has(target.groupId));
     }
     case 'avps': {
-      return getAdministeredGroupIds(groups).some((groupId) => context.hofGroupIds.has(groupId));
+      return (
+        toHofIds(user.avpHoefe).length > 0 ||
+        getAdministeredGroupIds(groups).some((groupId) => context.hofGroupIds.has(groupId))
+      );
     }
     default: {
       return false;
@@ -114,11 +125,11 @@ export const findAudienceUserIds = async (
       limit: MAX_USERS,
       pagination: false,
       overrideAccess: true,
-      select: { groups: true },
+      select: { groups: true, avpHoefe: true },
       ...(request === undefined ? {} : { req: request }),
     }),
   ]);
   return users.docs
-    .filter((user) => isInChannelAudience(user.groups, audience, context))
+    .filter((user) => isInChannelAudience(user, audience, context))
     .map((user) => user.id);
 };

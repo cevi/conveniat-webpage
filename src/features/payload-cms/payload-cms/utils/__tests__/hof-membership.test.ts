@@ -57,6 +57,7 @@ interface FakeUser {
   id: string;
   cevi_db_uuid: number;
   hoefe: string[];
+  avpHoefe?: string[];
 }
 
 /** A Payload that knows the seeded Höfe, the given users and registrations, and records writes. */
@@ -81,6 +82,7 @@ const fakePayload = (
         writes.push({ id, ...data });
       },
     ),
+    jobs: { queue: jest.fn() },
   } as unknown as Payload;
   return { payload, writes };
 };
@@ -161,5 +163,27 @@ describe('refreshUserHoefe', () => {
       { id: 'lead', hoefe: ['sued'], avpHoefe: ['sued'] },
       { id: 'assistant', hoefe: ['sued'], avpHoefe: [] },
     ]);
+  });
+
+  it('brings the announcement channels of someone up to date who becomes or stops being AVP', async () => {
+    const { payload } = fakePayload(
+      [
+        { id: 'lead', cevi_db_uuid: 21, hoefe: [] },
+        { id: 'former', cevi_db_uuid: 23, hoefe: ['sued'], avpHoefe: ['sued'] },
+        { id: 'assistant', cevi_db_uuid: 22, hoefe: [] },
+      ],
+      [
+        { userId: '21', eventId: '991002', roleType: 'Event::Role::Leader' },
+        { userId: '23', eventId: '991002', roleType: 'Event::Role::AssistantLeader' },
+        { userId: '22', eventId: '991002', roleType: 'Event::Role::AssistantLeader' },
+      ],
+    );
+
+    await refreshUserHoefe(payload);
+
+    const queued = jest
+      .mocked(payload.jobs.queue)
+      .mock.calls.map(([job]) => (job.input as { userId: string }).userId);
+    expect(queued).toEqual(['lead', 'former']);
   });
 });
