@@ -4,7 +4,6 @@ import type { NotificationType } from '@/lib/notification-type';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import { stripMarkdownFormatting } from '@/utils/strip-markdown-formatting';
-import { toast } from 'sonner';
 
 /**
  * Foreground notification delivery for the native app WebView.
@@ -24,15 +23,16 @@ import { toast } from 'sonner';
  *
  * ## What this module does
  *
- * 1. If the native shell exposes `AppWebViewNativePush.showNotification(...)`, we
- *    hand the notification to the shell, which renders a real system notification
- *    (WhatsApp-style) even though the app is in the foreground.
- * 2. Otherwise we render an in-app banner so the user is at least informed while
- *    the app is open.
+ * It hands the notification to the native shell through
+ * `AppWebViewNativePush.showNotification(...)`, which renders a real system
+ * notification even though the app is in the foreground. Open or closed, the app
+ * then notifies the same way, through the user's notification settings and on the
+ * emergency channel where the message asks for it. Every app build since October
+ * 2026 has the command; on an older build the message only shows in the open app.
  *
- * Both paths are driven by *either* delivery channel — the FCM foreground bridge
- * event or the realtime SSE stream — and de-duplicated by message id, so a
- * message that arrives over both channels is only surfaced once.
+ * It is driven by *either* delivery channel — the FCM foreground bridge event or
+ * the realtime SSE stream — and de-duplicated by message id, so a message that
+ * arrives over both channels is only surfaced once.
  *
  * Browser clients are intentionally excluded: there the service worker
  * (`src/features/service-worker/push-notifications.ts`) already decides whether
@@ -41,12 +41,6 @@ import { toast } from 'sonner';
 
 /** Number of remembered notification keys used to de-duplicate SSE vs. push delivery. */
 const DEDUPLICATION_CACHE_SIZE = 200;
-
-const openActionLabel: StaticTranslationString = {
-  de: 'Öffnen',
-  en: 'Open',
-  fr: 'Ouvrir',
-};
 
 const defaultNotificationTitle: StaticTranslationString = {
   de: 'Neue Nachricht',
@@ -74,23 +68,10 @@ export interface ForegroundNotification {
 const notifiedKeys = new Set<string>();
 const notifiedKeyOrder: string[] = [];
 
-let navigateHandler: ((path: string) => void) | undefined;
-
-/**
- * Registers the client-side router used when the user taps a foreground
- * notification. Falls back to a hard navigation when no handler is registered.
- */
-export const setForegroundNotificationNavigator = (
-  navigate: ((path: string) => void) | undefined,
-): void => {
-  navigateHandler = navigate;
-};
-
 /** Exposed for tests: clears the de-duplication cache between cases. */
 export const resetForegroundNotificationState = (): void => {
   notifiedKeys.clear();
   notifiedKeyOrder.length = 0;
-  navigateHandler = undefined;
 };
 
 /**
@@ -149,17 +130,11 @@ export const isNotificationTargetVisible = (
   return targetPathname !== '' && currentPathname.endsWith(targetPathname);
 };
 
-/**
- * Asks the native shell to render a real system notification.
- * Returns `false` when the installed app build does not support the command yet,
- * so the caller can fall back to the in-app banner.
- */
-const requestNativeSystemNotification = (notification: ForegroundNotification): boolean => {
+/** Asks the native shell to render a real system notification. */
+const requestNativeSystemNotification = (notification: ForegroundNotification): void => {
   const bridge = globalThis.AppWebViewNativePush as Record<string, unknown> | undefined;
-  if (!bridge) return false;
-
-  const showNotification = bridge['showNotification'];
-  if (typeof showNotification !== 'function') return false;
+  const showNotification = bridge?.['showNotification'];
+  if (typeof showNotification !== 'function') return;
 
   try {
     (showNotification as (request: Record<string, string>) => void)({
@@ -172,31 +147,9 @@ const requestNativeSystemNotification = (notification: ForegroundNotification): 
       // `emergency` (including omitting it) means the regular chat channel.
       ...(notification.notificationType === 'emergency' && { notificationType: 'emergency' }),
     });
-    return true;
   } catch (error: unknown) {
     console.warn('[ForegroundNotification] native showNotification failed:', error);
-    return false;
   }
-};
-
-const openNotificationTarget = (targetPath: string): void => {
-  if (navigateHandler) {
-    navigateHandler(targetPath);
-    return;
-  }
-  globalThis.location.assign(targetPath);
-};
-
-const showInAppNotification = (notification: ForegroundNotification): void => {
-  const locale = getDocumentLocale();
-
-  toast(notification.title, {
-    ...(notification.body !== '' && { description: notification.body }),
-    action: {
-      label: openActionLabel[locale],
-      onClick: (): void => openNotificationTarget(notification.targetPath),
-    },
-  });
 };
 
 /**
@@ -224,11 +177,10 @@ export const notifyForegroundMessage = (notification: ForegroundNotification): v
 
   if (!registerNotificationKey(deduplicationKey)) return;
 
-  // Neither the system notification the shell renders nor the in-app banner
-  // understands the chat's markdown dialect, so the markers have to go - the same
-  // way the server strips them off the push it sends (see
-  // `stripMarkdownFormatting`). Both channels show the same message; they must not
-  // disagree about whether it is wrapped in asterisks.
+  // The system notification the shell renders does not understand the chat's
+  // markdown dialect, so the markers have to go - the same way the server strips
+  // them off the push it sends (see `stripMarkdownFormatting`). Open or closed, the
+  // app shows the same message; it must not be wrapped in asterisks only one way.
   const strippedTitle = stripMarkdownFormatting(notification.title).trim();
 
   const resolvedNotification: ForegroundNotification = {
@@ -237,7 +189,5 @@ export const notifyForegroundMessage = (notification: ForegroundNotification): v
     body: stripMarkdownFormatting(notification.body).trim(),
   };
 
-  if (requestNativeSystemNotification(resolvedNotification)) return;
-
-  showInAppNotification(resolvedNotification);
+  requestNativeSystemNotification(resolvedNotification);
 };
