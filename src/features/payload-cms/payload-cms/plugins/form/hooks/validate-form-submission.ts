@@ -191,7 +191,7 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
     const isRequired = 'required' in fieldConfig && fieldConfig.required === true;
     if (isRequired && !hasValue) {
       if (fieldConfig.blockType === 'ceviDbLogin') {
-        throw formRefusal(400, 'loginFieldRequired', { field: fieldName });
+        throw formRefusal(req, 400, 'loginFieldRequired', { field: fieldName });
       } else {
         fieldErrors.push({ field: fieldName, message: 'required' });
         continue;
@@ -206,7 +206,7 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
         const currentSession = await getSession();
 
         if (currentSession?.user === undefined) {
-          throw formRefusal(401, 'loginRequired');
+          throw formRefusal(req, 401, 'loginRequired');
         }
 
         let sessionValue: string | number | undefined | null;
@@ -234,7 +234,7 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
         const sessionString = String(sessionValue ?? '').trim();
 
         if (value !== sessionString) {
-          throw formRefusal(403, 'loginMismatch', { field: fieldName });
+          throw formRefusal(req, 403, 'loginMismatch', { field: fieldName });
         }
         break;
       }

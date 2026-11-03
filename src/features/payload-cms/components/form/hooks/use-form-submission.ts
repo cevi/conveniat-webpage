@@ -12,7 +12,7 @@ import { formErrorTexts } from '@/features/payload-cms/form-error-texts';
 import { usePostHog } from '@/providers/posthog-context';
 import { type Locale, type StaticTranslationString } from '@/types/types';
 import { noConnectionTranslation } from '@/utils/shared-translations';
-import { type ErrorParameters, formatErrorText } from '@/utils/user-error-message';
+import { errorTextFor, reasonOf } from '@/utils/user-error-message';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { FieldValues, UseFormSetError } from 'react-hook-form';
@@ -67,24 +67,15 @@ const correctHighlightedErrorsText: StaticTranslationString = {
   fr: 'Veuillez corriger les erreurs mises en évidence.',
 };
 
-/** A refusal a form hook named a reason for, in the language of the page. */
+/** A refusal a form hook wrote for the user, with the reason it named, if any. */
 class SubmissionRefusedError extends Error {
-  constructor(template: string, params: ErrorParameters) {
-    super(formatErrorText(template, params));
+  constructor(
+    message: string,
+    readonly reason: string | undefined,
+  ) {
+    super(message);
   }
 }
-
-/** The reason and params of a hook's refusal, when its texts know the reason. */
-const refusalReasonOf = (
-  data: unknown,
-): { text: StaticTranslationString; params: ErrorParameters } | undefined => {
-  if (typeof data !== 'object' || data === null || !('reason' in data)) return undefined;
-  const texts: Record<string, StaticTranslationString | undefined> = formErrorTexts;
-  const text = typeof data.reason === 'string' ? texts[data.reason] : undefined;
-  if (text === undefined) return undefined;
-  const params = 'params' in data && typeof data.params === 'object' ? data.params : undefined;
-  return { text, params: (params ?? {}) as ErrorParameters };
-};
 
 export const useFormSubmission = ({
   formId,
@@ -243,17 +234,22 @@ export const useFormSubmission = ({
           }
         }
 
-        // A form hook names why it refused, see `formErrorTexts`. Anything else is Payload's or a
-        // proxy's English, kept for the analytics event only.
-        const reason = refusalReasonOf(refusal);
-        if (reason !== undefined)
-          throw new SubmissionRefusedError(reason.text[locale], reason.params);
-        throw new Error(
-          errorData.errors?.[0]?.message ?? errorData.message ?? `HTTP ${resp.status}`,
-        );
+        // A form hook names why it refused, see `formErrorTexts`.
+        const reason = reasonOf(refusal);
+        const text =
+          reason === undefined ? undefined : errorTextFor(reason, locale, formErrorTexts);
+        if (text !== undefined) throw new SubmissionRefusedError(text, reason?.reason);
+        // The hooks of other features on this collection (Hof dashboard, visit days) still word
+        // their refusals in the request's language; until they name a reason, show what they
+        // say. From 500 up it is Payload's or a proxy's English, kept for the analytics only.
+        const serverMessage = errorData.errors?.[0]?.message ?? errorData.message;
+        if (resp.status < 500 && serverMessage !== undefined && serverMessage !== '') {
+          throw new SubmissionRefusedError(serverMessage, undefined);
+        }
+        throw new Error(serverMessage ?? `HTTP ${resp.status}`);
       }
 
-      await resp.json();
+      // the stored submission's body is not needed, and a proxy's unparsable 200 still saved it
       setStatus('success');
 
       // Clear session storage on success
@@ -293,6 +289,10 @@ export const useFormSubmission = ({
           error_type: 'submission_failed',
           form_id: formId,
           error_message: message,
+          // stable across locales and params, unlike the message
+          ...(error instanceof SubmissionRefusedError && error.reason !== undefined
+            ? { reason: error.reason }
+            : {}),
         });
         setErrorMessage(
           error instanceof SubmissionRefusedError ? message : failedToSubmitText[locale],

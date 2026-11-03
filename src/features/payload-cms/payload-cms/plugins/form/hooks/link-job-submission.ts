@@ -33,7 +33,7 @@ const validateJobQuota = async (
   });
 
   if (currentSubmissionsCount.totalDocs >= maxQuota) {
-    throw formRefusal(400, 'jobFull');
+    throw formRefusal(request, 400, 'jobFull');
   }
 };
 
@@ -111,7 +111,7 @@ export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
           id: jobId,
         })) as unknown as { maxQuota?: number; id: string; title?: string };
       } catch {
-        throw formRefusal(400, 'jobNotFound');
+        throw formRefusal(req, 400, 'jobNotFound');
       }
 
       // Check Quota if applicable

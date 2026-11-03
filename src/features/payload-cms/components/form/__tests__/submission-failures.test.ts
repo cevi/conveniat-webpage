@@ -69,11 +69,33 @@ describe('a submission that fails', () => {
     );
   });
 
-  it('does not pass on a message that names no reason', async () => {
-    const body = { errors: [{ message: 'You are not allowed to perform this action.' }] };
+  it('shows a refusal another feature’s hook wrote without a reason', async () => {
+    const body = {
+      errors: [{ message: 'Dieses Formular ist seit dem Abgabetermin geschlossen.' }],
+    };
 
-    expect(await errorShownFor(() => answer(403, () => Promise.resolve(body)))).toBe(
+    expect(await errorShownFor(() => answer(400, () => Promise.resolve(body)))).toBe(
+      'Dieses Formular ist seit dem Abgabetermin geschlossen.',
+    );
+  });
+
+  it('does not pass on what a crash says', async () => {
+    const body = { errors: [{ message: 'Something went wrong.' }] };
+
+    expect(await errorShownFor(() => answer(500, () => Promise.resolve(body)))).toBe(
       'Formularübermittlung fehlgeschlagen. Bitte versuchen Sie es später erneut.',
     );
+  });
+
+  it('counts a stored submission whose answer does not parse as stored', async () => {
+    globalThis.fetch = jest.fn(() =>
+      Promise.resolve({ ok: true, status: 200, json: htmlPage }),
+    ) as unknown as typeof fetch;
+    const { result } = renderHook(() =>
+      useFormSubmission({ formId: 'kontakt', config: {} as ExtendedFormType, locale: 'de' }),
+    );
+    await act(() => result.current.submit({ nachricht: 'Wann beginnt der Aufbau?' }));
+
+    expect(result.current.status).toBe('success');
   });
 });

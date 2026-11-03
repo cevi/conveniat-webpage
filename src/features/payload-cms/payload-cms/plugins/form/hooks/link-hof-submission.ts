@@ -50,7 +50,7 @@ export const linkHofSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
     req,
   });
   if (hof === null) {
-    throw formRefusal(400, 'hofNotFound');
+    throw formRefusal(req, 400, 'hofNotFound');
   }
 
   for (const answer of answers) {
