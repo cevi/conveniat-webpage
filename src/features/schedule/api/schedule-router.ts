@@ -111,22 +111,33 @@ export const scheduleRouter = createTRPCRouter({
     const showsRoster = isOrganiser && course.hide_participant_list !== true;
 
     const enrollmentWhere = { courseId, courseType: CourseType.PROGRAM };
-    const [enrolledCount, ownEnrollment, roster] = await Promise.all([
-      prisma.enrollment.count({ where: enrollmentWhere }),
-      user
-        ? prisma.enrollment.findFirst({
-            where: { ...enrollmentWhere, userId: user.uuid },
-            select: { id: true },
-          })
-        : undefined,
-      // Only the organisers read names, so nobody else pays for joining `User`.
-      showsRoster
-        ? prisma.enrollment.findMany({
-            where: enrollmentWhere,
-            select: { user: { select: { uuid: true, name: true } } },
-          })
-        : [],
-    ]);
+    let enrolledCount: number;
+    let isEnrolled: boolean;
+    let participants: { uuid: string; name: string }[] = [];
+    if (showsRoster) {
+      // The count and the names come from one read, so an enrolment in between cannot make
+      // the organiser see "5 angemeldet" next to four names.
+      const roster = await prisma.enrollment.findMany({
+        where: enrollmentWhere,
+        select: { user: { select: { uuid: true, name: true } } },
+      });
+      participants = roster.map((enrollment_) => enrollment_.user);
+      enrolledCount = participants.length;
+      isEnrolled = participants.some((participant) => participant.uuid === user?.uuid);
+    } else {
+      // Everybody else gets no names, so nobody else pays for joining `User`.
+      const [count, ownEnrollment] = await Promise.all([
+        prisma.enrollment.count({ where: enrollmentWhere }),
+        user
+          ? prisma.enrollment.findFirst({
+              where: { ...enrollmentWhere, userId: user.uuid },
+              select: { id: true },
+            })
+          : undefined,
+      ]);
+      enrolledCount = count;
+      isEnrolled = ownEnrollment !== null && ownEnrollment !== undefined;
+    }
 
     // Check if a group chat exists for this course
     const courseChat = await prisma.chat.findFirst({
@@ -137,7 +148,7 @@ export const scheduleRouter = createTRPCRouter({
     return {
       enrolledCount,
       maxParticipants: course.participants_max ?? undefined,
-      isEnrolled: ownEnrollment !== null && ownEnrollment !== undefined,
+      isEnrolled,
       /**
        * Organiser-ship, not a role: `isAdmin` is the long-standing name for it and stays so the
        * existing consumers (edit rights, the admin actions card) keep working. `isOrganiser` is
@@ -162,7 +173,7 @@ export const scheduleRouter = createTRPCRouter({
        * saved since - older courses carry `undefined`, which has to read as its `false`
        * default ("not hidden") rather than withhold the list.
        */
-      participants: roster.map((enrollment_) => enrollment_.user),
+      participants,
       // Markdown versions for editing
       descriptionMarkdown: isOrganiser ? convertLexicalToMarkdown(course.description) : undefined,
       targetGroupMarkdown: isOrganiser ? convertLexicalToMarkdown(course.target_group) : undefined,
@@ -192,6 +203,8 @@ export const scheduleRouter = createTRPCRouter({
         where: { id: { in: courseIds } },
         depth: 0,
         limit: courseIds.length,
+        // nothing reads `totalDocs`; with pagination on, Payload runs a count query for it
+        pagination: false,
         select: {
           organiser: true,
           participants_max: true,

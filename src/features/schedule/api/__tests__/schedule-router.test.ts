@@ -287,7 +287,7 @@ describe('scheduleRouter course statuses', () => {
       );
     });
 
-    it('counts only workshop enrolments and never loads the users', async () => {
+    it('keeps the counts off the User table and away from shift enrolments', async () => {
       await callerAs({ uuid: 'leiter-1', name: 'Lea' }).getCourseStatuses({
         courseIds: ['seilbruecke'],
       });
@@ -354,6 +354,27 @@ describe('scheduleRouter course statuses', () => {
           ],
         }),
       );
+    });
+
+    it('gives the organiser a count that matches the names, even under a concurrent enrolment', async () => {
+      // a count taken separately would already see a third enrolment the roster does not
+      enrollment.count.mockResolvedValue(3);
+
+      const status = await callerAs({ uuid: 'leiter-1', name: 'Lea' }).getCourseStatus({
+        courseId: 'theater',
+      });
+
+      expect(status?.enrolledCount).toBe(status?.participants.length);
+    });
+
+    it('tells an organiser enrolled in their own block that they are enrolled', async () => {
+      enrollment.findMany.mockResolvedValue([{ user: { uuid: 'leiter-1', name: 'Lea' } }]);
+
+      const status = await callerAs({ uuid: 'leiter-1', name: 'Lea' }).getCourseStatus({
+        courseId: 'theater',
+      });
+
+      expect(status).toEqual(expect.objectContaining({ enrolledCount: 1, isEnrolled: true }));
     });
 
     it('gives a participant the count and their own enrolment, but no names', async () => {
