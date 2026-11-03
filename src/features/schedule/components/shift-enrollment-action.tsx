@@ -40,12 +40,6 @@ const localizedUnenroll: StaticTranslationString = {
   fr: 'Se désinscrire',
 };
 
-const localizedFull: StaticTranslationString = {
-  de: 'Ausgebucht',
-  en: 'Fully booked',
-  fr: 'Complet',
-};
-
 const localizedEnrolled: StaticTranslationString = {
   de: 'Angemeldet',
   en: 'Enrolled',
@@ -443,23 +437,21 @@ export const ShiftEnrollmentAction: React.FC<{
             {localizedEnroll[locale]}
           </Button>
         )}
-      {!isCard && (
+      {/*
+        No "Ausgebucht" button once the shift is full: the capacity row above already says so in
+        red, as the card and a full workshop do, and a control that does nothing only looks
+        tappable.
+      */}
+      {!isCard && !isFull && (
         <Button
-          variant={isFull || !isAuthorized ? 'quiet' : 'primary'}
+          variant={isAuthorized ? 'primary' : 'quiet'}
           size="touch"
-          className={cn(
-            'w-full',
-            // a full shift is a state to read, not a greyed-out control: keep its text legible
-            isFull && 'text-green-700 disabled:opacity-100',
-            enroll.isPending && 'opacity-80',
-          )}
-          disabled={isFull || enroll.isPending || !isAuthorized}
+          className={cn('w-full', enroll.isPending && 'opacity-80')}
+          disabled={enroll.isPending || !isAuthorized}
           onClick={handleEnrolClick}
         >
           {enroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
-          {enroll.isPending && `${localizedEnroll[locale]}...`}
-          {!enroll.isPending && isFull && localizedFull[locale]}
-          {!enroll.isPending && !isFull && localizedEnroll[locale]}
+          {enroll.isPending ? `${localizedEnroll[locale]}...` : localizedEnroll[locale]}
         </Button>
       )}
       {failedLine}

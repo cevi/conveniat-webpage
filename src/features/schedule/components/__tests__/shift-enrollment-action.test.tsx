@@ -250,7 +250,8 @@ describe('ShiftEnrollmentAction after a failed enrolment', () => {
     render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
 
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Ausgebucht' })).toBeDisabled();
+    // the capacity row says it is full; no control is left that only looks tappable
+    expect(screen.queryByRole('button')).toBeNull();
   });
 
   it('says there is no connection when the request never arrived', () => {
