@@ -252,9 +252,9 @@ const afterChannelDelete: CollectionAfterDeleteHook<AnnouncementChannel> = async
 export const AnnouncementChannelsCollection: CollectionConfig = {
   slug: 'announcement-channels',
   admin: {
-    useAsTitle: 'name',
+    useAsTitle: 'internalName',
     group: AdminPanelDashboardGroups.AppContent.label,
-    defaultColumns: ['name', 'targetType', 'pinned', 'chatUuid'],
+    defaultColumns: ['internalName', 'name', 'targetType', 'pinned', 'chatUuid'],
   },
   labels: {
     singular: {
@@ -280,14 +280,38 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
   },
   fields: [
     {
-      name: 'name',
+      name: 'internalName',
       label: {
-        en: 'Channel Name',
-        de: 'Kanalname',
-        fr: 'Nom du canal',
+        en: 'Internal name',
+        de: 'Interner Name',
+        fr: 'Nom interne',
       },
       type: 'text',
       required: true,
+      admin: {
+        description: {
+          en: 'Only visible in the admin panel. Pick this name when you link an announcement to the channel.',
+          de: 'Nur im Admin-Panel sichtbar. Unter diesem Namen wählst du den Kanal für eine Ankündigung aus.',
+          fr: "Visible uniquement dans le panneau d'administration. C'est sous ce nom que tu choisis le canal d'une annonce.",
+        },
+      },
+    },
+    {
+      name: 'name',
+      label: {
+        en: 'Chat name in the app',
+        de: 'Chatname in der App',
+        fr: "Nom du chat dans l'app",
+      },
+      type: 'text',
+      required: true,
+      admin: {
+        description: {
+          en: 'Shown to all members as the name of the chat.',
+          de: 'Wird allen Mitgliedern als Name des Chats angezeigt.',
+          fr: 'Affiché à tous les membres comme nom du chat.',
+        },
+      },
     },
     {
       name: 'description',

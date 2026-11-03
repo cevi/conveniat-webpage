@@ -3960,6 +3960,13 @@ export interface FormCollection {
  */
 export interface AnnouncementChannel {
   id: string;
+  /**
+   * Only visible in the admin panel. Pick this name when you link an announcement to the channel.
+   */
+  internalName: string;
+  /**
+   * Shown to all members as the name of the chat.
+   */
   name: string;
   description?: string | null;
   targetType: 'all' | 'roles' | 'cevi_groups';
@@ -6559,6 +6566,7 @@ export interface HelperJobsSelect<T extends boolean = true> {
  * via the `definition` "announcement-channels_select".
  */
 export interface AnnouncementChannelsSelect<T extends boolean = true> {
+  internalName?: T;
   name?: T;
   description?: T;
   targetType?: T;
