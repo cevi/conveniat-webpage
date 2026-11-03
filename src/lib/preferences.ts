@@ -43,6 +43,12 @@ const preferences = {
     fallback: false,
     keepOnLogout: true,
   }),
+  /** The last queries of the site search, newest first, offered while its field is empty. */
+  'recent-searches': definePreference({
+    schema: z.array(z.string()),
+    fallback: [] as string[],
+    keepOnLogout: false,
+  }),
 };
 
 export type PreferenceKey = keyof typeof preferences;

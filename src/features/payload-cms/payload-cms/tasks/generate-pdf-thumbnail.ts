@@ -8,13 +8,21 @@ import type { Payload, PayloadRequest, TaskConfig } from 'payload';
 
 const execAsync = promisify(exec);
 
-const downloadPdf = async (documentUrl: string, destinationPath: string): Promise<void> => {
+/** Downloads a document's file to a local path, for the command line tools of poppler. */
+export const downloadPdf = async (documentUrl: string, destinationPath: string): Promise<void> => {
   const response = await fetch(documentUrl);
   if (!response.ok) {
     throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
   }
   const arrayBuffer = await response.arrayBuffer();
   await fs.writeFile(destinationPath, Buffer.from(arrayBuffer));
+};
+
+/** The file URL of a document, which Payload stores relative to the app, as an absolute URL. */
+export const absoluteDocumentUrl = (url: string): string => {
+  if (!url.startsWith('/')) return url;
+  const hostUrl = environmentVariables.APP_HOST_URL || 'http://localhost:3000';
+  return `${hostUrl}${url}`;
 };
 
 const extractFirstPage = async (
@@ -124,11 +132,7 @@ export const generatePdfThumbnailTask: TaskConfig<{
         return { output: { success: true } };
       }
 
-      let documentUrl = document_.url;
-      if (documentUrl.startsWith('/')) {
-        const hostUrl = environmentVariables.APP_HOST_URL || 'http://localhost:3000';
-        documentUrl = `${hostUrl}${documentUrl}`;
-      }
+      const documentUrl = absoluteDocumentUrl(document_.url);
 
       const tmpdir = await fs.mkdtemp(path.join(os.tmpdir(), 'pdf-thumb-'));
       const pdfPath = path.join(tmpdir, 'doc.pdf');

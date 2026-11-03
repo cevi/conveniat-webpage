@@ -10,7 +10,7 @@ import { searchPlugin } from '@payloadcms/plugin-search';
  *
  */
 export const searchPluginConfiguration = searchPlugin({
-  collections: ['generic-page'],
+  collections: ['generic-page', 'documents', 'timeline'],
   searchOverrides: searchOverrides,
   beforeSync: beforeSyncWithSearch,
   skipSync: skipSyncOfRestrictedDocuments,
