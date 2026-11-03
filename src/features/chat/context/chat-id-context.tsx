@@ -52,7 +52,10 @@ const ChatIdContext = createContext<ChatIdContextType | undefined>(undefined);
 
 interface ChatIdProviderProperties {
   children: ReactNode;
-  /** the chat outside its own route, like a sheet on the chat list; on the route the URL names it */
+  /**
+   * a chat named by what it belongs to, like a sheet on the chat list; it wins over the URL, which
+   * beside an open chat on a desktop names that other chat
+   */
   chatId?: string;
 }
 
@@ -60,12 +63,12 @@ export const ChatIdProvider: React.FC<ChatIdProviderProperties> = ({ children, c
   const pathname = usePathname();
   const openingChatId = useOpeningChat()?.openingChatId;
 
-  // On `/app/chat/<chatId>` the browser URL names the chat, also when the service worker
-  // replays a shell cached for another chat, or the router shows the App Shell it shares
-  // with every chat. A chat being opened from there is shown before its URL arrives.
+  // Without a named chat, on `/app/chat/<chatId>` the browser URL names it, also when the
+  // service worker replays a shell cached for another chat, or the router shows the App Shell
+  // it shares with every chat. A chat being opened from there is shown before its URL arrives.
   const chatIdFromPathname = CHAT_ID_FROM_PATHNAME.exec(pathname)?.[1];
   let resolvedChatId = chatId;
-  if (chatIdFromPathname !== undefined) {
+  if (chatId === undefined && chatIdFromPathname !== undefined) {
     resolvedChatId = openingChatId ?? decodeURIComponent(chatIdFromPathname);
   }
 

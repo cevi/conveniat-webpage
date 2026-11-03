@@ -80,6 +80,17 @@ describe('OpeningChatProvider', () => {
     expect(screen.getByTestId('open-chat').textContent).toBe('a');
   });
 
+  it('keeps the chat a sheet names beside an open chat', () => {
+    render(
+      <OpeningChatProvider>
+        <ChatIdProvider chatId="b">
+          <OpenChat />
+        </ChatIdProvider>
+      </OpeningChatProvider>,
+    );
+    expect(screen.getByTestId('open-chat').textContent).toBe('b');
+  });
+
   it('keeps the chat a sheet names, away from the chat route', () => {
     navigation.pathname = '/de/app/chat';
     render(
