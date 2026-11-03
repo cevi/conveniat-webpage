@@ -1,4 +1,4 @@
-import { getHelperShifts } from '@/features/schedule/api/get-helper-shifts';
+import { getHelperShift, getHelperShifts } from '@/features/schedule/api/get-helper-shifts';
 import { getFeatureFlag } from '@/lib/db/redis';
 import type { PrismaClient } from '@/lib/prisma';
 
@@ -116,6 +116,24 @@ describe('getHelperShifts', () => {
 
     expect(result).toHaveLength(2);
     expect(result.map((shift) => shift.id)).toEqual(['shift-open', 'shift-full-override']);
+  });
+
+  it('still opens a full shift the feed hides, by its id from a link', async () => {
+    (getFeatureFlag as jest.Mock).mockResolvedValue(true);
+    mockFind.mockResolvedValue({ docs: [sampleShifts[1]] });
+
+    const shift = await getHelperShift('shift-full', 'de');
+
+    expect(shift?.id).toBe('shift-full');
+    expect(mockFind).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: { equals: 'shift-full' } } }),
+    );
+  });
+
+  it('answers a link to a shift that does not exist with nothing', async () => {
+    mockFind.mockResolvedValue({ docs: [] });
+
+    expect(await getHelperShift('6ae9a4c098d18b5163544ca7', 'de')).toBeUndefined();
   });
 
   it('includes full shift if user is enrolled in it', async () => {

@@ -9,8 +9,8 @@ import {
 } from '@/features/payload-cms/components/form/utils/material-list';
 import { RESSORT_WISH_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { uploadedBySenderWhere } from '@/features/payload-cms/payload-cms/plugins/form/form-file-uploader';
+import { formRefusal } from '@/features/payload-cms/payload-cms/plugins/form/hooks/form-refusal';
 import type { Form, FormSubmission } from '@/features/payload-cms/payload-types';
-import type { Locale, StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import type { CollectionBeforeChangeHook } from 'payload';
 import { APIError } from 'payload';
@@ -191,13 +191,7 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
     const isRequired = 'required' in fieldConfig && fieldConfig.required === true;
     if (isRequired && !hasValue) {
       if (fieldConfig.blockType === 'ceviDbLogin') {
-        const locale = (req.locale ?? 'en') as Locale;
-        const requiredMessage: StaticTranslationString = {
-          en: `Field "${fieldName}" is required. Please log in with Cevi.DB.`,
-          de: `Feld "${fieldName}" ist erforderlich. Bitte melden Sie sich mit Cevi.DB an.`,
-          fr: `Le champ "${fieldName}" ist obligatoire. Veuillez vous connecter avec Cevi.DB.`,
-        };
-        throw new APIError(requiredMessage[locale], 400, undefined, true);
+        throw formRefusal(req, 400, 'loginFieldRequired', { field: fieldName });
       } else {
         fieldErrors.push({ field: fieldName, message: 'required' });
         continue;
@@ -209,16 +203,10 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
     // Type-specific validation
     switch (fieldConfig.blockType) {
       case 'ceviDbLogin': {
-        const locale = (req.locale ?? 'en') as Locale;
         const currentSession = await getSession();
 
         if (currentSession?.user === undefined) {
-          const loginRequiredMessage: StaticTranslationString = {
-            en: 'You must be logged in to submit this field.',
-            de: 'Sie müssen angemeldet sein, um dieses Feld abzusenden.',
-            fr: 'Vous devez être connecté pour soumettre ce champ.',
-          };
-          throw new APIError(loginRequiredMessage[locale], 401, undefined, true);
+          throw formRefusal(req, 401, 'loginRequired');
         }
 
         let sessionValue: string | number | undefined | null;
@@ -246,12 +234,7 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
         const sessionString = String(sessionValue ?? '').trim();
 
         if (value !== sessionString) {
-          const integrityMessage: StaticTranslationString = {
-            en: `Validation failed for field "${fieldName}". The submitted value does not match your logged-in user.`,
-            de: `Validierung fehlgeschlagen für Feld "${fieldName}". Der übermittelte Wert stimmt nicht mit Ihrem angemeldeten Benutzer überein.`,
-            fr: `La validation a échoué pour le champ "${fieldName}". La valeur soumise ne correspond pas à votre utilisateur connecté.`,
-          };
-          throw new APIError(integrityMessage[locale], 403, undefined, true);
+          throw formRefusal(req, 403, 'loginMismatch', { field: fieldName });
         }
         break;
       }

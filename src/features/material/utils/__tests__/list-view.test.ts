@@ -1,4 +1,6 @@
+import { materialErrorTexts } from '@/features/material/error-texts';
 import { pageLinks, pageWindow, summariseBulk } from '@/features/material/utils/list-view';
+import { formatErrorText } from '@/utils/user-error-message';
 
 describe('pageWindow', () => {
   it('shows one page of rows', () => {
@@ -56,13 +58,24 @@ describe('pageLinks', () => {
 });
 
 describe('summariseBulk', () => {
-  it('counts results and keeps distinct reasons', () => {
+  it('counts results and says each distinct reason once, in the page’s language', () => {
     expect(
-      summariseBulk([
-        { id: '1', ok: true },
-        { id: '2', ok: false, error: 'Not on shelf' },
-        { id: '3', ok: false, error: 'Not on shelf' },
-      ]),
-    ).toEqual({ done: 1, failed: 2, errors: ['Not on shelf'] });
+      summariseBulk(
+        [
+          { id: '1', ok: true },
+          { id: '2', ok: false, reason: 'notOnShelf', params: { n: 2, item: 'Zelt' } },
+          { id: '3', ok: false, reason: 'notOnShelf', params: { n: 2, item: 'Zelt' } },
+          { id: '4', ok: false },
+        ],
+        'fr',
+      ),
+    ).toEqual({
+      done: 1,
+      failed: 3,
+      errors: [
+        formatErrorText(materialErrorTexts.notOnShelf.fr, { n: 2, item: 'Zelt' }),
+        'Erreur inattendue.',
+      ],
+    });
   });
 });

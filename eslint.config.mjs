@@ -181,7 +181,6 @@ const config = defineConfig([
       'src/hooks/use-native-push.ts',
       'src/lib/chat-sync.ts',
       'src/lib/posthog-client.ts',
-      'src/lib/toast.ts',
       'src/utils/login-handler.ts',
     ],
   },

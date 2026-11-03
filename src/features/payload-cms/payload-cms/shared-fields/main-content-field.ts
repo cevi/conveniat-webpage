@@ -9,6 +9,7 @@ import { countdownBlock } from '@/features/payload-cms/payload-cms/shared-blocks
 import { detailsTable } from '@/features/payload-cms/payload-cms/shared-blocks/details-table';
 import { donationBarometerBlock } from '@/features/payload-cms/payload-cms/shared-blocks/donation-barometer-block';
 import { donationCtaBlock } from '@/features/payload-cms/payload-cms/shared-blocks/donation-cta-block';
+import { factListBlock } from '@/features/payload-cms/payload-cms/shared-blocks/fact-list-block';
 import { featuredSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/featured-section-block';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
@@ -30,6 +31,7 @@ import { swisstopoMapEmbedBlock } from '@/features/payload-cms/payload-cms/share
 import { tabsBlock } from '@/features/payload-cms/payload-cms/shared-blocks/tabs-block';
 import { timelineEntries } from '@/features/payload-cms/payload-cms/shared-blocks/timeline-entries';
 import { twoColumnBlock } from '@/features/payload-cms/payload-cms/shared-blocks/two-column-block';
+import { visitDayFinderBlock } from '@/features/payload-cms/payload-cms/shared-blocks/visit-day-finder-block';
 import { whiteSpaceBlock } from '@/features/payload-cms/payload-cms/shared-blocks/white-space-block';
 import { youtubeEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/youtube-embed-block';
 import type { Block, BlocksField, Field } from 'payload';
@@ -41,6 +43,8 @@ export const mainContentBlocks: Block[] = [
   richTextArticleBlock,
   mediaTextBlock,
   processStepsBlock,
+  factListBlock,
+  visitDayFinderBlock,
   formBlock,
   approvedFormSubmissionsBlock,
   photoCarouselBlock,
@@ -70,13 +74,18 @@ export const mainContentBlocks: Block[] = [
   tabsBlock,
 ];
 
-/** The content blocks an editor is offered: the Hof dashboard only where it is switched on. */
-export const mainContentBlockOptions: NonNullable<BlocksField['filterOptions']> = () =>
-  environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD
-    ? true
-    : mainContentBlocks
-        .map((block) => block.slug)
-        .filter((slug) => slug !== hofDashboardBlock.slug);
+/**
+ * The content blocks an editor is offered: the Hof dashboard and the Besuchstag search only where
+ * they are switched on.
+ */
+export const mainContentBlockOptions: NonNullable<BlocksField['filterOptions']> = () => {
+  const hidden = new Set<string>([
+    ...(environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD ? [] : [hofDashboardBlock.slug]),
+    ...(environmentVariables.FEATURE_ENABLE_VISIT_DAY ? [] : [visitDayFinderBlock.slug]),
+  ]);
+  if (hidden.size === 0) return true;
+  return mainContentBlocks.map((block) => block.slug).filter((slug) => !hidden.has(slug));
+};
 
 export const mainContentField: Field = {
   name: 'mainContent',

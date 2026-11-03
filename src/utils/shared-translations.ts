@@ -29,3 +29,15 @@ export const offlineLongTextTranslation: StaticTranslationString = {
   de: 'Es sieht so aus, als hätten Sie Ihre Internetverbindung verloren. Bitte überprüfen Sie Ihre Netzwerkeinstellungen oder versuchen Sie es später erneut.',
   fr: 'Il semble que vous ayez perdu votre connexion Internet. Veuillez vérifier vos paramètres réseau ou réessayer plus tard.',
 };
+
+export const noConnectionTranslation: StaticTranslationString = {
+  de: 'Keine Verbindung. Versuche es erneut, sobald du wieder Empfang hast.',
+  en: 'No connection. Try again once you have signal.',
+  fr: 'Pas de connexion. Réessaie dès que tu as du réseau.',
+};
+
+export const invalidInputTranslation: StaticTranslationString = {
+  de: 'Die Angaben sind ungültig. Lade die Seite neu und versuche es nochmals.',
+  en: 'The input is invalid. Reload the page and try again.',
+  fr: 'Les données sont invalides. Recharge la page et réessaie.',
+};

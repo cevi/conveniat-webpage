@@ -56,6 +56,13 @@ const fullBleedBlockClassNames: Partial<Record<ContentBlockTypeNames, string>> =
 const isFullBleedBlock = (blockType: ContentBlockTypeNames): boolean =>
   fullBleedBlockClassNames[blockType] !== undefined;
 
+/** Blocks that read as part of the text around them, so they keep the text's measure. */
+const TEXT_MEASURE_BLOCKS: ReadonlySet<string> = new Set([
+  'richTextSection',
+  'factList',
+  'visitDayFinder',
+]);
+
 const SectionWrapper = async ({
   block,
   sectionClassName,
@@ -143,10 +150,10 @@ const SectionWrapper = async ({
       >
         <div
           className={cn('w-full', {
-            'max-w-[840px]': block.blockType === 'richTextSection',
+            'max-w-[840px]': TEXT_MEASURE_BLOCKS.has(block.blockType),
             'max-w-[1120px]':
               !isFullBleedBlock(block.blockType) &&
-              block.blockType !== 'richTextSection' &&
+              !TEXT_MEASURE_BLOCKS.has(block.blockType) &&
               block.blockType !== 'twoColumnBlock' &&
               block.blockType !== 'formBlock' &&
               // a working surface, laid out in columns of its own on a wide screen

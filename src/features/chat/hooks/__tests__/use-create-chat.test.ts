@@ -29,8 +29,12 @@ jest.mock('@/trpc/client', () => ({
   },
 }));
 
-jest.mock('@/lib/toast', () => ({
-  toast: { success: jest.fn(), error: jest.fn() },
+jest.mock('sonner', () => ({
+  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() }),
+}));
+
+jest.mock('@/hooks/use-current-locale', () => ({
+  useCurrentLocale: (): string => 'de',
 }));
 
 const mockRouterReplace = jest.fn();

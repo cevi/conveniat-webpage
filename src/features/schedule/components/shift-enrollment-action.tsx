@@ -12,16 +12,18 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/buttons/button';
 /* eslint-enable import/no-restricted-paths */
+import { EnrolmentFailure, isFullRefusal } from '@/features/schedule/components/enrolment-failure';
 import { ShiftConflictDialog } from '@/features/schedule/components/shift-conflict-dialog';
 import { useShiftStatus } from '@/features/schedule/hooks/use-shift-status';
 import { useIsUnenrollmentClosed } from '@/features/schedule/hooks/use-unenrollment-window';
-import { UNENROLLMENT_DEADLINE_PASSED } from '@/features/schedule/utils/unenrollment-deadline';
+import { isDeadlinePassed, timeConflictOf } from '@/features/schedule/utils/time-conflict';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { errorReasonOf } from '@/utils/user-error-message';
 import { AlertTriangle, CheckCircle, Loader2, Lock, RefreshCw, WifiOff } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import React, { useState } from 'react';
@@ -36,12 +38,6 @@ const localizedUnenroll: StaticTranslationString = {
   de: 'Abmelden',
   en: 'Unenroll',
   fr: 'Se désinscrire',
-};
-
-const localizedFull: StaticTranslationString = {
-  de: 'Ausgebucht',
-  en: 'Fully booked',
-  fr: 'Complet',
 };
 
 const localizedEnrolled: StaticTranslationString = {
@@ -183,6 +179,18 @@ export const ShiftEnrollmentAction: React.FC<{
     conflictingShiftStatus?.unenrollmentDeadline,
   );
 
+  /**
+   * A refusal means the shift changed since the page loaded: show it as it is now. Once the
+   * status says "full", the refusal has said all it had to, and resetting it keeps it from
+   * coming back as a stale line should a place free up later.
+   */
+  const refreshAfterRefusal = (error: unknown, reset: () => void): void => {
+    if (errorReasonOf(error) === undefined) return;
+    void utils.shifts.getShiftStatus.invalidate().then(() => {
+      if (isFullRefusal(error)) reset();
+    });
+  };
+
   const enroll = trpc.shifts.enrollInShift.useMutation({
     onSuccess: () => {
       void utils.shifts.getShiftStatus.invalidate();
@@ -193,23 +201,14 @@ export const ShiftEnrollmentAction: React.FC<{
       setConflictInfo(undefined);
     },
     onError: (error) => {
-      if (error.message.includes('Time conflict with')) {
-        const isShift = error.message.includes('with shift:');
-
-        const match = error.message.match(
-          /Time conflict with(?: (?:shift|workshop):)?\s*(.+)\|(.+)/,
-        );
-        if (match) {
-          const conflictingCourseName = match[1] ?? 'another entry';
-          const conflictingCourseId = match[2] ?? '';
-          setConflictType(isShift ? 'shift' : 'workshop');
-          setConflictInfo({
-            conflictingCourseName,
-            conflictingCourseId,
-          });
-          setConflictDialogOpen(true);
-        }
+      const conflict = timeConflictOf(error);
+      if (conflict === undefined) {
+        refreshAfterRefusal(error, () => enroll.reset());
+        return;
       }
+      setConflictType(conflict.kind);
+      setConflictInfo({ conflictingCourseName: conflict.title, conflictingCourseId: conflict.id });
+      setConflictDialogOpen(true);
     },
   });
 
@@ -224,14 +223,23 @@ export const ShiftEnrollmentAction: React.FC<{
     },
     onError: (error) => {
       // switching away from a shift is a withdrawal from it, so it hits the same deadline
-      if (error.message.includes(UNENROLLMENT_DEADLINE_PASSED)) {
+      if (isDeadlinePassed(error)) {
         setWasRejectedAsTooLate(true);
         void utils.shifts.getShiftStatus.invalidate();
         return;
       }
-      console.error('Switch enrollment failed:', error.message);
+      refreshAfterRefusal(error, () => switchEnrollment.reset());
     },
   });
+
+  // a cancelled conflict leaves nothing behind, so the next failure is reported again
+  const handleConflictDialogChange = (open: boolean): void => {
+    setConflictDialogOpen(open);
+    if (open) return;
+    setConflictInfo(undefined);
+    enroll.reset();
+    switchEnrollment.reset();
+  };
 
   const unenroll = trpc.shifts.unenrollFromShift.useMutation({
     onSuccess: () => {
@@ -241,7 +249,7 @@ export const ShiftEnrollmentAction: React.FC<{
       void utils.shifts.getShifts.invalidate();
     },
     onError: (error) => {
-      if (error.message.includes(UNENROLLMENT_DEADLINE_PASSED)) {
+      if (isDeadlinePassed(error)) {
         setWasRejectedAsTooLate(true);
         void utils.shifts.getShiftStatus.invalidate();
       }
@@ -254,7 +262,7 @@ export const ShiftEnrollmentAction: React.FC<{
   // loading by that definition, so keep the skeleton up while its refetch is in flight too.
   if (isLoading || (isFetching && !status)) {
     return isCard ? (
-      <div className="bg-quiet h-11 w-28 shrink-0 animate-pulse rounded-xl" />
+      <div className="bg-quiet ml-auto h-11 w-28 shrink-0 animate-pulse rounded-xl" />
     ) : (
       <div className="bg-quiet h-11 w-full animate-pulse rounded-xl" />
     );
@@ -270,7 +278,7 @@ export const ShiftEnrollmentAction: React.FC<{
       return (
         <span
           title={isOffline ? localizedOffline[locale] : localizedUnavailable[locale]}
-          className="flex shrink-0 items-center gap-1.5 text-[13px] text-green-700"
+          className="ml-auto flex shrink-0 items-center gap-1.5 text-[13px] text-green-700"
         >
           {isOffline ? (
             <WifiOff className="h-3.5 w-3.5" />
@@ -324,6 +332,23 @@ export const ShiftEnrollmentAction: React.FC<{
   };
   const isFull = maxParticipants !== undefined && enrolledCount >= maxParticipants;
 
+  // a conflict opens its own dialog and a passed deadline shows the lock; anything else would
+  // otherwise fail without a word
+  const notTooLate = <T,>(error: T | null): T | undefined =>
+    error === null || isDeadlinePassed(error) ? undefined : error;
+  const failure =
+    (conflictInfo === undefined ? notTooLate(enroll.error) : undefined) ??
+    notTooLate(unenroll.error) ??
+    notTooLate(switchEnrollment.error);
+  const failedLine = failure !== undefined && !(isFull && isFullRefusal(failure)) && (
+    // on the card it takes the whole width under the capacity and the button
+    <EnrolmentFailure
+      error={failure}
+      locale={locale}
+      className={cn(isCard ? 'basis-full' : 'mt-2')}
+    />
+  );
+
   if (isEnrolled) {
     /**
      * The window is closed either because the deadline the server sent has passed, or because the
@@ -335,27 +360,32 @@ export const ShiftEnrollmentAction: React.FC<{
     if (isCard) {
       // The pill beside the card's title already says "Angemeldet", so this row only has to carry
       // the way out - or, once the window has shut, the fact that there is none.
-      return isWithdrawalClosed ? (
-        // a pill of the same height and shape as the buttons it stands in for, so a feed of
-        // cards in mixed states still lines up along one baseline
-        <span
-          title={localizedUnenrollClosedHint[locale]}
-          className="bg-quiet inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-[13px] font-semibold text-green-700"
-        >
-          <Lock className="h-4 w-4" aria-hidden="true" />
-          {localizedUnenrollClosedShort[locale]}
-        </span>
-      ) : (
-        <Button
-          variant="danger"
-          size="touch"
-          onClick={() => unenroll.mutate({ shiftId })}
-          disabled={unenroll.isPending}
-          className="shrink-0"
-        >
-          {unenroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
-          {localizedUnenroll[locale]}
-        </Button>
+      return (
+        <>
+          {isWithdrawalClosed ? (
+            // a pill of the same height and shape as the buttons it stands in for, so a feed of
+            // cards in mixed states still lines up along one baseline
+            <span
+              title={localizedUnenrollClosedHint[locale]}
+              className="bg-quiet ml-auto inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-[13px] font-semibold text-green-700"
+            >
+              <Lock className="h-4 w-4" aria-hidden="true" />
+              {localizedUnenrollClosedShort[locale]}
+            </span>
+          ) : (
+            <Button
+              variant="danger"
+              size="touch"
+              onClick={() => unenroll.mutate({ shiftId })}
+              disabled={unenroll.isPending}
+              className="ml-auto shrink-0"
+            >
+              {unenroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
+              {localizedUnenroll[locale]}
+            </Button>
+          )}
+          {failedLine}
+        </>
       );
     }
 
@@ -401,6 +431,7 @@ export const ShiftEnrollmentAction: React.FC<{
             </p>
           </div>
         )}
+        {failedLine}
       </div>
     );
   }
@@ -418,7 +449,7 @@ export const ShiftEnrollmentAction: React.FC<{
           <Button
             variant={isAuthorized ? 'outlined' : 'quiet'}
             size="touch"
-            className={cn('shrink-0', enroll.isPending && 'opacity-80')}
+            className={cn('ml-auto shrink-0', enroll.isPending && 'opacity-80')}
             disabled={enroll.isPending || !isAuthorized}
             onClick={handleEnrolClick}
           >
@@ -426,25 +457,24 @@ export const ShiftEnrollmentAction: React.FC<{
             {localizedEnroll[locale]}
           </Button>
         )}
-      {!isCard && (
+      {/*
+        No "Ausgebucht" button once the shift is full: the capacity row above already says so in
+        red, as the card and a full workshop do, and a control that does nothing only looks
+        tappable.
+      */}
+      {!isCard && !isFull && (
         <Button
-          variant={isFull || !isAuthorized ? 'quiet' : 'primary'}
+          variant={isAuthorized ? 'primary' : 'quiet'}
           size="touch"
-          className={cn(
-            'w-full',
-            // a full shift is a state to read, not a greyed-out control: keep its text legible
-            isFull && 'text-green-700 disabled:opacity-100',
-            enroll.isPending && 'opacity-80',
-          )}
-          disabled={isFull || enroll.isPending || !isAuthorized}
+          className={cn('w-full', enroll.isPending && 'opacity-80')}
+          disabled={enroll.isPending || !isAuthorized}
           onClick={handleEnrolClick}
         >
           {enroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
-          {enroll.isPending && `${localizedEnroll[locale]}...`}
-          {!enroll.isPending && isFull && localizedFull[locale]}
-          {!enroll.isPending && !isFull && localizedEnroll[locale]}
+          {enroll.isPending ? `${localizedEnroll[locale]}...` : localizedEnroll[locale]}
         </Button>
       )}
+      {failedLine}
 
       <AlertDialog open={noWithdrawalDialogOpen} onOpenChange={setNoWithdrawalDialogOpen}>
         <AlertDialogContent>
@@ -486,7 +516,7 @@ export const ShiftEnrollmentAction: React.FC<{
 
       <ShiftConflictDialog
         open={conflictDialogOpen}
-        onOpenChange={setConflictDialogOpen}
+        onOpenChange={handleConflictDialogChange}
         conflictType={conflictType}
         conflictingName={conflictInfo?.conflictingCourseName ?? ''}
         conflictingId={conflictInfo?.conflictingCourseId ?? ''}

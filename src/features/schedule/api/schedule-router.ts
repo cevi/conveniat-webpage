@@ -5,6 +5,7 @@ import {
 } from '@/features/chat/api/utils/system-message-helpers'; // eslint-disable-line import/no-restricted-paths
 import { ensureOrganiserStars } from '@/features/schedule/api/organiser-entries';
 import { remindersRouter } from '@/features/schedule/api/reminders-router';
+import { legacyTimeConflict, scheduleError } from '@/features/schedule/api/schedule-errors';
 import { assertUnenrollmentIsOpen } from '@/features/schedule/api/shift-withdrawal-guard';
 import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
@@ -22,7 +23,6 @@ import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists
 import { convertLexicalToMarkdown, convertMarkdownToLexical } from '@/utils/markdown-to-lexical';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
-import { TRPCError } from '@trpc/server';
 import { getPayload } from 'payload';
 import { z } from 'zod';
 
@@ -85,6 +85,16 @@ export const scheduleRouter = createTRPCRouter({
     const { getHelperShifts } = await import('./get-helper-shifts');
     return getHelperShifts({}, locale, { prisma, user });
   }),
+
+  /** A shift the feed hides because it is full still opens from a link, see `getHelperShift`. */
+  getHelperShift: publicProcedure
+    .input(z.object({ id: z.string().regex(/^[\da-f]{24}$/i) }))
+    .query(async ({ ctx, input }) => {
+      const { getHelperShift } = await import('./get-helper-shifts');
+      // React Query keeps no `undefined`; `null` is a shift that does not exist
+      // eslint-disable-next-line unicorn/no-null
+      return (await getHelperShift(input.id, ctx.locale)) ?? null;
+    }),
 
   getCourseStatus: publicProcedure.input(enrollInCourseSchema).query(async ({ input, ctx }) => {
     const { prisma, user } = ctx;
@@ -310,10 +320,7 @@ export const scheduleRouter = createTRPCRouter({
       const isOrganiser = isOrganiserOf(course.organiser, user.uuid);
 
       if (course.enable_enrolment === false) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Enrolment is not enabled for this course.',
-        });
+        throw scheduleError('BAD_REQUEST', 'workshopEnrolmentClosed');
       }
 
       // Acquire advisory lock to prevent race condition when checking/updating capacity
@@ -327,7 +334,7 @@ export const scheduleRouter = createTRPCRouter({
         course.participants_max !== undefined &&
         currentCount >= course.participants_max
       ) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Course is already full.' });
+        throw scheduleError('BAD_REQUEST', 'workshopFull');
       }
 
       // Check conflicts against other workshops (PROGRAM)
@@ -355,11 +362,12 @@ export const scheduleRouter = createTRPCRouter({
               other.timeslot.date,
             )
           ) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              // Format: "Time conflict with [TITLE]|[ID]" - the ID is used for switch enrollment
-              message: `Time conflict with ${other.title}|${other.id}`,
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'workshop', title: other.title, id: other.id },
+              legacyTimeConflict('workshop', other.title, other.id),
+            );
           }
         }
       }
@@ -389,10 +397,12 @@ export const scheduleRouter = createTRPCRouter({
               String(other.timeslot.date),
             )
           ) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              message: `Time conflict with shift: ${String(other.title)}|${String(other.id)}`,
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'shift', title: String(other.title), id: String(other.id) },
+              legacyTimeConflict('shift', String(other.title), String(other.id)),
+            );
           }
         }
       }
@@ -508,10 +518,7 @@ export const scheduleRouter = createTRPCRouter({
       });
 
       if (!existingEnrollment) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'You are not enrolled in the course you are trying to switch from.',
-        });
+        throw scheduleError('BAD_REQUEST', 'notEnrolledInSource');
       }
 
       // Switching away from a shift is a withdrawal from it, so it closes at the same moment.
@@ -521,10 +528,7 @@ export const scheduleRouter = createTRPCRouter({
 
       // Verify enrollment is enabled for the target course
       if (toCourse.enable_enrolment === false) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Enrollment is not enabled for the target course.',
-        });
+        throw scheduleError('BAD_REQUEST', 'workshopEnrolmentClosed');
       }
 
       // Acquire advisory lock to prevent race condition when checking/updating capacity
@@ -538,10 +542,7 @@ export const scheduleRouter = createTRPCRouter({
         toCourse.participants_max !== undefined &&
         currentCount >= toCourse.participants_max
       ) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Target course is already full.',
-        });
+        throw scheduleError('BAD_REQUEST', 'workshopFull');
       }
 
       // Note: We don't verify overlap here - the client is calling this endpoint
@@ -587,10 +588,12 @@ export const scheduleRouter = createTRPCRouter({
               other.timeslot.date,
             )
           ) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              message: `Time conflict with ${other.title}`,
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'workshop', title: other.title, id: other.id },
+              legacyTimeConflict('workshop', other.title, other.id),
+            );
           }
         }
       }
@@ -616,10 +619,12 @@ export const scheduleRouter = createTRPCRouter({
               String(other.timeslot.date),
             )
           ) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              message: `Time conflict with shift: ${String(other.title)}`,
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'shift', title: String(other.title), id: String(other.id) },
+              legacyTimeConflict('shift', String(other.title), String(other.id)),
+            );
           }
         }
       }
@@ -848,17 +853,14 @@ export const scheduleRouter = createTRPCRouter({
 
       const organisers = (course.organiser ?? []) as string[];
       if (!organisers.includes(user.uuid)) {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Only organisers can update details.' });
+        throw scheduleError('FORBIDDEN', 'onlyOrganisersEdit');
       }
 
       // Validate maxParticipants
       if (input.maxParticipants !== undefined) {
         const currentCount = await prisma.enrollment.count({ where: { courseId: input.courseId } });
         if (input.maxParticipants < currentCount) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Max participants cannot be less than current enrolled count.',
-          });
+          throw scheduleError('BAD_REQUEST', 'maxBelowEnrolled');
         }
       }
 
@@ -899,10 +901,7 @@ export const scheduleRouter = createTRPCRouter({
 
       const organisers = (course.organiser ?? []) as string[];
       if (!organisers.includes(user.uuid)) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Only organisers can create the group chat.',
-        });
+        throw scheduleError('FORBIDDEN', 'onlyOrganisersChat');
       }
 
       // Check if a chat already exists for this course

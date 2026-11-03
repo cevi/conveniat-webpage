@@ -364,6 +364,8 @@ export interface GenericPage {
         }
       | MediaTextBlock
       | ProcessStepsBlock
+      | FactListBlock
+      | VisitDayFinderBlock
       | FormBlock
       | ApprovedFormSubmissionsBlock
       | {
@@ -1294,6 +1296,59 @@ export interface ProcessStepsBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'processSteps';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FactListBlock".
+ */
+export interface FactListBlock {
+  /**
+   * Optional. Shown small and in capitals above the card, e.g. "Rules".
+   */
+  title?: string | null;
+  facts: {
+    icon:
+      | 'users'
+      | 'calendar'
+      | 'clock'
+      | 'mapPin'
+      | 'train'
+      | 'car'
+      | 'ticket'
+      | 'wallet'
+      | 'utensils'
+      | 'backpack'
+      | 'tent'
+      | 'mail'
+      | 'phone'
+      | 'shield'
+      | 'info';
+    /**
+     * Short, e.g. "Public transport only".
+     */
+    title: string;
+    /**
+     * Optional. A line of detail under the title.
+     */
+    description?: string | null;
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'factList';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "VisitDayFinderBlock".
+ */
+export interface VisitDayFinderBlock {
+  /**
+   * Optional. Shown small and in capitals above the search, e.g. "Your visiting day". The Höfe and their days come from the visiting day settings.
+   */
+  title?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'visitDayFinder';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3968,25 +4023,45 @@ export interface FormCollection {
  */
 export interface AnnouncementChannel {
   id: string;
+  /**
+   * Only visible in the admin panel. Pick this name when you link an announcement to the channel.
+   */
+  internalName: string;
+  chatUuid?: string | null;
+  /**
+   * Shown to all members as the name of the chat.
+   */
   name: string;
   description?: string | null;
-  targetType: 'all' | 'roles' | 'cevi_groups';
-  targetRoles?: ('full-admin' | 'web-core-team' | 'translation-team' | 'program-team')[] | null;
-  targetCeviGroups?:
-    | {
-        groupId: number;
-        groupName: string;
-        id?: string | null;
-      }[]
-    | null;
-  allowEmojiReactions?: boolean | null;
-  allowThreads?: boolean | null;
-  allowThreadReplies?: boolean | null;
   /**
    * Pinned channels stay at the top of the chat overview, above all other chats.
    */
   pinned?: boolean | null;
-  chatUuid?: string | null;
+  allowEmojiReactions?: boolean | null;
+  allowThreads?: boolean | null;
+  allowThreadReplies?: boolean | null;
+  targetType: 'all' | 'roles' | 'cevi_groups' | 'avps';
+  targetRoles?:
+    | (
+        | 'full-admin'
+        | 'web-core-team'
+        | 'translation-team'
+        | 'program-team'
+        | 'billing-team'
+        | 'material-team'
+        | 'hof-dashboard-reviewer'
+      )[]
+    | null;
+  /**
+   * Everyone who is in one of these groups in Cevi.DB. Pick a group by its name or type its ID.
+   */
+  targetCeviGroups?:
+    | {
+        groupId: number;
+        groupName?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -5310,6 +5385,8 @@ export interface GenericPageSelect<T extends boolean = true> {
                   };
               mediaText?: T | MediaTextBlockSelect<T>;
               processSteps?: T | ProcessStepsBlockSelect<T>;
+              factList?: T | FactListBlockSelect<T>;
+              visitDayFinder?: T | VisitDayFinderBlockSelect<T>;
               formBlock?: T | FormBlockSelect<T>;
               approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
               photoCarousel?:
@@ -5505,6 +5582,32 @@ export interface ProcessStepsBlockSelect<T extends boolean = true> {
         description?: T;
         id?: T;
       };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FactListBlock_select".
+ */
+export interface FactListBlockSelect<T extends boolean = true> {
+  title?: T;
+  facts?:
+    | T
+    | {
+        icon?: T;
+        title?: T;
+        description?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "VisitDayFinderBlock_select".
+ */
+export interface VisitDayFinderBlockSelect<T extends boolean = true> {
+  title?: T;
   id?: T;
   blockName?: T;
 }
@@ -6567,8 +6670,14 @@ export interface HelperJobsSelect<T extends boolean = true> {
  * via the `definition` "announcement-channels_select".
  */
 export interface AnnouncementChannelsSelect<T extends boolean = true> {
+  internalName?: T;
+  chatUuid?: T;
   name?: T;
   description?: T;
+  pinned?: T;
+  allowEmojiReactions?: T;
+  allowThreads?: T;
+  allowThreadReplies?: T;
   targetType?: T;
   targetRoles?: T;
   targetCeviGroups?:
@@ -6578,11 +6687,6 @@ export interface AnnouncementChannelsSelect<T extends boolean = true> {
         groupName?: T;
         id?: T;
       };
-  allowEmojiReactions?: T;
-  allowThreads?: T;
-  allowThreadReplies?: T;
-  pinned?: T;
-  chatUuid?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -8427,6 +8531,8 @@ export interface AppLandingPage {
           }
         | MediaTextBlock
         | ProcessStepsBlock
+        | FactListBlock
+        | VisitDayFinderBlock
         | FormBlock
         | ApprovedFormSubmissionsBlock
         | {
@@ -9264,6 +9370,8 @@ export interface AppLandingPageSelect<T extends boolean = true> {
             };
         mediaText?: T | MediaTextBlockSelect<T>;
         processSteps?: T | ProcessStepsBlockSelect<T>;
+        factList?: T | FactListBlockSelect<T>;
+        visitDayFinder?: T | VisitDayFinderBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
         approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
         photoCarousel?:

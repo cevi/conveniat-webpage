@@ -9,13 +9,17 @@ export interface LexicalRichText {
   root?: LexicalNode;
 }
 
+/** The nodes that stand on their own lines, separated by a blank line. */
+const BLOCK_TYPES = new Set(['paragraph', 'list', 'heading', 'quote']);
+
 /**
  * Serializes a lexical rich text tree into the lightweight markdown dialect the
  * chat renders (see `format-message-content.tsx`).
  *
- * Both ways of breaking a line in the editor have to survive this conversion:
- * `paragraph` nodes for a hard break (enter) and `linebreak` nodes for a soft
- * break (shift+enter, and every newline of a pasted text block).
+ * Both ways of breaking a line in the editor have to survive this conversion, and
+ * stay apart: a new paragraph (enter) leaves a blank line, as it does in the editor,
+ * a soft break (shift+enter, and every newline of a pasted text block) only starts
+ * a new line. The chat cannot tell the two apart once both are a newline.
  */
 export const serializeLexicalToMarkdown = (node: LexicalNode | null | undefined): string => {
   if (node === undefined || node === null) return '';
@@ -42,10 +46,29 @@ export const serializeLexicalToMarkdown = (node: LexicalNode | null | undefined)
     return childrenText;
   }
   if (node.children !== undefined) {
-    const childrenText = node.children.map((child) => serializeLexicalToMarkdown(child)).join('');
-    if (node.type === 'paragraph') return childrenText + '\n';
-    if (node.type === 'listitem') return `- ${childrenText}\n`;
-    return childrenText;
+    const children = node.children;
+    if (node.type === 'list') {
+      return children.map((child) => serializeLexicalToMarkdown(child)).join('\n');
+    }
+    if (node.type === 'listitem') {
+      // a nested list starts on the line after its item
+      const itemText = children
+        .map((child) => {
+          const childText = serializeLexicalToMarkdown(child);
+          return child.type === 'list' ? `\n${childText}` : childText;
+        })
+        .join('');
+      return `- ${itemText}`;
+    }
+    if (children.some((child) => BLOCK_TYPES.has(child.type))) {
+      // An empty paragraph adds no second gap: editors used it for the one the
+      // chat did not show between paragraphs.
+      return children
+        .map((child) => serializeLexicalToMarkdown(child))
+        .filter((block) => block.trim() !== '')
+        .join('\n\n');
+    }
+    return children.map((child) => serializeLexicalToMarkdown(child)).join('');
   }
   return '';
 };

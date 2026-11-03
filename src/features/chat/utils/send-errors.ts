@@ -1,4 +1,5 @@
 import type { AppRouter } from '@/trpc/routers/_app';
+import { isTransportError } from '@/utils/user-error-message';
 import { TRPCClientError } from '@trpc/client';
 
 /** Server answers that may succeed on a later attempt, so a queued item waits for them. */
@@ -8,15 +9,6 @@ const RETRYABLE_CODES: ReadonlySet<string> = new Set([
   'TIMEOUT',
   'TOO_MANY_REQUESTS',
 ]);
-
-/**
- * Whether a tRPC call failed before the server answered with a tRPC error: no connection,
- * the service worker giving up, or a proxy page instead of JSON. Only a real tRPC answer
- * carries `data`, so its absence is the signal. The message is useless for this, because it
- * differs per browser (Safari says "Load failed", Chrome "Failed to fetch").
- */
-export const isTransportError = (error: unknown): boolean =>
-  error instanceof TRPCClientError && error.data === undefined;
 
 /**
  * Whether a queued send should stay queued after this failure. Anything else is permanent:
@@ -29,10 +21,7 @@ export const isRetryableSendError = (error: unknown): boolean => {
   return code !== undefined && RETRYABLE_CODES.has(code);
 };
 
-/**
- * Whether the server turned the call away because the user sent too much too fast. The
- * error message is already in the user's language and says how to go on, so show it as is.
- */
+/** Whether the server turned the call away because the user sent too much too fast. */
 export const isRateLimitError = (error: unknown): error is TRPCClientError<AppRouter> =>
   error instanceof TRPCClientError &&
   (error as TRPCClientError<AppRouter>).data?.code === 'TOO_MANY_REQUESTS';

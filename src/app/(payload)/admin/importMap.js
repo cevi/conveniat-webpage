@@ -44,6 +44,10 @@ import { FolderTableCell as FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 import { FolderField as FolderField_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { DocumentUsageFilter as DocumentUsageFilter_681da369ca73cb04d87ca9256f8f38db } from '@/features/payload-cms/payload-cms/components/document-usage-filter'
 import { default as default_1e95e18ff98032b69bda4bd8327a52ac } from '@/features/payload-cms/payload-cms/components/pdf-report-generator-ui'
+import { CeviGroupPicker as CeviGroupPicker_76c57f5585cb65c2c36a314c5db9c752 } from '@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-picker'
+import { CeviGroupRowLabel as CeviGroupRowLabel_38817e2c6ebcba764ea26450d397de2b } from '@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-row-label'
+import { AudiencePreview as AudiencePreview_66b946c6443ed5e81bdd7eb37100b09b } from '@/features/payload-cms/payload-cms/components/announcement-channel/audience-preview'
+import { ChannelMembersField as ChannelMembersField_1b8c2f3810cac10d03bf806af07d9413 } from '@/features/payload-cms/payload-cms/components/announcement-channel/channel-members'
 import { AnnouncementPushSummaryField as AnnouncementPushSummaryField_52ba1255fb8c04822ec73339cebef801 } from '@/features/payload-cms/payload-cms/components/announcement-push-summary'
 import { AnnouncementTranslateMissingLanguages as AnnouncementTranslateMissingLanguages_1519d81df2f98fe32884c13868eadfc1 } from '@/features/payload-cms/payload-cms/components/announcement-translate-missing-languages'
 import { default as default_5e6e3bcc43a18e826de12d19a3b1de10 } from '@/features/payload-cms/payload-cms/components/fields/icon-select-field'
@@ -186,6 +190,10 @@ export const importMap = {
   "@payloadcms/next/rsc#FolderField": FolderField_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@/features/payload-cms/payload-cms/components/document-usage-filter#DocumentUsageFilter": DocumentUsageFilter_681da369ca73cb04d87ca9256f8f38db,
   "@/features/payload-cms/payload-cms/components/pdf-report-generator-ui#default": default_1e95e18ff98032b69bda4bd8327a52ac,
+  "@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-picker#CeviGroupPicker": CeviGroupPicker_76c57f5585cb65c2c36a314c5db9c752,
+  "@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-row-label#CeviGroupRowLabel": CeviGroupRowLabel_38817e2c6ebcba764ea26450d397de2b,
+  "@/features/payload-cms/payload-cms/components/announcement-channel/audience-preview#AudiencePreview": AudiencePreview_66b946c6443ed5e81bdd7eb37100b09b,
+  "@/features/payload-cms/payload-cms/components/announcement-channel/channel-members#ChannelMembersField": ChannelMembersField_1b8c2f3810cac10d03bf806af07d9413,
   "@/features/payload-cms/payload-cms/components/announcement-push-summary#AnnouncementPushSummaryField": AnnouncementPushSummaryField_52ba1255fb8c04822ec73339cebef801,
   "@/features/payload-cms/payload-cms/components/announcement-translate-missing-languages#AnnouncementTranslateMissingLanguages": AnnouncementTranslateMissingLanguages_1519d81df2f98fe32884c13868eadfc1,
   "@/features/payload-cms/payload-cms/components/fields/icon-select-field#default": default_5e6e3bcc43a18e826de12d19a3b1de10,

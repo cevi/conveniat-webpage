@@ -28,6 +28,13 @@ const localizedLeaveChat: StaticTranslationString = {
   fr: 'Quitter la discussion',
 };
 
+/** The question names the chat, so leaving the wrong one shows before it happens. */
+const localizedLeaveNamedChat: StaticTranslationString = {
+  en: 'Leave “{name}”?',
+  de: '«{name}» verlassen?',
+  fr: 'Quitter « {name} » ?',
+};
+
 const localizedLeaveChatWarning: StaticTranslationString = {
   en:
     'You will no longer receive or see the messages of this chat. The other members see ' +
@@ -64,6 +71,13 @@ const localizedCancel: StaticTranslationString = {
   fr: 'Annuler',
 };
 
+/** The confirming button; the question above it says what is left. */
+const localizedLeave: StaticTranslationString = {
+  en: 'Leave',
+  de: 'Verlassen',
+  fr: 'Quitter',
+};
+
 /**
  * The question before leaving a group chat, and the leaving. Reads the chat from the
  * surrounding `ChatIdProvider`, so the details and the chat list's actions ask the same.
@@ -89,6 +103,13 @@ export const LeaveChatDialog: React.FC<{
       (p) => p.id !== currentUser && p.chatPermission === ChatMembershipPermission.OWNER,
     );
 
+  // a chat whose details have not arrived yet is asked about without its name
+  const chatName = chatDetails?.name ?? '';
+  const title =
+    chatName === ''
+      ? localizedLeaveChat[locale]
+      : localizedLeaveNamedChat[locale].replace('{name}', chatName);
+
   const errorText =
     leaveChatMutation.error?.data?.code === 'PRECONDITION_FAILED'
       ? localizedNoSuccessor[locale]
@@ -105,7 +126,7 @@ export const LeaveChatDialog: React.FC<{
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{localizedLeaveChat[locale]}</AlertDialogTitle>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>
             {localizedLeaveChatWarning[locale]}
             {isLastOwner && ` ${localizedHandOverNotice[locale]}`}
@@ -135,7 +156,7 @@ export const LeaveChatDialog: React.FC<{
             ) : (
               <LogOut aria-hidden="true" />
             )}
-            {localizedLeaveChat[locale]}
+            {localizedLeave[locale]}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

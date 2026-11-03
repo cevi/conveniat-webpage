@@ -1,4 +1,5 @@
 'use client';
+import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { labels } from '@/features/material/components/material-labels';
 import {
@@ -117,10 +118,6 @@ const fromItem = (item: EditableItem | undefined): FormState => ({
   isDisabled: item?.isDisabled ?? false,
 });
 
-const showError = (error: { message: string }): void => {
-  toast.error(error.message);
-};
-
 /** Creates an article, or edits one; every field an article has is on this form. */
 export const ItemEditDialog: React.FC<{
   item?: EditableItem;
@@ -172,7 +169,10 @@ export const ItemEditDialog: React.FC<{
         router.replace(itemPath(data.code));
       }
     };
-    const options = { onSuccess, onError: showError };
+    const options = {
+      onSuccess,
+      onError: (error: unknown): void => toastMaterialError(error, locale),
+    };
     if (item === undefined) create.mutate(data, options);
     else update.mutate({ id: item.id, ...data }, options);
   };

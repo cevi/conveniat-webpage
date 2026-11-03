@@ -4,8 +4,12 @@ import { getChatDraftKey, useChatDraft } from '@/features/chat/hooks/use-chat-dr
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import { useTypingSignal } from '@/features/chat/hooks/use-typing';
 import { generateMessageId } from '@/features/chat/utils';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 import { trpc } from '@/trpc/client';
+import { i18nConfig, type Locale } from '@/types/types';
+import { errorReasonOf, userErrorMessage } from '@/utils/user-error-message';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 
@@ -41,6 +45,7 @@ const isGlobalMessagingEnabledIn = (
 ): boolean => featureFlags?.find((f) => f.key === FEATURE_FLAG_SEND_MESSAGES)?.isEnabled ?? true;
 
 export const useMessageInput = (): UseMessageInputLogicResult => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
   const [newMessage, setNewMessage] = useState(() => {
     const shareText = searchParameters.get('text');
@@ -120,25 +125,25 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
             }
           },
           onError: (error) => {
-            // The send waits in the outbox; the server's message says why, in the user's language.
+            // the send waits in the outbox; the refusal says why
             if (error.data?.code === 'TOO_MANY_REQUESTS') {
-              setSendError(error.message);
+              setSendError(userErrorMessage(error, locale, chatErrorTexts));
               return;
             }
             // offline sends are queued by useMessageSend. Any other failed bubble stays in the
             // list with its own retry, so the text is not put back into the composer. Only a
             // disabled chat is worth a banner, because retrying cannot help there.
-            if (error.message !== 'Messaging is disabled in this chat or globally.') return;
+            if (errorReasonOf(error)?.reason !== 'messagingDisabled') return;
             // the server knew before the flags did: disable the composer now
             trpcUtils.chat.getFeatureFlags.invalidate().catch(console.error);
-            const errorMessage = 'Messaging is currently disabled. Please try again later.';
-            setSendError(errorMessage);
+            setSendError(userErrorMessage(error, locale, chatErrorTexts));
           },
         },
       );
     },
     [
       chatId,
+      locale,
       sendMessageMutation,
       isGlobalMessagingEnabled,
       activeThreadId,

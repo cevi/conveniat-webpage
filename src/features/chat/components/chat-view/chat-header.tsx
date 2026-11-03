@@ -72,7 +72,7 @@ const iconButtonClassName =
  * a shared link has something else before it, the entrypoint or nothing at all, so it opens the
  * list instead, the way the Programm's back button does.
  */
-const BackLink: React.FC = () => {
+export const BackLink: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const isListPrevious = useListIsPrevious();
   const router = useRouter();
@@ -111,7 +111,7 @@ export const ChatHeaderSkeleton: React.FC = () => (
 );
 
 /** Who the chat is with, as far as its header shows it. */
-type HeaderChat = ChatAvatarChat & Pick<ChatWithMessagePreview, 'caseNumber'>;
+export type HeaderChat = ChatAvatarChat & Pick<ChatWithMessagePreview, 'caseNumber'>;
 
 /**
  * The chat for the header: from its details once they are there, before that from the chat
@@ -144,6 +144,83 @@ const useHeaderChat = (
     partner:
       partner === undefined ? undefined : { userId: partner.id, pictureUrl: partner.pictureUrl },
   };
+};
+
+const identityClassName = 'flex min-h-11 min-w-0 flex-1 items-center gap-3 py-1 pr-2 pl-1';
+
+interface ChatHeaderBarProperties {
+  chat: HeaderChat;
+  /** The way back to the chats, on a phone. */
+  back: React.ReactNode;
+  /** The line under the name: who is online, or the members. */
+  subtitle?: React.ReactNode;
+  /** Keeps room for the member line while the members load. */
+  hasMemberLine: boolean;
+  /** Where a tap on the chat's name leads; without, the name leads nowhere, as in a preview. */
+  details?: { href: string; label: string };
+}
+
+/** The chat's header as it looks, from what is known of the chat; it loads nothing itself. */
+export const ChatHeaderBar: React.FC<ChatHeaderBarProperties> = ({
+  chat,
+  back,
+  subtitle,
+  hasMemberLine,
+  details,
+}) => {
+  const hasSubtitle = subtitle !== undefined;
+  const identity = (
+    <>
+      <ChatAvatar chat={chat} size="header" />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="font-heading text-heading truncate text-[17px] leading-tight font-bold">
+            {chat.name}
+          </span>
+          {chat.caseNumber != undefined && chat.caseNumber !== '' && (
+            <span
+              className={cn(
+                'shrink-0 rounded-md px-1.5 py-0.5 font-mono text-xs font-bold',
+                chat.chatType === ChatType.EMERGENCY
+                  ? 'bg-red-50 text-red-700'
+                  : 'bg-chip text-green-900',
+              )}
+            >
+              {chat.caseNumber}
+            </span>
+          )}
+        </span>
+        {(hasSubtitle || hasMemberLine) && (
+          <span className="mt-0.5 h-[18px] truncate text-[13px] leading-[18px] text-green-700">
+            {hasSubtitle && (
+              <span className="transition-opacity duration-300 starting:opacity-0">{subtitle}</span>
+            )}
+          </span>
+        )}
+      </span>
+    </>
+  );
+
+  return (
+    <div className={headerClassName}>
+      {back}
+      {details === undefined ? (
+        <div className={identityClassName}>{identity}</div>
+      ) : (
+        // the whole of who the chat is with leads to its details
+        <Link
+          href={details.href}
+          aria-label={details.label}
+          className={cn(
+            identityClassName,
+            'focus-visible:focus-surface hover:bg-quiet rounded-[12px]',
+          )}
+        >
+          {identity}
+        </Link>
+      )}
+    </div>
+  );
 };
 
 export const ChatHeader: React.FC = () => {
@@ -185,45 +262,15 @@ export const ChatHeader: React.FC = () => {
   const hasSubtitle = subtitle !== undefined && subtitle !== false && subtitle !== '';
 
   return (
-    <div className={headerClassName}>
-      <BackLink />
-
-      {/* the whole of who the chat is with leads to its details */}
-      <Link
-        href={`/app/chat/${chatId}/details`}
-        aria-label={`${chat.name}, ${openDetailsText[locale]}`}
-        className="focus-visible:focus-surface hover:bg-quiet flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-[12px] py-1 pr-2 pl-1"
-      >
-        <ChatAvatar chat={chat} size="header" />
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="flex min-w-0 items-center gap-2">
-            <span className="font-heading text-heading truncate text-[17px] leading-tight font-bold">
-              {chat.name}
-            </span>
-            {chat.caseNumber != undefined && chat.caseNumber !== '' && (
-              <span
-                className={cn(
-                  'shrink-0 rounded-md px-1.5 py-0.5 font-mono text-xs font-bold',
-                  chat.chatType === ChatType.EMERGENCY
-                    ? 'bg-red-50 text-red-700'
-                    : 'bg-chip text-green-900',
-                )}
-              >
-                {chat.caseNumber}
-              </span>
-            )}
-          </span>
-          {(hasSubtitle || hasMemberLine) && (
-            <span className="mt-0.5 h-[18px] truncate text-[13px] leading-[18px] text-green-700">
-              {hasSubtitle && (
-                <span className="transition-opacity duration-300 starting:opacity-0">
-                  {subtitle}
-                </span>
-              )}
-            </span>
-          )}
-        </span>
-      </Link>
-    </div>
+    <ChatHeaderBar
+      chat={chat}
+      back={<BackLink />}
+      subtitle={hasSubtitle ? subtitle : undefined}
+      hasMemberLine={hasMemberLine}
+      details={{
+        href: `/app/chat/${chatId}/details`,
+        label: `${chat.name}, ${openDetailsText[locale]}`,
+      }}
+    />
   );
 };

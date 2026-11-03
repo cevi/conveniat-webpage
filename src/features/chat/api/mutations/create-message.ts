@@ -1,3 +1,4 @@
+import { chatError } from '@/features/chat/api/chat-errors';
 import {
   assertMembershipCanWrite,
   assertWriteAbilities,
@@ -118,11 +119,7 @@ export const createMessage = trpcBaseProcedure
       name: 'chat.sendMessage',
       limit: 20,
       windowMs: 10 * 1000,
-      message: {
-        de: 'Du sendest zu viele Nachrichten. Warte einen Moment, sie werden danach gesendet.',
-        en: 'You are sending too many messages. Wait a moment, they will be sent afterwards.',
-        fr: 'Tu envoies trop de messages. Attends un instant, ils seront envoyés ensuite.',
-      },
+      refuse: () => chatError('TOO_MANY_REQUESTS', 'tooManyMessages'),
     }),
   )
   .use(databaseTransactionWrapper) // use a DB transaction for this mutation
