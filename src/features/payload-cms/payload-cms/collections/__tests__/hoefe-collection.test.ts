@@ -7,7 +7,15 @@ jest.mock('@/config/environment-variables', () => ({
   },
 }));
 
+jest.mock('@/features/payload-cms/payload-cms/utils/announcement-channel-memberships', () => ({
+  resyncAvpChannels: jest.fn().mockResolvedValue(0),
+}));
+jest.mock('@/features/payload-cms/payload-cms/utils/hof-membership', () => ({
+  refreshUserHoefe: jest.fn(),
+}));
+
 import { HoefeCollection } from '@/features/payload-cms/payload-cms/collections/hoefe-collection';
+import { resyncAvpChannels } from '@/features/payload-cms/payload-cms/utils/announcement-channel-memberships';
 import type { Field, FieldAccess, PayloadRequest } from 'payload';
 
 /** A full admin who is in the billing team too: the most anyone can do in the admin panel. */
@@ -81,5 +89,33 @@ describe('HoefeCollection', () => {
     expect(
       HoefeCollection.fields.some((field) => 'name' in field && field.name === 'dashboardContacts'),
     ).toBe(false);
+  });
+});
+
+describe('deleting a Hof', () => {
+  const deleteHooks = HoefeCollection.hooks?.afterDelete ?? [];
+  const runDeleteHooks = async (context: Record<string, unknown>): Promise<void> => {
+    const payload = {
+      find: jest.fn().mockResolvedValue({ docs: [] }),
+      logger: { error: jest.fn() },
+    };
+    for (const hook of deleteHooks) {
+      await hook({
+        doc: { id: 'hof-uster' },
+        req: { payload, context },
+      } as unknown as Parameters<typeof hook>[0]);
+    }
+  };
+
+  beforeEach(() => jest.mocked(resyncAvpChannels).mockClear());
+
+  it('brings the AVP channels up to date when an admin deletes a Hof by hand', async () => {
+    await runDeleteHooks({});
+    expect(resyncAvpChannels).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves that to the end of the sync when the sync deletes a Hof', async () => {
+    await runDeleteHooks({ internal: true });
+    expect(resyncAvpChannels).not.toHaveBeenCalled();
   });
 });
