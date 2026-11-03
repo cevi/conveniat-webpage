@@ -233,10 +233,6 @@ export const createMessage = trpcBaseProcedure
       }
     }
 
-    // A reply answers a live top-level message of this very chat. Prisma's `connect` below
-    // would take any message: one from another chat would show this sender in a thread there
-    // and be cascade-deleted with it. Checked after the replay above, so a stored reply whose
-    // parent was deleted since is still answered with its stored copy.
     if (validatedMessage.parentId !== undefined) {
       const parent = await prisma.message.findFirst({
         where: {
