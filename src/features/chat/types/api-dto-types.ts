@@ -2,12 +2,20 @@ import type { ChatMembershipPermission, ChatType, MessageEventType } from '@pris
 
 import type { StaticTranslationString } from '@/types/types';
 
+/** What a preview stands for when it is not the message's own text; the chat list draws its icon. */
+export type MessagePreviewIcon = 'image' | 'location' | 'emergency';
+
 export interface PreviewMessage {
   id: string;
   senderId: string; // 'system' for system messages
   /** Missing for system messages, and in chat lists persisted before this field existed. */
   senderName?: string | undefined;
   messagePreview: string | StaticTranslationString;
+  /**
+   * The icon in front of the preview. Missing for plain text, and in chat lists persisted
+   * before this field existed, whose previews still carry an emoji instead.
+   */
+  messagePreviewIcon?: MessagePreviewIcon | undefined;
   createdAt: Date;
   status: MessageEventType;
 }

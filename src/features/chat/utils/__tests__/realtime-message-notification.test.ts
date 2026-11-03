@@ -124,19 +124,54 @@ describe('notifyRealtimeChatMessage', () => {
     expect(showNotification).toHaveBeenCalledWith(expect.objectContaining({ title: 'Bob' }));
   });
 
-  describe('extractRealtimeMessagePreview', () => {
-    it('reads plain text payloads', () => {
-      expect(extractRealtimeMessagePreview({ text: 'Hi' }, 'de')).toBe('Hi');
+  it('says who sent an image, in the same words as the push', () => {
+    notifyRealtimeChatMessage({
+      chatId: 'chat-1',
+      chatName: 'Cevi Uster',
+      message: buildMessage({
+        type: 'IMAGE_MSG',
+        messagePayload: { url: 'chat-images/chat-1/1719830400000-k3j9x2.jpg' },
+      }),
+      currentUserId: 'user-alice',
     });
 
-    it('describes image payloads', () => {
-      expect(extractRealtimeMessagePreview({ url: 'https://example.com/a.png' }, 'en')).toBe(
-        '📷 Image',
-      );
+    expect(mockToast).toHaveBeenCalledWith(
+      'Cevi Uster',
+      expect.objectContaining({ description: 'Bob hat ein Bild gesendet' }),
+    );
+  });
+
+  it('hands the native shell the same words for an image', () => {
+    const showNotification = jest.fn();
+    globalThis.AppWebViewNativePush = {
+      getStatus: jest.fn(),
+      requestPermission: jest.fn(),
+      deleteToken: jest.fn(),
+      openSettings: jest.fn(),
+      showNotification,
+    };
+
+    notifyRealtimeChatMessage({
+      chatId: 'chat-1',
+      chatName: 'Cevi Uster',
+      message: buildMessage({
+        type: 'IMAGE_MSG',
+        messagePayload: { url: 'chat-images/chat-1/1719830400000-k3j9x2.jpg' },
+      }),
+      currentUserId: 'user-alice',
+    });
+
+    const request = (showNotification.mock.calls as unknown[][])[0]?.[0] as Record<string, unknown>;
+    expect(request['body']).toBe('Bob hat ein Bild gesendet');
+  });
+
+  describe('extractRealtimeMessagePreview', () => {
+    it('reads plain text payloads', () => {
+      expect(extractRealtimeMessagePreview({ text: 'Hi' })).toBe('Hi');
     });
 
     it('returns an empty preview for unknown payloads', () => {
-      expect(extractRealtimeMessagePreview({ foo: 'bar' }, 'de')).toBe('');
+      expect(extractRealtimeMessagePreview({ foo: 'bar' })).toBe('');
     });
   });
 });
