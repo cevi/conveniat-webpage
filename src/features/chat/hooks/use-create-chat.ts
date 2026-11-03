@@ -6,6 +6,7 @@ import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { chatErrorTexts } from '@/features/chat/error-texts';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { dropCachedEntry, generateChatId, generateMessageId } from '@/features/chat/utils';
+import { markChatCreationPending } from '@/features/chat/utils/chat-creation-pending';
 import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
 import { isRateLimitError } from '@/features/chat/utils/send-errors';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
@@ -30,12 +31,6 @@ const newChatCreatedText: StaticTranslationString = {
   de: 'Neuer Chat erstellt',
   en: 'New Chat created',
   fr: 'Nouveau chat créé',
-};
-
-const chatQueuedText: StaticTranslationString = {
-  de: 'Der Chat wird erstellt, sobald du wieder online bist.',
-  en: 'The chat will be created once you are back online.',
-  fr: 'Le chat sera créé dès que tu seras de nouveau en ligne.',
 };
 
 const createChatFailedText: StaticTranslationString = {
@@ -103,7 +98,8 @@ export const useCreateChat = (): {
           createdAt: new Date().toISOString(),
           userId: currentUserId,
         });
-        if (isTransportError(error)) toast(chatQueuedText[locale]);
+        // the chat's first line says it is still waiting, the way a queued message's clock does
+        if (isTransportError(error)) markChatCreationPending(trpcUtils, optimisticChatId, true);
         return;
       }
 

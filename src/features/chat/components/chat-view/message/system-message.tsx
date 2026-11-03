@@ -3,7 +3,8 @@ import { formatMessageContent } from '@/features/chat/components/chat-view/messa
 import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { i18nConfig, type Locale } from '@/types/types';
+import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
+import { Clock } from 'lucide-react';
 import React from 'react';
 
 /** What `createNewChat` stores as the first message, in the creator's language. */
@@ -13,6 +14,12 @@ const createdByYouText = (isGroup: boolean, locale: Locale): string => {
   if (locale === 'de') return isGroup ? 'Du hast die Gruppe erstellt' : 'Du hast den Chat erstellt';
   if (locale === 'fr') return isGroup ? 'Tu as créé le groupe' : 'Tu as créé le chat';
   return isGroup ? 'You created the group' : 'You created the chat';
+};
+
+const pendingCreationText: StaticTranslationString = {
+  de: 'Wird erstellt, sobald du wieder online bist',
+  en: 'Will be created once you are back online',
+  fr: 'Sera créé dès que tu seras de nouveau en ligne',
 };
 
 const createdByText = (name: string, isGroup: boolean, locale: Locale): string => {
@@ -56,7 +63,7 @@ export const SystemMessage: React.FC<{
   return (
     <div
       id={`message-${message.id}`}
-      className="flex items-center justify-center px-4 py-1 text-[13px] text-green-700"
+      className="flex flex-col items-center justify-center gap-1 px-4 py-1 text-[13px] text-green-700"
     >
       <span className="text-center text-balance" style={{ whiteSpace: 'pre-wrap' }}>
         {content}
@@ -65,6 +72,13 @@ export const SystemMessage: React.FC<{
           {formatMessageTimeOnlyRaw(message.createdAt, locale)}
         </span>
       </span>
+      {/* the chat was created without signal; the outbox creates it on the server later */}
+      {isCreation && message.isPendingOffline === true && (
+        <span className="flex items-center gap-1.5 text-center">
+          <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          {pendingCreationText[locale]}
+        </span>
+      )}
     </div>
   );
 };
