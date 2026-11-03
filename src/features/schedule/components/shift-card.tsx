@@ -134,7 +134,7 @@ export const ShiftCard: React.FC<{
           enrolment. Outside the link, so enrolling never opens the detail page.
         */}
         {(hasCapacity || hasEnrolment || isPast) && (
-          <div className="border-line flex min-h-[60px] items-center gap-3 border-t px-3.5 py-2">
+          <div className="border-line flex min-h-[60px] flex-wrap items-center gap-x-3 gap-y-2 border-t px-3.5 py-2">
             {hasCapacity ? (
               <ShiftCapacity status={status} locale={locale} isPast={isPast} className="flex-1" />
             ) : (
@@ -144,16 +144,15 @@ export const ShiftCard: React.FC<{
                 </span>
               )
             )}
+            {/* the action's parts are items of this row, so a failure can wrap under it */}
             {hasEnrolment && (
-              <span className="ml-auto shrink-0">
-                <ShiftEnrollmentAction
-                  shiftId={shift.id}
-                  enableEnrolment={shift.enable_enrolment}
-                  variant="card"
-                  shiftTitle={shift.title}
-                  shiftTimeslot={shift.timeslot}
-                />
-              </span>
+              <ShiftEnrollmentAction
+                shiftId={shift.id}
+                enableEnrolment={shift.enable_enrolment}
+                variant="card"
+                shiftTitle={shift.title}
+                shiftTimeslot={shift.timeslot}
+              />
             )}
           </div>
         )}

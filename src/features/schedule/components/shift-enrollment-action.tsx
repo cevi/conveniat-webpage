@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/buttons/button';
 /* eslint-enable import/no-restricted-paths */
+import { EnrolmentFailure } from '@/features/schedule/components/enrolment-failure';
 import { ShiftConflictDialog } from '@/features/schedule/components/shift-conflict-dialog';
 import { useShiftStatus } from '@/features/schedule/hooks/use-shift-status';
 import { useIsUnenrollmentClosed } from '@/features/schedule/hooks/use-unenrollment-window';
@@ -242,7 +243,7 @@ export const ShiftEnrollmentAction: React.FC<{
   // loading by that definition, so keep the skeleton up while its refetch is in flight too.
   if (isLoading || (isFetching && !status)) {
     return isCard ? (
-      <div className="bg-quiet h-11 w-28 shrink-0 animate-pulse rounded-xl" />
+      <div className="bg-quiet ml-auto h-11 w-28 shrink-0 animate-pulse rounded-xl" />
     ) : (
       <div className="bg-quiet h-11 w-full animate-pulse rounded-xl" />
     );
@@ -258,7 +259,7 @@ export const ShiftEnrollmentAction: React.FC<{
       return (
         <span
           title={isOffline ? localizedOffline[locale] : localizedUnavailable[locale]}
-          className="flex shrink-0 items-center gap-1.5 text-[13px] text-green-700"
+          className="ml-auto flex shrink-0 items-center gap-1.5 text-[13px] text-green-700"
         >
           {isOffline ? (
             <WifiOff className="h-3.5 w-3.5" />
@@ -312,6 +313,23 @@ export const ShiftEnrollmentAction: React.FC<{
   };
   const isFull = maxParticipants !== undefined && enrolledCount >= maxParticipants;
 
+  // a conflict opens its own dialog and a passed deadline shows the lock; anything else would
+  // otherwise fail without a word
+  const notTooLate = <T,>(error: T | null): T | undefined =>
+    error === null || isDeadlinePassed(error) ? undefined : error;
+  const failure =
+    (conflictInfo === undefined ? notTooLate(enroll.error) : undefined) ??
+    notTooLate(unenroll.error) ??
+    notTooLate(switchEnrollment.error);
+  const failedLine = failure !== undefined && (
+    // on the card it takes the whole width under the capacity and the button
+    <EnrolmentFailure
+      error={failure}
+      locale={locale}
+      className={cn(isCard ? 'basis-full' : 'mt-2')}
+    />
+  );
+
   if (isEnrolled) {
     /**
      * The window is closed either because the deadline the server sent has passed, or because the
@@ -323,27 +341,32 @@ export const ShiftEnrollmentAction: React.FC<{
     if (isCard) {
       // The pill beside the card's title already says "Angemeldet", so this row only has to carry
       // the way out - or, once the window has shut, the fact that there is none.
-      return isWithdrawalClosed ? (
-        // a pill of the same height and shape as the buttons it stands in for, so a feed of
-        // cards in mixed states still lines up along one baseline
-        <span
-          title={localizedUnenrollClosedHint[locale]}
-          className="bg-quiet inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-[13px] font-semibold text-green-700"
-        >
-          <Lock className="h-4 w-4" aria-hidden="true" />
-          {localizedUnenrollClosedShort[locale]}
-        </span>
-      ) : (
-        <Button
-          variant="danger"
-          size="touch"
-          onClick={() => unenroll.mutate({ shiftId })}
-          disabled={unenroll.isPending}
-          className="shrink-0"
-        >
-          {unenroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
-          {localizedUnenroll[locale]}
-        </Button>
+      return (
+        <>
+          {isWithdrawalClosed ? (
+            // a pill of the same height and shape as the buttons it stands in for, so a feed of
+            // cards in mixed states still lines up along one baseline
+            <span
+              title={localizedUnenrollClosedHint[locale]}
+              className="bg-quiet ml-auto inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-[13px] font-semibold text-green-700"
+            >
+              <Lock className="h-4 w-4" aria-hidden="true" />
+              {localizedUnenrollClosedShort[locale]}
+            </span>
+          ) : (
+            <Button
+              variant="danger"
+              size="touch"
+              onClick={() => unenroll.mutate({ shiftId })}
+              disabled={unenroll.isPending}
+              className="ml-auto shrink-0"
+            >
+              {unenroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
+              {localizedUnenroll[locale]}
+            </Button>
+          )}
+          {failedLine}
+        </>
       );
     }
 
@@ -389,6 +412,7 @@ export const ShiftEnrollmentAction: React.FC<{
             </p>
           </div>
         )}
+        {failedLine}
       </div>
     );
   }
@@ -406,7 +430,7 @@ export const ShiftEnrollmentAction: React.FC<{
           <Button
             variant={isAuthorized ? 'outlined' : 'quiet'}
             size="touch"
-            className={cn('shrink-0', enroll.isPending && 'opacity-80')}
+            className={cn('ml-auto shrink-0', enroll.isPending && 'opacity-80')}
             disabled={enroll.isPending || !isAuthorized}
             onClick={handleEnrolClick}
           >
@@ -433,6 +457,7 @@ export const ShiftEnrollmentAction: React.FC<{
           {!enroll.isPending && !isFull && localizedEnroll[locale]}
         </Button>
       )}
+      {failedLine}
 
       <AlertDialog open={noWithdrawalDialogOpen} onOpenChange={setNoWithdrawalDialogOpen}>
         <AlertDialogContent>
