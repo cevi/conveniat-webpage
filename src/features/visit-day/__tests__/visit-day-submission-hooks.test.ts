@@ -60,7 +60,18 @@ const form = {
   ],
 };
 
-const fakeRequest = (): { request: PayloadRequest; remove: jest.Mock; store: jest.Mock } => {
+/** The form above, with more settings on its Besuchstag field. */
+const formWith = (settings: Record<string, unknown>): typeof form => ({
+  sections: form.sections.map((section) => ({
+    formSection: {
+      fields: section.formSection.fields.map((field) => ({ ...field, ...settings })),
+    },
+  })),
+});
+
+const fakeRequest = (
+  blockSettings: Record<string, unknown> = {},
+): { request: PayloadRequest; remove: jest.Mock; store: jest.Mock } => {
   const remove = jest.fn().mockResolvedValue({});
   const store = jest.fn().mockResolvedValue({});
   const request = {
@@ -69,7 +80,9 @@ const fakeRequest = (): { request: PayloadRequest; remove: jest.Mock; store: jes
     payload: {
       findByID: jest.fn(({ collection }: { collection: string }) =>
         Promise.resolve(
-          collection === 'hoefe' ? { groupId: '4242', events: [{ eventId: '5321' }] } : form,
+          collection === 'hoefe'
+            ? { groupId: '4242', events: [{ eventId: '5321' }] }
+            : formWith(blockSettings),
         ),
       ),
       db: { updateOne: store },
@@ -226,6 +239,7 @@ describe('a Besuchstag registration', () => {
     ]);
     expect(registrationRows.create.mock.calls[0]?.[0]).toMatchObject({
       // eslint-disable-next-line unicorn/no-null
+      // eslint-disable-next-line unicorn/no-null -- Prisma stores a missing Hof as null
       data: { number: 'EXT-B007', hofId: null },
     });
   });
@@ -272,5 +286,54 @@ describe('withVisitDayPlaces', () => {
       (collection) => collection.slug === 'form-submissions',
     );
     expect(submissions?.hooks?.afterChange).toEqual([reserveVisitDayPlaces, sendEmail]);
+  });
+});
+
+/** The answers of a field that asks whom they visit. */
+const childVisit = (besuch: string, hof: string, persons: string): Answer[] => [
+  { field: 'besuch', value: besuch },
+  { field: 'hof', value: hof },
+  { field: 'anzahl_personen', value: persons },
+  { field: 'mittagessen', value: 'ja' },
+];
+
+describe('a Besuchstag field that asks whom they visit and the persons', () => {
+  const settings = { visitorTypeField: 'besuch', maxPersons: 2 };
+
+  it('registers visitors without a Hof by that answer, whatever Hof was left chosen', async () => {
+    visitorRows.count.mockResolvedValue(0);
+    const { request } = fakeRequest(settings);
+
+    const answers = await submit(request, [
+      { field: 'besuch', value: 'extern' },
+      { field: 'hof', value: 'uster' },
+      { field: 'besuchstag', value: '2027-07-28' },
+      { field: 'anzahl_personen', value: '1' },
+      { field: 'mittagessen', value: 'ja' },
+    ]);
+    await save(request, answers);
+
+    expect(answers).toContainEqual({ field: 'hof', value: 'Ohne Bezug zu einer Abteilung' });
+    expect(registrationRows.create.mock.calls[0]?.[0]).toMatchObject({
+      // eslint-disable-next-line unicorn/no-null -- Prisma stores a missing Hof as null
+      data: { number: 'EXT-B007', hofId: null },
+    });
+  });
+
+  it('refuses a child visit without a Hof, a missing answer and too many persons', async () => {
+    visitorRows.count.mockResolvedValue(0);
+
+    await expect(
+      submit(fakeRequest(settings).request, childVisit('kind', 'extern', '1')),
+    ).rejects.toThrow('Für diese Abteilung ist keine Anmeldung');
+    await expect(
+      submit(fakeRequest(settings).request, childVisit('', 'uster', '1')),
+    ).rejects.toThrow('wen ihr besucht');
+    await expect(
+      submit(fakeRequest(settings).request, childVisit('kind', 'uster', '3')),
+    ).rejects.toThrow('Anzahl Personen ist ungültig');
+    await expect(
+      submit(fakeRequest(settings).request, childVisit('kind', 'uster', '2')),
+    ).resolves.toContainEqual({ field: 'hof', value: 'Cevi Uster' });
   });
 });

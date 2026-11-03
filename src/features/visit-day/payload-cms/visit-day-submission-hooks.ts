@@ -7,7 +7,12 @@ import {
   reservePlaces,
 } from '@/features/visit-day/api/visit-day-places';
 import { formatVisitDay } from '@/features/visit-day/format-visit-day';
-import { EXTERNAL_VISIT, WITH_LUNCH, WITHOUT_LUNCH } from '@/features/visit-day/visit-day-choices';
+import {
+  EXTERNAL_VISIT,
+  VISITING_CHILD,
+  WITH_LUNCH,
+  WITHOUT_LUNCH,
+} from '@/features/visit-day/visit-day-choices';
 import type { VisitDay } from '@/features/visit-day/visit-day-settings';
 import { listVisitDayHoefe, loadVisitDaySettings } from '@/features/visit-day/visit-day-settings';
 import prisma from '@/lib/db/prisma';
@@ -53,6 +58,10 @@ interface VisitDayBlock {
   registrationNumberField: string;
   /** the answer with the lunch choice; a form without one registers everybody with lunch */
   lunchField?: string | null;
+  /** the answer to whom they visit, a child at the camp or nobody in particular */
+  visitorTypeField?: string | null;
+  /** the most persons per registration, where the field asks for them itself */
+  maxPersons?: number | null;
 }
 
 /**
@@ -85,6 +94,12 @@ const dayNotOfferedMessage: StaticTranslationString = {
   de: 'Bitte wähle einen der Besuchstage.',
   en: 'Please choose one of the visiting days.',
   fr: 'Choisis l’une des journées des visites.',
+};
+
+const invalidVisitorTypeMessage: StaticTranslationString = {
+  de: 'Bitte wähle, wen ihr besucht.',
+  en: 'Please choose whom you are visiting.',
+  fr: 'Indique qui vous venez voir.',
 };
 
 const invalidLunchMessage: StaticTranslationString = {
@@ -159,7 +174,21 @@ export const resolveVisitDay: CollectionBeforeChangeHook<FormSubmission> = async
   const answers = sent.filter(
     (answer) => answer.field !== block.dayField && answer.field !== block.registrationNumberField,
   );
-  const hofAnswer = answers.find((answer) => answer.field === block.name);
+  let hofAnswer = answers.find((answer) => answer.field === block.name);
+  if (typeof block.visitorTypeField === 'string' && block.visitorTypeField !== '') {
+    const visitorType = answers.find((answer) => answer.field === block.visitorTypeField)?.value;
+    if (visitorType !== VISITING_CHILD && visitorType !== EXTERNAL_VISIT) {
+      return refuse(invalidVisitorTypeMessage, locale);
+    }
+    // whom they visit decides, so a Hof left over from changing the answer does not count
+    if (visitorType === EXTERNAL_VISIT) {
+      hofAnswer ??= { field: block.name, value: EXTERNAL_VISIT };
+      hofAnswer.value = EXTERNAL_VISIT;
+      if (!answers.includes(hofAnswer)) answers.push(hofAnswer);
+    } else if (hofAnswer?.value === EXTERNAL_VISIT) {
+      return refuse(hofNotOfferedMessage, locale);
+    }
+  }
   const hofId = hofAnswer?.value;
   // an unanswered Hof was refused as missing already, or the field is optional
   if (hofAnswer === undefined || typeof hofId !== 'string' || hofId === '') return data;
@@ -190,7 +219,10 @@ export const resolveVisitDay: CollectionBeforeChangeHook<FormSubmission> = async
   }
 
   const persons = Number(answers.find((answer) => answer.field === block.personCountField)?.value);
-  if (!Number.isInteger(persons) || persons < 1) return refuse(invalidPersonCountMessage, locale);
+  const maxPersons = typeof block.maxPersons === 'number' ? block.maxPersons : Infinity;
+  if (!Number.isInteger(persons) || persons < 1 || persons > maxPersons) {
+    return refuse(invalidPersonCountMessage, locale);
+  }
 
   let withLunch = true;
   if (asksLunch(block)) {
