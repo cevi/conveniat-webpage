@@ -4,19 +4,22 @@ import { avatarTextColorOf } from '@/components/ui/person-avatar';
 import type { ChatMessage } from '@/features/chat/api/types';
 import { AlertQuestionMessage } from '@/features/chat/components/chat-view/message/alert-question-message';
 import { AlertResponseMessage } from '@/features/chat/components/chat-view/message/alert-response-message';
-import { ChatImage } from '@/features/chat/components/chat-view/message/chat-image';
 import { FailedMessageActions } from '@/features/chat/components/chat-view/message/failed-message-actions';
-import { ImageMessage } from '@/features/chat/components/chat-view/message/image-message';
 import { LocationMessage } from '@/features/chat/components/chat-view/message/location-message';
 import { MessageActionsSheet } from '@/features/chat/components/chat-view/message/message-actions-sheet';
+import {
+  bubbleColorClassName,
+  bubbleCornerClassName,
+  MessageBubble,
+  MessageBubbleContent,
+  MessageRow,
+} from '@/features/chat/components/chat-view/message/message-bubble';
 import { MessageFrame } from '@/features/chat/components/chat-view/message/message-frame';
 import { ReactionBadge } from '@/features/chat/components/chat-view/message/message-reaction-menus';
 import { ReactionDetailsDialog } from '@/features/chat/components/chat-view/message/reaction-details-dialog';
 import { SenderAvatar } from '@/features/chat/components/chat-view/message/sender-avatar';
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
 import { ThreadSummary } from '@/features/chat/components/chat-view/message/thread-summary';
-import { extractMessageImages } from '@/features/chat/components/chat-view/message/utils/extract-message-images';
-import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
@@ -83,18 +86,6 @@ const textOf = (payload: ChatMessage['messagePayload']): string | undefined => {
   return typeof text === 'string' && text.trim() !== '' ? text : undefined;
 };
 
-/** Rounder outside a run of bubbles, tighter where two bubbles of one sender meet. */
-const bubbleCornerClassName = (
-  isCurrentUser: boolean,
-  isFirstInGroup: boolean,
-  isLastInGroup: boolean,
-): string => {
-  if (isCurrentUser) {
-    return cn(!isFirstInGroup && 'rounded-tr-[6px]', !isLastInGroup && 'rounded-br-[6px]');
-  }
-  return cn(!isFirstInGroup && 'rounded-tl-[6px]', !isLastInGroup && 'rounded-bl-[6px]');
-};
-
 const pendingOfflineText: StaticTranslationString = {
   de: 'Wird gesendet, sobald du wieder online bist',
   en: 'Will be sent as soon as you are back online',
@@ -151,8 +142,6 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   const swipeStart = useRef<{ x: number; y: number } | undefined>(undefined);
   const bubbleReference = useRef<HTMLDivElement>(null);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
-  const renderedContent = formatMessageContent(message.messagePayload, activeLocale);
-  const attachedImages = extractMessageImages(message.messagePayload, activeLocale);
   const { replyInThread, quoteMessage, scrollToMessage, highlightedMessageId, activeThreadId } =
     useChatActions();
   const isHighlighted = highlightedMessageId === message.id;
@@ -370,49 +359,42 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   // no content, no reactions, and no actions.
   if (isMessageDeleted(message)) {
     return (
-      <div
+      <MessageRow
         id={`message-${message.id}`}
-        className={cn(
-          'relative flex w-full items-end gap-2 transition-colors duration-200',
-          isCurrentUser ? 'justify-end' : 'justify-start',
-          isHighlighted && 'animate-message-highlight rounded-xl',
-        )}
+        isCurrentUser={isCurrentUser}
+        isGroup={chatType === 'GROUP'}
+        className={cn(isHighlighted && 'animate-message-highlight rounded-xl')}
+        avatar={
+          hasAvatarSlot &&
+          typeof message.senderId === 'string' && (
+            <div className="relative pl-2">
+              <SenderAvatar
+                senderId={message.senderId}
+                name={message.senderName ?? ''}
+                pictureUrl={senderPictureUrl}
+                hidden={!isLastInGroup}
+              />
+            </div>
+          )
+        }
       >
-        {hasAvatarSlot && typeof message.senderId === 'string' && (
-          <div className="relative pl-2">
-            <SenderAvatar
-              senderId={message.senderId}
-              name={message.senderName ?? ''}
-              pictureUrl={senderPictureUrl}
-              hidden={!isLastInGroup}
-            />
-          </div>
-        )}
+        {senderNameLine}
         <div
           className={cn(
-            'relative flex max-w-[85%] flex-col',
-            isCurrentUser ? 'items-end pr-2' : 'items-start',
-            !isCurrentUser && chatType !== 'GROUP' && 'pl-2',
+            'border-line flex items-center gap-1.5 rounded-[16px] border bg-white px-3.5 py-2 text-[15px] leading-[21px] text-green-700',
+            bubbleCornerClassName(isCurrentUser, isFirstInGroup, isLastInGroup),
           )}
         >
-          {senderNameLine}
-          <div
-            className={cn(
-              'border-line flex items-center gap-1.5 rounded-[16px] border bg-white px-3.5 py-2 text-[15px] leading-[21px] text-green-700',
-              bubbleCornerClassName(isCurrentUser, isFirstInGroup, isLastInGroup),
-            )}
-          >
-            <Ban className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span className="italic">{deletedMessageText[activeLocale]}</span>
-            {showMeta && (
-              <span className="ml-2 self-end text-[11px] leading-[19px] tabular-nums">
-                {formatMessageTimeOnlyRaw(message.createdAt, activeLocale)}
-              </span>
-            )}
-          </div>
-          {threadSummary}
+          <Ban className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className="italic">{deletedMessageText[activeLocale]}</span>
+          {showMeta && (
+            <span className="ml-2 self-end text-[11px] leading-[19px] tabular-nums">
+              {formatMessageTimeOnlyRaw(message.createdAt, activeLocale)}
+            </span>
+          )}
         </div>
-      </div>
+        {threadSummary}
+      </MessageRow>
     );
   }
 
@@ -452,9 +434,6 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     message.sendFailed !== true &&
     message.isPendingOffline !== true &&
     message.status !== MessageEventType.CREATED;
-  const bubbleColorClassName = isCurrentUser
-    ? 'bg-conveniat-green text-white'
-    : 'border-line border bg-white text-green-900';
   // what this message answers; it scrolls there
   const quoteBlock = quotedMessageId !== undefined && (
     <button
@@ -495,67 +474,36 @@ export const MessageComponent: React.FC<MessageProperties> = ({
       )}
     </button>
   );
-  // the bubble's content without its time, for the top of the actions sheet
-  const bubbleBody = (
-    <>
-      {quoteBlock}
-      {message.type === MessageType.IMAGE_MSG ? (
-        <ImageMessage message={message} />
-      ) : (
-        <>
-          {attachedImages.length > 0 && (
-            <div className="mb-2 flex flex-col gap-2">
-              {attachedImages.map((image) => (
-                <ChatImage
-                  key={image.url}
-                  url={image.url}
-                  alt={image.alt}
-                  caption={image.caption}
-                />
-              ))}
-            </div>
-          )}
-          <div className="text-[15px] leading-[21px]">{renderedContent}</div>
-        </>
-      )}
-    </>
-  );
-
   return (
-    <div
-      id={`message-${message.id}`}
-      className={cn(
-        'group relative flex w-full items-end gap-2 transition-colors duration-200',
-        isCurrentUser ? 'justify-end' : 'justify-start',
-        isHighlighted && 'animate-message-highlight rounded-xl',
-      )}
-      onPointerEnter={(event) => {
-        if (event.pointerType === 'mouse') setIsHovered(true);
-      }}
-      onPointerLeave={() => setIsHovered(false)}
-    >
-      {hasAvatarSlot && typeof message.senderId === 'string' && (
-        <div className="relative pl-2">
-          <SenderAvatar
-            senderId={message.senderId}
-            name={message.senderName ?? ''}
-            pictureUrl={senderPictureUrl}
-            hidden={!isLastInGroup}
-          />
-          {/* the empty avatar slot is the one place a wide bubble leaves room for its time */}
-          {!showMeta && isTimeRevealedOrHovered && (
-            <span className="pointer-events-none absolute inset-y-0 right-0 left-2 flex items-center justify-center text-[11px] text-green-700">
-              {formatMessageTimeOnlyRaw(message.createdAt, activeLocale)}
-            </span>
-          )}
-        </div>
-      )}
-      <div
-        className={cn(
-          'relative flex max-w-[85%] flex-col',
-          isCurrentUser ? 'items-end pr-2' : 'items-start',
-          !isCurrentUser && chatType !== 'GROUP' && 'pl-2',
-        )}
+    <>
+      <MessageRow
+        id={`message-${message.id}`}
+        isCurrentUser={isCurrentUser}
+        isGroup={chatType === 'GROUP'}
+        className={cn('group', isHighlighted && 'animate-message-highlight rounded-xl')}
+        onPointerEnter={(event) => {
+          if (event.pointerType === 'mouse') setIsHovered(true);
+        }}
+        onPointerLeave={() => setIsHovered(false)}
+        avatar={
+          hasAvatarSlot &&
+          typeof message.senderId === 'string' && (
+            <div className="relative pl-2">
+              <SenderAvatar
+                senderId={message.senderId}
+                name={message.senderName ?? ''}
+                pictureUrl={senderPictureUrl}
+                hidden={!isLastInGroup}
+              />
+              {/* the empty avatar slot is the one place a wide bubble leaves room for its time */}
+              {!showMeta && isTimeRevealedOrHovered && (
+                <span className="pointer-events-none absolute inset-y-0 right-0 left-2 flex items-center justify-center text-[11px] text-green-700">
+                  {formatMessageTimeOnlyRaw(message.createdAt, activeLocale)}
+                </span>
+              )}
+            </div>
+          )
+        }
       >
         {senderNameLine}
         {/* a long press, a right click or the context-menu key opens the message's actions */}
@@ -579,105 +527,53 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           className="relative cursor-pointer select-none"
           onClick={() => setIsTimeRevealed((revealed) => !revealed)}
         >
-          <div
+          <MessageBubble
             ref={bubbleReference}
             // reachable by keyboard for the context-menu key, and where focus returns from the sheet
             tabIndex={0}
-            className={cn(
-              'relative rounded-[16px] px-3.5 py-2 transition-transform duration-150',
-              // `anywhere`, not `break-word`: only it lowers the min-content width, so a long URL
-              // wraps inside the bubble instead of stretching it past the screen edge
-              'max-w-full min-w-[64px] wrap-anywhere',
-              bubbleColorClassName,
-              bubbleCornerClassName(isCurrentUser, isFirstInGroup, isLastInGroup),
-              // pending shows as a quieter bubble and a clock, never a spinner
-              message.status === MessageEventType.CREATED &&
-                message.sendFailed !== true &&
-                'opacity-80',
-              message.sendFailed === true && 'ring-danger ring-2',
-              isPressing && 'scale-[0.98]',
-            )}
-          >
-            {quoteBlock}
-            {message.type === MessageType.IMAGE_MSG ? (
-              <div className={cn(showMeta && 'pb-4')}>
-                <ImageMessage message={message} />
-              </div>
-            ) : (
-              <>
-                {attachedImages.length > 0 && (
-                  <div className="mb-2 flex flex-col gap-2">
-                    {attachedImages.map((image) => (
-                      <ChatImage
-                        key={image.url}
-                        url={image.url}
-                        alt={image.alt}
-                        caption={image.caption}
-                      />
-                    ))}
-                  </div>
-                )}
-                <div className="text-[15px] leading-[21px]">
-                  {renderedContent}
-                  {/* keeps the end of the last line free for the time, which sits on it, or
-                      moves to a line of its own when the text runs to the edge */}
-                  {showMeta && (
-                    <span
-                      aria-hidden="true"
-                      className={cn('inline-block h-px', isCurrentUser ? 'w-[66px]' : 'w-[40px]')}
-                    />
+            message={message}
+            isCurrentUser={isCurrentUser}
+            locale={activeLocale}
+            isFirstInGroup={isFirstInGroup}
+            isLastInGroup={isLastInGroup}
+            showMeta={showMeta}
+            quote={quoteBlock}
+            status={renderMessageStatus()}
+            isPressed={isPressing}
+            aside={
+              /* beside the bubble, towards the middle: the time where the bubble does not show
+                 it, and under a mouse the way to the actions a finger reaches by holding it */
+              isTimeRevealedOrHovered && (
+                <div
+                  className={cn(
+                    'absolute top-1/2 flex -translate-y-1/2 items-center gap-1',
+                    isCurrentUser ? 'right-full mr-2 flex-row-reverse' : 'left-full ml-2',
+                  )}
+                >
+                  {!showMeta && !hasAvatarSlot && (
+                    <span className="pointer-events-none text-[11px] whitespace-nowrap text-green-700">
+                      {formatMessageTimeOnlyRaw(message.createdAt, activeLocale)}
+                    </span>
+                  )}
+                  {isHovered && (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        // the bubble would otherwise toggle its time
+                        event.stopPropagation();
+                        openActions();
+                      }}
+                      aria-label={messageActionsText[activeLocale]}
+                      title={messageActionsText[activeLocale]}
+                      className="focus-visible:focus-surface hover:bg-quiet flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-green-700 hover:text-green-900"
+                    >
+                      <Ellipsis className="h-4 w-4" aria-hidden="true" />
+                    </button>
                   )}
                 </div>
-              </>
-            )}
-            {/* Timestamp and status: in the bubble for the last of a block, beside it on demand
-                for the others, so revealing it never changes the height of the list */}
-            {showMeta ? (
-              <div
-                className={cn(
-                  'absolute right-3 bottom-[7px] flex items-center gap-1 text-[11px] leading-none',
-                  // 4.5:1 on both bubbles: white over the green, the secondary text on white
-                  isCurrentUser ? 'text-white/85' : 'text-green-700',
-                )}
-              >
-                <span className="tabular-nums">
-                  {formatMessageTimeOnlyRaw(message.createdAt, activeLocale)}
-                </span>
-                {renderMessageStatus()}
-              </div>
-            ) : undefined}
-            {/* beside the bubble, towards the middle: the time where the bubble does not show it,
-                and under a mouse the way to the actions a finger reaches by holding the bubble */}
-            {isTimeRevealedOrHovered && (
-              <div
-                className={cn(
-                  'absolute top-1/2 flex -translate-y-1/2 items-center gap-1',
-                  isCurrentUser ? 'right-full mr-2 flex-row-reverse' : 'left-full ml-2',
-                )}
-              >
-                {!showMeta && !hasAvatarSlot && (
-                  <span className="pointer-events-none text-[11px] whitespace-nowrap text-green-700">
-                    {formatMessageTimeOnlyRaw(message.createdAt, activeLocale)}
-                  </span>
-                )}
-                {isHovered && (
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      // the bubble would otherwise toggle its time
-                      event.stopPropagation();
-                      openActions();
-                    }}
-                    aria-label={messageActionsText[activeLocale]}
-                    title={messageActionsText[activeLocale]}
-                    className="focus-visible:focus-surface hover:bg-quiet flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-green-700 hover:text-green-900"
-                  >
-                    <Ellipsis className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+              )
+            }
+          />
 
           {/* Reactions Badges */}
           {groupedReactions.length > 0 && (
@@ -711,7 +607,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         )}
 
         {threadSummary}
-      </div>
+      </MessageRow>
 
       {showReactors && (
         <ReactionDetailsDialog
@@ -732,10 +628,16 @@ export const MessageComponent: React.FC<MessageProperties> = ({
               inert
               className={cn(
                 'max-h-[35dvh] max-w-[85%] min-w-[64px] overflow-hidden rounded-[16px] px-3.5 py-2 wrap-anywhere',
-                bubbleColorClassName,
+                bubbleColorClassName(isCurrentUser),
               )}
             >
-              {bubbleBody}
+              <MessageBubbleContent
+                message={message}
+                isCurrentUser={isCurrentUser}
+                locale={activeLocale}
+                quote={quoteBlock}
+                reserveMeta={false}
+              />
             </div>
           }
           onClose={() => setIsActionsOpen(false)}
@@ -755,6 +657,6 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           }
         />
       )}
-    </div>
+    </>
   );
 };

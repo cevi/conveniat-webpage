@@ -349,7 +349,7 @@ export const ChatTextAreaInput: React.FC = () => {
 
   if (isGuest && !isAllowedGuestThreadReplies) {
     return chatDetails?.type === ChatType.ANNOUNCEMENT ? (
-      <ComposerNotice icon={Megaphone} text={isAnnouncementChannelMessage[locale]} />
+      <AnnouncementComposerNotice locale={locale} />
     ) : (
       <ComposerNotice icon={Lock} text={isGuestMessage[locale]} />
     );
@@ -523,6 +523,11 @@ export const ChatTextAreaInput: React.FC = () => {
     </div>
   );
 };
+/** Where the composer would be in an announcement channel, also in its live preview. */
+export const AnnouncementComposerNotice: React.FC<{ locale: Locale }> = ({ locale }) => (
+  <ComposerNotice icon={Megaphone} text={isAnnouncementChannelMessage[locale]} />
+);
+
 /**
  * Why the composer is not there: a neutral notice with an icon, red only in a locked Notfall chat.
  */

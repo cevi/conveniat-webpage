@@ -376,7 +376,11 @@ export const AnnouncementsCollection: CollectionConfig = {
     components: {
       edit: {
         beforeDocumentControls: [
-          '@/features/payload-cms/payload-cms/components/live-preview-restorer',
+          {
+            path: '@/features/payload-cms/payload-cms/components/live-preview-restorer',
+            // an announcement is only ever read in the app, on a phone
+            clientProps: { defaultBreakpoint: 'iphone-14-pro' },
+          },
         ],
       },
     },
