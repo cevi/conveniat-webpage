@@ -6,12 +6,10 @@ import {
   audiencePreviewHandler,
   groupSuggestionsHandler,
 } from '@/features/payload-cms/payload-cms/endpoints/announcement-channel-audience';
-import type { ChannelAudience } from '@/features/payload-cms/payload-cms/utils/announcement-channel-audience';
-import { findAudienceUserIds } from '@/features/payload-cms/payload-cms/utils/announcement-channel-audience';
+import { syncAnnouncementChannelMemberships } from '@/features/payload-cms/payload-cms/utils/announcement-channel-memberships';
 import type { AnnouncementChannel } from '@/features/payload-cms/payload-types';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import prisma from '@/lib/db/prisma';
-import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
 import {
   ChatMembershipPermission,
   ChatType,
@@ -22,81 +20,7 @@ import type {
   CollectionAfterChangeHook,
   CollectionAfterDeleteHook,
   CollectionConfig,
-  PayloadRequest,
 } from 'payload';
-
-/**
- * Reconciles the GUEST memberships of a channel's chat with its audience: adds whoever
- * belongs to it and removes whoever no longer does. Owners and admins stay.
- */
-const syncAnnouncementChannelMemberships = async (
-  chatUuid: string,
-  audience: ChannelAudience,
-  request: PayloadRequest,
-): Promise<void> => {
-  const eligibleUserUuids = new Set(await findAudienceUserIds(request.payload, audience, request));
-
-  // Fetch existing PostgreSQL memberships for this chat
-  const existingMemberships = await prisma.chatMembership.findMany({
-    where: { chatId: chatUuid },
-  });
-
-  const existingUserUuids = new Set(existingMemberships.map((m) => m.userId));
-
-  // Add missing members as GUEST
-  // eslint-disable-next-line unicorn/prefer-spread
-  const membersToAdd = Array.from(eligibleUserUuids).filter((uuid) => !existingUserUuids.has(uuid));
-  if (membersToAdd.length > 0) {
-    // Only synchronize users who actually exist in the PostgreSQL User table to avoid foreign key violations.
-    const existingPostgresUsers = await prisma.user.findMany({
-      where: {
-        uuid: { in: membersToAdd },
-      },
-      select: {
-        uuid: true,
-      },
-    });
-    const existingPostgresUserUuids = new Set(existingPostgresUsers.map((u) => u.uuid));
-    const validMembersToAdd = membersToAdd.filter((uuid) => existingPostgresUserUuids.has(uuid));
-
-    if (validMembersToAdd.length > 0) {
-      await prisma.chatMembership.createMany({
-        data: validMembersToAdd.map((uuid) => ({
-          chatId: chatUuid,
-          userId: uuid,
-          chatPermission: ChatMembershipPermission.GUEST,
-        })),
-      });
-    }
-  }
-
-  // Remove users who are no longer eligible (excluding OWNER/ADMIN)
-  const membersToRemove = existingMemberships.filter((m) => {
-    if (
-      m.chatPermission === ChatMembershipPermission.OWNER ||
-      m.chatPermission === ChatMembershipPermission.ADMIN
-    ) {
-      return false;
-    }
-    return !eligibleUserUuids.has(m.userId);
-  });
-
-  if (membersToRemove.length > 0) {
-    await prisma.chatMembership.deleteMany({
-      where: {
-        chatId: chatUuid,
-        userId: { in: membersToRemove.map((m) => m.userId) },
-      },
-    });
-
-    // Written outside a transaction, so the deletion is already committed here.
-    await Promise.all(
-      membersToRemove.map((m) =>
-        publishMembershipRevoked(m.userId, chatUuid, request.user?.id ?? m.userId),
-      ),
-    );
-  }
-};
 
 /** Marks the update that only stores the id of a newly created chat. */
 const CHAT_ID_WRITE_BACK = 'announcementChannelChatIdWriteBack';
@@ -196,7 +120,10 @@ const afterChannelChange: CollectionAfterChangeHook<AnnouncementChannel> = async
   }
 
   // C. Sync targeted GUEST memberships
-  await syncAnnouncementChannelMemberships(chatUuid, doc, request);
+  await syncAnnouncementChannelMemberships(request.payload, chatUuid, doc, {
+    req: request,
+    actorId: request.user?.id,
+  });
 
   return doc;
 };

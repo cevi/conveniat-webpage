@@ -18,6 +18,7 @@ import { previewPdfUseCase } from '@/features/billing/services/preview-pdf';
 import type { PopulateSubeventsStreamMessage } from '@/features/billing/types';
 import { BillingJobStatus, BillingTaskSlug } from '@/features/billing/types';
 import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { resyncAvpChannels } from '@/features/payload-cms/payload-cms/utils/announcement-channel-memberships';
 import { HITOBITO_CONFIG } from '@/lib/hitobito';
 import { randomUUID } from 'node:crypto';
 import type { PayloadHandler } from 'payload';
@@ -777,6 +778,17 @@ export const billingPopulateSubeventsHandler: PayloadHandler = async (request) =
             send({ type: 'progress', ...progress });
           },
         );
+
+        // the sync adds and removes Höfe, and with them who counts as an AVP
+        try {
+          const channels = await resyncAvpChannels(request.payload);
+          logger.info('Brought the AVP channels up to date with the Höfe', {
+            'billing.avp_channels': channels,
+          });
+        } catch (error: unknown) {
+          // the Höfe are written; the next sync or a save of the channel catches up
+          logger.error('Could not bring the AVP channels up to date with the Höfe', { error });
+        }
 
         send({ type: 'done', newEvents: result.newEvents, allEvents: result.allEvents });
         logger.info('Subevent walk finished', {
