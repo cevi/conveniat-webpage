@@ -8,7 +8,7 @@ import { withCeviDatabaseUserAgent } from '@/lib/hitobito/user-agent';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { createLogger } from '@/utils/server-logger';
 import { withSpan } from '@/utils/tracing-helpers';
-import { trace } from '@opentelemetry/api';
+import { SpanStatusCode, trace } from '@opentelemetry/api';
 import type { NextAuthConfig } from 'next-auth';
 import { customFetch } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
@@ -493,11 +493,15 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT | n
       };
     }
   } catch (error) {
-    const activeSpan = trace.getActiveSpan();
-    if (activeSpan !== undefined) {
-      activeSpan.recordException(error as Error);
-    }
     const isTerminal = error instanceof TerminalRefreshError;
+    const activeSpan = trace.getActiveSpan();
+    if (activeSpan !== undefined && error instanceof Error) {
+      activeSpan.recordException(error);
+      // Only the terminal case failed the request; a retryable one is retried on the next.
+      if (isTerminal) {
+        activeSpan.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
+      }
+    }
     // Terminal means the refresh token is gone for good and the session ends here: worth an
     // error. A retryable failure is the network, and the next request tries again.
     logger[isTerminal ? 'error' : 'warn']('Error refreshing access token', {
