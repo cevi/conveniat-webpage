@@ -364,6 +364,7 @@ export interface GenericPage {
         }
       | MediaTextBlock
       | ProcessStepsBlock
+      | FactListBlock
       | FormBlock
       | ApprovedFormSubmissionsBlock
       | {
@@ -1294,6 +1295,46 @@ export interface ProcessStepsBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'processSteps';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FactListBlock".
+ */
+export interface FactListBlock {
+  /**
+   * Optional. Shown small and in capitals above the card, e.g. "Rules".
+   */
+  title?: string | null;
+  facts: {
+    icon:
+      | 'users'
+      | 'calendar'
+      | 'clock'
+      | 'mapPin'
+      | 'train'
+      | 'car'
+      | 'ticket'
+      | 'wallet'
+      | 'utensils'
+      | 'backpack'
+      | 'tent'
+      | 'mail'
+      | 'phone'
+      | 'shield'
+      | 'info';
+    /**
+     * Short, e.g. "Public transport only".
+     */
+    title: string;
+    /**
+     * Optional. A line of detail under the title.
+     */
+    description?: string | null;
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'factList';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5322,6 +5363,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                   };
               mediaText?: T | MediaTextBlockSelect<T>;
               processSteps?: T | ProcessStepsBlockSelect<T>;
+              factList?: T | FactListBlockSelect<T>;
               formBlock?: T | FormBlockSelect<T>;
               approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
               photoCarousel?:
@@ -5513,6 +5555,23 @@ export interface ProcessStepsBlockSelect<T extends boolean = true> {
   steps?:
     | T
     | {
+        title?: T;
+        description?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FactListBlock_select".
+ */
+export interface FactListBlockSelect<T extends boolean = true> {
+  title?: T;
+  facts?:
+    | T
+    | {
+        icon?: T;
         title?: T;
         description?: T;
         id?: T;
@@ -8438,6 +8497,7 @@ export interface AppLandingPage {
           }
         | MediaTextBlock
         | ProcessStepsBlock
+        | FactListBlock
         | FormBlock
         | ApprovedFormSubmissionsBlock
         | {
@@ -9271,6 +9331,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
             };
         mediaText?: T | MediaTextBlockSelect<T>;
         processSteps?: T | ProcessStepsBlockSelect<T>;
+        factList?: T | FactListBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
         approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
         photoCarousel?:

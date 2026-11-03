@@ -9,6 +9,7 @@ import { countdownBlock } from '@/features/payload-cms/payload-cms/shared-blocks
 import { detailsTable } from '@/features/payload-cms/payload-cms/shared-blocks/details-table';
 import { donationBarometerBlock } from '@/features/payload-cms/payload-cms/shared-blocks/donation-barometer-block';
 import { donationCtaBlock } from '@/features/payload-cms/payload-cms/shared-blocks/donation-cta-block';
+import { factListBlock } from '@/features/payload-cms/payload-cms/shared-blocks/fact-list-block';
 import { featuredSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/featured-section-block';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
@@ -41,6 +42,7 @@ export const mainContentBlocks: Block[] = [
   richTextArticleBlock,
   mediaTextBlock,
   processStepsBlock,
+  factListBlock,
   formBlock,
   approvedFormSubmissionsBlock,
   photoCarouselBlock,
