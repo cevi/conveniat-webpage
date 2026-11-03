@@ -2,6 +2,8 @@
 
 import { AppFooterController } from '@/components/footer/hide-footer-context';
 import type { ChatDetails as ChatDetailsData } from '@/features/chat/api/types';
+import { chatErrorTexts } from '@/lib/chat-error-texts';
+import { userErrorMessage } from '@/utils/user-error-message';
 import type React from 'react';
 import { useMemo, useState } from 'react';
 
@@ -199,14 +201,10 @@ export const ChatDetails: React.FC = () => {
   const isAtGroupLimit =
     openGroupSlots !== undefined && selectedContactsToAdd.length >= openGroupSlots;
 
-  let addError: string | undefined;
-  if (addParticipantsMutation.error !== null) {
-    // a refusal is written for the user, in their language; anything else is not
-    addError =
-      addParticipantsMutation.error.data?.code === 'BAD_REQUEST'
-        ? addParticipantsMutation.error.message
-        : addFailedText[locale];
-  }
+  const addError =
+    addParticipantsMutation.error === null
+      ? undefined
+      : userErrorMessage(addParticipantsMutation.error, locale, chatErrorTexts, addFailedText);
 
   const owner = chatDetails.participants.find(
     (p) => p.chatPermission === ChatMembershipPermission.OWNER,

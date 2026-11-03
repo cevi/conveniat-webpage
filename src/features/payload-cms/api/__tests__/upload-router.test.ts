@@ -152,7 +152,7 @@ describe('the upload URL for a submitted image', () => {
 
     await expect(as(ANNA).createUploadUrl(input)).rejects.toMatchObject({
       code: 'TOO_MANY_REQUESTS',
-      message: expect.stringContaining('ein paar Minuten') as string,
+      reason: 'tooManyUploads',
     });
     await expect(as(BEAT).createUploadUrl(input)).resolves.toBeDefined();
   });

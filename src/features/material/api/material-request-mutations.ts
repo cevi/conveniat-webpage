@@ -17,7 +17,6 @@ import {
 } from '@/features/material/api/material-shared';
 import { isOnOrderStep, mergeBasketLines } from '@/features/material/utils/basket';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
-import type { Locale } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { z } from 'zod';
 
@@ -34,13 +33,12 @@ const assertMayRequestFor = (
   user: HitobitoNextAuthUser,
   input: { hofId?: string | undefined; personId?: string | undefined },
   myHofIds: string[],
-  locale: Locale,
 ): void => {
   if (input.hofId !== undefined && !myHofIds.includes(input.hofId)) {
-    throw materialError('FORBIDDEN', 'notOwnHof', locale);
+    throw materialError('FORBIDDEN', 'notOwnHof');
   }
   if (input.personId !== undefined && input.personId !== user.uuid) {
-    throw materialError('FORBIDDEN', 'notSelf', locale);
+    throw materialError('FORBIDDEN', 'notSelf');
   }
 };
 
@@ -65,7 +63,7 @@ export const createLoanRequest = materialProcedure
       .refine(hasHolder, { error: 'A loan needs a Hof or a person.' }),
   )
   .mutation(async ({ ctx, input }) => {
-    assertMayRequestFor(ctx.user, input, await ctx.myHofIds(), ctx.locale);
+    assertMayRequestFor(ctx.user, input, await ctx.myHofIds());
     const lines = mergeBasketLines(input.lines.map((line) => ({ ...line, isConsumption: false })));
 
     return await ctx.prisma.$transaction(async (tx) => {
@@ -75,7 +73,7 @@ export const createLoanRequest = materialProcedure
         where: { createdById: ctx.user.uuid, status: 'REQUESTED' },
       });
       if (open + lines.length > MAX_OPEN_REQUESTS) {
-        throw materialError('BAD_REQUEST', 'tooManyRequests', ctx.locale, MAX_OPEN_REQUESTS);
+        throw materialError('BAD_REQUEST', 'tooManyRequests', MAX_OPEN_REQUESTS);
       }
       await lockItems(
         tx,
@@ -85,9 +83,9 @@ export const createLoanRequest = materialProcedure
       const numbers: number[] = [];
       for (const line of lines) {
         const item = await tx.materialItem.findUnique({ where: { id: line.itemId } });
-        if (!item) throw materialError('NOT_FOUND', 'itemNotFound', ctx.locale);
+        if (!item) throw materialError('NOT_FOUND', 'itemNotFound');
         if (!isOnOrderStep(line.quantity, item.orderStep)) {
-          throw materialError('BAD_REQUEST', 'offStep', ctx.locale, item.orderStep, item.name);
+          throw materialError('BAD_REQUEST', 'offStep', item.orderStep, item.name);
         }
         const booking: Booking = {
           item,
@@ -98,7 +96,7 @@ export const createLoanRequest = materialProcedure
           startDate: input.startDate,
           endDate: input.endDate,
         };
-        await assertBookable(tx, booking, ctx.locale);
+        await assertBookable(tx, booking);
         const loan = await tx.materialLoan.create({
           data: {
             ...(await applyBooking(tx, booking, new Date())),
@@ -136,17 +134,11 @@ export const updateLoanRequest = materialProcedure
   .mutation(async ({ ctx, input }) => {
     const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
     await ctx.prisma.$transaction(async (tx) => {
-      const loan = await lockLoan(tx, input.id, ctx.locale, visible);
-      if (loan.status !== 'REQUESTED') throw materialError('CONFLICT', 'wrongStatus', ctx.locale);
+      const loan = await lockLoan(tx, input.id, visible);
+      if (loan.status !== 'REQUESTED') throw materialError('CONFLICT', 'wrongStatus');
       // only a changed quantity: a request from before the step keeps its dates editable
       if (input.quantity !== undefined && !isOnOrderStep(input.quantity, loan.item.orderStep)) {
-        throw materialError(
-          'BAD_REQUEST',
-          'offStep',
-          ctx.locale,
-          loan.item.orderStep,
-          loan.item.name,
-        );
+        throw materialError('BAD_REQUEST', 'offStep', loan.item.orderStep, loan.item.name);
       }
       const booking: Booking = {
         item: loan.item,
@@ -157,7 +149,7 @@ export const updateLoanRequest = materialProcedure
         endDate: input.endDate ?? loan.endDate,
         loanId: loan.id,
       };
-      await assertBookable(tx, booking, ctx.locale);
+      await assertBookable(tx, booking);
       await tx.materialLoan.update({
         where: { id: loan.id },
         data: {
@@ -182,9 +174,9 @@ export const cancelLoanRequest = materialProcedure
   .mutation(async ({ ctx, input }) => {
     const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
     await ctx.prisma.$transaction(async (tx) => {
-      const loan = await lockLoan(tx, input.id, ctx.locale, visible);
+      const loan = await lockLoan(tx, input.id, visible);
       if (!PENDING_STATUSES.includes(loan.status)) {
-        throw materialError('CONFLICT', 'wrongStatus', ctx.locale);
+        throw materialError('CONFLICT', 'wrongStatus');
       }
       await tx.materialLoan.update({ where: { id: loan.id }, data: { status: 'CANCELLED' } });
       logger.debug('Material request cancelled', { 'material.loan.number': loan.number });
@@ -210,6 +202,6 @@ export const announceReturn = materialProcedure
       },
       data: { returnAnnouncedAt: new Date() },
     });
-    if (count === 0) throw materialError('BAD_REQUEST', 'wrongStatus', ctx.locale);
+    if (count === 0) throw materialError('BAD_REQUEST', 'wrongStatus');
     return { count };
   });

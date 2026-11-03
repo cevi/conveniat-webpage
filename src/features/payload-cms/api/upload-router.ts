@@ -3,12 +3,13 @@ import {
   USER_IMAGE_MAX_BYTES,
   USER_IMAGE_UPLOAD,
 } from '@/features/payload-cms/constants/user-image-upload';
+import { uploadErrorTexts } from '@/features/payload-cms/upload-error-texts';
 import { createPresignedUploadUrl } from '@/lib/presigned-urls';
 import { S3_BUCKET_NAME, s3Client } from '@/lib/s3';
 import { uploadInputShape } from '@/lib/upload-policy';
+import { createErrorThrower } from '@/trpc/error-formatter';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { rateLimit } from '@/trpc/middleware/rate-limit';
-import type { StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import config from '@payload-config';
@@ -38,11 +39,8 @@ const ALLOWED_EXTENSIONS = [
 /** A batch picked in one go passes at once; the window caps what one account can store. */
 const UPLOAD_RATE_LIMIT = { limit: 30, windowMs: 10 * 60 * 1000 };
 
-const tooManyUploads: StaticTranslationString = {
-  de: 'Du hast gerade sehr viele Bilder hochgeladen. Versuche es in ein paar Minuten nochmals.',
-  en: 'You have just uploaded a lot of images. Please try again in a few minutes.',
-  fr: "Tu viens de téléverser beaucoup d'images. Réessaie dans quelques minutes.",
-};
+const uploadError = createErrorThrower(uploadErrorTexts);
+const refuseTooManyUploads = (): TRPCError => uploadError('TOO_MANY_REQUESTS', 'tooManyUploads');
 
 /**
  * Whether `key` names an upload directly under the user's own temporary prefix, so one user
@@ -56,7 +54,11 @@ const isTemporaryUploadOf = (key: string, userId: string): boolean => {
 export const uploadRouter = createTRPCRouter({
   createUploadUrl: trpcBaseProcedure
     .use(
-      rateLimit({ name: 'upload.createUploadUrl', message: tooManyUploads, ...UPLOAD_RATE_LIMIT }),
+      rateLimit({
+        name: 'upload.createUploadUrl',
+        refuse: refuseTooManyUploads,
+        ...UPLOAD_RATE_LIMIT,
+      }),
     )
     .input(z.object(uploadInputShape(USER_IMAGE_UPLOAD)))
     .mutation(({ input, ctx }) =>
@@ -70,7 +72,7 @@ export const uploadRouter = createTRPCRouter({
     .use(
       rateLimit({
         name: 'upload.completeUserUpload',
-        message: tooManyUploads,
+        refuse: refuseTooManyUploads,
         ...UPLOAD_RATE_LIMIT,
       }),
     )

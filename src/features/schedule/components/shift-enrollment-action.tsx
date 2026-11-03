@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/buttons/button';
 import { ShiftConflictDialog } from '@/features/schedule/components/shift-conflict-dialog';
 import { useShiftStatus } from '@/features/schedule/hooks/use-shift-status';
 import { useIsUnenrollmentClosed } from '@/features/schedule/hooks/use-unenrollment-window';
-import { UNENROLLMENT_DEADLINE_PASSED } from '@/features/schedule/utils/unenrollment-deadline';
+import { isDeadlinePassed, timeConflictOf } from '@/features/schedule/utils/time-conflict';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { trpc } from '@/trpc/client';
@@ -193,23 +193,11 @@ export const ShiftEnrollmentAction: React.FC<{
       setConflictInfo(undefined);
     },
     onError: (error) => {
-      if (error.message.includes('Time conflict with')) {
-        const isShift = error.message.includes('with shift:');
-
-        const match = error.message.match(
-          /Time conflict with(?: (?:shift|workshop):)?\s*(.+)\|(.+)/,
-        );
-        if (match) {
-          const conflictingCourseName = match[1] ?? 'another entry';
-          const conflictingCourseId = match[2] ?? '';
-          setConflictType(isShift ? 'shift' : 'workshop');
-          setConflictInfo({
-            conflictingCourseName,
-            conflictingCourseId,
-          });
-          setConflictDialogOpen(true);
-        }
-      }
+      const conflict = timeConflictOf(error);
+      if (conflict === undefined) return;
+      setConflictType(conflict.kind);
+      setConflictInfo({ conflictingCourseName: conflict.title, conflictingCourseId: conflict.id });
+      setConflictDialogOpen(true);
     },
   });
 
@@ -224,7 +212,7 @@ export const ShiftEnrollmentAction: React.FC<{
     },
     onError: (error) => {
       // switching away from a shift is a withdrawal from it, so it hits the same deadline
-      if (error.message.includes(UNENROLLMENT_DEADLINE_PASSED)) {
+      if (isDeadlinePassed(error)) {
         setWasRejectedAsTooLate(true);
         void utils.shifts.getShiftStatus.invalidate();
         return;
@@ -241,7 +229,7 @@ export const ShiftEnrollmentAction: React.FC<{
       void utils.shifts.getShifts.invalidate();
     },
     onError: (error) => {
-      if (error.message.includes(UNENROLLMENT_DEADLINE_PASSED)) {
+      if (isDeadlinePassed(error)) {
         setWasRejectedAsTooLate(true);
         void utils.shifts.getShiftStatus.invalidate();
       }

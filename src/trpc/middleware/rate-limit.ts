@@ -1,8 +1,7 @@
 import { redis } from '@/lib/db/redis';
 import { middleware } from '@/trpc/init';
-import type { StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
-import { TRPCError } from '@trpc/server';
+import type { TRPCError } from '@trpc/server';
 
 const logger = createLogger('trpc:rate-limit');
 
@@ -25,8 +24,8 @@ interface RateLimitOptions {
   /** Calls allowed per window. A burst up to this number goes through at once. */
   limit: number;
   windowMs: number;
-  /** Shown to the user who hit the limit. */
-  message: StaticTranslationString;
+  /** The refusal past the limit, from the feature's error thrower, so its components can say it. */
+  refuse: () => TRPCError;
 }
 
 /**
@@ -40,7 +39,7 @@ interface RateLimitOptions {
  * Put it before `databaseTransactionWrapper`, so a rejected call never opens a transaction.
  */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- tRPC infers the middleware type
-export const rateLimit = ({ name, limit, windowMs, message }: RateLimitOptions) =>
+export const rateLimit = ({ name, limit, windowMs, refuse }: RateLimitOptions) =>
   middleware(async ({ ctx, next }) => {
     const userId = ctx.user?.uuid;
     if (userId === undefined) return next();
@@ -63,7 +62,7 @@ export const rateLimit = ({ name, limit, windowMs, message }: RateLimitOptions) 
       if (count === limit + 1) {
         logger.info('Rate limit reached', { 'rate_limit.name': name, 'user.id': userId });
       }
-      throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: message[ctx.locale] });
+      throw refuse();
     }
 
     return next();

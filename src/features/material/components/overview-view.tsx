@@ -1,4 +1,5 @@
 'use client';
+import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { buttonVariants } from '@/components/ui/buttons/button';
 import { IconTile } from '@/components/ui/icon-tile';
@@ -45,7 +46,6 @@ import {
 import Link from 'next/link';
 import type React from 'react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 const text = {
   outToday: { de: 'heute raus', en: 'out today', fr: 'sorties' },
@@ -161,7 +161,10 @@ const ResolveButton: React.FC<{ id: string }> = ({ id }) => {
       onClick={() =>
         resolve.mutate(
           { id },
-          { onSuccess: () => void invalidate(), onError: (error) => toast.error(error.message) },
+          {
+            onSuccess: () => void invalidate(),
+            onError: (error) => toastMaterialError(error, locale),
+          },
         )
       }
     >

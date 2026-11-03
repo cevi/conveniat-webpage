@@ -42,7 +42,7 @@ export const createItem = materialTeamProcedure
       logger.info('Material item created', { 'material.item.code': item.code });
       return { code: item.code };
     } catch (error) {
-      if (isUniqueViolation(error)) throw materialError('CONFLICT', 'duplicate', ctx.locale);
+      if (isUniqueViolation(error)) throw materialError('CONFLICT', 'duplicate');
       throw error;
     }
   });
@@ -54,16 +54,16 @@ export const updateItem = materialTeamProcedure
     await ctx.prisma.$transaction(async (tx) => {
       await lockItem(tx, id);
       const item = await tx.materialItem.findUnique({ where: { id } });
-      if (!item) throw materialError('NOT_FOUND', 'itemNotFound', ctx.locale);
+      if (!item) throw materialError('NOT_FOUND', 'itemNotFound');
       // the pieces that are out still exist and come back
       const issued = await getIssuedQuantity(tx, id);
       if (data.totalQuantity < item.damagedQuantity + item.inRepairQuantity + issued) {
-        throw materialError('BAD_REQUEST', 'quantity', ctx.locale);
+        throw materialError('BAD_REQUEST', 'quantity');
       }
       try {
         await tx.materialItem.update({ where: { id }, data });
       } catch (error) {
-        if (isUniqueViolation(error)) throw materialError('CONFLICT', 'duplicate', ctx.locale);
+        if (isUniqueViolation(error)) throw materialError('CONFLICT', 'duplicate');
         throw error;
       }
     });
@@ -90,11 +90,11 @@ export const adjustItemStock = materialTeamProcedure
     await ctx.prisma.$transaction(async (tx) => {
       await lockItem(tx, input.id);
       const item = await tx.materialItem.findUnique({ where: { id: input.id } });
-      if (!item) throw materialError('NOT_FOUND', 'itemNotFound', ctx.locale);
+      if (!item) throw materialError('NOT_FOUND', 'itemNotFound');
 
       const fromDamaged = input.action === 'START_REPAIR' || input.action === 'WRITE_OFF_DAMAGED';
       const source = fromDamaged ? item.damagedQuantity : item.inRepairQuantity;
-      if (input.quantity > source) throw materialError('BAD_REQUEST', 'quantity', ctx.locale);
+      if (input.quantity > source) throw materialError('BAD_REQUEST', 'quantity');
 
       const q = input.quantity;
       const data: Prisma.MaterialItemUpdateInput = {
@@ -139,7 +139,7 @@ export const createCategory = materialTeamProcedure
       const category = await ctx.prisma.materialCategory.create({ data: input });
       return { id: category.id };
     } catch (error) {
-      if (isUniqueViolation(error)) throw materialError('CONFLICT', 'duplicate', ctx.locale);
+      if (isUniqueViolation(error)) throw materialError('CONFLICT', 'duplicate');
       throw error;
     }
   });
@@ -151,7 +151,7 @@ export const updateCategory = materialTeamProcedure
     try {
       await ctx.prisma.materialCategory.update({ where: { id }, data });
     } catch (error) {
-      if (isUniqueViolation(error)) throw materialError('CONFLICT', 'duplicate', ctx.locale);
+      if (isUniqueViolation(error)) throw materialError('CONFLICT', 'duplicate');
       throw error;
     }
   });

@@ -13,7 +13,7 @@ import {
 /* eslint-enable import/no-restricted-paths */
 import { Button } from '@/components/ui/buttons/button';
 import { useCourseStatus } from '@/features/schedule/context/schedule-status-context';
-import { UNENROLLMENT_DEADLINE_PASSED } from '@/features/schedule/utils/unenrollment-deadline';
+import { isDeadlinePassed, timeConflictOf } from '@/features/schedule/utils/time-conflict';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
@@ -197,26 +197,12 @@ export const EnrollmentAction: React.FC<{
       setConflictInfo(undefined);
     },
     onError: (error) => {
-      // Check if it's a time conflict error
-      // Format: "Time conflict with [TITLE]|[ID]"
-      if (error.message.includes('Time conflict with')) {
-        const isShift = error.message.includes('with shift:');
-
-        const match = error.message.match(
-          /Time conflict with(?: (?:shift|workshop):)?\s*(.+)\|(.+)/,
-        );
-        if (match) {
-          const conflictingCourseName = match[1] ?? 'another course';
-          const conflictingCourseId = match[2] ?? '';
-          setConflictType(isShift ? 'shift' : 'workshop');
-          setIsSwitchBlocked(false);
-          setConflictInfo({
-            conflictingCourseName,
-            conflictingCourseId,
-          });
-          setConflictDialogOpen(true);
-        }
-      }
+      const conflict = timeConflictOf(error);
+      if (conflict === undefined) return;
+      setConflictType(conflict.kind);
+      setIsSwitchBlocked(false);
+      setConflictInfo({ conflictingCourseName: conflict.title, conflictingCourseId: conflict.id });
+      setConflictDialogOpen(true);
     },
   });
 
@@ -238,7 +224,7 @@ export const EnrollmentAction: React.FC<{
     },
     onError: (error) => {
       // switching away from a shift is a withdrawal from it, so it hits the same deadline
-      if (error.message.includes(UNENROLLMENT_DEADLINE_PASSED)) {
+      if (isDeadlinePassed(error)) {
         setIsSwitchBlocked(true);
         return;
       }

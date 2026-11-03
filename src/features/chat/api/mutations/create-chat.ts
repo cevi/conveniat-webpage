@@ -1,3 +1,4 @@
+import { chatError } from '@/features/chat/api/chat-errors';
 import { assertContactable } from '@/features/chat/api/checks/assert-contactable';
 import { assertGroupSize } from '@/features/chat/api/checks/assert-group-size';
 import { checkForDuplicateMembers } from '@/features/chat/api/checks/check-for-duplicate-members';
@@ -38,11 +39,7 @@ export const createChat = trpcBaseProcedure
       name: 'chat.createChat',
       limit: 20,
       windowMs: 10 * 60 * 1000,
-      message: {
-        de: 'Du hast in kurzer Zeit zu viele Chats erstellt. Versuche es in ein paar Minuten wieder.',
-        en: 'You created too many chats in a short time. Try again in a few minutes.',
-        fr: 'Tu as créé trop de chats en peu de temps. Réessaie dans quelques minutes.',
-      },
+      refuse: () => chatError('TOO_MANY_REQUESTS', 'tooManyChats'),
     }),
   )
   .use(databaseTransactionWrapper) // use a DB transaction for this mutation
@@ -60,7 +57,7 @@ export const createChat = trpcBaseProcedure
     // additional validation checks
     checkForDuplicateMembers(members);
     verifyChatName(chatName, members);
-    assertChatNameLength(chatName, locale);
+    assertChatNameLength(chatName);
 
     const finalChatName = chatName?.trim() ?? '';
 
@@ -101,7 +98,6 @@ export const createChat = trpcBaseProcedure
       prisma,
       userId: user.uuid,
       userIds: members.map((member) => member.userId),
-      locale,
       allowOrganisers: members.length === 1,
     });
 
@@ -133,7 +129,7 @@ export const createChat = trpcBaseProcedure
       });
     }
 
-    await assertGroupSize(members.length + 1, locale);
+    await assertGroupSize(members.length + 1);
 
     const chat = await createNewChat(finalChatName, locale, user, members, prisma, {
       afterCommit: ctx.afterTransactionCommit,

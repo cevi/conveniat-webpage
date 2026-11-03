@@ -1,3 +1,4 @@
+import { chatError } from '@/features/chat/api/chat-errors';
 import { assertChatNotArchived } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { assertContactable } from '@/features/chat/api/checks/assert-contactable';
 import { assertGroupSize } from '@/features/chat/api/checks/assert-group-size';
@@ -7,18 +8,11 @@ import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
-import type { StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 const logger = createLogger('chat:mutations');
-
-const privateChatText: StaticTranslationString = {
-  de: 'In einen privaten Chat kann niemand hinzugefügt werden. Erstelle stattdessen eine Gruppe.',
-  en: 'Nobody can be added to a private chat. Create a group instead.',
-  fr: 'Personne ne peut être ajouté à un chat privé. Crée plutôt un groupe.',
-};
 
 const addParticipantsSchema = z.object({
   chatId: z.string(),
@@ -29,7 +23,7 @@ export const addParticipants = trpcBaseProcedure
   .input(addParticipantsSchema)
   .use(databaseTransactionWrapper)
   .mutation(async ({ input, ctx }) => {
-    const { locale, prisma, user } = ctx;
+    const { prisma, user } = ctx;
     const { chatId, participantIds } = input;
 
     const chat = await findChatByUuid(chatId, prisma);
@@ -47,7 +41,7 @@ export const addParticipants = trpcBaseProcedure
     // A private chat is looked up by its two members, see `findOrCreatePrivateChat`. A third
     // one would turn it into an unnamed group that neither side can find again.
     if (chat.type === ChatType.ONE_TO_ONE) {
-      throw new TRPCError({ code: 'BAD_REQUEST', message: privateChatText[locale] });
+      throw chatError('BAD_REQUEST', 'privateChat');
     }
 
     // check if user is ADMIN or OWNER of the chat
@@ -74,10 +68,10 @@ export const addParticipants = trpcBaseProcedure
       (id) => !existingMemberIds.has(id),
     );
 
-    await assertContactable({ prisma, userId: user.uuid, userIds: newParticipantIds, locale });
+    await assertContactable({ prisma, userId: user.uuid, userIds: newParticipantIds });
 
     if (chat.type === ChatType.GROUP) {
-      await assertGroupSize(chat.chatMemberships.length + newParticipantIds.length, locale);
+      await assertGroupSize(chat.chatMemberships.length + newParticipantIds.length);
     }
 
     if (newParticipantIds.length > 0) {

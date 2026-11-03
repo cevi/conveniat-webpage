@@ -1,19 +1,13 @@
+import { chatError } from '@/features/chat/api/chat-errors';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_RESTRICT_CONTACT_LIST } from '@/lib/feature-flags';
 import type { Prisma } from '@/lib/prisma';
-import type { Locale, PrismaClientOrTransaction, StaticTranslationString } from '@/types/types';
+import type { PrismaClientOrTransaction } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
-import { TRPCError } from '@trpc/server';
 import { getPayload } from 'payload';
 
 const logger = createLogger('chat:checks');
-
-const notAContactText: StaticTranslationString = {
-  de: 'Du kannst nur mit deinen Kontakten einen Chat starten.',
-  en: 'You can only start a chat with your contacts.',
-  fr: 'Tu ne peux démarrer un chat qu’avec tes contacts.',
-};
 
 /**
  * The people a user may start a chat with, which is what their contact list shows.
@@ -78,13 +72,11 @@ export const assertContactable = async ({
   prisma,
   userId,
   userIds,
-  locale,
   allowOrganisers = false,
 }: {
   prisma: PrismaClientOrTransaction;
   userId: string;
   userIds: string[];
-  locale: Locale;
   allowOrganisers?: boolean;
 }): Promise<void> => {
   if (userIds.length === 0) return;
@@ -107,5 +99,5 @@ export const assertContactable = async ({
     'user.id': userId,
     'chat.stranger_count': strangerIds.length,
   });
-  throw new TRPCError({ code: 'FORBIDDEN', message: notAContactText[locale] });
+  throw chatError('FORBIDDEN', 'notAContact');
 };

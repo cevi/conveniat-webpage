@@ -17,10 +17,10 @@ export const renameChat = trpcBaseProcedure
   .input(renameChatMutationSchema)
   .use(databaseTransactionWrapper)
   .mutation(async ({ input, ctx }) => {
-    const { locale, prisma, user } = ctx;
+    const { prisma, user } = ctx;
     const { chatUuid, newName } = input;
 
-    assertChatNameLength(newName, locale);
+    assertChatNameLength(newName);
 
     const chat = await findChatByUuid(chatUuid, prisma);
 
