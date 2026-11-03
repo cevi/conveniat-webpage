@@ -1,9 +1,12 @@
 import { isBuildPhase } from '@/utils/build-phase';
-import { trace, type Attributes, type Span } from '@opentelemetry/api';
+import { SpanStatusCode, trace, type Attributes, type Span } from '@opentelemetry/api';
+import { unstable_rethrow } from 'next/navigation';
 
 /**
  * Wraps an async function execution in a named span.
- * Automatically handles error recording and span ending.
+ * A thrown error marks the span ERROR, records it as an exception event and is rethrown;
+ * logging it is left to the caller. Next.js control flow (`notFound()`, `redirect()`, prerender
+ * bail-outs) passes through untouched, because a 404 or a redirect is not a failure.
  *
  * @param name The name of the span
  * @param callback The async function to execute
@@ -62,7 +65,19 @@ export async function withSpan<T>(
     try {
       return await callback(span);
     } catch (error) {
-      span.recordException(error as Error);
+      // Rethrows Next.js control-flow errors before they are counted as failures; `finally`
+      // still ends the span.
+      unstable_rethrow(error);
+      // `recordException` alone leaves the status UNSET, which reads as healthy in Tempo and
+      // lets the collector sample the trace away.
+      if (error instanceof Error) {
+        span.recordException(error);
+        span.setAttribute('error.type', error.name);
+      }
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: error instanceof Error ? error.message : String(error),
+      });
       throw error;
     } finally {
       span.end();

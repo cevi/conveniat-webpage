@@ -198,7 +198,6 @@ export class HitobitoClient {
         const error = new Error(
           `API ${method} failed: ${response.status} ${response.statusText} - ${text} at ${url}`,
         );
-        span.recordException(error);
         throw error;
       }
 
@@ -313,7 +312,6 @@ export class HitobitoClient {
       });
       if (!formResponse.ok) {
         const error = new Error(`Failed to fetch form from ${getFormUrl}: ${formResponse.status}`);
-        span.recordException(error);
         throw error;
       }
 
