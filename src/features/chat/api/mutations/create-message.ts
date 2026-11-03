@@ -233,6 +233,27 @@ export const createMessage = trpcBaseProcedure
       }
     }
 
+    // A reply answers a live top-level message of this very chat. Prisma's `connect` below
+    // would take any message: one from another chat would show this sender in a thread there
+    // and be cascade-deleted with it. Checked after the replay above, so a stored reply whose
+    // parent was deleted since is still answered with its stored copy.
+    if (validatedMessage.parentId !== undefined) {
+      const parent = await prisma.message.findFirst({
+        where: {
+          uuid: validatedMessage.parentId,
+          chatId: validatedMessage.chatId,
+          // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
+          parentId: null,
+          // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
+          deletedAt: null,
+        },
+        select: { uuid: true },
+      });
+      if (!parent) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Thread not found in this chat.' });
+      }
+    }
+
     logger.debug('Preparing message fan-out', {
       'chat.id': validatedMessage.chatId,
       'chat.membership.count': chat.chatMemberships.length,
@@ -268,21 +289,18 @@ export const createMessage = trpcBaseProcedure
       }
     }
 
-    // Fetch quoted message content if quotedMessageId is provided. Only from this chat, and
-    // not from a deleted message: a send queued offline may quote one deleted since, and its
-    // text must not come back as the snippet.
+    // A quote names a message of this chat; one from elsewhere is dropped, not stored. A
+    // message deleted since (a send queued offline) keeps its quote, but its text must not
+    // come back as the snippet.
+    let quotedMessageId: string | undefined;
     let quotedSnippet: string | undefined;
     if (validatedMessage.quotedMessageId) {
       const quotedMessage = await prisma.message.findFirst({
-        where: {
-          uuid: validatedMessage.quotedMessageId,
-          chatId: validatedMessage.chatId,
-          // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
-          deletedAt: null,
-        },
+        where: { uuid: validatedMessage.quotedMessageId, chatId: validatedMessage.chatId },
         include: { contentVersions: { take: 1, orderBy: { revision: 'desc' } } },
       });
-      if (quotedMessage?.contentVersions[0]?.payload) {
+      quotedMessageId = quotedMessage?.uuid;
+      if (quotedMessage && !quotedMessage.deletedAt && quotedMessage.contentVersions[0]?.payload) {
         const payload = quotedMessage.contentVersions[0].payload;
         let text: string;
         if (typeof payload === 'string') {
@@ -309,7 +327,7 @@ export const createMessage = trpcBaseProcedure
                   ? { url: validatedMessage.content }
                   : {
                       text: validatedMessage.content,
-                      quotedMessageId: validatedMessage.quotedMessageId,
+                      quotedMessageId,
                       quotedSnippet,
                     },
             },
@@ -397,7 +415,7 @@ export const createMessage = trpcBaseProcedure
                 ? { url: validatedMessage.content }
                 : {
                     text: validatedMessage.content,
-                    quotedMessageId: validatedMessage.quotedMessageId,
+                    quotedMessageId,
                     quotedSnippet,
                   },
             senderId: user.uuid,
@@ -428,7 +446,7 @@ export const createMessage = trpcBaseProcedure
           ? { url: validatedMessage.content }
           : {
               text: validatedMessage.content,
-              quotedMessageId: validatedMessage.quotedMessageId,
+              quotedMessageId,
               quotedSnippet,
             },
     };

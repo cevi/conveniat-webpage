@@ -169,6 +169,13 @@ const prisma = {
           : // eslint-disable-next-line unicorn/no-null
             null,
       ),
+    // the top-level message a reply answers
+    findFirst: ({ where }: { where: { uuid: string } }): Promise<unknown> =>
+      Promise.resolve(
+        messages.find((message) => message.uuid === where.uuid && message.parentId === undefined) ??
+          // eslint-disable-next-line unicorn/no-null
+          null,
+      ),
     findMany: ({
       where,
     }: {
