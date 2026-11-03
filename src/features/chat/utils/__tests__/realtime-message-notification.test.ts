@@ -9,12 +9,7 @@ import {
 } from '@/features/chat/utils/realtime-message-notification';
 import { resetForegroundNotificationState } from '@/utils/foreground-notifications';
 
-const mockToast = jest.fn();
-jest.mock('sonner', () => ({
-  toast: (...arguments_: unknown[]): void => {
-    mockToast(...arguments_);
-  },
-}));
+const showNotification = jest.fn();
 
 const buildMessage = (overrides: Partial<ChatMessage> = {}): ChatMessage => ({
   id: 'message-1',
@@ -36,7 +31,13 @@ describe('notifyRealtimeChatMessage', () => {
       configurable: true,
     });
     globalThis.history.pushState({}, '', '/de/app/chat');
-    globalThis.AppWebViewNativePush = undefined;
+    globalThis.AppWebViewNativePush = {
+      getStatus: jest.fn(),
+      requestPermission: jest.fn(),
+      deleteToken: jest.fn(),
+      openSettings: jest.fn(),
+      showNotification,
+    };
   });
 
   it('notifies with the chat name as title and "sender: text" as body', () => {
@@ -47,9 +48,8 @@ describe('notifyRealtimeChatMessage', () => {
       currentUserId: 'user-alice',
     });
 
-    expect(mockToast).toHaveBeenCalledWith(
-      'Team Alpha',
-      expect.objectContaining({ description: 'Bob: Hello there' }),
+    expect(showNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Team Alpha', body: 'Bob: Hello there' }),
     );
   });
 
@@ -59,15 +59,6 @@ describe('notifyRealtimeChatMessage', () => {
    * whether an alert sirens would come down to which channel happened to arrive first.
    */
   it('renders a message from an emergency chat on the emergency channel', () => {
-    const showNotification = jest.fn();
-    globalThis.AppWebViewNativePush = {
-      getStatus: jest.fn(),
-      requestPermission: jest.fn(),
-      deleteToken: jest.fn(),
-      openSettings: jest.fn(),
-      showNotification,
-    };
-
     notifyRealtimeChatMessage({
       chatId: 'chat-1',
       chatName: 'Notfall 42',
@@ -82,15 +73,6 @@ describe('notifyRealtimeChatMessage', () => {
   });
 
   it('leaves every other chat type on the regular channel', () => {
-    const showNotification = jest.fn();
-    globalThis.AppWebViewNativePush = {
-      getStatus: jest.fn(),
-      requestPermission: jest.fn(),
-      deleteToken: jest.fn(),
-      openSettings: jest.fn(),
-      showNotification,
-    };
-
     notifyRealtimeChatMessage({
       chatId: 'chat-1',
       chatName: 'Support',
@@ -111,7 +93,7 @@ describe('notifyRealtimeChatMessage', () => {
       currentUserId: 'user-alice',
     });
 
-    expect(mockToast).not.toHaveBeenCalled();
+    expect(showNotification).not.toHaveBeenCalled();
   });
 
   it('ignores system messages and optimistic placeholders', () => {
@@ -128,7 +110,7 @@ describe('notifyRealtimeChatMessage', () => {
       currentUserId: 'user-alice',
     });
 
-    expect(mockToast).not.toHaveBeenCalled();
+    expect(showNotification).not.toHaveBeenCalled();
   });
 
   it('falls back to the sender name when the chat name is unknown', () => {
@@ -139,7 +121,7 @@ describe('notifyRealtimeChatMessage', () => {
       currentUserId: 'user-alice',
     });
 
-    expect(mockToast).toHaveBeenCalledWith('Bob', expect.anything());
+    expect(showNotification).toHaveBeenCalledWith(expect.objectContaining({ title: 'Bob' }));
   });
 
   it('says who sent an image, in the same words as the push', () => {
@@ -153,34 +135,9 @@ describe('notifyRealtimeChatMessage', () => {
       currentUserId: 'user-alice',
     });
 
-    expect(mockToast).toHaveBeenCalledWith(
-      'Cevi Uster',
-      expect.objectContaining({ description: 'Bob hat ein Bild gesendet' }),
+    expect(showNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Cevi Uster', body: 'Bob hat ein Bild gesendet' }),
     );
-  });
-
-  it('hands the native shell the same words for an image', () => {
-    const showNotification = jest.fn();
-    globalThis.AppWebViewNativePush = {
-      getStatus: jest.fn(),
-      requestPermission: jest.fn(),
-      deleteToken: jest.fn(),
-      openSettings: jest.fn(),
-      showNotification,
-    };
-
-    notifyRealtimeChatMessage({
-      chatId: 'chat-1',
-      chatName: 'Cevi Uster',
-      message: buildMessage({
-        type: 'IMAGE_MSG',
-        messagePayload: { url: 'chat-images/chat-1/1719830400000-k3j9x2.jpg' },
-      }),
-      currentUserId: 'user-alice',
-    });
-
-    const request = (showNotification.mock.calls as unknown[][])[0]?.[0] as Record<string, unknown>;
-    expect(request['body']).toBe('Bob hat ein Bild gesendet');
   });
 
   describe('extractRealtimeMessagePreview', () => {

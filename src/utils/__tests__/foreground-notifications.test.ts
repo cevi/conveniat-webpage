@@ -6,15 +6,17 @@ import {
   isNotificationTargetVisible,
   notifyForegroundMessage,
   resetForegroundNotificationState,
-  setForegroundNotificationNavigator,
 } from '@/utils/foreground-notifications';
 
-const mockToast = jest.fn();
-jest.mock('sonner', () => ({
-  toast: (...arguments_: unknown[]): void => {
-    mockToast(...arguments_);
-  },
-}));
+const showNotification = jest.fn();
+
+/** A native shell from before `showNotification` existed. */
+const legacyBridge = {
+  getStatus: jest.fn(),
+  requestPermission: jest.fn(),
+  deleteToken: jest.fn(),
+  openSettings: jest.fn(),
+};
 
 const setUserAgent = (userAgent: string): void => {
   Object.defineProperty(navigator, 'userAgent', { value: userAgent, configurable: true });
@@ -26,7 +28,7 @@ describe('foreground notifications', () => {
     resetForegroundNotificationState();
     setUserAgent('KonektaApp/1.0');
     globalThis.history.pushState({}, '', '/de/app/dashboard');
-    globalThis.AppWebViewNativePush = undefined;
+    globalThis.AppWebViewNativePush = { ...legacyBridge, showNotification };
   });
 
   const baseNotification = {
@@ -37,16 +39,7 @@ describe('foreground notifications', () => {
     targetPath: '/app/chat/chat-1',
   };
 
-  it('prefers the native shell when it can render system notifications', () => {
-    const showNotification = jest.fn();
-    globalThis.AppWebViewNativePush = {
-      getStatus: jest.fn(),
-      requestPermission: jest.fn(),
-      deleteToken: jest.fn(),
-      openSettings: jest.fn(),
-      showNotification,
-    };
-
+  it('hands the message to the native shell as a system notification', () => {
     notifyForegroundMessage(baseNotification);
 
     expect(showNotification).toHaveBeenCalledWith({
@@ -56,7 +49,6 @@ describe('foreground notifications', () => {
       chatId: 'chat-1',
       messageId: 'message-1',
     });
-    expect(mockToast).not.toHaveBeenCalled();
   });
 
   /**
@@ -66,15 +58,6 @@ describe('foreground notifications', () => {
    * the regular chat sound.
    */
   it('asks the shell for the emergency channel when the message is an alert', () => {
-    const showNotification = jest.fn();
-    globalThis.AppWebViewNativePush = {
-      getStatus: jest.fn(),
-      requestPermission: jest.fn(),
-      deleteToken: jest.fn(),
-      openSettings: jest.fn(),
-      showNotification,
-    };
-
     notifyForegroundMessage({ ...baseNotification, notificationType: 'emergency' });
 
     expect(showNotification).toHaveBeenCalledWith(
@@ -83,32 +66,18 @@ describe('foreground notifications', () => {
   });
 
   it('leaves the type off a regular message, which the shell reads as the chat channel', () => {
-    const showNotification = jest.fn();
-    globalThis.AppWebViewNativePush = {
-      getStatus: jest.fn(),
-      requestPermission: jest.fn(),
-      deleteToken: jest.fn(),
-      openSettings: jest.fn(),
-      showNotification,
-    };
-
     notifyForegroundMessage({ ...baseNotification, notificationType: 'default' });
 
     const request = (showNotification.mock.calls as unknown[][])[0]?.[0] as Record<string, string>;
     expect(request['notificationType']).toBeUndefined();
   });
 
-  it('falls back to the in-app banner on app builds without showNotification', () => {
-    globalThis.AppWebViewNativePush = {
-      getStatus: jest.fn(),
-      requestPermission: jest.fn(),
-      deleteToken: jest.fn(),
-      openSettings: jest.fn(),
-    };
+  it('shows nothing of its own on app builds without showNotification', () => {
+    globalThis.AppWebViewNativePush = legacyBridge;
 
-    notifyForegroundMessage(baseNotification);
-
-    expect(mockToast).toHaveBeenCalledTimes(1);
+    expect(() => {
+      notifyForegroundMessage(baseNotification);
+    }).not.toThrow();
   });
 
   it('does nothing outside the native app, where the service worker already decides', () => {
@@ -116,7 +85,7 @@ describe('foreground notifications', () => {
 
     notifyForegroundMessage(baseNotification);
 
-    expect(mockToast).not.toHaveBeenCalled();
+    expect(showNotification).not.toHaveBeenCalled();
   });
 
   it('suppresses the notification while the targeted chat is on screen', () => {
@@ -124,7 +93,7 @@ describe('foreground notifications', () => {
 
     notifyForegroundMessage(baseNotification);
 
-    expect(mockToast).not.toHaveBeenCalled();
+    expect(showNotification).not.toHaveBeenCalled();
   });
 
   it('still notifies while a different chat is on screen', () => {
@@ -132,36 +101,21 @@ describe('foreground notifications', () => {
 
     notifyForegroundMessage(baseNotification);
 
-    expect(mockToast).toHaveBeenCalledTimes(1);
+    expect(showNotification).toHaveBeenCalledTimes(1);
   });
 
   it('surfaces a message only once when both delivery channels report it', () => {
     notifyForegroundMessage(baseNotification);
     notifyForegroundMessage({ ...baseNotification, title: 'Team Alpha (retry)' });
 
-    expect(mockToast).toHaveBeenCalledTimes(1);
+    expect(showNotification).toHaveBeenCalledTimes(1);
   });
 
   it('treats notifications without a message id as distinct per body', () => {
     notifyForegroundMessage({ ...baseNotification, messageId: undefined });
     notifyForegroundMessage({ ...baseNotification, messageId: undefined, body: 'Bob: Second' });
 
-    expect(mockToast).toHaveBeenCalledTimes(2);
-  });
-
-  it('routes through the registered client-side navigator when opened', () => {
-    const navigate = jest.fn();
-    setForegroundNotificationNavigator(navigate);
-
-    notifyForegroundMessage(baseNotification);
-
-    const [, toastOptions] = mockToast.mock.calls[0] as [
-      string,
-      { action: { onClick: () => void } },
-    ];
-    toastOptions.action.onClick();
-
-    expect(navigate).toHaveBeenCalledWith('/app/chat/chat-1');
+    expect(showNotification).toHaveBeenCalledTimes(2);
   });
 
   describe('isNotificationTargetVisible', () => {

@@ -29,13 +29,6 @@ jest.mock('@/utils/assign-location', () => ({
   assignLocation: jest.fn(),
 }));
 
-const mockToast = jest.fn();
-jest.mock('sonner', () => ({
-  toast: (...args: unknown[]): void => {
-    mockToast(...args);
-  },
-}));
-
 const mockPush = jest.fn();
 const mockNotification = jest.fn();
 const mockMarkInteracted = jest.fn();
@@ -746,12 +739,11 @@ describe('useNativePush', () => {
   });
 
   describe('foreground push event handling', () => {
+    const showNotification = jest.fn();
+
     beforeEach(() => {
       resetForegroundNotificationState();
-    });
-
-    it('asks the native shell for a system notification while on a different page', () => {
-      const showNotification = jest.fn();
+      showNotification.mockClear();
       globalThis.AppWebViewNativePush = {
         getStatus: jest.fn(),
         requestPermission: jest.fn(),
@@ -759,7 +751,9 @@ describe('useNativePush', () => {
         openSettings: jest.fn(),
         showNotification,
       };
+    });
 
+    it('asks the native shell for a system notification while on a different page', () => {
       renderHook(() => useNativePush());
 
       const event = new CustomEvent('app-webview-native-push-event', {
@@ -791,7 +785,13 @@ describe('useNativePush', () => {
       });
     });
 
-    it('falls back to an in-app banner when the shell cannot show notifications', () => {
+    it('shows nothing of its own when the shell cannot show notifications', () => {
+      globalThis.AppWebViewNativePush = {
+        getStatus: jest.fn(),
+        requestPermission: jest.fn(),
+        deleteToken: jest.fn(),
+        openSettings: jest.fn(),
+      };
       renderHook(() => useNativePush());
 
       const event = new CustomEvent('app-webview-native-push-event', {
@@ -812,10 +812,7 @@ describe('useNativePush', () => {
         globalThis.dispatchEvent(event);
       });
 
-      expect(mockToast).toHaveBeenCalledWith(
-        'Team Alpha',
-        expect.objectContaining({ description: 'Bob: Check the document' }),
-      );
+      expect(showNotification).not.toHaveBeenCalled();
       // The dead `new Notification(...)` path must not be used any more.
       expect(mockNotification).not.toHaveBeenCalled();
     });
@@ -843,7 +840,7 @@ describe('useNativePush', () => {
         globalThis.dispatchEvent(event);
       });
 
-      expect(mockToast).not.toHaveBeenCalled();
+      expect(showNotification).not.toHaveBeenCalled();
 
       // Reset location
       globalThis.history.pushState({}, '', '/');
@@ -864,7 +861,7 @@ describe('useNativePush', () => {
         targetPath: '/app/chat/chat-abc',
       });
 
-      expect(mockToast).toHaveBeenCalledTimes(1);
+      expect(showNotification).toHaveBeenCalledTimes(1);
     });
   });
 
