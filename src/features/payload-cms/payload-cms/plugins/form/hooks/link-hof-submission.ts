@@ -1,19 +1,12 @@
 import { getFormBlockNames } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
+import { formRefusal } from '@/features/payload-cms/payload-cms/plugins/form/hooks/form-refusal';
 import type { FormSubmission } from '@/features/payload-cms/payload-types';
-import type { Locale, StaticTranslationString } from '@/types/types';
 import type { CollectionBeforeChangeHook } from 'payload';
-import { APIError } from 'payload';
 
 interface SubmissionField {
   field: string;
   value: unknown;
 }
-
-const selectedHofNotFoundMessage: StaticTranslationString = {
-  en: 'The selected Hof does not exist.',
-  de: 'Der ausgewählte Hof existiert nicht.',
-  fr: "Le Hof sélectionné n'existe pas.",
-};
 
 /**
  * Links a new submission to the Hof picked in its Hof selection, so the Hof finds it on its
@@ -57,8 +50,7 @@ export const linkHofSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
     req,
   });
   if (hof === null) {
-    const locale = (req.locale as Locale | undefined) ?? 'de';
-    throw new APIError(selectedHofNotFoundMessage[locale], 400);
+    throw formRefusal(req, 400, 'hofNotFound');
   }
 
   for (const answer of answers) {

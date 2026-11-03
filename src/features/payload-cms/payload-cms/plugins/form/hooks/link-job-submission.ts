@@ -1,25 +1,13 @@
 import { getFormBlockNames } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
+import { formRefusal } from '@/features/payload-cms/payload-cms/plugins/form/hooks/form-refusal';
 import type { FormSubmission } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type { CollectionBeforeChangeHook } from 'payload';
-import { APIError } from 'payload';
 
 interface SubmissionField {
   field: string;
   value: unknown;
 }
-
-const jobFullMessage: StaticTranslationString = {
-  en: 'This job is already full.',
-  de: 'Dieser Job ist bereits voll.',
-  fr: 'Ce job est déjà complet.',
-};
-
-const selectedJobNotFoundMessage: StaticTranslationString = {
-  en: 'Selected job not found.',
-  de: 'Ausgewählter Job nicht gefunden.',
-  fr: 'Job sélectionné non trouvé.',
-};
 
 const noJobSelectedMessage: StaticTranslationString = {
   en: '-',
@@ -34,7 +22,6 @@ const validateJobQuota = async (
   request: Parameters<CollectionBeforeChangeHook<FormSubmission>>[0]['req'],
   jobId: string,
   maxQuota: number,
-  locale: Locale,
 ): Promise<void> => {
   const currentSubmissionsCount = await request.payload.count({
     collection: 'form-submissions',
@@ -46,7 +33,7 @@ const validateJobQuota = async (
   });
 
   if (currentSubmissionsCount.totalDocs >= maxQuota) {
-    throw new APIError(jobFullMessage[locale], 400);
+    throw formRefusal(request, 400, 'jobFull');
   }
 };
 
@@ -124,12 +111,12 @@ export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
           id: jobId,
         })) as unknown as { maxQuota?: number; id: string; title?: string };
       } catch {
-        throw new APIError(selectedJobNotFoundMessage[locale], 400);
+        throw formRefusal(req, 400, 'jobNotFound');
       }
 
       // Check Quota if applicable
       if (typeof job.maxQuota === 'number') {
-        await validateJobQuota(req, jobId, job.maxQuota, locale);
+        await validateJobQuota(req, jobId, job.maxQuota);
       }
 
       foundJobIds.push(jobId);
