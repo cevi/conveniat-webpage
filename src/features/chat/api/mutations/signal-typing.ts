@@ -38,12 +38,12 @@ export const signalTyping = trpcBaseProcedure
 
     if (isTooSoon(`${user.uuid}:${chatId}:${parentId ?? ''}`, Date.now())) return;
 
-    await assertWriteAbilities(prisma, chatId, parentId);
-
     const chat = await prisma.chat.findUnique({
       where: { uuid: chatId },
       select: {
         capabilities: true,
+        status: true,
+        archivedAt: true,
         // only the sender's row: this runs every few seconds per typist, in chats of any size
         chatMemberships: {
           where: { userId: user.uuid },
@@ -51,6 +51,7 @@ export const signalTyping = trpcBaseProcedure
         },
       },
     });
+    await assertWriteAbilities(prisma, chatId, parentId, chat ?? undefined);
     assertMembershipCanWrite(chat, chatId, user.uuid, parentId);
 
     if (parentId !== undefined) {

@@ -9,13 +9,31 @@
 import {
   type Capability,
   CapabilityAction,
+  type CapabilityChat,
   type CapabilityContext,
   CapabilitySubject,
 } from '@/lib/capabilities/types';
 import { ChatCapability, ChatStatus, isChatArchived } from '@/lib/chat-shared';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_CREATE_CHATS_ENABLED, FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
-import type { PrismaClientOrTransaction } from '@/types/types';
+
+/**
+ * The chat a check decides on: the one the caller handed in, or else read once. Undefined
+ * when there is no chat id or no such chat.
+ */
+const loadChat = async ({
+  prisma,
+  chatId,
+  chat,
+}: CapabilityContext): Promise<CapabilityChat | undefined> => {
+  if (chat) return chat;
+  if (chatId === undefined) return undefined;
+  const row = await prisma.chat.findUnique({
+    where: { uuid: chatId },
+    select: { capabilities: true, status: true, archivedAt: true },
+  });
+  return row ?? undefined;
+};
 
 /**
  * Handles capabilities related to sending messages. Who may read a chat is a membership
@@ -26,23 +44,20 @@ export class MessageCapabilities implements Capability {
 
   async can(action: CapabilityAction, context: CapabilityContext): Promise<boolean> {
     if (action === CapabilityAction.Send) {
-      return this.canSend(context.prisma, context.chatId);
+      return this.canSend(context);
     }
     return false;
   }
 
-  private async canSend(prisma: PrismaClientOrTransaction, chatId?: string): Promise<boolean> {
+  private async canSend(context: CapabilityContext): Promise<boolean> {
     const isGlobalEnabled = await getFeatureFlag(FEATURE_FLAG_SEND_MESSAGES);
 
     if (!isGlobalEnabled) {
       return false;
     }
 
-    if (chatId) {
-      const chat = await prisma.chat.findUnique({
-        where: { uuid: chatId },
-        select: { capabilities: true, status: true, archivedAt: true },
-      });
+    if (context.chatId) {
+      const chat = await loadChat(context);
 
       if (chat) {
         // Archiving only sets `archivedAt` and leaves the status alone, so both are checked.
@@ -67,21 +82,17 @@ export class MediaCapabilities implements Capability {
 
   async can(action: CapabilityAction, context: CapabilityContext): Promise<boolean> {
     if (action === CapabilityAction.Upload) {
-      return this.canUpload(context.prisma, context.chatId);
+      return this.canUpload(context);
     }
     return false;
   }
 
-  private async canUpload(prisma: PrismaClientOrTransaction, chatId?: string): Promise<boolean> {
-    if (chatId === undefined) {
+  private async canUpload(context: CapabilityContext): Promise<boolean> {
+    if (context.chatId === undefined) {
       return false;
     }
 
-    const chat = await prisma.chat.findUnique({
-      where: { uuid: chatId },
-      select: { capabilities: true },
-    });
-
+    const chat = await loadChat(context);
     return chat?.capabilities.includes(ChatCapability.PICTURE_UPLOAD) ?? false;
   }
 }
@@ -113,20 +124,17 @@ export class ThreadCapabilities implements Capability {
 
   async can(action: CapabilityAction, context: CapabilityContext): Promise<boolean> {
     if (action === CapabilityAction.Create) {
-      return this.canCreate(context.prisma, context.chatId);
+      return this.canCreate(context);
     }
     return false;
   }
 
-  private async canCreate(prisma: PrismaClientOrTransaction, chatId?: string): Promise<boolean> {
-    if (chatId === undefined) {
+  private async canCreate(context: CapabilityContext): Promise<boolean> {
+    if (context.chatId === undefined) {
       return false;
     }
 
-    const chat = await prisma.chat.findUnique({
-      where: { uuid: chatId },
-      select: { capabilities: true },
-    });
+    const chat = await loadChat(context);
 
     // Enabled by default if chat exists and THREADS in capabilities
     return chat?.capabilities.includes(ChatCapability.THREADS) ?? true;

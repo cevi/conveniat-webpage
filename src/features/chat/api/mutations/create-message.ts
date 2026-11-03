@@ -130,8 +130,33 @@ export const createMessage = trpcBaseProcedure
     const { user, prisma } = ctx; // Destructure user and prisma from the tRPC context
     const validatedMessage = input;
 
+    // The one read of the chat: the ability checks below decide on this row, and the
+    // membership check and the fan-out on its memberships.
+    const chat = await prisma.chat.findUnique({
+      where: { uuid: validatedMessage.chatId },
+      select: {
+        name: true,
+        type: true,
+        capabilities: true,
+        status: true,
+        archivedAt: true,
+        chatMemberships: {
+          select: {
+            userId: true,
+            chatPermission: true,
+            hasDeleted: true,
+          },
+        },
+      },
+    });
+
     // 1. Global & Chat-specific Ability Check
-    await assertWriteAbilities(prisma, validatedMessage.chatId, validatedMessage.parentId);
+    await assertWriteAbilities(
+      prisma,
+      validatedMessage.chatId,
+      validatedMessage.parentId,
+      chat ?? undefined,
+    );
 
     if (validatedMessage.type === MessageType.IMAGE_MSG) {
       const canUpload = await Ability.can(
@@ -139,6 +164,7 @@ export const createMessage = trpcBaseProcedure
         CapabilityAction.Upload,
         CapabilitySubject.Images,
         validatedMessage.chatId,
+        chat ?? undefined,
       );
       if (!canUpload) {
         throw new TRPCError({
@@ -158,22 +184,6 @@ export const createMessage = trpcBaseProcedure
     }
 
     // 2. Validate that the user is part of the chat and has permission to send messages
-    const chat = await prisma.chat.findUnique({
-      where: { uuid: validatedMessage.chatId },
-      select: {
-        name: true,
-        type: true,
-        capabilities: true,
-        chatMemberships: {
-          select: {
-            userId: true,
-            chatPermission: true,
-            hasDeleted: true,
-          },
-        },
-      },
-    });
-
     assertMembershipCanWrite(chat, validatedMessage.chatId, user.uuid, validatedMessage.parentId);
 
     // 3. Idempotency: adopt the client-generated id as the message id when it is a UUID.

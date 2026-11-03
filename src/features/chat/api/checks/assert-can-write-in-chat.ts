@@ -1,5 +1,5 @@
 import { Ability } from '@/lib/ability';
-import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
+import { CapabilityAction, type CapabilityChat, CapabilitySubject } from '@/lib/capabilities/types';
 import { ChatCapability, isChatArchived } from '@/lib/chat-shared';
 import { ChatMembershipPermission } from '@/lib/prisma/client';
 import type { PrismaClientOrTransaction } from '@/types/types';
@@ -12,18 +12,20 @@ const logger = createLogger('chat:mutations');
  * Throws unless messaging is allowed in the chat (globally, by its capabilities, its status
  * and whether it is archived) and, for a thread reply, threads are enabled. Shared by
  * everything that writes into a chat, so a typing signal is allowed exactly where the message
- * would be.
+ * would be. A caller that already loaded the chat passes it, so the checks do not read it again.
  */
 export const assertWriteAbilities = async (
   prisma: PrismaClientOrTransaction,
   chatId: string,
   parentId: string | undefined,
+  chat?: CapabilityChat,
 ): Promise<void> => {
   const canSend = await Ability.can(
     prisma,
     CapabilityAction.Send,
     CapabilitySubject.Messages,
     chatId,
+    chat,
   );
   if (!canSend) {
     throw new TRPCError({
@@ -38,6 +40,7 @@ export const assertWriteAbilities = async (
       CapabilityAction.Create,
       CapabilitySubject.Threads,
       chatId,
+      chat,
     );
     if (!canThread) {
       throw new TRPCError({
