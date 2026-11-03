@@ -191,8 +191,12 @@ export const VisitDaySelection: React.FC<
     freeWithoutLunch: (day.freeWithoutLunch as number | undefined) ?? 0,
   }));
   const ownDayPlaces = isExternal ? undefined : dayPlaces.find((day) => day.date === ownDay);
-  const freeOfChosenKind = (day: DayPlaces): number =>
-    asksLunch && lunch === WITHOUT_LUNCH ? day.freeWithoutLunch : day.free;
+  // before the lunch question is answered, a day is full only once both kinds are
+  const freeOfChosenKind = (day: DayPlaces): number => {
+    if (!asksLunch || lunch === WITH_LUNCH) return day.free;
+    if (lunch === WITHOUT_LUNCH) return day.freeWithoutLunch;
+    return day.free + day.freeWithoutLunch;
+  };
 
   const hofOptions = (hoefe.data ?? []).map((hof) => ({ value: hof.id, label: hof.name }));
   const options =
