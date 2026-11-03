@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 /* eslint-enable import/no-restricted-paths */
 import { Button } from '@/components/ui/buttons/button';
-import { EnrolmentFailure } from '@/features/schedule/components/enrolment-failure';
+import { EnrolmentFailure, isFullRefusal } from '@/features/schedule/components/enrolment-failure';
 import { useCourseStatus } from '@/features/schedule/context/schedule-status-context';
 import { isDeadlinePassed, timeConflictOf } from '@/features/schedule/utils/time-conflict';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
@@ -22,6 +22,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
 import { cn } from '@/utils/tailwindcss-override';
+import { errorReasonOf } from '@/utils/user-error-message';
 import { CheckCircle, Loader2, LogIn, MessageSquare, Users, WifiOff } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -193,7 +194,14 @@ export const EnrollmentAction: React.FC<{
     },
     onError: (error) => {
       const conflict = timeConflictOf(error);
-      if (conflict === undefined) return;
+      if (conflict === undefined) {
+        // a refusal means the workshop changed since the page loaded: show it as it is now
+        if (errorReasonOf(error) !== undefined) {
+          void utils.schedule.getCourseStatuses.invalidate();
+          void utils.schedule.getCourseStatus.invalidate({ courseId });
+        }
+        return;
+      }
       setConflictType(conflict.kind);
       setIsSwitchBlocked(false);
       setConflictInfo({ conflictingCourseName: conflict.title, conflictingCourseId: conflict.id });
@@ -272,7 +280,9 @@ export const EnrollmentAction: React.FC<{
       .replace('{{max}}', String(maxParticipants));
   }
 
-  const failedLine = failure !== null && <EnrolmentFailure error={failure} locale={locale} />;
+  const failedLine = failure !== null && !(isFull && isFullRefusal(failure)) && (
+    <EnrolmentFailure error={failure} locale={locale} />
+  );
 
   if (isEnrolled) {
     return (

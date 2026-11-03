@@ -1,13 +1,23 @@
 import { scheduleErrorTexts } from '@/features/schedule/error-texts';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { userErrorMessage } from '@/utils/user-error-message';
+import { errorReasonOf, userErrorMessage } from '@/utils/user-error-message';
 import type React from 'react';
 
 const failedText: StaticTranslationString = {
   de: 'Das hat nicht geklappt. Versuche es nochmals.',
   en: 'That did not work. Please try again.',
   fr: 'Cela n’a pas fonctionné. Réessaie.',
+};
+
+/**
+ * Whether the server refused because the block filled up since the page loaded. The status is
+ * refetched on any refusal, and once it says "full" the page shows that itself: the line would
+ * only repeat it next to a button that is gone or disabled.
+ */
+export const isFullRefusal = (error: unknown): boolean => {
+  const reason = errorReasonOf(error)?.reason;
+  return reason === 'workshopFull' || reason === 'shiftFull';
 };
 
 /**

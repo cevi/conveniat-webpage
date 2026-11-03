@@ -240,6 +240,19 @@ describe('ShiftEnrollmentAction after a failed enrolment', () => {
     );
   });
 
+  it('leaves it to the refreshed status once that says the shift is full', () => {
+    mockQueryResult = {
+      ...mockQueryResult,
+      data: { ...enrolledStatus(), isEnrolled: false, enrolledCount: 5 },
+    };
+    Object.assign(mutationResult, { error: refusal('shiftFull') });
+
+    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
+
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Ausgebucht' })).toBeDisabled();
+  });
+
   it('says there is no connection when the request never arrived', () => {
     Object.assign(mutationResult, { error: new TRPCClientError('Failed to fetch') });
 

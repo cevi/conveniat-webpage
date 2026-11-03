@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/buttons/button';
 /* eslint-enable import/no-restricted-paths */
-import { EnrolmentFailure } from '@/features/schedule/components/enrolment-failure';
+import { EnrolmentFailure, isFullRefusal } from '@/features/schedule/components/enrolment-failure';
 import { ShiftConflictDialog } from '@/features/schedule/components/shift-conflict-dialog';
 import { useShiftStatus } from '@/features/schedule/hooks/use-shift-status';
 import { useIsUnenrollmentClosed } from '@/features/schedule/hooks/use-unenrollment-window';
@@ -23,6 +23,7 @@ import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { errorReasonOf } from '@/utils/user-error-message';
 import { AlertTriangle, CheckCircle, Loader2, Lock, RefreshCw, WifiOff } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import React, { useState } from 'react';
@@ -195,7 +196,11 @@ export const ShiftEnrollmentAction: React.FC<{
     },
     onError: (error) => {
       const conflict = timeConflictOf(error);
-      if (conflict === undefined) return;
+      if (conflict === undefined) {
+        // a refusal means the shift changed since the page loaded: show it as it is now
+        if (errorReasonOf(error) !== undefined) void utils.shifts.getShiftStatus.invalidate();
+        return;
+      }
       setConflictType(conflict.kind);
       setConflictInfo({ conflictingCourseName: conflict.title, conflictingCourseId: conflict.id });
       setConflictDialogOpen(true);
@@ -321,7 +326,7 @@ export const ShiftEnrollmentAction: React.FC<{
     (conflictInfo === undefined ? notTooLate(enroll.error) : undefined) ??
     notTooLate(unenroll.error) ??
     notTooLate(switchEnrollment.error);
-  const failedLine = failure !== undefined && (
+  const failedLine = failure !== undefined && !(isFull && isFullRefusal(failure)) && (
     // on the card it takes the whole width under the capacity and the button
     <EnrolmentFailure
       error={failure}
