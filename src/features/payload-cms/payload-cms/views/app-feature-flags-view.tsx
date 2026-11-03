@@ -1,5 +1,4 @@
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
-import { toast } from '@/lib/toast';
 import type { StaticTranslationString } from '@/types/types';
 import { Button, useForm, useLocale } from '@payloadcms/ui';
 import { useRouter } from 'next/navigation';
@@ -66,13 +65,12 @@ export const AppFeatureFlagsActions: React.FC = () => {
   const handleConfirmSave = useCallback(async () => {
     setIsSubmitting(true);
     try {
+      // Payload's form submit shows its own success and error toasts
       await submit();
-      toast.success('Feature flags updated successfully');
       setIsModalOpen(false);
       router.refresh();
     } catch (error) {
       console.error(error);
-      toast.error('Failed to update feature flags');
     } finally {
       setIsSubmitting(false);
     }

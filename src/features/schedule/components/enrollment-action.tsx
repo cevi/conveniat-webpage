@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 /* eslint-enable import/no-restricted-paths */
 import { Button } from '@/components/ui/buttons/button';
+import { EnrolmentFailure, isFullRefusal } from '@/features/schedule/components/enrolment-failure';
 import { useCourseStatus } from '@/features/schedule/context/schedule-status-context';
 import { isDeadlinePassed, timeConflictOf } from '@/features/schedule/utils/time-conflict';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
@@ -21,6 +22,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
 import { cn } from '@/utils/tailwindcss-override';
+import { errorReasonOf } from '@/utils/user-error-message';
 import { CheckCircle, Loader2, LogIn, MessageSquare, Users, WifiOff } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -146,12 +148,6 @@ const localizedUndo: StaticTranslationString = {
   fr: 'Annuler',
 };
 
-const localizedFailed: StaticTranslationString = {
-  de: 'Das hat nicht geklappt. Versuche es nochmals.',
-  en: 'That did not work. Please try again.',
-  fr: 'Cela n’a pas fonctionné. Réessaie.',
-};
-
 const localizedViewChat: StaticTranslationString = {
   de: 'Gruppenchat öffnen',
   en: 'View Group Chat',
@@ -179,6 +175,21 @@ export const EnrollmentAction: React.FC<{
   // leaving is one tap, so it can be undone for as long as the block is on screen
   const [hasJustLeft, setHasJustLeft] = useState(false);
 
+  /**
+   * A refusal means the workshop changed since the page loaded: show it as it is now. Once the
+   * status says "full", the refusal has said all it had to, and resetting it keeps it from
+   * coming back as a stale line should a place free up later.
+   */
+  const refreshAfterRefusal = (error: unknown, reset: () => void): void => {
+    if (errorReasonOf(error) === undefined) return;
+    void Promise.all([
+      utils.schedule.getCourseStatuses.invalidate(),
+      utils.schedule.getCourseStatus.invalidate({ courseId }),
+    ]).then(() => {
+      if (isFullRefusal(error)) reset();
+    });
+  };
+
   const enroll = trpc.schedule.enrollInCourse.useMutation({
     onSuccess: () => {
       void utils.schedule.getCourseStatuses.invalidate();
@@ -198,7 +209,10 @@ export const EnrollmentAction: React.FC<{
     },
     onError: (error) => {
       const conflict = timeConflictOf(error);
-      if (conflict === undefined) return;
+      if (conflict === undefined) {
+        refreshAfterRefusal(error, () => enroll.reset());
+        return;
+      }
       setConflictType(conflict.kind);
       setIsSwitchBlocked(false);
       setConflictInfo({ conflictingCourseName: conflict.title, conflictingCourseId: conflict.id });
@@ -228,9 +242,18 @@ export const EnrollmentAction: React.FC<{
         setIsSwitchBlocked(true);
         return;
       }
-      console.error('Switch enrollment failed:', error.message);
+      refreshAfterRefusal(error, () => switchEnrollment.reset());
     },
   });
+
+  // a cancelled conflict leaves nothing behind, so the next failure is reported again
+  const handleConflictDialogChange = (open: boolean): void => {
+    setConflictDialogOpen(open);
+    if (open) return;
+    setConflictInfo(undefined);
+    enroll.reset();
+    switchEnrollment.reset();
+  };
 
   const unenroll = trpc.schedule.unenrollFromCourse.useMutation({
     onSuccess: () => {
@@ -264,8 +287,12 @@ export const EnrollmentAction: React.FC<{
   const isFull = maxParticipants !== undefined && enrolledCount >= maxParticipants;
   const spotsLeft = maxParticipants === undefined ? undefined : maxParticipants - enrolledCount;
   // a conflict opens its own dialog; anything else would otherwise fail without a word
-  const hasFailed =
-    (enroll.isError && conflictInfo === undefined) || unenroll.isError || switchEnrollment.isError;
+  // a passed deadline already shows in the switch dialog, see `isSwitchBlocked`
+  const failure =
+    (conflictInfo === undefined ? enroll.error : undefined) ??
+    unenroll.error ??
+    (isDeadlinePassed(switchEnrollment.error) ? undefined : switchEnrollment.error) ??
+    undefined;
 
   let capacity = localizedEnrolledCount[locale].replace('{{count}}', String(enrolledCount));
   if (isFull) capacity = localizedFull[locale];
@@ -275,13 +302,8 @@ export const EnrollmentAction: React.FC<{
       .replace('{{max}}', String(maxParticipants));
   }
 
-  const failedLine = hasFailed && (
-    <p
-      role="alert"
-      className="bg-danger-soft text-danger-text rounded-xl px-3 py-2 text-[13px] font-medium"
-    >
-      {localizedFailed[locale]}
-    </p>
+  const failedLine = failure !== undefined && !(isFull && isFullRefusal(failure)) && (
+    <EnrolmentFailure error={failure} locale={locale} />
   );
 
   if (isEnrolled) {
@@ -378,7 +400,7 @@ export const EnrollmentAction: React.FC<{
       </div>
 
       {/* Time Conflict Alert Dialog */}
-      <AlertDialog open={conflictDialogOpen} onOpenChange={setConflictDialogOpen}>
+      <AlertDialog open={conflictDialogOpen} onOpenChange={handleConflictDialogChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{localizedConflict[locale]}</AlertDialogTitle>

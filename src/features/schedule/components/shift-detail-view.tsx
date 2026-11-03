@@ -111,6 +111,11 @@ export const ShiftDetailView: React.FC<{
   const shift = shifts?.find((entry) => entry.id === shiftId);
 
   const { status } = useShiftStatus(shiftId);
+  const isFullForMe =
+    status !== undefined &&
+    !status.isEnrolled &&
+    status.maxParticipants !== undefined &&
+    status.enrolledCount >= status.maxParticipants;
 
   // read from the deadline rather than from a flag, so a view left open past it corrects itself
   const isWithdrawalClosed = useIsUnenrollmentClosed(status?.unenrollmentDeadline);
@@ -353,7 +358,8 @@ export const ShiftDetailView: React.FC<{
           organisers, so a shift with a long description or a handful of contacts pushed the one
           thing this screen exists for below the fold.
         */}
-        {shift.enable_enrolment !== false && (
+        {/* a full shift the user is not on has nothing to do here: the capacity says it */}
+        {shift.enable_enrolment !== false && !isFullForMe && (
           <div className="border-line shrink-0 border-t bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <div className="mx-auto w-full max-w-xl">
               <ShiftEnrollmentAction

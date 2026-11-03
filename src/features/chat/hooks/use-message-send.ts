@@ -16,7 +16,6 @@ import {
 import { isRateLimitError } from '@/features/chat/utils/send-errors';
 import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
-import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import { isTransportError } from '@/utils/user-error-message';
@@ -323,7 +322,6 @@ export const useMessageSend = (): UseMessageSendMutation => {
         if (context?.optimisticMessageId !== undefined) {
           forgetFailedSend(context.optimisticMessageId);
         }
-        if (isTransportError(error)) toast.success('Message queued. Will be sent when online.');
         return;
       }
 

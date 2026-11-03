@@ -27,14 +27,16 @@ import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date'
 import { useLongPress } from '@/features/chat/hooks/use-long-press';
 import { isMessageDeleted } from '@/features/chat/utils/message-deletion';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
+import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { MessageEventType, MessageType } from '@/lib/prisma/client';
-import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { userErrorMessage } from '@/utils/user-error-message';
 import { AlertCircle, Ban, Check, Clock, Ellipsis } from 'lucide-react';
 import React, { useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 const replyToMessageText: StaticTranslationString = {
   de: 'Antwort auf eine Nachricht',
@@ -90,6 +92,12 @@ const pendingOfflineText: StaticTranslationString = {
   de: 'Wird gesendet, sobald du wieder online bist',
   en: 'Will be sent as soon as you are back online',
   fr: 'Sera envoyé dès que vous serez de nouveau en ligne',
+};
+
+const reactionFailedText: StaticTranslationString = {
+  de: 'Die Reaktion konnte nicht gespeichert werden.',
+  en: 'The reaction could not be saved.',
+  fr: 'La réaction n’a pas pu être enregistrée.',
 };
 
 const sendingText: StaticTranslationString = {
@@ -178,7 +186,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
 
   const toggleReactionMutation = trpc.chat.toggleReaction.useMutation({
     onError: (error) => {
-      toast.error('Failed to react to message', error);
+      toast.error(userErrorMessage(error, locale, chatErrorTexts, reactionFailedText));
       console.error('Failed to react to message:', error);
     },
   });

@@ -1,14 +1,16 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
 import { SectionLabel } from '@/components/ui/section-label';
+import { scheduleErrorTexts } from '@/features/schedule/error-texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { userErrorMessage } from '@/utils/user-error-message';
 import { Loader2, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
+import { toast } from 'sonner';
 
 const labels = {
   admin: { de: 'Administration', en: 'Administration', fr: 'Administration' },
@@ -21,6 +23,11 @@ const labels = {
     de: 'Gruppenchat öffnen',
     en: 'View Group Chat',
     fr: 'Voir le chat de groupe',
+  },
+  createChatFailed: {
+    de: 'Der Gruppenchat konnte nicht erstellt werden.',
+    en: 'The group chat could not be created.',
+    fr: 'Le chat de groupe n’a pas pu être créé.',
   },
 } as const;
 
@@ -72,7 +79,8 @@ export const WorkshopAdminActions: React.FC<WorkshopAdminActionsProperties> = ({
       void utils.schedule.getCourseStatus.invalidate({ courseId });
       globalThis.location.href = `/app/chat/${data.chatId}`;
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) =>
+      toast.error(userErrorMessage(error, locale, scheduleErrorTexts, labels.createChatFailed)),
   });
 
   // Don't render if not admin or still loading
