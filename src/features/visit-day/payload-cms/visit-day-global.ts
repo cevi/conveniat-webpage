@@ -66,9 +66,9 @@ export const VisitDayGlobal: GlobalConfig = {
     hidden: ({ user }): boolean =>
       !environmentVariables.FEATURE_ENABLE_VISIT_DAY || shouldHideInAdminPanelIfNotAdmin({ user }),
     description: {
-      en: 'The days relatives may visit, the places per day and the Höfe the registration offers. The registration form picks the day from the Quartier of the Hof chosen.',
-      de: 'Die Tage, an denen Angehörige zu Besuch kommen dürfen, die Plätze pro Tag und die Höfe, welche die Anmeldung anbietet. Das Anmeldeformular wählt den Tag über das Quartier des gewählten Hofs.',
-      fr: 'Les jours où les proches peuvent venir en visite, les places par jour et les Hofs proposés à l’inscription. Le formulaire choisit le jour d’après le quartier du Hof sélectionné.',
+      en: 'The days relatives may visit, the places per day and the Höfe the registration offers. The registration form picks the day from the Quartier of the Hof chosen; visitors without a Hof pick it themselves.',
+      de: 'Die Tage, an denen Angehörige zu Besuch kommen dürfen, die Plätze pro Tag und die Höfe, welche die Anmeldung anbietet. Das Anmeldeformular wählt den Tag über das Quartier des gewählten Hofs; Besuchende ohne Bezug zu einem Hof wählen ihn selbst.',
+      fr: 'Les jours où les proches peuvent venir en visite, les places par jour et les Hofs proposés à l’inscription. Le formulaire choisit le jour d’après le quartier du Hof sélectionné ; les visiteurs sans lien avec un Hof le choisissent eux-mêmes.',
     },
   },
   access: {
@@ -96,7 +96,7 @@ export const VisitDayGlobal: GlobalConfig = {
               required: true,
               label: { en: 'Date', de: 'Datum', fr: 'Date' },
               admin: {
-                width: '50%',
+                width: '34%',
                 date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
               },
             },
@@ -105,13 +105,36 @@ export const VisitDayGlobal: GlobalConfig = {
               type: 'number',
               required: true,
               min: 0,
-              label: { en: 'Places', de: 'Plätze', fr: 'Places' },
+              label: {
+                en: 'Places with lunch',
+                de: 'Plätze mit Mittagessen',
+                fr: 'Places avec repas de midi',
+              },
               admin: {
-                width: '50%',
+                width: '33%',
                 description: {
                   en: 'Every person registered takes one place, children included.',
                   de: 'Jede angemeldete Person belegt einen Platz, Kinder eingeschlossen.',
                   fr: 'Chaque personne inscrite occupe une place, enfants compris.',
+                },
+              },
+            },
+            {
+              name: 'capacityWithoutLunch',
+              type: 'number',
+              min: 0,
+              defaultValue: 0,
+              label: {
+                en: 'Places without lunch',
+                de: 'Plätze ohne Mittagessen',
+                fr: 'Places sans repas de midi',
+              },
+              admin: {
+                width: '33%',
+                description: {
+                  en: 'For those who bring their own lunch. Counted apart from the places with lunch.',
+                  de: 'Für alle, die sich selbst verpflegen. Wird getrennt von den Plätzen mit Mittagessen gezählt.',
+                  fr: 'Pour celles et ceux qui apportent leur repas. Comptées à part des places avec repas.',
                 },
               },
             },

@@ -4,23 +4,27 @@ import type { PrismaClient } from '@/lib/prisma';
 const fakePrisma = (
   taken: number,
   lastCounter?: number,
-): { prisma: PrismaClient; create: jest.Mock<Promise<unknown>, [unknown]> } => {
+): {
+  prisma: PrismaClient;
+  create: jest.Mock<Promise<unknown>, [unknown]>;
+  aggregate: jest.Mock;
+  count: jest.Mock;
+} => {
   const create = jest.fn<Promise<unknown>, [unknown]>().mockResolvedValue({});
+  // Prisma answers null for a Hof without registrations
+  // eslint-disable-next-line unicorn/no-null
+  const aggregate = jest.fn().mockResolvedValue({ _max: { counter: lastCounter ?? null } });
+  const count = jest.fn().mockResolvedValue(taken);
   const transaction = {
     $executeRaw: jest.fn().mockResolvedValue(1),
-    visitDayVisitor: { count: jest.fn().mockResolvedValue(taken) },
-    visitDayRegistration: {
-      // Prisma answers null for a Hof without registrations
-      // eslint-disable-next-line unicorn/no-null
-      aggregate: jest.fn().mockResolvedValue({ _max: { counter: lastCounter ?? null } }),
-      create,
-    },
+    visitDayVisitor: { count },
+    visitDayRegistration: { aggregate, create },
   };
   const prisma = {
     $transaction: (work: (tx: typeof transaction) => Promise<unknown>): Promise<unknown> =>
       work(transaction),
   } as unknown as PrismaClient;
-  return { prisma, create };
+  return { prisma, create, aggregate, count };
 };
 
 const request = {
@@ -29,6 +33,7 @@ const request = {
   hofEventId: '5321',
   date: '2027-07-28',
   persons: 2,
+  withLunch: true,
   capacity: 500,
 };
 
@@ -58,6 +63,32 @@ describe('reservePlaces', () => {
       status: 'reserved',
       number: '5321-B001',
     });
+  });
+
+  it('counts the places without lunch apart and marks the registration', async () => {
+    const { prisma, create, count } = fakePrisma(299);
+
+    await expect(
+      reservePlaces(prisma, { ...request, persons: 1, withLunch: false, capacity: 300 }),
+    ).resolves.toMatchObject({ status: 'reserved' });
+    expect(count).toHaveBeenCalledWith({
+      where: {
+        registration: { visitDate: new Date('2027-07-28T00:00:00.000Z'), withLunch: false },
+      },
+    });
+    expect(create.mock.calls[0]?.[0]).toMatchObject({ data: { withLunch: false } });
+  });
+
+  it('numbers visitors without a Hof on a counter of their own', async () => {
+    const { prisma, create, aggregate } = fakePrisma(0, 2);
+
+    await expect(
+      reservePlaces(prisma, { ...request, hofId: undefined, hofEventId: 'EXT' }),
+    ).resolves.toEqual({ status: 'reserved', number: 'EXT-B003' });
+    // eslint-disable-next-line unicorn/no-null
+    expect(aggregate).toHaveBeenCalledWith(expect.objectContaining({ where: { hofId: null } }));
+    // eslint-disable-next-line unicorn/no-null
+    expect(create.mock.calls[0]?.[0]).toMatchObject({ data: { hofId: null, counter: 3 } });
   });
 
   it('takes no place and no number when the persons do not all fit', async () => {

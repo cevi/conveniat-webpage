@@ -20,8 +20,8 @@ describe('listVisitDayHoefe', () => {
 
     const hoefe = await listVisitDayHoefe(payload, {
       days: [
-        { date: '2027-07-28', capacity: 500, quartierIds: ['q5'] },
-        { date: '2027-07-29', capacity: 500, quartierIds: ['q1'] },
+        { date: '2027-07-28', capacity: 500, capacityWithoutLunch: 300, quartierIds: ['q5'] },
+        { date: '2027-07-29', capacity: 500, capacityWithoutLunch: 300, quartierIds: ['q1'] },
       ],
       hiddenHofIds: new Set(['demo']),
     });

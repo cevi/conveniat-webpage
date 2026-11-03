@@ -1639,9 +1639,13 @@ export interface Form {
                  */
                 dayField: string;
                 /**
-                 * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter. Stored under this name for the email, e.g. {{anmeldenummer}}.
+                 * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter, EXT-B007 without a Hof. Stored under this name for the email, e.g. {{anmeldenummer}}.
                  */
                 registrationNumberField: string;
+                /**
+                 * The field asks whether the visitors have lunch at the camp and stores "ja" or "nein" under this name, e.g. for a section shown only with lunch. Each kind has its own places. Empty: no question, everybody with lunch.
+                 */
+                lunchField?: string | null;
                 required?: boolean | null;
                 /**
                  * Where this field is rendered when "Split" layout is selected for the section.
@@ -1990,9 +1994,13 @@ export interface Form {
                            */
                           dayField: string;
                           /**
-                           * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter. Stored under this name for the email, e.g. {{anmeldenummer}}.
+                           * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter, EXT-B007 without a Hof. Stored under this name for the email, e.g. {{anmeldenummer}}.
                            */
                           registrationNumberField: string;
+                          /**
+                           * The field asks whether the visitors have lunch at the camp and stores "ja" or "nein" under this name, e.g. for a section shown only with lunch. Each kind has its own places. Empty: no question, everybody with lunch.
+                           */
+                          lunchField?: string | null;
                           required?: boolean | null;
                           /**
                            * Where this field is rendered when "Split" layout is selected for the section.
@@ -7452,6 +7460,7 @@ export interface FormsSelect<T extends boolean = true> {
                           personCountField?: T;
                           dayField?: T;
                           registrationNumberField?: T;
+                          lunchField?: T;
                           required?: T;
                           placement?: T;
                           id?: T;
@@ -7676,6 +7685,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       personCountField?: T;
                                       dayField?: T;
                                       registrationNumberField?: T;
+                                      lunchField?: T;
                                       required?: T;
                                       placement?: T;
                                       id?: T;
@@ -9075,7 +9085,7 @@ export interface HofDashboardSetting {
   createdAt?: string | null;
 }
 /**
- * The days relatives may visit, the places per day and the Höfe the registration offers. The registration form picks the day from the Quartier of the Hof chosen.
+ * The days relatives may visit, the places per day and the Höfe the registration offers. The registration form picks the day from the Quartier of the Hof chosen; visitors without a Hof pick it themselves.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "visit-day".
@@ -9089,6 +9099,10 @@ export interface VisitDaySetting {
          * Every person registered takes one place, children included.
          */
         capacity: number;
+        /**
+         * For those who bring their own lunch. Counted apart from the places with lunch.
+         */
+        capacityWithoutLunch?: number | null;
         /**
          * The relatives of the Höfe in these Quartiere visit on this day.
          */
@@ -9692,6 +9706,7 @@ export interface VisitDaySelect<T extends boolean = true> {
     | {
         date?: T;
         capacity?: T;
+        capacityWithoutLunch?: T;
         quartiere?: T;
         id?: T;
       };

@@ -4,23 +4,30 @@
 /// The registration itself, with all its answers, stays a form submission in MongoDB; these
 /// tables hold what has to be transactional: the capacity of a day and the counter of a Hof are
 /// checked and written under advisory locks, so two registrations cannot both take the last
-/// places or the same number.
+/// places or the same number. A day has two kinds of places, with and without lunch, each with
+/// its own capacity.
 model VisitDayRegistration {
   id String @id @default(uuid(7))
 
-  /// e.g. "5321-B007": the Cevi.DB event of the Hof, then the Hof's counter
+  /// e.g. "5321-B007": the Cevi.DB event of the Hof, then the Hof's counter; "EXT-B007" for a
+  /// visitor without a Hof. Unique, which also keeps two external registrations apart, since
+  /// the unique (hofId, counter) does not compare two empty Höfe.
   number String @unique
 
-  /// the objectID of the visited Hof in the `hoefe` collection in MongoDB
-  hofId String
+  /// the objectID of the visited Hof in the `hoefe` collection in MongoDB, empty for a visitor
+  /// without a connection to a Hof, who picks the day themselves
+  hofId String?
 
-  /// counts the registrations of one Hof from 1
+  /// counts the registrations of one Hof from 1, and those without a Hof on a counter of their own
   counter Int
+
+  /// whether its persons eat lunch at the camp; they take places of that kind
+  withLunch Boolean @default(true)
 
   /// the objectID of the registration in the `form-submissions` collection in MongoDB
   submissionId String @unique
 
-  /// the Besuchstag, taken from the Quartier of the Hof
+  /// the Besuchstag, taken from the Quartier of the Hof or picked by a visitor without one
   visitDate DateTime @db.Date
 
   createdAt DateTime @default(now())
@@ -28,7 +35,7 @@ model VisitDayRegistration {
   visitors VisitDayVisitor[]
 
   @@unique([hofId, counter])
-  @@index([visitDate])
+  @@index([visitDate, withLunch])
 }
 
 /// One person coming to the Besuchstag. The rows of a day are the places taken on that day.

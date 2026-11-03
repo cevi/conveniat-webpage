@@ -52,6 +52,7 @@ const form = {
             personCountField: 'anzahl_personen',
             dayField: 'besuchstag',
             registrationNumberField: 'anmeldenummer',
+            lunchField: 'mittagessen',
           },
         ],
       },
@@ -73,7 +74,14 @@ const fakeRequest = (): { request: PayloadRequest; remove: jest.Mock; store: jes
       ),
       db: { updateOne: store },
       findGlobal: jest.fn().mockResolvedValue({
-        days: [{ date: '2027-07-28T10:00:00.000Z', capacity: 500, quartiere: ['q5'] }],
+        days: [
+          {
+            date: '2027-07-28T10:00:00.000Z',
+            capacity: 500,
+            capacityWithoutLunch: 300,
+            quartiere: ['q5'],
+          },
+        ],
         hiddenHoefe: [],
       }),
       find: jest.fn().mockResolvedValue({
@@ -86,20 +94,25 @@ const fakeRequest = (): { request: PayloadRequest; remove: jest.Mock; store: jes
   return { request, remove, store };
 };
 
-const register = async (request: PayloadRequest, persons: string): Promise<Answer[]> => {
+const submit = async (request: PayloadRequest, submissionData: Answer[]): Promise<Answer[]> => {
   const data: unknown = await resolveVisitDay({
-    data: {
-      form: 'form-1',
-      submissionData: [
-        { field: 'hof', value: 'uster' },
-        { field: 'anzahl_personen', value: persons },
-      ],
-    },
+    data: { form: 'form-1', submissionData },
     req: request,
     operation: 'create',
   } as never);
   return (data as { submissionData: Answer[] }).submissionData;
 };
+
+const register = async (
+  request: PayloadRequest,
+  persons: string,
+  lunch = 'ja',
+): Promise<Answer[]> =>
+  submit(request, [
+    { field: 'hof', value: 'uster' },
+    { field: 'anzahl_personen', value: persons },
+    { field: 'mittagessen', value: lunch },
+  ]);
 
 const save = async (request: PayloadRequest, answers: Answer[] = []): Promise<Answer[]> => {
   const document_: unknown = await reserveVisitDayPlaces({
@@ -126,6 +139,7 @@ describe('a Besuchstag registration', () => {
     expect(answers).toEqual([
       { field: 'hof', value: 'Cevi Uster' },
       { field: 'anzahl_personen', value: '2' },
+      { field: 'mittagessen', value: 'ja' },
       { field: 'besuchstag', value: 'Mittwoch, 28. Juli 2027' },
     ]);
     expect(saved).toContainEqual({ field: 'anmeldenummer', value: '5321-B007' });
@@ -136,6 +150,7 @@ describe('a Besuchstag registration', () => {
       data: {
         number: '5321-B007',
         hofId: 'uster',
+        withLunch: true,
         visitors: { create: [{ personNumber: 1 }, { personNumber: 2 }] },
       },
     });
@@ -145,20 +160,14 @@ describe('a Besuchstag registration', () => {
     visitorRows.count.mockResolvedValue(0);
     const { request } = fakeRequest();
 
-    const data: unknown = await resolveVisitDay({
-      data: {
-        form: 'form-1',
-        submissionData: [
-          { field: 'hof', value: 'uster' },
-          { field: 'anzahl_personen', value: '1' },
-          { field: 'anmeldenummer', value: '5321-B001' },
-        ],
-      },
-      req: request,
-      operation: 'create',
-    } as never);
+    const answers = await submit(request, [
+      { field: 'hof', value: 'uster' },
+      { field: 'anzahl_personen', value: '1' },
+      { field: 'mittagessen', value: 'ja' },
+      { field: 'anmeldenummer', value: '5321-B001' },
+    ]);
 
-    expect((data as { submissionData: Answer[] }).submissionData).not.toContainEqual({
+    expect(answers).not.toContainEqual({
       field: 'anmeldenummer',
       value: '5321-B001',
     });
@@ -168,7 +177,71 @@ describe('a Besuchstag registration', () => {
     visitorRows.count.mockResolvedValue(499);
     const { request } = fakeRequest();
 
-    await expect(register(request, '2')).rejects.toThrow('nicht mehr genug Plätze');
+    await expect(register(request, '2')).rejects.toThrow('nicht mehr genug Plätze mit Mittagessen');
+  });
+
+  it('takes places without lunch from their own capacity', async () => {
+    // all places with lunch are taken, but only 298 of the 300 without
+    visitorRows.count.mockImplementation(
+      ({ where }: { where: { registration: { withLunch: boolean } } }) =>
+        Promise.resolve(where.registration.withLunch ? 500 : 298),
+    );
+    const { request } = fakeRequest();
+
+    await save(request, await register(request, '2', 'nein'));
+
+    expect(registrationRows.create.mock.calls[0]?.[0]).toMatchObject({
+      data: { withLunch: false, visitors: { create: [{ personNumber: 1 }, { personNumber: 2 }] } },
+    });
+    visitorRows.count.mockResolvedValue(299);
+    await expect(register(fakeRequest().request, '2', 'nein')).rejects.toThrow(
+      'nicht mehr genug Plätze ohne Mittagessen',
+    );
+  });
+
+  it('is refused without an answer about lunch', async () => {
+    visitorRows.count.mockResolvedValue(0);
+    const { request } = fakeRequest();
+
+    await expect(register(request, '1', '')).rejects.toThrow('zu Mittag');
+  });
+
+  it('lets a visitor without a Hof pick the day, numbered apart from the Höfe', async () => {
+    visitorRows.count.mockResolvedValue(0);
+    const { request } = fakeRequest();
+
+    const answers = await submit(request, [
+      { field: 'hof', value: 'extern' },
+      { field: 'anzahl_personen', value: '1' },
+      { field: 'mittagessen', value: 'ja' },
+      { field: 'besuchstag', value: '2027-07-28' },
+    ]);
+    await save(request, answers);
+
+    expect(answers).toEqual([
+      { field: 'hof', value: 'Ohne Bezug zu einer Abteilung' },
+      { field: 'anzahl_personen', value: '1' },
+      { field: 'mittagessen', value: 'ja' },
+      { field: 'besuchstag', value: 'Mittwoch, 28. Juli 2027' },
+    ]);
+    expect(registrationRows.create.mock.calls[0]?.[0]).toMatchObject({
+      // eslint-disable-next-line unicorn/no-null
+      data: { number: 'EXT-B007', hofId: null },
+    });
+  });
+
+  it('refuses a day that is not offered to a visitor without a Hof', async () => {
+    visitorRows.count.mockResolvedValue(0);
+    const { request } = fakeRequest();
+
+    await expect(
+      submit(request, [
+        { field: 'hof', value: 'extern' },
+        { field: 'anzahl_personen', value: '1' },
+        { field: 'mittagessen', value: 'ja' },
+        { field: 'besuchstag', value: '2027-08-01' },
+      ]),
+    ).rejects.toThrow('einen der Besuchstage');
   });
 
   it('is removed again when the day filled up while it was being saved', async () => {

@@ -26,7 +26,10 @@ export interface MaterialListBlock {
   placement?: 'sidebar' | 'main';
 }
 
-/** The Hof relatives register for on the Besuchstag; the day follows from its Quartier. */
+/**
+ * The Hof relatives register for on the Besuchstag; the day follows from its Quartier, or is
+ * picked by a visitor without a Hof.
+ */
 export interface VisitDaySelectionBlock {
   blockType: 'visitDaySelection';
   name: string;
@@ -38,6 +41,8 @@ export interface VisitDaySelectionBlock {
   dayField: string;
   /** the answer the server stores the registration number under */
   registrationNumberField: string;
+  /** the answer the lunch choice is stored under; without it the field does not ask */
+  lunchField?: string | null;
   placement?: 'sidebar' | 'main';
 }
 
