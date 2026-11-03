@@ -1,4 +1,4 @@
-import { createErrorThrower, formatTRPCError } from '@/trpc/error-formatter';
+import { createErrorThrower, formatTRPCError, invariantError } from '@/trpc/error-formatter';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import { initTRPC, TRPCError } from '@trpc/server';
@@ -31,6 +31,9 @@ const router = t.router({
     }
     if (input.courseId === 'closed') {
       throw new TRPCError({ code: 'FORBIDDEN', message: 'Chat creation is currently disabled.' });
+    }
+    if (input.courseId === 'forged') {
+      throw invariantError('NOT_FOUND', 'Thread not found in this chat.');
     }
     if (input.courseId === 'crash') throw new Error('connect ECONNREFUSED 10.0.0.4:5432');
     return 'enrolled';
@@ -88,6 +91,12 @@ describe('userErrorMessage', () => {
   it('falls back for a refusal that names no reason', async () => {
     expect(userErrorMessage(await failEnrol(server, 'closed'), 'en', texts, fallback)).toBe(
       'That did not work.',
+    );
+  });
+
+  it('falls back for a call our own client never makes, instead of its English', async () => {
+    expect(userErrorMessage(await failEnrol(server, 'forged'), 'de', texts, fallback)).toBe(
+      'Das hat nicht geklappt.',
     );
   });
 

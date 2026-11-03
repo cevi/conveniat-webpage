@@ -29,6 +29,19 @@ export class UserFacingTRPCError extends TRPCError {
 }
 
 /**
+ * A refusal of a call our own client never makes: a forged id, another chat's image, a state
+ * the UI cannot reach. It carries no reason, so the user reads the generic fallback, and the
+ * tRPC route logs it at `warn`, because a hit means a bug in our client or someone probing the
+ * API. A refusal a legitimate client can trigger, also from the offline outbox or a stale
+ * persisted cache, is a reason from `createErrorThrower` instead.
+ */
+export class InvariantTRPCError extends TRPCError {}
+
+/** Refuses a call our own client never makes, see {@link InvariantTRPCError}. */
+export const invariantError = (code: TRPCError['code'], message: string): InvariantTRPCError =>
+  new InvariantTRPCError({ code, message });
+
+/**
  * Binds a feature's error texts, so its routers can only throw reasons its components can
  * translate.
  */

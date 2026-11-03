@@ -3,8 +3,8 @@ import {
   assertWriteAbilities,
 } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
+import { invariantError } from '@/trpc/error-formatter';
 import { trpcBaseProcedure } from '@/trpc/init';
-import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 const signalTypingInputSchema = z.object({
@@ -60,7 +60,7 @@ export const signalTyping = trpcBaseProcedure
         select: { uuid: true },
       });
       if (!parent) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Thread not found in this chat.' });
+        throw invariantError('NOT_FOUND', 'Thread not found in this chat.');
       }
     }
 

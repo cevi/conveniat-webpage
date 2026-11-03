@@ -10,6 +10,7 @@ import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatType, MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma/client';
 import { sendNotification } from '@/lib/push/send-notification';
+import { invariantError } from '@/trpc/error-formatter';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { rateLimit } from '@/trpc/middleware/rate-limit';
@@ -154,10 +155,10 @@ export const createMessage = trpcBaseProcedure
       // Only an upload into this very chat, see `getUploadUrl`. Any other URL would be loaded
       // by every member's phone, which is all a tracking pixel needs.
       if (!isImageKeyOfChat(validatedMessage.content, validatedMessage.chatId)) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'An image message must name an image uploaded to this chat.',
-        });
+        throw invariantError(
+          'BAD_REQUEST',
+          'An image message must name an image uploaded to this chat.',
+        );
       }
     }
 
@@ -202,10 +203,7 @@ export const createMessage = trpcBaseProcedure
           alreadyStored.senderId !== user.uuid ||
           alreadyStored.chatId !== validatedMessage.chatId
         ) {
-          throw new TRPCError({
-            code: 'CONFLICT',
-            message: 'A different message with this ID already exists.',
-          });
+          throw invariantError('CONFLICT', 'A different message with this ID already exists.');
         }
 
         logger.debug('Duplicate send ignored, returning the stored copy', {

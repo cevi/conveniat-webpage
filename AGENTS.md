@@ -249,6 +249,13 @@ texts)` from `@/utils/user-error-message`. The server knows the locale only from
 page may be in another one. Anything thrown without a reason reaches the user as the fallback, so
 an English message never does. Branch on the reason, never on the message.
 
+A refusal a legitimate client can trigger gets a reason, and that includes the offline outbox
+replaying a send and a stale persisted cache, not only what the current UI offers. A refusal of a
+call our own client never makes, like a forged id or another chat's image, is
+`invariantError(code, message)` from the same file: no text to translate, and the tRPC route logs
+it at `warn`, because a hit is a client bug or someone probing. A bare `TRPCError` predates this
+split; when you touch one, decide which of the two it is.
+
 Style with Tailwind and combine classes with `cn()` from `@/utils/tailwindcss-override`. No template literals for
 class names. Icons come from `lucide-react` and nowhere else.
 
