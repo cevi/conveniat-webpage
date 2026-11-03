@@ -3964,28 +3964,41 @@ export interface AnnouncementChannel {
    * Only visible in the admin panel. Pick this name when you link an announcement to the channel.
    */
   internalName: string;
+  chatUuid?: string | null;
   /**
    * Shown to all members as the name of the chat.
    */
   name: string;
   description?: string | null;
-  targetType: 'all' | 'roles' | 'cevi_groups';
-  targetRoles?: ('full-admin' | 'web-core-team' | 'translation-team' | 'program-team')[] | null;
-  targetCeviGroups?:
-    | {
-        groupId: number;
-        groupName: string;
-        id?: string | null;
-      }[]
-    | null;
-  allowEmojiReactions?: boolean | null;
-  allowThreads?: boolean | null;
-  allowThreadReplies?: boolean | null;
   /**
    * Pinned channels stay at the top of the chat overview, above all other chats.
    */
   pinned?: boolean | null;
-  chatUuid?: string | null;
+  allowEmojiReactions?: boolean | null;
+  allowThreads?: boolean | null;
+  allowThreadReplies?: boolean | null;
+  targetType: 'all' | 'roles' | 'cevi_groups' | 'avps';
+  targetRoles?:
+    | (
+        | 'full-admin'
+        | 'web-core-team'
+        | 'translation-team'
+        | 'program-team'
+        | 'billing-team'
+        | 'material-team'
+        | 'hof-dashboard-reviewer'
+      )[]
+    | null;
+  /**
+   * Everyone who is in one of these groups in Cevi.DB. Pick a group by its name or type its ID.
+   */
+  targetCeviGroups?:
+    | {
+        groupId: number;
+        groupName?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -6567,8 +6580,13 @@ export interface HelperJobsSelect<T extends boolean = true> {
  */
 export interface AnnouncementChannelsSelect<T extends boolean = true> {
   internalName?: T;
+  chatUuid?: T;
   name?: T;
   description?: T;
+  pinned?: T;
+  allowEmojiReactions?: T;
+  allowThreads?: T;
+  allowThreadReplies?: T;
   targetType?: T;
   targetRoles?: T;
   targetCeviGroups?:
@@ -6578,11 +6596,6 @@ export interface AnnouncementChannelsSelect<T extends boolean = true> {
         groupName?: T;
         id?: T;
       };
-  allowEmojiReactions?: T;
-  allowThreads?: T;
-  allowThreadReplies?: T;
-  pinned?: T;
-  chatUuid?: T;
   updatedAt?: T;
   createdAt?: T;
 }
