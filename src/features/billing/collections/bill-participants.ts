@@ -27,16 +27,17 @@ import type { CollectionConfig } from 'payload';
  */
 export const BillParticipantsCollection: CollectionConfig = {
   slug: 'bill-participants',
+  // «Lager ·» tells them from the Besuchstag bills in the same sidebar group
   labels: {
     singular: {
-      en: 'Billing',
-      de: 'Rechnungsverwaltung',
-      fr: 'Gestion des factures',
+      en: 'Camp · Billing',
+      de: 'Lager · Rechnungsverwaltung',
+      fr: 'Camp · Gestion des factures',
     },
     plural: {
-      en: 'Billing',
-      de: 'Rechnungsverwaltung',
-      fr: 'Gestion des factures',
+      en: 'Camp · Billing',
+      de: 'Lager · Rechnungsverwaltung',
+      fr: 'Camp · Gestion des factures',
     },
   },
   admin: {

@@ -289,9 +289,42 @@ export async function findDoublePaymentReport(
     context: { internal: true },
   });
 
+  // The Besuchstag bills share the ledger, so finance sees what to refund there in the same
+  // report. A cancelled registration owes back everything it was paid.
+  const { docs: visitDayBills } = await payload.find({
+    collection: 'visit-day-bills',
+    where: { doublePayment: { equals: true } },
+    pagination: false,
+    depth: 0,
+    joins: false,
+    overrideAccess: true,
+  });
+  // `in: []` matches nothing, so a week without such a bill costs one empty read
+  const { docs: visitDayPayments } = await payload.find({
+    collection: 'bill-payments',
+    where: { 'allocations.bill.value': { in: visitDayBills.map((bill) => bill.id) } },
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+  });
+
   return buildDoublePaymentReport(
-    participants.docs,
-    payments,
+    [
+      ...participants.docs,
+      ...visitDayBills.map((bill) => ({
+        id: bill.id,
+        fullName: bill.fullName ?? bill.registrationNumber,
+        invoiceNumber: bill.invoiceNumber,
+        invoiceAmount: bill.status === 'cancelled' ? 0 : bill.invoiceAmount,
+        eventName: `Besuchstag ${bill.registrationNumber}`,
+      })),
+    ],
+    // a payment split across both kinds of bill is read twice, and counts once
+    [
+      ...new Map(
+        [...payments, ...visitDayPayments].map((payment) => [payment.id, payment]),
+      ).values(),
+    ],
     now,
     buildResolvedDoublePayments(resolved, resolvedPayments, [...resolved, ...others]),
   );
