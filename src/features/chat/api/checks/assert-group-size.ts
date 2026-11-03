@@ -1,7 +1,6 @@
+import { chatError } from '@/features/chat/api/chat-errors';
 import { DEFAULT_MAX_GROUP_MEMBERS } from '@/features/payload-cms/payload-cms/globals/all-chats-management';
-import type { Locale, StaticTranslationString } from '@/types/types';
 import config from '@payload-config';
-import { TRPCError } from '@trpc/server';
 import { getPayload } from 'payload';
 
 /**
@@ -16,25 +15,15 @@ export const getMaxGroupMembers = async (): Promise<number> => {
   return typeof stored === 'number' ? stored : DEFAULT_MAX_GROUP_MEMBERS;
 };
 
-const groupTooLargeText: StaticTranslationString = {
-  de: 'Eine Gruppe hat höchstens {max} Mitglieder.',
-  en: 'A group can have at most {max} members.',
-  fr: 'Un groupe compte au plus {max} membres.',
-};
-
 /**
  * Refuses a participant's group that would grow past the configured size. Groups set up by
  * admins and announcement channels are filled through other procedures and stay unlimited.
  *
  * @param memberCount - the members the group would have, the creator included
- * @param locale - the language of the error message
  */
-export const assertGroupSize = async (memberCount: number, locale: Locale): Promise<void> => {
+export const assertGroupSize = async (memberCount: number): Promise<void> => {
   const maxGroupMembers = await getMaxGroupMembers();
   if (memberCount > maxGroupMembers) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: groupTooLargeText[locale].replace('{max}', String(maxGroupMembers)),
-    });
+    throw chatError('BAD_REQUEST', 'groupTooLarge', { max: maxGroupMembers });
   }
 };

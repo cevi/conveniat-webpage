@@ -4,7 +4,15 @@ import type { CollectionBeforeChangeHook } from 'payload';
 
 // `payload` ships ESM only, which Jest cannot require. The hook needs APIError and nothing else.
 jest.mock('payload', () => ({
-  APIError: class extends Error {},
+  APIError: class extends Error {
+    constructor(
+      message: string,
+      readonly status: number,
+      readonly data?: unknown,
+    ) {
+      super(message);
+    }
+  },
 }));
 
 const form = {
@@ -58,9 +66,10 @@ describe('linkHofSubmission', () => {
   });
 
   it('rejects a Hof that does not exist', async () => {
-    await expect(run([{ field: 'hof', value: 'hof-unbekannt' }])).rejects.toThrow(
-      'Der ausgewählte Hof existiert nicht.',
-    );
+    await expect(run([{ field: 'hof', value: 'hof-unbekannt' }])).rejects.toMatchObject({
+      status: 400,
+      data: { reason: 'hofNotFound' },
+    });
   });
 
   it('ignores a Hof sent along with the submission instead of picked in the form', async () => {

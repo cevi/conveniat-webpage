@@ -55,5 +55,44 @@ export const searchOverrides: { fields?: FieldsOverride } & Partial<
       type: 'text',
       localized: true,
     },
+    {
+      name: 'search_date',
+      type: 'date',
+      admin: {
+        readOnly: true,
+        description: {
+          en: 'The date the search sorts and filters by: the release date of a page, the date of a news entry, the last change of a document.',
+          de: 'Das Datum, nach dem die Suche sortiert und filtert: das Veröffentlichungsdatum einer Seite, das Datum eines News-Eintrags, die letzte Änderung eines Dokuments.',
+          fr: "La date selon laquelle la recherche trie et filtre : la date de publication d'une page, la date d'une actualité, la dernière modification d'un document.",
+        },
+      },
+    },
+    {
+      name: 'search_references',
+      type: 'text',
+      hasMany: true,
+      localized: true,
+      admin: {
+        readOnly: true,
+        description: {
+          en: 'The documents and news categories a page links to. A document or a news entry is only found through a page that shows it.',
+          de: 'Die Dokumente und News-Kategorien, auf die eine Seite verweist. Ein Dokument oder ein News-Eintrag wird nur über eine Seite gefunden, die ihn zeigt.',
+          fr: "Les documents et catégories d'actualités vers lesquels une page renvoie. Un document ou une actualité n'est trouvé qu'à travers une page qui l'affiche.",
+        },
+      },
+    },
+    {
+      name: 'search_categories',
+      type: 'text',
+      hasMany: true,
+      admin: {
+        readOnly: true,
+        description: {
+          en: 'The categories of a news entry.',
+          de: 'Die Kategorien eines News-Eintrags.',
+          fr: "Les catégories d'une actualité.",
+        },
+      },
+    },
   ],
 };

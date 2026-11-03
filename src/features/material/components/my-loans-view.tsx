@@ -1,4 +1,5 @@
 'use client';
+import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { buttonVariants } from '@/components/ui/buttons/button';
 import { SectionTitle, Stepper } from '@/features/material/components/counter-ui';
@@ -217,7 +218,7 @@ const EditRequestSheet: React.FC<{ loan: MyLoan; onClose: () => void }> = ({ loa
                   onClose();
                   void invalidate();
                 },
-                onError: (error) => toast.error(error.message),
+                onError: (error) => toastMaterialError(error, locale),
               },
             )
           }
@@ -306,7 +307,7 @@ const MyLoanRow: React.FC<{ loan: MyLoan; onEdit: (loan: MyLoan) => void }> = ({
                     setAsking(false);
                     void invalidate();
                   },
-                  onError: (error) => toast.error(error.message),
+                  onError: (error) => toastMaterialError(error, locale),
                 },
               )
             }
@@ -342,7 +343,7 @@ const MyLoanRow: React.FC<{ loan: MyLoan; onEdit: (loan: MyLoan) => void }> = ({
                       toast.success(text.announced[locale]);
                       void invalidate();
                     },
-                    onError: (error) => toast.error(error.message),
+                    onError: (error) => toastMaterialError(error, locale),
                   },
                 )
               }
@@ -397,7 +398,7 @@ const OutCard: React.FC<{
                     toast.success(text.announced[locale]);
                     void invalidate();
                   },
-                  onError: (error) => toast.error(error.message),
+                  onError: (error) => toastMaterialError(error, locale),
                 },
               )
             }
@@ -493,7 +494,7 @@ const ScannedLoanSheet: React.FC<{ number: number; onClose: () => void }> = ({
                         onClose();
                         void invalidate();
                       },
-                      onError: (error) => toast.error(error.message),
+                      onError: (error) => toastMaterialError(error, locale),
                     },
                   )
                 }

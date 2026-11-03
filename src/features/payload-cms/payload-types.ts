@@ -231,6 +231,7 @@ export interface Config {
     tasks: {
       fetchSmtpBounces: TaskFetchSmtpBounces;
       generatePdfThumbnail: TaskGeneratePdfThumbnail;
+      extractPdfPages: TaskExtractPdfPages;
       publishScheduledAnnouncements: TaskPublishScheduledAnnouncements;
       drainPushQueue: TaskDrainPushQueue;
       drainEmailOutbox: TaskDrainEmailOutbox;
@@ -363,6 +364,8 @@ export interface GenericPage {
         }
       | MediaTextBlock
       | ProcessStepsBlock
+      | FactListBlock
+      | VisitDayFinderBlock
       | FormBlock
       | ApprovedFormSubmissionsBlock
       | {
@@ -1087,6 +1090,13 @@ export interface Document {
    */
   internalDescription?: string | null;
   pdfThumbnailUrl?: string | null;
+  pdfPages?:
+    | {
+        text?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  pdfPagesSource?: string | null;
   permissions?: (string | null) | Permission;
   lastEditedByUser?: (string | null) | User;
   _objectKey?: string | null;
@@ -1286,6 +1296,59 @@ export interface ProcessStepsBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'processSteps';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FactListBlock".
+ */
+export interface FactListBlock {
+  /**
+   * Optional. Shown small and in capitals above the card, e.g. "Rules".
+   */
+  title?: string | null;
+  facts: {
+    icon:
+      | 'users'
+      | 'calendar'
+      | 'clock'
+      | 'mapPin'
+      | 'train'
+      | 'car'
+      | 'ticket'
+      | 'wallet'
+      | 'utensils'
+      | 'backpack'
+      | 'tent'
+      | 'mail'
+      | 'phone'
+      | 'shield'
+      | 'info';
+    /**
+     * Short, e.g. "Public transport only".
+     */
+    title: string;
+    /**
+     * Optional. A line of detail under the title.
+     */
+    description?: string | null;
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'factList';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "VisitDayFinderBlock".
+ */
+export interface VisitDayFinderBlock {
+  /**
+   * Optional. Shown small and in capitals above the search, e.g. "Your visiting day". The Höfe and their days come from the visiting day settings.
+   */
+  title?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'visitDayFinder';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1576,9 +1639,13 @@ export interface Form {
                  */
                 dayField: string;
                 /**
-                 * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter. Stored under this name for the email, e.g. {{anmeldenummer}}.
+                 * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter, EXT-B007 without a Hof. Stored under this name for the email, e.g. {{anmeldenummer}}.
                  */
                 registrationNumberField: string;
+                /**
+                 * The field asks whether the visitors have lunch at the camp and stores "ja" or "nein" under this name, e.g. for a section shown only with lunch. Each kind has its own places. Empty: no question, everybody with lunch.
+                 */
+                lunchField?: string | null;
                 required?: boolean | null;
                 /**
                  * Where this field is rendered when "Split" layout is selected for the section.
@@ -1927,9 +1994,13 @@ export interface Form {
                            */
                           dayField: string;
                           /**
-                           * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter. Stored under this name for the email, e.g. {{anmeldenummer}}.
+                           * Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter, EXT-B007 without a Hof. Stored under this name for the email, e.g. {{anmeldenummer}}.
                            */
                           registrationNumberField: string;
+                          /**
+                           * The field asks whether the visitors have lunch at the camp and stores "ja" or "nein" under this name, e.g. for a section shown only with lunch. Each kind has its own places. Empty: no question, everybody with lunch.
+                           */
+                          lunchField?: string | null;
                           required?: boolean | null;
                           /**
                            * Where this field is rendered when "Split" layout is selected for the section.
@@ -2272,6 +2343,9 @@ export interface FormSubmission {
    * Empty means handed in and not yet looked at. Only "Revision required" asks the Hof for a new version, together with the feedback. To accept a submission, tick "Approved".
    */
   hofReviewStatus?: ('inReview' | 'revisionRequired') | null;
+  /**
+   * Writing something new here adds it to the history as a comment, with your name and the time. Earlier comments stay there.
+   */
   hofFeedback?: string | null;
   /**
    * For a form of versions, e.g. a material order: the Hof can no longer hand in a new one. Changes then go through the Ressort.
@@ -2279,7 +2353,7 @@ export interface FormSubmission {
   hofFinal?: boolean | null;
   submittedBy?: (string | null) | User;
   /**
-   * Who changed the status or the feedback, and when. Written on every save.
+   * Who changed the status or wrote a comment, and when. Written on every save; the Hof sees it on its dashboard.
    */
   hofReviewLog?:
     | {
@@ -3949,25 +4023,45 @@ export interface FormCollection {
  */
 export interface AnnouncementChannel {
   id: string;
+  /**
+   * Only visible in the admin panel. Pick this name when you link an announcement to the channel.
+   */
+  internalName: string;
+  chatUuid?: string | null;
+  /**
+   * Shown to all members as the name of the chat.
+   */
   name: string;
   description?: string | null;
-  targetType: 'all' | 'roles' | 'cevi_groups';
-  targetRoles?: ('full-admin' | 'web-core-team' | 'translation-team' | 'program-team')[] | null;
-  targetCeviGroups?:
-    | {
-        groupId: number;
-        groupName: string;
-        id?: string | null;
-      }[]
-    | null;
-  allowEmojiReactions?: boolean | null;
-  allowThreads?: boolean | null;
-  allowThreadReplies?: boolean | null;
   /**
    * Pinned channels stay at the top of the chat overview, above all other chats.
    */
   pinned?: boolean | null;
-  chatUuid?: string | null;
+  allowEmojiReactions?: boolean | null;
+  allowThreads?: boolean | null;
+  allowThreadReplies?: boolean | null;
+  targetType: 'all' | 'roles' | 'cevi_groups' | 'avps';
+  targetRoles?:
+    | (
+        | 'full-admin'
+        | 'web-core-team'
+        | 'translation-team'
+        | 'program-team'
+        | 'billing-team'
+        | 'material-team'
+        | 'hof-dashboard-reviewer'
+      )[]
+    | null;
+  /**
+   * Everyone who is in one of these groups in Cevi.DB. Pick a group by its name or type its ID.
+   */
+  targetCeviGroups?:
+    | {
+        groupId: number;
+        groupName?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -4674,15 +4768,36 @@ export interface SearchCollection {
   id: string;
   title?: string | null;
   priority?: number | null;
-  doc: {
-    relationTo: 'generic-page';
-    value: string | GenericPage;
-  };
+  doc:
+    | {
+        relationTo: 'generic-page';
+        value: string | GenericPage;
+      }
+    | {
+        relationTo: 'documents';
+        value: string | Document;
+      }
+    | {
+        relationTo: 'timeline';
+        value: string | Timeline;
+      };
   /**
    * This field is used for search indexing. It is automatically filled and not editable.
    */
   search_content?: string | null;
   search_title?: string | null;
+  /**
+   * The date the search sorts and filters by: the release date of a page, the date of a news entry, the last change of a document.
+   */
+  search_date?: string | null;
+  /**
+   * The documents and news categories a page links to. A document or a news entry is only found through a page that shows it.
+   */
+  search_references?: string[] | null;
+  /**
+   * The categories of a news entry.
+   */
+  search_categories?: string[] | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -4929,6 +5044,7 @@ export interface PayloadJob {
           | 'inline'
           | 'fetchSmtpBounces'
           | 'generatePdfThumbnail'
+          | 'extractPdfPages'
           | 'publishScheduledAnnouncements'
           | 'drainPushQueue'
           | 'drainEmailOutbox'
@@ -4987,6 +5103,7 @@ export interface PayloadJob {
         | 'inline'
         | 'fetchSmtpBounces'
         | 'generatePdfThumbnail'
+        | 'extractPdfPages'
         | 'publishScheduledAnnouncements'
         | 'drainPushQueue'
         | 'drainEmailOutbox'
@@ -5268,6 +5385,8 @@ export interface GenericPageSelect<T extends boolean = true> {
                   };
               mediaText?: T | MediaTextBlockSelect<T>;
               processSteps?: T | ProcessStepsBlockSelect<T>;
+              factList?: T | FactListBlockSelect<T>;
+              visitDayFinder?: T | VisitDayFinderBlockSelect<T>;
               formBlock?: T | FormBlockSelect<T>;
               approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
               photoCarousel?:
@@ -5463,6 +5582,32 @@ export interface ProcessStepsBlockSelect<T extends boolean = true> {
         description?: T;
         id?: T;
       };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FactListBlock_select".
+ */
+export interface FactListBlockSelect<T extends boolean = true> {
+  title?: T;
+  facts?:
+    | T
+    | {
+        icon?: T;
+        title?: T;
+        description?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "VisitDayFinderBlock_select".
+ */
+export interface VisitDayFinderBlockSelect<T extends boolean = true> {
+  title?: T;
   id?: T;
   blockName?: T;
 }
@@ -6423,6 +6568,13 @@ export interface DocumentsSelect<T extends boolean = true> {
   title?: T;
   internalDescription?: T;
   pdfThumbnailUrl?: T;
+  pdfPages?:
+    | T
+    | {
+        text?: T;
+        id?: T;
+      };
+  pdfPagesSource?: T;
   permissions?: T;
   lastEditedByUser?: T;
   _objectKey?: T;
@@ -6518,8 +6670,14 @@ export interface HelperJobsSelect<T extends boolean = true> {
  * via the `definition` "announcement-channels_select".
  */
 export interface AnnouncementChannelsSelect<T extends boolean = true> {
+  internalName?: T;
+  chatUuid?: T;
   name?: T;
   description?: T;
+  pinned?: T;
+  allowEmojiReactions?: T;
+  allowThreads?: T;
+  allowThreadReplies?: T;
   targetType?: T;
   targetRoles?: T;
   targetCeviGroups?:
@@ -6529,11 +6687,6 @@ export interface AnnouncementChannelsSelect<T extends boolean = true> {
         groupName?: T;
         id?: T;
       };
-  allowEmojiReactions?: T;
-  allowThreads?: T;
-  allowThreadReplies?: T;
-  pinned?: T;
-  chatUuid?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -7307,6 +7460,7 @@ export interface FormsSelect<T extends boolean = true> {
                           personCountField?: T;
                           dayField?: T;
                           registrationNumberField?: T;
+                          lunchField?: T;
                           required?: T;
                           placement?: T;
                           id?: T;
@@ -7531,6 +7685,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       personCountField?: T;
                                       dayField?: T;
                                       registrationNumberField?: T;
+                                      lunchField?: T;
                                       required?: T;
                                       placement?: T;
                                       id?: T;
@@ -7720,6 +7875,9 @@ export interface SearchCollectionSelect<T extends boolean = true> {
   doc?: T;
   search_content?: T;
   search_title?: T;
+  search_date?: T;
+  search_references?: T;
+  search_categories?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -8373,6 +8531,8 @@ export interface AppLandingPage {
           }
         | MediaTextBlock
         | ProcessStepsBlock
+        | FactListBlock
+        | VisitDayFinderBlock
         | FormBlock
         | ApprovedFormSubmissionsBlock
         | {
@@ -8925,7 +9085,7 @@ export interface HofDashboardSetting {
   createdAt?: string | null;
 }
 /**
- * The days relatives may visit, the places per day and the Höfe the registration offers. The registration form picks the day from the Quartier of the Hof chosen.
+ * The days relatives may visit, the places per day and the Höfe the registration offers. The registration form picks the day from the Quartier of the Hof chosen; visitors without a Hof pick it themselves.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "visit-day".
@@ -8939,6 +9099,10 @@ export interface VisitDaySetting {
          * Every person registered takes one place, children included.
          */
         capacity: number;
+        /**
+         * For those who bring their own lunch. Counted apart from the places with lunch.
+         */
+        capacityWithoutLunch?: number | null;
         /**
          * The relatives of the Höfe in these Quartiere visit on this day.
          */
@@ -9206,6 +9370,8 @@ export interface AppLandingPageSelect<T extends boolean = true> {
             };
         mediaText?: T | MediaTextBlockSelect<T>;
         processSteps?: T | ProcessStepsBlockSelect<T>;
+        factList?: T | FactListBlockSelect<T>;
+        visitDayFinder?: T | VisitDayFinderBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
         approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
         photoCarousel?:
@@ -9540,6 +9706,7 @@ export interface VisitDaySelect<T extends boolean = true> {
     | {
         date?: T;
         capacity?: T;
+        capacityWithoutLunch?: T;
         quartiere?: T;
         id?: T;
       };
@@ -9660,6 +9827,18 @@ export interface TaskGeneratePdfThumbnail {
   output: {
     success?: boolean | null;
     imageId?: string | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskExtractPdfPages".
+ */
+export interface TaskExtractPdfPages {
+  input: {
+    documentId: string;
+  };
+  output: {
+    pageCount?: number | null;
   };
 }
 /**

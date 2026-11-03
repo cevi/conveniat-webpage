@@ -4,12 +4,12 @@ import { Card } from '@/components/ui/card';
 import { ListRow } from '@/components/ui/list-row';
 import { HolderAvatar } from '@/features/material/components/counter-ui';
 import { Field, inputClass } from '@/features/material/components/material-ui';
-import { useDebouncedValue } from '@/features/material/hooks/use-debounced-value';
 import { materialQueryOptions } from '@/features/material/hooks/use-material';
 import {
   formatHofRoles,
   type HofRole,
 } from '@/features/payload-cms/payload-cms/utils/hof-directory';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { trpc } from '@/trpc/client';
 import { keepPreviousData } from '@tanstack/react-query';
 import type React from 'react';

@@ -29,10 +29,6 @@ jest.mock('@/features/chat/context/chat-actions-context', () => ({
   useChatActions: (): { cancelQuote: () => void } => ({ cancelQuote: jest.fn() }),
 }));
 
-jest.mock('@/lib/toast', () => ({
-  toast: { success: jest.fn(), error: jest.fn() },
-}));
-
 interface InfiniteData {
   pages: { items: ChatMessage[]; nextCursor?: string }[];
   pageParams: unknown[];

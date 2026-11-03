@@ -4,6 +4,7 @@ import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { LinkPendingSpinner } from '@/features/chat/components/ui/link-pending-spinner';
 import { PersonName } from '@/features/chat/components/ui/person-name';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
+import { isOpenChatPathname, useOpeningChat } from '@/features/chat/context/chat-id-context';
 import { useLongPress } from '@/features/chat/hooks/use-long-press';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { formatChatListDate } from '@/features/chat/utils/format-chat-list-date';
@@ -126,6 +127,7 @@ export const ChatPreview: React.FC<{
 }> = ({ chat, onOpenActions, actionsHintId, isSelected = false }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
+  const openingChat = useOpeningChat();
   const trpcUtils = trpc.useUtils();
   const { data: currentUserId } = trpc.chat.user.useQuery({});
 
@@ -154,6 +156,12 @@ export const ChatPreview: React.FC<{
     if (shareUrl) params.set('url', shareUrl);
     chatDetailLink += `?${params.toString()}`;
   }
+
+  // Beside an open chat on a desktop, the tapped chat shows while the router still navigates.
+  // The address is read on the tap, so a navigation does not re-render every row.
+  const handleNavigate = (): void => {
+    if (isOpenChatPathname(globalThis.location.pathname)) openingChat?.showOpeningChat(chat.id);
+  };
 
   const longPress = useLongPress(() => onOpenActions?.(chat));
   const hasUnread = chat.unreadCount > 0 || chat.isMarkedUnread === true;
@@ -201,6 +209,7 @@ export const ChatPreview: React.FC<{
       data-allow-red={isEmergency ? '' : undefined}
       aria-current={isSelected ? 'page' : undefined}
       onMouseEnter={handlePrefetch}
+      onNavigate={handleNavigate}
       aria-describedby={onOpenActions === undefined ? undefined : actionsHintId}
       // a held finger opens the actions, not the phone's own menu or a text selection
       style={{ WebkitTouchCallout: 'none' }}

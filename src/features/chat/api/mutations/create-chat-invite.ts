@@ -1,3 +1,4 @@
+import { chatError } from '@/features/chat/api/chat-errors';
 import { CHAT_INVITE_LIFETIME_MS } from '@/features/chat/constants';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { rateLimit } from '@/trpc/middleware/rate-limit';
@@ -19,11 +20,7 @@ export const createChatInvite = trpcBaseProcedure
       name: 'chat.createChatInvite',
       limit: 30,
       windowMs: 10 * 60 * 1000,
-      message: {
-        de: 'Du hast in kurzer Zeit zu viele QR-Codes erstellt. Versuche es in ein paar Minuten wieder.',
-        en: 'You created too many QR codes in a short time. Try again in a few minutes.',
-        fr: 'Tu as créé trop de codes QR en peu de temps. Réessaie dans quelques minutes.',
-      },
+      refuse: () => chatError('TOO_MANY_REQUESTS', 'tooManyInvites'),
     }),
   )
   .mutation(async ({ ctx }): Promise<{ token: string; expiresAt: Date }> => {

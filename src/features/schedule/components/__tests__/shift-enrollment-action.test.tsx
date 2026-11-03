@@ -4,6 +4,7 @@
 
 import { ShiftEnrollmentAction } from '@/features/schedule/components/shift-enrollment-action';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { TRPCClientError } from '@trpc/client';
 
 let mockIsOffline = false;
 const mockRefetch = jest.fn();
@@ -26,6 +27,11 @@ jest.mock('@/hooks/use-online-status', () => ({
 
 jest.mock('next-auth/react', () => ({
   useSession: (): { status: string } => ({ status: 'authenticated' }),
+}));
+
+// the switch dialog has data of its own, and nothing here opens it
+jest.mock('@/features/schedule/components/shift-conflict-dialog', () => ({
+  ShiftConflictDialog: (): undefined => undefined,
 }));
 
 jest.mock('@/hooks/use-current-locale', () => ({
@@ -199,5 +205,60 @@ describe('ShiftEnrollmentAction once the withdrawal deadline has passed', () => 
     render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
 
     expect(screen.getByRole('button', { name: /Abmelden/ })).toBeInTheDocument();
+  });
+});
+
+/** The error the tRPC client raises for a refusal the router named. */
+const refusal = (reason: string): TRPCClientError<never> =>
+  new TRPCClientError(reason, {
+    result: { error: { code: -32_600, message: reason, data: { code: 'BAD_REQUEST', reason } } },
+  } as never);
+
+describe('ShiftEnrollmentAction after a failed enrolment', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockIsOffline = false;
+    mockQueryResult = {
+      data: { ...enrolledStatus('2100-01-01T00:00:00.000Z'), isEnrolled: false },
+      isLoading: false,
+      isFetching: false,
+      refetch: mockRefetch,
+    };
+  });
+
+  afterEach(() => {
+    delete (mutationResult as { error?: unknown }).error;
+  });
+
+  it.each(['card', 'detail'] as const)('says why under the button (%s)', (variant) => {
+    Object.assign(mutationResult, { error: refusal('shiftFull') });
+
+    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment variant={variant} />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Dieser Schichteinsatz ist bereits ausgebucht.',
+    );
+  });
+
+  it('leaves it to the refreshed status once that says the shift is full', () => {
+    mockQueryResult = {
+      ...mockQueryResult,
+      data: { ...enrolledStatus(), isEnrolled: false, enrolledCount: 5 },
+    };
+    Object.assign(mutationResult, { error: refusal('shiftFull') });
+
+    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
+
+    expect(screen.queryByRole('alert')).toBeNull();
+    // the capacity row says it is full; no control is left that only looks tappable
+    expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('says there is no connection when the request never arrived', () => {
+    Object.assign(mutationResult, { error: new TRPCClientError('Failed to fetch') });
+
+    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Keine Verbindung.');
   });
 });

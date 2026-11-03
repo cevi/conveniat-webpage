@@ -79,6 +79,8 @@ let owner: string;
 let ownerCount = 0;
 /** Every write that reached the database, by table and operation. */
 let writes: string[];
+/** How often a procedure loaded the whole member list of a chat. */
+let membershipListReads: number;
 
 const chatRow = (where: { uuid: string }, membershipWhere?: { userId: string }): unknown =>
   where.uuid === CHAT_ID
@@ -116,14 +118,25 @@ const mockPrisma = {
     }: {
       where: { uuid: string };
       select?: { chatMemberships?: { where?: { userId: string } } };
-    }): Promise<unknown> => Promise.resolve(chatRow(where, select?.chatMemberships?.where)),
+    }): Promise<unknown> => {
+      if (select?.chatMemberships !== undefined && select.chatMemberships.where === undefined) {
+        membershipListReads++;
+      }
+      return Promise.resolve(chatRow(where, select?.chatMemberships?.where));
+    },
     findUniqueOrThrow: ({ where }: { where: { uuid: string } }): Promise<unknown> => {
       const chat = chatRow(where);
       return chat === null ? Promise.reject(new Error('No Chat found')) : Promise.resolve(chat);
     },
     update: record('chat.update'),
   },
-  chatMembership: { createMany: record('chatMembership.createMany') },
+  chatMembership: {
+    findMany: ({ where }: { where: { chatId: string } }): Promise<unknown> => {
+      membershipListReads++;
+      return Promise.resolve(where.chatId === CHAT_ID ? memberships : []);
+    },
+    createMany: record('chatMembership.createMany'),
+  },
   message: {
     findUnique: (): Promise<unknown> =>
       Promise.resolve({
@@ -219,6 +232,7 @@ beforeEach(() => {
   // eslint-disable-next-line unicorn/no-null
   archivedAt = null;
   writes = [];
+  membershipListReads = 0;
   owner = `owner-${++ownerCount}`;
   memberships = [
     member(owner, ChatMembershipPermission.OWNER),
@@ -241,6 +255,17 @@ describe.each(writeProcedures)('%s', (_name, call) => {
     expect(writes).toEqual([]);
     expect(mockPublish).not.toHaveBeenCalled();
     expect(mockSendNotification).not.toHaveBeenCalled();
+  });
+});
+
+describe('createMessage refused in an archived chat', () => {
+  it('does not load the members of the chat', async () => {
+    archivedAt = new Date(Date.now() - 60_000);
+
+    await expect(
+      as(owner).createMessage({ chatId: CHAT_ID, content: 'Hoi', timestamp: new Date() }),
+    ).rejects.toThrow(TRPCError);
+    expect(membershipListReads).toBe(0);
   });
 });
 

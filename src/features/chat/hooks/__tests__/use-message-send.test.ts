@@ -31,10 +31,6 @@ jest.mock('@/features/chat/context/chat-actions-context', () => ({
   useChatActions: (): { cancelQuote: () => void } => ({ cancelQuote: jest.fn() }),
 }));
 
-jest.mock('@/lib/toast', () => ({
-  toast: { success: jest.fn(), error: jest.fn() },
-}));
-
 const CHAT_ID = 'chat-1';
 
 const buildExistingChat = (): ChatWithMessagePreview => ({

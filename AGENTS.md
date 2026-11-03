@@ -241,7 +241,15 @@ boundary.
 No hardcoded user-facing strings. Declare a `StaticTranslationString` and index it by locale. Both
 that type and `i18nConfig` come from `@/types/types`.
 
-Style with Tailwind and combine classes with `cn()` from `@/lib/utils`. No template literals for
+A router never sends a sentence. When it refuses a call the user should hear about, it throws a
+reason with its parameters, through the thrower its feature builds with `createErrorThrower` from
+`@/trpc/error-formatter`. The texts sit in the feature's `error-texts.ts`, which the routers and the
+components share, and the browser translates the reason with `userErrorMessage(error, locale,
+texts)` from `@/utils/user-error-message`. The server knows the locale only from a cookie, and the
+page may be in another one. Anything thrown without a reason reaches the user as the fallback, so
+an English message never does. Branch on the reason, never on the message.
+
+Style with Tailwind and combine classes with `cn()` from `@/utils/tailwindcss-override`. No template literals for
 class names. Icons come from `lucide-react` and nowhere else.
 
 The admin panel looks like Payload, because editors should not have to learn a second design.

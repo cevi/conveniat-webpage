@@ -3,6 +3,7 @@ import type { ContentBlock } from '@/features/payload-cms/converters/page-sectio
 import type {
   AccordionBlocks,
   DetailsTable,
+  FactListBlock,
   HeroSectionBlock,
   MediaTextBlock,
   PosterHeroBlock,
@@ -106,6 +107,13 @@ export const extractTextContent = (mainContent: ContentBlock[]): string => {
         searchContent += (processSteps.title ?? '') + ' ';
         searchContent +=
           processSteps.steps.map((step) => `${step.title} ${step.description}`).join('\n') + '\n';
+        break;
+      }
+      case 'factList': {
+        const factList = block as ContentBlock<FactListBlock>;
+        searchContent += (factList.title ?? '') + ' ';
+        searchContent +=
+          factList.facts.map((fact) => `${fact.title} ${fact.description ?? ''}`).join('\n') + '\n';
         break;
       }
       case 'twoColumnBlock': {

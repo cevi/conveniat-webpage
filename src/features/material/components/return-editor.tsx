@@ -1,4 +1,5 @@
 'use client';
+import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import {
   HolderAvatar,
@@ -319,7 +320,7 @@ export const ReturnEditor: React.FC<{
           onClose();
           void invalidate();
         },
-        onError: (error) => toast.error(error.message),
+        onError: (error) => toastMaterialError(error, locale),
       },
     );
   };

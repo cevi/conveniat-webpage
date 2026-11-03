@@ -70,7 +70,8 @@ export interface HofDashboardEntry {
   /** The answer that names it, for forms whose submissions are separate entries. */
   title: string | undefined;
   status: HofEntryStatus;
-  feedback: string | undefined;
+  /** Who handed it in, as the dashboard knows them; undefined where nobody was recorded. */
+  submittedBy: string | undefined;
   answers: HofDashboardAnswer[];
   /** Whether the Hof may still take it back: handed in, and not yet taken up by the Ressort. */
   withdrawable: boolean;
@@ -78,19 +79,24 @@ export interface HofDashboardEntry {
   reviewStatus: HofReviewChoice | undefined;
   /** Marked final by a reviewer: the Hof hands in no further version. */
   final: boolean;
-  /** Who wrote the current feedback, and when. */
-  feedbackBy: { name: string; at: string } | undefined;
-  /** Every change of status or feedback, newest first; for the reviewers only, else empty. */
+  /** Every change of the Ressort's answer and every comment, oldest first; the Hof's too. */
   reviewLog: HofReviewLogEntry[];
 }
 
-/** One change of a submission's review: when, by whom, and what it was set to. */
+/**
+ * One change of a submission's review: when, by whom, and what that change did. Only what it
+ * changed is set: a comment alone leaves the status undefined.
+ */
 export interface HofReviewLogEntry {
   at: string;
+  /** The name as it was when the change was made; empty where nobody was recorded. */
   by: string;
-  status: HofEntryStatus;
-  feedback: string;
-  final: boolean;
+  /** The status it set. */
+  status: HofEntryStatus | undefined;
+  /** Whether it marked the version final, or took that back. */
+  final: boolean | undefined;
+  /** The comment it added; empty where it removed the feedback, in the admin panel. */
+  comment: string | undefined;
 }
 
 /** A form linked to the dashboard, with the Hof's submissions of it, newest first. */
@@ -120,6 +126,11 @@ export interface HofDashboardDocument {
   url: string;
   filesize: number | undefined;
   area: HofDashboardArea | undefined;
+  /** For the type it is shown as. */
+  filename: string | undefined;
+  mimeType: string | undefined;
+  updatedAt: string;
+  pdfThumbnailUrl: string | undefined;
 }
 
 export interface HofDashboardData {
@@ -198,6 +209,24 @@ const findResponsible = async (
     }));
   const known = new Set(signedIn.map((contact) => contact.email.toLowerCase()));
   return [...signedIn, ...synced.filter(({ email }) => !known.has(email.toLowerCase()))];
+};
+
+/** The names of users by their id, as "First Last v/o Cevi name", for who handed something in. */
+const namesOfUsers = async (payload: Payload, ids: string[]): Promise<Map<string, string>> => {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return new Map();
+  const users = await payload.find({
+    collection: 'users',
+    where: { id: { in: unique } },
+    depth: 0,
+    limit: unique.length,
+    pagination: false,
+    overrideAccess: true,
+    select: { fullName: true, nickname: true },
+  });
+  return new Map(
+    users.docs.map((user) => [user.id, formatUserFullName(user.fullName, user.nickname)]),
+  );
 };
 
 /** The id of a relationship, whether Payload returned it populated or not. */
@@ -345,39 +374,41 @@ export interface StoredSubmission {
       }[]
     | null;
   approved?: boolean | null;
+  submittedBy?: string | { id: string } | null;
   createdAt: string;
 }
 
-/** Every change of a submission's review, newest first. */
+/**
+ * Every change of a submission's review, oldest first, as what each change did. The stored log
+ * (recordHofReview) keeps the whole answer after every change: the status, the final mark and
+ * the feedback, which is the latest comment. A change did what differs from the one before it,
+ * so the log written before comments were a thread of their own reads the same way.
+ */
 export const reviewLogOf = (
   submission: Pick<StoredSubmission, 'hofReviewLog'>,
-): HofReviewLogEntry[] =>
-  (submission.hofReviewLog ?? [])
-    .map((change): HofReviewLogEntry => ({
+): HofReviewLogEntry[] => {
+  interface Answer {
+    status: HofEntryStatus;
+    final: boolean;
+    feedback: string;
+  }
+  let before: Answer = { status: 'submitted', final: false, feedback: '' };
+  return (submission.hofReviewLog ?? []).map((change): HofReviewLogEntry => {
+    const after: Answer = {
+      status: change.status ?? 'submitted',
+      final: change.final === true,
+      feedback: change.feedback ?? '',
+    };
+    const step: HofReviewLogEntry = {
       at: change.changedAt,
       by: change.reviewerName ?? '',
-      status: change.status ?? 'submitted',
-      feedback: change.feedback ?? '',
-      final: change.final === true,
-    }))
-    .toReversed();
-
-/**
- * Who wrote the feedback a submission shows now, and when: the change that set it, which is the
- * first of the latest changes that all kept it.
- */
-const feedbackAuthor = (submission: StoredSubmission): { name: string; at: string } | undefined => {
-  const feedback = submission.hofFeedback ?? '';
-  const log = submission.hofReviewLog ?? [];
-  if (feedback === '' || log.length === 0) return undefined;
-  let setBy: (typeof log)[number] | undefined;
-  for (const change of log.toReversed()) {
-    if ((change.feedback ?? '') !== feedback) break;
-    setBy = change;
-  }
-  return setBy === undefined || (setBy.reviewerName ?? '') === ''
-    ? undefined
-    : { name: setBy.reviewerName ?? '', at: setBy.changedAt };
+      status: after.status === before.status ? undefined : after.status,
+      final: after.final === before.final ? undefined : after.final,
+      comment: after.feedback === before.feedback ? undefined : after.feedback,
+    };
+    before = after;
+    return step;
+  });
 };
 
 /** Where a submission stands: accepted is the form builder's approval. */
@@ -521,7 +552,17 @@ export const getHofDashboardData = async (
       locale,
       fallbackLocale: LOCALE.DE,
       depth: 1,
-      populate: { documents: { title: true, filename: true, url: true, filesize: true } },
+      populate: {
+        documents: {
+          title: true,
+          filename: true,
+          url: true,
+          filesize: true,
+          mimeType: true,
+          updatedAt: true,
+          pdfThumbnailUrl: true,
+        },
+      },
       overrideAccess: true,
     }),
     findDashboardForms(payload, locale),
@@ -547,10 +588,15 @@ export const getHofDashboardData = async (
             hofReviewLog: true,
             hofFinal: true,
             approved: true,
+            submittedBy: true,
             createdAt: true,
           },
         })
   ) as { docs: StoredSubmission[]; totalDocs: number };
+  const submitterNames = await namesOfUsers(
+    payload,
+    submissions.docs.flatMap((submission) => idOf(submission.submittedBy) ?? []),
+  );
   if (submissions.totalDocs > submissions.docs.length) {
     logger.warn('A Hof has more submissions than its dashboard shows', {
       'hof_dashboard.hof_id': hofId,
@@ -635,7 +681,7 @@ export const getHofDashboardData = async (
           submittedAt: submission.createdAt,
           title: title === '' ? undefined : title,
           status,
-          feedback: submission.hofFeedback ?? undefined,
+          submittedBy: submitterNames.get(idOf(submission.submittedBy) ?? ''),
           answers: toAnswers(
             fields,
             values,
@@ -644,9 +690,8 @@ export const getHofDashboardData = async (
           ),
           reviewStatus: status === 'submitted' ? undefined : status,
           final: submission.hofFinal === true,
-          feedbackBy: feedbackAuthor(submission),
-          // the history is the Ressort's working record, not the Hof's
-          reviewLog: isReviewer ? reviewLogOf(submission) : [],
+          // the Hof follows who answered what and when as the Ressort does
+          reviewLog: reviewLogOf(submission),
           // only the version that counts; an earlier one is what the Ressort answered on.
           // A reviewer answers a submission; taking it back is the Hof's.
           withdrawable:
@@ -711,6 +756,10 @@ export const getHofDashboardData = async (
         url: document.url,
         filesize: document.filesize ?? undefined,
         area: entry.area ?? undefined,
+        filename: document.filename ?? undefined,
+        mimeType: document.mimeType ?? undefined,
+        updatedAt: document.updatedAt,
+        pdfThumbnailUrl: document.pdfThumbnailUrl ?? undefined,
       },
     ];
   });

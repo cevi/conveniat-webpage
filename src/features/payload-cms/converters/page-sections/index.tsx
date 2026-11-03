@@ -13,6 +13,7 @@ import {
   RenderCountdown,
   RenderDonationBarometer,
   RenderDonationCta,
+  RenderFactList,
   RenderFeaturedSection,
   RenderFileDownload,
   RenderFormBlock,
@@ -31,6 +32,7 @@ import {
   RenderSponsorGrid,
   RenderTabsBlock,
   RenderTimelineEntries,
+  RenderVisitDayFinder,
   RenderWhiteSpace,
   RenderYoutubeEmbed,
   SummaryBlock,
@@ -92,6 +94,8 @@ export const PageSectionsConverter: React.FC<
     posterHero: RenderPosterHero,
     mediaText: RenderMediaText,
     processSteps: RenderProcessSteps,
+    factList: RenderFactList,
+    visitDayFinder: RenderVisitDayFinder,
     sectionSeparator: RenderSectionSeparatorBlock,
   };
 

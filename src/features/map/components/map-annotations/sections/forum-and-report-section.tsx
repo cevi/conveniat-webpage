@@ -4,11 +4,13 @@ import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
+import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
 import { cn } from '@/utils/tailwindcss-override';
+import { userErrorMessage } from '@/utils/user-error-message';
 import { ChevronRight, Flag, Loader2, LogIn, WifiOff } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -121,19 +123,19 @@ export const AnnotationForumAndReportSection: React.FC<{
           <span className="block text-[15px] leading-5 font-semibold text-green-900">
             {buttonText[locale]}
           </span>
-          <span className="block text-[13px] leading-[18px] text-green-700">
+          <span className="block text-[13px] leading-[18px] text-balance text-green-700">
             {buttonDescription[locale]}
           </span>
         </span>
         <ChevronRight className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />
       </button>
-      {/* the server words the rate limit in the user's language, with what to do instead */}
+      {/* the rate limit says what to do instead */}
       {reportError?.data?.code === 'TOO_MANY_REQUESTS' && (
         <p
           role="alert"
           className="bg-danger-soft text-danger-text rounded-xl px-3 py-2 text-[13px] font-medium"
         >
-          {reportError.message}
+          {userErrorMessage(reportError, locale, chatErrorTexts)}
         </p>
       )}
     </section>

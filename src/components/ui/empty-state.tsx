@@ -17,7 +17,9 @@ export const EmptyState: React.FC<{
 }> = ({ icon, title, description, action, className }) => (
   <div className={cn('flex flex-col items-center px-6 py-10 text-center', className)}>
     <IconTile icon={icon} size="lg" />
-    <h2 className="font-heading text-heading mt-4 text-[17px] leading-snug font-bold">{title}</h2>
+    <h2 className="font-heading text-heading mt-4 text-[17px] leading-snug font-bold text-balance">
+      {title}
+    </h2>
     {description !== undefined && (
       <div className="mt-1 max-w-xs text-[15px] leading-normal text-balance text-green-700">
         {description}

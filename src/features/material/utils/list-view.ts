@@ -1,3 +1,7 @@
+import { materialErrorTexts } from '@/features/material/error-texts';
+import type { Locale } from '@/types/types';
+import { type ErrorParameters, errorTextFor } from '@/utils/user-error-message';
+
 export const PAGE_SIZES = [25, 50, 100] as const;
 export type PageSize = (typeof PAGE_SIZES)[number];
 
@@ -64,19 +68,28 @@ export const pageLinks = (page: number, pageCount: number, siblings = 1): PageLi
 export interface BulkResult {
   id: string;
   ok: boolean;
-  error?: string;
+  /** why it failed, a key of `materialErrorTexts` */
+  reason?: string;
+  params?: ErrorParameters;
 }
 
-/** "3 done, 1 failed", and the distinct reasons for the failures. */
+/** "3 done, 1 failed", and the distinct reasons for the failures, in `locale`. */
 export const summariseBulk = (
   results: readonly BulkResult[],
+  locale: Locale,
 ): { done: number; failed: number; errors: string[] } => {
   const failures = results.filter((result) => !result.ok);
+  const errors = failures.map(
+    (result) =>
+      errorTextFor(
+        { reason: result.reason ?? 'unexpected', params: result.params ?? {} },
+        locale,
+        materialErrorTexts,
+      ) ?? materialErrorTexts.unexpected[locale],
+  );
   return {
     done: results.length - failures.length,
     failed: failures.length,
-    errors: [...new Set(failures.map((result) => result.error ?? ''))].filter(
-      (error) => error !== '',
-    ),
+    errors: [...new Set(errors)],
   };
 };

@@ -58,4 +58,24 @@ describe('buildVisitorRows', () => {
       allergien: 'Nüsse',
     });
   });
+
+  it('names the Hof of a visitor without one', () => {
+    const { rows } = buildVisitorRows(
+      [
+        {
+          id: 'visitor-1',
+          registrationNumber: 'EXT-B001',
+          submissionId: 'submission-1',
+          personNumber: 1,
+          // eslint-disable-next-line unicorn/no-null
+          hofId: null,
+          date: '2027-07-29',
+        },
+      ],
+      new Map(),
+      new Map(),
+    );
+
+    expect(rows[0]).toMatchObject({ Hof: 'Ohne Bezug zu einem Hof' });
+  });
 });

@@ -1,4 +1,5 @@
 'use client';
+import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { IconTile } from '@/components/ui/icon-tile';
 import { ListRow } from '@/components/ui/list-row';
@@ -118,7 +119,7 @@ const DueCard: React.FC<{
           setAsking(false);
           void invalidate();
         },
-        onError: (error) => toast.error(error.message),
+        onError: (error) => toastMaterialError(error, locale),
       },
     );
   };

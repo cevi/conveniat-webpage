@@ -57,17 +57,17 @@ const FileTypeIcon: React.FC<{ mimeType: string }> = ({ mimeType }) => {
   return <FileText className={className} aria-hidden="true" />;
 };
 
-const FilePreview: React.FC<{ file: DownloadableFile; typeLabel: string | undefined }> = ({
-  file,
-  typeLabel,
-}) => {
-  const thumbnail = file.pdfThumbnailUrl ?? '';
-  if (thumbnail !== '') {
+const FilePreview: React.FC<{
+  thumbnailUrl: string | undefined;
+  mimeType: string;
+  typeLabel: string | undefined;
+}> = ({ thumbnailUrl, mimeType, typeLabel }) => {
+  if (thumbnailUrl !== undefined && thumbnailUrl !== '') {
     return (
       <span className="border-line flex h-14 w-11 shrink-0 overflow-hidden rounded-md border bg-white">
         {/* eslint-disable-next-line @next/next/no-img-element -- the smallest size of the thumbnail already */}
         <img
-          src={thumbnail}
+          src={thumbnailUrl}
           alt=""
           loading="lazy"
           decoding="async"
@@ -79,7 +79,7 @@ const FilePreview: React.FC<{ file: DownloadableFile; typeLabel: string | undefi
 
   return (
     <span className="relative flex h-10 w-11 shrink-0 items-center justify-center rounded-lg bg-green-50 transition duration-300 group-hover:bg-green-100/60">
-      <FileTypeIcon mimeType={file.mimeType ?? ''} />
+      <FileTypeIcon mimeType={mimeType} />
       {typeLabel !== undefined && (
         <span className="border-line absolute -right-1.5 -bottom-1 rounded-[4px] border bg-white px-1 text-[8px] leading-[1.4] font-bold text-green-700">
           {typeLabel}
@@ -89,31 +89,48 @@ const FilePreview: React.FC<{ file: DownloadableFile; typeLabel: string | undefi
   );
 };
 
-const FileRow: React.FC<{ file: DownloadableFile; openInNewTab: boolean; locale: Locale }> = ({
-  file,
+/**
+ * One document as visitors know it from every download list: its thumbnail or type icon, its name,
+ * type, size and date, and the download arrow. Also used by the site search.
+ */
+export const DocumentDownloadRow: React.FC<{
+  href: string;
+  displayName: string;
+  filename: string;
+  mimeType: string;
+  thumbnailUrl: string | undefined;
+  filesize: number | undefined;
+  updatedAt: string;
+  openInNewTab: boolean;
+  locale: Locale;
+}> = ({
+  href,
+  displayName,
+  filename,
+  mimeType,
+  thumbnailUrl,
+  filesize,
+  updatedAt,
   openInNewTab,
   locale,
 }) => {
-  // the display name is localized without fallback, so it can be empty in any locale
-  const title = (file.title ?? '').trim();
-  const displayName = title === '' ? file.filename : title;
-  const typeLabel = fileTypeLabel(file.filename);
+  const typeLabel = fileTypeLabel(filename);
   const details = [
     typeLabel,
-    typeof file.filesize === 'number' ? formatBytes(file.filesize) : undefined,
-    dateStringToFormatedDate(locale, file.updatedAt),
+    filesize === undefined ? undefined : formatBytes(filesize),
+    dateStringToFormatedDate(locale, updatedAt),
   ].filter((detail) => detail !== undefined);
 
   return (
     <li className="group transition-colors duration-300 hover:bg-green-50/40">
       <LinkComponent
-        href={withLocaleParameter(file.url, locale)}
+        href={href}
         openInNewTab={openInNewTab}
         className="block p-3 sm:p-4"
         hideExternalIcon
       >
         <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 sm:gap-4">
-          <FilePreview file={file} typeLabel={typeLabel} />
+          <FilePreview thumbnailUrl={thumbnailUrl} mimeType={mimeType} typeLabel={typeLabel} />
           <div className="flex min-w-0 flex-col">
             <span
               className="text-conveniat-green group-hover:text-conveniat-green/80 block truncate text-sm font-semibold transition duration-200"
@@ -129,6 +146,28 @@ const FileRow: React.FC<{ file: DownloadableFile; openInNewTab: boolean; locale:
         </div>
       </LinkComponent>
     </li>
+  );
+};
+
+const FileRow: React.FC<{ file: DownloadableFile; openInNewTab: boolean; locale: Locale }> = ({
+  file,
+  openInNewTab,
+  locale,
+}) => {
+  // the display name is localized without fallback, so it can be empty in any locale
+  const title = (file.title ?? '').trim();
+  return (
+    <DocumentDownloadRow
+      href={withLocaleParameter(file.url, locale)}
+      displayName={title === '' ? file.filename : title}
+      filename={file.filename}
+      mimeType={file.mimeType ?? ''}
+      thumbnailUrl={file.pdfThumbnailUrl ?? undefined}
+      filesize={typeof file.filesize === 'number' ? file.filesize : undefined}
+      updatedAt={file.updatedAt}
+      openInNewTab={openInNewTab}
+      locale={locale}
+    />
   );
 };
 

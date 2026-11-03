@@ -186,6 +186,23 @@ export const DocumentsCollection: CollectionConfig = {
       },
     },
     {
+      // filled by the extractPdfPages task, read by the site search for its Fundstellen
+      name: 'pdfPages',
+      type: 'array',
+      admin: {
+        hidden: true,
+      },
+      fields: [{ name: 'text', type: 'textarea' }],
+    },
+    {
+      // the file pdfPages was read from, so a replaced file is read again
+      name: 'pdfPagesSource',
+      type: 'text',
+      admin: {
+        hidden: true,
+      },
+    },
+    {
       name: 'downloads',
       label: {
         en: 'Downloads',

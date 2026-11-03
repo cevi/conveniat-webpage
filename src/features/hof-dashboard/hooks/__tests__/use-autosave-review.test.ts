@@ -36,13 +36,9 @@ describe('useAutosaveReview', () => {
     jest.useRealTimers();
   });
 
-  it('saves feedback typed while the dashboard reloads after a status was saved', async () => {
+  it('saves a change made while the dashboard reloads after a status was saved', async () => {
     const { result } = renderHook(() =>
-      useAutosaveReview('hof-nord', 'program-1', {
-        status: undefined,
-        feedback: '',
-        final: false,
-      }),
+      useAutosaveReview('hof-nord', 'program-1', { status: undefined, final: false }),
     );
 
     // the status goes out at once, then the dashboard reloads
@@ -53,10 +49,10 @@ describe('useAutosaveReview', () => {
     expect(mutateAsync).toHaveBeenCalledTimes(1);
     expect(invalidate).toHaveBeenCalledTimes(1);
 
-    // the reviewer types before the reload has come back, and pauses
-    act(() => result.current.setFeedback('Danke, passt so.'));
+    // the reviewer marks it final before the reload has come back
     await act(async () => {
-      await jest.advanceTimersByTimeAsync(1000);
+      result.current.setFinal(true);
+      await Promise.resolve();
     });
 
     expect(mutateAsync).toHaveBeenCalledTimes(2);
@@ -64,8 +60,7 @@ describe('useAutosaveReview', () => {
       hofId: 'hof-nord',
       submissionId: 'program-1',
       status: 'accepted',
-      feedback: 'Danke, passt so.',
-      final: false,
+      final: true,
     });
     act(() => resolveReload());
   });

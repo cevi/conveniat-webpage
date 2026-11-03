@@ -307,7 +307,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                 {label.join(' · ')}
               </div>
             )}
-            <h1 className="font-heading text-heading text-[28px] leading-[1.15] font-extrabold">
+            <h1 className="font-heading text-heading text-[28px] leading-[1.15] font-extrabold text-balance">
               {entry.title}
             </h1>
             {isEditing && editData ? (

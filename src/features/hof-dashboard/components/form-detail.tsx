@@ -17,6 +17,7 @@ import {
 import { DocumentLinks } from '@/features/hof-dashboard/components/document-links';
 import { EntryAnswers } from '@/features/hof-dashboard/components/entry-answers';
 import { ReviewPanel } from '@/features/hof-dashboard/components/review-panel';
+import { EntryTimeline } from '@/features/hof-dashboard/components/review-timeline';
 import {
   HOF_DASHBOARD_AREA_LABELS,
   HOF_ENTRY_STATUS_LABELS,
@@ -102,7 +103,10 @@ const WithdrawAction: React.FC<{ locale: Locale; onWithdraw: () => Promise<void>
   );
 };
 
-/** One submission: where it stands, what the Ressort said and what it answered. */
+/**
+ * One submission: where it stands, its history of who handed it in and every answer and
+ * comment of the Ressort, and what the Hof handed in.
+ */
 const EntryBlock: React.FC<{
   entry: HofDashboardEntry;
   heading: string;
@@ -131,34 +135,8 @@ const EntryBlock: React.FC<{
           {HOF_ENTRY_STATUS_LABELS[entry.status][locale]}
         </StatusPill>
       )}
-      <span className="text-xs text-gray-500">
-        {translate('submittedOn', locale, { date: formatDate(entry.submittedAt, locale) })}
-      </span>
     </div>
-    {entry.feedback !== undefined && entry.feedback !== '' && (
-      // amber while it asks for something; otherwise only a record
-      <div
-        className={cn(
-          'rounded-lg border px-4 py-3 text-sm',
-          entry.status === 'revisionRequired'
-            ? 'border-amber-200 bg-amber-50 text-amber-900'
-            : 'border-gray-200 bg-gray-50 text-gray-700',
-        )}
-      >
-        <p className="font-semibold">
-          {translate(entry.status === 'revisionRequired' ? 'feedback' : 'lastFeedback', locale)}
-        </p>
-        <p className="whitespace-pre-line">{entry.feedback}</p>
-        {entry.feedbackBy !== undefined && (
-          <p className="mt-1 text-xs opacity-80">
-            {translate('feedbackBy', locale, {
-              name: entry.feedbackBy.name,
-              date: formatDate(entry.feedbackBy.at, locale),
-            })}
-          </p>
-        )}
-      </div>
-    )}
+    <EntryTimeline entry={entry} locale={locale} />
     <EntryAnswers answers={entry.answers} locale={locale} />
     {reviewFor !== undefined && (
       <ReviewPanel entry={entry} hofId={reviewFor} canFinalize={canFinalize} locale={locale} />

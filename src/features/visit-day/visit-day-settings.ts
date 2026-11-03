@@ -5,7 +5,10 @@ import type { Payload } from 'payload';
 export interface VisitDay {
   /** the calendar day, `YYYY-MM-DD` */
   date: string;
+  /** the places with lunch */
   capacity: number;
+  /** the places of those who bring their own lunch */
+  capacityWithoutLunch: number;
   quartierIds: string[];
 }
 
@@ -40,7 +43,8 @@ export const toDatabaseDate = (day: string): Date => new Date(`${day}T00:00:00.0
 
 /**
  * Reads the Besuchstag global. Its rows are read leniently: a day without a date or capacity
- * offers no places, so a half-filled row in the admin panel closes nothing that was open.
+ * offers no places, so a half-filled row in the admin panel closes nothing that was open, and a
+ * day without places without lunch offers none of them.
  */
 export const loadVisitDaySettings = async (payload: Payload): Promise<VisitDaySettings> => {
   const settings = await payload.findGlobal({ slug: 'visit-day', depth: 0, overrideAccess: true });
@@ -48,7 +52,9 @@ export const loadVisitDaySettings = async (payload: Payload): Promise<VisitDaySe
     const date = toCampDay(row.date);
     if (date === undefined || typeof row.capacity !== 'number') return [];
     const quartierIds = row.quartiere.map((quartier) => idOf(quartier));
-    return [{ date, capacity: row.capacity, quartierIds }];
+    const capacityWithoutLunch =
+      typeof row.capacityWithoutLunch === 'number' ? row.capacityWithoutLunch : 0;
+    return [{ date, capacity: row.capacity, capacityWithoutLunch, quartierIds }];
   });
   const hiddenHofIds = new Set((settings.hiddenHoefe ?? []).map((hof) => idOf(hof)));
   return { days, hiddenHofIds };

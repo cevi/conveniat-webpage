@@ -123,12 +123,12 @@ describe('createChat', () => {
     expect(writes).toEqual(['chat.create']);
   });
 
-  it('refuses a group past the limit in the user’s language and writes nothing', async () => {
+  it('refuses a group past the limit, naming the limit, and writes nothing', async () => {
     const error = await rejection(create(3));
 
     expect(error).toBeInstanceOf(TRPCError);
     expect((error as TRPCError).code).toBe('BAD_REQUEST');
-    expect((error as TRPCError).message).toBe('Eine Gruppe hat höchstens 3 Mitglieder.');
+    expect(error).toMatchObject({ reason: 'groupTooLarge', params: { max: 3 } });
     expect(writes).toEqual([]);
   });
 
@@ -159,7 +159,7 @@ describe('addParticipants', () => {
 
     expect(error).toBeInstanceOf(TRPCError);
     expect((error as TRPCError).code).toBe('BAD_REQUEST');
-    expect((error as TRPCError).message).toBe('Eine Gruppe hat höchstens 3 Mitglieder.');
+    expect(error).toMatchObject({ reason: 'groupTooLarge', params: { max: 3 } });
     expect(writes).toEqual([]);
   });
 

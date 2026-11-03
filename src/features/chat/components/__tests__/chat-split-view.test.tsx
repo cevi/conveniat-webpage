@@ -11,6 +11,7 @@ const navigation = { pathname: '/de/app/chat' };
 jest.mock('next/navigation', () => ({ usePathname: (): string => navigation.pathname }));
 jest.mock('@/features/chat/context/chat-id-context', () => ({
   ChatIdProvider: ({ children }: { children: React.ReactNode }): React.ReactNode => children,
+  OpeningChatProvider: ({ children }: { children: React.ReactNode }): React.ReactNode => children,
 }));
 jest.mock('@/features/chat/context/pending-chat-deletion-context', () => ({
   PendingChatDeletionProvider: ({ children }: { children: React.ReactNode }): React.ReactNode =>

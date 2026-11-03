@@ -435,10 +435,7 @@ describe('getHofDashboardData', () => {
       ['stand-a', 'submitted'],
     ]);
     const material = await formOf('form-material');
-    expect(material.entries.map((entry) => [entry.status, entry.feedback])).toEqual([
-      ['revisionRequired', 'Zu viele Latten'],
-      ['inReview', undefined],
-    ]);
+    expect(material.entries.map((entry) => entry.status)).toEqual(['revisionRequired', 'inReview']);
   });
 
   it('lets a Hof withdraw only the newest version, while nobody reviewed it', async () => {
@@ -618,49 +615,67 @@ describe('getHofDashboardData', () => {
     await expect(closedOf('form-stand')).resolves.toBe(false);
   });
 
-  it('names who wrote the current feedback, not who last changed the status', async () => {
+  it('reads every change as what it did, oldest first: a comment, a status, or both', async () => {
     const material = await formOf('form-material');
-    expect(material.entries.map((entry) => [entry.id, entry.feedbackBy])).toEqual([
-      ['material-2', { name: 'Tom Frei v/o Dachs', at: '2026-09-19T12:00:00.000Z' }],
-      // no feedback, so nobody wrote it
-      ['material-1', undefined],
-    ]);
-  });
-
-  it('names nobody for feedback the history does not record', async () => {
-    const stand = await formOf('form-stand');
-    expect(stand.entries.every((entry) => entry.feedbackBy === undefined)).toBe(true);
-  });
-
-  it("keeps the review history from a Hof: it is the Ressort's working record", async () => {
-    const material = await formOf('form-material');
-    expect(material.entries.map((entry) => entry.reviewLog)).toEqual([[], []]);
-  });
-
-  it('shows a reviewer the review history, newest first', async () => {
-    const material = await formOf('form-material', true);
-    expect(material.entries.find((entry) => entry.id === 'material-1')?.reviewLog).toEqual([
-      // a cleared status reads as handed in
+    expect(material.entries.find((entry) => entry.id === 'material-2')?.reviewLog).toEqual([
       {
-        at: '2026-09-03T12:00:00.000Z',
-        by: 'Tom Frei v/o Dachs',
-        status: 'submitted',
-        feedback: '',
-        final: false,
+        at: '2026-09-18T12:00:00.000Z',
+        by: 'Sara Keller v/o Biber',
+        status: 'inReview',
+        final: undefined,
+        comment: 'Bitte Latten zählen',
       },
+      // Tom only commented; Sara then only sent it back
+      {
+        at: '2026-09-19T12:00:00.000Z',
+        by: 'Tom Frei v/o Dachs',
+        status: undefined,
+        final: undefined,
+        comment: 'Zu viele Latten',
+      },
+      {
+        at: '2026-09-20T12:00:00.000Z',
+        by: 'Sara Keller v/o Biber',
+        status: 'revisionRequired',
+        final: undefined,
+        comment: undefined,
+      },
+    ]);
+    expect(material.entries.find((entry) => entry.id === 'material-1')?.reviewLog).toEqual([
       {
         at: '2026-09-02T12:00:00.000Z',
         by: 'Tom Frei v/o Dachs',
         status: 'inReview',
-        feedback: 'Fehlt da nicht etwas?',
-        final: false,
+        final: undefined,
+        comment: 'Fehlt da nicht etwas?',
+      },
+      // a cleared status reads as handed in, a cleared feedback as an empty comment
+      {
+        at: '2026-09-03T12:00:00.000Z',
+        by: 'Tom Frei v/o Dachs',
+        status: 'submitted',
+        final: undefined,
+        comment: '',
       },
     ]);
-    expect(
-      material.entries
-        .find((entry) => entry.id === 'material-2')
-        ?.reviewLog.map((change) => change.at),
-    ).toEqual(['2026-09-20T12:00:00.000Z', '2026-09-19T12:00:00.000Z', '2026-09-18T12:00:00.000Z']);
+  });
+
+  it('shows the Hof the same history as the Ressort', async () => {
+    const forHof = await formOf('form-material');
+    const forRessort = await formOf('form-material', true);
+    expect(forHof.entries.map((entry) => entry.reviewLog)).toEqual(
+      forRessort.entries.map((entry) => entry.reviewLog),
+    );
+  });
+
+  it('names who handed a submission in, and nobody where none was recorded', async () => {
+    mockSubmissions = withSubmission('stand-b', { submittedBy: 'user-anna' });
+    mockUsers = [{ ...USERS[0], id: 'user-anna' }];
+    const stand = await formOf('form-stand');
+    expect(stand.entries.map((entry) => [entry.id, entry.submittedBy])).toEqual([
+      ['stand-b', 'Anna Beispiel v/o Fuchs'],
+      ['stand-a', undefined],
+    ]);
   });
 
   it('shows a reviewer which change accepted a version and marked it final', async () => {
@@ -683,8 +698,8 @@ describe('getHofDashboardData', () => {
         at: '2026-09-21T12:00:00.000Z',
         by: 'Freigabe-Link (E-Mail)',
         status: 'accepted',
-        feedback: '',
         final: true,
+        comment: undefined,
       },
     ]);
   });

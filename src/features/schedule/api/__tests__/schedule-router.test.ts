@@ -71,7 +71,6 @@ jest.mock('@/utils/server-logger', () => ({
 }));
 
 import { scheduleRouter } from '@/features/schedule/api/schedule-router';
-import { UNENROLLMENT_DEADLINE_PASSED } from '@/features/schedule/utils/unenrollment-deadline';
 import { getPayload } from 'payload';
 
 const createCaller = createCallerFactory(scheduleRouter);
@@ -161,7 +160,7 @@ describe('scheduleRouter and the shift withdrawal deadline', () => {
         toCourseId: 'workshop-1',
         fromCourseType: 'shift',
       }),
-    ).rejects.toThrow(UNENROLLMENT_DEADLINE_PASSED);
+    ).rejects.toMatchObject({ reason: 'unenrollmentDeadlinePassed' });
     expect(enrollment.delete).not.toHaveBeenCalled();
     expect(enrollment.create).not.toHaveBeenCalled();
   });
@@ -205,9 +204,203 @@ describe('scheduleRouter and the shift withdrawal deadline', () => {
       },
     );
 
-    await expect(caller().enrollInCourse({ courseId: 'workshop-1' })).rejects.toThrow(
-      'Time conflict with shift: Abwasch|shift-11',
-    );
+    await expect(caller().enrollInCourse({ courseId: 'workshop-1' })).rejects.toMatchObject({
+      reason: 'timeConflict',
+      params: { kind: 'shift', title: 'Abwasch', id: 'shift-11' },
+      // what the previous release parses, so a stale shell still opens its switch dialog
+      message: 'Time conflict with shift: Abwasch|shift-11',
+    });
     expect(enrollment.create).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The programme asks for these after every enrolment, for every block at once. They count in
+ * the database instead of loading each enrolment with its user, and that must not change what
+ * a participant, an organiser or a guest sees.
+ */
+describe('scheduleRouter course statuses', () => {
+  const findByID = jest.fn();
+  const find = jest.fn();
+  const enrollment = {
+    groupBy: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    count: jest.fn(),
+  };
+  const prisma = {
+    enrollment,
+    chat: { findFirst: jest.fn(), findMany: jest.fn() },
+  };
+
+  const callerAs = (user?: { uuid: string; name: string }): ReturnType<typeof createCaller> =>
+    createCaller({ user, locale: 'de', prisma } as unknown as Context);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (getPayload as unknown as jest.Mock).mockResolvedValue({ findByID, find });
+    // Prisma answers a miss with null
+    // eslint-disable-next-line unicorn/no-null
+    prisma.chat.findFirst.mockResolvedValue(null);
+    prisma.chat.findMany.mockResolvedValue([]);
+  });
+
+  describe('getCourseStatuses', () => {
+    beforeEach(() => {
+      find.mockResolvedValue({
+        docs: [
+          { id: 'seilbruecke', participants_max: 12, enable_enrolment: true, organiser: [] },
+          {
+            id: 'theater',
+            // Payload stores an emptied number field as null: no limit
+            // eslint-disable-next-line unicorn/no-null
+            participants_max: null,
+            enable_enrolment: true,
+            organiser: ['leiter-1'],
+          },
+        ],
+      });
+      enrollment.groupBy.mockResolvedValue([{ courseId: 'seilbruecke', _count: { _all: 7 } }]);
+      enrollment.findMany.mockResolvedValue([{ courseId: 'seilbruecke' }]);
+    });
+
+    it('reports the count, the own enrolment and the organiser per block', async () => {
+      const result = await callerAs({ uuid: 'leiter-1', name: 'Lea' }).getCourseStatuses({
+        courseIds: ['seilbruecke', 'theater', 'deleted-block'],
+      });
+
+      // a block deleted in the CMS since the client cached its id is left out
+      expect(Object.keys(result)).toEqual(['seilbruecke', 'theater']);
+      expect(result['seilbruecke']).toEqual(
+        expect.objectContaining({
+          enrolledCount: 7,
+          maxParticipants: 12,
+          isEnrolled: true,
+          isOrganiser: false,
+        }),
+      );
+      expect(result['theater']).toEqual(
+        expect.objectContaining({
+          enrolledCount: 0,
+          maxParticipants: undefined,
+          isEnrolled: false,
+          isOrganiser: true,
+        }),
+      );
+    });
+
+    it('keeps the counts off the User table and away from shift enrolments', async () => {
+      await callerAs({ uuid: 'leiter-1', name: 'Lea' }).getCourseStatuses({
+        courseIds: ['seilbruecke'],
+      });
+
+      expect(enrollment.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { courseId: { in: ['seilbruecke'] }, courseType: CourseType.PROGRAM },
+        }),
+      );
+      for (const [query] of enrollment.findMany.mock.calls as [Record<string, unknown>][]) {
+        expect(query).not.toHaveProperty('include');
+      }
+    });
+
+    it('tells a guest they are enrolled nowhere without asking for their enrolments', async () => {
+      const result = await callerAs().getCourseStatuses({ courseIds: ['seilbruecke'] });
+
+      expect(result['seilbruecke']).toEqual(
+        expect.objectContaining({ enrolledCount: 7, isEnrolled: false }),
+      );
+      expect(enrollment.findMany).not.toHaveBeenCalled();
+    });
+
+    it('refuses more ids than one request may carry', async () => {
+      const courseIds = Array.from({ length: 101 }, (_, index) => `block-${index}`);
+
+      await expect(callerAs().getCourseStatuses({ courseIds })).rejects.toThrow();
+      expect(find).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getCourseStatus', () => {
+    const course = {
+      id: 'theater',
+      participants_max: 20,
+      enable_enrolment: true,
+      hide_participant_list: false,
+      organiser: ['leiter-1'],
+    };
+
+    beforeEach(() => {
+      findByID.mockResolvedValue(course);
+      enrollment.count.mockResolvedValue(2);
+      // eslint-disable-next-line unicorn/no-null -- Prisma answers a miss with null
+      enrollment.findFirst.mockResolvedValue(null);
+      enrollment.findMany.mockResolvedValue([
+        { user: { uuid: 'tn-1', name: 'Mia' } },
+        { user: { uuid: 'tn-2', name: 'Noah' } },
+      ]);
+    });
+
+    it('gives the organiser the count and the roster', async () => {
+      const status = await callerAs({ uuid: 'leiter-1', name: 'Lea' }).getCourseStatus({
+        courseId: 'theater',
+      });
+
+      expect(status).toEqual(
+        expect.objectContaining({
+          enrolledCount: 2,
+          isEnrolled: false,
+          participants: [
+            { uuid: 'tn-1', name: 'Mia' },
+            { uuid: 'tn-2', name: 'Noah' },
+          ],
+        }),
+      );
+    });
+
+    it('gives the organiser a count that matches the names, even under a concurrent enrolment', async () => {
+      // a count taken separately would already see a third enrolment the roster does not
+      enrollment.count.mockResolvedValue(3);
+
+      const status = await callerAs({ uuid: 'leiter-1', name: 'Lea' }).getCourseStatus({
+        courseId: 'theater',
+      });
+
+      expect(status?.enrolledCount).toBe(status?.participants.length);
+    });
+
+    it('tells an organiser enrolled in their own block that they are enrolled', async () => {
+      enrollment.findMany.mockResolvedValue([{ user: { uuid: 'leiter-1', name: 'Lea' } }]);
+
+      const status = await callerAs({ uuid: 'leiter-1', name: 'Lea' }).getCourseStatus({
+        courseId: 'theater',
+      });
+
+      expect(status).toEqual(expect.objectContaining({ enrolledCount: 1, isEnrolled: true }));
+    });
+
+    it('gives a participant the count and their own enrolment, but no names', async () => {
+      enrollment.findFirst.mockResolvedValue({ id: 'enrolment-1' });
+
+      const status = await callerAs({ uuid: 'tn-1', name: 'Mia' }).getCourseStatus({
+        courseId: 'theater',
+      });
+
+      expect(status).toEqual(
+        expect.objectContaining({ enrolledCount: 2, isEnrolled: true, participants: [] }),
+      );
+      expect(enrollment.findMany).not.toHaveBeenCalled();
+    });
+
+    it('withholds the roster from the organiser while the list is hidden', async () => {
+      findByID.mockResolvedValue({ ...course, hide_participant_list: true });
+
+      const status = await callerAs({ uuid: 'leiter-1', name: 'Lea' }).getCourseStatus({
+        courseId: 'theater',
+      });
+
+      expect(status?.participants).toEqual([]);
+      expect(enrollment.findMany).not.toHaveBeenCalled();
+    });
   });
 });

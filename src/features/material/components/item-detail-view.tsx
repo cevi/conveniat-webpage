@@ -1,4 +1,5 @@
 'use client';
+import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { ListRow } from '@/components/ui/list-row';
 import { HolderAvatar, holderName } from '@/features/material/components/counter-ui';
@@ -152,7 +153,7 @@ const StockActions: React.FC<{ itemId: string; damaged: number; inRepair: number
                     toast.success(labels.saved[locale]);
                     void invalidate();
                   },
-                  onError: (error) => toast.error(error.message),
+                  onError: (error) => toastMaterialError(error, locale),
                 },
               )
             }
@@ -238,7 +239,7 @@ const ReportDamageForm: React.FC<{
                   toast.success(text.reported[locale]);
                   onDone();
                 },
-                onError: (error) => toast.error(error.message),
+                onError: (error) => toastMaterialError(error, locale),
               },
             )
           }

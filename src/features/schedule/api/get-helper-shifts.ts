@@ -120,6 +120,20 @@ const getHelperShiftsCached = async (
     });
 };
 
+/**
+ * One shift by its id, full or not. The feed may hide a full shift from helpers who are not on
+ * it, see `hide_when_full`, but a link names the shift, so whoever holds one can open it.
+ */
+export const getHelperShift = async (
+  id: string,
+  locale?: Locale,
+): Promise<HelperShiftFrontendType | undefined> => {
+  if (await forceDynamicOnBuild()) return undefined;
+  const currentLocale = locale ?? (await getLocaleFromCookies());
+  const [shift] = await getHelperShiftsCached({ id: { equals: id } }, currentLocale);
+  return shift;
+};
+
 export interface GetHelperShiftsContext {
   prisma?: PrismaClient | undefined;
   user?: { uuid: string } | null | undefined;

@@ -35,6 +35,7 @@ jest.mock('@/lib/db/redis', () => ({
   },
 }));
 
+import { UserFacingTRPCError } from '@/trpc/error-formatter';
 import { rateLimit } from '@/trpc/middleware/rate-limit';
 
 const handled: string[] = [];
@@ -47,11 +48,12 @@ const createCaller = createCallerFactory(
           name: 'test.shout',
           limit: 3,
           windowMs: 10_000,
-          message: {
-            de: 'Zu viele Rufe.',
-            en: 'Too many shouts.',
-            fr: 'Trop de cris.',
-          },
+          refuse: () =>
+            new UserFacingTRPCError({
+              code: 'TOO_MANY_REQUESTS',
+              reason: 'tooManyShouts',
+              message: 'Too many shouts.',
+            }),
         }),
       )
       .mutation(({ ctx }) => {
@@ -100,15 +102,9 @@ describe('rateLimit', () => {
 
     await expect(as('anna').shout()).rejects.toMatchObject({
       code: 'TOO_MANY_REQUESTS',
-      message: 'Zu viele Rufe.',
+      reason: 'tooManyShouts',
     });
     expect(handled).toHaveLength(3);
-  });
-
-  it('answers in the language of the user', async () => {
-    for (let call = 0; call < 3; call++) await as('anna', 'fr').shout();
-
-    await expect(as('anna', 'fr').shout()).rejects.toMatchObject({ message: 'Trop de cris.' });
   });
 
   it('counts every user on their own', async () => {

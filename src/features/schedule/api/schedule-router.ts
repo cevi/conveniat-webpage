@@ -5,6 +5,7 @@ import {
 } from '@/features/chat/api/utils/system-message-helpers'; // eslint-disable-line import/no-restricted-paths
 import { ensureOrganiserStars } from '@/features/schedule/api/organiser-entries';
 import { remindersRouter } from '@/features/schedule/api/reminders-router';
+import { legacyTimeConflict, scheduleError } from '@/features/schedule/api/schedule-errors';
 import { assertUnenrollmentIsOpen } from '@/features/schedule/api/shift-withdrawal-guard';
 import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
@@ -22,11 +23,13 @@ import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists
 import { convertLexicalToMarkdown, convertMarkdownToLexical } from '@/utils/markdown-to-lexical';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
-import { TRPCError } from '@trpc/server';
 import { getPayload } from 'payload';
 import { z } from 'zod';
 
 const logger = createLogger('schedule:router');
+
+/** The most course ids `getCourseStatuses` answers in one request. */
+const MAX_COURSE_IDS_PER_STATUS_REQUEST = 100;
 
 const enrollInCourseSchema = z.object({
   courseId: z.string(),
@@ -83,6 +86,16 @@ export const scheduleRouter = createTRPCRouter({
     return getHelperShifts({}, locale, { prisma, user });
   }),
 
+  /** A shift the feed hides because it is full still opens from a link, see `getHelperShift`. */
+  getHelperShift: publicProcedure
+    .input(z.object({ id: z.string().regex(/^[\da-f]{24}$/i) }))
+    .query(async ({ ctx, input }) => {
+      const { getHelperShift } = await import('./get-helper-shifts');
+      // React Query keeps no `undefined`; `null` is a shift that does not exist
+      // eslint-disable-next-line unicorn/no-null
+      return (await getHelperShift(input.id, ctx.locale)) ?? null;
+    }),
+
   getCourseStatus: publicProcedure.input(enrollInCourseSchema).query(async ({ input, ctx }) => {
     const { prisma, user } = ctx;
     const { courseId } = input;
@@ -103,15 +116,38 @@ export const scheduleRouter = createTRPCRouter({
       return null;
     }
 
-    const enrollments = await prisma.enrollment.findMany({
-      where: { courseId },
-      include: { user: true },
-    });
-
-    const isEnrolled = user
-      ? enrollments.some((enrollment_) => enrollment_.userId === user.uuid)
-      : false;
     const isOrganiser = isOrganiserOf(course.organiser, user?.uuid);
+    // see `participants` below for who gets the roster
+    const showsRoster = isOrganiser && course.hide_participant_list !== true;
+
+    const enrollmentWhere = { courseId, courseType: CourseType.PROGRAM };
+    let enrolledCount: number;
+    let isEnrolled: boolean;
+    let participants: { uuid: string; name: string }[] = [];
+    if (showsRoster) {
+      // The count and the names come from one read, so an enrolment in between cannot make
+      // the organiser see "5 angemeldet" next to four names.
+      const roster = await prisma.enrollment.findMany({
+        where: enrollmentWhere,
+        select: { user: { select: { uuid: true, name: true } } },
+      });
+      participants = roster.map((enrollment_) => enrollment_.user);
+      enrolledCount = participants.length;
+      isEnrolled = participants.some((participant) => participant.uuid === user?.uuid);
+    } else {
+      // Everybody else gets no names, so nobody else pays for joining `User`.
+      const [count, ownEnrollment] = await Promise.all([
+        prisma.enrollment.count({ where: enrollmentWhere }),
+        user
+          ? prisma.enrollment.findFirst({
+              where: { ...enrollmentWhere, userId: user.uuid },
+              select: { id: true },
+            })
+          : undefined,
+      ]);
+      enrolledCount = count;
+      isEnrolled = ownEnrollment !== null && ownEnrollment !== undefined;
+    }
 
     // Check if a group chat exists for this course
     const courseChat = await prisma.chat.findFirst({
@@ -120,7 +156,7 @@ export const scheduleRouter = createTRPCRouter({
     });
 
     return {
-      enrolledCount: enrollments.length,
+      enrolledCount,
       maxParticipants: course.participants_max ?? undefined,
       isEnrolled,
       /**
@@ -147,13 +183,7 @@ export const scheduleRouter = createTRPCRouter({
        * saved since - older courses carry `undefined`, which has to read as its `false`
        * default ("not hidden") rather than withhold the list.
        */
-      participants:
-        isOrganiser && course.hide_participant_list !== true
-          ? enrollments.map((enrollment_) => ({
-              uuid: enrollment_.user.uuid,
-              name: enrollment_.user.name,
-            }))
-          : [],
+      participants,
       // Markdown versions for editing
       descriptionMarkdown: isOrganiser ? convertLexicalToMarkdown(course.description) : undefined,
       targetGroupMarkdown: isOrganiser ? convertLexicalToMarkdown(course.target_group) : undefined,
@@ -164,7 +194,9 @@ export const scheduleRouter = createTRPCRouter({
    * Bulk fetch course statuses for multiple course IDs.
    */
   getCourseStatuses: publicProcedure
-    .input(z.object({ courseIds: z.array(z.string()) }))
+    // The client asks in chunks of 40 (`schedule-status-context.tsx`); the bound keeps an
+    // anonymous caller from sending the whole collection in one request.
+    .input(z.object({ courseIds: z.array(z.string()).max(MAX_COURSE_IDS_PER_STATUS_REQUEST) }))
     .query(async ({ input, ctx }) => {
       const { prisma, user } = ctx;
       const { courseIds } = input;
@@ -179,25 +211,40 @@ export const scheduleRouter = createTRPCRouter({
       const coursesResult = await payload.find({
         collection: 'camp-schedule-entry',
         where: { id: { in: courseIds } },
-        depth: 1,
+        depth: 0,
         limit: courseIds.length,
+        // nothing reads `totalDocs`; with pagination on, Payload runs a count query for it
+        pagination: false,
+        select: {
+          organiser: true,
+          participants_max: true,
+          enable_enrolment: true,
+          hide_participant_list: true,
+        },
       });
 
       const coursesMap = new Map(coursesResult.docs.map((c) => [c.id, c]));
 
-      // Batch fetch all enrollments for these courses
-      const allEnrollments = await prisma.enrollment.findMany({
-        where: { courseId: { in: courseIds } },
-        include: { user: true },
-      });
-
-      // Group enrollments by courseId
-      const enrollmentsByCourse = new Map<string, typeof allEnrollments>();
-      for (const enrollment of allEnrollments) {
-        const existing = enrollmentsByCourse.get(enrollment.courseId) ?? [];
-        existing.push(enrollment);
-        enrollmentsByCourse.set(enrollment.courseId, existing);
-      }
+      // Counted in Postgres rather than by loading every enrolment: both queries are answered
+      // from the unique index on (courseId, courseType, userId).
+      const enrollmentWhere = { courseId: { in: courseIds }, courseType: CourseType.PROGRAM };
+      const [enrollmentCounts, ownEnrollments] = await Promise.all([
+        prisma.enrollment.groupBy({
+          by: ['courseId'],
+          where: enrollmentWhere,
+          _count: { _all: true },
+        }),
+        user
+          ? prisma.enrollment.findMany({
+              where: { ...enrollmentWhere, userId: user.uuid },
+              select: { courseId: true },
+            })
+          : [],
+      ]);
+      const countByCourse = new Map(
+        enrollmentCounts.map((group) => [group.courseId, group._count._all]),
+      );
+      const ownCourseIds = new Set(ownEnrollments.map((enrollment_) => enrollment_.courseId));
 
       // Batch fetch all course chats
       const courseChats = await prisma.chat.findMany({
@@ -225,16 +272,12 @@ export const scheduleRouter = createTRPCRouter({
         const course = coursesMap.get(courseId);
         if (!course) continue;
 
-        const enrollments = enrollmentsByCourse.get(courseId) ?? [];
-        const isEnrolled = user
-          ? enrollments.some((enrollment_) => enrollment_.userId === user.uuid)
-          : false;
         const isOrganiser = isOrganiserOf(course.organiser, user?.uuid);
 
         result[courseId] = {
-          enrolledCount: enrollments.length,
+          enrolledCount: countByCourse.get(courseId) ?? 0,
           maxParticipants: course.participants_max ?? undefined,
-          isEnrolled,
+          isEnrolled: ownCourseIds.has(courseId),
           isAdmin: isOrganiser,
           isOrganiser,
           enableEnrolment: course.enable_enrolment,
@@ -277,10 +320,7 @@ export const scheduleRouter = createTRPCRouter({
       const isOrganiser = isOrganiserOf(course.organiser, user.uuid);
 
       if (course.enable_enrolment === false) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Enrolment is not enabled for this course.',
-        });
+        throw scheduleError('BAD_REQUEST', 'workshopEnrolmentClosed');
       }
 
       // Acquire advisory lock to prevent race condition when checking/updating capacity
@@ -294,7 +334,7 @@ export const scheduleRouter = createTRPCRouter({
         course.participants_max !== undefined &&
         currentCount >= course.participants_max
       ) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Course is already full.' });
+        throw scheduleError('BAD_REQUEST', 'workshopFull');
       }
 
       // Check conflicts against other workshops (PROGRAM)
@@ -322,11 +362,12 @@ export const scheduleRouter = createTRPCRouter({
               other.timeslot.date,
             )
           ) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              // Format: "Time conflict with [TITLE]|[ID]" - the ID is used for switch enrollment
-              message: `Time conflict with ${other.title}|${other.id}`,
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'workshop', title: other.title, id: other.id },
+              legacyTimeConflict('workshop', other.title, other.id),
+            );
           }
         }
       }
@@ -356,10 +397,12 @@ export const scheduleRouter = createTRPCRouter({
               String(other.timeslot.date),
             )
           ) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              message: `Time conflict with shift: ${String(other.title)}|${String(other.id)}`,
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'shift', title: String(other.title), id: String(other.id) },
+              legacyTimeConflict('shift', String(other.title), String(other.id)),
+            );
           }
         }
       }
@@ -475,10 +518,7 @@ export const scheduleRouter = createTRPCRouter({
       });
 
       if (!existingEnrollment) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'You are not enrolled in the course you are trying to switch from.',
-        });
+        throw scheduleError('BAD_REQUEST', 'notEnrolledInSource');
       }
 
       // Switching away from a shift is a withdrawal from it, so it closes at the same moment.
@@ -488,10 +528,7 @@ export const scheduleRouter = createTRPCRouter({
 
       // Verify enrollment is enabled for the target course
       if (toCourse.enable_enrolment === false) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Enrollment is not enabled for the target course.',
-        });
+        throw scheduleError('BAD_REQUEST', 'workshopEnrolmentClosed');
       }
 
       // Acquire advisory lock to prevent race condition when checking/updating capacity
@@ -505,10 +542,7 @@ export const scheduleRouter = createTRPCRouter({
         toCourse.participants_max !== undefined &&
         currentCount >= toCourse.participants_max
       ) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Target course is already full.',
-        });
+        throw scheduleError('BAD_REQUEST', 'workshopFull');
       }
 
       // Note: We don't verify overlap here - the client is calling this endpoint
@@ -554,10 +588,12 @@ export const scheduleRouter = createTRPCRouter({
               other.timeslot.date,
             )
           ) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              message: `Time conflict with ${other.title}`,
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'workshop', title: other.title, id: other.id },
+              legacyTimeConflict('workshop', other.title, other.id),
+            );
           }
         }
       }
@@ -583,10 +619,12 @@ export const scheduleRouter = createTRPCRouter({
               String(other.timeslot.date),
             )
           ) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              message: `Time conflict with shift: ${String(other.title)}`,
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'shift', title: String(other.title), id: String(other.id) },
+              legacyTimeConflict('shift', String(other.title), String(other.id)),
+            );
           }
         }
       }
@@ -815,17 +853,14 @@ export const scheduleRouter = createTRPCRouter({
 
       const organisers = (course.organiser ?? []) as string[];
       if (!organisers.includes(user.uuid)) {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Only organisers can update details.' });
+        throw scheduleError('FORBIDDEN', 'onlyOrganisersEdit');
       }
 
       // Validate maxParticipants
       if (input.maxParticipants !== undefined) {
         const currentCount = await prisma.enrollment.count({ where: { courseId: input.courseId } });
         if (input.maxParticipants < currentCount) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Max participants cannot be less than current enrolled count.',
-          });
+          throw scheduleError('BAD_REQUEST', 'maxBelowEnrolled');
         }
       }
 
@@ -866,10 +901,7 @@ export const scheduleRouter = createTRPCRouter({
 
       const organisers = (course.organiser ?? []) as string[];
       if (!organisers.includes(user.uuid)) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Only organisers can create the group chat.',
-        });
+        throw scheduleError('FORBIDDEN', 'onlyOrganisersChat');
       }
 
       // Check if a chat already exists for this course

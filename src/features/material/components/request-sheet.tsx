@@ -1,4 +1,5 @@
 'use client';
+import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { Card } from '@/components/ui/card';
 import { Segmented, Stepper } from '@/features/material/components/counter-ui';
@@ -167,7 +168,7 @@ export const RequestSheet: React.FC<{
           void invalidate();
           router.push('/app/material');
         },
-        onError: (error) => toast.error(error.message),
+        onError: (error) => toastMaterialError(error, locale),
       },
     );
   };

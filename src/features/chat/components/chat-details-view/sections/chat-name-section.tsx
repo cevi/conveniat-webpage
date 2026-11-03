@@ -165,7 +165,7 @@ export const ChatNameSection: React.FC<ChatNameSectionProperties> = ({
         <div className="mt-3 flex max-w-full items-center gap-1">
           {/* a pencil on the right only: its width on the left keeps the name centred */}
           {canRename && <span className="w-11 shrink-0" aria-hidden="true" />}
-          <h2 className="font-heading text-heading min-w-0 text-[24px] leading-tight font-extrabold wrap-anywhere">
+          <h2 className="font-heading text-heading min-w-0 text-[24px] leading-tight font-extrabold text-balance wrap-anywhere">
             {currentName}
           </h2>
           {canRename && (

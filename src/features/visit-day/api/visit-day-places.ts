@@ -1,25 +1,40 @@
 import { toDatabaseDate } from '@/features/visit-day/visit-day-settings';
 import type { PrismaClient } from '@/lib/prisma';
 
+/** The places taken on one day, by kind. */
+export interface TakenPlaces {
+  withLunch: number;
+  withoutLunch: number;
+}
+
 /** The places taken on each day, by `YYYY-MM-DD`. A day nobody registered for is absent. */
-export const countTakenPlaces = async (prisma: PrismaClient): Promise<Map<string, number>> => {
+export const countTakenPlaces = async (prisma: PrismaClient): Promise<Map<string, TakenPlaces>> => {
   const registrations = await prisma.visitDayRegistration.findMany({
-    select: { visitDate: true, _count: { select: { visitors: true } } },
+    select: { visitDate: true, withLunch: true, _count: { select: { visitors: true } } },
   });
-  const taken = new Map<string, number>();
+  const taken = new Map<string, TakenPlaces>();
   for (const registration of registrations) {
     const day = registration.visitDate.toISOString().slice(0, 10);
-    taken.set(day, (taken.get(day) ?? 0) + registration._count.visitors);
+    const places = taken.get(day) ?? { withLunch: 0, withoutLunch: 0 };
+    if (registration.withLunch) places.withLunch += registration._count.visitors;
+    else places.withoutLunch += registration._count.visitors;
+    taken.set(day, places);
   }
   return taken;
 };
 
-/** The places taken on one day. */
+/** The places of one kind taken on one day. */
 export const countTakenPlacesOn = async (
   prisma: Pick<PrismaClient, 'visitDayVisitor'>,
   day: string,
+  withLunch: boolean,
 ): Promise<number> =>
-  prisma.visitDayVisitor.count({ where: { registration: { visitDate: toDatabaseDate(day) } } });
+  prisma.visitDayVisitor.count({
+    where: { registration: { visitDate: toDatabaseDate(day), withLunch } },
+  });
+
+/** The first part of the number of a registration without a Hof. */
+export const EXTERNAL_NUMBER_PREFIX = 'EXT';
 
 /** e.g. "5321-B007": the Hof's Cevi.DB event, then its counter, three digits at least. */
 export const formatRegistrationNumber = (eventId: string, counter: number): string =>
@@ -27,12 +42,15 @@ export const formatRegistrationNumber = (eventId: string, counter: number): stri
 
 export interface PlaceRequest {
   submissionId: string;
-  hofId: string;
+  /** the visited Hof, or undefined for a visitor without one */
+  hofId: string | undefined;
   /** the Cevi.DB event of the Hof, the first part of the registration number */
   hofEventId: string;
   /** `YYYY-MM-DD` */
   date: string;
   persons: number;
+  withLunch: boolean;
+  /** the places of this kind the day has */
   capacity: number;
 }
 
@@ -40,11 +58,12 @@ export type PlaceResult = { status: 'reserved'; number: string } | { status: 'fu
 
 /**
  * Takes the places of one registration and gives it the next number of its Hof, or does
- * neither when the day has too few places left.
+ * neither when the day has too few places of its kind left.
  *
  * Everything runs under two advisory locks, the day's first and then the Hof's, always in that
  * order: two registrations for the last places of a day cannot both get in, and two of one Hof
  * cannot get the same number, even while an editor moves its Quartier to the other day.
+ * Registrations without a Hof share one counter and one lock.
  */
 export const reservePlaces = async (
   prisma: PrismaClient,
@@ -52,12 +71,15 @@ export const reservePlaces = async (
 ): Promise<PlaceResult> =>
   prisma.$transaction(async (transaction): Promise<PlaceResult> => {
     await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`visit-day:${request.date}`}))`;
-    await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`visit-day-hof:${request.hofId}`}))`;
-    const taken = await countTakenPlacesOn(transaction, request.date);
+    await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`visit-day-hof:${request.hofId ?? EXTERNAL_NUMBER_PREFIX}`}))`;
+    const taken = await countTakenPlacesOn(transaction, request.date, request.withLunch);
     if (taken + request.persons > request.capacity) return { status: 'full' };
 
+    // Prisma matches an empty Hof with null, never with undefined, which would match every row
+    // eslint-disable-next-line unicorn/no-null
+    const hofId = request.hofId ?? null;
     const last = await transaction.visitDayRegistration.aggregate({
-      where: { hofId: request.hofId },
+      where: { hofId },
       _max: { counter: true },
     });
     const counter = (last._max.counter ?? 0) + 1;
@@ -65,8 +87,9 @@ export const reservePlaces = async (
     await transaction.visitDayRegistration.create({
       data: {
         number,
-        hofId: request.hofId,
+        hofId,
         counter,
+        withLunch: request.withLunch,
         submissionId: request.submissionId,
         visitDate: toDatabaseDate(request.date),
         visitors: {

@@ -262,7 +262,7 @@ export const materialRouter = createTRPCRouter({
     .input(z.object({ code: z.string() }))
     .query(async ({ ctx, input }) => {
       const [entry] = await loadItemsWithStock(ctx.prisma, { code: input.code });
-      if (!entry) throw materialError('NOT_FOUND', 'itemNotFound', ctx.locale);
+      if (!entry) throw materialError('NOT_FOUND', 'itemNotFound');
       return {
         ...toCatalogItem(entry.item),
         description: entry.item.description,
@@ -299,7 +299,7 @@ export const materialRouter = createTRPCRouter({
           },
         },
       });
-      if (!item) throw materialError('NOT_FOUND', 'itemNotFound', ctx.locale);
+      if (!item) throw materialError('NOT_FOUND', 'itemNotFound');
       const available = getAvailableForPeriod(
         item,
         item.loans,
@@ -334,7 +334,7 @@ export const materialRouter = createTRPCRouter({
     .input(z.object({ code: z.string() }))
     .query(async ({ ctx, input }) => {
       const [entry] = await loadItemsWithStock(ctx.prisma, { code: input.code });
-      if (!entry) throw materialError('NOT_FOUND', 'itemNotFound', ctx.locale);
+      if (!entry) throw materialError('NOT_FOUND', 'itemNotFound');
       const openLoans = await ctx.prisma.materialLoan.findMany({
         where: { itemId: entry.item.id, status: { in: HOLDING_STATUSES } },
         include: loanInclude,
@@ -475,9 +475,9 @@ export const materialRouter = createTRPCRouter({
         },
         include: loanInclude,
       });
-      if (!loan) throw materialError('NOT_FOUND', 'loanNotFound', ctx.locale);
+      if (!loan) throw materialError('NOT_FOUND', 'loanNotFound');
       const [withName] = await withHof([loan]);
-      if (!withName) throw materialError('NOT_FOUND', 'loanNotFound', ctx.locale);
+      if (!withName) throw materialError('NOT_FOUND', 'loanNotFound');
       return withName;
     }),
 

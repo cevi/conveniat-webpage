@@ -56,7 +56,9 @@ export const BringChecklist: React.FC<{
               >
                 <Check className="h-3.5 w-3.5" strokeWidth={3} />
               </span>
-              <span className="min-w-0">{item}</span>
+              <span className="min-w-0 peer-checked:text-green-500 peer-checked:line-through">
+                {item}
+              </span>
             </label>
           </li>
         ))}

@@ -16,19 +16,11 @@ import {
   SectionHeading,
   StatusPill,
 } from '@/features/hof-dashboard/components/dashboard-ui';
-import {
-  HOF_ENTRY_STATUS_LABELS,
-  type HofEntryStatus,
-  type HofReviewChoice,
-} from '@/features/hof-dashboard/constants';
-import {
-  formatDate,
-  formatDateTime,
-  formatNumber,
-  translate,
-  type TextKey,
-} from '@/features/hof-dashboard/texts';
+import { Timeline } from '@/features/hof-dashboard/components/review-timeline';
+import { HOF_ENTRY_STATUS_LABELS, type HofReviewChoice } from '@/features/hof-dashboard/constants';
+import { formatDate, formatNumber, translate, type TextKey } from '@/features/hof-dashboard/texts';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
+import { reviewSteps, type TimelineStep } from '@/features/hof-dashboard/utils/review-steps';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -78,23 +70,14 @@ const changesOf = (
   return changes;
 };
 
-/** One step of the order's history: a version handed in, or an answer of the Ressort. */
-interface HistoryStep {
-  at: string;
-  title: string;
-  by: string;
-  lines: string[];
-  quote: string | undefined;
-  tone: 'version' | 'revision' | 'accepted' | 'review';
-}
-
+/** The order's history, newest first: every version handed in, and every answer of the Ressort. */
 const historyOf = (
   form: MaterialOrderForm,
   versions: readonly MaterialOrderVersion[],
   locale: Locale,
-): HistoryStep[] => {
+): TimelineStep[] => {
   const oldestFirst = versions.toReversed();
-  const steps = oldestFirst.flatMap((version, index): HistoryStep[] => [
+  const steps = oldestFirst.flatMap((version, index): TimelineStep[] => [
     {
       at: version.submittedAt,
       title: translate('versionHandedIn', locale, { n: index + 1 }),
@@ -103,30 +86,9 @@ const historyOf = (
       quote: undefined,
       tone: 'version',
     },
-    ...version.reviewLog.map((change): HistoryStep => ({
-      at: change.at,
-      title: `${HOF_ENTRY_STATUS_LABELS[change.status][locale]}${change.final ? ` · ${translate('finalShort', locale)}` : ''}`,
-      by: change.by === '' ? translate('reviewerUnknown', locale) : change.by,
-      lines: [],
-      quote: change.feedback === '' ? undefined : change.feedback,
-      tone: REVIEW_TONE[change.status],
-    })),
+    ...reviewSteps(version.reviewLog, locale),
   ]);
   return steps.toSorted((a, b) => b.at.localeCompare(a.at));
-};
-
-const REVIEW_TONE: Record<HofEntryStatus, HistoryStep['tone']> = {
-  submitted: 'review',
-  inReview: 'review',
-  revisionRequired: 'revision',
-  accepted: 'accepted',
-};
-
-const STEP_DOT: Record<HistoryStep['tone'], string> = {
-  version: 'bg-gray-300',
-  review: 'bg-gray-500',
-  revision: 'bg-amber-600',
-  accepted: 'bg-conveniat-green',
 };
 
 /** The change of a line as a signed number, or that it is new. */
@@ -158,11 +120,12 @@ const ReviewActions: React.FC<{
 
   const answer = async (
     status: HofReviewChoice | undefined,
-    feedback: string,
+    /** Left out, the latest comment stays. */
+    comment: string | undefined,
     final: boolean,
   ): Promise<void> => {
     try {
-      await mutation.mutateAsync({ hofId, submissionId: version.id, status, feedback, final });
+      await mutation.mutateAsync({ hofId, submissionId: version.id, status, comment, final });
       toast.success(translate('saved', locale));
       setRejecting(false);
     } catch {
@@ -188,7 +151,7 @@ const ReviewActions: React.FC<{
               type="button"
               className={SECONDARY_BUTTON_CLASS}
               disabled={mutation.isPending}
-              onClick={() => void answer(undefined, version.feedback, false)}
+              onClick={() => void answer(undefined, undefined, false)}
             >
               <RotateCcw aria-hidden />
               {translate('reopen', locale)}
@@ -212,7 +175,7 @@ const ReviewActions: React.FC<{
                 type="button"
                 className={PRIMARY_BUTTON_CLASS}
                 disabled={mutation.isPending}
-                onClick={() => void answer('accepted', version.feedback, true)}
+                onClick={() => void answer('accepted', undefined, true)}
               >
                 <Lock aria-hidden />
                 {translate('confirmOrder', locale)}
@@ -417,44 +380,7 @@ export const MaterialOrderReview: React.FC<{
                     {translate('entriesCount', locale, { n: history.length })}
                   </span>
                 </div>
-                <ol>
-                  {history.map((step, index) => (
-                    <li
-                      key={`${step.at}-${step.title}`}
-                      className="relative flex gap-3 pb-5 last:pb-0"
-                    >
-                      {index < history.length - 1 && (
-                        <span
-                          aria-hidden
-                          className="bg-rail absolute top-4 bottom-0 left-[5px] w-px"
-                        />
-                      )}
-                      <span
-                        aria-hidden
-                        className={cn(
-                          'relative mt-1.5 h-3 w-3 shrink-0 rounded-full',
-                          STEP_DOT[step.tone],
-                        )}
-                      />
-                      <div className="min-w-0 space-y-1">
-                        <p className="text-base font-semibold text-green-900">{step.title}</p>
-                        <p className="text-xs text-green-700">
-                          {formatDateTime(step.at, locale)} · {step.by}
-                        </p>
-                        {step.lines.map((line) => (
-                          <p key={line} className="text-sm text-green-800">
-                            {line}
-                          </p>
-                        ))}
-                        {step.quote !== undefined && (
-                          <p className="bg-quiet rounded-lg px-3 py-2 text-sm whitespace-pre-line text-green-800">
-                            «{step.quote}»
-                          </p>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ol>
+                <Timeline steps={history} locale={locale} />
               </Panel>
             </div>
           </div>

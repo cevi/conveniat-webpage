@@ -51,6 +51,17 @@ const noLongerMember: StaticTranslationString = {
   fr: 'Tu ne fais plus partie de ce chat',
 };
 
+/** The chat screen where it does not follow the keyboard: over the app shell on a phone. */
+export const chatScreenClassName =
+  'bg-page fixed top-(--app-top-inset) z-[110] flex h-[calc(100dvh-var(--app-top-inset))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto';
+
+/** The bar under the messages, holding the composer or why there is none. */
+export const ChatComposerBar: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="border-line border-t bg-white px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+    {children}
+  </div>
+);
+
 /**
  * What the chat screen shows instead of a conversation it cannot show: offline without a cached
  * copy, a failed load, or a chat the user has left. The header keeps the way back to the list.
@@ -60,7 +71,7 @@ const ChatUnavailable: React.FC<{ icon: LucideIcon; title: string; description?:
   title,
   description,
 }) => (
-  <div className="bg-page fixed top-(--app-top-inset) z-[110] flex h-[calc(100dvh-var(--app-top-inset))] w-screen flex-col overflow-y-hidden xl:absolute xl:inset-0 xl:z-0 xl:h-auto xl:w-auto">
+  <div className={chatScreenClassName}>
     <ChatHeaderSkeleton />
     <div className="flex flex-1 items-center justify-center">
       <EmptyState icon={icon} title={title} description={description} />
@@ -128,9 +139,9 @@ const ChatClientContent: React.FC = () => {
         <MessageList />
       </div>
       <PhonePushHint chatId={chatId} />
-      <div className="border-line border-t bg-white px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <ChatComposerBar>
         <ChatTextAreaInput />
-      </div>
+      </ChatComposerBar>
 
       {/* Thread View Overlay */}
       {typeof activeThreadId === 'string' && activeThreadId.length > 0 && (
@@ -143,8 +154,11 @@ const ChatClientContent: React.FC = () => {
 };
 
 export const ChatClientComponent: React.FC = () => {
+  // A chat being opened beside this one shows here before the router remounts the route, so the
+  // key gives each chat a fresh screen: its own scroll, draft and open thread.
+  const chatId = useChatId();
   return (
-    <ChatActionsProvider>
+    <ChatActionsProvider key={chatId}>
       <ChatClientContent />
     </ChatActionsProvider>
   );

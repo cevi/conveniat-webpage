@@ -6,7 +6,8 @@ export interface ExportVisitor {
   registrationNumber: string;
   submissionId: string;
   personNumber: number;
-  hofId: string;
+  /** null for a visitor without a Hof */
+  hofId: string | null;
   /** `YYYY-MM-DD` */
   date: string;
 }
@@ -15,6 +16,8 @@ export interface ExportSubmission {
   createdAt: string;
   answers: { field: string; value: unknown }[];
 }
+
+const NO_HOF_LABEL = 'Ohne Bezug zu einem Hof';
 
 const PERSON_SUFFIX = /^(.+)_(\d+)$/;
 
@@ -46,7 +49,7 @@ export const buildVisitorRows = (
       Person: visitor.personNumber,
       'Besucher-ID': visitor.id,
       Besuchstag: visitor.date,
-      Hof: hofNames.get(visitor.hofId) ?? visitor.hofId,
+      Hof: visitor.hofId === null ? NO_HOF_LABEL : (hofNames.get(visitor.hofId) ?? visitor.hofId),
       'Angemeldet am': submission?.createdAt.slice(0, 10) ?? '',
       'Formular-Eintrag': visitor.submissionId,
     };

@@ -1,3 +1,4 @@
+import type { Chat } from '@/lib/prisma/client';
 import type { PrismaClientOrTransaction } from '@/types/types';
 
 export enum CapabilityAction {
@@ -20,7 +21,15 @@ export interface CapabilityContext {
    */
   prisma: PrismaClientOrTransaction;
   chatId?: string;
+  /**
+   * The chat behind `chatId`, for a caller that has already loaded it, `null` when it found
+   * none. The check then decides on this instead of reading the chat itself.
+   */
+  chat?: CapabilityChat | null;
 }
+
+/** The columns of a chat that the capability checks decide on. */
+export type CapabilityChat = Pick<Chat, 'capabilities' | 'status' | 'archivedAt'>;
 
 export interface CapabilitiesMap {
   [CapabilitySubject.Messages]: CapabilityAction.Send;

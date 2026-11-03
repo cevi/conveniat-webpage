@@ -2,6 +2,7 @@ import { hofDashboardProcedure } from '@/features/hof-dashboard/api/hof-dashboar
 import { getHofDashboardData } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import {
   acceptHofArea,
+  commentHofSubmission,
   reviewHofSubmission,
   withdrawHofSubmission,
 } from '@/features/hof-dashboard/api/hof-dashboard-mutations';
@@ -72,13 +73,16 @@ export const hofDashboardRouter = createTRPCRouter({
       await withdrawHofSubmission(hof, input.submissionId);
     }),
 
-  /** The Ressort's status and feedback on a submission, for the reviewers only. */
+  /**
+   * The Ressort's status on a submission, for the reviewers only, with a comment where one
+   * goes along with it; without one the latest comment stays.
+   */
   updateSubmissionReview: hofDashboardProcedure
     .input(
       hofIdInput.extend({
         submissionId: z.string().min(1).max(64),
         status: z.enum(HOF_REVIEW_CHOICES).optional(),
-        feedback: z.string().max(5000),
+        comment: z.string().max(5000).optional(),
         final: z.boolean().default(false),
       }),
     )
@@ -89,9 +93,28 @@ export const hofDashboardRouter = createTRPCRouter({
         hof,
         submissionId: input.submissionId,
         status: input.status,
-        feedback: input.feedback,
+        comment: input.comment,
         final: input.final,
         // the session's name already reads "First Last v/o Cevi name"
+        reviewer: { id: ctx.user.uuid, name: ctx.user.name },
+      });
+    }),
+
+  /** A comment of the Ressort on a submission, for the reviewers only. */
+  addSubmissionComment: hofDashboardProcedure
+    .input(
+      hofIdInput.extend({
+        submissionId: z.string().min(1).max(64),
+        comment: z.string().trim().min(1).max(5000),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.isReviewer) throw new TRPCError({ code: 'FORBIDDEN' });
+      const hof = await ctx.assertHofAccess(input.hofId);
+      await commentHofSubmission({
+        hof,
+        submissionId: input.submissionId,
+        comment: input.comment,
         reviewer: { id: ctx.user.uuid, name: ctx.user.name },
       });
     }),

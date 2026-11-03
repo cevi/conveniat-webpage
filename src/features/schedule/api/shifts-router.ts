@@ -1,4 +1,5 @@
 import type { HelperShift } from '@/features/payload-cms/payload-types';
+import { legacyTimeConflict, scheduleError } from '@/features/schedule/api/schedule-errors';
 import {
   assertUnenrollmentIsOpen,
   getShiftUnenrollmentDeadline,
@@ -176,10 +177,7 @@ export const shiftsRouter = createTRPCRouter({
       });
 
       if (shift.enable_enrolment === false) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Enrolment is not enabled for this shift.',
-        });
+        throw scheduleError('BAD_REQUEST', 'shiftEnrolmentClosed');
       }
 
       // Acquire advisory lock to prevent race conditions on capacity
@@ -194,7 +192,7 @@ export const shiftsRouter = createTRPCRouter({
         shift.participants_max !== undefined &&
         currentCount >= shift.participants_max
       ) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: 'This shift is already full.' });
+        throw scheduleError('BAD_REQUEST', 'shiftFull');
       }
 
       // Cross-collection overlap check: check against BOTH enrolled shifts AND workshops
@@ -226,10 +224,12 @@ export const shiftsRouter = createTRPCRouter({
               String(other.timeslot.date),
             )
           ) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              message: `Time conflict with shift: ${String(other.title)}|${String(other.id)}`,
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'shift', title: String(other.title), id: String(other.id) },
+              legacyTimeConflict('shift', String(other.title), String(other.id)),
+            );
           }
         }
       }
@@ -253,10 +253,12 @@ export const shiftsRouter = createTRPCRouter({
               String(other.timeslot.date),
             )
           ) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              message: `Time conflict with workshop: ${String(other.title)}|${String(other.id)}`,
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'workshop', title: String(other.title), id: String(other.id) },
+              legacyTimeConflict('workshop', String(other.title), String(other.id)),
+            );
           }
         }
       }
@@ -308,10 +310,7 @@ export const shiftsRouter = createTRPCRouter({
       });
 
       if (toShift.enable_enrolment === false) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Enrolment is not enabled for this shift.',
-        });
+        throw scheduleError('BAD_REQUEST', 'shiftEnrolmentClosed');
       }
 
       // Verify user is enrolled in the from course (can be shift or workshop)
@@ -323,10 +322,7 @@ export const shiftsRouter = createTRPCRouter({
       });
 
       if (!existingEnrollment) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Not currently enrolled in the course you are trying to switch from.',
-        });
+        throw scheduleError('BAD_REQUEST', 'notEnrolledInSource');
       }
 
       /**
@@ -354,7 +350,7 @@ export const shiftsRouter = createTRPCRouter({
         toShift.participants_max !== undefined &&
         currentCount >= toShift.participants_max
       ) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: 'This shift is already full.' });
+        throw scheduleError('BAD_REQUEST', 'shiftFull');
       }
 
       const [userShiftEnrollments, userProgramEnrollments] = await Promise.all([
@@ -387,10 +383,12 @@ export const shiftsRouter = createTRPCRouter({
               String(other.timeslot.date),
             )
           ) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              message: `Time conflict with shift: ${String(other.title)}|${String(other.id)}`,
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'shift', title: String(other.title), id: String(other.id) },
+              legacyTimeConflict('shift', String(other.title), String(other.id)),
+            );
           }
         }
       }
@@ -416,10 +414,12 @@ export const shiftsRouter = createTRPCRouter({
               String(other.timeslot.date),
             )
           ) {
-            throw new TRPCError({
-              code: 'CONFLICT',
-              message: `Time conflict with workshop: ${String(other.title)}|${String(other.id)}`,
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'workshop', title: String(other.title), id: String(other.id) },
+              legacyTimeConflict('workshop', String(other.title), String(other.id)),
+            );
           }
         }
       }

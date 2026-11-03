@@ -1,4 +1,5 @@
 'use client';
+import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { Card } from '@/components/ui/card';
 import { ListRow } from '@/components/ui/list-row';
@@ -499,7 +500,7 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
           onClose();
           void invalidate();
         },
-        onError: (error) => toast.error(error.message),
+        onError: (error) => toastMaterialError(error, locale),
       },
     );
   };

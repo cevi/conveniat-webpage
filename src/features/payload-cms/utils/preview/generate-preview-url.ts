@@ -68,7 +68,8 @@ export const generatePreviewUrl = ({
     }
 
     if (collectionConfig.slug === 'announcements' && data.id !== undefined) {
-      return `${host}${prefix}/design-mode-app/app/announcement-preview/${data.id}?preview=true`;
+      // the proxy adds the app's design, see `isAppPreview` in the design rewrite proxy
+      return `${host}${prefix}/app/announcement-preview/${data.id}?preview=true`;
     }
 
     if (collectionConfig.slug === 'camp-map-annotations' && data.id !== undefined) {

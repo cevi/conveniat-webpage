@@ -1,15 +1,22 @@
 'use client';
 
-import { toast } from '@/lib/toast';
+import { scheduleErrorTexts } from '@/features/schedule/error-texts';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { userErrorMessage } from '@/utils/user-error-message';
 import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 
 const labels = {
   saveSuccess: {
     de: 'Erfolgreich gespeichert',
     en: 'Saved successfully',
     fr: 'Enregistré avec succès',
+  },
+  saveFailed: {
+    de: 'Die Änderungen konnten nicht gespeichert werden.',
+    en: 'The changes could not be saved.',
+    fr: 'Les modifications n’ont pas pu être enregistrées.',
   },
   maxParticipantsError: {
     de: 'Max. Teilnehmer darf nicht unter der aktuellen Anzahl liegen.',
@@ -85,10 +92,9 @@ export function useScheduleEdit({
       ]);
       toast.success(labels.saveSuccess[locale]);
     },
-    onError: (error_) => {
-      setEditError(error_.message);
-      toast.error(error_.message);
-    },
+    // shown in the form, beside what failed to save
+    onError: (error_) =>
+      setEditError(userErrorMessage(error_, locale, scheduleErrorTexts, labels.saveFailed)),
   });
 
   const isAdmin = courseStatus?.isAdmin ?? false;

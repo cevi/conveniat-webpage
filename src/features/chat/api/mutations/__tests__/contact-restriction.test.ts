@@ -176,9 +176,7 @@ const expectRefused = async (call: Promise<unknown>): Promise<void> => {
 
   expect(error).toBeInstanceOf(TRPCError);
   expect((error as TRPCError).code).toBe('FORBIDDEN');
-  expect((error as TRPCError).message).toBe(
-    'Du kannst nur mit deinen Kontakten einen Chat starten.',
-  );
+  expect(error).toMatchObject({ reason: 'notAContact' });
   expect(writes).toEqual([]);
 };
 

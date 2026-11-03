@@ -5,18 +5,23 @@ import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { dropCachedEntry, generateChatId, generateMessageId } from '@/features/chat/utils';
+import { markChatCreation } from '@/features/chat/utils/chat-creation-state';
 import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
-import { isRateLimitError, isTransportError } from '@/features/chat/utils/send-errors';
+import { isRateLimitError } from '@/features/chat/utils/send-errors';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { ChatCapability, ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
-import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
-import type { StaticTranslationString } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
+import { isTransportError, userErrorMessage } from '@/utils/user-error-message';
 import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { inferProcedureOutput } from '@trpc/server';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback } from 'react';
+import { toast } from 'sonner';
 
 type InfiniteMessagesOutput = inferProcedureOutput<AppRouter['chat']['infiniteMessages']>;
 type InfiniteMessagesData = InfiniteData<InfiniteMessagesOutput, string | null>;
@@ -26,6 +31,12 @@ const newChatCreatedText: StaticTranslationString = {
   de: 'Neuer Chat erstellt',
   en: 'New Chat created',
   fr: 'Nouveau chat créé',
+};
+
+const createChatFailedText: StaticTranslationString = {
+  de: 'Der Chat konnte nicht erstellt werden.',
+  en: 'The chat could not be created.',
+  fr: 'Le chat n’a pas pu être créé.',
 };
 
 export interface CreateChatArguments {
@@ -51,6 +62,7 @@ export const useCreateChat = (): {
   const trpcUtils = trpc.useUtils();
   const router = useRouter();
   const pathname = usePathname();
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const { data: currentUserId } = trpc.chat.user.useQuery({});
 
   /**
@@ -86,12 +98,13 @@ export const useCreateChat = (): {
           createdAt: new Date().toISOString(),
           userId: currentUserId,
         });
-        if (isTransportError(error)) toast.success('Chat queued. Will be created when online.');
+        // the chat's first line says it is still waiting, the way a queued message's clock does
+        if (isTransportError(error)) markChatCreation(trpcUtils, optimisticChatId, 'pending');
         return;
       }
 
       console.error('Failed to create chat:', error);
-      toast.error('Failed to create chat', error);
+      toast.error(userErrorMessage(error, locale, chatErrorTexts, createChatFailedText));
 
       if (optimisticChatId === undefined) return;
       discardOptimisticChat(optimisticChatId);

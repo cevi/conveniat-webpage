@@ -1,4 +1,5 @@
 'use client';
+import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { Card } from '@/components/ui/card';
 import { labels } from '@/features/material/components/material-labels';
@@ -31,10 +32,6 @@ const text = {
   order: { de: 'Reihenfolge', en: 'Order', fr: 'Ordre' },
 } satisfies Record<string, StaticTranslationString>;
 
-const showError = (error: { message: string }): void => {
-  toast.error(error.message);
-};
-
 /** Creates or renames a category and sets where it appears in the catalogue. */
 const CategoryDialog: React.FC<{
   category?: MaterialCategory;
@@ -56,7 +53,7 @@ const CategoryDialog: React.FC<{
         onClose();
         void invalidate();
       },
-      onError: showError,
+      onError: (error: unknown): void => toastMaterialError(error, locale),
     };
     if (category === undefined) create.mutate(data, options);
     else update.mutate({ id: category.id, ...data }, options);
