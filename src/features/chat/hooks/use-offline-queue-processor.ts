@@ -7,7 +7,7 @@ import {
   mergeStoredMessage,
   mergeStoredMessageAcrossPages,
 } from '@/features/chat/utils';
-import { markChatCreationPending } from '@/features/chat/utils/chat-creation-pending';
+import { markChatCreation } from '@/features/chat/utils/chat-creation-state';
 import type { SendMessageInput } from '@/features/chat/utils/failed-sends';
 import { rememberFailedSend } from '@/features/chat/utils/failed-sends';
 import type { OfflineMessage } from '@/features/chat/utils/offline-outbox';
@@ -142,7 +142,7 @@ export const useOfflineQueueProcessor = (): void => {
               }
 
               // the same chat now exists on the server: its first line stops waiting
-              if (realChatId === message.id) markChatCreationPending(trpcUtils, realChatId, false);
+              if (realChatId === message.id) markChatCreation(trpcUtils, realChatId, 'stored');
 
               if (realChatId !== message.id) {
                 trpcUtils.chat.chats.setData({}, (oldChats) => {
@@ -258,6 +258,9 @@ export const useOfflineQueueProcessor = (): void => {
                 messageId: message.id,
               });
               rememberFailedSend(toPendingChatMessage(message, currentUser), toSendInput(message));
+            } else {
+              // the chat will never exist: its first line says so instead of a clock that waits
+              markChatCreation(trpcUtils, message.id, 'failed');
             }
           }
         }

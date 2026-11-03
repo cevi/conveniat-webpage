@@ -4,7 +4,7 @@ import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date'
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
-import { Clock } from 'lucide-react';
+import { AlertCircle, Clock } from 'lucide-react';
 import React from 'react';
 
 /** What `createNewChat` stores as the first message, in the creator's language. */
@@ -20,6 +20,12 @@ const pendingCreationText: StaticTranslationString = {
   de: 'Wird erstellt, sobald du wieder online bist',
   en: 'Will be created once you are back online',
   fr: 'Sera créé dès que tu seras de nouveau en ligne',
+};
+
+const failedCreationText: StaticTranslationString = {
+  de: 'Der Chat konnte nicht erstellt werden.',
+  en: 'The chat could not be created.',
+  fr: 'Le chat n’a pas pu être créé.',
 };
 
 const createdByText = (name: string, isGroup: boolean, locale: Locale): string => {
@@ -77,6 +83,13 @@ export const SystemMessage: React.FC<{
         <span className="flex items-center gap-1.5 text-center">
           <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           {pendingCreationText[locale]}
+        </span>
+      )}
+      {/* the server refused the queued creation for good, so the clock above would wait forever */}
+      {isCreation && message.sendFailed === true && (
+        <span role="alert" className="text-danger-text flex items-center gap-1.5 text-center">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          {failedCreationText[locale]}
         </span>
       )}
     </div>

@@ -179,6 +179,18 @@ export const ShiftEnrollmentAction: React.FC<{
     conflictingShiftStatus?.unenrollmentDeadline,
   );
 
+  /**
+   * A refusal means the shift changed since the page loaded: show it as it is now. Once the
+   * status says "full", the refusal has said all it had to, and resetting it keeps it from
+   * coming back as a stale line should a place free up later.
+   */
+  const refreshAfterRefusal = (error: unknown, reset: () => void): void => {
+    if (errorReasonOf(error) === undefined) return;
+    void utils.shifts.getShiftStatus.invalidate().then(() => {
+      if (isFullRefusal(error)) reset();
+    });
+  };
+
   const enroll = trpc.shifts.enrollInShift.useMutation({
     onSuccess: () => {
       void utils.shifts.getShiftStatus.invalidate();
@@ -191,8 +203,7 @@ export const ShiftEnrollmentAction: React.FC<{
     onError: (error) => {
       const conflict = timeConflictOf(error);
       if (conflict === undefined) {
-        // a refusal means the shift changed since the page loaded: show it as it is now
-        if (errorReasonOf(error) !== undefined) void utils.shifts.getShiftStatus.invalidate();
+        refreshAfterRefusal(error, () => enroll.reset());
         return;
       }
       setConflictType(conflict.kind);
@@ -217,9 +228,18 @@ export const ShiftEnrollmentAction: React.FC<{
         void utils.shifts.getShiftStatus.invalidate();
         return;
       }
-      console.error('Switch enrollment failed:', error.message);
+      refreshAfterRefusal(error, () => switchEnrollment.reset());
     },
   });
+
+  // a cancelled conflict leaves nothing behind, so the next failure is reported again
+  const handleConflictDialogChange = (open: boolean): void => {
+    setConflictDialogOpen(open);
+    if (open) return;
+    setConflictInfo(undefined);
+    enroll.reset();
+    switchEnrollment.reset();
+  };
 
   const unenroll = trpc.shifts.unenrollFromShift.useMutation({
     onSuccess: () => {
@@ -496,7 +516,7 @@ export const ShiftEnrollmentAction: React.FC<{
 
       <ShiftConflictDialog
         open={conflictDialogOpen}
-        onOpenChange={setConflictDialogOpen}
+        onOpenChange={handleConflictDialogChange}
         conflictType={conflictType}
         conflictingName={conflictInfo?.conflictingCourseName ?? ''}
         conflictingId={conflictInfo?.conflictingCourseId ?? ''}

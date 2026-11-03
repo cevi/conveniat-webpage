@@ -175,6 +175,21 @@ export const EnrollmentAction: React.FC<{
   // leaving is one tap, so it can be undone for as long as the block is on screen
   const [hasJustLeft, setHasJustLeft] = useState(false);
 
+  /**
+   * A refusal means the workshop changed since the page loaded: show it as it is now. Once the
+   * status says "full", the refusal has said all it had to, and resetting it keeps it from
+   * coming back as a stale line should a place free up later.
+   */
+  const refreshAfterRefusal = (error: unknown, reset: () => void): void => {
+    if (errorReasonOf(error) === undefined) return;
+    void Promise.all([
+      utils.schedule.getCourseStatuses.invalidate(),
+      utils.schedule.getCourseStatus.invalidate({ courseId }),
+    ]).then(() => {
+      if (isFullRefusal(error)) reset();
+    });
+  };
+
   const enroll = trpc.schedule.enrollInCourse.useMutation({
     onSuccess: () => {
       void utils.schedule.getCourseStatuses.invalidate();
@@ -195,11 +210,7 @@ export const EnrollmentAction: React.FC<{
     onError: (error) => {
       const conflict = timeConflictOf(error);
       if (conflict === undefined) {
-        // a refusal means the workshop changed since the page loaded: show it as it is now
-        if (errorReasonOf(error) !== undefined) {
-          void utils.schedule.getCourseStatuses.invalidate();
-          void utils.schedule.getCourseStatus.invalidate({ courseId });
-        }
+        refreshAfterRefusal(error, () => enroll.reset());
         return;
       }
       setConflictType(conflict.kind);
@@ -231,9 +242,18 @@ export const EnrollmentAction: React.FC<{
         setIsSwitchBlocked(true);
         return;
       }
-      console.error('Switch enrollment failed:', error.message);
+      refreshAfterRefusal(error, () => switchEnrollment.reset());
     },
   });
+
+  // a cancelled conflict leaves nothing behind, so the next failure is reported again
+  const handleConflictDialogChange = (open: boolean): void => {
+    setConflictDialogOpen(open);
+    if (open) return;
+    setConflictInfo(undefined);
+    enroll.reset();
+    switchEnrollment.reset();
+  };
 
   const unenroll = trpc.schedule.unenrollFromCourse.useMutation({
     onSuccess: () => {
@@ -267,10 +287,12 @@ export const EnrollmentAction: React.FC<{
   const isFull = maxParticipants !== undefined && enrolledCount >= maxParticipants;
   const spotsLeft = maxParticipants === undefined ? undefined : maxParticipants - enrolledCount;
   // a conflict opens its own dialog; anything else would otherwise fail without a word
+  // a passed deadline already shows in the switch dialog, see `isSwitchBlocked`
   const failure =
     (conflictInfo === undefined ? enroll.error : undefined) ??
     unenroll.error ??
-    switchEnrollment.error;
+    (isDeadlinePassed(switchEnrollment.error) ? undefined : switchEnrollment.error) ??
+    undefined;
 
   let capacity = localizedEnrolledCount[locale].replace('{{count}}', String(enrolledCount));
   if (isFull) capacity = localizedFull[locale];
@@ -280,7 +302,7 @@ export const EnrollmentAction: React.FC<{
       .replace('{{max}}', String(maxParticipants));
   }
 
-  const failedLine = failure !== null && !(isFull && isFullRefusal(failure)) && (
+  const failedLine = failure !== undefined && !(isFull && isFullRefusal(failure)) && (
     <EnrolmentFailure error={failure} locale={locale} />
   );
 
@@ -378,7 +400,7 @@ export const EnrollmentAction: React.FC<{
       </div>
 
       {/* Time Conflict Alert Dialog */}
-      <AlertDialog open={conflictDialogOpen} onOpenChange={setConflictDialogOpen}>
+      <AlertDialog open={conflictDialogOpen} onOpenChange={handleConflictDialogChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{localizedConflict[locale]}</AlertDialogTitle>

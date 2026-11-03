@@ -3,13 +3,13 @@
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
-import { chatErrorTexts } from '@/features/chat/error-texts';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { dropCachedEntry, generateChatId, generateMessageId } from '@/features/chat/utils';
-import { markChatCreationPending } from '@/features/chat/utils/chat-creation-pending';
+import { markChatCreation } from '@/features/chat/utils/chat-creation-state';
 import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
 import { isRateLimitError } from '@/features/chat/utils/send-errors';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { ChatCapability, ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
@@ -99,7 +99,7 @@ export const useCreateChat = (): {
           userId: currentUserId,
         });
         // the chat's first line says it is still waiting, the way a queued message's clock does
-        if (isTransportError(error)) markChatCreationPending(trpcUtils, optimisticChatId, true);
+        if (isTransportError(error)) markChatCreation(trpcUtils, optimisticChatId, 'pending');
         return;
       }
 

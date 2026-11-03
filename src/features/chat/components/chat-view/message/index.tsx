@@ -20,11 +20,11 @@ import { formatMessageContent } from '@/features/chat/components/chat-view/messa
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
-import { chatErrorTexts } from '@/features/chat/error-texts';
 import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date';
 import { useLongPress } from '@/features/chat/hooks/use-long-press';
 import { isMessageDeleted } from '@/features/chat/utils/message-deletion';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
+import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';

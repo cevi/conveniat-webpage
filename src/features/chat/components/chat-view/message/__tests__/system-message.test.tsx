@@ -18,7 +18,11 @@ import { render, screen } from '@testing-library/react';
 const PENDING = 'Wird erstellt, sobald du wieder online bist';
 const creator = { id: 'me', name: 'Nina Muster' };
 
-const message = (payload: ChatMessage['messagePayload'], isPendingOffline: boolean): ChatMessage =>
+const message = (
+  payload: ChatMessage['messagePayload'],
+  isPendingOffline: boolean,
+  sendFailed = false,
+): ChatMessage =>
   ({
     id: '11111111-1111-4111-8111-111111111111',
     createdAt: new Date(2027, 6, 27, 10, 35),
@@ -26,6 +30,7 @@ const message = (payload: ChatMessage['messagePayload'], isPendingOffline: boole
     type: 'SYSTEM_MSG',
     status: 'STORED',
     isPendingOffline,
+    sendFailed,
   }) as ChatMessage;
 
 const created = { de: 'Neuer Chat erstellt', en: 'New Chat created', fr: 'Nouveau chat créé' };
@@ -44,6 +49,19 @@ describe('SystemMessage of a chat created without signal', () => {
     );
 
     expect(screen.queryByText(PENDING)).toBeNull();
+  });
+
+  it('says so when the server refused the queued creation for good', () => {
+    render(
+      <SystemMessage
+        message={message(created, false, true)}
+        creator={creator}
+        currentUserId="me"
+      />,
+    );
+
+    expect(screen.queryByText(PENDING)).toBeNull();
+    expect(screen.getByRole('alert')).toHaveTextContent('Der Chat konnte nicht erstellt werden.');
   });
 
   it('keeps the line to the creation', () => {
