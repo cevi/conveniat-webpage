@@ -68,12 +68,6 @@ const withoutLunchOptionText: StaticTranslationString = {
   fr: 'Non, nous apportons notre repas',
 };
 
-const freePlacesTitle: StaticTranslationString = {
-  de: 'Freie Plätze',
-  en: 'Places left',
-  fr: 'Places libres',
-};
-
 const chooseDayTitle: StaticTranslationString = {
   de: 'Besuchstag wählen',
   en: 'Choose the visiting day',
@@ -159,9 +153,9 @@ const DayPlacesText: React.FC<{
 };
 
 /**
- * Lets relatives pick the Hof they visit. The day follows from the Hof's Quartier; the field
- * shows it next to the places every day has left, which the server checks again on sending.
- * A visitor without a Hof picks the day from that same list instead. Where the form asks about
+ * Lets relatives pick the Hof they visit. The day follows from the Hof's Quartier; once a Hof
+ * is chosen, the field shows that day with the places it has left, which the server checks
+ * again on sending. A visitor without a Hof picks the day from a list of both days instead. Where the form asks about
  * lunch, the field asks it too, since each kind has places of its own.
  */
 export const VisitDaySelection: React.FC<
@@ -194,6 +188,7 @@ export const VisitDaySelection: React.FC<
     free: day.free,
     freeWithoutLunch: (day.freeWithoutLunch as number | undefined) ?? 0,
   }));
+  const ownDayPlaces = isExternal ? undefined : dayPlaces.find((day) => day.date === ownDay);
   const freeOfChosenKind = (day: DayPlaces): number =>
     asksLunch && lunch === WITHOUT_LUNCH ? day.freeWithoutLunch : day.free;
 
@@ -240,33 +235,16 @@ export const VisitDaySelection: React.FC<
         />
       )}
 
-      {dayPlaces.length > 0 && !isExternal && (
-        <div className="border-line rounded-[14px] border bg-white">
-          <p className="m-0 px-4 pt-3 text-xs font-semibold tracking-wide text-green-700 uppercase">
-            {freePlacesTitle[locale]}
+      {/* a Hof has one day, so only that day shows, once the Hof is chosen */}
+      {ownDayPlaces !== undefined && !isExternal && (
+        <div className="border-line bg-tint rounded-[14px] border px-4 py-3">
+          <p className="m-0 text-xs font-semibold tracking-wide text-green-700 uppercase">
+            {yourDayText[locale]}
           </p>
-          <ul className="divide-line m-0 list-none divide-y p-0">
-            {dayPlaces.map((day) => {
-              const isOwnDay = day.date === ownDay;
-              return (
-                <li
-                  key={day.date}
-                  aria-current={isOwnDay ? 'date' : undefined}
-                  className={cn('px-4 py-3 text-[15px]', isOwnDay && 'bg-tint')}
-                >
-                  <span className="text-heading block font-medium">
-                    {formatVisitDay(day.date, locale)}
-                    {isOwnDay && (
-                      <span className="block text-sm font-normal text-green-700">
-                        {yourDayText[locale]}
-                      </span>
-                    )}
-                  </span>
-                  <DayPlacesText day={day} asksLunch={asksLunch} lunch={lunch} locale={locale} />
-                </li>
-              );
-            })}
-          </ul>
+          <span className="text-heading mt-1 block text-[15px] font-medium">
+            {formatVisitDay(ownDayPlaces.date, locale)}
+          </span>
+          <DayPlacesText day={ownDayPlaces} asksLunch={asksLunch} lunch={lunch} locale={locale} />
         </div>
       )}
 
