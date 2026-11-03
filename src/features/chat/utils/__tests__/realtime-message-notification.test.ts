@@ -135,34 +135,9 @@ describe('notifyRealtimeChatMessage', () => {
       currentUserId: 'user-alice',
     });
 
-    expect(mockToast).toHaveBeenCalledWith(
-      'Cevi Uster',
-      expect.objectContaining({ description: 'Bob hat ein Bild gesendet' }),
+    expect(showNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Cevi Uster', body: 'Bob hat ein Bild gesendet' }),
     );
-  });
-
-  it('hands the native shell the same words for an image', () => {
-    const showNotification = jest.fn();
-    globalThis.AppWebViewNativePush = {
-      getStatus: jest.fn(),
-      requestPermission: jest.fn(),
-      deleteToken: jest.fn(),
-      openSettings: jest.fn(),
-      showNotification,
-    };
-
-    notifyRealtimeChatMessage({
-      chatId: 'chat-1',
-      chatName: 'Cevi Uster',
-      message: buildMessage({
-        type: 'IMAGE_MSG',
-        messagePayload: { url: 'chat-images/chat-1/1719830400000-k3j9x2.jpg' },
-      }),
-      currentUserId: 'user-alice',
-    });
-
-    const request = (showNotification.mock.calls as unknown[][])[0]?.[0] as Record<string, unknown>;
-    expect(request['body']).toBe('Bob hat ein Bild gesendet');
   });
 
   describe('extractRealtimeMessagePreview', () => {
