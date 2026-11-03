@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.49.0](https://github.com/cevi/conveniat-webpage/compare/v1.48.0...v1.49.0) (2026-11-03)
+
+
+### Features
+
+* **announcements:** AVP channels follow the Höfe sync ([699daaf](https://github.com/cevi/conveniat-webpage/commit/699daaf6a0ed0d26e4ba6111b29298d2d484eca9))
+* **besuchstag:** one field asks whom they visit, the persons and lunch ([292f828](https://github.com/cevi/conveniat-webpage/commit/292f828b1e82c792edd146971a97ffc545c59d0a))
+* **besuchstag:** one field asks whom they visit, the persons and lunch ([bbcfd85](https://github.com/cevi/conveniat-webpage/commit/bbcfd853c0b7eedbbbfc5d6d39f2bcfef55f23c2))
+* **cms:** image fields in page blocks show a preview ([c779ce8](https://github.com/cevi/conveniat-webpage/commit/c779ce898cdfccd78b474b5c056e5a4e06102055))
+* **cms:** image fields in page blocks show a preview ([37a4059](https://github.com/cevi/conveniat-webpage/commit/37a4059ce7f584aef38481f710008f25e092eada))
+* **settings:** session recordings move to a Datenschutz sheet in Hilfe ([9632ea8](https://github.com/cevi/conveniat-webpage/commit/9632ea85d2c4cfa767e2ee5d57006a05766520f6))
+* **settings:** session recordings move to a Datenschutz sheet in Hilfe ([fc564f5](https://github.com/cevi/conveniat-webpage/commit/fc564f582169a54fd21dc5b56d4e185d8c57cb76))
+
+
+### Bug Fixes
+
+* **announcements:** the AVP channel reaches the main leaders of the Höfe ([e36f89e](https://github.com/cevi/conveniat-webpage/commit/e36f89ea14e9f91d0b022bc5856d5a3a82b606cd))
+* **auth:** a session refresh no longer reads as logged out ([d67cc57](https://github.com/cevi/conveniat-webpage/commit/d67cc576c94bed1e4fe684550321265ad0044caa))
+* **auth:** a session refresh no longer reads as logged out ([4e54262](https://github.com/cevi/conveniat-webpage/commit/4e5426298e26dc20d0ff0be135690841a831580a))
+* **settings:** the eye in the Profilbild visibility notice sits centred beside its text ([5471745](https://github.com/cevi/conveniat-webpage/commit/547174596387151a280034da6b1b651ed7acfff7))
+* **settings:** the eye in the Profilbild visibility notice sits centred beside its text ([2c69b48](https://github.com/cevi/conveniat-webpage/commit/2c69b4884964cc03f7417feeec828fdb36edfc8c))
+
 ## [1.48.0](https://github.com/cevi/conveniat-webpage/compare/v1.47.2...v1.48.0) (2026-11-03)
 
 
