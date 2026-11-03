@@ -241,7 +241,7 @@ boundary.
 No hardcoded user-facing strings. Declare a `StaticTranslationString` and index it by locale. Both
 that type and `i18nConfig` come from `@/types/types`.
 
-Style with Tailwind and combine classes with `cn()` from `@/lib/utils`. No template literals for
+Style with Tailwind and combine classes with `cn()` from `@/utils/tailwindcss-override`. No template literals for
 class names. Icons come from `lucide-react` and nowhere else.
 
 The admin panel looks like Payload, because editors should not have to learn a second design.
