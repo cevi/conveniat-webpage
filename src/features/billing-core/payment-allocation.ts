@@ -1,8 +1,4 @@
-import {
-  formatChf,
-  OVERPAYMENT_TOLERANCE,
-  toRappen,
-} from '@/features/billing/services/payment-matching';
+import { formatChf, OVERPAYMENT_TOLERANCE, toRappen } from '@/features/billing-core/money';
 import type { BillPayment } from '@/features/payload-cms/payload-types';
 
 /**

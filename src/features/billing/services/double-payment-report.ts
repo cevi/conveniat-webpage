@@ -1,16 +1,16 @@
+import { toRappen } from '@/features/billing-core/money';
 import {
   allocatedToParticipant,
   isRefunded,
   paymentsCountingFor,
   relationId,
   totalAllocatedTo,
-} from '@/features/billing/services/payment-allocation';
+} from '@/features/billing-core/payment-allocation';
 import {
   DOUBLE_PAYMENT_DETECTED_ACTION,
   DOUBLE_PAYMENT_RESOLVED_ACTION,
   findPaymentsAllocatedTo,
 } from '@/features/billing/services/payment-booking';
-import { toRappen } from '@/features/billing/services/payment-matching';
 import { renderDoublePaymentReportPdf } from '@/features/billing/services/render-double-payment-report';
 import type { BillParticipant, BillPayment } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';

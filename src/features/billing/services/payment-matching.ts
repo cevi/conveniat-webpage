@@ -1,10 +1,12 @@
+import { formatChf, OVERPAYMENT_TOLERANCE, toRappen } from '@/features/billing-core/money';
+import type { BankPayment } from '@/features/billing-core/payment-csv';
+import type { PaymentOutcome } from '@/features/billing-core/payment-outcome';
+import { isValidQrReference } from '@/features/billing-core/qr-reference';
 import {
   formatBillingStatus,
   PAID,
   PAYABLE_STATUSES,
 } from '@/features/billing/services/billing-status';
-import type { BankPayment } from '@/features/billing/services/payment-csv';
-import { calculateModule10Recursive } from '@/features/billing/utils';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
 
 /**
@@ -17,65 +19,6 @@ import type { BillParticipant } from '@/features/payload-cms/payload-types';
  *
  * Kept free of Payload runtime imports, like `billing-status`, so it can be tested on its own.
  */
-
-export type PaymentOutcome =
-  /** The reference matches an open bill and the amount pays it; the import marks it paid. */
-  | 'booked'
-  /** The same bank transaction is already booked on this bill: the file was imported before. */
-  | 'already_booked'
-  /**
-   * The bill is already paid by another transaction. The payment is linked to the bill
-   * anyway and the bill is flagged, so finance can refund it or assign it to another bill.
-   */
-  | 'double_payment'
-  | 'amount_mismatch'
-  | 'unknown_reference'
-  | 'invalid_reference'
-  /** The reference belongs to a bill that was replaced or cancelled since. */
-  | 'superseded_bill'
-  /** The registration was cancelled, so the money may have to go back. */
-  | 'cancelled'
-  /** The registration is in a status no open bill belongs to. */
-  | 'not_payable'
-  | 'wrong_currency'
-  | 'invalid_amount'
-  /** Without the bank's transaction id a booking could not be traced back to the payment. */
-  | 'missing_transaction_reference';
-
-/** How each outcome reads where finance sees it, on a stored payment. */
-export const PAYMENT_OUTCOME_LABELS: Record<
-  PaymentOutcome,
-  { de: string; en: string; fr: string }
-> = {
-  booked: { de: 'Verbucht', en: 'Booked', fr: 'Comptabilisé' },
-  already_booked: { de: 'Bereits importiert', en: 'Already imported', fr: 'Déjà importé' },
-  double_payment: { de: 'Doppelzahlung', en: 'Double payment', fr: 'Double paiement' },
-  amount_mismatch: { de: 'Betrag passt nicht', en: 'Amount mismatch', fr: 'Montant différent' },
-  unknown_reference: {
-    de: 'Unbekannte Referenz',
-    en: 'Unknown reference',
-    fr: 'Référence inconnue',
-  },
-  invalid_reference: {
-    de: 'Ungültige Referenz',
-    en: 'Invalid reference',
-    fr: 'Référence invalide',
-  },
-  superseded_bill: {
-    de: 'Ersetzte Rechnung',
-    en: 'Replaced bill',
-    fr: 'Facture remplacée',
-  },
-  cancelled: { de: 'Anmeldung storniert', en: 'Registration cancelled', fr: 'Inscription annulée' },
-  not_payable: { de: 'Keine offene Rechnung', en: 'No open bill', fr: 'Aucune facture ouverte' },
-  wrong_currency: { de: 'Andere Währung', en: 'Other currency', fr: 'Autre devise' },
-  invalid_amount: { de: 'Kein Zahlungseingang', en: 'Not a credit', fr: 'Pas un crédit' },
-  missing_transaction_reference: {
-    de: 'Ohne Transaktionsreferenz',
-    en: 'No transaction reference',
-    fr: 'Sans référence de transaction',
-  },
-};
 
 export interface PaymentMatch {
   payment: BankPayment;
@@ -98,8 +41,6 @@ export type MatchableParticipant = Pick<
   | 'paymentTransactionReference'
 >;
 
-const QR_REFERENCE = /^\d{27}$/;
-
 /** What a number looks like once Excel has had it: `-9.22337E+18`. */
 const SPREADSHEET_NUMBER = /^-?\d+(?:[.,]\d+)?e[+-]?\d+$/i;
 
@@ -109,30 +50,6 @@ const SPREADSHEET_NUMBER = /^-?\d+(?:[.,]\d+)?e[+-]?\d+$/i;
  */
 export const isConvertedReference = (reference: string): boolean =>
   SPREADSHEET_NUMBER.test(reference) || reference.startsWith('-');
-
-/** Amounts are compared in Rappen, so 0.1 + 0.2 never decides whether a bill is paid. */
-export const toRappen = (amount: number): number => Math.round(amount * 100);
-
-/**
- * How much more than the bill a payment may be and still settle it, in CHF.
- *
- * Bills carry amounts like CHF 172.96, and whoever types the amount instead of scanning the
- * QR code rounds it up. Refunding a few francs costs more than it is worth, so the finance
- * team books the difference as rounding instead. An underpayment is never booked: the bill
- * would read as settled while money is still owed.
- */
-export const OVERPAYMENT_TOLERANCE = 5;
-
-/** `CHF 1'274.50`, the way the bill prints it. */
-export const formatChf = (amount: number | null | undefined): string =>
-  amount === null || amount === undefined
-    ? 'CHF –'
-    : `CHF ${new Intl.NumberFormat('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}`;
-
-/** Whether a reference is a QR reference at all: 27 digits with a valid check digit. */
-export const isValidQrReference = (reference: string): boolean =>
-  QR_REFERENCE.test(reference) &&
-  calculateModule10Recursive(reference.slice(0, 26)) === Number(reference.slice(26));
 
 /** Why a reference cannot be matched, or `undefined` when it is a valid QR reference. */
 const describeInvalidReference = (reference: string): string | undefined => {

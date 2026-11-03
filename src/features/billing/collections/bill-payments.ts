@@ -1,8 +1,8 @@
+import { PAYMENT_OUTCOME_LABELS } from '@/features/billing-core/payment-outcome';
 import {
   reconcileAfterPaymentChange,
   validatePaymentChange,
 } from '@/features/billing/collections/bill-payment-hooks';
-import { PAYMENT_OUTCOME_LABELS } from '@/features/billing/services/payment-matching';
 import {
   BILLING_ROLES,
   canAccessBilling,

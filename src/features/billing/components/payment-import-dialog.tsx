@@ -1,8 +1,8 @@
 'use client';
 
+import { formatChf, OVERPAYMENT_TOLERANCE } from '@/features/billing-core/money';
 import { BillingErrorsDialog } from '@/features/billing/components/billing-errors-dialog';
 import { usePaymentImport } from '@/features/billing/hooks/use-payment-import';
-import { formatChf, OVERPAYMENT_TOLERANCE } from '@/features/billing/services/payment-matching';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { Banner, Button } from '@payloadcms/ui';

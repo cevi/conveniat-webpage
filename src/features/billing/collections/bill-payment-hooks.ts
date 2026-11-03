@@ -1,17 +1,17 @@
-import { PAID } from '@/features/billing/services/billing-status';
-import { describeActor } from '@/features/billing/services/describe-actor';
+import { formatChf, toRappen } from '@/features/billing-core/money';
 import {
   allocatedParticipantIds,
   allocatedToParticipant,
   describeAllocationProblem,
   totalAllocatedTo,
-} from '@/features/billing/services/payment-allocation';
+} from '@/features/billing-core/payment-allocation';
+import { PAID } from '@/features/billing/services/billing-status';
+import { describeActor } from '@/features/billing/services/describe-actor';
 import {
   findPaymentsAllocatedTo,
   queuePaymentWriteBack,
   reconcileParticipantPayments,
 } from '@/features/billing/services/payment-booking';
-import { formatChf, toRappen } from '@/features/billing/services/payment-matching';
 import type { BillPayment } from '@/features/payload-cms/payload-types';
 import type { CollectionAfterChangeHook, CollectionBeforeChangeHook } from 'payload';
 import { APIError } from 'payload';

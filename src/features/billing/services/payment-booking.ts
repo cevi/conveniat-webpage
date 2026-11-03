@@ -1,14 +1,14 @@
-import { PAYMENT_BOOKED_ACTION } from '@/features/billing/services/anmeldestatus-writeback';
-import { PAID, PAYABLE_STATUSES } from '@/features/billing/services/billing-status';
-import type { AllocatablePayment } from '@/features/billing/services/payment-allocation';
+import { formatChf, toRappen } from '@/features/billing-core/money';
+import type { AllocatablePayment } from '@/features/billing-core/payment-allocation';
 import {
   allocatedParticipantIds,
   isDoublePayment,
   paymentsCountingFor,
   settlingPayments,
   totalAllocatedTo,
-} from '@/features/billing/services/payment-allocation';
-import { formatChf, toRappen } from '@/features/billing/services/payment-matching';
+} from '@/features/billing-core/payment-allocation';
+import { PAYMENT_BOOKED_ACTION } from '@/features/billing/services/anmeldestatus-writeback';
+import { PAID, PAYABLE_STATUSES } from '@/features/billing/services/billing-status';
 import { BillingTaskSlug } from '@/features/billing/types';
 import type { BillParticipant, BillPayment } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';

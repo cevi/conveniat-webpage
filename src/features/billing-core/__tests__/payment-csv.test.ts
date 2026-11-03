@@ -3,7 +3,7 @@ import {
   parseAmount,
   parseBookingDate,
   parsePaymentCsv,
-} from '@/features/billing/services/payment-csv';
+} from '@/features/billing-core/payment-csv';
 
 /** The export as the finance team receives it: tab separated, one payment per line. */
 const bankExport = [

@@ -1,6 +1,6 @@
 'use client';
 
-import { decodeCsvBytes } from '@/features/billing/services/payment-csv';
+import { decodeCsvBytes } from '@/features/billing-core/payment-csv';
 import type { PaymentImportSummary } from '@/features/billing/services/payment-import';
 import { useListQuery } from '@payloadcms/ui';
 import { useCallback, useState } from 'react';

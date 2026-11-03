@@ -1,8 +1,8 @@
+import { formatChf } from '@/features/billing-core/money';
 import type {
   DoublePaymentReport,
   ResolvedDoublePaymentPayment,
 } from '@/features/billing/services/double-payment-report';
-import { formatChf } from '@/features/billing/services/payment-matching';
 import fs from 'node:fs';
 import path from 'node:path';
 
