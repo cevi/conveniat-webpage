@@ -108,7 +108,17 @@ export const ShiftDetailView: React.FC<{
     refetchOnWindowFocus: false,
   });
 
-  const shift = shifts?.find((entry) => entry.id === shiftId);
+  const listedShift = shifts?.find((entry) => entry.id === shiftId);
+  // The feed hides a full shift from helpers who are not on it, but a link still opens it: asked
+  // for on its own, and only once the feed has loaded without it, so a shift scrolled past keeps
+  // opening offline from the feed's cache.
+  const isMissingFromFeed = shifts !== undefined && listedShift === undefined;
+  const { data: linkedShift, isLoading: isLoadingLinkedShift } =
+    trpc.schedule.getHelperShift.useQuery(
+      { id: shiftId },
+      { enabled: isMissingFromFeed && /^[\da-f]{24}$/i.test(shiftId), staleTime: 1000 * 60 * 5 },
+    );
+  const shift = listedShift ?? linkedShift ?? undefined;
 
   const { status } = useShiftStatus(shiftId);
   const isFullForMe =
@@ -157,7 +167,7 @@ export const ShiftDetailView: React.FC<{
   if (shift === undefined) {
     // Only a shift that is genuinely absent from a loaded feed is missing; while the feed is still
     // coming in, the same state would be a wrong answer rendered over a right one.
-    if (isLoading) {
+    if (isLoading || (isMissingFromFeed && isLoadingLinkedShift)) {
       return (
         <>
           {chrome}

@@ -86,6 +86,16 @@ export const scheduleRouter = createTRPCRouter({
     return getHelperShifts({}, locale, { prisma, user });
   }),
 
+  /** A shift the feed hides because it is full still opens from a link, see `getHelperShift`. */
+  getHelperShift: publicProcedure
+    .input(z.object({ id: z.string().regex(/^[\da-f]{24}$/i) }))
+    .query(async ({ ctx, input }) => {
+      const { getHelperShift } = await import('./get-helper-shifts');
+      // React Query keeps no `undefined`; `null` is a shift that does not exist
+      // eslint-disable-next-line unicorn/no-null
+      return (await getHelperShift(input.id, ctx.locale)) ?? null;
+    }),
+
   getCourseStatus: publicProcedure.input(enrollInCourseSchema).query(async ({ input, ctx }) => {
     const { prisma, user } = ctx;
     const { courseId } = input;
