@@ -80,12 +80,15 @@ const prisma = {
         // prisma answers a chat that was never archived with null
         // eslint-disable-next-line unicorn/no-null
         archivedAt: null,
-        chatMemberships: [
-          { userId: 'anna', chatPermission: ChatMembershipPermission.MEMBER },
-          { userId: 'ben', chatPermission: ChatMembershipPermission.MEMBER },
-        ],
       }),
     update: (): Promise<void> => Promise.resolve(),
+  },
+  chatMembership: {
+    findMany: (): Promise<unknown> =>
+      Promise.resolve([
+        { userId: 'anna', chatPermission: ChatMembershipPermission.MEMBER },
+        { userId: 'ben', chatPermission: ChatMembershipPermission.MEMBER },
+      ]),
   },
   message: {
     findMany: (): Promise<unknown[]> => Promise.resolve([]),

@@ -145,7 +145,10 @@ const prisma = {
     create: record('chat.create', { uuid: 'new-chat', name: '' }),
     update: record('chat.update'),
   },
-  chatMembership: { createMany: record('chatMembership.createMany') },
+  chatMembership: {
+    findMany: (): Promise<unknown> => Promise.resolve(memberships),
+    createMany: record('chatMembership.createMany'),
+  },
   chatInvite: {
     deleteMany: record('chatInvite.deleteMany'),
     create: record('chatInvite.create', { token: 'token', expiresAt: new Date() }),
