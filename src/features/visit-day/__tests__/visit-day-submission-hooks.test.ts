@@ -219,7 +219,7 @@ describe('a Besuchstag registration', () => {
     await save(request, answers);
 
     expect(answers).toEqual([
-      { field: 'hof', value: 'Ohne Bezug zu einem Hof' },
+      { field: 'hof', value: 'Ohne Bezug zu einer Abteilung' },
       { field: 'anzahl_personen', value: '1' },
       { field: 'mittagessen', value: 'ja' },
       { field: 'besuchstag', value: 'Mittwoch, 28. Juli 2027' },

@@ -55,8 +55,11 @@ interface VisitDayBlock {
   lunchField?: string | null;
 }
 
-/** The Hof answer of a visitor without a Hof, in German like the rest of the email. */
-const NO_HOF_ANSWER = 'Ohne Bezug zu einem Hof';
+/**
+ * The Hof answer of a visitor without a Hof, in German like the rest of the email, and in the
+ * relatives' word: they know the Abteilung, not the Hof.
+ */
+const NO_HOF_ANSWER = 'Ohne Bezug zu einer Abteilung';
 
 const PENDING_VISIT = 'visitDayPendingVisit';
 
@@ -91,9 +94,9 @@ const invalidLunchMessage: StaticTranslationString = {
 };
 
 const hofNotOfferedMessage: StaticTranslationString = {
-  de: 'Für diesen Hof ist keine Anmeldung zum Besuchstag möglich.',
-  en: 'This Hof cannot be registered for the visiting day.',
-  fr: 'Ce Hof ne peut pas être inscrit à la journée des visites.',
+  de: 'Für diese Abteilung ist keine Anmeldung zum Besuchstag möglich.',
+  en: 'This local group cannot be registered for the visiting day.',
+  fr: 'Ce groupe local ne peut pas être inscrit à la journée des visites.',
 };
 
 const invalidPersonCountMessage: StaticTranslationString = {

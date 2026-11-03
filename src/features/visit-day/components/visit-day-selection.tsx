@@ -26,28 +26,30 @@ import { Controller, useWatch } from 'react-hook-form';
 /** The free places are read again this often while the form is open. */
 const PLACES_REFRESH_MS = 60_000;
 
+// relatives know the Abteilung of the child they visit, not its Hof: a Hof is named after its
+// Abteilungen, so the list of Höfe reads as a list of Abteilungen
 const placeholderText: StaticTranslationString = {
-  de: 'Hof auswählen',
-  en: 'Select a Hof',
-  fr: 'Choisir un Hof',
+  de: 'Abteilung auswählen',
+  en: 'Select a local group',
+  fr: 'Choisir un groupe local',
 };
 
 const loadingText: StaticTranslationString = {
-  de: 'Höfe werden geladen …',
-  en: 'Loading Höfe …',
-  fr: 'Chargement des Hofs …',
+  de: 'Abteilungen werden geladen …',
+  en: 'Loading local groups …',
+  fr: 'Chargement des groupes locaux …',
 };
 
 const loadErrorText: StaticTranslationString = {
-  de: 'Die Höfe konnten nicht geladen werden. Prüfe deine Verbindung.',
-  en: 'The Höfe could not be loaded. Check your connection.',
-  fr: 'Les Hofs n’ont pas pu être chargés. Vérifie ta connexion.',
+  de: 'Die Abteilungen konnten nicht geladen werden. Prüfe deine Verbindung.',
+  en: 'The local groups could not be loaded. Check your connection.',
+  fr: 'Les groupes locaux n’ont pas pu être chargés. Vérifie ta connexion.',
 };
 
 const noHofOptionText: StaticTranslationString = {
-  de: 'Kein Bezug zu einem Hof',
-  en: 'No connection to a Hof',
-  fr: 'Aucun lien avec un Hof',
+  de: 'Kein Bezug zu einer Abteilung',
+  en: 'No connection to a local group',
+  fr: 'Aucun lien avec un groupe local',
 };
 
 const lunchLabelText: StaticTranslationString = {
