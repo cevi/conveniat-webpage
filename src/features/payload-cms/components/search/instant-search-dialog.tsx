@@ -312,7 +312,17 @@ export const InstantSearchDialog: React.FC<{
             </section>
           ))}
         </div>
-        <div className="border-line bg-page overflow-y-auto border-l px-6 py-5">
+        {/* every link in the preview leaves the search, like a result row does; the links are
+            the preview's own, so they are caught here rather than handed a callback each */}
+        <div
+          onClick={(event) => {
+            if (event.target instanceof Element && event.target.closest('a') !== null) {
+              rememberSearch(trimmed);
+              close();
+            }
+          }}
+          className="border-line bg-page overflow-y-auto border-l px-6 py-5"
+        >
           {selected !== undefined && (
             <SearchPreview key={selected.key} result={selected} words={words} locale={locale} />
           )}
