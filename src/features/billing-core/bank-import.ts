@@ -1,0 +1,86 @@
+import type { BankPayment } from '@/features/billing-core/payment-csv';
+import { parsePaymentCsv } from '@/features/billing-core/payment-csv';
+import type { PaymentOutcome } from '@/features/billing-core/payment-outcome';
+import type { StaticTranslationString } from '@/types/types';
+import type { Payload } from 'payload';
+
+/** What an import did for one kind of bill, for the admin panel to report. */
+export interface PaymentImportSummary {
+  totalCount: number;
+  bookedCount: number;
+  /** Payments booked by an earlier import of the same file. */
+  alreadyBookedCount: number;
+  /** Payments not booked, each with why, for the finance team to resolve by hand. */
+  errors: string[];
+  /** How many payments ended in each outcome. */
+  outcomes: Partial<Record<PaymentOutcome, number>>;
+}
+
+/** What one bank file did, kind of bill by kind of bill. */
+export interface BankImportSummary {
+  sides: { key: string; label: StaticTranslationString; summary: PaymentImportSummary }[];
+}
+
+/** Refused before anything was booked, because the file cannot be read as a payment list. */
+export class PaymentFileError extends Error {}
+
+/** Books the payments of one kind of bill. */
+export interface PaymentImporter {
+  key: string;
+  label: StaticTranslationString;
+  /**
+   * Whether a payment is this kind's to book. The importers are asked in order, and the last
+   * one takes whatever nobody claimed, so a payment is never dropped.
+   */
+  claims: (payment: BankPayment) => boolean;
+  importPayments: (
+    payload: Payload,
+    payments: BankPayment[],
+    actor: string,
+  ) => Promise<PaymentImportSummary>;
+}
+
+/**
+ * Imports one bank CSV for every kind of bill paid into the shared QR-IBAN.
+ *
+ * The file is read once, each payment goes to the first importer that claims it, which the
+ * bills tell apart by the first digits of the QR reference, and the last importer takes the
+ * rest: the camp bills, whose import also keeps every payment it cannot assign for finance.
+ *
+ * @param importers in the order they are asked, the one taking the rest last
+ */
+export async function importBankFile(
+  payload: Payload,
+  csv: string,
+  actor: string,
+  importers: PaymentImporter[],
+): Promise<BankImportSummary> {
+  const parsed = parsePaymentCsv(csv);
+  if (parsed.error !== undefined) throw new PaymentFileError(parsed.error);
+  if (parsed.payments.length === 0) {
+    throw new PaymentFileError('Die Datei enthält keine Zahlungen.');
+  }
+
+  const rest = importers.at(-1);
+  if (rest === undefined) throw new Error('No payment importer configured.');
+  const claimed = new Map<PaymentImporter, BankPayment[]>(
+    importers.map((importer) => [importer, []]),
+  );
+  for (const payment of parsed.payments) {
+    const importer = importers.find((candidate) => candidate.claims(payment)) ?? rest;
+    claimed.get(importer)?.push(payment);
+  }
+
+  const sides: BankImportSummary['sides'] = [];
+  for (const importer of importers) {
+    const payments = claimed.get(importer) ?? [];
+    // a kind with nothing in the file is not asked, so it reads nothing either
+    if (payments.length === 0) continue;
+    sides.push({
+      key: importer.key,
+      label: importer.label,
+      summary: await importer.importPayments(payload, payments, actor),
+    });
+  }
+  return { sides };
+}

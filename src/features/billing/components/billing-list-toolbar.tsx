@@ -7,8 +7,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { PaymentImportDialog } from '@/features/billing-core/components/payment-import-dialog';
 import { BillingPipelineStep } from '@/features/billing/components/billing-pipeline-step';
-import { PaymentImportDialog } from '@/features/billing/components/payment-import-dialog';
 import type { BillingTaskKey } from '@/features/billing/hooks/use-billing-jobs';
 import { useBillingJobs } from '@/features/billing/hooks/use-billing-jobs';
 import type { PipelineLock } from '@/features/billing/services/pipeline-lock';

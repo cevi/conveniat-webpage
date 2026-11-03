@@ -23,6 +23,8 @@ export interface BackgroundEmail {
   text?: string;
   html?: string;
   attachments?: { filename: string; content: Buffer; contentType?: string }[];
+  /** the Besuchstag bill the mail carries, whose mail status follows the mail's delivery */
+  visitDayBill?: string;
 }
 
 /** Where one attachment of a queued mail waits. */
@@ -159,6 +161,7 @@ export const queueBackgroundEmail = async (
         queuedAttachments: stored,
         ...(typeof billParticipantId === 'string' ? { billParticipant: billParticipantId } : {}),
         ...(Array.isArray(billParticipantId) ? { billParticipants: billParticipantId } : {}),
+        ...(email.visitDayBill === undefined ? {} : { visitDayBill: email.visitDayBill }),
       },
     });
 

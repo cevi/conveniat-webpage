@@ -2,12 +2,12 @@
    nothing, and saying so explicitly is clearer than a bare jest.fn(). */
 /* eslint-disable @typescript-eslint/unbound-method -- asserting on a jest mock reads it off
    its object by design; it is never called from there. */
+import { buildCreditorFromSettings } from '@/features/billing-core/creditor';
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import {
   buildCreditorFooterItems,
-  buildCreditorFromSettings,
   generateBillsUseCase,
   layoutFooterLines,
   resolvePricing,

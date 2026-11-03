@@ -72,6 +72,8 @@ import { default as default_fb0edca85ff4d5747b6689eaa2656c54 } from '@/features/
 import { default as default_213735919c76873cbbfc040670fae11b } from '@/features/billing/components/related-emails-cell'
 import { default as default_76bea7d0da84feab859623aecb60b1b6 } from '@/features/billing/components/sync-history-field'
 import { default as default_7e46c70b38f19ab508dd58722ced6657 } from '@/features/billing/components/billing-list-toolbar'
+import { VisitDayBillActions as VisitDayBillActions_127d282e456b1418afc552f9b8cb25e5 } from '@/features/visit-day/billing/components/visit-day-bill-actions'
+import { default as default_9299c19f90b85d6627ce494150a0b624 } from '@/features/visit-day/billing/components/visit-day-bills-toolbar'
 import { EventRowLabel as EventRowLabel_7fd9e802aba4470ba78c74210269ca9c } from '@/features/billing/components/event-row-label'
 import { PopulateSubeventsButton as PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678 } from '@/features/billing/components/populate-subevents-button'
 import { default as default_5ef9787d26b4ecd448f299564fb6b977 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell'
@@ -218,6 +220,8 @@ export const importMap = {
   "@/features/billing/components/related-emails-cell#default": default_213735919c76873cbbfc040670fae11b,
   "@/features/billing/components/sync-history-field#default": default_76bea7d0da84feab859623aecb60b1b6,
   "@/features/billing/components/billing-list-toolbar#default": default_7e46c70b38f19ab508dd58722ced6657,
+  "@/features/visit-day/billing/components/visit-day-bill-actions#VisitDayBillActions": VisitDayBillActions_127d282e456b1418afc552f9b8cb25e5,
+  "@/features/visit-day/billing/components/visit-day-bills-toolbar#default": default_9299c19f90b85d6627ce494150a0b624,
   "@/features/billing/components/event-row-label#EventRowLabel": EventRowLabel_7fd9e802aba4470ba78c74210269ca9c,
   "@/features/billing/components/populate-subevents-button#PopulateSubeventsButton": PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678,
   "@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell#default": default_5ef9787d26b4ecd448f299564fb6b977,

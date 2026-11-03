@@ -1,8 +1,8 @@
 'use client';
 
+import { BillingErrorsDialog } from '@/features/billing-core/components/billing-errors-dialog';
+import { usePaymentImport } from '@/features/billing-core/components/use-payment-import';
 import { formatChf, OVERPAYMENT_TOLERANCE } from '@/features/billing-core/money';
-import { BillingErrorsDialog } from '@/features/billing/components/billing-errors-dialog';
-import { usePaymentImport } from '@/features/billing/hooks/use-payment-import';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { Banner, Button } from '@payloadcms/ui';
@@ -18,9 +18,9 @@ const titleLabel: StaticTranslationString = {
 const tolerance = formatChf(OVERPAYMENT_TOLERANCE);
 
 const messageLabel: StaticTranslationString = {
-  de: `Lade den CSV-Export der camt.054-Gutschriften hoch, ohne ihn vorher in Excel zu speichern.\n\nJede Zahlung, deren QR-Referenz zu einer offenen Rechnung passt und die den Rechnungsbetrag oder höchstens ${tolerance} mehr bezahlt, wird als bezahlt verbucht und in der Cevi.DB als bezahlt mit Anmeldestatus «definitiv» eingetragen. Eine zweite Zahlung für eine bereits bezahlte Rechnung wird ihr als Doppelzahlung zugeordnet. Alle anderen Zahlungen werden aufgelistet und nicht verbucht. Jede Zahlung bleibt unter «Zahlungen» gespeichert und lässt sich dort von Hand zuordnen.`,
-  en: `Upload the CSV export of the camt.054 credit notifications, without saving it in Excel first.\n\nEvery payment whose QR reference matches an open bill and that pays the bill's amount or at most ${tolerance} more is booked as paid and marked as paid with registration status «definitiv» in Cevi.DB. A second payment for a bill already paid is linked to it as a double payment. All other payments are listed and not booked. Every payment stays under «Payments», where it can be assigned by hand.`,
-  fr: `Téléversez l'export CSV des avis de crédit camt.054, sans l'enregistrer auparavant dans Excel.\n\nChaque paiement dont la référence QR correspond à une facture ouverte et qui paie le montant de la facture ou au plus ${tolerance} de plus est comptabilisé comme payé et inscrit comme payé avec le statut d'inscription «definitiv» dans Cevi.DB. Un second paiement pour une facture déjà payée lui est attribué comme double paiement. Tous les autres paiements sont listés et ne sont pas comptabilisés. Chaque paiement reste enregistré sous «Paiements», où il peut être attribué à la main.`,
+  de: `Lade den CSV-Export der camt.054-Gutschriften hoch, ohne ihn vorher in Excel zu speichern.\n\nJede Zahlung, deren QR-Referenz zu einer offenen Rechnung passt und die den Rechnungsbetrag oder höchstens ${tolerance} mehr bezahlt, wird als bezahlt verbucht und in der Cevi.DB als bezahlt mit Anmeldestatus «definitiv» eingetragen. Eine zweite Zahlung für eine bereits bezahlte Rechnung wird ihr als Doppelzahlung zugeordnet. Alle anderen Zahlungen werden aufgelistet und nicht verbucht. Jede Zahlung bleibt unter «Zahlungen» gespeichert und lässt sich dort von Hand zuordnen.\n\nZahlungen mit einer Referenz, die mit 091 beginnt, gehören zu den Besuchstag-Rechnungen und werden dort verbucht, ohne die Cevi.DB.`,
+  en: `Upload the CSV export of the camt.054 credit notifications, without saving it in Excel first.\n\nEvery payment whose QR reference matches an open bill and that pays the bill's amount or at most ${tolerance} more is booked as paid and marked as paid with registration status «definitiv» in Cevi.DB. A second payment for a bill already paid is linked to it as a double payment. All other payments are listed and not booked. Every payment stays under «Payments», where it can be assigned by hand.\n\nPayments whose reference starts with 091 belong to the Besuchstag bills and are booked there, without Cevi.DB.`,
+  fr: `Téléversez l'export CSV des avis de crédit camt.054, sans l'enregistrer auparavant dans Excel.\n\nChaque paiement dont la référence QR correspond à une facture ouverte et qui paie le montant de la facture ou au plus ${tolerance} de plus est comptabilisé comme payé et inscrit comme payé avec le statut d'inscription «definitiv» dans Cevi.DB. Un second paiement pour une facture déjà payée lui est attribué comme double paiement. Tous les autres paiements sont listés et ne sont pas comptabilisés. Chaque paiement reste enregistré sous «Paiements», où il peut être attribué à la main.\n\nLes paiements dont la référence commence par 091 appartiennent aux factures de la journée des visites et y sont comptabilisés, sans Cevi.DB.`,
 };
 
 const confirmLabel: StaticTranslationString = {
@@ -98,6 +98,10 @@ export const PaymentImportDialog: React.FC<{
   const { isImporting, error, result, importFile, clearError, clearResult } = usePaymentImport();
   const [file, setFile] = useState<File | undefined>();
   const [isOpenListShown, setIsOpenListShown] = useState(false);
+  // one work list, each payment named with the kind of bill it was for
+  const errors = (result?.sides ?? []).flatMap(({ label, summary }) =>
+    summary.errors.map((message) => `${label[locale]}: ${message}`),
+  );
 
   const close = (): void => {
     setFile(undefined);
@@ -142,31 +146,34 @@ export const PaymentImportDialog: React.FC<{
       </ConfirmationModal>
 
       {result !== undefined && (
-        <Banner className="mt-3 mb-0" type={result.errors.length > 0 ? 'info' : 'success'}>
+        <Banner className="mt-3 mb-0" type={errors.length > 0 ? 'info' : 'success'}>
           <div className="flex flex-col gap-2">
-            <span>
-              {[
-                bookedSummary[locale]
-                  .replace('{{booked}}', String(result.bookedCount))
-                  .replace('{{total}}', String(result.totalCount)),
-                result.alreadyBookedCount > 0
-                  ? alreadyBookedSummary[locale].replace(
-                      '{{count}}',
-                      String(result.alreadyBookedCount),
-                    )
-                  : undefined,
-                result.errors.length > 0
-                  ? openSummary[locale].replace('{{count}}', String(result.errors.length))
-                  : undefined,
-              ]
-                .filter((part) => part !== undefined)
-                .join(' ')}
-            </span>
-            {result.bookedCount > 0 && (
+            {result.sides.map(({ key, label, summary }) => (
+              <span key={key}>
+                <strong>{label[locale]}:</strong>{' '}
+                {[
+                  bookedSummary[locale]
+                    .replace('{{booked}}', String(summary.bookedCount))
+                    .replace('{{total}}', String(summary.totalCount)),
+                  summary.alreadyBookedCount > 0
+                    ? alreadyBookedSummary[locale].replace(
+                        '{{count}}',
+                        String(summary.alreadyBookedCount),
+                      )
+                    : undefined,
+                  summary.errors.length > 0
+                    ? openSummary[locale].replace('{{count}}', String(summary.errors.length))
+                    : undefined,
+                ]
+                  .filter((part) => part !== undefined)
+                  .join(' ')}
+              </span>
+            ))}
+            {result.sides.some((side) => side.key === 'camp' && side.summary.bookedCount > 0) && (
               <span className="text-xs text-(--theme-elevation-600)">{writeBackNote[locale]}</span>
             )}
             <div className="flex gap-2">
-              {result.errors.length > 0 && (
+              {errors.length > 0 && (
                 <Button
                   buttonStyle="secondary"
                   margin={false}
@@ -185,7 +192,7 @@ export const PaymentImportDialog: React.FC<{
       )}
 
       <BillingErrorsDialog
-        errors={result?.errors ?? []}
+        errors={errors}
         isOpen={isOpenListShown}
         locale={locale}
         onClose={() => setIsOpenListShown(false)}

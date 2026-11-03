@@ -54,7 +54,16 @@ export interface PlaceRequest {
   capacity: number;
 }
 
-export type PlaceResult = { status: 'reserved'; number: string } | { status: 'full' };
+export type PlaceResult =
+  | {
+      status: 'reserved';
+      number: string;
+      /** the row in Postgres */
+      registrationId: string;
+      /** the number of the registration's bill, see `visitDayBillReference` */
+      billNumber: number;
+    }
+  | { status: 'full' };
 
 /**
  * Takes the places of one registration and gives it the next number of its Hof, or does
@@ -83,7 +92,8 @@ export const reservePlaces = async (
     });
     const counter = (last._max.counter ?? 0) + 1;
     const number = formatRegistrationNumber(request.hofEventId, counter);
-    await transaction.visitDayRegistration.create({
+    const created = await transaction.visitDayRegistration.create({
+      select: { id: true, billNumber: true },
       data: {
         number,
         hofId,
@@ -98,5 +108,10 @@ export const reservePlaces = async (
         },
       },
     });
-    return { status: 'reserved', number };
+    return {
+      status: 'reserved',
+      number,
+      registrationId: created.id,
+      billNumber: created.billNumber,
+    };
   });

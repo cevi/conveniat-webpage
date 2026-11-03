@@ -1,7 +1,7 @@
 'use client';
 
+import type { BankImportSummary } from '@/features/billing-core/bank-import';
 import { decodeCsvBytes } from '@/features/billing-core/payment-csv';
-import type { PaymentImportSummary } from '@/features/billing/services/payment-import';
 import { useListQuery } from '@payloadcms/ui';
 import { useCallback, useState } from 'react';
 
@@ -17,7 +17,7 @@ export const usePaymentImport = (): {
   /** Why the file was refused, while the dialog is still open. */
   error: string | undefined;
   /** What the last import booked and what it left for the finance team. */
-  result: PaymentImportSummary | undefined;
+  result: BankImportSummary | undefined;
   importFile: (file: File) => Promise<boolean>;
   clearError: () => void;
   clearResult: () => void;
@@ -25,7 +25,7 @@ export const usePaymentImport = (): {
   const { query, refineListData } = useListQuery();
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const [result, setResult] = useState<PaymentImportSummary | undefined>();
+  const [result, setResult] = useState<BankImportSummary | undefined>();
 
   const importFile = useCallback(
     async (file: File): Promise<boolean> => {
@@ -38,7 +38,7 @@ export const usePaymentImport = (): {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ csv }),
         });
-        const body = (await response.json()) as Partial<PaymentImportSummary> & {
+        const body = (await response.json()) as Partial<BankImportSummary> & {
           success?: boolean;
           error?: string;
         };
@@ -48,11 +48,17 @@ export const usePaymentImport = (): {
         }
 
         setResult({
-          totalCount: body.totalCount ?? 0,
-          bookedCount: body.bookedCount ?? 0,
-          alreadyBookedCount: body.alreadyBookedCount ?? 0,
-          errors: Array.isArray(body.errors) ? body.errors.map(String) : [],
-          outcomes: body.outcomes ?? {},
+          sides: (Array.isArray(body.sides) ? body.sides : []).map((side) => ({
+            key: side.key,
+            label: side.label,
+            summary: {
+              totalCount: side.summary.totalCount,
+              bookedCount: side.summary.bookedCount,
+              alreadyBookedCount: side.summary.alreadyBookedCount,
+              errors: Array.isArray(side.summary.errors) ? side.summary.errors.map(String) : [],
+              outcomes: side.summary.outcomes,
+            },
+          })),
         });
         await refineListData(query);
         return true;

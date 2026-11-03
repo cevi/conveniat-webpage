@@ -33,6 +33,9 @@ import { UserSubmittedImagesCollection } from '@/features/payload-cms/payload-cm
 import { asInstrumentalCollection } from '@/features/payload-cms/payload-cms/utils/instrumentalized-collection';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import { PresenceLogCollection } from '@/features/presence/payload-cms/collections/presence-log-collection';
+import { VisitDayBillEventsCollection } from '@/features/visit-day/billing/visit-day-bill-events';
+import { visitDayBillKind } from '@/features/visit-day/billing/visit-day-bill-kind';
+import { VisitDayBillsCollection } from '@/features/visit-day/billing/visit-day-bills-collection';
 import type { RoutableCollectionConfigs } from '@/types/types';
 import type { CollectionConfig } from 'payload';
 
@@ -72,7 +75,9 @@ const rawCollectionsConfig: CollectionConfig[] = [
   FunktionenCollection,
   PresenceLogCollection,
   BillParticipantsCollection,
-  createBillPaymentsCollection([campBillKind]),
+  createBillPaymentsCollection([campBillKind, visitDayBillKind]),
+  VisitDayBillsCollection,
+  VisitDayBillEventsCollection,
   BillPdfsCollection,
   HoefeCollection,
   OutgoingEmails,

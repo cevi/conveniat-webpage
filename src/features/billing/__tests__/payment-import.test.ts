@@ -11,9 +11,11 @@ jest.mock('payload', () => ({
   APIError: class extends Error {},
 }));
 
+import type { PaymentImportSummary } from '@/features/billing-core/bank-import';
+import { importBankFile, PaymentFileError } from '@/features/billing-core/bank-import';
 import { createBillPaymentsCollection } from '@/features/billing-core/bill-payments-collection';
 import { campBillKind } from '@/features/billing/camp-bill-kind';
-import { importPayments, PaymentFileError } from '@/features/billing/services/payment-import';
+import { campPaymentImporter } from '@/features/billing/services/payment-import';
 import { generateQrReference } from '@/features/billing/utils';
 import type { BillPayment } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
@@ -21,6 +23,18 @@ import type { Payload } from 'payload';
 const reference = generateQrReference('123012', '34000', '0567000', 1);
 const siblingReference = generateQrReference('123012', '34000', '0567000', 2);
 const unknownReference = generateQrReference('123012', '34000', '0567000', 3);
+
+/** The bank import as the admin panel runs it, reporting what the camp bills made of the file. */
+const importPayments = async (
+  payload: Payload,
+  csv: string,
+  actor: string,
+): Promise<PaymentImportSummary> => {
+  const { sides } = await importBankFile(payload, csv, actor, [campPaymentImporter]);
+  const camp = sides.find((side) => side.key === 'camp');
+  if (camp === undefined) throw new Error('The camp bills got no payment');
+  return camp.summary;
+};
 
 const ledger = createBillPaymentsCollection([campBillKind]);
 const [syncLegacyFields] = ledger.hooks?.beforeValidate ?? [];
