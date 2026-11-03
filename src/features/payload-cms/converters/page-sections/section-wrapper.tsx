@@ -143,10 +143,13 @@ const SectionWrapper = async ({
       >
         <div
           className={cn('w-full', {
-            'max-w-[840px]': block.blockType === 'richTextSection',
+            // a fact list reads as part of the text around it, so it keeps the text's measure
+            'max-w-[840px]':
+              block.blockType === 'richTextSection' || block.blockType === 'factList',
             'max-w-[1120px]':
               !isFullBleedBlock(block.blockType) &&
               block.blockType !== 'richTextSection' &&
+              block.blockType !== 'factList' &&
               block.blockType !== 'twoColumnBlock' &&
               block.blockType !== 'formBlock' &&
               // a working surface, laid out in columns of its own on a wide screen
