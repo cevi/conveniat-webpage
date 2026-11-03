@@ -1,9 +1,12 @@
 'use client';
 
+import { IconTile } from '@/components/ui/icon-tile';
 import type { NotificationType } from '@/lib/notification-type';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import { stripMarkdownFormatting } from '@/utils/strip-markdown-formatting';
+import type { LucideIcon } from 'lucide-react';
+import { createElement } from 'react';
 import { toast } from 'sonner';
 
 /**
@@ -63,6 +66,11 @@ export interface ForegroundNotification {
   body: string;
   /** In-app path opened when the user interacts with the notification. */
   targetPath: string;
+  /**
+   * Drawn in front of the in-app banner, for a message that is not text, like an image. The
+   * system notification the native shell renders has no room for it and stays text.
+   */
+  icon?: LucideIcon | undefined;
   /**
    * Which channel the native shell should render this on. Defaults to `default`;
    * `emergency` gets the siren and the alarm vibration pattern. See
@@ -192,6 +200,11 @@ const showInAppNotification = (notification: ForegroundNotification): void => {
 
   toast(notification.title, {
     ...(notification.body !== '' && { description: notification.body }),
+    ...(notification.icon !== undefined && {
+      icon: createElement(IconTile, { icon: notification.icon }),
+      // sonner sizes its icon slot for a bare 16px glyph
+      classNames: { icon: 'h-auto! w-auto! me-1!' },
+    }),
     action: {
       label: openActionLabel[locale],
       onClick: (): void => openNotificationTarget(notification.targetPath),

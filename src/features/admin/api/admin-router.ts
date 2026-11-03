@@ -1,3 +1,4 @@
+import { imageSentText } from '@/lib/chat-images';
 import {
   ChatCapability,
   ChatStatus,
@@ -633,13 +634,17 @@ export const adminRouter = createTRPCRouter({
         .filter((membership) => membership.userId !== user.uuid && !membership.hasDeleted)
         .map((membership) => membership.userId);
 
-      sendNotification(input.content, pushRecipientUserIds, input.chatId, message.uuid, {
+      // the same push text as `createMessage`: an image's content is its storage key
+      const isImage = input.type === MessageType.IMAGE_MSG;
+      const pushText = isImage ? imageSentText(user.name)[ctx.locale] : input.content;
+
+      sendNotification(pushText, pushRecipientUserIds, input.chatId, message.uuid, {
         kind:
           chat.type === ChatType.EMERGENCY
             ? PushNotificationKind.EMERGENCY
             : PushNotificationKind.CHAT,
         chatName: chat.name,
-        senderName: user.name,
+        ...(isImage ? {} : { senderName: user.name }),
         // This is the reply path of the CMS Alert Management view, so it posts into
         // emergency chats as well and has to reach the same verdict as the in-app
         // send in `create-message`: same message, same channel, whichever way it
