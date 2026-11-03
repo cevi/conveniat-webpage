@@ -1,5 +1,5 @@
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
-import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
+import { describeMessagePreview } from '@/features/chat/api/utils/get-message-preview-text';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import {
@@ -220,7 +220,7 @@ const performOptimisticMessageUpdate = async (
             senderId: optimisticMessage.senderId ?? SYSTEM_SENDER_ID,
             // derived with the same helper the server uses, so the preview does not
             // change once the real message is synced back
-            messagePreview: getMessagePreviewText({
+            ...describeMessagePreview({
               contentVersions: [{ payload: optimisticMessage.messagePayload }],
             }),
             createdAt: optimisticMessage.createdAt,
