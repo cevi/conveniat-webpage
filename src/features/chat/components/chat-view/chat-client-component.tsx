@@ -154,8 +154,11 @@ const ChatClientContent: React.FC = () => {
 };
 
 export const ChatClientComponent: React.FC = () => {
+  // A chat being opened beside this one shows here before the router remounts the route, so the
+  // key gives each chat a fresh screen: its own scroll, draft and open thread.
+  const chatId = useChatId();
   return (
-    <ChatActionsProvider>
+    <ChatActionsProvider key={chatId}>
       <ChatClientContent />
     </ChatActionsProvider>
   );
