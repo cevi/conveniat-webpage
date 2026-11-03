@@ -71,7 +71,6 @@ jest.mock('@/utils/server-logger', () => ({
 }));
 
 import { scheduleRouter } from '@/features/schedule/api/schedule-router';
-import { UNENROLLMENT_DEADLINE_PASSED } from '@/features/schedule/utils/unenrollment-deadline';
 import { getPayload } from 'payload';
 
 const createCaller = createCallerFactory(scheduleRouter);
@@ -161,7 +160,7 @@ describe('scheduleRouter and the shift withdrawal deadline', () => {
         toCourseId: 'workshop-1',
         fromCourseType: 'shift',
       }),
-    ).rejects.toThrow(UNENROLLMENT_DEADLINE_PASSED);
+    ).rejects.toMatchObject({ reason: 'unenrollmentDeadlinePassed' });
     expect(enrollment.delete).not.toHaveBeenCalled();
     expect(enrollment.create).not.toHaveBeenCalled();
   });
@@ -205,9 +204,10 @@ describe('scheduleRouter and the shift withdrawal deadline', () => {
       },
     );
 
-    await expect(caller().enrollInCourse({ courseId: 'workshop-1' })).rejects.toThrow(
-      'Time conflict with shift: Abwasch|shift-11',
-    );
+    await expect(caller().enrollInCourse({ courseId: 'workshop-1' })).rejects.toMatchObject({
+      reason: 'timeConflict',
+      params: { kind: 'shift', title: 'Abwasch', id: 'shift-11' },
+    });
     expect(enrollment.create).not.toHaveBeenCalled();
   });
 });

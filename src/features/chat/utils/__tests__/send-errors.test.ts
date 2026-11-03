@@ -1,8 +1,5 @@
-import {
-  isRateLimitError,
-  isRetryableSendError,
-  isTransportError,
-} from '@/features/chat/utils/send-errors';
+import { isRateLimitError, isRetryableSendError } from '@/features/chat/utils/send-errors';
+import { isTransportError } from '@/utils/user-error-message';
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import { initTRPC, TRPCError } from '@trpc/server';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';

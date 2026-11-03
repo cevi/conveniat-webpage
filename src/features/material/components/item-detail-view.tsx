@@ -25,6 +25,7 @@ import {
   Panel,
   SheetFooter,
 } from '@/features/material/components/material-ui';
+import { materialErrorTexts } from '@/features/material/error-texts';
 import { useIncidentPhotoUpload } from '@/features/material/hooks/use-incident-photo-upload';
 import {
   materialQueryOptions,
@@ -39,6 +40,7 @@ import { itemPath } from '@/features/material/utils/scan';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { userErrorMessage } from '@/utils/user-error-message';
 import { AlertTriangle, ArrowLeft, ChevronRight, Pencil, QrCode, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
@@ -152,7 +154,8 @@ const StockActions: React.FC<{ itemId: string; damaged: number; inRepair: number
                     toast.success(labels.saved[locale]);
                     void invalidate();
                   },
-                  onError: (error) => toast.error(error.message),
+                  onError: (error) =>
+                    toast.error(userErrorMessage(error, locale, materialErrorTexts)),
                 },
               )
             }
@@ -238,7 +241,8 @@ const ReportDamageForm: React.FC<{
                   toast.success(text.reported[locale]);
                   onDone();
                 },
-                onError: (error) => toast.error(error.message),
+                onError: (error) =>
+                  toast.error(userErrorMessage(error, locale, materialErrorTexts)),
               },
             )
           }

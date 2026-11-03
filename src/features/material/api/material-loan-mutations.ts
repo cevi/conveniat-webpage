@@ -28,9 +28,9 @@ import { isReturnValid } from '@/features/material/utils/returns';
 import { createPresignedUploadUrl } from '@/lib/presigned-urls';
 import type { MaterialCondition, Prisma } from '@/lib/prisma/client';
 import { uploadInputShape } from '@/lib/upload-policy';
-import type { Locale, StaticTranslationString } from '@/types/types';
+import { UserFacingTRPCError } from '@/trpc/error-formatter';
 import { createLogger } from '@/utils/server-logger';
-import { TRPCError } from '@trpc/server';
+import type { ErrorParameters } from '@/utils/user-error-message';
 import { z } from 'zod';
 
 const logger = createLogger('material:loans');
@@ -80,10 +80,10 @@ export const createLoanBasket = materialTeamProcedure
   .mutation(async ({ ctx, input }) => {
     // the Höfe come from Payload, read before the transaction rather than under its locks
     if (input.hofId !== undefined && !(await hofExists(input.hofId))) {
-      throw materialError('NOT_FOUND', 'hofNotFound', ctx.locale);
+      throw materialError('NOT_FOUND', 'hofNotFound');
     }
     const holder = holderOf({ hofId: input.hofId ?? null, personId: input.personId ?? null });
-    if (holder === undefined) throw materialError('BAD_REQUEST', 'noHolder', ctx.locale);
+    if (holder === undefined) throw materialError('BAD_REQUEST', 'noHolder');
     const lines = mergeBasketLines(input.lines);
     const now = new Date();
 
@@ -92,7 +92,7 @@ export const createLoanBasket = materialTeamProcedure
         input.personId === undefined
           ? undefined
           : await tx.user.findUnique({ where: { uuid: input.personId }, select: { name: true } });
-      if (person === null) throw materialError('BAD_REQUEST', 'personNotFound', ctx.locale);
+      if (person === null) throw materialError('BAD_REQUEST', 'personNotFound');
 
       const planned = await tx.materialLoan.findMany({
         where: { id: { in: input.preparedLoanIds } },
@@ -114,7 +114,7 @@ export const createLoanBasket = materialTeamProcedure
         );
       });
       if (foreign || prepared.length !== new Set(input.preparedLoanIds).size) {
-        throw materialError('CONFLICT', 'wrongStatus', ctx.locale);
+        throw materialError('CONFLICT', 'wrongStatus');
       }
 
       // cancelled first, so the pieces they held count as free for the lines below
@@ -135,7 +135,7 @@ export const createLoanBasket = materialTeamProcedure
       const numbers: number[] = [];
       for (const line of lines) {
         const item = await tx.materialItem.findUnique({ where: { id: line.itemId } });
-        if (!item) throw materialError('NOT_FOUND', 'itemNotFound', ctx.locale);
+        if (!item) throw materialError('NOT_FOUND', 'itemNotFound');
         const loanId = carriedOn.get(item.id);
         const booking: Booking = {
           item,
@@ -146,7 +146,7 @@ export const createLoanBasket = materialTeamProcedure
           endDate: input.endDate,
           ...(loanId === undefined ? {} : { loanId }),
         };
-        await assertBookable(tx, booking, ctx.locale);
+        await assertBookable(tx, booking);
         const data = await applyBooking(tx, booking, now);
         const loan =
           loanId === undefined
@@ -184,14 +184,10 @@ const bulkInput = z.object({ ids: z.array(z.string()).min(1).max(500) });
 export interface BulkLoanResult {
   id: string;
   ok: boolean;
-  error?: string;
+  /** why it failed, a key of `materialErrorTexts` the hand-out view translates */
+  reason?: string;
+  params?: ErrorParameters;
 }
-
-const unexpectedError = {
-  de: 'Unerwarteter Fehler.',
-  en: 'Unexpected error.',
-  fr: 'Erreur inattendue.',
-} satisfies StaticTranslationString;
 
 /**
  * Hands out prepared loans as they were prepared, each on its own: a loan whose pieces went
@@ -206,10 +202,10 @@ export const issueLoanList = materialTeamProcedure
     for (const id of new Set(input.ids)) {
       try {
         await ctx.prisma.$transaction(async (tx) => {
-          const loan = await lockLoan(tx, id, ctx.locale);
+          const loan = await lockLoan(tx, id);
           // a request the team hands out straight away is confirmed by that
           if (!PENDING_STATUSES.includes(loan.status)) {
-            throw materialError('BAD_REQUEST', 'wrongStatus', ctx.locale);
+            throw materialError('BAD_REQUEST', 'wrongStatus');
           }
           const now = new Date();
           const booking: Booking = {
@@ -222,7 +218,7 @@ export const issueLoanList = materialTeamProcedure
             endDate: loan.endDate,
             loanId: loan.id,
           };
-          await assertBookable(tx, booking, ctx.locale);
+          await assertBookable(tx, booking);
           await tx.materialLoan.update({
             where: { id: loan.id },
             data: await applyBooking(tx, booking, now),
@@ -230,14 +226,14 @@ export const issueLoanList = materialTeamProcedure
         });
         results.push({ id, ok: true });
       } catch (error) {
-        if (error instanceof TRPCError) {
-          results.push({ id, ok: false, error: error.message });
+        if (error instanceof UserFacingTRPCError) {
+          results.push({ id, ok: false, reason: error.reason, params: error.params });
         } else {
           logger.error('Material hand-out failed', {
             'material.loan.id': id,
             'error.message': error instanceof Error ? error.message : String(error),
           });
-          results.push({ id, ok: false, error: unexpectedError[ctx.locale] });
+          results.push({ id, ok: false, reason: 'unexpected' });
         }
       }
     }
@@ -267,15 +263,14 @@ const checkIn = async (
   loan: LoanWithItem,
   line: z.infer<typeof returnLineSchema>,
   reportedById: string,
-  locale: Locale,
 ): Promise<void> => {
-  if (loan.status !== 'ISSUED') throw materialError('CONFLICT', 'wrongStatus', locale);
+  if (loan.status !== 'ISSUED') throw materialError('CONFLICT', 'wrongStatus');
   const issued = loan.issuedQuantity ?? loan.quantity;
   const damaged = line.condition === 'DAMAGED' ? line.damagedQuantity : 0;
   if (
     !isReturnValid({ issued, returned: line.returnedQuantity, condition: line.condition, damaged })
   ) {
-    throw materialError('BAD_REQUEST', 'quantity', locale);
+    throw materialError('BAD_REQUEST', 'quantity');
   }
   const missing = issued - line.returnedQuantity;
   const note = line.note ?? '';
@@ -356,8 +351,8 @@ export const returnLoanBasket = materialTeamProcedure
       let pieces = 0;
       for (const line of input.lines) {
         const loan = loans.get(line.loanId);
-        if (loan === undefined) throw materialError('NOT_FOUND', 'loanNotFound', ctx.locale);
-        await checkIn(tx, loan, line, ctx.user.uuid, ctx.locale);
+        if (loan === undefined) throw materialError('NOT_FOUND', 'loanNotFound');
+        await checkIn(tx, loan, line, ctx.user.uuid);
         pieces += line.returnedQuantity;
       }
       logger.info('Material basket returned', {
@@ -386,12 +381,12 @@ export const reportIncident = materialTeamProcedure
     await ctx.prisma.$transaction(async (tx) => {
       await lockItem(tx, input.itemId);
       const item = await tx.materialItem.findUnique({ where: { id: input.itemId } });
-      if (!item) throw materialError('NOT_FOUND', 'itemNotFound', ctx.locale);
+      if (!item) throw materialError('NOT_FOUND', 'itemNotFound');
 
       if (input.condition !== 'LIGHT_DAMAGE') {
         // only pieces on the shelf; what is out is settled when it comes back
         if (input.quantity > (await getInDepotQuantity(tx, item))) {
-          throw materialError('BAD_REQUEST', 'quantity', ctx.locale);
+          throw materialError('BAD_REQUEST', 'quantity');
         }
         await tx.materialItem.update({
           where: { id: item.id },
@@ -440,7 +435,7 @@ export const confirmLoanList = materialTeamProcedure
         where: { id: { in: ids }, status: 'REQUESTED' },
         data: { status: 'RESERVED' },
       });
-      if (count !== ids.length) throw materialError('CONFLICT', 'wrongStatus', ctx.locale);
+      if (count !== ids.length) throw materialError('CONFLICT', 'wrongStatus');
     });
     logger.info('Material requests confirmed', { 'material.bulk.count': ids.length });
   });
@@ -462,7 +457,7 @@ export const rejectLoanList = materialTeamProcedure
           rejectionReason: input.reason ?? '',
         },
       });
-      if (count !== ids.length) throw materialError('CONFLICT', 'wrongStatus', ctx.locale);
+      if (count !== ids.length) throw materialError('CONFLICT', 'wrongStatus');
     });
     logger.info('Material requests rejected', { 'material.bulk.count': ids.length });
   });

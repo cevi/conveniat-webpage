@@ -1,5 +1,6 @@
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import prisma from '@/lib/db/prisma';
+import { formatTRPCError } from '@/trpc/error-formatter';
 import { traceProcedure } from '@/trpc/middleware/tracing';
 import {
   type HitobitoNextAuthUser,
@@ -40,6 +41,7 @@ export const createTRPCContext = cache(async () => {
 export type Context = Awaited<ReturnType<typeof createTRPCContext>>;
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
+  errorFormatter: formatTRPCError,
 });
 
 // Base router and procedure helpers

@@ -5,9 +5,9 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { environmentVariables } from '@/config/environment-variables';
 import { PersonName } from '@/features/chat/components/ui/person-name';
+import { chatErrorTexts } from '@/features/chat/error-texts';
 import { useChatInviteUrl } from '@/features/chat/hooks/use-chat-invite-url';
 import { describeScannedCode, readChatInvitePath } from '@/features/chat/utils/chat-invite-link';
-import { isRateLimitError } from '@/features/chat/utils/send-errors';
 import { QRCodeImage } from '@/features/payload-cms/payload-cms/components/qr-code/qr-code-image';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useQrScanner } from '@/hooks/use-qr-scanner';
@@ -15,6 +15,7 @@ import { fetchCeviQrCodeSvg } from '@/lib/cevi-qr-code';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { userErrorMessage } from '@/utils/user-error-message';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, CameraOff, QrCode, ScanLine } from 'lucide-react';
 import { useSession } from 'next-auth/react';
@@ -100,10 +101,8 @@ const ChatInviteQrCode: React.FC<{ locale: Locale }> = ({ locale }) => {
   });
 
   const isError = inviteUrl.isError || qrImage.isError;
-  // the rate limit's message is already in the user's language and says how long to wait
-  const errorText = isRateLimitError(inviteUrl.error)
-    ? inviteUrl.error.message
-    : text.qrError[locale];
+  // the rate limit says how long to wait; anything else is the generic failure
+  const errorText = userErrorMessage(inviteUrl.error, locale, chatErrorTexts, text.qrError);
 
   return (
     <div className="flex flex-col items-center gap-3">

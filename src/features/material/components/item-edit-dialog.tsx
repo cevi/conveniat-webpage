@@ -10,6 +10,7 @@ import {
   NumberInput,
   SheetFooter,
 } from '@/features/material/components/material-ui';
+import { materialErrorTexts } from '@/features/material/error-texts';
 import {
   materialQueryOptions,
   useInvalidateMaterial,
@@ -22,6 +23,7 @@ import { itemPath } from '@/features/material/utils/scan';
 import { trpc } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { userErrorMessage } from '@/utils/user-error-message';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
@@ -117,10 +119,6 @@ const fromItem = (item: EditableItem | undefined): FormState => ({
   isDisabled: item?.isDisabled ?? false,
 });
 
-const showError = (error: { message: string }): void => {
-  toast.error(error.message);
-};
-
 /** Creates an article, or edits one; every field an article has is on this form. */
 export const ItemEditDialog: React.FC<{
   item?: EditableItem;
@@ -172,7 +170,12 @@ export const ItemEditDialog: React.FC<{
         router.replace(itemPath(data.code));
       }
     };
-    const options = { onSuccess, onError: showError };
+    const options = {
+      onSuccess,
+      onError: (error: unknown): void => {
+        toast.error(userErrorMessage(error, locale, materialErrorTexts));
+      },
+    };
     if (item === undefined) create.mutate(data, options);
     else update.mutate({ id: item.id, ...data }, options);
   };

@@ -10,6 +10,7 @@ import {
   MaterialSheet,
   SheetFooter,
 } from '@/features/material/components/material-ui';
+import { materialErrorTexts } from '@/features/material/error-texts';
 import {
   materialQueryOptions,
   useInvalidateMaterial,
@@ -17,6 +18,7 @@ import {
 } from '@/features/material/hooks/use-material';
 import { trpc, type RouterOutputs } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
+import { userErrorMessage } from '@/utils/user-error-message';
 import { Pencil, Plus } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
@@ -30,10 +32,6 @@ const text = {
   name: { de: 'Name', en: 'Name', fr: 'Nom' },
   order: { de: 'Reihenfolge', en: 'Order', fr: 'Ordre' },
 } satisfies Record<string, StaticTranslationString>;
-
-const showError = (error: { message: string }): void => {
-  toast.error(error.message);
-};
 
 /** Creates or renames a category and sets where it appears in the catalogue. */
 const CategoryDialog: React.FC<{
@@ -56,7 +54,9 @@ const CategoryDialog: React.FC<{
         onClose();
         void invalidate();
       },
-      onError: showError,
+      onError: (error: unknown): void => {
+        toast.error(userErrorMessage(error, locale, materialErrorTexts));
+      },
     };
     if (category === undefined) create.mutate(data, options);
     else update.mutate({ id: category.id, ...data }, options);

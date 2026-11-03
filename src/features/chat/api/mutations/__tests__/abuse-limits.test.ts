@@ -232,10 +232,10 @@ const member = (
 /** The error a call failed with, or `undefined` when it went through. */
 const errorOf = async (
   call: Promise<unknown>,
-): Promise<{ code: string; message: string } | undefined> => {
-  let failure: { code: string; message: string } | undefined;
+): Promise<{ code: string; reason?: string; params?: Record<string, unknown> } | undefined> => {
+  let failure: { code: string; reason?: string; params?: Record<string, unknown> } | undefined;
   await call.catch((error: unknown) => {
-    failure = error as { code: string; message: string };
+    failure = error as { code: string; reason?: string };
   });
   return failure;
 };
@@ -294,29 +294,19 @@ describe('rate limits', () => {
   });
 
   it.each(limited)(
-    '%s turns the call after %i away, in German, before any database work',
+    '%s turns the call after %i away, with a reason, before any database work',
     async (name, limit, call) => {
       rateLimitCounts.set(`rate-limit:${name}:${ANNA}`, limit);
 
       const error = await errorOf(call(as(ANNA)));
 
       expect(error?.code).toBe('TOO_MANY_REQUESTS');
-      expect(error?.message).toMatch(/zu viele|mehrere/i);
+      expect(error?.reason).toMatch(/^tooMany/);
       expect(transactions).toBe(0);
       expect(writes).toEqual([]);
       expect(mockSendNotification).not.toHaveBeenCalled();
     },
   );
-
-  it('answers a French user in French', async () => {
-    rateLimitCounts.set(`rate-limit:chat.sendMessage:${ANNA}`, 20);
-
-    const error = await errorOf(
-      as(ANNA, 'fr').sendMessage({ chatId: CHAT_ID, content: 'Salut', timestamp: new Date() }),
-    );
-
-    expect(error?.message).toMatch(/trop de messages/);
-  });
 
   it('does not hold one user back for what another sent', async () => {
     rateLimitCounts.set(`rate-limit:chat.sendMessage:${ANNA}`, 20);
@@ -441,8 +431,11 @@ describe('reactions', () => {
 
     const error = await errorOf(as(ANNA).toggleReaction({ messageId: THREAD_ID, emoji: '🎉' }));
 
-    expect(error?.code).toBe('BAD_REQUEST');
-    expect(error?.message).toContain('höchstens 6');
+    expect(error).toMatchObject({
+      code: 'BAD_REQUEST',
+      reason: 'tooManyReactions',
+      params: { max: 6 },
+    });
     expect(writes).toEqual([]);
   });
 
@@ -474,15 +467,18 @@ describe('reactions', () => {
 describe('chat names', () => {
   const longName = 'Abteilung Uster und Abteilung Züri 11 am Scharniertag';
 
-  it('reject a group name longer than 50 characters, in German', async () => {
+  it('reject a group name longer than 50 characters', async () => {
     expect(longName.length).toBeGreaterThan(50);
 
     const error = await errorOf(
       as(ANNA).createChat({ members: [{ userId: BEN }, { userId: CARLA }], chatName: longName }),
     );
 
-    expect(error?.code).toBe('BAD_REQUEST');
-    expect(error?.message).toContain('höchstens 50 Zeichen');
+    expect(error).toMatchObject({
+      code: 'BAD_REQUEST',
+      reason: 'chatNameTooLong',
+      params: { max: 50 },
+    });
     expect(writes).toEqual([]);
   });
 
@@ -518,7 +514,7 @@ describe('chat names', () => {
 });
 
 describe('adding participants', () => {
-  it('is refused in a private chat, in German', async () => {
+  it('is refused in a private chat', async () => {
     chatType = ChatType.ONE_TO_ONE;
     memberships = [member(ANNA, ChatMembershipPermission.OWNER), member(BEN)];
 
@@ -526,8 +522,7 @@ describe('adding participants', () => {
       as(ANNA).addParticipants({ chatId: CHAT_ID, participantIds: [CARLA] }),
     );
 
-    expect(error?.code).toBe('BAD_REQUEST');
-    expect(error?.message).toContain('privaten Chat');
+    expect(error).toMatchObject({ code: 'BAD_REQUEST', reason: 'privateChat' });
     expect(writes).toEqual([]);
   });
 

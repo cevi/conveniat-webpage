@@ -1,9 +1,8 @@
+import { scheduleError } from '@/features/schedule/api/schedule-errors';
 import {
   getUnenrollmentDeadline,
   isUnenrollmentClosed,
-  UNENROLLMENT_DEADLINE_PASSED,
 } from '@/features/schedule/utils/unenrollment-deadline';
-import { TRPCError } from '@trpc/server';
 
 /**
  * As much of a shift as the withdrawal window is decided from.
@@ -41,6 +40,6 @@ export const getShiftUnenrollmentDeadline = (shift: ShiftWithdrawalWindow): Date
  */
 export const assertUnenrollmentIsOpen = (shift: ShiftWithdrawalWindow): void => {
   if (isUnenrollmentClosed(getShiftUnenrollmentDeadline(shift))) {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: UNENROLLMENT_DEADLINE_PASSED });
+    throw scheduleError('BAD_REQUEST', 'unenrollmentDeadlinePassed');
   }
 };

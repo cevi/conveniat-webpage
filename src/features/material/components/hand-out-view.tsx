@@ -20,6 +20,7 @@ import {
   Panel,
 } from '@/features/material/components/material-ui';
 import { RoleGate } from '@/features/material/components/role-gate';
+import { materialErrorTexts } from '@/features/material/error-texts';
 import {
   MATERIAL_POLL_INTERVAL_MS,
   materialQueryOptions,
@@ -34,6 +35,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { userErrorMessage } from '@/utils/user-error-message';
 import { Check, ChevronRight, PackageOpen, User } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
@@ -105,10 +107,6 @@ const text = {
 
 const SEARCH_DEBOUNCE_MS = 250;
 
-const showError = (error: { message: string }): void => {
-  toast.error(error.message);
-};
-
 /** A group's holder as the basket takes it, with the Hof a person's loans were booked with. */
 const basketStart = (group: MaterialHolderGroup, locale: Locale): BasketStart => {
   const name = holderName(group, locale);
@@ -159,7 +157,7 @@ const PickupCard: React.FC<{
       { ids: group.loans.map((loan) => loan.id) },
       {
         onSuccess: (results) => {
-          const { done, failed, errors } = summariseBulk(results);
+          const { done, failed, errors } = summariseBulk(results, locale);
           if (failed === 0) toast.success(format(labels.bulkDone, locale, { n: done }));
           else {
             toast.error(format(labels.bulkPartly, locale, { n: done, failed }), {
@@ -169,7 +167,7 @@ const PickupCard: React.FC<{
           setAsking(false);
           void invalidate();
         },
-        onError: (error) => toast.error(error.message),
+        onError: (error) => toast.error(userErrorMessage(error, locale, materialErrorTexts)),
       },
     );
   };
@@ -292,7 +290,12 @@ const RequestCard: React.FC<{
               onClick={() =>
                 reject.mutate(
                   { ids, ...(reason.trim() === '' ? {} : { reason }) },
-                  { onSuccess: () => done(text.rejected[locale]), onError: showError },
+                  {
+                    onSuccess: () => done(text.rejected[locale]),
+                    onError: (error: unknown): void => {
+                      toast.error(userErrorMessage(error, locale, materialErrorTexts));
+                    },
+                  },
                 )
               }
             >
@@ -317,7 +320,7 @@ const RequestCard: React.FC<{
                   { ids },
                   {
                     onSuccess: (results) => {
-                      const { done: count, failed, errors } = summariseBulk(results);
+                      const { done: count, failed, errors } = summariseBulk(results, locale);
                       if (failed === 0) done(format(labels.bulkDone, locale, { n: count }));
                       else {
                         toast.error(format(labels.bulkPartly, locale, { n: count, failed }), {
@@ -327,7 +330,9 @@ const RequestCard: React.FC<{
                         void invalidate();
                       }
                     },
-                    onError: showError,
+                    onError: (error: unknown): void => {
+                      toast.error(userErrorMessage(error, locale, materialErrorTexts));
+                    },
                   },
                 )
               }
@@ -355,7 +360,9 @@ const RequestCard: React.FC<{
                   { ids },
                   {
                     onSuccess: () => done(format(text.confirmed, locale, { lines })),
-                    onError: showError,
+                    onError: (error: unknown): void => {
+                      toast.error(userErrorMessage(error, locale, materialErrorTexts));
+                    },
                   },
                 )
               }

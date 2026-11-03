@@ -1,6 +1,10 @@
 import type { UploadReturnType } from '@/features/payload-cms/components/user-upload/upload-user-image';
 import type { UserImageContentType } from '@/features/payload-cms/constants/user-image-upload';
+import { uploadErrorTexts } from '@/features/payload-cms/upload-error-texts';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
+import { i18nConfig, type Locale } from '@/types/types';
+import { errorReasonOf, userErrorMessage } from '@/utils/user-error-message';
 import { TRPCClientError } from '@trpc/client';
 import { useCallback, useState } from 'react';
 
@@ -12,7 +16,14 @@ interface UseUserUploadResult {
   isUploading: boolean;
 }
 
+/** A refusal is translated; any other failure keeps the message the upload page matches on. */
+const uploadFailureMessage = (error: unknown, locale: Locale): string => {
+  if (errorReasonOf(error) !== undefined) return userErrorMessage(error, locale, uploadErrorTexts);
+  return error instanceof Error ? error.message : 'Unknown upload error';
+};
+
 export const useUserUpload = (): UseUserUploadResult => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const [activeUploads, setActiveUploads] = useState(0);
   const isUploading = activeUploads > 0;
   const getPresignedUrlMutation = trpc.upload.createUploadUrl.useMutation();
@@ -60,7 +71,7 @@ export const useUserUpload = (): UseUserUploadResult => {
         // console.error('Upload flow failed:', error);
         return {
           error: true,
-          message: error instanceof Error ? error.message : 'Unknown upload error',
+          message: uploadFailureMessage(error, locale),
           isRetryable:
             error instanceof TRPCClientError &&
             (error.data as { code?: string } | undefined)?.code === 'TOO_MANY_REQUESTS',
@@ -69,7 +80,7 @@ export const useUserUpload = (): UseUserUploadResult => {
         setActiveUploads((previous) => previous - 1);
       }
     },
-    [getPresignedUrlMutation, completeUploadMutation],
+    [getPresignedUrlMutation, completeUploadMutation, locale],
   );
 
   return {

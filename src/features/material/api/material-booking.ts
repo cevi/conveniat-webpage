@@ -6,7 +6,6 @@ import {
   materialError,
 } from '@/features/material/api/material-shared';
 import type { MaterialItem, Prisma } from '@/lib/prisma/client';
-import type { Locale } from '@/types/types';
 import { z } from 'zod';
 
 export const MAX_QUANTITY = 100_000;
@@ -23,14 +22,13 @@ export type LoanWithItem = Prisma.MaterialLoanGetPayload<{ include: { item: true
 export const findLoan = async (
   tx: Prisma.TransactionClient,
   id: string,
-  locale: Locale,
   visible: Prisma.MaterialLoanWhereInput = {},
 ): Promise<LoanWithItem> => {
   const loan = await tx.materialLoan.findFirst({
     where: { AND: [{ id }, visible] },
     include: { item: true },
   });
-  if (!loan) throw materialError('NOT_FOUND', 'loanNotFound', locale);
+  if (!loan) throw materialError('NOT_FOUND', 'loanNotFound');
   return loan;
 };
 
@@ -41,12 +39,11 @@ export const findLoan = async (
 export const lockLoan = async (
   tx: Prisma.TransactionClient,
   id: string,
-  locale: Locale,
   visible: Prisma.MaterialLoanWhereInput = {},
 ): Promise<LoanWithItem> => {
-  const { itemId } = await findLoan(tx, id, locale, visible);
+  const { itemId } = await findLoan(tx, id, visible);
   await lockItem(tx, itemId);
-  return await findLoan(tx, id, locale, visible);
+  return await findLoan(tx, id, visible);
 };
 
 /** One article going out now or being prepared, as a new loan or a prepared one changed. */
@@ -69,14 +66,13 @@ export interface Booking {
 export const assertBookable = async (
   tx: Prisma.TransactionClient,
   booking: Booking,
-  locale: Locale,
 ): Promise<void> => {
   const { item } = booking;
   if (booking.isConsumption && !item.isConsumable) {
-    throw materialError('BAD_REQUEST', 'notConsumable', locale, 0, item.name);
+    throw materialError('BAD_REQUEST', 'notConsumable', 0, item.name);
   }
   if (booking.mode === 'RESERVE' && !item.isReservable) {
-    throw materialError('BAD_REQUEST', 'notReservable', locale, 0, item.name);
+    throw materialError('BAD_REQUEST', 'notReservable', 0, item.name);
   }
   await assertAvailable({
     tx,
@@ -85,12 +81,11 @@ export const assertBookable = async (
     startDate: booking.startDate,
     endDate: booking.endDate,
     ...(booking.loanId === undefined ? {} : { excludeLoanId: booking.loanId }),
-    locale,
   });
   if (booking.mode === 'ISSUE') {
     const onShelf = await getInDepotQuantity(tx, item);
     if (booking.quantity > onShelf) {
-      throw materialError('CONFLICT', 'notOnShelf', locale, Math.max(onShelf, 0), item.name);
+      throw materialError('CONFLICT', 'notOnShelf', Math.max(onShelf, 0), item.name);
     }
   }
 };

@@ -185,16 +185,6 @@ export const getUnenrollmentDeadline = (
   return new Date(start.getTime() - minutes * MILLISECONDS_PER_MINUTE);
 };
 
-/**
- * The message the withdrawal guard rejects with.
- *
- * It travels to the client as the tRPC error message, which is the only part of a rejected
- * mutation the browser gets to see, so the client matches on it to tell "you are too late" apart
- * from a genuine failure. It is deliberately not user-facing text - the wording the helper reads
- * is localized in the component.
- */
-export const UNENROLLMENT_DEADLINE_PASSED = 'UNENROLLMENT_DEADLINE_PASSED';
-
 /** Whether the withdrawal window of a shift has already closed at `now`. */
 export const isUnenrollmentClosed = (
   deadline: Date | string | null | undefined,

@@ -19,6 +19,7 @@ import {
   MaterialSheet,
   Panel,
 } from '@/features/material/components/material-ui';
+import { materialErrorTexts } from '@/features/material/error-texts';
 import { useIncidentPhotoUpload } from '@/features/material/hooks/use-incident-photo-upload';
 import {
   materialQueryOptions,
@@ -40,6 +41,7 @@ import type { MaterialCondition } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { userErrorMessage } from '@/utils/user-error-message';
 import { ChevronLeft, PackageCheck, QrCode } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
@@ -319,7 +321,7 @@ export const ReturnEditor: React.FC<{
           onClose();
           void invalidate();
         },
-        onError: (error) => toast.error(error.message),
+        onError: (error) => toast.error(userErrorMessage(error, locale, materialErrorTexts)),
       },
     );
   };

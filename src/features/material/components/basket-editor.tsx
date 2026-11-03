@@ -20,6 +20,7 @@ import {
   Panel,
 } from '@/features/material/components/material-ui';
 import { ResponsibleNameField } from '@/features/material/components/responsible-name-field';
+import { materialErrorTexts } from '@/features/material/error-texts';
 import {
   materialQueryOptions,
   useInvalidateMaterial,
@@ -39,6 +40,7 @@ import { parseScan } from '@/features/material/utils/scan';
 import { trpc } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { userErrorMessage } from '@/utils/user-error-message';
 import { ChevronLeft, PackageOpen, Trash2, X } from 'lucide-react';
 import type React from 'react';
 import { useMemo, useState } from 'react';
@@ -499,7 +501,7 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
           onClose();
           void invalidate();
         },
-        onError: (error) => toast.error(error.message),
+        onError: (error) => toast.error(userErrorMessage(error, locale, materialErrorTexts)),
       },
     );
   };

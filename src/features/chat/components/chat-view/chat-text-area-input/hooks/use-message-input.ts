@@ -1,11 +1,15 @@
 import { useAutoResizeTextarea } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-auto-resize-textarea';
 import { useChatId } from '@/features/chat/context/chat-id-context';
+import { chatErrorTexts } from '@/features/chat/error-texts';
 import { getChatDraftKey, useChatDraft } from '@/features/chat/hooks/use-chat-draft';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import { useTypingSignal } from '@/features/chat/hooks/use-typing';
 import { generateMessageId } from '@/features/chat/utils';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 import { trpc } from '@/trpc/client';
+import { i18nConfig, type Locale } from '@/types/types';
+import { userErrorMessage } from '@/utils/user-error-message';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 
@@ -41,6 +45,7 @@ const isGlobalMessagingEnabledIn = (
 ): boolean => featureFlags?.find((f) => f.key === FEATURE_FLAG_SEND_MESSAGES)?.isEnabled ?? true;
 
 export const useMessageInput = (): UseMessageInputLogicResult => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
   const [newMessage, setNewMessage] = useState(() => {
     const shareText = searchParameters.get('text');
@@ -120,9 +125,9 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
             }
           },
           onError: (error) => {
-            // The send waits in the outbox; the server's message says why, in the user's language.
+            // the send waits in the outbox; the refusal says why
             if (error.data?.code === 'TOO_MANY_REQUESTS') {
-              setSendError(error.message);
+              setSendError(userErrorMessage(error, locale, chatErrorTexts));
               return;
             }
             // offline sends are queued by useMessageSend. Any other failed bubble stays in the
@@ -139,6 +144,7 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
     },
     [
       chatId,
+      locale,
       sendMessageMutation,
       isGlobalMessagingEnabled,
       activeThreadId,

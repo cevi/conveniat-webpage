@@ -20,6 +20,7 @@ import {
   Panel,
 } from '@/features/material/components/material-ui';
 import { MyLoansView } from '@/features/material/components/my-loans-view';
+import { materialErrorTexts } from '@/features/material/error-texts';
 import {
   MATERIAL_POLL_INTERVAL_MS,
   materialQueryOptions,
@@ -32,6 +33,7 @@ import { itemPath } from '@/features/material/utils/scan';
 import { trpc, type RouterOutputs } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { userErrorMessage } from '@/utils/user-error-message';
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -161,7 +163,10 @@ const ResolveButton: React.FC<{ id: string }> = ({ id }) => {
       onClick={() =>
         resolve.mutate(
           { id },
-          { onSuccess: () => void invalidate(), onError: (error) => toast.error(error.message) },
+          {
+            onSuccess: () => void invalidate(),
+            onError: (error) => toast.error(userErrorMessage(error, locale, materialErrorTexts)),
+          },
         )
       }
     >

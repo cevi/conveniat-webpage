@@ -1,9 +1,9 @@
+import { chatError } from '@/features/chat/api/chat-errors';
 import { assertChatNotArchived } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { ChatCapability } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
-import type { StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -19,12 +19,6 @@ const EMOJI_MAX_LENGTH = 16;
 /** As many as the reaction menu offers, so the app never runs into it. */
 const MAX_REACTIONS_PER_USER_AND_MESSAGE = 6;
 
-const tooManyReactionsText: StaticTranslationString = {
-  de: `Du kannst auf eine Nachricht mit höchstens ${MAX_REACTIONS_PER_USER_AND_MESSAGE} verschiedenen Emojis reagieren.`,
-  en: `You can react to a message with at most ${MAX_REACTIONS_PER_USER_AND_MESSAGE} different emojis.`,
-  fr: `Tu peux réagir à un message avec au plus ${MAX_REACTIONS_PER_USER_AND_MESSAGE} emojis différents.`,
-};
-
 const toggleReactionInputSchema = z.object({
   messageId: z.uuid('Invalid message ID format.'),
   emoji: z.string().min(1, 'Emoji cannot be empty.').max(EMOJI_MAX_LENGTH, 'Emoji is too long.'),
@@ -34,7 +28,7 @@ export const toggleReaction = trpcBaseProcedure
   .input(toggleReactionInputSchema)
   .use(databaseTransactionWrapper)
   .mutation(async ({ input, ctx }) => {
-    const { locale, user, prisma } = ctx;
+    const { user, prisma } = ctx;
     const { messageId, emoji } = input;
 
     // 1. Fetch the message to get its chatId
@@ -117,7 +111,9 @@ export const toggleReaction = trpcBaseProcedure
         where: { messageId, userId: user.uuid },
       });
       if (reactionCount >= MAX_REACTIONS_PER_USER_AND_MESSAGE) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: tooManyReactionsText[locale] });
+        throw chatError('BAD_REQUEST', 'tooManyReactions', {
+          max: MAX_REACTIONS_PER_USER_AND_MESSAGE,
+        });
       }
 
       // Two taps that cross both find no reaction. Skipping the duplicate keeps the second from

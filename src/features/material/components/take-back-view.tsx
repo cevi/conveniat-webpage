@@ -20,6 +20,7 @@ import {
 } from '@/features/material/components/material-ui';
 import { ReturnEditor } from '@/features/material/components/return-editor';
 import { RoleGate } from '@/features/material/components/role-gate';
+import { materialErrorTexts } from '@/features/material/error-texts';
 import {
   MATERIAL_POLL_INTERVAL_MS,
   materialQueryOptions,
@@ -41,6 +42,7 @@ import { parseScan } from '@/features/material/utils/scan';
 import { trpc } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { userErrorMessage } from '@/utils/user-error-message';
 import { Building2, Check, ChevronRight, Hash, User } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
@@ -118,7 +120,7 @@ const DueCard: React.FC<{
           setAsking(false);
           void invalidate();
         },
-        onError: (error) => toast.error(error.message),
+        onError: (error) => toast.error(userErrorMessage(error, locale, materialErrorTexts)),
       },
     );
   };
