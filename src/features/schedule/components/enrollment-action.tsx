@@ -10,7 +10,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-/* eslint-enable import/no-restricted-paths */
+import { useAuthStatus } from '@/hooks/use-auth-status';
+
 import { Button } from '@/components/ui/buttons/button';
 import { EnrolmentFailure, isFullRefusal } from '@/features/schedule/components/enrolment-failure';
 import { useCourseStatus } from '@/features/schedule/context/schedule-status-context';
@@ -24,7 +25,6 @@ import { handleLogin } from '@/utils/login-handler';
 import { cn } from '@/utils/tailwindcss-override';
 import { errorReasonOf } from '@/utils/user-error-message';
 import { CheckCircle, Loader2, LogIn, MessageSquare, Users, WifiOff } from 'lucide-react';
-import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import React, { useState } from 'react';
 
@@ -162,7 +162,7 @@ interface ConflictInfo {
 export const EnrollmentAction: React.FC<{
   courseId: string;
 }> = ({ courseId }) => {
-  const { status: authStatus } = useSession();
+  const authStatus = useAuthStatus();
   const isAuthorized = authStatus === 'authenticated';
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { status, isLoading, isOnline } = useCourseStatus(courseId);

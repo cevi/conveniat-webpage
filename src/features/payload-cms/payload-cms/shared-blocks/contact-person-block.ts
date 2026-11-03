@@ -55,7 +55,7 @@ export const contactPersonBlock: Block = {
     },
     {
       name: 'portrait',
-      type: 'relationship',
+      type: 'upload',
       relationTo: 'images',
       required: false,
       label: {

@@ -4,7 +4,7 @@ import type { Block, Field } from 'payload';
 const featureFields: Field[] = [
   {
     name: 'image',
-    type: 'relationship',
+    type: 'upload',
     relationTo: 'images',
     required: true,
     label: {

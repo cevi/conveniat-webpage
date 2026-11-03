@@ -10,7 +10,7 @@ export const singlePictureBlock: Block = {
     {
       name: 'image',
       label: 'Images',
-      type: 'relationship',
+      type: 'upload',
       relationTo: 'images',
       hasMany: false,
       required: true,

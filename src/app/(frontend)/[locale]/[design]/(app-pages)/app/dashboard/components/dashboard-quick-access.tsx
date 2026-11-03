@@ -4,6 +4,7 @@ import { QuickAccessSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pag
 import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
 import { supportMailLink } from '@/features/settings/utils/support-mail';
+import { useAuthStatus } from '@/hooks/use-auth-status';
 import { HitobitoNextAuthUserSchema } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type { LucideIcon } from 'lucide-react';
@@ -54,7 +55,8 @@ export const DashboardQuickAccess: React.FC<{
   flags: QuickAccessFlags;
   supportEmail: string;
 }> = ({ locale, flags, supportEmail }) => {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
+  const status = useAuthStatus();
   const parsedUser = HitobitoNextAuthUserSchema.safeParse(session?.user);
   const user = parsedUser.success ? parsedUser.data : undefined;
   const isGuest = user === undefined;

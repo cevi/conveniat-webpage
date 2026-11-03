@@ -3,10 +3,10 @@
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { Switch } from '@/components/ui/switch';
 import { SettingsRow } from '@/features/settings/components/settings-row';
+import { useAuthStatus } from '@/hooks/use-auth-status';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { useSession } from 'next-auth/react';
 import type React from 'react';
 
 const labels = {
@@ -37,7 +37,7 @@ const DEFAULTS = { leadMinutes: 15, atStart: true };
  * logged-in user, who is the only one with reminders.
  */
 export const ReminderSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
-  const { status } = useSession();
+  const status = useAuthStatus();
   const isAuthenticated = status === 'authenticated';
   const utils = trpc.useUtils();
   const { data: settings } = trpc.schedule.reminders.getReminderSettings.useQuery(undefined, {

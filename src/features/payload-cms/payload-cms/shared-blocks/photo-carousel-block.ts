@@ -1,7 +1,7 @@
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
-import type { Block, RelationshipFieldManyValidation } from 'payload';
+import type { Block, UploadFieldManyValidation } from 'payload';
 
-const photoCarouselMinSelectionValidation: RelationshipFieldManyValidation = (value, options) => {
+const photoCarouselMinSelectionValidation: UploadFieldManyValidation = (value, options) => {
   if (value === undefined || value === null || value.length < 5)
     return getValidationMessage(options.req.i18n.language, {
       en: 'At least 5 images are required',
@@ -25,9 +25,8 @@ export const photoCarouselBlock: Block = {
 
       admin: {
         isSortable: true,
-        appearance: 'drawer',
       },
-      type: 'relationship',
+      type: 'upload',
       relationTo: 'images',
       hasMany: true,
       required: true,

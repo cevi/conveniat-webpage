@@ -223,8 +223,8 @@ export const ProfileAvatar: React.FC<{
       >
         {step === 'choose' && (
           <div className="space-y-3">
-            <p className="bg-quiet flex items-start gap-2 rounded-[14px] px-3 py-2.5 text-[13px] leading-[18px] text-green-700">
-              <Eye className="mt-px h-4 w-4 shrink-0" aria-hidden="true" />
+            <p className="bg-quiet flex items-center gap-2 rounded-[14px] px-3 py-2.5 text-[13px] leading-[18px] text-green-700">
+              <Eye className="h-4 w-4 shrink-0" aria-hidden="true" />
               {labels.visibility[locale]}
             </p>
             <div className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">

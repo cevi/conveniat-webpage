@@ -43,6 +43,12 @@ export interface VisitDaySelectionBlock {
   registrationNumberField: string;
   /** the answer the lunch choice is stored under; without it the field does not ask */
   lunchField?: string | null;
+  /** the answer to whom the visitors come to see; without it the Hof list offers "no Hof" */
+  visitorTypeField?: string | null;
+  /** the answer with the name of the visited child; without it the field does not ask */
+  childNameField?: string | null;
+  /** the most persons per registration; without it the form asks for them in its own field */
+  maxPersons?: number | null;
   placement?: 'sidebar' | 'main';
 }
 

@@ -66,11 +66,12 @@ const getFieldNames = (
   ) {
     names.push(field.ressortName);
   }
-  // the Besuchstag field also asks about lunch and, for a visitor without a Hof, the day
+  // the Besuchstag field also asks whom they visit, the persons, lunch and, without a Hof, the day
   if (field.blockType === 'visitDaySelection') {
-    if (typeof field.lunchField === 'string' && field.lunchField !== '') {
-      names.push(field.lunchField);
+    for (const name of [field.visitorTypeField, field.childNameField, field.lunchField]) {
+      if (typeof name === 'string' && name !== '') names.push(name);
     }
+    if (typeof field.maxPersons === 'number') names.push(field.personCountField);
     names.push(field.dayField);
   }
   return names;

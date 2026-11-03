@@ -21,7 +21,7 @@ export const newsCardBlock: Block = {
       required: true,
     },
     {
-      type: 'relationship',
+      type: 'upload',
       name: 'image',
       relationTo: 'images',
       required: false,

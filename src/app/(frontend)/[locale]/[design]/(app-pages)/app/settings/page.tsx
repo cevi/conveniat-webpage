@@ -1,5 +1,4 @@
 import { SectionLabel } from '@/components/ui/section-label';
-import { AnalyticsSettings } from '@/features/settings/analytics-settings';
 import { SettingsCard } from '@/features/settings/components/settings-row';
 import { HelpSettings } from '@/features/settings/help-settings';
 import { LanguageSettings } from '@/features/settings/language-settings';
@@ -42,8 +41,6 @@ const Settings: React.FC<{ params: Promise<{ locale: Locale }> }> = async ({ par
             <PushNotificationSettings locale={locale} />
             {/* renders nothing for a visitor who is not logged in */}
             <ReminderSettings locale={locale} />
-            {/* renders nothing on a deployment without PostHog */}
-            <AnalyticsSettings locale={locale} />
             <LanguageSettings locale={locale} />
             <OfflineContentSettings locale={locale} />
           </SettingsCard>

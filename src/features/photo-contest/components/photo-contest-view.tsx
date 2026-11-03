@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
+import { useAuthStatus } from '@/hooks/use-auth-status';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -19,7 +20,7 @@ import {
   Trophy,
   X,
 } from 'lucide-react';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import type React from 'react';
@@ -223,7 +224,7 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
     [locale],
   );
 
-  const { status: authStatus } = useSession();
+  const authStatus = useAuthStatus();
   const isAuthenticated = authStatus === 'authenticated';
 
   const [selectedSlug, setSelectedSlug] = useState<string | undefined>(initialContestSlug);
@@ -376,7 +377,6 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
 
     const next = { ...localVotes };
     if (currentForImage === 1) {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete next[imageId];
     } else {
       next[imageId] = currentForImage - 1;

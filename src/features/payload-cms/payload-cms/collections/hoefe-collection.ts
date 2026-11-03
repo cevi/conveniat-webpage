@@ -6,6 +6,7 @@ import {
   isFullAdmin,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { resyncAvpChannels } from '@/features/payload-cms/payload-cms/utils/announcement-channel-memberships';
 import { refreshUserHoefe } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { Hof } from '@/features/payload-cms/payload-types';
@@ -103,6 +104,23 @@ const refreshUsersOfDeletedHof: CollectionAfterDeleteHook<Hof> = async ({ doc, r
   return doc;
 };
 
+/**
+ * An admin who deletes a Hof by hand takes its AVPs out of the AVP channels. The sync, which
+ * deletes Höfe too, brings the channels up to date once at its end instead of once per Hof.
+ */
+const resyncAvpChannelsAfterManualDelete: CollectionAfterDeleteHook<Hof> = async ({ doc, req }) => {
+  if (req.context['internal'] === true) return doc;
+  try {
+    await resyncAvpChannels(req.payload, req);
+  } catch (error: unknown) {
+    req.payload.logger.error(
+      { err: error, 'hof.id': doc.id },
+      'Could not bring the AVP channels up to date after a Hof was deleted',
+    );
+  }
+  return doc;
+};
+
 /** Who may place a Hof in its Quartier: the same people who may open a Hof at all. */
 const canPlaceHofInQuartier: FieldAccess = (args) =>
   hasAdminOrWebAccess({ req: args.req }) || canAccessBillingField(args);
@@ -140,7 +158,7 @@ export const HoefeCollection: CollectionConfig = {
   },
   hooks: {
     afterChange: [refreshUsersOfChangedEvents],
-    afterDelete: [refreshUsersOfDeletedHof],
+    afterDelete: [refreshUsersOfDeletedHof, resyncAvpChannelsAfterManualDelete],
   },
   access: {
     // Name, group and events are not confidential, and other areas build on them. The two

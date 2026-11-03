@@ -92,7 +92,7 @@ export const heroSectionBlock: Block = {
     },
     {
       name: 'image',
-      type: 'relationship',
+      type: 'upload',
       relationTo: 'images',
       required: false,
       label: {

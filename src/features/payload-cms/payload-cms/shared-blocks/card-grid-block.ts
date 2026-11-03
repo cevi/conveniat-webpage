@@ -115,7 +115,7 @@ export const cardGridBlock: Block = {
         },
         {
           name: 'customImage',
-          type: 'relationship',
+          type: 'upload',
           relationTo: 'images',
           required: true,
           label: {

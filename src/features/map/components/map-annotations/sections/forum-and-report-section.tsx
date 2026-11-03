@@ -2,6 +2,7 @@
 
 import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
+import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
@@ -12,7 +13,6 @@ import { handleLogin } from '@/utils/login-handler';
 import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { ChevronRight, Flag, Loader2, LogIn, WifiOff } from 'lucide-react';
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
@@ -60,7 +60,7 @@ export const AnnotationForumAndReportSection: React.FC<{
   const isOnline = useOnlineStatus();
   // A report is a chat, and a chat needs a login. A guest who sent one got a 401, which signs
   // the client out and sends it back to `/entrypoint`, out of the map they were using.
-  const { status: sessionStatus } = useSession();
+  const sessionStatus = useAuthStatus();
   const isGuest = sessionStatus === 'unauthenticated';
   const [isRedirecting, setIsRedirecting] = React.useState(false);
 

@@ -10,6 +10,7 @@ import { ConfirmationSlider } from '@/features/emergency/components/slide-to-con
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { withLocaleParameter } from '@/features/payload-cms/payload-cms/utils/document-download-name';
 import type { EmergencyCard } from '@/features/payload-cms/payload-types';
+import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
@@ -21,7 +22,6 @@ import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/cl
 import { Accordion } from '@radix-ui/react-accordion';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BriefcaseMedical, Download, FileText, ImageIcon, SearchX } from 'lucide-react';
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import type { ChangeEvent } from 'react';
 import React, { useEffect, useState } from 'react';
@@ -132,7 +132,7 @@ export const EmergencyComponent: React.FC = () => {
   const emergencyQuery = trpc.emergency.newAlert.useMutation({ networkMode: 'always' });
   const trpcUtils = trpc.useUtils();
 
-  const { status } = useSession();
+  const status = useAuthStatus();
 
   // Fetch alert settings for offline caching and emergency number.
   // `refetchOnMount` keeps the cached value on screen while it is revalidated
