@@ -365,6 +365,7 @@ export interface GenericPage {
       | MediaTextBlock
       | ProcessStepsBlock
       | FactListBlock
+      | VisitDayFinderBlock
       | FormBlock
       | ApprovedFormSubmissionsBlock
       | {
@@ -1335,6 +1336,19 @@ export interface FactListBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'factList';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "VisitDayFinderBlock".
+ */
+export interface VisitDayFinderBlock {
+  /**
+   * Optional. Shown small and in capitals above the search, e.g. "Your visiting day". The Höfe and their days come from the visiting day settings.
+   */
+  title?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'visitDayFinder';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5364,6 +5378,7 @@ export interface GenericPageSelect<T extends boolean = true> {
               mediaText?: T | MediaTextBlockSelect<T>;
               processSteps?: T | ProcessStepsBlockSelect<T>;
               factList?: T | FactListBlockSelect<T>;
+              visitDayFinder?: T | VisitDayFinderBlockSelect<T>;
               formBlock?: T | FormBlockSelect<T>;
               approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
               photoCarousel?:
@@ -5576,6 +5591,15 @@ export interface FactListBlockSelect<T extends boolean = true> {
         description?: T;
         id?: T;
       };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "VisitDayFinderBlock_select".
+ */
+export interface VisitDayFinderBlockSelect<T extends boolean = true> {
+  title?: T;
   id?: T;
   blockName?: T;
 }
@@ -8498,6 +8522,7 @@ export interface AppLandingPage {
         | MediaTextBlock
         | ProcessStepsBlock
         | FactListBlock
+        | VisitDayFinderBlock
         | FormBlock
         | ApprovedFormSubmissionsBlock
         | {
@@ -9332,6 +9357,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
         mediaText?: T | MediaTextBlockSelect<T>;
         processSteps?: T | ProcessStepsBlockSelect<T>;
         factList?: T | FactListBlockSelect<T>;
+        visitDayFinder?: T | VisitDayFinderBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
         approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
         photoCarousel?:

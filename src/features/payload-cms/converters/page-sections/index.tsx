@@ -32,6 +32,7 @@ import {
   RenderSponsorGrid,
   RenderTabsBlock,
   RenderTimelineEntries,
+  RenderVisitDayFinder,
   RenderWhiteSpace,
   RenderYoutubeEmbed,
   SummaryBlock,
@@ -94,6 +95,7 @@ export const PageSectionsConverter: React.FC<
     mediaText: RenderMediaText,
     processSteps: RenderProcessSteps,
     factList: RenderFactList,
+    visitDayFinder: RenderVisitDayFinder,
     sectionSeparator: RenderSectionSeparatorBlock,
   };
 

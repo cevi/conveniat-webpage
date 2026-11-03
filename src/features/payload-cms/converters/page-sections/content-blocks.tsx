@@ -59,8 +59,10 @@ import type {
   Timeline,
   TimelineCategory,
   TimelineEntries,
+  VisitDayFinderBlock,
 } from '@/features/payload-cms/payload-types';
 import { PhotoContestView } from '@/features/photo-contest/components/photo-contest-view';
+import { VisitDayFinder } from '@/features/visit-day/components/visit-day-finder';
 import type { Locale, LocalizedPageType, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import config from '@payload-config';
@@ -114,6 +116,7 @@ export type ContentBlockTypeNames =
   | 'mediaText'
   | 'processSteps'
   | 'factList'
+  | 'visitDayFinder'
   | 'sectionSeparator';
 
 export type SectionRenderer<T = object> = React.FC<
@@ -847,6 +850,32 @@ export const RenderFactList: SectionRenderer<FactListBlock> = ({
       locale={locale}
     >
       <FactList {...block} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderVisitDayFinder: SectionRenderer<VisitDayFinderBlock> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Die Besuchstag-Suche',
+          en: 'visiting day finder',
+          fr: 'la recherche de la journée des visites',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <VisitDayFinder title={block.title} />
     </SectionWrapper>
   );
 };
