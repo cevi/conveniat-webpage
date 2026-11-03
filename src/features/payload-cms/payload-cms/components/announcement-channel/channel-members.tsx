@@ -9,11 +9,6 @@ import type React from 'react';
 /** Enough to check a channel by eye; the count above the list covers the rest. */
 const MAX_LISTED = 500;
 
-const title: StaticTranslationString = {
-  de: 'Mitglieder',
-  en: 'Members',
-  fr: 'Membres',
-};
 const notCreatedYet: StaticTranslationString = {
   de: 'Der Kanal wird beim Speichern erstellt; danach stehen hier seine Mitglieder.',
   en: 'The channel is created when you save; its members are listed here afterwards.',
@@ -48,7 +43,7 @@ const PERMISSION_ORDER: ChatMembershipPermission[] = [
 ];
 
 /**
- * Sidebar list of who is in a channel's chat right now, as the app sees it: the memberships in
+ * Lists who is in a channel's chat right now, as the app sees it: the memberships in
  * the chat database, not the audience the channel is set to.
  */
 export const ChannelMembersField = async ({
@@ -61,7 +56,6 @@ export const ChannelMembersField = async ({
   if (typeof chatUuid !== 'string' || chatUuid === '') {
     return (
       <div className="field-type mb-8">
-        <FieldLabel label={title[locale]} />
         <p className="m-0 text-(--theme-elevation-500)">{notCreatedYet[locale]}</p>
       </div>
     );
@@ -80,7 +74,7 @@ export const ChannelMembersField = async ({
 
   return (
     <div className="field-type mb-8">
-      <FieldLabel label={`${title[locale]} · ${countLabel(members.length)[locale]}`} />
+      <FieldLabel label={countLabel(members.length)[locale]} />
       <ul className="m-0 flex max-h-96 list-none flex-col overflow-y-auto border-y border-(--theme-elevation-100) p-0">
         {listed.map((member) => {
           const permission = permissionLabels[member.chatPermission];

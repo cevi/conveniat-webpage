@@ -254,206 +254,12 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
       type: 'text',
       required: true,
       admin: {
+        position: 'sidebar',
         description: {
           en: 'Only visible in the admin panel. Pick this name when you link an announcement to the channel.',
           de: 'Nur im Admin-Panel sichtbar. Unter diesem Namen wählst du den Kanal für eine Ankündigung aus.',
           fr: "Visible uniquement dans le panneau d'administration. C'est sous ce nom que tu choisis le canal d'une annonce.",
         },
-      },
-    },
-    {
-      name: 'name',
-      label: {
-        en: 'Chat name in the app',
-        de: 'Chatname in der App',
-        fr: "Nom du chat dans l'app",
-      },
-      type: 'text',
-      required: true,
-      admin: {
-        description: {
-          en: 'Shown to all members as the name of the chat.',
-          de: 'Wird allen Mitgliedern als Name des Chats angezeigt.',
-          fr: 'Affiché à tous les membres comme nom du chat.',
-        },
-      },
-    },
-    {
-      name: 'description',
-      label: {
-        en: 'Description',
-        de: 'Beschreibung',
-        fr: 'Description',
-      },
-      type: 'text',
-    },
-    {
-      name: 'targetType',
-      label: {
-        en: 'Target Group Type',
-        de: 'Zielgruppentyp',
-        fr: 'Type de groupe cible',
-      },
-      type: 'select',
-      required: true,
-      defaultValue: 'all',
-      options: [
-        {
-          label: { en: 'All Users', de: 'Alle Benutzer', fr: 'Tous les utilisateurs' },
-          value: 'all',
-        },
-        {
-          label: { en: 'Specific Roles', de: 'Spezifische Rollen', fr: 'Rôles spécifiques' },
-          value: 'roles',
-        },
-        {
-          label: { en: 'Cevi.DB groups', de: 'Cevi.DB-Gruppen', fr: 'Groupes Cevi.DB' },
-          value: 'cevi_groups',
-        },
-        {
-          label: { en: 'All AVPs', de: 'Alle AVPs', fr: 'Tous les AVP' },
-          value: 'avps',
-        },
-      ],
-      // the AVPs are found through the Höfe, which only the Hof dashboard keeps
-      filterOptions: ({ options }) =>
-        environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD
-          ? options
-          : options.filter(
-              (option) => (typeof option === 'string' ? option : option.value) !== 'avps',
-            ),
-    },
-    {
-      name: 'targetRoles',
-      label: {
-        en: 'Target Roles',
-        de: 'Zielrollen',
-        fr: 'Rôles cibles',
-      },
-      type: 'select',
-      hasMany: true,
-      options: Object.values(Roles).map((role) => ({ label: ROLE_LABELS[role], value: role })),
-      admin: {
-        condition: (data) => data['targetType'] === 'roles',
-      },
-    },
-    {
-      name: 'targetCeviGroups',
-      label: {
-        en: 'Target Cevi.DB groups',
-        de: 'Ziel-Cevi.DB-Gruppen',
-        fr: 'Groupes Cevi.DB cibles',
-      },
-      labels: {
-        singular: { en: 'Cevi.DB group', de: 'Cevi.DB-Gruppe', fr: 'Groupe Cevi.DB' },
-        plural: { en: 'Cevi.DB groups', de: 'Cevi.DB-Gruppen', fr: 'Groupes Cevi.DB' },
-      },
-      type: 'array',
-      admin: {
-        condition: (data) => data['targetType'] === 'cevi_groups',
-        description: {
-          en: 'Everyone who is in one of these groups in Cevi.DB. Pick a group by its name or type its ID.',
-          de: 'Alle, die in der Cevi.DB in einer dieser Gruppen sind. Wähle eine Gruppe über ihren Namen aus oder gib ihre ID ein.',
-          fr: "Toutes les personnes membres d'un de ces groupes dans Cevi.DB. Choisis un groupe par son nom ou saisis son ID.",
-        },
-        components: {
-          RowLabel:
-            '@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-row-label#CeviGroupRowLabel',
-        },
-      },
-      fields: [
-        {
-          name: 'groupId',
-          label: { en: 'Cevi.DB group', de: 'Cevi.DB-Gruppe', fr: 'Groupe Cevi.DB' },
-          type: 'number',
-          required: true,
-          admin: {
-            components: {
-              Field:
-                '@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-picker#CeviGroupPicker',
-            },
-          },
-        },
-        {
-          // filled in by the picker; only shown so a group typed in by its ID can be named
-          name: 'groupName',
-          label: { en: 'Group Name', de: 'Gruppenname', fr: 'Nom du groupe' },
-          type: 'text',
-        },
-      ],
-    },
-    {
-      name: 'audiencePreview',
-      type: 'ui',
-      admin: {
-        components: {
-          Field:
-            '@/features/payload-cms/payload-cms/components/announcement-channel/audience-preview#AudiencePreview',
-        },
-        disableListColumn: true,
-      },
-    },
-    {
-      name: 'allowEmojiReactions',
-      label: {
-        en: 'Allow Emoji Reactions',
-        de: 'Emoji-Reaktionen erlauben',
-        fr: 'Autoriser les réactions emoji',
-      },
-      type: 'checkbox',
-      defaultValue: false,
-    },
-    {
-      name: 'allowThreads',
-      label: {
-        en: 'Allow Threads',
-        de: 'Threads erlauben',
-        fr: 'Autoriser les fils de discussion',
-      },
-      type: 'checkbox',
-      defaultValue: false,
-    },
-    {
-      name: 'allowThreadReplies',
-      label: {
-        en: 'Allow Replies in Threads (for Guest/Reader Users)',
-        de: 'Antworten in Threads erlauben (für Gäste/Leser)',
-        fr: 'Autoriser les réponses dans les fils (pour les invités/lecteurs)',
-      },
-      type: 'checkbox',
-      defaultValue: false,
-      admin: {
-        condition: (data) => !!data['allowThreads'],
-      },
-    },
-    {
-      name: 'pinned',
-      label: {
-        en: 'Pin in the chat overview',
-        de: 'In der Chatübersicht anheften',
-        fr: 'Épingler dans la liste des discussions',
-      },
-      type: 'checkbox',
-      defaultValue: false,
-      admin: {
-        position: 'sidebar',
-        description: {
-          en: 'Pinned channels stay at the top of the chat overview, above all other chats.',
-          de: 'Angeheftete Kanäle stehen in der Chatübersicht immer zuoberst, über allen anderen Chats.',
-          fr: 'Les canaux épinglés restent en haut de la liste des discussions, au-dessus de toutes les autres.',
-        },
-      },
-    },
-    {
-      name: 'members',
-      type: 'ui',
-      admin: {
-        position: 'sidebar',
-        components: {
-          Field:
-            '@/features/payload-cms/payload-cms/components/announcement-channel/channel-members#ChannelMembersField',
-        },
-        disableListColumn: true,
       },
     },
     {
@@ -464,6 +270,240 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
         readOnly: true,
         position: 'sidebar',
       },
+    },
+    {
+      type: 'tabs',
+      tabs: [
+        {
+          label: { en: 'Chat', de: 'Chat', fr: 'Chat' },
+          admin: {
+            description: {
+              en: 'What members see of the channel in the app, and what they may do in it.',
+              de: 'Was die Mitglieder in der App vom Kanal sehen und was sie darin tun dürfen.',
+              fr: "Ce que les membres voient du canal dans l'app, et ce qu'ils peuvent y faire.",
+            },
+          },
+          fields: [
+            {
+              name: 'name',
+              label: {
+                en: 'Chat name in the app',
+                de: 'Chatname in der App',
+                fr: "Nom du chat dans l'app",
+              },
+              type: 'text',
+              required: true,
+              admin: {
+                description: {
+                  en: 'Shown to all members as the name of the chat.',
+                  de: 'Wird allen Mitgliedern als Name des Chats angezeigt.',
+                  fr: 'Affiché à tous les membres comme nom du chat.',
+                },
+              },
+            },
+            {
+              name: 'description',
+              label: {
+                en: 'Description',
+                de: 'Beschreibung',
+                fr: 'Description',
+              },
+              type: 'text',
+            },
+            {
+              name: 'pinned',
+              label: {
+                en: 'Pin in the chat overview',
+                de: 'In der Chatübersicht anheften',
+                fr: 'Épingler dans la liste des discussions',
+              },
+              type: 'checkbox',
+              defaultValue: false,
+              admin: {
+                description: {
+                  en: 'Pinned channels stay at the top of the chat overview, above all other chats.',
+                  de: 'Angeheftete Kanäle stehen in der Chatübersicht immer zuoberst, über allen anderen Chats.',
+                  fr: 'Les canaux épinglés restent en haut de la liste des discussions, au-dessus de toutes les autres.',
+                },
+              },
+            },
+            {
+              name: 'allowEmojiReactions',
+              label: {
+                en: 'Allow Emoji Reactions',
+                de: 'Emoji-Reaktionen erlauben',
+                fr: 'Autoriser les réactions emoji',
+              },
+              type: 'checkbox',
+              defaultValue: false,
+            },
+            {
+              name: 'allowThreads',
+              label: {
+                en: 'Allow Threads',
+                de: 'Threads erlauben',
+                fr: 'Autoriser les fils de discussion',
+              },
+              type: 'checkbox',
+              defaultValue: false,
+            },
+            {
+              name: 'allowThreadReplies',
+              label: {
+                en: 'Allow Replies in Threads (for Guest/Reader Users)',
+                de: 'Antworten in Threads erlauben (für Gäste/Leser)',
+                fr: 'Autoriser les réponses dans les fils (pour les invités/lecteurs)',
+              },
+              type: 'checkbox',
+              defaultValue: false,
+              admin: {
+                condition: (data) => !!data['allowThreads'],
+              },
+            },
+          ],
+        },
+        {
+          label: { en: 'Audience', de: 'Zielgruppe', fr: 'Public cible' },
+          admin: {
+            description: {
+              en: 'Who is added to the channel. Saving updates the members right away.',
+              de: 'Wer in den Kanal aufgenommen wird. Beim Speichern werden die Mitglieder sofort angepasst.',
+              fr: 'Qui est ajouté au canal. L’enregistrement met les membres à jour immédiatement.',
+            },
+          },
+          fields: [
+            {
+              name: 'targetType',
+              label: {
+                en: 'Target Group Type',
+                de: 'Zielgruppentyp',
+                fr: 'Type de groupe cible',
+              },
+              type: 'select',
+              required: true,
+              defaultValue: 'all',
+              options: [
+                {
+                  label: { en: 'All Users', de: 'Alle Benutzer', fr: 'Tous les utilisateurs' },
+                  value: 'all',
+                },
+                {
+                  label: {
+                    en: 'Specific Roles',
+                    de: 'Spezifische Rollen',
+                    fr: 'Rôles spécifiques',
+                  },
+                  value: 'roles',
+                },
+                {
+                  label: { en: 'Cevi.DB groups', de: 'Cevi.DB-Gruppen', fr: 'Groupes Cevi.DB' },
+                  value: 'cevi_groups',
+                },
+                {
+                  label: { en: 'All AVPs', de: 'Alle AVPs', fr: 'Tous les AVP' },
+                  value: 'avps',
+                },
+              ],
+              // the AVPs are found through the Höfe, which only the Hof dashboard keeps
+              filterOptions: ({ options }) =>
+                environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD
+                  ? options
+                  : options.filter(
+                      (option) => (typeof option === 'string' ? option : option.value) !== 'avps',
+                    ),
+            },
+            {
+              name: 'targetRoles',
+              label: {
+                en: 'Target Roles',
+                de: 'Zielrollen',
+                fr: 'Rôles cibles',
+              },
+              type: 'select',
+              hasMany: true,
+              options: Object.values(Roles).map((role) => ({
+                label: ROLE_LABELS[role],
+                value: role,
+              })),
+              admin: {
+                condition: (data) => data['targetType'] === 'roles',
+              },
+            },
+            {
+              name: 'targetCeviGroups',
+              label: {
+                en: 'Target Cevi.DB groups',
+                de: 'Ziel-Cevi.DB-Gruppen',
+                fr: 'Groupes Cevi.DB cibles',
+              },
+              labels: {
+                singular: { en: 'Cevi.DB group', de: 'Cevi.DB-Gruppe', fr: 'Groupe Cevi.DB' },
+                plural: { en: 'Cevi.DB groups', de: 'Cevi.DB-Gruppen', fr: 'Groupes Cevi.DB' },
+              },
+              type: 'array',
+              admin: {
+                condition: (data) => data['targetType'] === 'cevi_groups',
+                description: {
+                  en: 'Everyone who is in one of these groups in Cevi.DB. Pick a group by its name or type its ID.',
+                  de: 'Alle, die in der Cevi.DB in einer dieser Gruppen sind. Wähle eine Gruppe über ihren Namen aus oder gib ihre ID ein.',
+                  fr: "Toutes les personnes membres d'un de ces groupes dans Cevi.DB. Choisis un groupe par son nom ou saisis son ID.",
+                },
+                components: {
+                  RowLabel:
+                    '@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-row-label#CeviGroupRowLabel',
+                },
+              },
+              fields: [
+                {
+                  name: 'groupId',
+                  label: { en: 'Cevi.DB group', de: 'Cevi.DB-Gruppe', fr: 'Groupe Cevi.DB' },
+                  type: 'number',
+                  required: true,
+                  admin: {
+                    components: {
+                      Field:
+                        '@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-picker#CeviGroupPicker',
+                    },
+                  },
+                },
+                {
+                  // filled in by the picker; only shown so a group typed in by its ID can be named
+                  name: 'groupName',
+                  label: { en: 'Group Name', de: 'Gruppenname', fr: 'Nom du groupe' },
+                  type: 'text',
+                },
+              ],
+            },
+            {
+              name: 'audiencePreview',
+              type: 'ui',
+              admin: {
+                components: {
+                  Field:
+                    '@/features/payload-cms/payload-cms/components/announcement-channel/audience-preview#AudiencePreview',
+                },
+                disableListColumn: true,
+              },
+            },
+          ],
+        },
+        {
+          label: { en: 'Members', de: 'Mitglieder', fr: 'Membres' },
+          fields: [
+            {
+              name: 'members',
+              type: 'ui',
+              admin: {
+                components: {
+                  Field:
+                    '@/features/payload-cms/payload-cms/components/announcement-channel/channel-members#ChannelMembersField',
+                },
+                disableListColumn: true,
+              },
+            },
+          ],
+        },
+      ],
     },
   ],
 };
