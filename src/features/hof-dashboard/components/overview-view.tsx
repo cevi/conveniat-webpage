@@ -8,7 +8,6 @@ import {
   Panel,
   ProgressPill,
   QUIET_BUTTON_CLASS,
-  ResponsibleList,
   SECONDARY_BUTTON_CLASS,
   SectionHeading,
   SegmentBar,
@@ -213,7 +212,6 @@ const SummaryStrip: React.FC<{
             </span>
             <span className="block text-sm text-green-700 tabular-nums">{count}</span>
             <SegmentBar
-              area={area}
               label={`${label}: ${count}`}
               segments={ofArea.map(({ progress }) =>
                 progress.state === 'done' ? 'filled' : 'empty',
@@ -369,12 +367,6 @@ export const OverviewView: React.FC<{
               />
             </Panel>
           )}
-
-          {/* whom to ask; on a wide screen it stays beside the sections instead */}
-          <Panel className="space-y-4 @min-[900px]/dashboard:hidden">
-            <SectionHeading>{translate('responsible', locale)}</SectionHeading>
-            <ResponsibleList people={data.responsible} locale={locale} />
-          </Panel>
         </div>
       </div>
     </div>

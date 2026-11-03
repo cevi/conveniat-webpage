@@ -12,8 +12,8 @@ const belongsToHof = (data: Record<string, unknown>): boolean =>
 
 /**
  * What the Ressort answers on a submission a Hof handed in on its dashboard, and who handed
- * it in. The Hof sees the status and the feedback next to its submission, with who wrote it;
- * the reviewers also see every change of either, in `hofReviewLog`.
+ * it in. Every change of the status and every comment lands in `hofReviewLog`, with who made
+ * it and when; the Hof and the Ressort both read that history on the dashboard.
  */
 export const formSubmissionReviewFields: Field[] = [
   {
@@ -37,12 +37,21 @@ export const formSubmissionReviewFields: Field[] = [
   {
     name: 'hofFeedback',
     type: 'textarea',
-    label: { en: 'Feedback to the Hof', de: 'Rückmeldung an den Hof', fr: 'Retour au Hof' },
+    label: {
+      en: 'Latest comment to the Hof',
+      de: 'Neuester Kommentar an den Hof',
+      fr: 'Dernier commentaire au Hof',
+    },
     access: { create: canReviewHofDashboard, update: canReviewHofDashboard },
     admin: {
       hidden: !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
       position: 'sidebar',
       condition: belongsToHof,
+      description: {
+        en: 'Writing something new here adds it to the history as a comment, with your name and the time. Earlier comments stay there.',
+        de: 'Wer hier etwas Neues schreibt, fügt es dem Verlauf als Kommentar hinzu, mit Name und Zeit. Frühere Kommentare bleiben dort.',
+        fr: "Écrire ici quelque chose de nouveau l'ajoute à l'historique comme commentaire, avec ton nom et l'heure. Les commentaires précédents y restent.",
+      },
     },
   },
   {
@@ -87,8 +96,9 @@ export const formSubmissionReviewFields: Field[] = [
       singular: { en: 'Change', de: 'Änderung', fr: 'Modification' },
       plural: { en: 'Changes', de: 'Änderungen', fr: 'Modifications' },
     },
-    // written by recordHofReview on every change of status or feedback, and by nothing else;
-    // for the reviewers only, the Hof sees who wrote the current feedback
+    // written by recordHofReview on every change of status or comment, and by nothing else.
+    // The dashboard shows it to the Hof as well, through the server; in the admin panel and
+    // over the API it stays the reviewers'
     access: { read: canReviewHofDashboard, create: () => false, update: () => false },
     admin: {
       hidden: !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
@@ -96,9 +106,9 @@ export const formSubmissionReviewFields: Field[] = [
       condition: belongsToHof,
       initCollapsed: true,
       description: {
-        en: 'Who changed the status or the feedback, and when. Written on every save.',
-        de: 'Wer Status oder Rückmeldung wann geändert hat. Wird bei jedem Speichern ergänzt.',
-        fr: 'Qui a modifié le statut ou le retour, et quand. Complété à chaque enregistrement.',
+        en: 'Who changed the status or wrote a comment, and when. Written on every save; the Hof sees it on its dashboard.',
+        de: 'Wer wann den Status geändert oder einen Kommentar geschrieben hat. Wird bei jedem Speichern ergänzt; der Hof sieht ihn auf seinem Dashboard.',
+        fr: 'Qui a modifié le statut ou écrit un commentaire, et quand. Complété à chaque enregistrement ; le Hof le voit sur son tableau de bord.',
       },
     },
     fields: [

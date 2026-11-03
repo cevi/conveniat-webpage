@@ -63,7 +63,7 @@ const entry = (id: string, overrides: Record<string, unknown> = {}): Record<stri
   submittedAt: inDays(-2),
   title: undefined,
   status: 'submitted',
-  feedback: undefined,
+  submittedBy: undefined,
   answers: [],
   withdrawable: false,
   // the Ressort's own status, where it answered
@@ -71,7 +71,6 @@ const entry = (id: string, overrides: Record<string, unknown> = {}): Record<stri
     ? overrides['status']
     : undefined,
   final: false,
-  feedbackBy: undefined,
   reviewLog: [],
   ...overrides,
 });
@@ -111,8 +110,16 @@ const PLAN = dashboardForm('form-plan', {
   entries: [
     entry('plan-2', {
       status: 'revisionRequired',
-      feedback: 'Die Statik fehlt noch.',
-      feedbackBy: { name: 'Sara Keller v/o Biber', at: '2026-09-20T08:30:00.000Z' },
+      submittedBy: 'Anna Beispiel v/o Fuchs',
+      reviewLog: [
+        {
+          at: '2026-09-20T08:30:00.000Z',
+          by: 'Sara Keller v/o Biber',
+          status: 'revisionRequired',
+          final: undefined,
+          comment: 'Die Statik fehlt noch.',
+        },
+      ],
       answers: [
         { field: 'beschreibung', label: 'Beschreibung', kind: 'text', text: 'Zweiter Entwurf' },
         {
@@ -212,8 +219,15 @@ const FINAL_ORDER = {
       status: 'accepted',
       reviewStatus: 'accepted',
       final: true,
-      feedback: 'Bestellung übernommen.',
-      feedbackBy: { name: 'Sara Keller v/o Biber', at: '2026-09-21T08:30:00.000Z' },
+      reviewLog: [
+        {
+          at: '2026-09-21T08:30:00.000Z',
+          by: 'Sara Keller v/o Biber',
+          status: 'accepted',
+          final: true,
+          comment: 'Bestellung übernommen.',
+        },
+      ],
     },
   ],
 };
@@ -398,19 +412,6 @@ const forReviewer = (form: Record<string, unknown>): Record<string, unknown> => 
   entries: (form['entries'] as Record<string, unknown>[]).map((submitted) => ({
     ...submitted,
     withdrawable: false,
-    // the history the server keeps for the reviewers
-    reviewLog:
-      submitted['feedbackBy'] === undefined
-        ? []
-        : [
-            {
-              at: (submitted['feedbackBy'] as { at: string }).at,
-              by: (submitted['feedbackBy'] as { name: string }).name,
-              status: submitted['status'],
-              feedback: submitted['feedback'],
-              final: submitted['final'] === true,
-            },
-          ],
   })),
 });
 
@@ -472,8 +473,9 @@ test.describe('Hof dashboard', () => {
     });
     await page.goto('/hof-dashboard');
 
-    // what waits for the Ressort first, by Hof
-    await expect(page.getByRole('heading', { name: 'Alle Höfe', level: 2 })).toBeVisible();
+    // the path at the top names where the Ressort is; what waits for it comes first, by Hof
+    const here = page.getByRole('navigation', { name: 'Pfad' }).locator('[aria-current="page"]');
+    await expect(here).toHaveText('Alle Höfe');
     await expect(page.getByText('1 Abgabe aus 1 Hof')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Hof Nord prüfen' })).toBeVisible();
     await expect(
@@ -498,13 +500,13 @@ test.describe('Hof dashboard', () => {
     await page.getByRole('button', { name: 'Alle Höfe', exact: true }).first().click();
     await page.getByRole('searchbox', { name: 'Hof suchen' }).fill('');
     await page.getByRole('button', { name: 'Dashboard von Hof Nord öffnen' }).click();
-    await expect(page.getByRole('heading', { name: 'Hof Nord', level: 2 })).toBeVisible();
+    await expect(here).toContainText('Hof Nord');
     await expect(page.getByRole('tab', { name: /^Übersicht/ })).toHaveAttribute(
       'aria-selected',
       'true',
     );
     await page.goBack();
-    await expect(page.getByRole('heading', { name: 'Alle Höfe', level: 2 })).toBeVisible();
+    await expect(here).toHaveText('Alle Höfe');
   });
 
   test('asks a signed-out visitor to sign in and loads nothing of a Hof', async ({ page }) => {
@@ -572,11 +574,14 @@ test.describe('Hof dashboard', () => {
 
     const card = formCard(page, 'form-plan');
     await expect(card.getByRole('heading', { name: 'Version 2' })).toBeVisible();
-    await expect(card.getByText('Rückmeldung', { exact: true })).toBeVisible();
-    await expect(card.getByText('Die Statik fehlt noch.')).toBeVisible();
-    // who wrote it and when, but not the Ressort's history of it
-    await expect(card.getByText('Sara Keller v/o Biber, 20.09.2026')).toBeVisible();
-    await expect(card.getByText(/Verlauf/)).toHaveCount(0);
+    // the Hof reads the same history as the Ressort: who handed in, who answered what, and when
+    const history = card.getByRole('listitem').filter({ hasText: 'Überarbeitung erforderlich' });
+    await expect(card.getByText('Verlauf', { exact: true }).first()).toBeVisible();
+    await expect(card.getByText(/· Anna Beispiel v\/o Fuchs$/)).toBeVisible();
+    await expect(
+      history.getByText(/20\.09\.2026, \d\d:\d\d · Sara Keller v\/o Biber/),
+    ).toBeVisible();
+    await expect(history.getByText('«Die Statik fehlt noch.»')).toBeVisible();
     await expect(card.getByText('Zweiter Entwurf')).toBeVisible();
     const file = card.getByRole('link', { name: /Hofplan\.pdf/ });
     await expect(file).toHaveAttribute('href', '/api/form-file/file-1');
@@ -652,7 +657,10 @@ test.describe('Hof dashboard', () => {
       ]),
     );
     await expect(card.getByLabel('Zeltname')).toHaveCount(0);
-    await expect(page.getByText('Abgegeben', { exact: true })).toBeVisible();
+    // the toast says so; the history of the new version says it too, once it has loaded
+    await expect(
+      page.locator('[data-sonner-toast]').getByText('Abgegeben', { exact: true }),
+    ).toBeVisible();
     await expect.poll(() => backend.loads(HOF_NORD.id)).toBeGreaterThan(loadsBefore);
     await expect(card.getByRole('heading', { name: 'Version 1' })).toBeVisible();
     await expect(card.getByText('Jurte')).toBeVisible();
@@ -822,20 +830,15 @@ test.describe('Hof dashboard', () => {
       'aria-checked',
       'true',
     );
-    await expect(plan.getByLabel('Rückmeldung an den Hof')).toHaveValue('Die Statik fehlt noch.');
-    // the reviewers see who changed what, and when
-    await plan.getByText('Verlauf (1)').click();
+    // who changed what, and when, open in the history
     await expect(plan.getByText(/20\.09\.2026, \d\d:\d\d · Sara Keller v\/o Biber/)).toBeVisible();
+    await expect(plan.getByText('«Die Statik fehlt noch.»')).toBeVisible();
     // no save button: a status is saved the moment it is chosen
     await expect(plan.getByRole('button', { name: 'Speichern' })).toHaveCount(0);
     await plan.getByRole('radio', { name: 'Eingereicht' }).click();
     await expect.poll(reviews).toHaveLength(1);
-    expect(reviews()[0]).toEqual({
-      hofId: 'hof-nord',
-      submissionId: 'plan-2',
-      feedback: 'Die Statik fehlt noch.',
-      final: false,
-    });
+    // a status alone leaves the comment as it is
+    expect(reviews()[0]).toEqual({ hofId: 'hof-nord', submissionId: 'plan-2', final: false });
     // no status of the Ressort: back to plain handed in
     expect((reviews()[0] as { status?: unknown }).status).toBeUndefined();
 
@@ -844,12 +847,7 @@ test.describe('Hof dashboard', () => {
     await expect(final).not.toBeChecked();
     await final.check();
     await expect.poll(reviews).toHaveLength(2);
-    expect(reviews()[1]).toEqual({
-      hofId: 'hof-nord',
-      submissionId: 'plan-2',
-      feedback: 'Die Statik fehlt noch.',
-      final: true,
-    });
+    expect(reviews()[1]).toEqual({ hofId: 'hof-nord', submissionId: 'plan-2', final: true });
     // an earlier version is not the one to mark
     await plan.getByRole('button', { name: 'Frühere Versionen (1)' }).click();
     await expect(plan.getByRole('heading', { name: 'Version 1' })).toBeVisible();
@@ -873,27 +871,30 @@ test.describe('Hof dashboard', () => {
       hofId: 'hof-nord',
       submissionId: 'program-1',
       status: 'accepted',
-      feedback: '',
-      final: false,
-    });
-    // typed feedback goes out once, after the typing pauses, not per key
-    await program
-      .getByLabel('Rückmeldung an den Hof')
-      .pressSequentially('Danke, passt so.', { delay: 20 });
-    await expect.poll(reviews).toHaveLength(4);
-    await page.waitForTimeout(1200);
-    expect(reviews()).toHaveLength(4);
-    expect(reviews()[3]).toEqual({
-      hofId: 'hof-nord',
-      submissionId: 'program-1',
-      status: 'accepted',
-      feedback: 'Danke, passt so.',
       final: false,
     });
     // the pill beside the title says so, no toast
     await expect(program.getByText('Gespeichert', { exact: true })).toBeVisible();
     await expect(page.locator('[data-sonner-toast]')).toHaveCount(0);
     await expect.poll(() => backend.loads(HOF_NORD.id)).toBeGreaterThan(loadsBefore);
+
+    // a comment is sent as a whole, never saved while it is typed
+    const comments = (): unknown[] =>
+      backend.calls
+        .filter(({ procedure }) => procedure === 'hofDashboard.addSubmissionComment')
+        .map(({ input }) => input);
+    const send = program.getByRole('button', { name: 'Kommentar senden' });
+    await expect(send).toBeDisabled();
+    await program.getByLabel('Kommentar an den Hof').pressSequentially('Danke, passt so.');
+    await page.waitForTimeout(1200);
+    expect(comments()).toHaveLength(0);
+    await send.click();
+    await expect
+      .poll(comments)
+      .toEqual([{ hofId: 'hof-nord', submissionId: 'program-1', comment: 'Danke, passt so.' }]);
+    // the box is empty again for the next one
+    await expect(program.getByLabel('Kommentar an den Hof')).toHaveValue('');
+    expect(reviews()).toHaveLength(3);
 
     // an order accepted and marked final reads so, in the answer and in the history
     await openTab(page, 'Material');
@@ -905,33 +906,25 @@ test.describe('Hof dashboard', () => {
     await expect(
       order.getByRole('checkbox', { name: /^Definitiv: keine weiteren Versionen/ }),
     ).toBeChecked();
-    await order.getByText('Verlauf (1)').click();
     await expect(order.getByText('Freigegeben · definitiv')).toBeVisible();
+    await expect(order.getByText('«Bestellung übernommen.»')).toBeVisible();
   });
 
-  test("keeps the Hof's responsible people from Cevi.DB beside every section", async ({ page }) => {
-    // wide enough for the column beside the sections under the website's side menu as well
-    await page.setViewportSize({ width: 1920, height: 1080 });
+  test("names the Hof's responsible people from Cevi.DB under its name", async ({ page }) => {
     await mockBackend(page);
     await page.goto('/hof-dashboard');
 
-    // on a wide screen under the sections, so whom to ask stays in view
-    const responsible = page.locator('aside');
-    await expect(responsible.getByText('Hofverantwortliche Person (AVP)')).toBeVisible();
-    await expect(responsible.getByText('Anna Beispiel v/o Fuchs')).toBeVisible();
-    await expect(responsible.getByRole('link', { name: 'anna@example.com' })).toHaveAttribute(
-      'href',
-      'mailto:anna@example.com',
-    );
+    const anna = page.getByRole('link', { name: 'Anna Beispiel v/o Fuchs' });
+    await expect(anna).toHaveAttribute('href', 'mailto:anna@example.com');
     // known by address only, until they sign in once
-    await expect(
-      responsible.getByRole('link', { name: 'bau@hof-nord.example.com' }),
-    ).toHaveAttribute('href', 'mailto:bau@hof-nord.example.com');
-    // said once: the overview's own copy is for a narrow screen
-    await expect(page.getByRole('link', { name: 'anna@example.com' })).toHaveCount(1);
+    await expect(page.getByRole('link', { name: 'bau@hof-nord.example.com' })).toHaveAttribute(
+      'href',
+      'mailto:bau@hof-nord.example.com',
+    );
 
+    // under the Hof's name, so whom to ask stays the same in every section
     await openTab(page, 'Infrastruktur');
-    await expect(responsible.getByText('Anna Beispiel v/o Fuchs')).toBeVisible();
+    await expect(anna).toBeVisible();
   });
 
   test('says so when Cevi.DB names nobody responsible for the Hof', async ({ page }) => {

@@ -6,7 +6,7 @@ const ENTRY: HofDashboardEntry = {
   submittedAt: '2026-09-20T10:00:00.000Z',
   title: undefined,
   status: 'revisionRequired',
-  feedback: 'Bitte den Fallbalken 👍 noch einzeichnen.\n'.repeat(30),
+  submittedBy: 'Anna Beispiel v/o Fuchs',
   answers: [
     { field: 'bemerkungen', label: 'Bemerkungen', kind: 'text', text: 'Zelt «Jurte» – 12 m²' },
     {
@@ -32,14 +32,14 @@ const ENTRY: HofDashboardEntry = {
   withdrawable: false,
   reviewStatus: 'revisionRequired',
   final: false,
-  feedbackBy: { name: 'Sara Keller v/o Biber', at: '2026-09-21T10:00:00.000Z' },
   reviewLog: [
     {
       at: '2026-09-21T10:00:00.000Z',
       by: 'Sara Keller v/o Biber',
       status: 'revisionRequired',
-      feedback: 'Bitte den Fallbalken noch einzeichnen.',
-      final: false,
+      final: undefined,
+      // long, and with a character the PDF's fonts do not have
+      comment: 'Bitte den Fallbalken 👍 noch einzeichnen.\n'.repeat(30),
     },
   ],
 };

@@ -4,6 +4,7 @@ import { createCallerFactory } from '@/trpc/init';
 const mockData = jest.fn();
 const mockWithdraw = jest.fn();
 const mockReview = jest.fn();
+const mockComment = jest.fn();
 const mockOverview = jest.fn();
 const mockAcceptArea = jest.fn();
 const mockMaterialOrders = jest.fn();
@@ -55,6 +56,7 @@ jest.mock('@/features/hof-dashboard/api/hof-dashboard-data', () => ({
 jest.mock('@/features/hof-dashboard/api/hof-dashboard-mutations', () => ({
   withdrawHofSubmission: (...parameters: unknown[]): unknown => mockWithdraw(...parameters),
   reviewHofSubmission: (...parameters: unknown[]): unknown => mockReview(...parameters),
+  commentHofSubmission: (...parameters: unknown[]): unknown => mockComment(...parameters),
   acceptHofArea: (...parameters: unknown[]): unknown => mockAcceptArea(...parameters),
 }));
 jest.mock('@/features/hof-dashboard/api/material-orders', () => ({
@@ -137,10 +139,14 @@ describe('hofDashboardRouter', () => {
   });
 
   it('leaves the review to the reviewers, and withdrawing to the Hof', async () => {
-    const review = { hofId: 'hof-nord', submissionId: 'plan-2', feedback: 'ok' };
+    const review = { hofId: 'hof-nord', submissionId: 'plan-2' };
     await expect(
       hofNordAdmin.updateSubmissionReview({ ...review, status: 'accepted' }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(
+      hofNordAdmin.addSubmissionComment({ ...review, comment: 'Ich prüfe mich selbst' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(mockComment).not.toHaveBeenCalled();
     await expect(
       reviewer.deleteSubmission({ hofId: 'hof-nord', submissionId: 'plan-2' }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
@@ -148,18 +154,18 @@ describe('hofDashboardRouter', () => {
     expect(mockWithdraw).not.toHaveBeenCalled();
   });
 
-  it("stores a reviewer's status and feedback, signed with their name", async () => {
+  it("stores a reviewer's status and comment, signed with their name", async () => {
     await reviewer.updateSubmissionReview({
       hofId: 'hof-sued',
       submissionId: 'sued-plan',
       status: 'revisionRequired',
-      feedback: 'Bitte ergänzen',
+      comment: 'Bitte ergänzen',
     });
     expect(mockReview).toHaveBeenCalledWith({
       hof: { id: 'hof-sued', name: 'Hof Süd' },
       submissionId: 'sued-plan',
       status: 'revisionRequired',
-      feedback: 'Bitte ergänzen',
+      comment: 'Bitte ergänzen',
       // not final unless the reviewer says so
       final: false,
       reviewer: { id: 'web-1', name: 'Sara Keller v/o Biber' },
@@ -171,7 +177,6 @@ describe('hofDashboardRouter', () => {
       hofId: 'hof-sued',
       submissionId: 'sued-order',
       status: 'accepted',
-      feedback: '',
       final: true,
     });
     expect(mockReview).toHaveBeenCalledWith(
@@ -185,10 +190,30 @@ describe('hofDashboardRouter', () => {
         hofId: 'hof-sued',
         submissionId: 'sued-plan',
         status: 'submitted' as 'accepted',
-        feedback: '',
       }),
     ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
     expect(mockReview).not.toHaveBeenCalled();
+  });
+
+  it("stores a reviewer's comment, trimmed and signed with their name", async () => {
+    await reviewer.addSubmissionComment({
+      hofId: 'hof-sued',
+      submissionId: 'sued-plan',
+      comment: '  Sieht gut aus.\n',
+    });
+    expect(mockComment).toHaveBeenCalledWith({
+      hof: { id: 'hof-sued', name: 'Hof Süd' },
+      submissionId: 'sued-plan',
+      comment: 'Sieht gut aus.',
+      reviewer: { id: 'web-1', name: 'Sara Keller v/o Biber' },
+    });
+  });
+
+  it('refuses an empty comment', async () => {
+    await expect(
+      reviewer.addSubmissionComment({ hofId: 'hof-sued', submissionId: 'sued-plan', comment: ' ' }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    expect(mockComment).not.toHaveBeenCalled();
   });
 
   it("gives a Hof's own people no overview of the Höfe, and reads nothing for it", async () => {

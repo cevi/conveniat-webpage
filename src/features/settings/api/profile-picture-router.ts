@@ -47,6 +47,11 @@ const currentVersionOf = async (userId: string): Promise<string | undefined> => 
  * address book it appears in.
  */
 export const profilePictureRouter = createTRPCRouter({
+  /** The user's own picture, for their avatar where a page names who is signed in. */
+  getProfilePicture: trpcBaseProcedure.query(async ({ ctx }) => ({
+    pictureUrl: profilePictureUrlOrUndefined(ctx.user.uuid, await currentVersionOf(ctx.user.uuid)),
+  })),
+
   /** A URL the phone uploads the photo to directly, so it does not pass through the app. */
   createProfilePictureUploadUrl: trpcBaseProcedure
     .input(z.object(uploadInputShape(PROFILE_PICTURE_UPLOAD)))

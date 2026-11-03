@@ -10,12 +10,11 @@ const entry = (id: string, submittedAt: string, title?: string): HofDashboardEnt
   submittedAt,
   title,
   status: 'submitted',
-  feedback: undefined,
+  submittedBy: undefined,
   answers: [],
   withdrawable: false,
   reviewStatus: undefined,
   final: false,
-  feedbackBy: undefined,
   reviewLog: [],
 });
 

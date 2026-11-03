@@ -1,43 +1,31 @@
+import { Card } from '@/components/ui/card';
 import type { HofDashboardDocument } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import { formatFileSize, translate } from '@/features/hof-dashboard/texts';
+import { DocumentDownloadRow } from '@/features/payload-cms/components/content-blocks/file-download';
+import { withLocaleParameter } from '@/features/payload-cms/payload-cms/utils/document-download-name';
 import type { Locale } from '@/types/types';
-import { Download, FileText } from 'lucide-react';
 import type React from 'react';
 
-/** Documents to download, each as one row that is a link as a whole. */
+/** Documents to download, as rows of a card the way the website's file download block shows them. */
 export const DocumentLinks: React.FC<{ documents: HofDashboardDocument[]; locale: Locale }> = ({
   documents,
   locale,
 }) => (
-  <ul className="divide-y divide-gray-100">
+  <Card as="ul" divided>
     {documents.map((document) => (
-      <li key={document.id}>
-        <a
-          href={document.url}
-          target="_blank"
-          rel="noreferrer"
-          className="group flex min-h-11 items-center justify-between gap-4 py-3 no-underline"
-        >
-          <span className="flex min-w-0 items-start gap-3">
-            <FileText className="mt-0.5 h-5 w-5 shrink-0 text-gray-500" aria-hidden />
-            <span className="min-w-0">
-              <span className="block font-semibold break-words text-gray-900 group-hover:underline">
-                {document.title}
-              </span>
-              {document.filesize !== undefined && (
-                <span className="text-xs text-gray-500">
-                  {formatFileSize(document.filesize, locale)}
-                </span>
-              )}
-            </span>
-          </span>
-          <span className="text-conveniat-green flex shrink-0 items-center gap-1.5 text-sm font-semibold">
-            <Download className="h-4 w-4" aria-hidden />
-            {/* on a phone the icon says it; the title needs the room */}
-            <span className="sr-only @md:not-sr-only">{translate('download', locale)}</span>
-          </span>
-        </a>
-      </li>
+      <DocumentDownloadRow
+        key={document.id}
+        // the download is named after the title in the reader's language
+        href={withLocaleParameter(document.url, locale)}
+        // already the file name where the document has no title
+        displayName={document.title}
+        filename={document.filename ?? ''}
+        mimeType={document.mimeType ?? ''}
+        thumbnailUrl={document.pdfThumbnailUrl}
+        filesize={document.filesize}
+        updatedAt={document.updatedAt}
+        openInNewTab
+        locale={locale}
+      />
     ))}
-  </ul>
+  </Card>
 );
