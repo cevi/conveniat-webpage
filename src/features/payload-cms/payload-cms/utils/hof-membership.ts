@@ -267,6 +267,13 @@ export const refreshUserHoefe = async (
       // without the request: a derived field, not an edit by whoever triggered the refresh
       await payload.update({ collection: 'users', id: user.id, data: next });
       written += 1;
+      // the main leader of a Hof's camp is its AVP, so the AVP channels follow
+      if (!sameIds(next.avpHoefe, toHofIds(user.avpHoefe))) {
+        await payload.jobs.queue({
+          task: 'syncNewUserAnnouncementChats',
+          input: { userId: user.id },
+        });
+      }
     } else if (
       inPostgres !== undefined &&
       (!sameIds(next.hoefe, inPostgres.hofIds) || !sameIds(next.avpHoefe, inPostgres.avpHofIds))
