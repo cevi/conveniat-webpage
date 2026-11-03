@@ -29,6 +29,11 @@ if (isBuild) {
   const adapter = new PrismaPg({
     connectionString: environmentVariables.CHAT_DATABASE_URL,
     max: 30,
+    // pg waits forever for a free connection by default. Give up after Prisma's 2 s
+    // `maxWait`, so a transaction that cannot start still fails with Prisma's own error, and
+    // before its 5 s transaction timeout, so a query stuck behind a full pool fails with an
+    // error that names the pool instead of timing out some other transaction.
+    connectionTimeoutMillis: 3000,
   });
   prisma =
     globalForPrisma.prisma ??
