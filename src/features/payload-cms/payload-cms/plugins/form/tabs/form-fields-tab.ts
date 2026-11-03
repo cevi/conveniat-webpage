@@ -846,9 +846,10 @@ const formHofSelectionBlock: Block = {
 };
 
 /**
- * The Hof whose relatives register for the Besuchstag. The day follows from the Hof's Quartier,
- * set in the Besuchstag global, and the field shows the places that day has left. Visitors without
- * a Hof pick the day themselves, and everybody chooses whether to have lunch at the camp.
+ * The whole Besuchstag choice in one field, since each answer limits the next: whom the visitors
+ * come to see, the Hof and with it the day (or a day picked by visitors without a Hof), how many
+ * persons come and whether they have lunch at the camp. Choices without enough free places for
+ * the persons are disabled.
  */
 const formVisitDaySelectionBlock: Block = {
   slug: 'visitDaySelection',
@@ -895,18 +896,19 @@ const formVisitDaySelectionBlock: Block = {
           name: 'personCountField',
           type: 'text',
           label: {
-            en: 'Field with the number of persons',
-            de: 'Feld mit der Anzahl Personen',
-            fr: 'Champ du nombre de personnes',
+            en: 'Answer with the number of persons',
+            de: 'Antwort mit der Anzahl Personen',
+            fr: 'Réponse avec le nombre de personnes',
           },
           validate: formNameValidation,
           required: true,
+          defaultValue: 'anzahl_personen',
           admin: {
             width: '50%',
             description: {
-              en: 'The name of the field asking how many persons come, e.g. "anzahl_personen". Each takes one place.',
-              de: 'Der Name des Felds, das nach der Anzahl Personen fragt, z.B. "anzahl_personen". Jede belegt einen Platz.',
-              fr: 'Le nom du champ qui demande le nombre de personnes, p. ex. « anzahl_personen ». Chacune occupe une place.',
+              en: 'Each person takes one place. With a maximum set below, the field asks how many persons come and stores the number under this name, e.g. for a field shown only for 2 persons. Without one, this is the name of the form’s own field asking for it.',
+              de: 'Jede Person belegt einen Platz. Mit einem Höchstwert unten fragt das Feld selbst, wie viele Personen kommen, und speichert die Zahl unter diesem Namen, z.B. für ein Feld, das nur bei 2 Personen erscheint. Ohne ist es der Name des eigenen Formularfelds, das danach fragt.',
+              fr: 'Chaque personne occupe une place. Avec un maximum ci-dessous, le champ demande combien de personnes viennent et enregistre le nombre sous ce nom, p. ex. pour un champ affiché seulement pour 2 personnes. Sans maximum, c’est le nom du champ du formulaire qui le demande.',
             },
           },
         },
@@ -975,6 +977,69 @@ const formVisitDaySelectionBlock: Block = {
           },
         },
       ],
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'visitorTypeField',
+          type: 'text',
+          label: {
+            en: 'Answer with whom they visit',
+            de: 'Antwort, wen sie besuchen',
+            fr: 'Réponse sur qui ils visitent',
+          },
+          validate: optionalFormNameValidation,
+          defaultValue: 'besuch',
+          admin: {
+            width: '50%',
+            description: {
+              en: 'The field first asks whether the visitors come to see a child at the camp or come without a connection to an Abteilung, and stores "kind" or "extern" under this name. Only the former choose the Abteilung, only the latter the day. Empty: the Abteilung list offers "no connection" as its last entry.',
+              de: 'Das Feld fragt zuerst, ob die Besuchenden ein Kind im Lager besuchen oder ohne Bezug zu einer Abteilung kommen, und speichert «kind» oder «extern» unter diesem Namen. Nur die einen wählen die Abteilung, nur die anderen den Tag. Leer: die Liste der Abteilungen bietet «kein Bezug» als letzten Eintrag.',
+              fr: 'Le champ demande d’abord si les visiteurs viennent voir un enfant au camp ou viennent sans lien avec une Abteilung, et enregistre « kind » ou « extern » sous ce nom. Seuls les premiers choisissent l’Abteilung, seuls les seconds le jour. Vide : la liste des Abteilungen propose « aucun lien » en dernier.',
+            },
+          },
+        },
+        {
+          name: 'childNameField',
+          type: 'text',
+          label: {
+            en: 'Answer with the name of the child',
+            de: 'Antwort mit dem Namen des Kindes',
+            fr: 'Réponse avec le nom de l’enfant',
+          },
+          validate: optionalFormNameValidation,
+          defaultValue: 'teilnehmende_person',
+          admin: {
+            width: '50%',
+            description: {
+              en: 'Visitors of a child may give its name, which is stored under this name, e.g. {{teilnehmende_person}}. Empty: not asked.',
+              de: 'Wer ein Kind besucht, kann dessen Namen angeben; er wird unter diesem Namen gespeichert, z.B. {{teilnehmende_person}}. Leer: wird nicht gefragt.',
+              fr: 'Qui visite un enfant peut donner son nom, enregistré sous ce nom, p. ex. {{teilnehmende_person}}. Vide : pas demandé.',
+            },
+          },
+        },
+      ],
+    },
+    {
+      name: 'maxPersons',
+      type: 'number',
+      min: 1,
+      max: 10,
+      defaultValue: 2,
+      label: {
+        en: 'Persons per registration at most',
+        de: 'Höchstens Personen pro Anmeldung',
+        fr: 'Personnes par inscription au maximum',
+      },
+      admin: {
+        width: '50%',
+        description: {
+          en: 'The field asks for the number of persons, from 1 up to this. Empty: the form asks in a field of its own.',
+          de: 'Das Feld fragt nach der Anzahl Personen, von 1 bis zu dieser Zahl. Leer: das Formular fragt in einem eigenen Feld.',
+          fr: 'Le champ demande le nombre de personnes, de 1 jusqu’à ce nombre. Vide : le formulaire le demande dans un champ à part.',
+        },
+      },
     },
     { name: 'required', type: 'checkbox', label: 'Required', defaultValue: true },
     placementField(),

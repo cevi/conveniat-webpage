@@ -1631,7 +1631,7 @@ export interface Form {
                 name: string;
                 label: string;
                 /**
-                 * The name of the field asking how many persons come, e.g. "anzahl_personen". Each takes one place.
+                 * Each person takes one place. With a maximum set below, the field asks how many persons come and stores the number under this name, e.g. for a field shown only for 2 persons. Without one, this is the name of the form’s own field asking for it.
                  */
                 personCountField: string;
                 /**
@@ -1646,6 +1646,18 @@ export interface Form {
                  * The field asks whether the visitors have lunch at the camp and stores "ja" or "nein" under this name, e.g. for a section shown only with lunch. Each kind has its own places. Empty: no question, everybody with lunch.
                  */
                 lunchField?: string | null;
+                /**
+                 * The field first asks whether the visitors come to see a child at the camp or come without a connection to an Abteilung, and stores "kind" or "extern" under this name. Only the former choose the Abteilung, only the latter the day. Empty: the Abteilung list offers "no connection" as its last entry.
+                 */
+                visitorTypeField?: string | null;
+                /**
+                 * Visitors of a child may give its name, which is stored under this name, e.g. {{teilnehmende_person}}. Empty: not asked.
+                 */
+                childNameField?: string | null;
+                /**
+                 * The field asks for the number of persons, from 1 up to this. Empty: the form asks in a field of its own.
+                 */
+                maxPersons?: number | null;
                 required?: boolean | null;
                 /**
                  * Where this field is rendered when "Split" layout is selected for the section.
@@ -1986,7 +1998,7 @@ export interface Form {
                           name: string;
                           label: string;
                           /**
-                           * The name of the field asking how many persons come, e.g. "anzahl_personen". Each takes one place.
+                           * Each person takes one place. With a maximum set below, the field asks how many persons come and stores the number under this name, e.g. for a field shown only for 2 persons. Without one, this is the name of the form’s own field asking for it.
                            */
                           personCountField: string;
                           /**
@@ -2001,6 +2013,18 @@ export interface Form {
                            * The field asks whether the visitors have lunch at the camp and stores "ja" or "nein" under this name, e.g. for a section shown only with lunch. Each kind has its own places. Empty: no question, everybody with lunch.
                            */
                           lunchField?: string | null;
+                          /**
+                           * The field first asks whether the visitors come to see a child at the camp or come without a connection to an Abteilung, and stores "kind" or "extern" under this name. Only the former choose the Abteilung, only the latter the day. Empty: the Abteilung list offers "no connection" as its last entry.
+                           */
+                          visitorTypeField?: string | null;
+                          /**
+                           * Visitors of a child may give its name, which is stored under this name, e.g. {{teilnehmende_person}}. Empty: not asked.
+                           */
+                          childNameField?: string | null;
+                          /**
+                           * The field asks for the number of persons, from 1 up to this. Empty: the form asks in a field of its own.
+                           */
+                          maxPersons?: number | null;
                           required?: boolean | null;
                           /**
                            * Where this field is rendered when "Split" layout is selected for the section.
@@ -7461,6 +7485,9 @@ export interface FormsSelect<T extends boolean = true> {
                           dayField?: T;
                           registrationNumberField?: T;
                           lunchField?: T;
+                          visitorTypeField?: T;
+                          childNameField?: T;
+                          maxPersons?: T;
                           required?: T;
                           placement?: T;
                           id?: T;
@@ -7686,6 +7713,9 @@ export interface FormsSelect<T extends boolean = true> {
                                       dayField?: T;
                                       registrationNumberField?: T;
                                       lunchField?: T;
+                                      visitorTypeField?: T;
+                                      childNameField?: T;
+                                      maxPersons?: T;
                                       required?: T;
                                       placement?: T;
                                       id?: T;

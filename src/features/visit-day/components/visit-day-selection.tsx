@@ -1,17 +1,21 @@
 'use client';
 
-import { Required } from '@/features/payload-cms/components/form/required';
 import { Select } from '@/features/payload-cms/components/form/select';
-import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
+import { Text } from '@/features/payload-cms/components/form/text';
 import type { VisitDaySelectionBlock } from '@/features/payload-cms/components/form/types';
+import type { VisitDayChoice } from '@/features/visit-day/components/visit-day-choice-list';
+import { VisitDayChoiceList } from '@/features/visit-day/components/visit-day-choice-list';
 import { formatVisitDay } from '@/features/visit-day/format-visit-day';
-import { EXTERNAL_VISIT, WITH_LUNCH, WITHOUT_LUNCH } from '@/features/visit-day/visit-day-choices';
+import {
+  EXTERNAL_VISIT,
+  VISITING_CHILD,
+  WITH_LUNCH,
+  WITHOUT_LUNCH,
+} from '@/features/visit-day/visit-day-choices';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { cn } from '@/utils/tailwindcss-override';
-import { Check } from 'lucide-react';
 import type React from 'react';
 import type {
   Control,
@@ -21,7 +25,7 @@ import type {
   Merge,
   UseFormRegister,
 } from 'react-hook-form';
-import { Controller, useWatch } from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
 
 /** The free places are read again this often while the form is open. */
 const PLACES_REFRESH_MS = 60_000;
@@ -52,7 +56,52 @@ const noHofOptionText: StaticTranslationString = {
   fr: 'Aucun lien avec un groupe local',
 };
 
-const lunchLabelText: StaticTranslationString = {
+const visitorTypeLegend: StaticTranslationString = {
+  de: 'Wen besucht ihr?',
+  en: 'Who are you visiting?',
+  fr: 'Qui venez-vous voir ?',
+};
+
+const visitingChildText: StaticTranslationString = {
+  de: 'Ein Kind im Lager, z.B. unser Kind, Göttikind oder Enkelkind',
+  en: 'A child at the camp, e.g. our child, godchild or grandchild',
+  fr: 'Un enfant au camp, p. ex. notre enfant, filleul·e ou petit-enfant',
+};
+
+const externalVisitText: StaticTranslationString = {
+  de: 'Niemand Bestimmtes, wir kommen ohne Bezug zu einer Abteilung',
+  en: 'No one in particular, we come without a connection to a local group',
+  fr: 'Personne en particulier, nous venons sans lien avec un groupe local',
+};
+
+const childNameLabel: StaticTranslationString = {
+  de: 'Vor- und Nachname des Kindes (optional)',
+  en: 'First and last name of the child (optional)',
+  fr: 'Prénom et nom de l’enfant (facultatif)',
+};
+
+const childNamePlaceholder: StaticTranslationString = {
+  de: 'z.B. Lea Muster',
+  en: 'e.g. Lea Muster',
+  fr: 'p. ex. Lea Muster',
+};
+
+const personsLegend: StaticTranslationString = {
+  de: 'Anzahl Personen',
+  en: 'Number of persons',
+  fr: 'Nombre de personnes',
+};
+
+const personsText = (count: number, locale: Locale): string => {
+  const texts: Record<Locale, string> = {
+    de: count === 1 ? '1 Person' : `${count} Personen`,
+    en: count === 1 ? '1 person' : `${count} persons`,
+    fr: count === 1 ? '1 personne' : `${count} personnes`,
+  };
+  return texts[locale];
+};
+
+const lunchLegend: StaticTranslationString = {
   de: 'Mittagessen im Lager',
   en: 'Lunch at the camp',
   fr: 'Repas de midi au camp',
@@ -70,7 +119,7 @@ const withoutLunchOptionText: StaticTranslationString = {
   fr: 'Non, nous apportons notre repas',
 };
 
-const chooseDayTitle: StaticTranslationString = {
+const chooseDayLegend: StaticTranslationString = {
   de: 'Besuchstag wählen',
   en: 'Choose the visiting day',
   fr: 'Choisir la journée des visites',
@@ -82,22 +131,16 @@ const yourDayText: StaticTranslationString = {
   fr: 'Votre journée des visites',
 };
 
-const withLunchText: StaticTranslationString = {
-  de: 'Mit Mittagessen',
-  en: 'With lunch',
-  fr: 'Avec repas',
-};
-
-const withoutLunchText: StaticTranslationString = {
-  de: 'Ohne Mittagessen',
-  en: 'Without lunch',
-  fr: 'Sans repas',
-};
-
 const fullText: StaticTranslationString = {
   de: 'ausgebucht',
   en: 'fully booked',
   fr: 'complet',
+};
+
+const tooFewPlacesText: StaticTranslationString = {
+  de: 'Für diese Wahl sind nicht mehr genug Plätze frei.',
+  en: 'Not enough places are left for this choice.',
+  fr: 'Il ne reste plus assez de places pour ce choix.',
 };
 
 const placesText = (free: number, locale: Locale): string => {
@@ -110,6 +153,17 @@ const placesText = (free: number, locale: Locale): string => {
   return texts[locale];
 };
 
+/** The free places of a day, or that it has too few, in the colour that says which. */
+const PlacesText: React.FC<{ free: number; persons: number; locale: Locale }> = ({
+  free,
+  persons,
+  locale,
+}) => (
+  <span className={free < persons ? 'text-danger-text font-semibold' : 'text-green-700'}>
+    {placesText(free, locale)}
+  </span>
+);
+
 /** One day's places as the form shows them. */
 interface DayPlaces {
   date: string;
@@ -117,48 +171,16 @@ interface DayPlaces {
   freeWithoutLunch: number;
 }
 
-/** The free places of one kind, as a line under the day: the kind left, the number right. */
-const PlacesLine: React.FC<{ title: string | undefined; free: number; locale: Locale }> = ({
-  title,
-  free,
-  locale,
-}) => (
-  <span className="flex justify-between gap-3 text-sm">
-    <span className="text-green-700">{title}</span>
-    <span className={free === 0 ? 'text-danger-text font-semibold' : 'text-green-700'}>
-      {placesText(free, locale)}
-    </span>
-  </span>
-);
+const isFieldName = (name: string | null | undefined): name is string =>
+  typeof name === 'string' && name !== '';
 
 /**
- * The free places of a day. Once the person chose with or without lunch, only that kind shows,
- * so nobody reads a number that is not theirs.
- */
-const DayPlacesText: React.FC<{
-  day: DayPlaces;
-  asksLunch: boolean;
-  lunch: unknown;
-  locale: Locale;
-}> = ({ day, asksLunch, lunch, locale }) => {
-  if (!asksLunch) return <PlacesLine title={undefined} free={day.free} locale={locale} />;
-  const showWith = lunch !== WITHOUT_LUNCH;
-  const showWithout = lunch !== WITH_LUNCH;
-  return (
-    <span className="mt-1 block">
-      {showWith && <PlacesLine title={withLunchText[locale]} free={day.free} locale={locale} />}
-      {showWithout && (
-        <PlacesLine title={withoutLunchText[locale]} free={day.freeWithoutLunch} locale={locale} />
-      )}
-    </span>
-  );
-};
-
-/**
- * Lets relatives pick the Hof they visit. The day follows from the Hof's Quartier; once a Hof
- * is chosen, the field shows that day with the places it has left, which the server checks
- * again on sending. A visitor without a Hof picks the day from a list of both days instead. Where the form asks about
- * lunch, the field asks it too, since each kind has places of its own.
+ * The whole Besuchstag choice, in the order in which each answer limits the next. Relatives
+ * first say whom they visit: those visiting a child pick its Hof, whose Quartier sets the day,
+ * and may name the child; visitors without a Hof pick the day. Then come the number of persons
+ * and lunch, where each kind has places of its own. A choice without enough free places for the
+ * persons is disabled; the server checks the places again on sending. Each question shows only
+ * where the form names an answer for it, so an older form keeps its own fields.
  */
 export const VisitDaySelection: React.FC<
   VisitDaySelectionBlock & {
@@ -166,19 +188,45 @@ export const VisitDaySelection: React.FC<
     registerAction: UseFormRegister<string & FieldValues>;
     error?: FieldError | Merge<FieldError, FieldErrorsImpl<FieldValues>>;
   }
-> = ({ name, label, required, dayField, lunchField, control, registerAction, error }) => {
+> = ({
+  name,
+  label,
+  required,
+  dayField,
+  lunchField,
+  personCountField,
+  visitorTypeField,
+  childNameField,
+  maxPersons,
+  control,
+  registerAction,
+  error,
+}) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
+  const { setValue, getValues } = useFormContext();
   const hoefe = trpc.visitDay.getVisitDayHofList.useQuery(undefined, { refetchOnMount: true });
   const days = trpc.visitDay.getVisitDayList.useQuery(undefined, {
     refetchOnMount: true,
     refetchInterval: PLACES_REFRESH_MS,
   });
-  const asksLunch = typeof lunchField === 'string' && lunchField !== '';
-  const [selectedHofId, lunch, pickedDay] = useWatch({
+  const asksVisitorType = isFieldName(visitorTypeField);
+  const asksLunch = isFieldName(lunchField);
+  const asksPersons = typeof maxPersons === 'number' && maxPersons >= 1;
+  const [selectedHofId, lunch, pickedDay, persons, visitorType] = useWatch({
     control,
-    name: [name, asksLunch ? lunchField : name, dayField],
-  }) as [unknown, unknown, unknown];
-  const isExternal = selectedHofId === EXTERNAL_VISIT;
+    name: [
+      name,
+      asksLunch ? lunchField : name,
+      dayField,
+      personCountField,
+      asksVisitorType ? visitorTypeField : name,
+    ],
+  }) as [unknown, unknown, unknown, unknown, unknown];
+
+  const isExternal = asksVisitorType
+    ? visitorType === EXTERNAL_VISIT
+    : selectedHofId === EXTERNAL_VISIT;
+  const showsHof = asksVisitorType ? visitorType === VISITING_CHILD : true;
   const ownDay = isExternal
     ? pickedDay
     : (hoefe.data ?? []).find((hof) => hof.id === selectedHofId)?.date;
@@ -190,134 +238,172 @@ export const VisitDaySelection: React.FC<
     free: day.free,
     freeWithoutLunch: (day.freeWithoutLunch as number | undefined) ?? 0,
   }));
-  const ownDayPlaces = isExternal ? undefined : dayPlaces.find((day) => day.date === ownDay);
-  // before the lunch question is answered, a day is full only once both kinds are
+  const visitDay = dayPlaces.find((day) => day.date === ownDay);
+  const chosenPersons = Number(persons);
+  // until the persons are chosen, a choice needs a place for one
+  const personCount = Number.isInteger(chosenPersons) && chosenPersons > 1 ? chosenPersons : 1;
+
+  // all persons of a registration take places of one kind
+  const freeOfKind = (day: DayPlaces, withLunch: boolean): number =>
+    withLunch ? day.free : day.freeWithoutLunch;
+  const freeOfBestKind = (day: DayPlaces): number =>
+    asksLunch ? Math.max(day.free, day.freeWithoutLunch) : day.free;
   const freeOfChosenKind = (day: DayPlaces): number => {
     if (!asksLunch || lunch === WITH_LUNCH) return day.free;
     if (lunch === WITHOUT_LUNCH) return day.freeWithoutLunch;
-    return day.free + day.freeWithoutLunch;
+    return freeOfBestKind(day);
   };
 
   const hofOptions = (hoefe.data ?? []).map((hof) => ({ value: hof.id, label: hof.name }));
   const options =
-    hoefe.data === undefined
+    hoefe.data === undefined || asksVisitorType
       ? hofOptions
       : [...hofOptions, { value: EXTERNAL_VISIT, label: noHofOptionText[locale] }];
 
+  // the Hof answer follows whom they visit, so the server and the email read one answer
+  const onVisitorTypeChosen = (value: string): void => {
+    if (value === EXTERNAL_VISIT) {
+      setValue(name, EXTERNAL_VISIT);
+      if (isFieldName(childNameField)) setValue(childNameField, '');
+    } else if (getValues(name) === EXTERNAL_VISIT) {
+      setValue(name, '');
+    }
+  };
+
+  const visitorTypeChoices: VisitDayChoice[] = [
+    { value: VISITING_CHILD, label: visitingChildText[locale] },
+    { value: EXTERNAL_VISIT, label: externalVisitText[locale] },
+  ];
+
+  const dayChoices: VisitDayChoice[] = dayPlaces.map((day) => {
+    const free = freeOfChosenKind(day);
+    return {
+      value: day.date,
+      label: formatVisitDay(day.date, locale),
+      disabled: free < personCount,
+      // with lunch asked, the places of each kind show at the lunch question
+      ...(!asksLunch || free < personCount
+        ? { sub: <PlacesText free={free} persons={personCount} locale={locale} /> }
+        : {}),
+    };
+  });
+
+  const personChoices: VisitDayChoice[] = Array.from(
+    { length: asksPersons ? maxPersons : 0 },
+    (_, index) => {
+      const count = index + 1;
+      return {
+        value: String(count),
+        label: personsText(count, locale),
+        disabled: visitDay !== undefined && freeOfBestKind(visitDay) < count,
+      };
+    },
+  );
+
+  const lunchChoices: VisitDayChoice[] = [
+    { withLunch: true, value: WITH_LUNCH, label: withLunchOptionText[locale] },
+    { withLunch: false, value: WITHOUT_LUNCH, label: withoutLunchOptionText[locale] },
+  ].map(({ withLunch, value, label: choiceLabel }) => {
+    if (visitDay === undefined) return { value, label: choiceLabel };
+    const free = freeOfKind(visitDay, withLunch);
+    return {
+      value,
+      label: choiceLabel,
+      sub: <PlacesText free={free} persons={personCount} locale={locale} />,
+      disabled: free < personCount,
+    };
+  });
+
   return (
     <div className="mb-4">
-      <Select
-        blockType="select"
-        name={name}
-        label={label ?? ''}
-        required={required ?? false}
-        control={control}
-        registerAction={registerAction}
-        {...(error === undefined ? {} : { error })}
-        optionType="dropdown"
-        allowMultiple={false}
-        placeholder={
-          unavailable
-            ? loadErrorText[locale]
-            : (hoefe.isLoading ? loadingText : placeholderText)[locale]
-        }
-        options={options}
-      />
+      {asksVisitorType && (
+        <VisitDayChoiceList
+          control={control}
+          name={visitorTypeField}
+          legend={visitorTypeLegend[locale]}
+          choices={visitorTypeChoices}
+          onChosen={onVisitorTypeChosen}
+        />
+      )}
 
-      {asksLunch && (
+      {showsHof && (
         <Select
           blockType="select"
-          name={lunchField}
-          label={lunchLabelText[locale]}
-          required
+          name={name}
+          label={label ?? ''}
+          required={required ?? false}
           control={control}
           registerAction={registerAction}
-          optionType="radio"
+          {...(error === undefined ? {} : { error })}
+          optionType="dropdown"
           allowMultiple={false}
-          options={[
-            { value: WITH_LUNCH, label: withLunchOptionText[locale] },
-            { value: WITHOUT_LUNCH, label: withoutLunchOptionText[locale] },
-          ]}
+          placeholder={
+            unavailable
+              ? loadErrorText[locale]
+              : (hoefe.isLoading ? loadingText : placeholderText)[locale]
+          }
+          options={options}
+        />
+      )}
+
+      {showsHof && !isExternal && isFieldName(childNameField) && (
+        <Text
+          blockType="text"
+          name={childNameField}
+          label={childNameLabel[locale]}
+          required={false}
+          placeholder={childNamePlaceholder[locale]}
+          registerAction={registerAction}
         />
       )}
 
       {/* a Hof has one day, so only that day shows, once the Hof is chosen */}
-      {ownDayPlaces !== undefined && !isExternal && (
-        <div className="border-line bg-tint rounded-[14px] border px-4 py-3">
+      {visitDay !== undefined && !isExternal && (
+        <div className="border-line bg-tint mb-4 rounded-[14px] border px-4 py-3">
           <p className="m-0 text-xs font-semibold tracking-wide text-green-700 uppercase">
             {yourDayText[locale]}
           </p>
           <span className="text-heading mt-1 block text-[15px] font-medium">
-            {formatVisitDay(ownDayPlaces.date, locale)}
+            {formatVisitDay(visitDay.date, locale)}
           </span>
-          <DayPlacesText day={ownDayPlaces} asksLunch={asksLunch} lunch={lunch} locale={locale} />
+          {(!asksLunch || freeOfBestKind(visitDay) < personCount) && (
+            <span className="mt-1 block text-sm">
+              <PlacesText free={freeOfBestKind(visitDay)} persons={personCount} locale={locale} />
+            </span>
+          )}
         </div>
       )}
 
-      {dayPlaces.length > 0 && isExternal && (
-        <Controller
+      {isExternal && dayPlaces.length > 0 && (
+        <VisitDayChoiceList
           control={control}
           name={dayField}
-          defaultValue=""
-          rules={{ required: fieldIsRequiredText[locale] }}
-          render={({ field: { onChange, value }, fieldState }) => (
-            <fieldset className="m-0 border-0 p-0">
-              <legend className="font-body mb-1 block text-sm font-medium text-gray-500">
-                {chooseDayTitle[locale]}
-                <Required />
-              </legend>
-              <div
-                className={cn(
-                  'divide-line overflow-hidden rounded-[14px] border bg-white',
-                  fieldState.error === undefined
-                    ? 'border-line divide-y'
-                    : 'border-danger divide-y',
-                )}
-              >
-                {dayPlaces.map((day) => {
-                  const isPicked = value === day.date;
-                  const isFull = freeOfChosenKind(day) === 0;
-                  return (
-                    <button
-                      key={day.date}
-                      type="button"
-                      aria-pressed={isPicked}
-                      disabled={isFull && !isPicked}
-                      onClick={() => onChange(day.date)}
-                      className={cn(
-                        'focus-visible:focus-row relative block min-h-11 w-full cursor-pointer px-4 py-3 text-left text-[15px] disabled:cursor-not-allowed disabled:opacity-60',
-                        isPicked && 'bg-tint',
-                      )}
-                    >
-                      <span className="text-heading flex items-center gap-2 font-medium">
-                        <span
-                          aria-hidden
-                          className={cn(
-                            'flex size-5 shrink-0 items-center justify-center rounded-full border-2',
-                            isPicked
-                              ? 'border-conveniat-green bg-conveniat-green text-white'
-                              : 'border-green-500',
-                          )}
-                        >
-                          {isPicked && <Check className="size-3" strokeWidth={3} />}
-                        </span>
-                        {formatVisitDay(day.date, locale)}
-                      </span>
-                      <DayPlacesText
-                        day={day}
-                        asksLunch={asksLunch}
-                        lunch={lunch}
-                        locale={locale}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-              {fieldState.error !== undefined && (
-                <p className="mt-1 text-xs text-red-600">{fieldState.error.message}</p>
-              )}
-            </fieldset>
-          )}
+          legend={chooseDayLegend[locale]}
+          choices={dayChoices}
+        />
+      )}
+
+      {asksPersons && (
+        <VisitDayChoiceList
+          control={control}
+          name={personCountField}
+          legend={personsLegend[locale]}
+          choices={personChoices}
+        />
+      )}
+
+      {asksLunch && (
+        <VisitDayChoiceList
+          control={control}
+          name={lunchField}
+          legend={lunchLegend[locale]}
+          choices={lunchChoices}
+          // places may run out after choosing, or the persons change afterwards
+          validate={(value) => {
+            if (visitDay === undefined) return true;
+            const free = freeOfKind(visitDay, value === WITH_LUNCH);
+            return free >= personCount || tooFewPlacesText[locale];
+          }}
         />
       )}
     </div>
