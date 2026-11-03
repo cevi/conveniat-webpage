@@ -25,7 +25,7 @@ export const mediaTextBlock: Block = {
   fields: [
     {
       name: 'image',
-      type: 'relationship',
+      type: 'upload',
       relationTo: 'images',
       required: true,
       label: {

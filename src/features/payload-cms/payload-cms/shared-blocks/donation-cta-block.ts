@@ -103,7 +103,7 @@ export const donationCtaBlock: Block = {
       fields: [
         {
           name: 'logo',
-          type: 'relationship',
+          type: 'upload',
           relationTo: 'images',
           required: true,
           label: {

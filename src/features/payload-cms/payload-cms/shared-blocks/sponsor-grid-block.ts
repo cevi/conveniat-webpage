@@ -88,7 +88,7 @@ export const sponsorGridBlock: Block = {
           fields: [
             {
               name: 'image',
-              type: 'relationship',
+              type: 'upload',
               relationTo: 'images',
               required: false,
               label: {
