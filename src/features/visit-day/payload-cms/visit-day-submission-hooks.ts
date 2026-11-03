@@ -1,8 +1,14 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { getFormBlocks } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
 import type { FormSubmission } from '@/features/payload-cms/payload-types';
-import { countTakenPlacesOn, reservePlaces } from '@/features/visit-day/api/visit-day-places';
+import {
+  countTakenPlacesOn,
+  EXTERNAL_NUMBER_PREFIX,
+  reservePlaces,
+} from '@/features/visit-day/api/visit-day-places';
 import { formatVisitDay } from '@/features/visit-day/format-visit-day';
+import { EXTERNAL_VISIT, WITH_LUNCH, WITHOUT_LUNCH } from '@/features/visit-day/visit-day-choices';
+import type { VisitDay } from '@/features/visit-day/visit-day-settings';
 import { listVisitDayHoefe, loadVisitDaySettings } from '@/features/visit-day/visit-day-settings';
 import prisma from '@/lib/db/prisma';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -23,11 +29,16 @@ interface SubmissionField {
 
 /** What the place check needs from the checked submission, kept on the request until it is saved. */
 interface PendingVisit {
-  hofId: string;
+  /** undefined for a visitor without a Hof */
+  hofId: string | undefined;
   hofEventId: string;
   date: string;
   persons: number;
+  withLunch: boolean;
+  /** the places of this kind the day has */
   capacity: number;
+  /** whether the form asks about lunch, so a refusal can name the kind of places */
+  asksLunch: boolean;
   /** the answer the registration number is stored under */
   numberField: string;
   /** set once the places are taken, so a failure after it gives them back */
@@ -40,7 +51,12 @@ interface VisitDayBlock {
   personCountField: string;
   dayField: string;
   registrationNumberField: string;
+  /** the answer with the lunch choice; a form without one registers everybody with lunch */
+  lunchField?: string | null;
 }
+
+/** The Hof answer of a visitor without a Hof, in German like the rest of the email. */
+const NO_HOF_ANSWER = 'Ohne Bezug zu einem Hof';
 
 const PENDING_VISIT = 'visitDayPendingVisit';
 
@@ -48,6 +64,30 @@ const dayFullMessage: StaticTranslationString = {
   de: 'Für diesen Besuchstag sind nicht mehr genug Plätze frei.',
   en: 'There are not enough places left on this visiting day.',
   fr: 'Il ne reste plus assez de places pour cette journée des visites.',
+};
+
+const dayFullWithLunchMessage: StaticTranslationString = {
+  de: 'Für diesen Besuchstag sind nicht mehr genug Plätze mit Mittagessen frei.',
+  en: 'There are not enough places with lunch left on this visiting day.',
+  fr: 'Il ne reste plus assez de places avec repas de midi pour cette journée des visites.',
+};
+
+const dayFullWithoutLunchMessage: StaticTranslationString = {
+  de: 'Für diesen Besuchstag sind nicht mehr genug Plätze ohne Mittagessen frei.',
+  en: 'There are not enough places without lunch left on this visiting day.',
+  fr: 'Il ne reste plus assez de places sans repas de midi pour cette journée des visites.',
+};
+
+const dayNotOfferedMessage: StaticTranslationString = {
+  de: 'Bitte wähle einen der Besuchstage.',
+  en: 'Please choose one of the visiting days.',
+  fr: 'Choisis l’une des journées des visites.',
+};
+
+const invalidLunchMessage: StaticTranslationString = {
+  de: 'Bitte wähle, ob ihr im Lager zu Mittag esst.',
+  en: 'Please choose whether you have lunch at the camp.',
+  fr: 'Indique si vous mangez à midi au camp.',
 };
 
 const hofNotOfferedMessage: StaticTranslationString = {
@@ -69,10 +109,24 @@ const refuse = (message: StaticTranslationString, locale: Locale): never => {
   throw new APIError(message[locale], 400, undefined, true);
 };
 
+/** Names the kind of places only where the form asks about lunch. */
+const fullMessageFor = (
+  pending: Pick<PendingVisit, 'withLunch'>,
+  formAsksLunch: boolean,
+): StaticTranslationString => {
+  if (!formAsksLunch) return dayFullMessage;
+  return pending.withLunch ? dayFullWithLunchMessage : dayFullWithoutLunchMessage;
+};
+
+const asksLunch = (block: VisitDayBlock): block is VisitDayBlock & { lunchField: string } =>
+  typeof block.lunchField === 'string' && block.lunchField !== '';
+
 /**
  * Checks a new Besuchstag registration and fills in what the person does not pick: the Hof's
  * name in place of its id, and the day, found through the Hof's Quartier, as an answer of its
- * own so the confirmation email can name it. The places and the registration number are taken
+ * own so the confirmation email can name it. A visitor without a Hof picks the day, which is
+ * checked against the days offered and written the same way. Whoever eats lunch takes a place
+ * with lunch, the others one without. The places and the registration number are taken
  * once the submission is saved, by {@link reserveVisitDayPlaces}; refusing a full day here
  * already spares that work.
  */
@@ -95,13 +149,13 @@ export const resolveVisitDay: CollectionBeforeChangeHook<FormSubmission> = async
   if (block === undefined) return data;
 
   const locale = localeOf(req);
+  const sent = Array.isArray(data.submissionData) ? (data.submissionData as SubmissionField[]) : [];
+  // only a visitor without a Hof picks the day, and only as a `YYYY-MM-DD` checked below
+  const pickedDay = sent.find((answer) => answer.field === block.dayField)?.value;
   // the day and the number are the server's to fill in, never the sender's
-  const answers = Array.isArray(data.submissionData)
-    ? (data.submissionData as SubmissionField[]).filter(
-        (answer) =>
-          answer.field !== block.dayField && answer.field !== block.registrationNumberField,
-      )
-    : [];
+  const answers = sent.filter(
+    (answer) => answer.field !== block.dayField && answer.field !== block.registrationNumberField,
+  );
   const hofAnswer = answers.find((answer) => answer.field === block.name);
   const hofId = hofAnswer?.value;
   // an unanswered Hof was refused as missing already, or the field is optional
@@ -109,39 +163,56 @@ export const resolveVisitDay: CollectionBeforeChangeHook<FormSubmission> = async
   if (!environmentVariables.FEATURE_ENABLE_VISIT_DAY) refuse(hofNotOfferedMessage, locale);
 
   const settings = await loadVisitDaySettings(req.payload);
-  const offeredHoefe = await listVisitDayHoefe(req.payload, settings);
-  const hof = offeredHoefe.find((offered) => offered.id === hofId);
-  const day = settings.days.find((candidate) => candidate.date === hof?.date);
-  if (hof === undefined || day === undefined) return refuse(hofNotOfferedMessage, locale);
+  let visit: { hofId: string | undefined; hofName: string; hofEventId: string; day: VisitDay };
+  if (hofId === EXTERNAL_VISIT) {
+    const day = settings.days.find((candidate) => candidate.date === pickedDay);
+    if (day === undefined) return refuse(dayNotOfferedMessage, locale);
+    visit = { hofId: undefined, hofName: NO_HOF_ANSWER, hofEventId: EXTERNAL_NUMBER_PREFIX, day };
+  } else {
+    const offeredHoefe = await listVisitDayHoefe(req.payload, settings);
+    const hof = offeredHoefe.find((offered) => offered.id === hofId);
+    const day = settings.days.find((candidate) => candidate.date === hof?.date);
+    if (hof === undefined || day === undefined) return refuse(hofNotOfferedMessage, locale);
+    const hofDocument = await req.payload.findByID({
+      collection: 'hoefe',
+      id: hof.id,
+      depth: 0,
+      overrideAccess: true,
+      select: { groupId: true, events: true },
+      req,
+    });
+    // every Hof has its Hof-Lager in Cevi.DB; its group is the fallback should one not
+    const hofEventId = hofDocument.events?.[0]?.eventId ?? hofDocument.groupId;
+    visit = { hofId: hof.id, hofName: hof.name, hofEventId, day };
+  }
 
   const persons = Number(answers.find((answer) => answer.field === block.personCountField)?.value);
   if (!Number.isInteger(persons) || persons < 1) return refuse(invalidPersonCountMessage, locale);
 
-  const taken = await countTakenPlacesOn(prisma, day.date);
-  if (taken + persons > day.capacity) refuse(dayFullMessage, locale);
+  let withLunch = true;
+  if (asksLunch(block)) {
+    const lunch = answers.find((answer) => answer.field === block.lunchField)?.value;
+    if (lunch !== WITH_LUNCH && lunch !== WITHOUT_LUNCH) return refuse(invalidLunchMessage, locale);
+    withLunch = lunch === WITH_LUNCH;
+  }
+  const capacity = withLunch ? visit.day.capacity : visit.day.capacityWithoutLunch;
 
-  const hofDocument = await req.payload.findByID({
-    collection: 'hoefe',
-    id: hof.id,
-    depth: 0,
-    overrideAccess: true,
-    select: { groupId: true, events: true },
-    req,
-  });
-  // every Hof has its Hof-Lager in Cevi.DB; its group is the fallback should one not
-  const hofEventId = hofDocument.events?.[0]?.eventId ?? hofDocument.groupId;
+  const taken = await countTakenPlacesOn(prisma, visit.day.date, withLunch);
+  if (taken + persons > capacity) refuse(fullMessageFor({ withLunch }, asksLunch(block)), locale);
 
-  hofAnswer.value = hof.name;
+  hofAnswer.value = visit.hofName;
   // in German like the rest of the confirmation email, which is written in the default locale
-  answers.push({ field: block.dayField, value: formatVisitDay(day.date, 'de') });
+  answers.push({ field: block.dayField, value: formatVisitDay(visit.day.date, 'de') });
   data.submissionData = answers as NonNullable<FormSubmission['submissionData']>;
 
   const pending: PendingVisit = {
-    hofId: hof.id,
-    hofEventId,
-    date: day.date,
+    hofId: visit.hofId,
+    hofEventId: visit.hofEventId,
+    date: visit.day.date,
     persons,
-    capacity: day.capacity,
+    withLunch,
+    capacity,
+    asksLunch: asksLunch(block),
     numberField: block.registrationNumberField,
   };
   req.context[PENDING_VISIT] = pending;
@@ -172,9 +243,9 @@ export const reserveVisitDayPlaces: CollectionAfterChangeHook<FormSubmission> = 
       req,
     });
     req.payload.logger.info(
-      `Besuchstag ${pending.date} is full: registration ${doc.id} for ${pending.persons} persons refused.`,
+      `Besuchstag ${pending.date} is full (with lunch: ${pending.withLunch}): registration ${doc.id} for ${pending.persons} persons refused.`,
     );
-    return refuse(dayFullMessage, localeOf(req));
+    return refuse(fullMessageFor(pending, pending.asksLunch), localeOf(req));
   }
   pending.submissionId = doc.id;
 

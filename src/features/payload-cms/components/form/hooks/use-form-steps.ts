@@ -66,6 +66,13 @@ const getFieldNames = (
   ) {
     names.push(field.ressortName);
   }
+  // the Besuchstag field also asks about lunch and, for a visitor without a Hof, the day
+  if (field.blockType === 'visitDaySelection') {
+    if (typeof field.lunchField === 'string' && field.lunchField !== '') {
+      names.push(field.lunchField);
+    }
+    names.push(field.dayField);
+  }
   return names;
 };
 

@@ -847,7 +847,8 @@ const formHofSelectionBlock: Block = {
 
 /**
  * The Hof whose relatives register for the Besuchstag. The day follows from the Hof's Quartier,
- * set in the Besuchstag global, and the field shows the places that day has left.
+ * set in the Besuchstag global, and the field shows the places that day has left. Visitors without
+ * a Hof pick the day themselves, and everybody chooses whether to have lunch at the camp.
  */
 const formVisitDaySelectionBlock: Block = {
   slug: 'visitDaySelection',
@@ -932,24 +933,48 @@ const formVisitDaySelectionBlock: Block = {
       ],
     },
     {
-      name: 'registrationNumberField',
-      type: 'text',
-      label: {
-        en: 'Answer with the registration number',
-        de: 'Antwort mit der Anmeldenummer',
-        fr: 'Réponse avec le numéro d’inscription',
-      },
-      validate: formNameValidation,
-      required: true,
-      defaultValue: 'anmeldenummer',
-      admin: {
-        width: '50%',
-        description: {
-          en: 'Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter. Stored under this name for the email, e.g. {{anmeldenummer}}.',
-          de: 'Jede Anmeldung erhält eine Nummer wie 5321-B007: der Cevi.DB-Anlass des Hofs und sein Zähler. Unter diesem Namen gespeichert für die E-Mail, z.B. {{anmeldenummer}}.',
-          fr: 'Chaque inscription reçoit un numéro comme 5321-B007 : l’événement Cevi.DB du Hof et son compteur. Enregistré sous ce nom pour l’e-mail, p. ex. {{anmeldenummer}}.',
+      type: 'row',
+      fields: [
+        {
+          name: 'registrationNumberField',
+          type: 'text',
+          label: {
+            en: 'Answer with the registration number',
+            de: 'Antwort mit der Anmeldenummer',
+            fr: 'Réponse avec le numéro d’inscription',
+          },
+          validate: formNameValidation,
+          required: true,
+          defaultValue: 'anmeldenummer',
+          admin: {
+            width: '50%',
+            description: {
+              en: 'Every registration gets a number like 5321-B007: the Cevi.DB event of the Hof and its counter, EXT-B007 without a Hof. Stored under this name for the email, e.g. {{anmeldenummer}}.',
+              de: 'Jede Anmeldung erhält eine Nummer wie 5321-B007: der Cevi.DB-Anlass des Hofs und sein Zähler, EXT-B007 ohne Hof. Unter diesem Namen gespeichert für die E-Mail, z.B. {{anmeldenummer}}.',
+              fr: 'Chaque inscription reçoit un numéro comme 5321-B007 : l’événement Cevi.DB du Hof et son compteur, EXT-B007 sans Hof. Enregistré sous ce nom pour l’e-mail, p. ex. {{anmeldenummer}}.',
+            },
+          },
         },
-      },
+        {
+          name: 'lunchField',
+          type: 'text',
+          label: {
+            en: 'Answer with the lunch choice',
+            de: 'Antwort mit dem Mittagessen',
+            fr: 'Réponse avec le repas de midi',
+          },
+          validate: optionalFormNameValidation,
+          defaultValue: 'mittagessen',
+          admin: {
+            width: '50%',
+            description: {
+              en: 'The field asks whether the visitors have lunch at the camp and stores "ja" or "nein" under this name, e.g. for a section shown only with lunch. Each kind has its own places. Empty: no question, everybody with lunch.',
+              de: 'Das Feld fragt, ob die Besuchenden im Lager zu Mittag essen, und speichert «ja» oder «nein» unter diesem Namen, z.B. für einen Abschnitt, der nur mit Mittagessen erscheint. Beide haben eigene Plätze. Leer: keine Frage, alle mit Mittagessen.',
+              fr: 'Le champ demande si les visiteurs mangent à midi au camp et enregistre « ja » ou « nein » sous ce nom, p. ex. pour une section affichée seulement avec repas. Chacun a ses propres places. Vide : pas de question, tout le monde avec repas.',
+            },
+          },
+        },
+      ],
     },
     { name: 'required', type: 'checkbox', label: 'Required', defaultValue: true },
     placementField(),

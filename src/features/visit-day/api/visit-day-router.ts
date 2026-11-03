@@ -10,14 +10,18 @@ import { getPayload } from 'payload';
 export interface VisitDayPlaces {
   /** `YYYY-MM-DD` */
   date: string;
+  /** the places with lunch */
   capacity: number;
   free: number;
+  /** the places without lunch */
+  capacityWithoutLunch: number;
+  freeWithoutLunch: number;
 }
 
 /**
  * The Besuchstag registration, for the relatives filling it in. Public: they have no Cevi.DB
  * login. It tells nothing a visitor of the website may not know: the names of the Höfe, the day
- * each Hof's relatives visit and how many places a day has left.
+ * each Hof's relatives visit and how many places of each kind a day has left.
  */
 export const visitDayRouter = createTRPCRouter({
   getVisitDayHofList: publicProcedure.query(async (): Promise<VisitDayHof[]> => {
@@ -33,10 +37,15 @@ export const visitDayRouter = createTRPCRouter({
       loadVisitDaySettings(payload),
       countTakenPlaces(ctx.prisma),
     ]);
-    return settings.days.map((day) => ({
-      date: day.date,
-      capacity: day.capacity,
-      free: Math.max(0, day.capacity - (taken.get(day.date) ?? 0)),
-    }));
+    return settings.days.map((day) => {
+      const takenOnDay = taken.get(day.date) ?? { withLunch: 0, withoutLunch: 0 };
+      return {
+        date: day.date,
+        capacity: day.capacity,
+        free: Math.max(0, day.capacity - takenOnDay.withLunch),
+        capacityWithoutLunch: day.capacityWithoutLunch,
+        freeWithoutLunch: Math.max(0, day.capacityWithoutLunch - takenOnDay.withoutLunch),
+      };
+    });
   }),
 });
