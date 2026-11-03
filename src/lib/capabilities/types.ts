@@ -22,10 +22,10 @@ export interface CapabilityContext {
   prisma: PrismaClientOrTransaction;
   chatId?: string;
   /**
-   * The chat behind `chatId`, for a caller that has already loaded it. The check then reads
-   * it from here instead of from the database.
+   * The chat behind `chatId`, for a caller that has already loaded it, `null` when it found
+   * none. The check then decides on this instead of reading the chat itself.
    */
-  chat?: CapabilityChat;
+  chat?: CapabilityChat | null;
 }
 
 /** The columns of a chat that the capability checks decide on. */

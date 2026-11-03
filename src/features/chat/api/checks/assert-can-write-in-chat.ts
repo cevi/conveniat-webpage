@@ -18,7 +18,7 @@ export const assertWriteAbilities = async (
   prisma: PrismaClientOrTransaction,
   chatId: string,
   parentId: string | undefined,
-  chat?: CapabilityChat,
+  chat?: CapabilityChat | null,
 ): Promise<void> => {
   const canSend = await Ability.can(
     prisma,

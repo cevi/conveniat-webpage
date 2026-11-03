@@ -51,7 +51,7 @@ export const signalTyping = trpcBaseProcedure
         },
       },
     });
-    await assertWriteAbilities(prisma, chatId, parentId, chat ?? undefined);
+    await assertWriteAbilities(prisma, chatId, parentId, chat);
     assertMembershipCanWrite(chat, chatId, user.uuid, parentId);
 
     if (parentId !== undefined) {

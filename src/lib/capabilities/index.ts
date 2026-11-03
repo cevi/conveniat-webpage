@@ -19,12 +19,18 @@ const capabilities: Capability[] = [
   new ThreadCapabilities(),
 ];
 
+/**
+ * Whether `action` is allowed on `subject`, globally and, given a `chatId`, in that chat.
+ * Reads through `prisma`, so a caller inside a transaction passes its transaction client. A
+ * caller that already loaded the chat passes it as `chat` (`null` when it does not exist),
+ * and the check does not read it again; without a `chatId` it is ignored.
+ */
 export const checkCapability = async <S extends CapabilitySubject>(
   prisma: PrismaClientOrTransaction,
   action: CapabilitiesMap[S],
   subject: S,
   chatId?: string,
-  chat?: CapabilityChat,
+  chat?: CapabilityChat | null,
 ): Promise<boolean> => {
   const capability = capabilities.find((c) => c.subject === subject);
   if (!capability) {
@@ -32,5 +38,5 @@ export const checkCapability = async <S extends CapabilitySubject>(
     return false;
   }
   if (!chatId) return capability.can(action, { prisma });
-  return capability.can(action, chat ? { prisma, chatId, chat } : { prisma, chatId });
+  return capability.can(action, chat === undefined ? { prisma, chatId } : { prisma, chatId, chat });
 };

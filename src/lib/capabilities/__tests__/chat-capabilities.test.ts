@@ -57,6 +57,16 @@ describe('chat capabilities', () => {
     expect(reads()).toBe(1);
   });
 
+  test('a chat the caller found missing is not read again', async () => {
+    const { prisma, reads } = clientWith(openChat([ChatCapability.PICTURE_UPLOAD]));
+
+    await expect(
+      // eslint-disable-next-line unicorn/no-null
+      checkCapability(prisma, CapabilityAction.Upload, CapabilitySubject.Images, CHAT_ID, null),
+    ).resolves.toBe(false);
+    expect(reads()).toBe(0);
+  });
+
   test('a handed-in closed or archived chat is refused like a read one', async () => {
     const { prisma } = clientWith();
     const closed = { ...openChat([ChatCapability.CAN_SEND_MESSAGES]), status: ChatStatus.CLOSED };

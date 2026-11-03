@@ -26,7 +26,7 @@ const loadChat = async ({
   chatId,
   chat,
 }: CapabilityContext): Promise<CapabilityChat | undefined> => {
-  if (chat) return chat;
+  if (chat !== undefined) return chat ?? undefined;
   if (chatId === undefined) return undefined;
   const row = await prisma.chat.findUnique({
     where: { uuid: chatId },

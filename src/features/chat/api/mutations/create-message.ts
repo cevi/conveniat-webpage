@@ -130,33 +130,14 @@ export const createMessage = trpcBaseProcedure
     const { user, prisma } = ctx; // Destructure user and prisma from the tRPC context
     const validatedMessage = input;
 
-    // The one read of the chat: the ability checks below decide on this row, and the
-    // membership check and the fan-out on its memberships.
-    const chat = await prisma.chat.findUnique({
+    // The one read of the chat row; every ability check below decides on it.
+    const chatRow = await prisma.chat.findUnique({
       where: { uuid: validatedMessage.chatId },
-      select: {
-        name: true,
-        type: true,
-        capabilities: true,
-        status: true,
-        archivedAt: true,
-        chatMemberships: {
-          select: {
-            userId: true,
-            chatPermission: true,
-            hasDeleted: true,
-          },
-        },
-      },
+      select: { name: true, type: true, capabilities: true, status: true, archivedAt: true },
     });
 
     // 1. Global & Chat-specific Ability Check
-    await assertWriteAbilities(
-      prisma,
-      validatedMessage.chatId,
-      validatedMessage.parentId,
-      chat ?? undefined,
-    );
+    await assertWriteAbilities(prisma, validatedMessage.chatId, validatedMessage.parentId, chatRow);
 
     if (validatedMessage.type === MessageType.IMAGE_MSG) {
       const canUpload = await Ability.can(
@@ -164,7 +145,7 @@ export const createMessage = trpcBaseProcedure
         CapabilityAction.Upload,
         CapabilitySubject.Images,
         validatedMessage.chatId,
-        chat ?? undefined,
+        chatRow,
       );
       if (!canUpload) {
         throw new TRPCError({
@@ -183,7 +164,18 @@ export const createMessage = trpcBaseProcedure
       }
     }
 
-    // 2. Validate that the user is part of the chat and has permission to send messages
+    // 2. Validate that the user is part of the chat and has permission to send messages.
+    // The memberships are read only now, so a refused send (a closed or archived chat, the
+    // global switch off) does not load every member of a large chat first.
+    const chat = chatRow
+      ? {
+          ...chatRow,
+          chatMemberships: await prisma.chatMembership.findMany({
+            where: { chatId: validatedMessage.chatId },
+            select: { userId: true, chatPermission: true, hasDeleted: true },
+          }),
+        }
+      : chatRow;
     assertMembershipCanWrite(chat, validatedMessage.chatId, user.uuid, validatedMessage.parentId);
 
     // 3. Idempotency: adopt the client-generated id as the message id when it is a UUID.
