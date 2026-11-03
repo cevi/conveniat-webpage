@@ -6,6 +6,15 @@ import type { BillPayment } from '@/features/payload-cms/payload-types';
 
 const NOW = new Date('2026-10-21T07:00:00Z');
 
+type Allocation = NonNullable<BillPayment['allocations']>[number];
+
+/** An allocation to a camp bill, as the import stores it. */
+const to = (id: string, amount: number): Allocation => ({
+  bill: { relationTo: 'bill-participants', value: id },
+  participant: id,
+  amount,
+});
+
 const payment = (overrides: Partial<BillPayment>): BillPayment => ({
   id: overrides.transactionReference ?? 'payment',
   transactionReference: 'GS00000000000001',
@@ -34,9 +43,9 @@ describe('buildDoublePaymentReport', () => {
         payment({
           transactionReference: 'GS00000000000002',
           bookingDate: '2026-10-13T00:00:00.000Z',
-          allocations: [{ participant: 'lea', amount: 160 }],
+          allocations: [to('lea', 160)],
         }),
-        payment({ allocations: [{ participant: 'lea', amount: 160 }] }),
+        payment({ allocations: [to('lea', 160)] }),
       ],
       NOW,
     );
@@ -60,11 +69,11 @@ describe('buildDoublePaymentReport', () => {
     const report = buildDoublePaymentReport(
       [lea],
       [
-        payment({ allocations: [{ participant: 'lea', amount: 160 }] }),
+        payment({ allocations: [to('lea', 160)] }),
         payment({
           transactionReference: 'GS00000000000002',
           refundedDate: '2026-10-20T00:00:00.000Z',
-          allocations: [{ participant: 'lea', amount: 160 }],
+          allocations: [to('lea', 160)],
         }),
       ],
       NOW,
@@ -78,14 +87,11 @@ describe('buildDoublePaymentReport', () => {
     const report = buildDoublePaymentReport(
       [lea],
       [
-        payment({ allocations: [{ participant: 'lea', amount: 160 }] }),
+        payment({ allocations: [to('lea', 160)] }),
         payment({
           transactionReference: 'GS00000000000002',
           amount: 320,
-          allocations: [
-            { participant: 'lea', amount: 100 },
-            { participant: 'noah', amount: 220 },
-          ],
+          allocations: [to('lea', 100), to('noah', 220)],
         }),
       ],
       NOW,
@@ -116,11 +122,11 @@ describe('buildResolvedDoublePayments', () => {
     const resolved = buildResolvedDoublePayments(
       [resolvedLea],
       [
-        payment({ matchedParticipant: 'lea', allocations: [{ participant: 'lea', amount: 160 }] }),
+        payment({ matchedParticipant: 'lea', allocations: [to('lea', 160)] }),
         payment({
           transactionReference: 'GS00000000000002',
           matchedParticipant: 'lea',
-          allocations: [{ participant: 'noah', amount: 160 }],
+          allocations: [to('noah', 160)],
         }),
       ],
       [noah],
@@ -152,11 +158,11 @@ describe('buildResolvedDoublePayments', () => {
     const [entry] = buildResolvedDoublePayments(
       [resolvedLea],
       [
-        payment({ allocations: [{ participant: 'lea', amount: 160 }] }),
+        payment({ allocations: [to('lea', 160)] }),
         payment({
           transactionReference: 'GS00000000000002',
           refundedDate: '2026-10-25T00:00:00.000Z',
-          allocations: [{ participant: 'lea', amount: 160 }],
+          allocations: [to('lea', 160)],
         }),
       ],
       [],
@@ -174,7 +180,7 @@ describe('buildResolvedDoublePayments', () => {
   it('leaves a bill that is paid twice again to the open list', () => {
     const resolved = buildResolvedDoublePayments(
       [{ ...resolvedLea, doublePayment: true }],
-      [payment({ allocations: [{ participant: 'lea', amount: 160 }] })],
+      [payment({ allocations: [to('lea', 160)] })],
       [],
     );
 

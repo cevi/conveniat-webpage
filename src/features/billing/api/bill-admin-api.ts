@@ -1,4 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { describeActor } from '@/features/billing-core/describe-actor';
 import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
 import { runScopedLogger } from '@/features/billing/adapters/payload-logger.adapter';
 import { PayloadParticipantRepositoryAdapter } from '@/features/billing/adapters/payload-participant-repository.adapter';
@@ -7,7 +8,6 @@ import { RedisJobProgressAdapter } from '@/features/billing/adapters/redis-job-p
 import { S3StorageAdapter } from '@/features/billing/adapters/s3-storage.adapter';
 import type { BillingJobProgress } from '@/features/billing/ports/job-progress.port';
 import { NEEDS_MANUAL_REVIEW, statusAfterReview } from '@/features/billing/services/billing-status';
-import { describeActor } from '@/features/billing/services/describe-actor';
 import {
   buildLatestJobWhere,
   getJobDerivedStatus,

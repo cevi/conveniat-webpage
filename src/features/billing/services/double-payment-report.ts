@@ -1,9 +1,10 @@
 import { toRappen } from '@/features/billing-core/money';
 import {
-  allocatedToParticipant,
+  allocatedTo,
+  allocationBill,
   isRefunded,
+  matchedBillOf,
   paymentsCountingFor,
-  relationId,
   totalAllocatedTo,
 } from '@/features/billing-core/payment-allocation';
 import {
@@ -128,7 +129,7 @@ export function buildDoublePaymentReport(
           transactionReference: payment.transactionReference,
           bookingDate: payment.bookingDate ?? undefined,
           payer: payment.payer ?? '',
-          amount: allocatedToParticipant(payment, participant.id) / 100,
+          amount: allocatedTo(payment, participant.id) / 100,
         })),
       };
     })
@@ -179,9 +180,9 @@ export function buildResolvedDoublePayments(
       const involved = payments
         .filter(
           (payment) =>
-            relationId(payment.matchedParticipant) === participant.id ||
+            matchedBillOf(payment)?.id === participant.id ||
             (payment.allocations ?? []).some(
-              (allocation) => relationId(allocation.participant) === participant.id,
+              (allocation) => allocationBill(allocation)?.id === participant.id,
             ),
         )
         .toSorted((a, b) => (a.bookingDate ?? '').localeCompare(b.bookingDate ?? ''));
@@ -200,11 +201,11 @@ export function buildResolvedDoublePayments(
             bookingDate: payment.bookingDate ?? undefined,
             payer: payment.payer ?? '',
             amount: payment.amount,
-            countsHere: allocatedToParticipant(payment, participant.id) / 100,
+            countsHere: allocatedTo(payment, participant.id) / 100,
             elsewhere: isRefunded(payment)
               ? []
               : (payment.allocations ?? []).flatMap((allocation): ReassignedShare[] => {
-                  const id = relationId(allocation.participant);
+                  const id = allocationBill(allocation)?.id;
                   if (id === undefined || id === participant.id) return [];
                   const other = othersById.get(id);
                   return [
@@ -260,6 +261,9 @@ export async function findDoublePaymentReport(
     collection: 'bill-payments',
     where: {
       or: [
+        { 'allocations.bill.value': { in: resolvedIds } },
+        { 'matchedBill.value': { in: resolvedIds } },
+        // stored by the previous release during a rolling deploy, see syncLegacyBillFields
         { 'allocations.participant': { in: resolvedIds } },
         { matchedParticipant: { in: resolvedIds } },
       ],
@@ -274,7 +278,7 @@ export async function findDoublePaymentReport(
       id: {
         in: resolvedPayments
           .flatMap((payment) => payment.allocations ?? [])
-          .map((allocation) => relationId(allocation.participant))
+          .map((allocation) => allocationBill(allocation)?.id)
           .filter((id) => id !== undefined && !resolvedIds.includes(id)),
       },
     },

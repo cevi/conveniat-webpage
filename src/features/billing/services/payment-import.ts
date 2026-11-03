@@ -1,4 +1,4 @@
-import { allocatedParticipantIds } from '@/features/billing-core/payment-allocation';
+import { allocatedBillIds, CAMP_BILL_COLLECTION } from '@/features/billing-core/payment-allocation';
 import { parsePaymentCsv } from '@/features/billing-core/payment-csv';
 import type { PaymentOutcome } from '@/features/billing-core/payment-outcome';
 import { isValidQrReference } from '@/features/billing-core/qr-reference';
@@ -64,13 +64,25 @@ const toPaymentRow = (
   reference: payment.reference,
   payer: payment.payer,
   message: payment.message,
-  ...(participantId === undefined ? {} : { matchedParticipant: participantId }),
+  ...(participantId === undefined
+    ? {}
+    : {
+        matchedBill: { relationTo: CAMP_BILL_COLLECTION, value: participantId },
+        // the previous release reads only this, during a rolling deploy
+        matchedParticipant: participantId,
+      }),
   importOutcome: outcome,
   importedBy: actor,
   ...(message === undefined ? {} : { importMessage: message }),
   allocations:
     ALLOCATED_OUTCOMES.has(outcome) && participantId !== undefined
-      ? [{ participant: participantId, amount: payment.amount ?? 0 }]
+      ? [
+          {
+            bill: { relationTo: CAMP_BILL_COLLECTION, value: participantId },
+            participant: participantId,
+            amount: payment.amount ?? 0,
+          },
+        ]
       : [],
 });
 
@@ -168,7 +180,7 @@ export async function importPayments(
       });
       knownTransactions.add(row.transactionReference);
       saved.push(row);
-      for (const id of allocatedParticipantIds(row)) affected.add(id);
+      for (const id of allocatedBillIds(row, CAMP_BILL_COLLECTION)) affected.add(id);
     } catch (error) {
       // Another import of the same file in the same moment stored the transaction first.
       const reason = error instanceof Error ? error.message : String(error);

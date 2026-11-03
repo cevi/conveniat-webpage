@@ -4608,8 +4608,12 @@ export interface BillPayment {
   payer?: string | null;
   message?: string | null;
   /**
-   * The registration whose bill carries the paid reference. Kept when the payment is assigned elsewhere.
+   * The bill that carries the paid reference. Kept when the payment is assigned elsewhere.
    */
+  matchedBill?: {
+    relationTo: 'bill-participants';
+    value: string | BillParticipant;
+  } | null;
   matchedParticipant?: (string | null) | BillParticipant;
   importOutcome?:
     | (
@@ -4634,8 +4638,12 @@ export interface BillPayment {
    */
   allocations?:
     | {
-        participant: string | BillParticipant;
+        bill: {
+          relationTo: 'bill-participants';
+          value: string | BillParticipant;
+        };
         amount: number;
+        participant?: (string | null) | BillParticipant;
         id?: string | null;
       }[]
     | null;
@@ -7134,6 +7142,7 @@ export interface BillPaymentsSelect<T extends boolean = true> {
   reference?: T;
   payer?: T;
   message?: T;
+  matchedBill?: T;
   matchedParticipant?: T;
   importOutcome?: T;
   importedBy?: T;
@@ -7141,8 +7150,9 @@ export interface BillPaymentsSelect<T extends boolean = true> {
   allocations?:
     | T
     | {
-        participant?: T;
+        bill?: T;
         amount?: T;
+        participant?: T;
         id?: T;
       };
   refundedDate?: T;

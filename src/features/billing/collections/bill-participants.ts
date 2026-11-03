@@ -633,7 +633,7 @@ export const BillParticipantsCollection: CollectionConfig = {
               name: 'payments',
               type: 'join',
               collection: 'bill-payments',
-              on: 'allocations.participant',
+              on: 'allocations.bill',
               label: {
                 en: 'Bookings',
                 de: 'Buchungen',
@@ -658,7 +658,7 @@ export const BillParticipantsCollection: CollectionConfig = {
               name: 'matchedPayments',
               type: 'join',
               collection: 'bill-payments',
-              on: 'matchedParticipant',
+              on: 'matchedBill',
               label: {
                 en: 'Payments with this Reference',
                 de: 'Zahlungen mit dieser Referenz',

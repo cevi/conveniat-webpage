@@ -9,8 +9,18 @@ import type { BillPayment } from '@/features/payload-cms/payload-types';
  * as when a mother pays both children's bills with one of the two references. Whatever the
  * allocations say is what a bill counts as paid. A refunded payment counts for nothing.
  *
+ * An allocation points to a bill of any kind, a camp bill or a Besuchstag bill, through the
+ * polymorphic `bill`. Payments stored before there were two kinds name a camp bill in the
+ * legacy `participant` instead, which is read where `bill` is missing; a later migration
+ * removes it. Bills are told apart by their id alone, which is unique across collections.
+ *
  * Kept free of Payload runtime imports, so the arithmetic can be tested on its own.
  */
+
+/** The collection of the camp bills, which every payment from before the Besuchstag names. */
+export const CAMP_BILL_COLLECTION = 'bill-participants';
+
+type Allocation = NonNullable<BillPayment['allocations']>[number];
 
 export type AllocatablePayment = Pick<
   BillPayment,
@@ -27,14 +37,49 @@ export const relationId = (value: unknown): string | undefined => {
   return undefined;
 };
 
-/** Every bill a payment is allocated to. */
-export const allocatedParticipantIds = (
+/** A bill a payment points to: its collection and its id. */
+export interface BillReference {
+  relationTo: string;
+  id: string;
+}
+
+/** The bill a polymorphic relationship holds, populated or not. */
+export const billReferenceOf = (value: unknown): BillReference | undefined => {
+  if (value === null || typeof value !== 'object' || !('relationTo' in value)) return undefined;
+  const { relationTo } = value;
+  const id = relationId((value as { value?: unknown }).value);
+  return typeof relationTo === 'string' && id !== undefined ? { relationTo, id } : undefined;
+};
+
+/** The bill an allocation pays, from `bill` or, on an older payment, `participant`. */
+export const allocationBill = (allocation: Partial<Allocation>): BillReference | undefined => {
+  const bill = billReferenceOf(allocation.bill);
+  if (bill !== undefined) return bill;
+  const legacy = relationId(allocation.participant);
+  return legacy === undefined ? undefined : { relationTo: CAMP_BILL_COLLECTION, id: legacy };
+};
+
+/** The bill whose reference a payment carried, from `matchedBill` or `matchedParticipant`. */
+export const matchedBillOf = (
+  payment: Partial<Pick<BillPayment, 'matchedBill' | 'matchedParticipant'>>,
+): BillReference | undefined => {
+  const bill = billReferenceOf(payment.matchedBill);
+  if (bill !== undefined) return bill;
+  const legacy = relationId(payment.matchedParticipant);
+  return legacy === undefined ? undefined : { relationTo: CAMP_BILL_COLLECTION, id: legacy };
+};
+
+/** Every bill a payment is allocated to, of one collection or of all. */
+export const allocatedBillIds = (
   payment: Pick<BillPayment, 'allocations'> | null | undefined,
+  collection?: string,
 ): string[] => [
   ...new Set(
     (payment?.allocations ?? [])
-      .map((allocation) => relationId(allocation.participant))
-      .filter((id) => id !== undefined),
+      .map((allocation) => allocationBill(allocation))
+      .filter((bill) => bill !== undefined)
+      .filter((bill) => collection === undefined || bill.relationTo === collection)
+      .map((bill) => bill.id),
   ),
 ];
 
@@ -43,14 +88,14 @@ export const isRefunded = (payment: Pick<BillPayment, 'refundedDate'>): boolean 
   typeof payment.refundedDate === 'string' && payment.refundedDate !== '';
 
 /** The share of one payment allocated to one bill, in Rappen; zero once refunded. */
-export const allocatedToParticipant = (
+export const allocatedTo = (
   payment: Pick<BillPayment, 'allocations' | 'refundedDate'>,
-  participantId: string,
+  billId: string,
 ): number =>
   isRefunded(payment)
     ? 0
     : (payment.allocations ?? [])
-        .filter((allocation) => relationId(allocation.participant) === participantId)
+        .filter((allocation) => allocationBill(allocation)?.id === billId)
         .reduce((sum, allocation) => sum + toRappen(allocation.amount), 0);
 
 /**
@@ -59,10 +104,10 @@ export const allocatedToParticipant = (
  */
 export const paymentsCountingFor = <T extends AllocatablePayment>(
   payments: T[],
-  participantId: string,
+  billId: string,
 ): T[] =>
   payments
-    .filter((payment) => allocatedToParticipant(payment, participantId) > 0)
+    .filter((payment) => allocatedTo(payment, billId) > 0)
     .toSorted((a, b) => {
       const byDate = (a.bookingDate ?? '').localeCompare(b.bookingDate ?? '');
       return byDate === 0 ? a.transactionReference.localeCompare(b.transactionReference) : byDate;
@@ -76,20 +121,20 @@ export const paymentsCountingFor = <T extends AllocatablePayment>(
  */
 export const settlingPayments = <T extends AllocatablePayment>(
   counting: T[],
-  participantId: string,
+  billId: string,
   invoiceRappen: number,
 ): T[] => {
   let paid = 0;
   for (const [index, payment] of counting.entries()) {
-    paid += allocatedToParticipant(payment, participantId);
+    paid += allocatedTo(payment, billId);
     if (paid >= invoiceRappen) return counting.slice(0, index + 1);
   }
   return [];
 };
 
 /** What all payments together pay towards a bill, in Rappen. */
-export const totalAllocatedTo = (payments: AllocatablePayment[], participantId: string): number =>
-  payments.reduce((sum, payment) => sum + allocatedToParticipant(payment, participantId), 0);
+export const totalAllocatedTo = (payments: AllocatablePayment[], billId: string): number =>
+  payments.reduce((sum, payment) => sum + allocatedTo(payment, billId), 0);
 
 /**
  * Whether a bill got more than it asks for, beyond what the import books as rounding.
@@ -113,7 +158,7 @@ export const describeAllocationProblem = (
   if (allocations.some((allocation) => toRappen(allocation.amount) <= 0)) {
     return 'Jede Zuordnung braucht einen Betrag über CHF 0.00.';
   }
-  const ids = allocations.map((allocation) => relationId(allocation.participant));
+  const ids = allocations.map((allocation) => allocationBill(allocation)?.id);
   if (new Set(ids).size !== ids.length) {
     return 'Jede Rechnung darf nur einmal zugeordnet werden. Beträge für dieselbe Rechnung bitte zusammenzählen.';
   }
