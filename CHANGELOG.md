@@ -1,5 +1,82 @@
 # Changelog
 
+## [1.48.0](https://github.com/cevi/conveniat-webpage/compare/v1.47.2...v1.48.0) (2026-11-03)
+
+
+### Features
+
+* **announcements:** channel edit view in tabs, sidebar for the CMS only ([58e2df4](https://github.com/cevi/conveniat-webpage/commit/58e2df4b1874a152ac29e3c2637d259a58f5596a))
+* **announcements:** channels for all AVPs, a group picker and a member list ([0449dbe](https://github.com/cevi/conveniat-webpage/commit/0449dbe486fcde39604d240a97ea6940d4d81797))
+* **announcements:** channels for all AVPs, a group picker and a member list ([70b4638](https://github.com/cevi/conveniat-webpage/commit/70b4638ea831dc333537ba2be4b5e8e0402ccdd6))
+* **besuchstag:** a page search that tells relatives their day ([9377ab1](https://github.com/cevi/conveniat-webpage/commit/9377ab1c3227d0a318f28456c9a2ffa7e07a1a12))
+* **besuchstag:** a page search that tells relatives their day ([8fe024e](https://github.com/cevi/conveniat-webpage/commit/8fe024e118b0af75534ed6aae2b6c67e99619489))
+* **besuchstag:** places without lunch and visitors without a Hof ([f631931](https://github.com/cevi/conveniat-webpage/commit/f6319316b03dab4f638dfd9ab1220aa13f5ee7f7))
+* **besuchstag:** places without lunch and visitors without a Hof ([b5ea5c0](https://github.com/cevi/conveniat-webpage/commit/b5ea5c068b5d2517dfd5798786fa0b8a8f84af71))
+* **besuchstag:** the form shows only the chosen Hof's day ([20a42c0](https://github.com/cevi/conveniat-webpage/commit/20a42c0f89728f1bc9d64345390c56a0b0d78747))
+* **besuchstag:** the form speaks of the Abteilung, not the Hof ([2ec3fa2](https://github.com/cevi/conveniat-webpage/commit/2ec3fa203e8d114fa95da816b4d16f675e11b762))
+* **besuchstag:** the search asks for the Abteilung and ignores "Cevi" ([e9b61cc](https://github.com/cevi/conveniat-webpage/commit/e9b61cc7ba49f81b058097f73cdf26349b45334e))
+* **chat:** the leave button says Verlassen ([32873c8](https://github.com/cevi/conveniat-webpage/commit/32873c80d33fe2da09aaea86b066326898a25e7e))
+* **chat:** the leave button says Verlassen ([0281189](https://github.com/cevi/conveniat-webpage/commit/0281189d4d50e9238f23b4133b49ee6c2d268fc2))
+* **chat:** the leave question names the group ([45504ac](https://github.com/cevi/conveniat-webpage/commit/45504ac521009c1c7d47fbda5a4560b9dbb1c0e9))
+* **chat:** the leave question names the group ([353652d](https://github.com/cevi/conveniat-webpage/commit/353652df8cbfa7d211ad450f4bec1dcdfd502d56))
+* **cms:** fact list content block ([12ad098](https://github.com/cevi/conveniat-webpage/commit/12ad09860de60b0a477ab13904c8e82413c2306c))
+* **cms:** fact list content block ([2399fe5](https://github.com/cevi/conveniat-webpage/commit/2399fe51aa22ca2019fe3b9744e99d6074d4f57d))
+* **cms:** internal name for announcement channels ([ad9ad40](https://github.com/cevi/conveniat-webpage/commit/ad9ad4073db0ea8a36c4af40caec227ae21b9865))
+* **cms:** internal name for announcement channels ([fb3574d](https://github.com/cevi/conveniat-webpage/commit/fb3574d5647133e3be571c672a1a73b877760e79))
+* **hof-dashboard:** sticky breadcrumbs and a review history the Hof sees too ([f709637](https://github.com/cevi/conveniat-webpage/commit/f709637f96b8d5a17d506a01366cd22802bb339c))
+* **hof-dashboard:** sticky breadcrumbs and a review history the Hof sees too ([67c775d](https://github.com/cevi/conveniat-webpage/commit/67c775d5fa30ee5e8d46e10ea78902ebd70ceb43))
+* **search:** find public PDFs, filter by type, preview Fundstellen ([93dbeb1](https://github.com/cevi/conveniat-webpage/commit/93dbeb1e79546593b391a511a0dfffa31e3e18d8))
+
+
+### Bug Fixes
+
+* a failed form submission says why, in the page's language ([02de1d2](https://github.com/cevi/conveniat-webpage/commit/02de1d25b2977f33bea410609aba26ab9d97ef74))
+* a failed form submission says why, in the page's language ([2dac6eb](https://github.com/cevi/conveniat-webpage/commit/2dac6eb9f7024b48569d9a4fc88f0edc304e0de7))
+* **announcements:** live preview shows the chat as members see it ([5196d09](https://github.com/cevi/conveniat-webpage/commit/5196d090ac97ea3236e4bcc7bd9324ceb8064082))
+* **announcements:** live preview shows the chat as members see it ([8963cd1](https://github.com/cevi/conveniat-webpage/commit/8963cd1776fbd7c6fe538c42242821d429247bff))
+* **announcements:** review findings on the channel audience ([1a5eed3](https://github.com/cevi/conveniat-webpage/commit/1a5eed3e7108aec75ecfc4c9fa985543025d7f4a))
+* **app:** balance wrapped titles and short descriptions ([f4d36d1](https://github.com/cevi/conveniat-webpage/commit/f4d36d1725f58e0fb7bc322ad92cf5b90d024921))
+* **besuchstag:** a day stays open until both kinds of places are full ([92425fc](https://github.com/cevi/conveniat-webpage/commit/92425fc57f1a957091bb589188466e1bc0fe070b))
+* **cache:** a render overlapping a flush no longer writes stale data back ([4043ae1](https://github.com/cevi/conveniat-webpage/commit/4043ae13a976172881615f4ca2f31719f6940465))
+* **cache:** a render overlapping a flush no longer writes stale data back ([f2c77ae](https://github.com/cevi/conveniat-webpage/commit/f2c77ae891fdf8fcee38391bc65893fda7bb275b))
+* **chat:** a chat created without signal says so under its first line, not in a toast ([5db3a40](https://github.com/cevi/conveniat-webpage/commit/5db3a40ce349633fcdbfbaa1cb68a6a2f774f7e8))
+* **chat:** a chat tapped beside an open one shows right away ([6679de8](https://github.com/cevi/conveniat-webpage/commit/6679de863fd17b73cef221b37ce2cd2a6a25c675))
+* **chat:** a chat tapped beside an open one shows right away ([9d0a3cd](https://github.com/cevi/conveniat-webpage/commit/9d0a3cddf946efc84aac0e655565f28d1bf20e91))
+* **chat:** database pool gives up waiting for a connection after 3 s ([5eaa675](https://github.com/cevi/conveniat-webpage/commit/5eaa675016e908b303789817a39b77003b8d6452))
+* **chat:** database pool gives up waiting for a connection after 3 s ([18654f7](https://github.com/cevi/conveniat-webpage/commit/18654f7d61779cfcc509398e48bcf119b082b34b)), closes [#2245](https://github.com/cevi/conveniat-webpage/issues/2245)
+* **chat:** leaving a group from the list leaves that group ([55d1465](https://github.com/cevi/conveniat-webpage/commit/55d1465e81c6609c257c3c054663f6e30a2c8c33))
+* **chat:** leaving a group from the list leaves that group ([7c17e77](https://github.com/cevi/conveniat-webpage/commit/7c17e778a3c1ecefa65ebd32f0a09a3aee814b56))
+* **chat:** spell out the transaction limits the pool timeout sits between ([32dc544](https://github.com/cevi/conveniat-webpage/commit/32dc544afbe971107118593200e060fe9181c9b4))
+* **chat:** spell out the transaction limits the pool timeout sits between ([60d5d5d](https://github.com/cevi/conveniat-webpage/commit/60d5d5d4ae2931e5d7729ad338f73ba7c2e09789))
+* **cms:** the fact list keeps the width of the text around it ([15e12f4](https://github.com/cevi/conveniat-webpage/commit/15e12f4c17a6a0428ad68c1a0d6b187e908b7f4e))
+* failed actions say why, where the user tapped ([de6bdab](https://github.com/cevi/conveniat-webpage/commit/de6bdabae3bbaada852e1d652998f9806a8d4059))
+* failed actions say why, where the user tapped ([bf9d4a6](https://github.com/cevi/conveniat-webpage/commit/bf9d4a6225bcb287c9abe168eafe2550db59c47b))
+* **form:** review findings on submission failures ([bc44d95](https://github.com/cevi/conveniat-webpage/commit/bc44d951b8ecf8847ddf50a3a0a18cd3935ed1cb))
+* review findings on failure feedback ([877d760](https://github.com/cevi/conveniat-webpage/commit/877d76034db4b7e47e6ea5756ac750e527cbd514))
+* review findings on the error reasons ([8aad9ad](https://github.com/cevi/conveniat-webpage/commit/8aad9ada23847af5cb7195ae4c342bdb79921c9f))
+* routers refuse with a reason, the browser says it in the page's language ([880679d](https://github.com/cevi/conveniat-webpage/commit/880679d43ea279fcabdfb5de7ce7037f9b994d34))
+* routers refuse with a reason, the browser says it in the page's language ([2370bfa](https://github.com/cevi/conveniat-webpage/commit/2370bfa0870a68af8b8c8abf501128d37f31df2d))
+* **schedule:** a full shift page drops its disabled button, as a full workshop does ([d53d48d](https://github.com/cevi/conveniat-webpage/commit/d53d48dfef733240cf8056a3b4a3e8b4595a4da3))
+* **schedule:** a full shift the feed hides still opens from its link ([84ae865](https://github.com/cevi/conveniat-webpage/commit/84ae865ff0eea65c5ba79b3ca51364029d0c6ea0))
+* **schedule:** a full shift the feed hides still opens from its link ([21ca895](https://github.com/cevi/conveniat-webpage/commit/21ca895eceb046f61d972ccab6088d8985c25fdf))
+* **schedule:** a refused enrolment refreshes the status instead of repeating it ([6ace827](https://github.com/cevi/conveniat-webpage/commit/6ace827716a253ed1269f55dfefa0145166994dc))
+* **schedule:** strike through packed items in the Mitnehmen checklist ([e07cb2d](https://github.com/cevi/conveniat-webpage/commit/e07cb2de3f9ea634668ccfe9fef387cff71e49bd))
+* **schedule:** strike through packed items in the Mitnehmen checklist ([032dc4c](https://github.com/cevi/conveniat-webpage/commit/032dc4c55e9b6ff2a0bf39dc1c63d7fd1f4fc3f9))
+* **search:** links in the search preview close the dialog ([6e7b613](https://github.com/cevi/conveniat-webpage/commit/6e7b613e6cdc7bb3b6154fb6df981d38c6755a64))
+* **search:** links in the search preview close the dialog ([873a372](https://github.com/cevi/conveniat-webpage/commit/873a372f18ae8bafcf9da3586b55607ebdc92929))
+* **tracing:** mark failed withSpan spans as ERROR ([147056c](https://github.com/cevi/conveniat-webpage/commit/147056c64b82cf4741c211710cb3c31c72809ffe))
+* **tracing:** mark failed withSpan spans as ERROR ([34fb338](https://github.com/cevi/conveniat-webpage/commit/34fb33800e5eb50407b6eb6f2196b191e3c4f72a)), closes [#2217](https://github.com/cevi/conveniat-webpage/issues/2217)
+
+
+### Performance
+
+* **chat:** a refused send no longer loads the chat's members ([c1ce130](https://github.com/cevi/conveniat-webpage/commit/c1ce13083de742fac094ad4da6812a9796e31c33))
+* **chat:** a send reads its chat once ([a932843](https://github.com/cevi/conveniat-webpage/commit/a9328435eefaec6c6e7184c0e10c1c32a70be29f))
+* **chat:** a send reads its chat once ([88b256e](https://github.com/cevi/conveniat-webpage/commit/88b256ede2a6af3fcffcab668bfa9bdd3a78dd3f)), closes [#2245](https://github.com/cevi/conveniat-webpage/issues/2245)
+* **schedule:** count enrolments in the database for the course status ([43189ab](https://github.com/cevi/conveniat-webpage/commit/43189abb5b7f2c5570eda630e7985455d1d3b0ac))
+* **schedule:** count enrolments in the database for the course status ([fa5fcfe](https://github.com/cevi/conveniat-webpage/commit/fa5fcfe8d58802d0835e2f85460ef68d1b76857c)), closes [#2165](https://github.com/cevi/conveniat-webpage/issues/2165)
+* **schedule:** one read for the organiser's count and roster, no Payload count ([84a4701](https://github.com/cevi/conveniat-webpage/commit/84a47016e2969658a164ec7c70f7c868dba096a2)), closes [#2165](https://github.com/cevi/conveniat-webpage/issues/2165)
+
 ## [1.47.2](https://github.com/cevi/conveniat-webpage/compare/v1.47.1...v1.47.2) (2026-11-02)
 
 
