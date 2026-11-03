@@ -63,7 +63,10 @@ export const SettingsRow: React.FC<SettingsRowProperties> = ({
             subtitle !== null &&
             subtitle !== false && (
               <p
-                className={cn('mt-px text-[13px] leading-[18px] text-green-700', subtitleClassName)}
+                className={cn(
+                  'mt-px text-[13px] leading-[18px] text-balance text-green-700',
+                  subtitleClassName,
+                )}
               >
                 {subtitle}
               </p>

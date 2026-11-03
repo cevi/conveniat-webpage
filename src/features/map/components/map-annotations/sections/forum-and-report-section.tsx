@@ -121,7 +121,7 @@ export const AnnotationForumAndReportSection: React.FC<{
           <span className="block text-[15px] leading-5 font-semibold text-green-900">
             {buttonText[locale]}
           </span>
-          <span className="block text-[13px] leading-[18px] text-green-700">
+          <span className="block text-[13px] leading-[18px] text-balance text-green-700">
             {buttonDescription[locale]}
           </span>
         </span>

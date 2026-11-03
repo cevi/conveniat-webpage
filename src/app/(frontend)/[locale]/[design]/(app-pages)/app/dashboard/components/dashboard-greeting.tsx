@@ -84,7 +84,7 @@ export const DashboardGreeting: React.FC<{ locale: Locale }> = ({ locale }) => {
 
   return (
     <div>
-      <h2 className="font-heading text-heading text-[28px] leading-[1.15] font-extrabold">
+      <h2 className="font-heading text-heading text-[28px] leading-[1.15] font-extrabold text-balance">
         {user === undefined
           ? welcome[locale]
           : hello[locale].replace('{{name}}', displayNamesOf(user.name, user.nickname).callName)}

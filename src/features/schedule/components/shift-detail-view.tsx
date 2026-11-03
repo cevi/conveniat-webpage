@@ -247,7 +247,7 @@ export const ShiftDetailView: React.FC<{
                     {accent.label}
                   </div>
                 )}
-                <h1 className="font-heading text-heading text-[28px] leading-[1.15] font-extrabold">
+                <h1 className="font-heading text-heading text-[28px] leading-[1.15] font-extrabold text-balance">
                   {shift.title}
                 </h1>
                 {shift.description !== '' && (

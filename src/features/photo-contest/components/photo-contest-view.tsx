@@ -442,7 +442,7 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
           <span className="text-xs font-bold tracking-[0.08em] text-green-700 uppercase">
             {t('eyebrow')}
           </span>
-          <h1 className="font-heading text-heading mt-1 text-[28px] leading-[1.15] font-extrabold">
+          <h1 className="font-heading text-heading mt-1 text-[28px] leading-[1.15] font-extrabold text-balance">
             {contest.title}
           </h1>
 
