@@ -95,7 +95,7 @@ export const isInChannelAudience = (
 };
 
 /** Most users the camp will have; the login creates one per participant. */
-const MAX_USERS = 20_000;
+export const MAX_USERS = 20_000;
 
 /**
  * The ids of every logged-in user in a channel's audience. People who never logged in have no

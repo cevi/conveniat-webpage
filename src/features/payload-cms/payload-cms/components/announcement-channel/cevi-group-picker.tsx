@@ -83,10 +83,12 @@ export const CeviGroupPicker: NumberFieldClientComponent = ({ field, path, readO
   const handleChange = (option: ReactSelectOption | ReactSelectOption[] | null): void => {
     const picked = Array.isArray(option) ? option[0] : (option ?? undefined);
     const id = typeof picked?.value === 'number' ? picked.value : undefined;
+    // picking the same group again keeps a name the editor may have changed
+    if (id === value) return;
     setValue(id);
+    // a group outside the list starts without a name; the editor can give it one below
     const known = groups.find((group) => group.id === id);
-    // a typed-in ID keeps whatever name the editor gave it
-    if (known !== undefined && known.name !== '') groupName.setValue(known.name);
+    groupName.setValue(known?.name ?? '');
   };
 
   return (

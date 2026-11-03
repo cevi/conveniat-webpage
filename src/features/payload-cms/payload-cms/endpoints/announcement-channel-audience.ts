@@ -1,6 +1,10 @@
 import { hasAdminOrWebAccess, isRole } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { ChannelAudience } from '@/features/payload-cms/payload-cms/utils/announcement-channel-audience';
-import { findAudienceUserIds } from '@/features/payload-cms/payload-cms/utils/announcement-channel-audience';
+import {
+  findAudienceUserIds,
+  MAX_USERS,
+} from '@/features/payload-cms/payload-cms/utils/announcement-channel-audience';
+import prisma from '@/lib/db/prisma';
 import type { PayloadHandler } from 'payload';
 
 /** A Cevi.DB group an editor can pick as the audience of a channel. */
@@ -10,9 +14,6 @@ export interface CeviGroupSuggestion {
   /** How many logged-in users are in the group; 0 for a Hof or function nobody logged in to. */
   members: number;
 }
-
-/** Most users the camp will have; the login creates one per participant. */
-const MAX_USERS = 20_000;
 
 /** Most Höfe and functions the camp has; far more than it will ever have. */
 const MAX_SYNCED_GROUPS = 1000;
@@ -116,8 +117,9 @@ const parseAudience = (body: unknown): ChannelAudience | undefined => {
 };
 
 /**
- * How many logged-in users the audience being edited reaches, before it is saved. Saving
- * applies the same rule, so the number matches the members the chat will have.
+ * How many logged-in users the audience being edited reaches, before it is saved. Like the
+ * save, it counts only users the chat database knows, so the number matches the guests the
+ * chat will have; the editor who creates it joins on top as its owner.
  */
 export const audiencePreviewHandler: PayloadHandler = async (request) => {
   if (!hasAdminOrWebAccess({ req: request })) {
@@ -137,5 +139,6 @@ export const audiencePreviewHandler: PayloadHandler = async (request) => {
   }
 
   const userIds = await findAudienceUserIds(request.payload, audience, request);
-  return Response.json({ count: userIds.length });
+  const count = await prisma.user.count({ where: { uuid: { in: userIds } } });
+  return Response.json({ count });
 };

@@ -98,11 +98,18 @@ const syncAnnouncementChannelMemberships = async (
   }
 };
 
+/** Marks the update that only stores the id of a newly created chat. */
+const CHAT_ID_WRITE_BACK = 'announcementChannelChatIdWriteBack';
+
 const afterChannelChange: CollectionAfterChangeHook<AnnouncementChannel> = async ({
   doc,
   req: request,
   operation,
+  context,
 }) => {
+  // the write-back of the chat id below; the outer run already set up the chat and its members
+  if (context[CHAT_ID_WRITE_BACK] === true) return doc;
+
   const name = doc.name;
   const description = doc.description;
   let chatUuid = doc.chatUuid;
@@ -172,6 +179,7 @@ const afterChannelChange: CollectionAfterChangeHook<AnnouncementChannel> = async
       collection: 'announcement-channels',
       id: doc.id,
       data: { chatUuid },
+      context: { [CHAT_ID_WRITE_BACK]: true },
     });
   } else {
     // B. UPDATE: Reconcile Chat details in PostgreSQL

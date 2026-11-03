@@ -34,14 +34,6 @@ const permissionLabels: Partial<Record<ChatMembershipPermission, StaticTranslati
   [ChatMembershipPermission.ADMIN]: { de: 'Admin', en: 'Admin', fr: 'Admin' },
 };
 
-/** Owners and admins first, as they are the ones who write. */
-const PERMISSION_ORDER: ChatMembershipPermission[] = [
-  ChatMembershipPermission.OWNER,
-  ChatMembershipPermission.ADMIN,
-  ChatMembershipPermission.MEMBER,
-  ChatMembershipPermission.GUEST,
-];
-
 /**
  * Lists who is in a channel's chat right now, as the app sees it: the memberships in
  * the chat database, not the audience the channel is set to.
@@ -61,20 +53,20 @@ export const ChannelMembersField = async ({
     );
   }
 
-  const memberships = await prisma.chatMembership.findMany({
-    where: { chatId: chatUuid },
-    select: { userId: true, chatPermission: true, user: { select: { name: true } } },
-  });
-  const members = memberships.toSorted((a, b) => {
-    const byPermission =
-      PERMISSION_ORDER.indexOf(a.chatPermission) - PERMISSION_ORDER.indexOf(b.chatPermission);
-    return byPermission === 0 ? a.user.name.localeCompare(b.user.name, 'de') : byPermission;
-  });
-  const listed = members.slice(0, MAX_LISTED);
+  // owners and admins first: Postgres sorts an enum in the order it declares it
+  const [total, listed] = await Promise.all([
+    prisma.chatMembership.count({ where: { chatId: chatUuid } }),
+    prisma.chatMembership.findMany({
+      where: { chatId: chatUuid },
+      select: { userId: true, chatPermission: true, user: { select: { name: true } } },
+      orderBy: [{ chatPermission: 'asc' }, { user: { name: 'asc' } }],
+      take: MAX_LISTED,
+    }),
+  ]);
 
   return (
     <div className="field-type mb-8">
-      <FieldLabel label={countLabel(members.length)[locale]} />
+      <FieldLabel label={countLabel(total)[locale]} />
       <ul className="m-0 flex max-h-96 list-none flex-col overflow-y-auto border-y border-(--theme-elevation-100) p-0">
         {listed.map((member) => {
           const permission = permissionLabels[member.chatPermission];
@@ -93,9 +85,9 @@ export const ChannelMembersField = async ({
           );
         })}
       </ul>
-      {members.length > listed.length && (
+      {total > listed.length && (
         <p className="m-0 mt-2 text-(--theme-elevation-500)">
-          {moreLabel(members.length - listed.length)[locale]}
+          {moreLabel(total - listed.length)[locale]}
         </p>
       )}
       <p className="m-0 mt-2 text-sm text-(--theme-elevation-500)">{explanation[locale]}</p>

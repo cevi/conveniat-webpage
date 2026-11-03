@@ -32,9 +32,9 @@ const failedLabel: StaticTranslationString = {
   fr: 'Impossible de compter les personnes de cette sélection.',
 };
 const avpLabel: StaticTranslationString = {
-  de: 'AVPs sind die Adressverwalter/-innen der Cevi.DB-Gruppe eines Hofs, also alle, die sein Hof-Dashboard öffnen können. Eine Stellvertretung gehört dazu, wenn sie diese Rolle in der Cevi.DB ebenfalls hat.',
-  en: 'AVPs are the Adressverwalter of a Hof’s Cevi.DB group, everyone who can open its Hof dashboard. A Stellvertretung is included when she holds that role in Cevi.DB too.',
-  fr: 'Les AVP sont les Adressverwalter du groupe Cevi.DB d’un Hof, soit toutes les personnes qui peuvent ouvrir son tableau de bord. Une suppléance en fait partie si elle a aussi ce rôle dans Cevi.DB.',
+  de: 'Erreicht alle AVPs, also alle, die das Hof-Dashboard ihres Hofs öffnen können. Eine Stellvertretung gehört dazu, wenn sie in der Cevi.DB dieselbe Rolle wie die AVP hat.',
+  en: 'Reaches every AVP, everyone who can open the Hof dashboard of their Hof. A Stellvertretung is included when she holds the same role as the AVP in Cevi.DB.',
+  fr: 'Atteint tous les AVP, soit toutes les personnes qui peuvent ouvrir le tableau de bord de leur Hof. Une suppléance en fait partie si elle a le même rôle que l’AVP dans Cevi.DB.',
 };
 
 type CountState = { status: 'loading' } | { status: 'failed' } | { status: 'done'; count: number };

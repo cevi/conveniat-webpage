@@ -11,10 +11,13 @@ const loadSuggestions = (apiRoute: string): Promise<CeviGroupSuggestion[]> => {
   pending ??= fetch(`${apiRoute}/announcement-channels/group-suggestions`, {
     credentials: 'include',
   })
-    .then((response) => (response.ok ? response.json() : { groups: [] }))
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP ${String(response.status)}`);
+      return response.json();
+    })
     .then((result: { groups?: CeviGroupSuggestion[] }) => result.groups ?? [])
     .catch((): CeviGroupSuggestion[] => {
-      // the picker still takes a typed-in ID; the next row tries again
+      // the picker still takes a typed-in ID; the next picker that mounts asks again
       pending = undefined;
       return [];
     });
