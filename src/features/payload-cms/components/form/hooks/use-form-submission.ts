@@ -8,8 +8,11 @@ import {
 } from '@/features/payload-cms/components/form/static-form-texts';
 import type { ExtendedFormType, FormSection } from '@/features/payload-cms/components/form/types';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
+import { formErrorTexts } from '@/features/payload-cms/form-error-texts';
 import { usePostHog } from '@/providers/posthog-context';
 import { type Locale, type StaticTranslationString } from '@/types/types';
+import { noConnectionTranslation } from '@/utils/shared-translations';
+import { type ErrorParameters, formatErrorText } from '@/utils/user-error-message';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { FieldValues, UseFormSetError } from 'react-hook-form';
@@ -62,6 +65,25 @@ const correctHighlightedErrorsText: StaticTranslationString = {
   en: 'Please correct the highlighted errors.',
   de: 'Bitte korrigieren Sie die markierten Fehler.',
   fr: 'Veuillez corriger les erreurs mises en évidence.',
+};
+
+/** A refusal a form hook named a reason for, in the language of the page. */
+class SubmissionRefusedError extends Error {
+  constructor(template: string, params: ErrorParameters) {
+    super(formatErrorText(template, params));
+  }
+}
+
+/** The reason and params of a hook's refusal, when its texts know the reason. */
+const refusalReasonOf = (
+  data: unknown,
+): { text: StaticTranslationString; params: ErrorParameters } | undefined => {
+  if (typeof data !== 'object' || data === null || !('reason' in data)) return undefined;
+  const texts: Record<string, StaticTranslationString | undefined> = formErrorTexts;
+  const text = typeof data.reason === 'string' ? texts[data.reason] : undefined;
+  if (text === undefined) return undefined;
+  const params = 'params' in data && typeof data.params === 'object' ? data.params : undefined;
+  return { text, params: (params ?? {}) as ErrorParameters };
 };
 
 export const useFormSubmission = ({
@@ -125,22 +147,38 @@ export const useFormSubmission = ({
     }
 
     // 3. API Call
+    let resp: Response;
     try {
-      const resp = await fetch(`/api/form-submissions`, {
+      resp = await fetch(`/api/form-submissions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ form: formId, submissionData: dataToSend }),
       });
+    } catch (error: unknown) {
+      // the request never reached the server; the browser's own message is English and differs
+      // per browser ("Failed to fetch", "Load failed")
+      setStatus('error');
+      setErrorMessage(noConnectionTranslation[locale]);
+      posthog?.capture('form_submission_error', {
+        error_type: 'network',
+        form_id: formId,
+        error_message: error instanceof Error ? error.message : String(error),
+      });
+      return;
+    }
 
+    try {
       if (!resp.ok) {
-        const errorData = (await resp.json()) as {
-          errors?: { data?: { field: string; message: string }[]; message?: string }[];
+        // a proxy or the service worker can answer with an HTML page instead of Payload's JSON
+        const errorData = (await resp.json().catch(() => ({}))) as {
+          errors?: { data?: unknown; message?: string }[];
           message?: string;
         };
+        const refusal = errorData.errors?.[0]?.data;
 
         // Handle field-level validation errors from payload
-        if (errorData.errors?.[0]?.data && Array.isArray(errorData.errors[0].data)) {
-          const fieldErrors = errorData.errors[0].data;
+        if (Array.isArray(refusal)) {
+          const fieldErrors = refusal as { field: string; message: string }[];
           if (setError) {
             const capturedErrors: string[] = [];
             for (const error of fieldErrors) {
@@ -205,8 +243,13 @@ export const useFormSubmission = ({
           }
         }
 
+        // A form hook names why it refused, see `formErrorTexts`. Anything else is Payload's or a
+        // proxy's English, kept for the analytics event only.
+        const reason = refusalReasonOf(refusal);
+        if (reason !== undefined)
+          throw new SubmissionRefusedError(reason.text[locale], reason.params);
         throw new Error(
-          errorData.errors?.[0]?.message ?? errorData.message ?? failedToSubmitText[locale],
+          errorData.errors?.[0]?.message ?? errorData.message ?? `HTTP ${resp.status}`,
         );
       }
 
@@ -231,7 +274,7 @@ export const useFormSubmission = ({
     } catch (error: unknown) {
       setStatus('error');
       const message =
-        error instanceof Error && error.message.length > 0 ? error.message : 'Submission failed';
+        error instanceof Error && error.message.length > 0 ? error.message : String(error);
 
       const isFieldValidationError = Object.values(correctHighlightedErrorsText).includes(message);
 
@@ -251,7 +294,9 @@ export const useFormSubmission = ({
           form_id: formId,
           error_message: message,
         });
-        setErrorMessage(message);
+        setErrorMessage(
+          error instanceof SubmissionRefusedError ? message : failedToSubmitText[locale],
+        );
       }
     }
   };
