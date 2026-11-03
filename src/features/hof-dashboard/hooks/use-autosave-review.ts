@@ -5,16 +5,12 @@ import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-be
 import { trpc } from '@/trpc/client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-/** How long typing has to pause before the feedback is saved. */
-const DEBOUNCE_MS = 800;
-
 /**
- * What a reviewer set: the Ressort's answer, none for "handed in", the feedback, and whether
- * the version is final.
+ * What a reviewer set: the Ressort's answer, none for "handed in", and whether the version is
+ * final. A comment is sent on its own, not saved as it is typed.
  */
 export interface ReviewValues {
   status: HofReviewChoice | undefined;
-  feedback: string;
   final: boolean;
 }
 
@@ -22,14 +18,13 @@ export interface ReviewValues {
  * Where the review's autosave stands. `saved` only once the server answered, so the status
  * never claims a write that did not land.
  */
-export type AutosaveState = 'idle' | 'typing' | 'saving' | 'saved' | 'offline' | 'error';
+export type AutosaveState = 'idle' | 'saving' | 'saved' | 'offline' | 'error';
 
 const same = (a: ReviewValues, b: ReviewValues): boolean =>
-  a.status === b.status && a.feedback === b.feedback && a.final === b.final;
+  a.status === b.status && a.final === b.final;
 
 /**
- * Saves a reviewer's answer as it is given: a status at once, the feedback after a pause in
- * typing, one write at a time and always the latest values. Without signal the change waits
+ * Saves a reviewer's answer as it is given, one write at a time and always the latest values. Without signal the change waits
  * and goes out once the device is back online; a failed write stays until retried. Leaving
  * the page while something is not saved asks first.
  */
@@ -41,7 +36,6 @@ export const useAutosaveReview = (
   values: ReviewValues;
   setStatus: (status: HofReviewChoice | undefined) => void;
   setFinal: (final: boolean) => void;
-  setFeedback: (feedback: string) => void;
   state: AutosaveState;
   retry: () => void;
 } => {
@@ -52,7 +46,6 @@ export const useAutosaveReview = (
   const lastSaved = useRef(stored);
   const inFlight = useRef(false);
   const latest = useRef(stored);
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const flush = useCallback(async (): Promise<void> => {
     // the write under way sends whatever was changed meanwhile once it is done
@@ -78,35 +71,25 @@ export const useAutosaveReview = (
       inFlight.current = false;
     }
     setState(wrote ? 'saved' : 'idle');
-    // Reloading the dashboard is not part of the write. Feedback typed while it reloaded used to
+    // Reloading the dashboard is not part of the write. A change made while it reloaded used to
     // find the write still under way and leave itself to it, after that write had stopped
     // looking: it was never sent, and the pill said saved.
     if (wrote) await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
   }, [hofId, submissionId, mutation, utils]);
 
-  const change = (next: ReviewValues, debounce: boolean): void => {
+  const change = (next: ReviewValues): void => {
     latest.current = next;
     setValues(next);
-    clearTimeout(timer.current);
-    if (debounce) {
-      setState('typing');
-      timer.current = setTimeout(() => void flush(), DEBOUNCE_MS);
-    } else {
-      void flush();
-    }
+    void flush();
   };
 
   useAutosaveOnReconnect(state, flush);
-  useEffect(() => (): void => clearTimeout(timer.current), []);
-  useWarnBeforeLeaving(
-    state === 'typing' || state === 'saving' || state === 'offline' || state === 'error',
-  );
+  useWarnBeforeLeaving(state === 'saving' || state === 'offline' || state === 'error');
 
   return {
     values,
-    setStatus: (status) => change({ ...latest.current, status }, false),
-    setFinal: (final) => change({ ...latest.current, final }, false),
-    setFeedback: (feedback) => change({ ...latest.current, feedback }, true),
+    setStatus: (status) => change({ ...latest.current, status }),
+    setFinal: (final) => change({ ...latest.current, final }),
     state,
     retry: () => void flush(),
   };

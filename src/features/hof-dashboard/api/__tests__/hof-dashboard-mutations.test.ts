@@ -64,6 +64,7 @@ jest.mock('@/utils/server-logger', () => ({
 }));
 
 import {
+  commentHofSubmission,
   reviewHofSubmission,
   withdrawHofSubmission,
 } from '@/features/hof-dashboard/api/hof-dashboard-mutations';
@@ -132,12 +133,12 @@ describe('reviewHofSubmission', () => {
   /** A web core team member answering on the dashboard. */
   const REVIEWER = { id: 'web-1', name: 'Sara Keller v/o Biber' };
 
-  it('stores the status and the feedback the Hof reads, naming who wrote them', async () => {
+  it('stores the status with the comment that goes along, naming who answered', async () => {
     await reviewHofSubmission({
       hof: HOF_NORD,
       submissionId: 'plan-2',
       status: 'revisionRequired',
-      feedback: 'Masthöhe fehlt',
+      comment: 'Masthöhe fehlt',
       final: false,
       reviewer: REVIEWER,
     });
@@ -157,19 +158,19 @@ describe('reviewHofSubmission', () => {
     );
   });
 
-  it('puts a submission back to handed in without a status', async () => {
+  it('puts a submission back to handed in without a status, and keeps its comment', async () => {
     await reviewHofSubmission({
       hof: HOF_NORD,
       submissionId: 'plan-reviewed',
       status: undefined,
-      feedback: '',
       final: false,
       reviewer: REVIEWER,
     });
     expect(mockPayload.update).toHaveBeenCalledWith(
       expect.objectContaining({
+        // without a comment the latest one stays: a status alone writes no feedback over it
         // eslint-disable-next-line unicorn/no-null -- Payload clears a field only with null
-        data: { approved: false, hofReviewStatus: null, hofFeedback: '', hofFinal: false },
+        data: { approved: false, hofReviewStatus: null, hofFinal: false },
       }),
     );
   });
@@ -179,7 +180,7 @@ describe('reviewHofSubmission', () => {
       hof: HOF_NORD,
       submissionId: 'stand-old',
       status: 'accepted',
-      feedback: 'Super',
+      comment: 'Super',
       final: false,
       reviewer: REVIEWER,
     });
@@ -195,13 +196,12 @@ describe('reviewHofSubmission', () => {
       hof: HOF_NORD,
       submissionId: 'stand-approved',
       status: 'inReview',
-      feedback: '',
       final: false,
       reviewer: REVIEWER,
     });
     expect(mockPayload.update).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        data: { approved: false, hofReviewStatus: 'inReview', hofFeedback: '', hofFinal: false },
+        data: { approved: false, hofReviewStatus: 'inReview', hofFinal: false },
       }),
     );
   });
@@ -211,7 +211,6 @@ describe('reviewHofSubmission', () => {
       hof: HOF_NORD,
       submissionId: 'plan-2',
       status: 'accepted',
-      feedback: '',
       final: true,
       reviewer: REVIEWER,
     });
@@ -231,8 +230,40 @@ describe('reviewHofSubmission', () => {
         hof: HOF_NORD,
         submissionId,
         status: 'accepted',
-        feedback: '',
         final: false,
+        reviewer: REVIEWER,
+      }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mockPayload.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('commentHofSubmission', () => {
+  const REVIEWER = { id: 'web-1', name: 'Sara Keller v/o Biber' };
+
+  it('stores the comment alone, leaving the status as it is, and names who wrote it', async () => {
+    await commentHofSubmission({
+      hof: HOF_NORD,
+      submissionId: 'plan-2',
+      comment: 'Bitte die Abspannung ergänzen.',
+      reviewer: REVIEWER,
+    });
+    expect(mockPayload.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'form-submissions',
+        id: 'plan-2',
+        data: { hofFeedback: 'Bitte die Abspannung ergänzen.' },
+        context: { hofReviewer: REVIEWER },
+      }),
+    );
+  });
+
+  it("does not comment on another Hof's submission", async () => {
+    await expect(
+      commentHofSubmission({
+        hof: HOF_NORD,
+        submissionId: 'sued-plan',
+        comment: 'Hallo',
         reviewer: REVIEWER,
       }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });

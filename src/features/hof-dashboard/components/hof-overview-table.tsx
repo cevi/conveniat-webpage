@@ -89,39 +89,43 @@ const waitingLine = (area: HofDashboardArea, n: number, locale: Locale): string 
     ? translateCount(n, 'orderedOne', 'orderedMany', locale)
     : translateCount(n, 'handedInOne', 'handedInMany', locale);
 
-/** One Hof with something to review: what waits, the way to it, and accepting all of it. */
-const WaitingCard: React.FC<{
+/**
+ * One Hof with something to review, as a row: what waits, the way to it, and accepting all of
+ * it. Only the first row's way in is the view's primary action.
+ */
+const WaitingRow: React.FC<{
   hof: HofOverviewRow;
+  primary: boolean;
   accepting: boolean;
   onReview: (area: HofDashboardArea) => void;
   onAccept: () => void;
   locale: Locale;
-}> = ({ hof, accepting, onReview, onAccept, locale }) => {
+}> = ({ hof, primary, accepting, onReview, onAccept, locale }) => {
   const waiting = HOF_DASHBOARD_AREAS.filter((area) => hof.areas[area].toReview > 0);
   const toAccept = ACCEPTED_AT_ONCE.reduce((sum, area) => sum + hof.areas[area].toAccept, 0);
   const first = waiting[0];
   return (
-    <li className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-5">
-      <div className="flex items-start justify-between gap-3">
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4 @xl:px-6">
+      <div className="min-w-0 flex-1 basis-64 space-y-1">
         <p className="text-base font-semibold text-green-900">{hof.name}</p>
-        <StatusPill tone="warning">
-          {translate('toReviewCount', locale, { n: toReviewOf(hof) })}
-        </StatusPill>
+        <ul className="flex flex-wrap gap-x-4 gap-y-1">
+          {waiting.map((area) => (
+            <li key={area} className="flex items-center gap-1.5 text-sm text-green-700">
+              <AreaIcon area={area} />
+              {HOF_DASHBOARD_AREA_LABELS[area][locale]} ·{' '}
+              {waitingLine(area, hof.areas[area].toReview, locale)}
+            </li>
+          ))}
+        </ul>
       </div>
-      <ul className="space-y-1">
-        {waiting.map((area) => (
-          <li key={area} className="flex items-center gap-2 text-sm text-green-800">
-            <AreaIcon area={area} />
-            {HOF_DASHBOARD_AREA_LABELS[area][locale]} ·{' '}
-            {waitingLine(area, hof.areas[area].toReview, locale)}
-          </li>
-        ))}
-      </ul>
+      <StatusPill tone="warning">
+        {translate('toReviewCount', locale, { n: toReviewOf(hof) })}
+      </StatusPill>
       <div className="flex flex-wrap gap-2">
         {first !== undefined && (
           <button
             type="button"
-            className={PRIMARY_BUTTON_CLASS}
+            className={primary ? PRIMARY_BUTTON_CLASS : SECONDARY_BUTTON_CLASS}
             aria-label={translate('reviewHofLabel', locale, { hof: hof.name })}
             onClick={() => onReview(first)}
           >
@@ -172,7 +176,6 @@ const AreaCell: React.FC<{ area: HofDashboardArea; summary: HofAreaSummary; loca
         )}
       </p>
       <SegmentBar
-        area={area}
         segments={summary.formStates.map((state) => SEGMENT_TONE[state])}
         label={translate('formStatesLabel', locale, {
           area: HOF_DASHBOARD_AREA_LABELS[area][locale],
@@ -216,8 +219,8 @@ export const HofOverviewTable: React.FC<{
 
   return (
     <div className="space-y-6">
-      <Panel className="space-y-4">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <Panel className="p-0 @xl:p-0">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 p-5 @xl:px-6">
           <SectionHeading className="text-xl">
             {translate('waitingForReview', locale)}
           </SectionHeading>
@@ -229,13 +232,16 @@ export const HofOverviewTable: React.FC<{
           )}
         </div>
         {waiting.length === 0 ? (
-          <p className="text-base text-green-700">{translate('nothingToReview', locale)}</p>
+          <p className="px-5 pb-5 text-base text-green-700 @xl:px-6">
+            {translate('nothingToReview', locale)}
+          </p>
         ) : (
-          <ul className="grid gap-4 @3xl:grid-cols-2 @6xl:grid-cols-3">
-            {waiting.map((hof) => (
-              <WaitingCard
+          <ul className="divide-line border-line divide-y border-t">
+            {waiting.map((hof, index) => (
+              <WaitingRow
                 key={hof.id}
                 hof={hof}
+                primary={index === 0}
                 accepting={pendingHofId === hof.id}
                 onReview={(area) => onOpen(hof.id, area)}
                 onAccept={() => void accept(hof.id, ACCEPTED_AT_ONCE)}

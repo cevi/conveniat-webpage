@@ -8,12 +8,12 @@ import {
   HOF_ENTRY_STATUS_LABELS,
 } from '@/features/hof-dashboard/constants';
 import {
-  formatDate,
   formatDateTime,
   formatFileSize,
   formatNumber,
   translate,
 } from '@/features/hof-dashboard/texts';
+import { entrySteps } from '@/features/hof-dashboard/utils/review-steps';
 import type { Locale } from '@/types/types';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -241,48 +241,22 @@ export async function renderSubmissionPdf(input: SubmissionPdfInput): Promise<Bu
     if (entry.answers.length === 0) write(translate('pdfNoAnswers', locale), { color: MUTED });
     for (const answer of entry.answers) writeAnswer(answer);
 
-    // ── The Ressort's answer ───────────────────────────────────────────────────
-    sectionHeading(translate('reviewTitle', locale));
-    if (entry.feedback === undefined || entry.feedback === '') {
-      write(translate(entry.status === 'submitted' ? 'pdfNoReview' : 'pdfNoFeedback', locale), {
+    // ── History: who handed it in, every answer and comment ────────────────────
+    sectionHeading(translate('history', locale));
+    for (const step of entrySteps(entry, locale)) {
+      keep(mm(10));
+      write([formatDateTime(step.at, locale), step.by, step.title].join(' · '), {
+        size: 8,
+        bold: true,
         color: MUTED,
       });
-    } else {
-      write(entry.feedback);
-      if (entry.feedbackBy !== undefined) {
-        y += 2;
-        write(
-          translate('feedbackBy', locale, {
-            name: entry.feedbackBy.name,
-            date: formatDate(entry.feedbackBy.at, locale),
-          }),
-          { size: 8, color: MUTED },
-        );
+      if (step.quote !== undefined) {
+        y += 1;
+        write(step.quote, { size: 9 });
       }
-    }
-
-    // ── History, for the reviewers ─────────────────────────────────────────────
-    if (entry.reviewLog.length > 0) {
-      sectionHeading(translate('reviewHistory', locale, { n: entry.reviewLog.length }));
-      for (const change of entry.reviewLog) {
-        keep(mm(10));
-        const state = HOF_ENTRY_STATUS_LABELS[change.status][locale];
-        write(
-          [
-            formatDateTime(change.at, locale),
-            change.by === '' ? translate('reviewerUnknown', locale) : change.by,
-            change.final ? `${state}, ${translate('finalShort', locale)}` : state,
-          ].join(' · '),
-          { size: 8, bold: true, color: MUTED },
-        );
-        if (change.feedback !== '') {
-          y += 1;
-          write(change.feedback, { size: 9 });
-        }
-        y += 3;
-        rule();
-        y += 4;
-      }
+      y += 3;
+      rule();
+      y += 4;
     }
 
     // ── Footer on every page ───────────────────────────────────────────────────

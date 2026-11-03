@@ -5,7 +5,6 @@ import type {
   HofDashboardForm,
 } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import {
-  AreaIcon,
   LABEL_CLASS,
   Panel,
   ProgressPill,
@@ -82,26 +81,19 @@ export const AreaView: React.FC<{
 
   return (
     <div className="space-y-6">
-      <Panel className="grid gap-6 @min-[640px]:grid-cols-[minmax(11rem,14rem)_minmax(0,1fr)] @min-[640px]:gap-10">
-        <div className="space-y-2">
-          <p className={cn(LABEL_CLASS, 'flex items-center gap-2')}>
-            <AreaIcon area={area} />
-            {translate('area', locale)}
-          </p>
-          <h3 className="font-heading text-heading text-2xl font-extrabold @xl:text-3xl">
-            {label}
-          </h3>
-          {forms.length > 0 && (
-            <>
-              <p className="text-base text-green-800 tabular-nums">{count}</p>
-              <SegmentBar
-                area={area}
-                label={`${label}: ${count}`}
-                segments={states.map((state) => (state === 'done' ? 'filled' : 'empty'))}
-              />
-            </>
-          )}
-        </div>
+      {/* the tab above names the area; this says how far the Hof is and what comes when */}
+      <Panel className="grid gap-5 py-4 @min-[640px]:grid-cols-[minmax(9rem,11rem)_minmax(0,1fr)] @min-[640px]:items-center @min-[640px]:gap-8 @xl:py-4">
+        {forms.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-heading text-base font-semibold whitespace-nowrap tabular-nums">
+              {count}
+            </p>
+            <SegmentBar
+              label={`${label}: ${count}`}
+              segments={states.map((state) => (state === 'done' ? 'filled' : 'empty'))}
+            />
+          </div>
+        )}
         <div className="min-w-0">
           <div className="hidden @min-[640px]:block">
             <DeadlineStrip deadlines={deadlines} due={due} locale={locale} />

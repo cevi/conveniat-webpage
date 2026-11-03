@@ -2280,6 +2280,9 @@ export interface FormSubmission {
    * Empty means handed in and not yet looked at. Only "Revision required" asks the Hof for a new version, together with the feedback. To accept a submission, tick "Approved".
    */
   hofReviewStatus?: ('inReview' | 'revisionRequired') | null;
+  /**
+   * Writing something new here adds it to the history as a comment, with your name and the time. Earlier comments stay there.
+   */
   hofFeedback?: string | null;
   /**
    * For a form of versions, e.g. a material order: the Hof can no longer hand in a new one. Changes then go through the Ressort.
@@ -2287,7 +2290,7 @@ export interface FormSubmission {
   hofFinal?: boolean | null;
   submittedBy?: (string | null) | User;
   /**
-   * Who changed the status or the feedback, and when. Written on every save.
+   * Who changed the status or wrote a comment, and when. Written on every save; the Hof sees it on its dashboard.
    */
   hofReviewLog?:
     | {

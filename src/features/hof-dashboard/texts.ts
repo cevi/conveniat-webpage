@@ -26,13 +26,11 @@ export const text = {
   retry: { de: 'Erneut versuchen', en: 'Try again', fr: 'Réessayer' },
   hof: { de: 'Hof', en: 'Hof', fr: 'Hof' },
   tabs: { de: 'Bereiche', en: 'Sections', fr: 'Rubriques' },
+  breadcrumbs: { de: 'Pfad', en: 'Breadcrumbs', fr: 'Fil d’Ariane' },
+  reviewerView: { de: 'Ressort-Ansicht', en: 'Ressort view', fr: 'Vue du Ressort' },
+  responsibleShort: { de: 'AVP', en: 'AVP', fr: 'AVP' },
   tabOverview: { de: 'Übersicht', en: 'Overview', fr: 'Aperçu' },
   tabDocuments: { de: 'Dokumente', en: 'Documents', fr: 'Documents' },
-  responsible: {
-    de: 'Hofverantwortliche Person (AVP)',
-    en: 'Person responsible for the Hof (AVP)',
-    fr: 'Personne responsable du Hof (AVP)',
-  },
   responsibleMissing: {
     de: 'In der Cevi.DB ist für diesen Hof noch keine Adressverwaltung eingetragen.',
     en: 'Cevi.DB has no address manager for this Hof yet.',
@@ -67,9 +65,6 @@ export const text = {
     fr: 'en retard de {n} jours',
   },
   dueOn: { de: 'Frist {date}', en: 'Due {date}', fr: 'Échéance {date}' },
-  feedback: { de: 'Rückmeldung', en: 'Feedback', fr: 'Retour' },
-  lastFeedback: { de: 'Letzte Rückmeldung', en: 'Last feedback', fr: 'Dernier retour' },
-  submittedOn: { de: 'eingereicht am {date}', en: 'submitted on {date}', fr: 'déposé le {date}' },
   officialDocuments: {
     de: 'Unterlagen & Vorlagen',
     en: 'Documents & templates',
@@ -173,11 +168,28 @@ export const text = {
     en: 'The Ressort’s answer',
     fr: 'Réponse du Ressort',
   },
-  feedbackBy: { de: '{name}, {date}', en: '{name}, {date}', fr: '{name}, {date}' },
-  reviewHistory: {
-    de: 'Verlauf ({n})',
-    en: 'History ({n})',
-    fr: 'Historique ({n})',
+  commentStep: { de: 'Kommentar', en: 'Comment', fr: 'Commentaire' },
+  commentRemoved: { de: 'Rückmeldung entfernt', en: 'Feedback removed', fr: 'Retour supprimé' },
+  markedFinal: {
+    de: 'Als definitiv markiert',
+    en: 'Marked as final',
+    fr: 'Marqué comme définitif',
+  },
+  finalLifted: {
+    de: 'Definitiv aufgehoben',
+    en: 'No longer final',
+    fr: 'Plus définitif',
+  },
+  commentLabel: {
+    de: 'Kommentar an den Hof',
+    en: 'Comment to the Hof',
+    fr: 'Commentaire au Hof',
+  },
+  sendComment: { de: 'Kommentar senden', en: 'Send comment', fr: 'Envoyer le commentaire' },
+  commentFailed: {
+    de: 'Der Kommentar konnte nicht gesendet werden.',
+    en: 'The comment could not be sent.',
+    fr: "Le commentaire n'a pas pu être envoyé.",
   },
   reviewerUnknown: { de: 'Unbekannt', en: 'Unknown', fr: 'Inconnu' },
   finalLabel: {
@@ -197,17 +209,11 @@ export const text = {
     fr: 'Le Ressort a marqué cette version comme définitive. Les modifications passent par lui.',
   },
   reviewStatus: { de: 'Status', en: 'Status', fr: 'Statut' },
-  reviewFeedback: {
-    de: 'Rückmeldung an den Hof',
-    en: 'Feedback to the Hof',
-    fr: 'Retour au Hof',
-  },
   reviewHint: {
-    de: 'Wird automatisch gespeichert. Der Hof sieht Status und Rückmeldung mit deinem Namen.',
-    en: 'Saved automatically. The Hof sees the status and feedback with your name.',
-    fr: 'Enregistré automatiquement. Le Hof voit le statut et le retour avec ton nom.',
+    de: 'Der Hof sieht jede Änderung und jeden Kommentar im Verlauf, mit deinem Namen und der Zeit.',
+    en: 'The Hof sees every change and comment in the history, with your name and the time.',
+    fr: "Le Hof voit chaque modification et chaque commentaire dans l'historique, avec ton nom et l'heure.",
   },
-  autosaveTyping: { de: 'Änderungen …', en: 'Editing …', fr: 'Modification …' },
   autosaveOffline: {
     de: 'Offline – wird gespeichert, sobald du wieder Empfang hast',
     en: 'Offline – saves once you have signal',
@@ -273,16 +279,6 @@ export const text = {
     en: 'This submission contains no answers.',
     fr: 'Ce dépôt ne contient aucune réponse.',
   },
-  pdfNoReview: {
-    de: 'Das Ressort hat diese Abgabe noch nicht beantwortet.',
-    en: 'The Ressort has not answered this submission yet.',
-    fr: "Le Ressort n'a pas encore répondu à ce dépôt.",
-  },
-  pdfNoFeedback: {
-    de: 'Ohne Rückmeldung an den Hof.',
-    en: 'No feedback to the Hof.',
-    fr: 'Sans retour au Hof.',
-  },
   pdfFooter: {
     de: 'conveniat27 · Hof-Dashboard · erstellt am {date}',
     en: 'conveniat27 · Hof dashboard · created on {date}',
@@ -294,12 +290,6 @@ export const text = {
     de: 'Das ist dasselbe wie «{accepted}» im Hof-Dashboard. Rückmeldungen und Überarbeitungen gibst du dort.',
     en: 'This is the same as "{accepted}" on the Hof dashboard. Feedback and requests for revision go there.',
     fr: 'C’est la même chose que « {accepted} » dans le tableau de bord du Hof. Les retours et les demandes de révision se font là-bas.',
-  },
-  eyebrow: { de: 'Hof-Dashboard', en: 'Hof dashboard', fr: 'Tableau de bord du Hof' },
-  intro: {
-    de: 'Was dein Hof bis wann abgeben muss, und alle Unterlagen an einem Ort.',
-    en: 'What your Hof has to hand in by when, and every document in one place.',
-    fr: 'Ce que ton Hof doit déposer et quand, et tous les documents au même endroit.',
   },
   stillOpen: { de: 'Noch offen', en: 'Still open', fr: 'Encore ouvert' },
   submissionOne: { de: 'Abgabe', en: 'submission', fr: 'dépôt' },
@@ -342,7 +332,6 @@ export const text = {
   },
   todayOn: { de: 'Heute · {date}', en: 'Today · {date}', fr: "Aujourd'hui · {date}" },
   allDocuments: { de: 'Alle Unterlagen', en: 'All documents', fr: 'Tous les documents' },
-  area: { de: 'Bereich', en: 'Area', fr: 'Rubrique' },
   submissions: { de: 'Abgaben', en: 'Submissions', fr: 'Dépôts' },
   whatYouHandIn: { de: 'Was du abgibst', en: 'What you hand in', fr: 'Ce que tu déposes' },
   whatTheHofHandsIn: {
@@ -372,16 +361,6 @@ export const text = {
     de: 'Nach der Abgabe siehst du hier jede Version und die Rückmeldung des Ressorts.',
     en: "Once handed in, every version and the Ressort's feedback show here.",
     fr: 'Après le dépôt, tu verras ici chaque version et le retour du Ressort.',
-  },
-  reviewerEyebrow: {
-    de: 'Hof-Dashboard · Ressort-Ansicht',
-    en: 'Hof dashboard · Ressort view',
-    fr: 'Tableau de bord du Hof · vue du Ressort',
-  },
-  reviewerIntro: {
-    de: 'Stand der Abgaben aller Höfe. Wähle einen Hof, um seine Abgaben zu öffnen und zu prüfen.',
-    en: 'Where every Hof stands. Choose a Hof to open and review what it handed in.',
-    fr: 'Avancement de tous les Höfe. Choisis un Hof pour ouvrir et vérifier ses dépôts.',
   },
   reviewerViews: { de: 'Ansichten', en: 'Views', fr: 'Vues' },
   materialOrders: {

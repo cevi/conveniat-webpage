@@ -1,24 +1,26 @@
 'use client';
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
+import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import type { HofDashboardData } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import type { HofOverviewRow } from '@/features/hof-dashboard/api/hof-overview';
 import { AreaView } from '@/features/hof-dashboard/components/area-view';
+import {
+  AccountButton,
+  DashboardHeader,
+  HofSwitch,
+  ResponsibleLine,
+  type Crumb,
+} from '@/features/hof-dashboard/components/dashboard-header';
+import {
+  DashboardSkeleton,
+  HofSkeleton,
+  ResponsibleLineSkeleton,
+} from '@/features/hof-dashboard/components/dashboard-skeleton';
 import { DashboardTabList } from '@/features/hof-dashboard/components/dashboard-tabs';
 import {
   AreaIcon,
-  LABEL_CLASS,
   Panel,
   PRIMARY_BUTTON_CLASS,
-  QUIET_BUTTON_CLASS,
-  ResponsibleList,
   SECONDARY_BUTTON_CLASS,
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { DocumentsView } from '@/features/hof-dashboard/components/documents-view';
@@ -41,17 +43,16 @@ import {
   type SubmissionProgress,
 } from '@/features/hof-dashboard/utils/submission-progress';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { signOutNeedsConnectionText, useSignOut } from '@/hooks/use-sign-out';
 import { trpc } from '@/trpc/client';
+import { HitobitoNextAuthUserSchema } from '@/types/hitobito-next-auth-user';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { reloadPage } from '@/utils/reload-page';
 import { cn } from '@/utils/tailwindcss-override';
 import { TabGroup, TabPanel, TabPanels } from '@headlessui/react';
-import { ChevronLeft, FileText, LayoutGrid, LogOut } from 'lucide-react';
+import { FileText, LayoutGrid } from 'lucide-react';
 import { signIn, useSession } from 'next-auth/react';
 import type React from 'react';
-import { useCallback, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 /** The sections of one Hof's dashboard. */
 type Tab = 'overview' | HofDashboardArea | 'documents';
@@ -62,15 +63,6 @@ const TAB_IDS: readonly Tab[] = ['overview', ...HOF_DASHBOARD_AREAS, 'documents'
 type ReviewerScreen = 'hoefe' | 'orders' | Tab;
 
 const REVIEWER_SCREENS: readonly ReviewerScreen[] = ['hoefe', 'orders', ...TAB_IDS];
-
-const LoadingState: React.FC<{ locale: Locale }> = ({ locale }) => (
-  <div className="space-y-4" role="status">
-    <span className="sr-only">{translate('loading', locale)}</span>
-    <Skeleton className="h-11 w-full bg-gray-200" />
-    <Skeleton className="h-32 w-full rounded-xl bg-gray-200" />
-    <Skeleton className="h-48 w-full rounded-xl bg-gray-200" />
-  </div>
-);
 
 const Message: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Panel className="space-y-4 text-base text-green-800">{children}</Panel>
@@ -115,82 +107,31 @@ const RetryMessage: React.FC<{ locale: Locale; onRetry: () => void }> = ({ local
   </Message>
 );
 
-/**
- * Who is signed in, and the way out: the dashboard shows one person's Höfe, so on a shared
- * phone the next person needs to see whose they are and switch.
- */
-const SignedInLine: React.FC<{ name: string; locale: Locale }> = ({ name, locale }) => {
-  const signOut = useSignOut();
-  const [failed, setFailed] = useState(false);
-
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-green-700">
-        <span>
-          {translate('signedInAs', locale, { name: '' })}
-          <span className="font-semibold text-green-900">{name}</span>
-        </span>
-        <button
-          type="button"
-          className={SECONDARY_BUTTON_CLASS}
-          onClick={() => {
-            setFailed(false);
-            void signOut()
-              .then(reloadPage)
-              .catch((error: unknown) => {
-                console.warn('Signing out of the Hof dashboard failed', error);
-                setFailed(true);
-              });
-          }}
-        >
-          <LogOut aria-hidden />
-          {translate('signOut', locale)}
-        </button>
-      </div>
-      {failed && (
-        <p role="alert" className="text-danger-text text-[13px] leading-[18px] font-medium">
-          {signOutNeedsConnectionText[locale]}
-        </p>
-      )}
-    </div>
+/** One Hof's dashboard data, shared by its sections and the line under its name. */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- tRPC's query result
+const useHofDashboard = (hofId: string, locale: Locale) =>
+  trpc.hofDashboard.getHofDashboard.useQuery(
+    { hofId, locale },
+    {
+      // a reviewer's answer should reach the Hof within a look away; the app's defaults
+      // would keep showing what was loaded until the next full reload
+      staleTime: 30_000,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      // nothing here works offline, and yesterday's shape of it must not render after a deploy
+      meta: { persist: false },
+    },
   );
+
+/** The Hof's responsible people under its name, once its dashboard has loaded. */
+const HofResponsible: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, locale }) => {
+  const dashboard = useHofDashboard(hofId, locale);
+  if (dashboard.isLoading) return <ResponsibleLineSkeleton />;
+  if (dashboard.data === undefined) return <></>;
+  return <ResponsibleLine people={dashboard.data.responsible} locale={locale} />;
 };
 
-/**
- * The head of every screen: what it is, its title, a line about it, and who is signed in on
- * the right.
- */
-const Header: React.FC<{
-  eyebrow: string;
-  title: React.ReactNode;
-  intro?: string | undefined;
-  back?: React.ReactNode;
-  account: React.ReactNode;
-}> = ({ eyebrow, title, intro, back, account }) => (
-  <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 @min-[900px]/dashboard:flex-nowrap">
-    <div className="min-w-0 flex-1 space-y-1">
-      {back}
-      <p className={LABEL_CLASS}>{eyebrow}</p>
-      {title}
-      {intro !== undefined && (
-        <p className="max-w-2xl pt-1 text-base text-pretty text-green-700">{intro}</p>
-      )}
-    </div>
-    <div className="min-w-0 @min-[900px]/dashboard:shrink-0">{account}</div>
-  </header>
-);
-
-/** A Hof's name as the title of its dashboard. */
-const HofTitle: React.FC<{ name: string }> = ({ name }) => (
-  <h2 className="font-heading text-heading text-3xl leading-tight font-extrabold text-balance @3xl:text-4xl">
-    {name}
-  </h2>
-);
-
-/**
- * One Hof's dashboard: its sections on the left, on a narrow screen a row above, with what is
- * open behind each and the Hof's responsible person under them, and the chosen section beside.
- */
+/** One Hof's dashboard: its sections as a row of tabs, with what is open behind each. */
 const DashboardForHof: React.FC<{
   hofId: string;
   tab: Tab;
@@ -204,21 +145,10 @@ const DashboardForHof: React.FC<{
   const root = useRef<HTMLDivElement>(null);
   useScrollToForm(root, scrollTarget, clearScrollTarget);
 
-  const dashboard = trpc.hofDashboard.getHofDashboard.useQuery(
-    { hofId, locale },
-    {
-      // a reviewer's answer should reach the Hof within a look away; the app's defaults
-      // would keep showing what was loaded until the next full reload
-      staleTime: 30_000,
-      refetchOnMount: true,
-      refetchOnWindowFocus: true,
-      // nothing here works offline, and yesterday's shape of it must not render after a deploy
-      meta: { persist: false },
-    },
-  );
+  const dashboard = useHofDashboard(hofId, locale);
   const progress = useProgress(dashboard.data);
 
-  if (dashboard.isLoading) return <LoadingState locale={locale} />;
+  if (dashboard.isLoading) return <HofSkeleton locale={locale} />;
   if (dashboard.data === undefined || progress === undefined) {
     return <RetryMessage locale={locale} onRetry={() => void dashboard.refetch()} />;
   }
@@ -271,34 +201,25 @@ const DashboardForHof: React.FC<{
       <TabGroup
         selectedIndex={TAB_IDS.indexOf(tab)}
         onChange={(index) => onTab(TAB_IDS[index] ?? 'overview')}
-        className="grid items-start gap-6 @min-[900px]/dashboard:grid-cols-[13rem_minmax(0,1fr)] @min-[900px]/dashboard:gap-8"
+        className="space-y-6"
       >
-        <aside className="space-y-6 @min-[900px]/dashboard:sticky @min-[900px]/dashboard:top-[calc(var(--app-header-height)+1.5rem)]">
-          <DashboardTabList
-            tabs={TAB_IDS.map((id) => {
-              // what the Hof still has to hand in or revise behind an area's tab
-              const open = data.forms.filter((form) => {
-                const formProgress = progress[form.id];
-                return form.area === id && formProgress !== undefined && isOpen(formProgress);
-              }).length;
-              return {
-                label: tabLabel(id),
-                marker: marker(id),
-                open,
-                openLabel: translate('openCount', locale, { n: open }),
-              };
-            })}
-            label={translate('tabs', locale)}
-          />
-          {/* whom to ask stays in view beside every section; a narrow screen shows it in the
-              overview instead. A container of its own, so the list lays out for the column */}
-          <div className="border-line @container hidden space-y-2 border-t px-4 pt-5 @min-[900px]/dashboard:block">
-            <p className={LABEL_CLASS}>{translate('responsible', locale)}</p>
-            <ResponsibleList people={data.responsible} locale={locale} />
-          </div>
-        </aside>
-        {/* kept mounted, so what was typed into an open form survives a look at another tab;
-            the sections lay out by the room beside the sidebar */}
+        <DashboardTabList
+          tabs={TAB_IDS.map((id) => {
+            // what the Hof still has to hand in or revise behind an area's tab
+            const open = data.forms.filter((form) => {
+              const formProgress = progress[form.id];
+              return form.area === id && formProgress !== undefined && isOpen(formProgress);
+            }).length;
+            return {
+              label: tabLabel(id),
+              marker: marker(id),
+              open,
+              openLabel: translate('openCount', locale, { n: open }),
+            };
+          })}
+          label={translate('tabs', locale)}
+        />
+        {/* kept mounted, so what was typed into an open form survives a look at another tab */}
         <TabPanels className="@container min-w-0">
           {TAB_IDS.map((id) => (
             <TabPanel key={id} unmount={false}>
@@ -315,6 +236,27 @@ const DashboardForHof: React.FC<{
 const maySwitch = (locale: Locale): boolean =>
   !hasUnsavedWork() || globalThis.confirm(translate('discardUnsaved', locale));
 
+/** The last step of the path to a Hof: its name, or the switch where there is more than one. */
+const hofCrumb = (
+  hof: { id: string; name: string },
+  hoefe: { id: string; name: string }[],
+  onSwitch: (hofId: string) => void,
+  locale: Locale,
+): Crumb => ({
+  label: hof.name,
+  control:
+    hoefe.length > 1 ? (
+      <HofSwitch
+        hoefe={hoefe}
+        value={hof.id}
+        onChange={(hofId) => {
+          if (maySwitch(locale)) onSwitch(hofId);
+        }}
+        locale={locale}
+      />
+    ) : undefined,
+});
+
 /** The dashboard of a Hof's own people: their Hof, or a choice of theirs. */
 const DashboardForAdministrator: React.FC<{
   hoefe: { id: string; name: string }[];
@@ -323,77 +265,41 @@ const DashboardForAdministrator: React.FC<{
 }> = ({ hoefe, account, locale }) => {
   const [tab, setTab] = useTabInAddress(TAB_IDS, 'overview');
   const [selectedHofId, setSelectedHofId] = useRememberedHofId();
-  const selectId = useId();
   const hof = hoefe.find((candidate) => candidate.id === selectedHofId) ?? hoefe[0];
   if (hof === undefined) return <></>;
 
-  const title =
-    hoefe.length === 1 ? (
-      <HofTitle name={hof.name} />
-    ) : (
-      <div className="space-y-1">
-        {/* the select shows the name; the heading keeps the outline of the page intact */}
-        <h2 className="sr-only">{hof.name}</h2>
-        <label htmlFor={selectId} className="sr-only">
-          {translate('hof', locale)}
-        </label>
-        <Select
-          value={hof.id}
-          onValueChange={(hofId) => {
-            if (maySwitch(locale)) setSelectedHofId(hofId);
-          }}
-        >
-          <SelectTrigger
-            id={selectId}
-            className="font-heading text-heading h-14 w-full max-w-md bg-white text-2xl font-extrabold focus-visible:ring-2 focus-visible:ring-green-600"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="max-w-(--radix-select-content-available-width) bg-white">
-            {hoefe.map((candidate) => (
-              <SelectItem
-                key={candidate.id}
-                value={candidate.id}
-                className="min-h-11 whitespace-normal"
-              >
-                {candidate.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    );
-
   return (
-    <div className="space-y-8">
-      <Header
-        eyebrow={translate('eyebrow', locale)}
-        title={title}
-        intro={tab === 'overview' ? translate('intro', locale) : undefined}
+    <div className="space-y-6">
+      <DashboardHeader
+        crumbs={[hofCrumb(hof, hoefe, setSelectedHofId, locale)]}
+        subline={<HofResponsible hofId={hof.id} locale={locale} />}
+        isReviewer={false}
         account={account}
+        locale={locale}
       />
       <DashboardForHof key={hof.id} hofId={hof.id} tab={tab} onTab={setTab} locale={locale} />
     </div>
   );
 };
 
-/** The two views of the Ressort over every Hof, as tabs under its header. */
+/** The two views of the Ressort over every Hof, as a segmented control under its header. */
 const ReviewerTabs: React.FC<{
   screen: 'hoefe' | 'orders';
   onScreen: (screen: 'hoefe' | 'orders') => void;
   locale: Locale;
 }> = ({ screen, onScreen, locale }) => (
-  <nav aria-label={translate('reviewerViews', locale)} className="border-line flex gap-6 border-b">
+  <nav
+    aria-label={translate('reviewerViews', locale)}
+    className={cn(segmentedTrackClassName, 'w-fit max-w-full overflow-x-auto')}
+  >
     {(['hoefe', 'orders'] as const).map((candidate) => (
       <button
         key={candidate}
         type="button"
         aria-current={candidate === screen ? 'page' : undefined}
         className={cn(
-          '-mb-px min-h-11 cursor-pointer border-b-2 px-1 text-base font-semibold transition',
-          candidate === screen
-            ? 'border-conveniat-green text-green-900'
-            : 'border-transparent text-green-700 hover:text-green-900',
+          segmentClassName(candidate === screen),
+          'shrink-0 px-4 text-sm font-semibold',
         )}
         onClick={() => onScreen(candidate)}
       >
@@ -423,21 +329,16 @@ const DashboardForReviewer: React.FC<{
     setScreen(area ?? 'overview');
     globalThis.scrollTo({ top: 0 });
   };
+  const toList = (): void => {
+    if (maySwitch(locale)) setScreen('hoefe');
+  };
 
   if (screen === 'hoefe' || screen === 'orders' || hof === undefined) {
     const list = screen === 'orders' ? 'orders' : 'hoefe';
+    const title = translate(list === 'orders' ? 'materialOrders' : 'allHoefe', locale);
     return (
       <div className="space-y-6">
-        <Header
-          eyebrow={translate('reviewerEyebrow', locale)}
-          title={
-            <h2 className="font-heading text-heading text-3xl leading-tight font-extrabold @3xl:text-4xl">
-              {translate(list === 'orders' ? 'materialOrders' : 'allHoefe', locale)}
-            </h2>
-          }
-          intro={list === 'hoefe' ? translate('reviewerIntro', locale) : undefined}
-          account={account}
-        />
+        <DashboardHeader crumbs={[{ label: title }]} isReviewer account={account} locale={locale} />
         <ReviewerTabs screen={list} onScreen={setScreen} locale={locale} />
         {list === 'orders' ? (
           <MaterialOrdersView onOpenHof={(hofId) => openHof(hofId, 'material')} locale={locale} />
@@ -449,23 +350,16 @@ const DashboardForReviewer: React.FC<{
   }
 
   return (
-    <div className="space-y-8">
-      <Header
-        eyebrow={translate('reviewerEyebrow', locale)}
-        back={
-          <button
-            type="button"
-            className={cn(QUIET_BUTTON_CLASS, '-ml-3')}
-            onClick={() => {
-              if (maySwitch(locale)) setScreen('hoefe');
-            }}
-          >
-            <ChevronLeft aria-hidden />
-            {translate('allHoefe', locale)}
-          </button>
-        }
-        title={<HofTitle name={hof.name} />}
+    <div className="space-y-6">
+      <DashboardHeader
+        crumbs={[
+          { label: translate('allHoefe', locale), onClick: toList },
+          hofCrumb(hof, hoefe, setSelectedHofId, locale),
+        ]}
+        subline={<HofResponsible hofId={hof.id} locale={locale} />}
+        isReviewer
         account={account}
+        locale={locale}
       />
       <DashboardForHof key={hof.id} hofId={hof.id} tab={screen} onTab={setScreen} locale={locale} />
     </div>
@@ -489,7 +383,7 @@ const DashboardForUser: React.FC<{ account: React.ReactNode; locale: Locale }> =
     meta: { persist: false },
   });
 
-  if (hoefe.isLoading || overview.isLoading) return <LoadingState locale={locale} />;
+  if (hoefe.isLoading || overview.isLoading) return <DashboardSkeleton locale={locale} />;
   if (hoefe.data === undefined) {
     return <RetryMessage locale={locale} onRetry={() => void hoefe.refetch()} />;
   }
@@ -517,7 +411,7 @@ const HofDashboardContent: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { status, data: session } = useSession();
 
-  if (status === 'loading') return <LoadingState locale={locale} />;
+  if (status === 'loading') return <DashboardSkeleton locale={locale} />;
   if (status === 'unauthenticated') {
     return (
       <Message>
@@ -532,11 +426,15 @@ const HofDashboardContent: React.FC = () => {
       </Message>
     );
   }
-  const user = session?.user;
+  const user = HitobitoNextAuthUserSchema.safeParse(session?.user).data;
   const name = user?.name ?? user?.email ?? '';
   return (
     <DashboardForUser
-      account={name === '' ? undefined : <SignedInLine name={name} locale={locale} />}
+      account={
+        user !== undefined && name !== '' ? (
+          <AccountButton userId={user.uuid} name={name} locale={locale} />
+        ) : undefined
+      }
       locale={locale}
     />
   );

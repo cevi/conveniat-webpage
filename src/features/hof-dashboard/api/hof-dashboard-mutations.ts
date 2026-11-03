@@ -11,7 +11,7 @@ import type { Locale } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
-import { getPayload } from 'payload';
+import { getPayload, type Payload } from 'payload';
 
 const logger = createLogger('hof-dashboard:mutations');
 
@@ -82,30 +82,12 @@ export const withdrawHofSubmission = async (hof: HofName, submissionId: string):
   });
 };
 
-/**
- * Records the Ressort's answer on a Hof's submission: its status, or none to put it back to
- * handed in, the feedback the Hof reads next to it, and whether it is final. Accepting it is
- * the form builder's approval, as the approval link of an email gives it. Only for a form on
- * the dashboard.
- */
-export const reviewHofSubmission = async ({
-  hof,
-  submissionId,
-  status,
-  feedback,
-  final,
-  reviewer,
-}: {
-  hof: HofName;
-  submissionId: string;
-  status: HofReviewChoice | undefined;
-  feedback: string;
-  /** Final: the Hof hands in no further version of the form. */
-  final: boolean;
-  /** Who answers, for the review history and the name next to the feedback. */
-  reviewer: HofReviewer;
-}): Promise<void> => {
-  const payload = await getPayload({ config });
+/** Fails unless the submission is the Hof's and of a form on the dashboard. */
+const assertDashboardSubmission = async (
+  payload: Payload,
+  hof: HofName,
+  submissionId: string,
+): Promise<void> => {
   const submission = await payload.findByID({
     collection: 'form-submissions',
     id: submissionId,
@@ -128,6 +110,35 @@ export const reviewHofSubmission = async ({
   if (form?.hofDashboard?.area === undefined || form.hofDashboard.area === null) {
     throw new TRPCError({ code: 'NOT_FOUND', message: 'submission_missing' });
   }
+};
+
+/**
+ * Records the Ressort's answer on a Hof's submission: its status, or none to put it back to
+ * handed in, and whether it is final, with a comment if one goes along with it, such as why a
+ * material order goes back. Accepting it is the form builder's approval, as the approval link
+ * of an email gives it. Only for a form on the dashboard. recordHofReview writes the change
+ * into the history.
+ */
+export const reviewHofSubmission = async ({
+  hof,
+  submissionId,
+  status,
+  comment,
+  final,
+  reviewer,
+}: {
+  hof: HofName;
+  submissionId: string;
+  status: HofReviewChoice | undefined;
+  /** Left out, the latest comment stays as it is. */
+  comment?: string | undefined;
+  /** Final: the Hof hands in no further version of the form. */
+  final: boolean;
+  /** Who answers, for the history. */
+  reviewer: HofReviewer;
+}): Promise<void> => {
+  const payload = await getPayload({ config });
+  await assertDashboardSubmission(payload, hof, submissionId);
 
   await payload.update({
     collection: 'form-submissions',
@@ -136,7 +147,7 @@ export const reviewHofSubmission = async ({
       approved: status === 'accepted',
       // eslint-disable-next-line unicorn/no-null -- Payload clears a field only with null
       hofReviewStatus: status === 'accepted' || status === undefined ? null : status,
-      hofFeedback: feedback,
+      ...(comment === undefined ? {} : { hofFeedback: comment }),
       hofFinal: final,
     },
     depth: 0,
@@ -149,6 +160,35 @@ export const reviewHofSubmission = async ({
     'hof_dashboard.review_status': status ?? 'submitted',
     'hof_dashboard.review_final': final,
   });
+};
+
+/**
+ * Adds a comment of the Ressort to a Hof's submission, leaving its status as it is. The
+ * submission keeps only the latest comment; recordHofReview keeps every one in the history,
+ * with who wrote it and when, for the Hof and the Ressort to read.
+ */
+export const commentHofSubmission = async ({
+  hof,
+  submissionId,
+  comment,
+  reviewer,
+}: {
+  hof: HofName;
+  submissionId: string;
+  comment: string;
+  reviewer: HofReviewer;
+}): Promise<void> => {
+  const payload = await getPayload({ config });
+  await assertDashboardSubmission(payload, hof, submissionId);
+  await payload.update({
+    collection: 'form-submissions',
+    id: submissionId,
+    data: { hofFeedback: comment },
+    depth: 0,
+    overrideAccess: true,
+    context: { hofReviewer: reviewer },
+  });
+  logger.info('A reviewer commented on a Hof submission', { 'hof_dashboard.hof_id': hof.id });
 };
 
 /**

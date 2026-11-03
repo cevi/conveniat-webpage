@@ -1,4 +1,3 @@
-import type { HofContact } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import { HOF_ENTRY_STATUS_LABELS, type HofDashboardArea } from '@/features/hof-dashboard/constants';
 import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/texts';
 import {
@@ -13,29 +12,11 @@ import {
   CheckCircle2,
   Clock,
   Hammer,
-  Mail,
   Package,
   Sparkles,
   type LucideIcon,
 } from 'lucide-react';
 import type React from 'react';
-
-/**
- * Infrastructure reads in the camp's green, the programme in Cevi blue, material in plain grey.
- * Not in Cevi red, which the dashboard keeps for what is overdue.
- */
-export const AREA_TEXT_CLASS: Record<HofDashboardArea, string> = {
-  infrastructure: 'text-conveniat-green',
-  program: 'text-cevi-blue',
-  material: 'text-gray-800',
-};
-
-/** The area's colour as a fill, for progress bars and dots. */
-export const AREA_DOT_CLASS: Record<HofDashboardArea, string> = {
-  infrastructure: 'bg-conveniat-green',
-  program: 'bg-cevi-blue',
-  material: 'bg-gray-500',
-};
 
 /** The main action, the submit button of the site's forms. */
 export const PRIMARY_BUTTON_CLASS =
@@ -62,16 +43,14 @@ export const Panel: React.FC<{ children: React.ReactNode; className?: string }> 
   </section>
 );
 
-/** The heading of a panel, in the area's colour or the camp's green. */
+/** The heading of a panel. */
 export const SectionHeading: React.FC<{
   children: React.ReactNode;
-  area?: HofDashboardArea;
   className?: string;
-}> = ({ children, area, className }) => (
+}> = ({ children, className }) => (
   <h3
     className={cn(
-      'font-heading text-base font-extrabold text-balance',
-      area === undefined ? 'text-conveniat-green' : AREA_TEXT_CLASS[area],
+      'font-heading text-conveniat-green text-base font-extrabold text-balance',
       className,
     )}
   >
@@ -188,35 +167,6 @@ export const ProgressLine: React.FC<{ progress: SubmissionProgress; locale: Loca
   );
 };
 
-/**
- * The Hof's responsible people (AVP), as Cevi.DB knows them: their name, and the address as a
- * link big enough to tap.
- */
-export const ResponsibleList: React.FC<{ people: HofContact[]; locale: Locale }> = ({
-  people,
-  locale,
-}) =>
-  people.length === 0 ? (
-    <p className="text-sm text-gray-500">{translate('responsibleMissing', locale)}</p>
-  ) : (
-    <ul className="grid gap-4 @2xl:grid-cols-2 @5xl:grid-cols-3">
-      {people.map((person) => (
-        <li key={person.email} className="min-w-0 text-sm text-gray-900">
-          {person.name !== undefined && <p className="font-semibold">{person.name}</p>}
-          {/* one line, cut short where the column is narrow; the whole address on hover */}
-          <a
-            href={`mailto:${person.email}`}
-            title={person.email}
-            className="text-conveniat-green flex min-h-11 min-w-0 items-center gap-1.5 hover:underline"
-          >
-            <Mail className="h-4 w-4 shrink-0" aria-hidden />
-            <span className="truncate">{person.email}</span>
-          </a>
-        </li>
-      ))}
-    </ul>
-  );
-
 /** What each area is about, as its icon: building, the programme's activities, the depot. */
 const AREA_ICON: Record<HofDashboardArea, LucideIcon> = {
   infrastructure: Hammer,
@@ -225,20 +175,19 @@ const AREA_ICON: Record<HofDashboardArea, LucideIcon> = {
 };
 
 /**
- * The area's icon, in front of its name wherever an area is named, in the area's colour so it
- * matches the area's progress bars.
+ * The area's icon, in front of its name wherever an area is named. The icon tells the areas
+ * apart, not a colour: every area is in the secondary text colour, as the app's icons are.
  */
 export const AreaIcon: React.FC<{ area: HofDashboardArea; className?: string }> = ({
   area,
   className,
 }) => {
   const Icon = AREA_ICON[area];
-  return <Icon aria-hidden className={cn('h-4 w-4 shrink-0', AREA_TEXT_CLASS[area], className)} />;
+  return <Icon aria-hidden className={cn('h-4 w-4 shrink-0 text-green-700', className)} />;
 };
 
 /**
- * One mark of a segment bar: filled in the area's colour, handed in and waiting for the
- * Ressort, or still empty.
+ * One mark of a segment bar: done, handed in and waiting for the Ressort, or still empty.
  */
 export type SegmentTone = 'filled' | 'waiting' | 'empty';
 
@@ -248,16 +197,15 @@ export type SegmentTone = 'filled' | 'waiting' | 'empty';
  */
 export const SegmentBar: React.FC<{
   segments: readonly SegmentTone[];
-  area: HofDashboardArea;
   label: string;
-}> = ({ segments, area, label }) => (
+}> = ({ segments, label }) => (
   <div role="img" aria-label={label} className="flex gap-1">
     {segments.map((tone, index) => (
       <span
         key={index}
         className={cn(
           'h-1.5 min-w-2 flex-1 rounded-full',
-          tone === 'filled' && AREA_DOT_CLASS[area],
+          tone === 'filled' && 'bg-conveniat-green',
           tone === 'waiting' && 'bg-amber-500',
           tone === 'empty' && 'bg-gray-100',
         )}

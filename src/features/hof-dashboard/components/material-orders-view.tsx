@@ -195,7 +195,13 @@ const TotalTable: React.FC<{
     // a mouse needs no 44px target, so on a desktop the rows sit closer and more fit on a screen
     <table className="w-full text-base @min-[900px]/dashboard:pointer-fine:text-[15px]">
       {/* stays under the site's header while the list scrolls */}
-      <thead className={cn(STICKY_HEAD, 'top-(--app-header-height)')}>
+      <thead
+        className={cn(
+          STICKY_HEAD,
+          // below the dashboard's breadcrumbs, which stick under the header too
+          'top-[calc(var(--app-header-height)+var(--offline-banner-height,0px)+var(--page-bar-height,0px))]',
+        )}
+      >
         <tr className={LABEL_CLASS}>
           {head('material', 'material', 'rounded-tl-[14px] pl-2 @xl:pl-3')}
           {head('total', 'xlsxTotal')}

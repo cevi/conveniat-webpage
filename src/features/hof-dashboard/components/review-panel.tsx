@@ -1,6 +1,8 @@
 'use client';
 
+import { textInputClassName } from '@/components/ui/field';
 import type { HofDashboardEntry } from '@/features/hof-dashboard/api/hof-dashboard-data';
+import { SECONDARY_BUTTON_CLASS } from '@/features/hof-dashboard/components/dashboard-ui';
 import {
   HOF_ENTRY_STATUS_LABELS,
   HOF_REVIEW_CHOICES,
@@ -10,55 +12,69 @@ import {
   useAutosaveReview,
   type AutosaveState,
 } from '@/features/hof-dashboard/hooks/use-autosave-review';
-import { formatDateTime, translate, type TextKey } from '@/features/hof-dashboard/texts';
-import AccordionItem from '@/features/payload-cms/components/accordion/accordion-item';
+import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
+import { translate, type TextKey } from '@/features/hof-dashboard/texts';
+import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
+import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Radio, RadioGroup } from '@headlessui/react';
-import { Check, CloudOff } from 'lucide-react';
+import { Check, CloudOff, Send } from 'lucide-react';
 import type React from 'react';
 import { useId, useState } from 'react';
 
-/** Every change of status and feedback, newest first, folded away until asked for. */
-const ReviewHistory: React.FC<{ entry: HofDashboardEntry; locale: Locale }> = ({
+/**
+ * A comment of the Ressort to the Hof, sent with a button rather than saved as it is typed: one
+ * comment is one step of the history, never a half-written one. The same comment twice in a
+ * row is no new step, so it cannot be sent again.
+ */
+const CommentComposer: React.FC<{ entry: HofDashboardEntry; hofId: string; locale: Locale }> = ({
   entry,
+  hofId,
   locale,
 }) => {
-  const [open, setOpen] = useState(false);
-  const historyId = useId();
+  const utils = trpc.useUtils();
+  const mutation = trpc.hofDashboard.addSubmissionComment.useMutation({ networkMode: 'always' });
+  const [text, setText] = useState('');
+  const commentId = useId();
+  const comment = text.trim();
+  const latest = entry.reviewLog.findLast((change) => change.comment !== undefined)?.comment;
+  useWarnBeforeLeaving(comment !== '');
+
+  const send = async (): Promise<void> => {
+    try {
+      await mutation.mutateAsync({ hofId, submissionId: entry.id, comment });
+      setText('');
+      await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
+    } catch {
+      // the text stays, to send again once there is signal
+      notifyFailure(locale, 'commentFailed');
+    }
+  };
+
   return (
-    <AccordionItem
-      titleElement={
-        <span className="text-sm font-semibold text-gray-700">
-          {translate('reviewHistory', locale, { n: entry.reviewLog.length })}
-        </span>
-      }
-      showChevron
-      accordionId={historyId}
-      isExpanded={open}
-      onToggle={() => setOpen((shown) => !shown)}
-      isNested
-    >
-      {open && (
-        <ol className="space-y-3">
-          {entry.reviewLog.map((change, index) => (
-            <li key={`${change.at}-${index}`} className="text-sm">
-              <p className="text-xs text-gray-500">
-                {formatDateTime(change.at, locale)} ·{' '}
-                {change.by === '' ? translate('reviewerUnknown', locale) : change.by}
-              </p>
-              <p className="font-semibold text-gray-900">
-                {HOF_ENTRY_STATUS_LABELS[change.status][locale]}
-                {change.final && ` · ${translate('finalShort', locale)}`}
-              </p>
-              {change.feedback !== '' && (
-                <p className="whitespace-pre-line text-gray-700">{change.feedback}</p>
-              )}
-            </li>
-          ))}
-        </ol>
-      )}
-    </AccordionItem>
+    <div className="space-y-2">
+      <label htmlFor={commentId} className="font-body block text-sm font-medium text-gray-500">
+        {translate('commentLabel', locale)}
+      </label>
+      <textarea
+        id={commentId}
+        rows={3}
+        maxLength={5000}
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        className={textInputClassName}
+      />
+      <button
+        type="button"
+        className={SECONDARY_BUTTON_CLASS}
+        disabled={comment === '' || comment === latest || mutation.isPending}
+        onClick={() => void send()}
+      >
+        <Send aria-hidden />
+        {translate(mutation.isPending ? 'saving' : 'sendComment', locale)}
+      </button>
+    </div>
   );
 };
 
@@ -66,7 +82,6 @@ const ReviewHistory: React.FC<{ entry: HofDashboardEntry; locale: Locale }> = ({
 const CHOICES: HofEntryStatus[] = ['submitted', ...HOF_REVIEW_CHOICES];
 
 const AUTOSAVE_LABEL: Record<Exclude<AutosaveState, 'idle'>, TextKey> = {
-  typing: 'autosaveTyping',
   saving: 'saving',
   saved: 'saved',
   offline: 'autosaveOffline',
@@ -110,8 +125,8 @@ const AutosavePill: React.FC<{ state: AutosaveState; locale: Locale; onRetry: ()
 
 /**
  * Where a reviewer answers a submission: its status, as the option cards of the site's forms,
- * and the feedback the Hof reads next to it. Saved as it is given, without a button: a status
- * at once, the feedback once typing pauses.
+ * saved at once without a button, and a comment to the Hof, sent with one. Both land in the
+ * history above, with the reviewer's name and the time.
  */
 export const ReviewPanel: React.FC<{
   entry: HofDashboardEntry;
@@ -120,14 +135,12 @@ export const ReviewPanel: React.FC<{
   canFinalize: boolean;
   locale: Locale;
 }> = ({ entry, hofId, canFinalize, locale }) => {
-  const { values, setStatus, setFeedback, setFinal, state, retry } = useAutosaveReview(
-    hofId,
-    entry.id,
-    { status: entry.reviewStatus, feedback: entry.feedback ?? '', final: entry.final },
-  );
+  const { values, setStatus, setFinal, state, retry } = useAutosaveReview(hofId, entry.id, {
+    status: entry.reviewStatus,
+    final: entry.final,
+  });
   const finalId = useId();
   const statusId = useId();
-  const feedbackId = useId();
 
   return (
     <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
@@ -158,23 +171,6 @@ export const ReviewPanel: React.FC<{
           ))}
         </div>
       </RadioGroup>
-      <div>
-        <label
-          htmlFor={feedbackId}
-          className="font-body mb-1 block text-sm font-medium text-gray-500"
-        >
-          {translate('reviewFeedback', locale)}
-        </label>
-        <textarea
-          id={feedbackId}
-          rows={3}
-          maxLength={5000}
-          value={values.feedback}
-          onChange={(event) => setFeedback(event.target.value)}
-          className="focus:ring-conveniat-green font-body min-h-[88px] w-full rounded-md border-0 bg-green-100 px-4 py-2 text-base text-gray-600 shadow-sm ring-1 ring-transparent transition-all duration-200 ring-inset placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:outline-none focus:ring-inset"
-        />
-        <p className="mt-1 text-xs text-gray-500">{translate('reviewHint', locale)}</p>
-      </div>
       {canFinalize && (
         <div className="flex items-start gap-3">
           <input
@@ -190,7 +186,8 @@ export const ReviewPanel: React.FC<{
           </label>
         </div>
       )}
-      {entry.reviewLog.length > 0 && <ReviewHistory entry={entry} locale={locale} />}
+      <CommentComposer entry={entry} hofId={hofId} locale={locale} />
+      <p className="text-xs text-gray-500">{translate('reviewHint', locale)}</p>
     </div>
   );
 };
