@@ -18,45 +18,46 @@ import { useState } from 'react';
 const MAX_MATCHES = 6;
 
 const placeholderText: StaticTranslationString = {
-  de: 'Hof suchen, z.B. Cevi Uster',
-  en: 'Search a Hof, e.g. Cevi Uster',
-  fr: 'Chercher un Hof, p. ex. Cevi Uster',
+  de: 'Abteilung suchen, z.B. Uster',
+  en: 'Search a local group, e.g. Uster',
+  fr: 'Chercher un groupe local, p. ex. Uster',
 };
 
 const searchLabel: StaticTranslationString = {
-  de: 'Hof der teilnehmenden Person suchen',
-  en: 'Search the Hof of the participant',
-  fr: 'Chercher le Hof de la personne participante',
+  de: 'Abteilung der teilnehmenden Person suchen',
+  en: 'Search the local group of the participant',
+  fr: 'Chercher le groupe local de la personne participante',
 };
 
 const loadingText: StaticTranslationString = {
-  de: 'Höfe werden geladen …',
-  en: 'Loading Höfe …',
-  fr: 'Chargement des Hofs …',
+  de: 'Abteilungen werden geladen …',
+  en: 'Loading local groups …',
+  fr: 'Chargement des groupes locaux …',
 };
 
 const loadErrorText: StaticTranslationString = {
-  de: 'Die Höfe konnten nicht geladen werden. Prüfe deine Verbindung.',
-  en: 'The Höfe could not be loaded. Check your connection.',
-  fr: 'Les Hofs n’ont pas pu être chargés. Vérifie ta connexion.',
+  de: 'Die Abteilungen konnten nicht geladen werden. Prüfe deine Verbindung.',
+  en: 'The local groups could not be loaded. Check your connection.',
+  fr: 'Les groupes locaux n’ont pas pu être chargés. Vérifie ta connexion.',
 };
 
 // the page says right below what a visitor without a Hof does, so this does not repeat it
 const noMatchText: StaticTranslationString = {
-  de: 'Kein Hof gefunden. Prüfe die Schreibweise.',
-  en: 'No Hof found. Check the spelling.',
-  fr: 'Aucun Hof trouvé. Vérifie l’orthographe.',
+  de: 'Keine Abteilung gefunden. Prüfe die Schreibweise.',
+  en: 'No local group found. Check the spelling.',
+  fr: 'Aucun groupe local trouvé. Vérifie l’orthographe.',
 };
 
 const moreMatchesText: StaticTranslationString = {
-  de: 'Weitere Höfe passen, gib mehr vom Namen ein.',
-  en: 'More Höfe match, type more of the name.',
-  fr: 'D’autres Hofs correspondent, tape davantage du nom.',
+  de: 'Weitere Abteilungen passen, gib mehr vom Namen ein.',
+  en: 'More local groups match, type more of the name.',
+  fr: 'D’autres groupes locaux correspondent, tape davantage du nom.',
 };
 
 /**
- * Relatives type the Hof they visit and see the day they come: the day follows from the Hof's
- * Quartier, which they need not know. Reads the same list as the registration form.
+ * Relatives type the Abteilung of the child they visit and see the day they come. They search
+ * the Höfe, which are named after their Abteilungen, and the day follows from the Hof's
+ * Quartier, neither of which they need to know. Reads the same list as the registration form.
  */
 export const VisitDayFinder: React.FC<{ title?: string | null | undefined }> = ({ title }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
