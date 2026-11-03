@@ -1,15 +1,15 @@
 import { useAutoResizeTextarea } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-auto-resize-textarea';
 import { useChatId } from '@/features/chat/context/chat-id-context';
-import { chatErrorTexts } from '@/features/chat/error-texts';
 import { getChatDraftKey, useChatDraft } from '@/features/chat/hooks/use-chat-draft';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import { useTypingSignal } from '@/features/chat/hooks/use-typing';
 import { generateMessageId } from '@/features/chat/utils';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale } from '@/types/types';
-import { userErrorMessage } from '@/utils/user-error-message';
+import { errorReasonOf, userErrorMessage } from '@/utils/user-error-message';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 
@@ -133,11 +133,10 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
             // offline sends are queued by useMessageSend. Any other failed bubble stays in the
             // list with its own retry, so the text is not put back into the composer. Only a
             // disabled chat is worth a banner, because retrying cannot help there.
-            if (error.message !== 'Messaging is disabled in this chat or globally.') return;
+            if (errorReasonOf(error)?.reason !== 'messagingDisabled') return;
             // the server knew before the flags did: disable the composer now
             trpcUtils.chat.getFeatureFlags.invalidate().catch(console.error);
-            const errorMessage = 'Messaging is currently disabled. Please try again later.';
-            setSendError(errorMessage);
+            setSendError(userErrorMessage(error, locale, chatErrorTexts));
           },
         },
       );

@@ -97,6 +97,13 @@ describe('userErrorMessage', () => {
     );
   });
 
+  it('does not take a reason named like an object property for a text', async () => {
+    const error = await failEnrol(server, 'full');
+    (error as { data: { reason: string } }).data.reason = 'constructor';
+
+    expect(userErrorMessage(error, 'de', texts, fallback)).toBe('Das hat nicht geklappt.');
+  });
+
   it('hides what a crash says about the server', async () => {
     expect(userErrorMessage(await failEnrol(server, 'crash'), 'de', texts, fallback)).toBe(
       'Das hat nicht geklappt.',

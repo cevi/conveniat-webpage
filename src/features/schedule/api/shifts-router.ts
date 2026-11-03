@@ -1,5 +1,5 @@
 import type { HelperShift } from '@/features/payload-cms/payload-types';
-import { scheduleError } from '@/features/schedule/api/schedule-errors';
+import { legacyTimeConflict, scheduleError } from '@/features/schedule/api/schedule-errors';
 import {
   assertUnenrollmentIsOpen,
   getShiftUnenrollmentDeadline,
@@ -224,11 +224,12 @@ export const shiftsRouter = createTRPCRouter({
               String(other.timeslot.date),
             )
           ) {
-            throw scheduleError('CONFLICT', 'timeConflict', {
-              kind: 'shift',
-              title: String(other.title),
-              id: String(other.id),
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'shift', title: String(other.title), id: String(other.id) },
+              legacyTimeConflict('shift', String(other.title), String(other.id)),
+            );
           }
         }
       }
@@ -252,11 +253,12 @@ export const shiftsRouter = createTRPCRouter({
               String(other.timeslot.date),
             )
           ) {
-            throw scheduleError('CONFLICT', 'timeConflict', {
-              kind: 'workshop',
-              title: String(other.title),
-              id: String(other.id),
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'workshop', title: String(other.title), id: String(other.id) },
+              legacyTimeConflict('workshop', String(other.title), String(other.id)),
+            );
           }
         }
       }
@@ -381,11 +383,12 @@ export const shiftsRouter = createTRPCRouter({
               String(other.timeslot.date),
             )
           ) {
-            throw scheduleError('CONFLICT', 'timeConflict', {
-              kind: 'shift',
-              title: String(other.title),
-              id: String(other.id),
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'shift', title: String(other.title), id: String(other.id) },
+              legacyTimeConflict('shift', String(other.title), String(other.id)),
+            );
           }
         }
       }
@@ -411,11 +414,12 @@ export const shiftsRouter = createTRPCRouter({
               String(other.timeslot.date),
             )
           ) {
-            throw scheduleError('CONFLICT', 'timeConflict', {
-              kind: 'workshop',
-              title: String(other.title),
-              id: String(other.id),
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'workshop', title: String(other.title), id: String(other.id) },
+              legacyTimeConflict('workshop', String(other.title), String(other.id)),
+            );
           }
         }
       }

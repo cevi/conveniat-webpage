@@ -1,4 +1,5 @@
 'use client';
+import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { buttonVariants } from '@/components/ui/buttons/button';
 import { IconTile } from '@/components/ui/icon-tile';
@@ -20,7 +21,6 @@ import {
   Panel,
 } from '@/features/material/components/material-ui';
 import { MyLoansView } from '@/features/material/components/my-loans-view';
-import { materialErrorTexts } from '@/features/material/error-texts';
 import {
   MATERIAL_POLL_INTERVAL_MS,
   materialQueryOptions,
@@ -33,7 +33,6 @@ import { itemPath } from '@/features/material/utils/scan';
 import { trpc, type RouterOutputs } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { userErrorMessage } from '@/utils/user-error-message';
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -47,7 +46,6 @@ import {
 import Link from 'next/link';
 import type React from 'react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 const text = {
   outToday: { de: 'heute raus', en: 'out today', fr: 'sorties' },
@@ -165,7 +163,7 @@ const ResolveButton: React.FC<{ id: string }> = ({ id }) => {
           { id },
           {
             onSuccess: () => void invalidate(),
-            onError: (error) => toast.error(userErrorMessage(error, locale, materialErrorTexts)),
+            onError: (error) => toastMaterialError(error, locale),
           },
         )
       }

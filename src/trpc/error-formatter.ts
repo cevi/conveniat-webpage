@@ -38,12 +38,14 @@ export const createErrorThrower =
     code: TRPCError['code'],
     reason: keyof T & string,
     params?: ErrorParameters,
+    /** what a browser on the previous release matches on, where it parsed the message */
+    legacyMessage?: string,
   ): UserFacingTRPCError =>
     new UserFacingTRPCError({
       code,
       reason,
       params,
-      message: formatErrorText(texts[reason]?.en ?? reason, params),
+      message: legacyMessage ?? formatErrorText(texts[reason]?.en ?? reason, params),
     });
 
 export type ErrorShape = TRPCDefaultErrorShape & {

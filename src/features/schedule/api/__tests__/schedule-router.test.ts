@@ -207,6 +207,8 @@ describe('scheduleRouter and the shift withdrawal deadline', () => {
     await expect(caller().enrollInCourse({ courseId: 'workshop-1' })).rejects.toMatchObject({
       reason: 'timeConflict',
       params: { kind: 'shift', title: 'Abwasch', id: 'shift-11' },
+      // what the previous release parses, so a stale shell still opens its switch dialog
+      message: 'Time conflict with shift: Abwasch|shift-11',
     });
     expect(enrollment.create).not.toHaveBeenCalled();
   });

@@ -2,7 +2,7 @@
 
 import { AppFooterController } from '@/components/footer/hide-footer-context';
 import type { ChatDetails as ChatDetailsData } from '@/features/chat/api/types';
-import { chatErrorTexts } from '@/features/chat/error-texts';
+import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { userErrorMessage } from '@/utils/user-error-message';
 import type React from 'react';
 import { useMemo, useState } from 'react';

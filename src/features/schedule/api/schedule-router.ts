@@ -5,7 +5,7 @@ import {
 } from '@/features/chat/api/utils/system-message-helpers'; // eslint-disable-line import/no-restricted-paths
 import { ensureOrganiserStars } from '@/features/schedule/api/organiser-entries';
 import { remindersRouter } from '@/features/schedule/api/reminders-router';
-import { scheduleError } from '@/features/schedule/api/schedule-errors';
+import { legacyTimeConflict, scheduleError } from '@/features/schedule/api/schedule-errors';
 import { assertUnenrollmentIsOpen } from '@/features/schedule/api/shift-withdrawal-guard';
 import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
@@ -352,11 +352,12 @@ export const scheduleRouter = createTRPCRouter({
               other.timeslot.date,
             )
           ) {
-            throw scheduleError('CONFLICT', 'timeConflict', {
-              kind: 'workshop',
-              title: other.title,
-              id: other.id,
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'workshop', title: other.title, id: other.id },
+              legacyTimeConflict('workshop', other.title, other.id),
+            );
           }
         }
       }
@@ -386,11 +387,12 @@ export const scheduleRouter = createTRPCRouter({
               String(other.timeslot.date),
             )
           ) {
-            throw scheduleError('CONFLICT', 'timeConflict', {
-              kind: 'shift',
-              title: String(other.title),
-              id: String(other.id),
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'shift', title: String(other.title), id: String(other.id) },
+              legacyTimeConflict('shift', String(other.title), String(other.id)),
+            );
           }
         }
       }
@@ -576,11 +578,12 @@ export const scheduleRouter = createTRPCRouter({
               other.timeslot.date,
             )
           ) {
-            throw scheduleError('CONFLICT', 'timeConflict', {
-              kind: 'workshop',
-              title: other.title,
-              id: other.id,
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'workshop', title: other.title, id: other.id },
+              legacyTimeConflict('workshop', other.title, other.id),
+            );
           }
         }
       }
@@ -606,11 +609,12 @@ export const scheduleRouter = createTRPCRouter({
               String(other.timeslot.date),
             )
           ) {
-            throw scheduleError('CONFLICT', 'timeConflict', {
-              kind: 'shift',
-              title: String(other.title),
-              id: String(other.id),
-            });
+            throw scheduleError(
+              'CONFLICT',
+              'timeConflict',
+              { kind: 'shift', title: String(other.title), id: String(other.id) },
+              legacyTimeConflict('shift', String(other.title), String(other.id)),
+            );
           }
         }
       }

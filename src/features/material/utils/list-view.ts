@@ -1,6 +1,6 @@
 import { materialErrorTexts } from '@/features/material/error-texts';
 import type { Locale } from '@/types/types';
-import { type ErrorParameters, type ErrorTexts, formatErrorText } from '@/utils/user-error-message';
+import { type ErrorParameters, errorTextFor } from '@/utils/user-error-message';
 
 export const PAGE_SIZES = [25, 50, 100] as const;
 export type PageSize = (typeof PAGE_SIZES)[number];
@@ -79,11 +79,14 @@ export const summariseBulk = (
   locale: Locale,
 ): { done: number; failed: number; errors: string[] } => {
   const failures = results.filter((result) => !result.ok);
-  const texts: ErrorTexts = materialErrorTexts;
-  const errors = failures.map((result) => {
-    const text = texts[result.reason ?? 'unexpected'] ?? materialErrorTexts.unexpected;
-    return formatErrorText(text[locale], result.params);
-  });
+  const errors = failures.map(
+    (result) =>
+      errorTextFor(
+        { reason: result.reason ?? 'unexpected', params: result.params ?? {} },
+        locale,
+        materialErrorTexts,
+      ) ?? materialErrorTexts.unexpected[locale],
+  );
   return {
     done: results.length - failures.length,
     failed: failures.length,

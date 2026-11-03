@@ -1,3 +1,4 @@
+import { chatError } from '@/features/chat/api/chat-errors';
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, type CapabilityChat, CapabilitySubject } from '@/lib/capabilities/types';
 import { ChatCapability, isChatArchived } from '@/lib/chat-shared';
@@ -28,10 +29,7 @@ export const assertWriteAbilities = async (
     chat,
   );
   if (!canSend) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: 'Messaging is disabled in this chat or globally.',
-    });
+    throw chatError('FORBIDDEN', 'messagingDisabled');
   }
 
   if (parentId !== undefined) {
