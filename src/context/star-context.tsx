@@ -1,10 +1,10 @@
 'use client';
 
+import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useStoredRows } from '@/hooks/use-stored-rows';
 import { starsCollection } from '@/lib/tanstack-db';
 import { trpc } from '@/trpc/client';
 import type { StarContextType } from '@/types/types';
-import { useSession } from 'next-auth/react';
 import React, {
   createContext,
   type ReactNode,
@@ -28,7 +28,7 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
   const lastSyncedIdsReference = useRef<string>('');
   const isSyncedReference = useRef(false);
   const isInitializedReference = useRef(false);
-  const { status } = useSession();
+  const status = useAuthStatus();
 
   const starItems = useStoredRows(starsCollection);
 

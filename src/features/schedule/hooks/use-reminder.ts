@@ -1,8 +1,8 @@
 'use client';
 
+import { useAuthStatus } from '@/hooks/use-auth-status';
 import { starsCollection } from '@/lib/tanstack-db';
 import { trpc } from '@/trpc/client';
-import { useSession } from 'next-auth/react';
 import { useCallback } from 'react';
 
 export type ReminderEntryKind = 'program' | 'shift';
@@ -47,7 +47,7 @@ interface UseReminderResult {
  * version, so every field is read as if it could be missing.
  */
 export const useReminder = (entryId: string, entryKind: ReminderEntryKind): UseReminderResult => {
-  const { status } = useSession();
+  const status = useAuthStatus();
   const canRemind = status === 'authenticated';
   const utils = trpc.useUtils();
 
