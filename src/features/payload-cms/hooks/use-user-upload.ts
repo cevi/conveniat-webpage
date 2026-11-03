@@ -4,7 +4,7 @@ import { uploadErrorTexts } from '@/features/payload-cms/upload-error-texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale } from '@/types/types';
-import { errorReasonOf, userErrorMessage } from '@/utils/user-error-message';
+import { errorReasonOf, isTransportError, userErrorMessage } from '@/utils/user-error-message';
 import { TRPCClientError } from '@trpc/client';
 import { useCallback, useState } from 'react';
 
@@ -16,9 +16,14 @@ interface UseUserUploadResult {
   isUploading: boolean;
 }
 
-/** A refusal is translated; any other failure keeps the message the upload page matches on. */
+/**
+ * A refusal and a lost connection are translated; any other failure keeps the message the
+ * upload page matches on.
+ */
 const uploadFailureMessage = (error: unknown, locale: Locale): string => {
-  if (errorReasonOf(error) !== undefined) return userErrorMessage(error, locale, uploadErrorTexts);
+  if (errorReasonOf(error) !== undefined || isTransportError(error)) {
+    return userErrorMessage(error, locale, uploadErrorTexts);
+  }
   return error instanceof Error ? error.message : 'Unknown upload error';
 };
 

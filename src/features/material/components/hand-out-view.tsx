@@ -1,4 +1,5 @@
 'use client';
+import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { ListRow } from '@/components/ui/list-row';
 import { BasketEditor, type BasketStart } from '@/features/material/components/basket-editor';
@@ -20,7 +21,6 @@ import {
   Panel,
 } from '@/features/material/components/material-ui';
 import { RoleGate } from '@/features/material/components/role-gate';
-import { materialErrorTexts } from '@/features/material/error-texts';
 import {
   MATERIAL_POLL_INTERVAL_MS,
   materialQueryOptions,
@@ -35,7 +35,6 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { userErrorMessage } from '@/utils/user-error-message';
 import { Check, ChevronRight, PackageOpen, User } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
@@ -167,7 +166,7 @@ const PickupCard: React.FC<{
           setAsking(false);
           void invalidate();
         },
-        onError: (error) => toast.error(userErrorMessage(error, locale, materialErrorTexts)),
+        onError: (error) => toastMaterialError(error, locale),
       },
     );
   };
@@ -292,9 +291,7 @@ const RequestCard: React.FC<{
                   { ids, ...(reason.trim() === '' ? {} : { reason }) },
                   {
                     onSuccess: () => done(text.rejected[locale]),
-                    onError: (error: unknown): void => {
-                      toast.error(userErrorMessage(error, locale, materialErrorTexts));
-                    },
+                    onError: (error: unknown): void => toastMaterialError(error, locale),
                   },
                 )
               }
@@ -330,9 +327,7 @@ const RequestCard: React.FC<{
                         void invalidate();
                       }
                     },
-                    onError: (error: unknown): void => {
-                      toast.error(userErrorMessage(error, locale, materialErrorTexts));
-                    },
+                    onError: (error: unknown): void => toastMaterialError(error, locale),
                   },
                 )
               }
@@ -360,9 +355,7 @@ const RequestCard: React.FC<{
                   { ids },
                   {
                     onSuccess: () => done(format(text.confirmed, locale, { lines })),
-                    onError: (error: unknown): void => {
-                      toast.error(userErrorMessage(error, locale, materialErrorTexts));
-                    },
+                    onError: (error: unknown): void => toastMaterialError(error, locale),
                   },
                 )
               }

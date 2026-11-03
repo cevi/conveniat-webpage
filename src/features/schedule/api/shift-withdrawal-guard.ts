@@ -1,4 +1,4 @@
-import { scheduleError } from '@/features/schedule/api/schedule-errors';
+import { LEGACY_DEADLINE_PASSED, scheduleError } from '@/features/schedule/api/schedule-errors';
 import {
   getUnenrollmentDeadline,
   isUnenrollmentClosed,
@@ -40,6 +40,6 @@ export const getShiftUnenrollmentDeadline = (shift: ShiftWithdrawalWindow): Date
  */
 export const assertUnenrollmentIsOpen = (shift: ShiftWithdrawalWindow): void => {
   if (isUnenrollmentClosed(getShiftUnenrollmentDeadline(shift))) {
-    throw scheduleError('BAD_REQUEST', 'unenrollmentDeadlinePassed');
+    throw scheduleError('BAD_REQUEST', 'unenrollmentDeadlinePassed', {}, LEGACY_DEADLINE_PASSED);
   }
 };

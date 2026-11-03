@@ -1,4 +1,5 @@
 'use client';
+import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { buttonVariants } from '@/components/ui/buttons/button';
 import { SectionTitle, Stepper } from '@/features/material/components/counter-ui';
@@ -21,7 +22,6 @@ import {
   Panel,
   SheetFooter,
 } from '@/features/material/components/material-ui';
-import { materialErrorTexts } from '@/features/material/error-texts';
 import {
   MATERIAL_POLL_INTERVAL_MS,
   materialQueryOptions,
@@ -37,7 +37,6 @@ import { getLoanDisplayStatus } from '@/features/material/utils/stock';
 import { trpc, type RouterOutputs } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { userErrorMessage } from '@/utils/user-error-message';
 import { Building2, CornerDownLeft, Pencil, Plus, User, X } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -219,8 +218,7 @@ const EditRequestSheet: React.FC<{ loan: MyLoan; onClose: () => void }> = ({ loa
                   onClose();
                   void invalidate();
                 },
-                onError: (error) =>
-                  toast.error(userErrorMessage(error, locale, materialErrorTexts)),
+                onError: (error) => toastMaterialError(error, locale),
               },
             )
           }
@@ -309,8 +307,7 @@ const MyLoanRow: React.FC<{ loan: MyLoan; onEdit: (loan: MyLoan) => void }> = ({
                     setAsking(false);
                     void invalidate();
                   },
-                  onError: (error) =>
-                    toast.error(userErrorMessage(error, locale, materialErrorTexts)),
+                  onError: (error) => toastMaterialError(error, locale),
                 },
               )
             }
@@ -346,8 +343,7 @@ const MyLoanRow: React.FC<{ loan: MyLoan; onEdit: (loan: MyLoan) => void }> = ({
                       toast.success(text.announced[locale]);
                       void invalidate();
                     },
-                    onError: (error) =>
-                      toast.error(userErrorMessage(error, locale, materialErrorTexts)),
+                    onError: (error) => toastMaterialError(error, locale),
                   },
                 )
               }
@@ -402,8 +398,7 @@ const OutCard: React.FC<{
                     toast.success(text.announced[locale]);
                     void invalidate();
                   },
-                  onError: (error) =>
-                    toast.error(userErrorMessage(error, locale, materialErrorTexts)),
+                  onError: (error) => toastMaterialError(error, locale),
                 },
               )
             }
@@ -499,8 +494,7 @@ const ScannedLoanSheet: React.FC<{ number: number; onClose: () => void }> = ({
                         onClose();
                         void invalidate();
                       },
-                      onError: (error) =>
-                        toast.error(userErrorMessage(error, locale, materialErrorTexts)),
+                      onError: (error) => toastMaterialError(error, locale),
                     },
                   )
                 }
