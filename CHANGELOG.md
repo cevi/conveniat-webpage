@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.47.2](https://github.com/cevi/conveniat-webpage/compare/v1.47.1...v1.47.2) (2026-11-02)
+
+
+### Bug Fixes
+
+* **nginx:** pages stream again instead of arriving once fully rendered ([c25721a](https://github.com/cevi/conveniat-webpage/commit/c25721ad1aa7f55f23ee2d2b35aaa2fe87c3c3bf))
+* **nginx:** pages stream again instead of arriving once fully rendered ([bc5a5d5](https://github.com/cevi/conveniat-webpage/commit/bc5a5d57e47679883f9d0e3596f9591886d7f981))
+
 ## [1.47.1](https://github.com/cevi/conveniat-webpage/compare/v1.47.0...v1.47.1) (2026-11-02)
 
 
