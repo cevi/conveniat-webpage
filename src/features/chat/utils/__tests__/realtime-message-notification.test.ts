@@ -142,7 +142,7 @@ describe('notifyRealtimeChatMessage', () => {
     expect(mockToast).toHaveBeenCalledWith('Bob', expect.anything());
   });
 
-  it('says who sent an image, with an icon and the same words as the push', () => {
+  it('says who sent an image, in the same words as the push', () => {
     notifyRealtimeChatMessage({
       chatId: 'chat-1',
       chatName: 'Cevi Uster',
@@ -155,14 +155,11 @@ describe('notifyRealtimeChatMessage', () => {
 
     expect(mockToast).toHaveBeenCalledWith(
       'Cevi Uster',
-      expect.objectContaining({
-        description: 'Bob hat ein Bild gesendet',
-        icon: expect.anything() as unknown,
-      }),
+      expect.objectContaining({ description: 'Bob hat ein Bild gesendet' }),
     );
   });
 
-  it('hands the native shell the same words for an image, without the icon', () => {
+  it('hands the native shell the same words for an image', () => {
     const showNotification = jest.fn();
     globalThis.AppWebViewNativePush = {
       getStatus: jest.fn(),
@@ -184,7 +181,6 @@ describe('notifyRealtimeChatMessage', () => {
 
     const request = (showNotification.mock.calls as unknown[][])[0]?.[0] as Record<string, unknown>;
     expect(request['body']).toBe('Bob hat ein Bild gesendet');
-    expect(request['icon']).toBeUndefined();
   });
 
   describe('extractRealtimeMessagePreview', () => {

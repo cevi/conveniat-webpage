@@ -5,7 +5,6 @@ import { imageSentText } from '@/lib/chat-images';
 import type { StaticTranslationString } from '@/types/types';
 import { getDocumentLocale, notifyForegroundMessage } from '@/utils/foreground-notifications';
 import type { ChatType } from '@prisma/client';
-import { ImageIcon } from 'lucide-react';
 
 const fallbackChatName: StaticTranslationString = {
   de: 'Neue Nachricht',
@@ -84,7 +83,6 @@ export const notifyRealtimeChatMessage = ({
     title,
     body,
     targetPath: `/app/chat/${chatId}`,
-    ...(isImage ? { icon: ImageIcon } : {}),
     notificationType: chatType === 'EMERGENCY' ? 'emergency' : 'default',
   });
 };
