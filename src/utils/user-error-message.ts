@@ -36,14 +36,31 @@ export const formatErrorText = (template: string, params: ErrorParameters = {}):
 export const isTransportError = (error: unknown): boolean =>
   error instanceof TRPCClientError && error.data === undefined;
 
-/** The reason a router refused the call with, or `undefined` for any other failure. */
-export const errorReasonOf = (error: unknown): ErrorReason | undefined => {
-  if (!(error instanceof TRPCClientError)) return undefined;
-  const data: unknown = (error as TRPCClientError<never>).data;
+/** The reason and params in an error's data, as `formatTRPCError` and the form hooks send them. */
+export const reasonOf = (data: unknown): ErrorReason | undefined => {
   if (typeof data !== 'object' || data === null || !('reason' in data)) return undefined;
   if (typeof data.reason !== 'string') return undefined;
   const params = 'params' in data && typeof data.params === 'object' ? data.params : undefined;
   return { reason: data.reason, params: (params ?? {}) as ErrorParameters };
+};
+
+/** The reason a router refused the call with, or `undefined` for any other failure. */
+export const errorReasonOf = (error: unknown): ErrorReason | undefined =>
+  error instanceof TRPCClientError ? reasonOf((error as TRPCClientError<never>).data) : undefined;
+
+/**
+ * The text of a reason in `locale`, with its params filled in, or `undefined` when `texts` do
+ * not know the reason. Own keys only: a reason named like `constructor` is not a text.
+ */
+export const errorTextFor = (
+  refusal: ErrorReason,
+  locale: Locale,
+  texts: ErrorTexts,
+): string | undefined => {
+  if (refusal.reason === INVALID_INPUT_REASON) return invalidInputTranslation[locale];
+  if (!Object.hasOwn(texts, refusal.reason)) return undefined;
+  const text = texts[refusal.reason];
+  return text === undefined ? undefined : formatErrorText(text[locale], refusal.params);
 };
 
 /**
@@ -61,8 +78,6 @@ export const userErrorMessage = (
 ): string => {
   if (isTransportError(error)) return noConnectionTranslation[locale];
   const refusal = errorReasonOf(error);
-  if (refusal === undefined) return fallback[locale];
-  if (refusal.reason === INVALID_INPUT_REASON) return invalidInputTranslation[locale];
-  const text = texts[refusal.reason];
-  return text === undefined ? fallback[locale] : formatErrorText(text[locale], refusal.params);
+  const text = refusal === undefined ? undefined : errorTextFor(refusal, locale, texts);
+  return text ?? fallback[locale];
 };

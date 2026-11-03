@@ -1,4 +1,5 @@
 'use client';
+import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { Card } from '@/components/ui/card';
 import { Segmented, Stepper } from '@/features/material/components/counter-ui';
@@ -13,7 +14,6 @@ import {
   NativeSelect,
   SheetFooter,
 } from '@/features/material/components/material-ui';
-import { materialErrorTexts } from '@/features/material/error-texts';
 import {
   materialQueryOptions,
   useInvalidateMaterial,
@@ -35,7 +35,6 @@ import {
 import { trpc, type RouterOutputs } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { userErrorMessage } from '@/utils/user-error-message';
 import { Send, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
@@ -169,7 +168,7 @@ export const RequestSheet: React.FC<{
           void invalidate();
           router.push('/app/material');
         },
-        onError: (error) => toast.error(userErrorMessage(error, locale, materialErrorTexts)),
+        onError: (error) => toastMaterialError(error, locale),
       },
     );
   };

@@ -1,4 +1,5 @@
 'use client';
+import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { Card } from '@/components/ui/card';
 import { labels } from '@/features/material/components/material-labels';
@@ -10,7 +11,6 @@ import {
   MaterialSheet,
   SheetFooter,
 } from '@/features/material/components/material-ui';
-import { materialErrorTexts } from '@/features/material/error-texts';
 import {
   materialQueryOptions,
   useInvalidateMaterial,
@@ -18,7 +18,6 @@ import {
 } from '@/features/material/hooks/use-material';
 import { trpc, type RouterOutputs } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
-import { userErrorMessage } from '@/utils/user-error-message';
 import { Pencil, Plus } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
@@ -54,9 +53,7 @@ const CategoryDialog: React.FC<{
         onClose();
         void invalidate();
       },
-      onError: (error: unknown): void => {
-        toast.error(userErrorMessage(error, locale, materialErrorTexts));
-      },
+      onError: (error: unknown): void => toastMaterialError(error, locale),
     };
     if (category === undefined) create.mutate(data, options);
     else update.mutate({ id: category.id, ...data }, options);

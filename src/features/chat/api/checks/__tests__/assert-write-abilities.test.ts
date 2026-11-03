@@ -42,7 +42,7 @@ describe('assertWriteAbilities', () => {
     ).rejects.toThrow('Threading is not enabled in this chat.');
     await expect(
       assertWriteAbilities(prisma, CHAT_ID, 'thread-1', openChat([ChatCapability.THREADS])),
-    ).rejects.toThrow('Messaging is disabled in this chat or globally.');
+    ).rejects.toMatchObject({ reason: 'messagingDisabled' });
 
     expect(findUnique).not.toHaveBeenCalled();
   });

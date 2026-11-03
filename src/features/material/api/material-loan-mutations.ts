@@ -187,6 +187,8 @@ export interface BulkLoanResult {
   /** why it failed, a key of `materialErrorTexts` the hand-out view translates */
   reason?: string;
   params?: ErrorParameters;
+  /** the English text, which a hand-out view on the previous release shows as it is */
+  error?: string;
 }
 
 /**
@@ -227,13 +229,19 @@ export const issueLoanList = materialTeamProcedure
         results.push({ id, ok: true });
       } catch (error) {
         if (error instanceof UserFacingTRPCError) {
-          results.push({ id, ok: false, reason: error.reason, params: error.params });
+          results.push({
+            id,
+            ok: false,
+            reason: error.reason,
+            params: error.params,
+            error: error.message,
+          });
         } else {
           logger.error('Material hand-out failed', {
             'material.loan.id': id,
             'error.message': error instanceof Error ? error.message : String(error),
           });
-          results.push({ id, ok: false, reason: 'unexpected' });
+          results.push({ id, ok: false, reason: 'unexpected', error: 'Unexpected error.' });
         }
       }
     }

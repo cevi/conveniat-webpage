@@ -1,4 +1,5 @@
 'use client';
+import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { labels } from '@/features/material/components/material-labels';
 import {
@@ -10,7 +11,6 @@ import {
   NumberInput,
   SheetFooter,
 } from '@/features/material/components/material-ui';
-import { materialErrorTexts } from '@/features/material/error-texts';
 import {
   materialQueryOptions,
   useInvalidateMaterial,
@@ -23,7 +23,6 @@ import { itemPath } from '@/features/material/utils/scan';
 import { trpc } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { userErrorMessage } from '@/utils/user-error-message';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
@@ -172,9 +171,7 @@ export const ItemEditDialog: React.FC<{
     };
     const options = {
       onSuccess,
-      onError: (error: unknown): void => {
-        toast.error(userErrorMessage(error, locale, materialErrorTexts));
-      },
+      onError: (error: unknown): void => toastMaterialError(error, locale),
     };
     if (item === undefined) create.mutate(data, options);
     else update.mutate({ id: item.id, ...data }, options);
