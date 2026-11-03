@@ -37,7 +37,8 @@ export class Orchestrator implements CacheOrchestrator {
 
   /**
    * Note: We ignore 'softTags' mostly because we rely on hard eviction (deleting keys)
-   * in updateTags. If a key exists, it is valid.
+   * in updateTags. A key written back by a render that overlapped the eviction is refused by
+   * `RedisCache.get`.
    */
   async get(cacheKey: string): Promise<CacheEntry | undefined> {
     // Wait for any pending writes to complete
@@ -130,9 +131,10 @@ export class Orchestrator implements CacheOrchestrator {
   }
 
   async getExpiration(): Promise<Timestamp> {
-    // We return 0 or Infinity.
-    // Returning 0 implies "tags are never stale" unless explicitly deleted.
-    // Since we delete keys in 'updateTags', we can assume any key found is valid.
+    // Next.js asks this only for the implicit path tags, which nothing here revalidates, since
+    // there is no `revalidatePath`. The tags passed to `revalidateTag` are checked in
+    // `RedisCache.get`, which also refuses an entry written back by a render that overlapped
+    // the flush.
     // eslint-disable-next-line unicorn/no-useless-promise-resolve-reject
     return Promise.resolve(0);
   }
