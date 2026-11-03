@@ -11,7 +11,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/buttons/button';
-/* eslint-enable import/no-restricted-paths */
+import { useAuthStatus } from '@/hooks/use-auth-status';
+
 import { EnrolmentFailure, isFullRefusal } from '@/features/schedule/components/enrolment-failure';
 import { ShiftConflictDialog } from '@/features/schedule/components/shift-conflict-dialog';
 import { useShiftStatus } from '@/features/schedule/hooks/use-shift-status';
@@ -25,7 +26,6 @@ import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { errorReasonOf } from '@/utils/user-error-message';
 import { AlertTriangle, CheckCircle, Loader2, Lock, RefreshCw, WifiOff } from 'lucide-react';
-import { useSession } from 'next-auth/react';
 import React, { useState } from 'react';
 
 const localizedEnroll: StaticTranslationString = {
@@ -128,7 +128,7 @@ export const ShiftEnrollmentAction: React.FC<{
   shiftTimeslot?: { date: string; time: string };
 }> = ({ shiftId, enableEnrolment, variant = 'detail', shiftTitle, shiftTimeslot }) => {
   const isCard = variant === 'card';
-  const { status: authStatus } = useSession();
+  const authStatus = useAuthStatus();
   const isAuthorized = authStatus === 'authenticated';
   const locale = useCurrentLocale(i18nConfig) as Locale;
 

@@ -2,12 +2,13 @@
 
 import { Switch } from '@/components/ui/switch';
 import { SettingsRow } from '@/features/settings/components/settings-row';
+import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useNativePush } from '@/hooks/use-native-push';
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
 import { Cookie, type Locale, type StaticTranslationString } from '@/types/types';
 import Cookies from 'js-cookie';
 import { Bug, Check, Share2, X } from 'lucide-react';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 import React, { useCallback, useState } from 'react';
 
 const pushNotificationSettingsTitle: StaticTranslationString = {
@@ -42,7 +43,7 @@ const notSupportedText: StaticTranslationString = {
 };
 
 export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
-  const { status: authStatus } = useSession();
+  const authStatus = useAuthStatus();
   const isAuthenticated = authStatus === 'authenticated';
 
   const {

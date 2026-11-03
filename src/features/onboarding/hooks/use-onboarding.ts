@@ -8,6 +8,7 @@ import {
   onboardingReducer,
 } from '@/features/onboarding/state/onboarding-finite-state-machine';
 import { OnboardingAction, OnboardingStep } from '@/features/onboarding/types';
+import { useAuthStatus } from '@/hooks/use-auth-status';
 import {
   extractTargetUrl,
   performReliablePushNavigation,
@@ -26,7 +27,6 @@ import { handleSkipLogin as skipLoginUtil } from '@/utils/login-handler';
 import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import Cookies from 'js-cookie';
-import { useSession } from 'next-auth/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
@@ -66,7 +66,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
   // 5. Native Push Subscription Status (lightweight, no tRPC dependency)
   const hasNativePushSubscription = useNativePushSubscriptionStatus();
 
-  const { status } = useSession();
+  const status = useAuthStatus();
   const [authTimeoutReached, setAuthTimeoutReached] = useState(false);
   const searchParameters = useSearchParams();
   const pathname = usePathname();

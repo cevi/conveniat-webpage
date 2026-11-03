@@ -1,6 +1,6 @@
 import { ONLINE_WINDOW_MS } from '@/features/chat/constants';
+import { useAuthStatus } from '@/hooks/use-auth-status';
 import { trpc } from '@/trpc/client';
-import { useSession } from 'next-auth/react';
 import { useEffect } from 'react';
 
 /**
@@ -17,7 +17,7 @@ const ONLINE_PING_INTERVAL_MS = ONLINE_WINDOW_MS - 5000;
  * Coming back to the page pings at once instead of waiting for the next tick.
  */
 export const useOnlinePing = (): void => {
-  const { status } = useSession();
+  const status = useAuthStatus();
 
   const { mutate: ping } = trpc.chat.onlinePing.useMutation({
     networkMode: 'always',

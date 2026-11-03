@@ -4,6 +4,7 @@ import { GreetingSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)
 import { QuartierDot } from '@/components/quartier/quartier-badge';
 import { useNow } from '@/features/schedule/hooks/use-now';
 import { displayNamesOf } from '@/features/settings/utils/display-names';
+import { useAuthStatus } from '@/hooks/use-auth-status';
 import { trpc } from '@/trpc/client';
 import { HitobitoNextAuthUserSchema } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -61,7 +62,8 @@ const TodayLine: React.FC<{ locale: Locale; quartiere: GreetedQuartier[] }> = ({
  * Quartier. A guest is welcomed without a name and without a Quartier.
  */
 export const DashboardGreeting: React.FC<{ locale: Locale }> = ({ locale }) => {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
+  const status = useAuthStatus();
   const parsedUser = HitobitoNextAuthUserSchema.safeParse(session?.user);
   const user = parsedUser.success ? parsedUser.data : undefined;
 

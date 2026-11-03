@@ -42,6 +42,7 @@ import {
   isOpen,
   type SubmissionProgress,
 } from '@/features/hof-dashboard/utils/submission-progress';
+import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import { HitobitoNextAuthUserSchema } from '@/types/hitobito-next-auth-user';
@@ -409,7 +410,8 @@ const DashboardForUser: React.FC<{ account: React.ReactNode; locale: Locale }> =
 
 const HofDashboardContent: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { status, data: session } = useSession();
+  const { data: session } = useSession();
+  const status = useAuthStatus();
 
   if (status === 'loading') return <DashboardSkeleton locale={locale} />;
   if (status === 'unauthenticated') {
