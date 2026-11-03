@@ -22,6 +22,7 @@ import type { DonationBarometerType } from '@/features/payload-cms/components/co
 import { DonationBarometer } from '@/features/payload-cms/components/content-blocks/donation-barometer';
 import type { DonationCtaType } from '@/features/payload-cms/components/content-blocks/donation-cta';
 import { DonationCta } from '@/features/payload-cms/components/content-blocks/donation-cta';
+import { FactList } from '@/features/payload-cms/components/content-blocks/fact-list';
 import { FeaturedSection } from '@/features/payload-cms/components/content-blocks/featured-section';
 import type { FileDownloadType } from '@/features/payload-cms/components/content-blocks/file-download';
 import { FileDownload } from '@/features/payload-cms/components/content-blocks/file-download';
@@ -50,6 +51,7 @@ import { getRelativeImageUrl } from '@/features/payload-cms/payload-cms/utils/im
 import { resolveRichTextLinks } from '@/features/payload-cms/payload-cms/utils/resolve-rich-text-links';
 import type {
   AccordionBlocks,
+  FactListBlock,
   FeaturedSectionBlock,
   MediaTextBlock,
   ProcessStepsBlock,
@@ -111,6 +113,7 @@ export type ContentBlockTypeNames =
   | 'posterHero'
   | 'mediaText'
   | 'processSteps'
+  | 'factList'
   | 'sectionSeparator';
 
 export type SectionRenderer<T = object> = React.FC<
@@ -818,6 +821,32 @@ export const RenderProcessSteps: SectionRenderer<ProcessStepsBlock> = ({
       locale={locale}
     >
       <ProcessSteps {...block} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderFactList: SectionRenderer<FactListBlock> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Die Fakten-Liste',
+          en: 'fact list',
+          fr: 'la liste de faits',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <FactList {...block} />
     </SectionWrapper>
   );
 };

@@ -13,6 +13,7 @@ import {
   RenderCountdown,
   RenderDonationBarometer,
   RenderDonationCta,
+  RenderFactList,
   RenderFeaturedSection,
   RenderFileDownload,
   RenderFormBlock,
@@ -92,6 +93,7 @@ export const PageSectionsConverter: React.FC<
     posterHero: RenderPosterHero,
     mediaText: RenderMediaText,
     processSteps: RenderProcessSteps,
+    factList: RenderFactList,
     sectionSeparator: RenderSectionSeparatorBlock,
   };
 
