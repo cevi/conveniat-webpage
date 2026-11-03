@@ -1,8 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { ROLE_LABELS } from '@/features/payload-cms/payload-cms/access-rules/role-labels';
+import type { Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import {
   isFullAdmin,
   ROLE_ENVIRONMENT_VARIABLES,
-  Roles,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { AdminPanelArea } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import {
@@ -211,24 +212,6 @@ const apiOnlyLabel: StaticTranslationString = {
   fr: 'pas dans la barre latérale, API uniquement',
 };
 
-const roleLabels: Record<Roles, StaticTranslationString> = {
-  [Roles.FullAdmin]: { de: 'Admin', en: 'Admin', fr: 'Admin' },
-  [Roles.WebCoreTeam]: { de: 'Web-Kernteam', en: 'Web core team', fr: 'Équipe web' },
-  [Roles.TranslationTeam]: {
-    de: 'Übersetzungsteam',
-    en: 'Translation team',
-    fr: 'Équipe de traduction',
-  },
-  [Roles.ProgramTeam]: { de: 'Programmteam', en: 'Programme team', fr: 'Équipe programme' },
-  [Roles.BillingTeam]: { de: 'Rechnungswesen', en: 'Billing', fr: 'Facturation' },
-  [Roles.MaterialTeam]: { de: 'Materialteam', en: 'Material team', fr: 'Équipe matériel' },
-  [Roles.HofDashboardReviewer]: {
-    de: 'Hof-Dashboard-Prüfung',
-    en: 'Hof dashboard reviewers',
-    fr: 'Vérification du tableau de bord des Hofs',
-  },
-};
-
 const capabilityLabels: Record<Capability, StaticTranslationString> = {
   adminPanel: {
     de: 'Adminpanel öffnen',
@@ -305,7 +288,7 @@ const RoleTags: React.FC<{ roles: Roles[]; locale: Locale }> = ({ roles, locale 
         title={ROLE_ENVIRONMENT_VARIABLES[role]}
         className="rounded-sm bg-(--theme-elevation-150) px-1.5 py-0.5 text-xs font-medium whitespace-nowrap"
       >
-        {roleLabels[role][locale]}
+        {ROLE_LABELS[role][locale]}
       </span>
     ))}
   </span>
@@ -499,7 +482,7 @@ const Reason: React.FC<{ data: PageData; groupIds: number[] }> = ({ data, groupI
         .map((group) => (
           <span
             key={group.groupId}
-            title={group.roles.map((role) => roleLabels[role][data.locale]).join(', ')}
+            title={group.roles.map((role) => ROLE_LABELS[role][data.locale]).join(', ')}
             className="rounded-sm border border-(--theme-success-500) bg-(--theme-success-100) px-1.5 py-0.5 text-xs font-medium whitespace-nowrap"
           >
             {groupName(group, data.locale)}

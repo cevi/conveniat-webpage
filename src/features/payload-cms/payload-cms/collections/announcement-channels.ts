@@ -1,9 +1,13 @@
-import {
-  hasAccessToThisUser,
-  hasAdminOrWebAccess,
-  isRole,
-} from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { environmentVariables } from '@/config/environment-variables';
+import { ROLE_LABELS } from '@/features/payload-cms/payload-cms/access-rules/role-labels';
+import { hasAdminOrWebAccess, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import {
+  audiencePreviewHandler,
+  groupSuggestionsHandler,
+} from '@/features/payload-cms/payload-cms/endpoints/announcement-channel-audience';
+import type { ChannelAudience } from '@/features/payload-cms/payload-cms/utils/announcement-channel-audience';
+import { findAudienceUserIds } from '@/features/payload-cms/payload-cms/utils/announcement-channel-audience';
 import type { AnnouncementChannel } from '@/features/payload-cms/payload-types';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import prisma from '@/lib/db/prisma';
@@ -21,59 +25,25 @@ import type {
   PayloadRequest,
 } from 'payload';
 
+/**
+ * Reconciles the GUEST memberships of a channel's chat with its audience: adds whoever
+ * belongs to it and removes whoever no longer does. Owners and admins stay.
+ */
 const syncAnnouncementChannelMemberships = async (
   chatUuid: string,
-  targetType: 'all' | 'roles' | 'cevi_groups',
-  targetRoles: string[] | undefined | null,
-  targetCeviGroups:
-    | {
-        groupId: number;
-        groupName?: string | null;
-        id?: string | null;
-      }[]
-    | undefined
-    | null,
+  audience: ChannelAudience,
   request: PayloadRequest,
 ): Promise<void> => {
-  // 1. Fetch all users from MongoDB
-  const usersResult = await request.payload.find({
-    collection: 'users',
-    limit: 10_000,
-    depth: 0,
-  });
+  const eligibleUserUuids = new Set(await findAudienceUserIds(request.payload, audience, request));
 
-  const allUsers = usersResult.docs;
-
-  // 2. Filter matching users based on target group settings
-  const matchingUsers = allUsers.filter((user) => {
-    if (targetType === 'all') return true;
-
-    const userGroupIds = user.groups ? user.groups.map((g) => g.id) : [];
-
-    if (targetType === 'roles' && targetRoles) {
-      return hasAccessToThisUser({
-        user: { group_ids: userGroupIds },
-        requiredRoles: targetRoles.filter((role) => isRole(role)),
-      });
-    }
-
-    if (targetType === 'cevi_groups' && targetCeviGroups) {
-      return targetCeviGroups.some((tg) => userGroupIds.includes(tg.groupId));
-    }
-
-    return false;
-  });
-
-  const eligibleUserUuids = new Set(matchingUsers.map((u) => u.id));
-
-  // 3. Fetch existing PostgreSQL memberships for this chat
+  // Fetch existing PostgreSQL memberships for this chat
   const existingMemberships = await prisma.chatMembership.findMany({
     where: { chatId: chatUuid },
   });
 
   const existingUserUuids = new Set(existingMemberships.map((m) => m.userId));
 
-  // 4. Add missing members as GUEST
+  // Add missing members as GUEST
   // eslint-disable-next-line unicorn/prefer-spread
   const membersToAdd = Array.from(eligibleUserUuids).filter((uuid) => !existingUserUuids.has(uuid));
   if (membersToAdd.length > 0) {
@@ -100,7 +70,7 @@ const syncAnnouncementChannelMemberships = async (
     }
   }
 
-  // 5. Remove users who are no longer eligible (excluding OWNER/ADMIN)
+  // Remove users who are no longer eligible (excluding OWNER/ADMIN)
   const membersToRemove = existingMemberships.filter((m) => {
     if (
       m.chatPermission === ChatMembershipPermission.OWNER ||
@@ -135,9 +105,6 @@ const afterChannelChange: CollectionAfterChangeHook<AnnouncementChannel> = async
 }) => {
   const name = doc.name;
   const description = doc.description;
-  const targetType = doc.targetType;
-  const targetRoles = doc.targetRoles;
-  const targetCeviGroups = doc.targetCeviGroups;
   let chatUuid = doc.chatUuid;
 
   const currentAdminUuid = request.user?.id;
@@ -221,13 +188,7 @@ const afterChannelChange: CollectionAfterChangeHook<AnnouncementChannel> = async
   }
 
   // C. Sync targeted GUEST memberships
-  await syncAnnouncementChannelMemberships(
-    chatUuid,
-    targetType,
-    targetRoles,
-    targetCeviGroups,
-    request,
-  );
+  await syncAnnouncementChannelMemberships(chatUuid, doc, request);
 
   return doc;
 };
@@ -274,6 +235,10 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
     update: hasAdminOrWebAccess,
     delete: hasAdminOrWebAccess,
   },
+  endpoints: [
+    { path: '/group-suggestions', method: 'get', handler: groupSuggestionsHandler },
+    { path: '/audience-preview', method: 'post', handler: audiencePreviewHandler },
+  ],
   hooks: {
     afterChange: [afterChannelChange],
     afterDelete: [afterChannelDelete],
@@ -345,7 +310,18 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
           label: { en: 'Cevi.DB groups', de: 'Cevi.DB-Gruppen', fr: 'Groupes Cevi.DB' },
           value: 'cevi_groups',
         },
+        {
+          label: { en: 'All AVPs', de: 'Alle AVPs', fr: 'Tous les AVP' },
+          value: 'avps',
+        },
       ],
+      // the AVPs are found through the Höfe, which only the Hof dashboard keeps
+      filterOptions: ({ options }) =>
+        environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD
+          ? options
+          : options.filter(
+              (option) => (typeof option === 'string' ? option : option.value) !== 'avps',
+            ),
     },
     {
       name: 'targetRoles',
@@ -356,12 +332,7 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
       },
       type: 'select',
       hasMany: true,
-      options: [
-        { label: 'Full Admin', value: 'full-admin' },
-        { label: 'Web Core Team', value: 'web-core-team' },
-        { label: 'Translation Team', value: 'translation-team' },
-        { label: 'Program Team', value: 'program-team' },
-      ],
+      options: Object.values(Roles).map((role) => ({ label: ROLE_LABELS[role], value: role })),
       admin: {
         condition: (data) => data['targetType'] === 'roles',
       },
@@ -373,24 +344,54 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
         de: 'Ziel-Cevi.DB-Gruppen',
         fr: 'Groupes Cevi.DB cibles',
       },
+      labels: {
+        singular: { en: 'Cevi.DB group', de: 'Cevi.DB-Gruppe', fr: 'Groupe Cevi.DB' },
+        plural: { en: 'Cevi.DB groups', de: 'Cevi.DB-Gruppen', fr: 'Groupes Cevi.DB' },
+      },
       type: 'array',
       admin: {
         condition: (data) => data['targetType'] === 'cevi_groups',
+        description: {
+          en: 'Everyone who is in one of these groups in Cevi.DB. Pick a group by its name or type its ID.',
+          de: 'Alle, die in der Cevi.DB in einer dieser Gruppen sind. Wähle eine Gruppe über ihren Namen aus oder gib ihre ID ein.',
+          fr: "Toutes les personnes membres d'un de ces groupes dans Cevi.DB. Choisis un groupe par son nom ou saisis son ID.",
+        },
+        components: {
+          RowLabel:
+            '@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-row-label#CeviGroupRowLabel',
+        },
       },
       fields: [
         {
           name: 'groupId',
-          label: { en: 'Group ID', de: 'Gruppen-ID', fr: 'ID du groupe' },
+          label: { en: 'Cevi.DB group', de: 'Cevi.DB-Gruppe', fr: 'Groupe Cevi.DB' },
           type: 'number',
           required: true,
+          admin: {
+            components: {
+              Field:
+                '@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-picker#CeviGroupPicker',
+            },
+          },
         },
         {
+          // filled in by the picker; only shown so a group typed in by its ID can be named
           name: 'groupName',
           label: { en: 'Group Name', de: 'Gruppenname', fr: 'Nom du groupe' },
           type: 'text',
-          required: true,
         },
       ],
+    },
+    {
+      name: 'audiencePreview',
+      type: 'ui',
+      admin: {
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/announcement-channel/audience-preview#AudiencePreview',
+        },
+        disableListColumn: true,
+      },
     },
     {
       name: 'allowEmojiReactions',
@@ -444,8 +445,20 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
       },
     },
     {
+      name: 'members',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/announcement-channel/channel-members#ChannelMembersField',
+        },
+        disableListColumn: true,
+      },
+    },
+    {
       name: 'chatUuid',
-      label: 'Linked Chat UUID (PostgreSQL)',
+      label: { en: 'Chat ID', de: 'Chat-ID', fr: 'ID du chat' },
       type: 'text',
       admin: {
         readOnly: true,

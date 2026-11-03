@@ -1,7 +1,11 @@
-import { hasAccessToThisUser, isRole } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  isInChannelAudience,
+  loadAudienceContext,
+} from '@/features/payload-cms/payload-cms/utils/announcement-channel-audience';
 import prisma from '@/lib/db/prisma';
+import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
+import { ChatMembershipPermission } from '@/lib/prisma/client';
 import { formatUserFullName } from '@/utils/format-user-name';
-import { ChatMembershipPermission } from '@prisma/client';
 import type { TaskConfig } from 'payload';
 
 export const syncNewUserAnnouncementChatsTask: TaskConfig<{
@@ -27,7 +31,7 @@ export const syncNewUserAnnouncementChatsTask: TaskConfig<{
     const { payload } = req;
     const { userId } = input;
 
-    payload.logger.info(`Starting syncNewUserAnnouncementChats for user ${userId}`);
+    payload.logger.debug(`Starting syncNewUserAnnouncementChats for user ${userId}`);
 
     try {
       // 1. Fetch the user from the 'users' collection
@@ -46,29 +50,15 @@ export const syncNewUserAnnouncementChatsTask: TaskConfig<{
 
       const channels = channelsResult.docs;
 
-      // Extract group IDs from the user's groups field
-      const userGroups = Array.isArray(user.groups) ? (user.groups as { id: number }[]) : [];
-      const userGroupSet = new Set(userGroups.map((g) => g.id));
-
-      // 3. Filter channels where this user is eligible
-      const matchingChannels = channels.filter((channel) => {
-        const { targetType, targetRoles, targetCeviGroups } = channel;
-
-        if (targetType === 'all') return true;
-
-        if (targetType === 'roles' && targetRoles) {
-          return hasAccessToThisUser({
-            user: { groups: userGroups },
-            requiredRoles: targetRoles.filter((role) => isRole(role)),
-          });
-        }
-
-        if (targetType === 'cevi_groups' && targetCeviGroups) {
-          return targetCeviGroups.some((tg) => userGroupSet.has(tg.groupId));
-        }
-
-        return false;
-      });
+      // 3. Split the channels into the ones this user belongs to and the rest
+      const context = await loadAudienceContext(payload, channels, req);
+      const matchingChannels = channels.filter((channel) =>
+        isInChannelAudience(user.groups, channel, context),
+      );
+      const otherChatUuids = channels
+        .filter((channel) => !matchingChannels.includes(channel))
+        .map((channel) => channel.chatUuid)
+        .filter((chatUuid): chatUuid is string => typeof chatUuid === 'string' && chatUuid !== '');
 
       const formattedName = formatUserFullName(user.fullName, user.nickname) || 'Unknown User';
 
@@ -106,8 +96,33 @@ export const syncNewUserAnnouncementChatsTask: TaskConfig<{
         }
       }
 
-      payload.logger.info(
-        `Successfully synced ${matchingChannels.length} announcement chats for user ${userId}`,
+      // 6. Leave the channels the user no longer belongs to, e.g. an AVP who lost the role.
+      // Owners and admins stay, as the channel's own sync keeps them too.
+      const staleMemberships = await prisma.chatMembership.findMany({
+        where: {
+          userId,
+          chatId: { in: otherChatUuids },
+          chatPermission: ChatMembershipPermission.GUEST,
+        },
+        select: { chatId: true },
+      });
+      if (staleMemberships.length > 0) {
+        await prisma.chatMembership.deleteMany({
+          where: {
+            userId,
+            chatId: { in: staleMemberships.map((membership) => membership.chatId) },
+            chatPermission: ChatMembershipPermission.GUEST,
+          },
+        });
+        await Promise.all(
+          staleMemberships.map((membership) =>
+            publishMembershipRevoked(userId, membership.chatId, userId),
+          ),
+        );
+      }
+
+      payload.logger.debug(
+        `Successfully synced ${matchingChannels.length} announcement chats for user ${userId}, left ${staleMemberships.length}`,
       );
       return { output: { success: true } };
     } catch (error) {

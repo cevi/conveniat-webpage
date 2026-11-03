@@ -3969,12 +3969,25 @@ export interface AnnouncementChannel {
    */
   name: string;
   description?: string | null;
-  targetType: 'all' | 'roles' | 'cevi_groups';
-  targetRoles?: ('full-admin' | 'web-core-team' | 'translation-team' | 'program-team')[] | null;
+  targetType: 'all' | 'roles' | 'cevi_groups' | 'avps';
+  targetRoles?:
+    | (
+        | 'full-admin'
+        | 'web-core-team'
+        | 'translation-team'
+        | 'program-team'
+        | 'billing-team'
+        | 'material-team'
+        | 'hof-dashboard-reviewer'
+      )[]
+    | null;
+  /**
+   * Everyone who is in one of these groups in Cevi.DB. Pick a group by its name or type its ID.
+   */
   targetCeviGroups?:
     | {
         groupId: number;
-        groupName: string;
+        groupName?: string | null;
         id?: string | null;
       }[]
     | null;
