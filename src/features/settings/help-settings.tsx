@@ -3,6 +3,7 @@ import { SectionLabel } from '@/components/ui/section-label';
 import { environmentVariables } from '@/config/environment-variables';
 import { AboutSettings, type WebBuild } from '@/features/settings/about-settings';
 import { SettingsCard, SettingsRow } from '@/features/settings/components/settings-row';
+import { PrivacySettings } from '@/features/settings/privacy-settings';
 import { supportMailLink } from '@/features/settings/utils/support-mail';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { getCachedSession } from '@/utils/auth';
@@ -24,7 +25,8 @@ const contactSupportText: StaticTranslationString = {
 
 /**
  * "Hilfe" in the settings: a mail to the support, which carries the user's id so nobody has to
- * look it up, and "Über diese App" with the credits and the build.
+ * look it up, "Datenschutz" with the consent to session recordings and the privacy policy, and
+ * "Über diese App" with the credits and the build.
  */
 export const HelpSettings: React.FC<{ locale: Locale; webBuild: WebBuild | undefined }> = async ({
   locale,
@@ -52,6 +54,7 @@ export const HelpSettings: React.FC<{ locale: Locale; webBuild: WebBuild | undef
             action={<ExternalLink className="h-5 w-5 text-green-500" aria-hidden="true" />}
           />
         </LinkComponent>
+        <PrivacySettings locale={locale} />
         <AboutSettings locale={locale} webBuild={webBuild} />
       </SettingsCard>
     </section>
