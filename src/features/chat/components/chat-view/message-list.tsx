@@ -51,12 +51,12 @@ const emptyChatHintText: StaticTranslationString = {
   fr: 'Écris le premier message pour lancer la conversation.',
 };
 
+import { DayLabel } from '@/features/chat/components/chat-view/day-label';
 import { useChatScrollManager } from '@/features/chat/hooks/use-chat-scroll-manager';
 import { useMessageInfiniteScroll } from '@/features/chat/hooks/use-message-infinite-scroll';
 import { useMessageReadStatus } from '@/features/chat/hooks/use-message-read-status';
 import { useTypists } from '@/features/chat/hooks/use-typing';
 import {
-  formatDayLabel,
   groupMessagesByDay,
   MESSAGE_GROUP_WINDOW_MS,
 } from '@/features/chat/utils/message-grouping';
@@ -256,20 +256,7 @@ export const MessageList: React.FC<{
             // each day is the containing block of its divider, so the divider sticks while
             // that day is on screen and hands over to the next one
             <section key={day.dayKey} className={isThread ? 'pb-2' : 'pb-4'}>
-              {/* a band in the list colour, not a lone pill: messages scroll out of sight
-                  under it instead of showing their text on both sides of the day */}
-              {showDayLabels && (
-                <div
-                  className={cn(
-                    'bg-page pointer-events-none sticky top-0 z-20 -mx-2 flex justify-center',
-                    isThread ? 'py-2' : 'py-3',
-                  )}
-                >
-                  <h3 className="border-line rounded-full border bg-white px-3 py-1 text-[13px] font-semibold text-green-900">
-                    {formatDayLabel(day.date, locale)}
-                  </h3>
-                </div>
-              )}
+              {showDayLabels && <DayLabel date={day.date} locale={locale} isThread={isThread} />}
               {day.messages.map(({ message, isFirstInGroup, isLastInGroup }) => {
                 const payload = message.messagePayload as Record<string, unknown> | null;
                 const quotedId =

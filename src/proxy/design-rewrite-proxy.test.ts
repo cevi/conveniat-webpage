@@ -229,6 +229,15 @@ describe('design-rewrite-proxy', () => {
     expect(rewritten.set).not.toHaveBeenCalled();
   });
 
+  it('uses APP_DESIGN for the live preview of an announcement', async () => {
+    const request = mockRequest('https://example.com/de/app/announcement-preview/abc?preview=true');
+    const response = mockResponse('https://example.com/de/app/announcement-preview/abc');
+
+    await handler(request, {} as NextFetchEvent, response);
+
+    expect(getRewritePathname()).toBe(`/de/${DesignCodes.APP_DESIGN}/app/announcement-preview/abc`);
+  });
+
   // -----------------------------------------------------------------------
   // Standard app-mode triggers still work for non-offline pages
   // -----------------------------------------------------------------------

@@ -29,13 +29,24 @@ describe('getLexicalText', () => {
     expect(getLexicalText(richText)).toBe('*Wichtig*\nDetails');
   });
 
-  it('separates consecutive paragraphs with a line break', () => {
+  it('separates consecutive paragraphs with a blank line, as the editor shows them', () => {
     const richText = document_(paragraph(text('Absatz 1')), paragraph(text('Absatz 2')));
 
-    expect(getLexicalText(richText)).toBe('Absatz 1\nAbsatz 2');
+    expect(getLexicalText(richText)).toBe('Absatz 1\n\nAbsatz 2');
   });
 
-  it('keeps an empty paragraph as a blank line', () => {
+  it('tells a new paragraph from a soft line break', () => {
+    const richText = document_(
+      paragraph(text('Liebe Höfe'), lineBreak, text('liebe Leitende')),
+      paragraph(text('Morgen startet die Tageswanderung.')),
+    );
+
+    expect(getLexicalText(richText)).toBe(
+      'Liebe Höfe\nliebe Leitende\n\nMorgen startet die Tageswanderung.',
+    );
+  });
+
+  it('adds no second gap for an empty paragraph', () => {
     const richText = document_(paragraph(text('Oben')), paragraph(), paragraph(text('Unten')));
 
     expect(getLexicalText(richText)).toBe('Oben\n\nUnten');
@@ -56,7 +67,25 @@ describe('getLexicalText', () => {
       ],
     });
 
-    expect(getLexicalText(richText)).toBe('Mitbringen:\n- Schlafsack\n- Taschenlampe');
+    expect(getLexicalText(richText)).toBe('Mitbringen:\n\n- Schlafsack\n- Taschenlampe');
+  });
+
+  it('puts a nested list on the lines after its item', () => {
+    const richText = document_({
+      type: 'list',
+      children: [
+        {
+          type: 'listitem',
+          children: [
+            text('Kleider'),
+            { type: 'list', children: [{ type: 'listitem', children: [text('Regenjacke')] }] },
+          ],
+        },
+        { type: 'listitem', children: [text('Schlafsack')] },
+      ],
+    });
+
+    expect(getLexicalText(richText)).toBe('- Kleider\n- Regenjacke\n- Schlafsack');
   });
 
   it('serializes links as markdown links', () => {
