@@ -64,6 +64,13 @@ const localizedCancel: StaticTranslationString = {
   fr: 'Annuler',
 };
 
+/** The confirming button; the question above it says what is left. */
+const localizedLeave: StaticTranslationString = {
+  en: 'Leave',
+  de: 'Verlassen',
+  fr: 'Quitter',
+};
+
 /**
  * The question before leaving a group chat, and the leaving. Reads the chat from the
  * surrounding `ChatIdProvider`, so the details and the chat list's actions ask the same.
@@ -135,7 +142,7 @@ export const LeaveChatDialog: React.FC<{
             ) : (
               <LogOut aria-hidden="true" />
             )}
-            {localizedLeaveChat[locale]}
+            {localizedLeave[locale]}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
