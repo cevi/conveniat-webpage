@@ -17,6 +17,7 @@ import { chatListBleedClassName } from '@/features/chat/components/chat-overview
 import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view/swipe-to-delete-chat';
 import { RealtimeSyncBanner } from '@/features/chat/components/realtime-sync-banner';
 import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
+import { QueryUnavailable } from '@/features/chat/components/ui/query-unavailable';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { usePendingChatDeletionContext } from '@/features/chat/context/pending-chat-deletion-context';
 import { useChatListActions } from '@/features/chat/hooks/use-chat-list-actions';
@@ -25,6 +26,7 @@ import { useChats } from '@/features/chat/hooks/use-chats';
 import { useSearchClearedOnLeave } from '@/features/chat/hooks/use-search-cleared-on-leave';
 import type { ChatListFilter } from '@/features/chat/utils/chat-list-filter';
 import { matchesChatListFilter } from '@/features/chat/utils/chat-list-filter';
+import { queryAvailability } from '@/features/chat/utils/query-availability';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
@@ -127,6 +129,18 @@ const dismissText: StaticTranslationString = {
   fr: 'Fermer le message',
 };
 
+const chatsOfflineDescriptionText: StaticTranslationString = {
+  de: 'Deine Chats laden, sobald du wieder Empfang hast.',
+  en: 'Your chats load as soon as you have signal again.',
+  fr: 'Tes chats se chargent dès que tu as de nouveau du réseau.',
+};
+
+const chatsErrorTitleText: StaticTranslationString = {
+  de: 'Die Chats konnten nicht geladen werden',
+  en: 'The chats could not be loaded',
+  fr: 'Les chats n’ont pas pu être chargés',
+};
+
 const newChatLabel: StaticTranslationString = {
   de: 'Neuer Chat',
   en: 'New chat',
@@ -213,7 +227,9 @@ const EmptyChatsState: React.FC<{
 export const ChatsOverviewClientComponent: React.FC<{
   qrCodeButton?: React.ReactNode;
 }> = ({ qrCodeButton }) => {
-  const { data: chats, isError } = useChats();
+  const chatsQuery = useChats();
+  const { data: chats } = chatsQuery;
+  const availability = queryAvailability(chatsQuery);
   const trpcUtils = trpc.useUtils();
 
   const chatIds = useMemo(() => {
@@ -223,7 +239,11 @@ export const ChatsOverviewClientComponent: React.FC<{
   const { status: realtimeStatus, reconnect: reconnectRealtime } = useChatSSE(chatIds);
 
   // Check capability instead of raw feature flag
-  const { data: createChatsEnabled } = trpc.chat.checkCapability.useQuery(
+  const {
+    data: createChatsEnabled,
+    isLoading: isLoadingCreateChats,
+    refetch: refetchCreateChats,
+  } = trpc.chat.checkCapability.useQuery(
     {
       action: CapabilityAction.Create,
       subject: CapabilitySubject.Chat,
@@ -271,11 +291,6 @@ export const ChatsOverviewClientComponent: React.FC<{
         );
       })
       .sort((a, b) => Number(b.isPinned === true) - Number(a.isPinned === true)) ?? [];
-
-  // nothing cached yet (first ever visit / cache still being restored). A
-  // failed fetch without any cached chats falls through to the empty state
-  // instead of leaving the skeleton on screen forever.
-  const isInitialLoad = chats === undefined && !isError;
 
   const hasChats = (chats?.length ?? 0) > 0 || searchQuery !== '';
   // a chip narrows the chats, not the people one could start a chat with
@@ -392,11 +407,26 @@ export const ChatsOverviewClientComponent: React.FC<{
         className="border-danger-line rounded-[14px] border"
       />
 
-      {/* Loading State - only when there is nothing cached to render */}
-      {isInitialLoad && <ChatsOverviewSkeleton />}
+      {/* only while there is nothing cached to render */}
+      {availability === 'loading' && <ChatsOverviewSkeleton />}
 
-      {/* Chat List */}
-      {!isInitialLoad && (
+      {/* nothing cached, and no answer to say the list is empty */}
+      {(availability === 'offline' || availability === 'error') && (
+        <QueryUnavailable
+          availability={availability}
+          offlineDescription={chatsOfflineDescriptionText[locale]}
+          errorTitle={chatsErrorTitleText[locale]}
+          onRetry={() => {
+            void chatsQuery.refetch();
+            // failed with the chats, as they share a request; without it the button stays away
+            void refetchCreateChats();
+          }}
+          isRetrying={chatsQuery.isFetching}
+          locale={locale}
+        />
+      )}
+
+      {availability === 'ready' && (
         <PullToRefresh onRefresh={handleRefresh}>
           {filteredChats.length > 0 && (
             <div className={cn(chatListBleedClassName, 'border-line border-t bg-white')}>
@@ -451,7 +481,8 @@ export const ChatsOverviewClientComponent: React.FC<{
           locale={locale}
         />
       )}
-      {!isDesktop && pendingDeletion.pending === undefined && createChatsEnabled === undefined && (
+      {/* only while the answer is on its way: offline or after a failure it would pulse forever */}
+      {!isDesktop && pendingDeletion.pending === undefined && isLoadingCreateChats && (
         <NewChatButtonSkeleton />
       )}
       {!isDesktop && pendingDeletion.pending === undefined && createChatsEnabled === true && (
