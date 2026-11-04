@@ -95,27 +95,39 @@ export function markNetworkReachable(): Promise<void> {
 
 /** How long the probe below waits for `/status`. */
 const PROBE_TIMEOUT_MS = 3000;
-let probing: Promise<void> | undefined;
+let probing: Promise<boolean> | undefined;
 
 /**
- * Asks the network once whether it answers again. Without it, the state ends only with the next
- * request the app happens to send, and a page showing cached data may send none for minutes.
+ * Asks the network once whether it answers, and records it when it does. Any HTTP status is an
+ * answer. Resolves to whether the network answered.
  */
-function probeNetwork(): Promise<void> {
-  probing ??= (async (): Promise<void> => {
+function probeNetwork(): Promise<boolean> {
+  probing ??= (async (): Promise<boolean> => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
     try {
       await fetch('/status', { cache: 'no-store', signal: controller.signal });
       await markNetworkReachable();
+      return true;
     } catch {
-      // still no answer
+      return false;
     } finally {
       clearTimeout(timeoutId);
       probing = undefined;
     }
   })();
   return probing;
+}
+
+/**
+ * Records a request that failed without an answer, once the probe confirms it. One failed fetch
+ * says little about the network: a single reset connection on a working one fails the same way,
+ * and the shortened timeouts and the offline banner then reach every page. Only a request that
+ * hangs is evidence without a second opinion, see `markNetworkUnreachable`.
+ */
+export async function confirmNetworkFailure(requestStartedAt: number): Promise<void> {
+  if (await probeNetwork()) return;
+  await markNetworkUnreachable(requestStartedAt);
 }
 
 /**
@@ -130,5 +142,7 @@ export async function reportNetworkStatus(client: Client): Promise<void> {
     type: ServiceWorkerMessages.NETWORK_STATUS,
     payload: { reachable: !isUnreachable },
   });
+  // without it, the state ends only with the next request the app happens to send, and a page
+  // showing cached data may send none for minutes
   if (isUnreachable && navigator.onLine) await probeNetwork();
 }
