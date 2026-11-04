@@ -14,7 +14,6 @@ import { useEffect, useRef, useState } from 'react';
 
 const labels = {
   sheetTitle: { de: 'Profilbild', en: 'Profile picture', fr: 'Photo de profil' },
-  takePhoto: { de: 'Foto aufnehmen', en: 'Take a photo', fr: 'Prendre une photo' },
   choosePhoto: { de: 'Aus Fotos wählen', en: 'Choose from photos', fr: 'Choisir dans les photos' },
   remove: { de: 'Entfernen', en: 'Remove', fr: 'Retirer' },
   avatar: {
@@ -76,23 +75,12 @@ const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,image/heic,image/heif';
 
 type Step = 'closed' | 'choose' | 'framing' | 'confirmRemove';
 
-/** One way to a photo in the sheet: an icon tile and what it does, a full-width row. */
-const SourceRow: React.FC<{
-  icon: React.ComponentProps<typeof IconTile>['icon'];
-  label: string;
-  onClick: () => void;
-}> = ({ icon, label, onClick }) => (
-  <ListRow onClick={onClick} className="px-3.5 py-2 text-[15px] font-semibold text-green-900">
-    <IconTile icon={icon} />
-    {label}
-  </ListRow>
-);
-
 /**
  * The header of the user's own profile: their avatar with a camera badge next to `children`.
- * Tapping the avatar opens the "Profilbild" sheet: take a photo, choose one, or remove the
- * current one, which asks first. A chosen photo is framed in the same sheet, the face placed in
- * the circle, before anything leaves the phone.
+ * Tapping the avatar opens the "Profilbild" sheet: choose a photo, or remove the current one,
+ * which asks first. A chosen photo is framed in the same sheet, the face placed in the circle,
+ * before anything leaves the phone. There is no button that opens the camera directly: the
+ * Android app could not hand a `capture` input to the camera app, and the tap did nothing there.
  */
 export const ProfileAvatar: React.FC<{
   userId: string;
@@ -101,7 +89,6 @@ export const ProfileAvatar: React.FC<{
   locale: Locale;
   children: React.ReactNode;
 }> = ({ userId, name, pictureUrl: initialPictureUrl, locale, children }) => {
-  const cameraInput = useRef<HTMLInputElement>(null);
   const libraryInput = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>('closed');
   const [chosenFile, setChosenFile] = useState<File>();
@@ -198,14 +185,6 @@ export const ProfileAvatar: React.FC<{
       {hasFailed && step === 'closed' && failedAlert}
 
       <input
-        ref={cameraInput}
-        type="file"
-        accept={ACCEPTED_TYPES}
-        capture="user"
-        className="hidden"
-        onChange={onFileChosen}
-      />
-      <input
         ref={libraryInput}
         type="file"
         accept={ACCEPTED_TYPES}
@@ -227,17 +206,14 @@ export const ProfileAvatar: React.FC<{
               <Eye className="h-4 w-4 shrink-0" aria-hidden="true" />
               {labels.visibility[locale]}
             </p>
-            <div className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
-              <SourceRow
-                icon={Camera}
-                label={labels.takePhoto[locale]}
-                onClick={() => cameraInput.current?.click()}
-              />
-              <SourceRow
-                icon={Image}
-                label={labels.choosePhoto[locale]}
+            <div className="border-line overflow-hidden rounded-[14px] border bg-white">
+              <ListRow
                 onClick={() => libraryInput.current?.click()}
-              />
+                className="px-3.5 py-2 text-[15px] font-semibold text-green-900"
+              >
+                <IconTile icon={Image} />
+                {labels.choosePhoto[locale]}
+              </ListRow>
             </div>
             {hasPicture && (
               <Button
