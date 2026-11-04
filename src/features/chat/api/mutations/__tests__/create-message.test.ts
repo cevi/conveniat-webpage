@@ -72,6 +72,8 @@ interface ExistingMessage {
   chatId: string;
   parentId: string | null;
   deletedAt: Date | null;
+  /** Its newest content, a text unless given. */
+  payload?: unknown;
 }
 
 const OTHER_CHAT_ID = '00000000-0000-4000-8000-000000000009';
@@ -100,7 +102,14 @@ const deletedMessage: ExistingMessage = {
   parentId: null,
   deletedAt: new Date('2027-07-25T10:00:00Z'),
 };
-const existingMessages = [parent, otherChatMessage, reply, deletedMessage];
+const imageMessage: ExistingMessage = {
+  uuid: '00000000-0000-4000-8000-000000000006',
+  chatId: CHAT_ID,
+  parentId: null,
+  deletedAt: null,
+  payload: { url: `chat-images/${CHAT_ID}/1719830400000-k3j9x2.jpg` },
+};
+const existingMessages = [parent, otherChatMessage, reply, deletedMessage, imageMessage];
 
 /** Prisma's `findFirst` over the existing messages, for the equality filters a send uses. */
 const findExistingMessage = ({
@@ -112,7 +121,8 @@ const findExistingMessage = ({
     Object.entries(where).every(([key, value]) => message[key as keyof ExistingMessage] === value),
   );
   if (!found) return Promise.resolve(null);
-  return Promise.resolve({ ...found, contentVersions: [{ payload: { text: 'Wer kommt mit?' } }] });
+  const payload = found.payload ?? { text: 'Wer kommt mit?' };
+  return Promise.resolve({ ...found, contentVersions: [{ payload }] });
 };
 
 /** The rows the procedure touches, and a transaction that commits after the callback. */
@@ -299,6 +309,11 @@ describe('what a reply and a quote may point at', () => {
     expect(storedPayloads).toEqual([
       { text: 'Ich!', quotedMessageId: PARENT_ID, quotedSnippet: 'Wer kommt mit?' },
     ]);
+  });
+
+  it('stores a quote of an image without a snippet, not its storage path', async () => {
+    await sendText({ quotedMessageId: imageMessage.uuid });
+    expect(storedPayloads).toEqual([{ text: 'Ich!', quotedMessageId: imageMessage.uuid }]);
   });
 
   it('keeps the quote of a message deleted since, but not its text', async () => {

@@ -3,6 +3,7 @@ import {
   assertMembershipCanWrite,
   assertWriteAbilities,
 } from '@/features/chat/api/checks/assert-can-write-in-chat';
+import { quotedSnippetOf } from '@/features/chat/utils/quoted-snippet';
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { imageSentText, isImageKeyOfChat } from '@/lib/chat-images';
@@ -298,21 +299,8 @@ export const createMessage = trpcBaseProcedure
       });
       if (quotedMessage && quotedMessage.chatId !== validatedMessage.chatId) {
         quotedMessageId = undefined;
-      } else if (
-        quotedMessage &&
-        !quotedMessage.deletedAt &&
-        quotedMessage.contentVersions[0]?.payload
-      ) {
-        const payload = quotedMessage.contentVersions[0].payload;
-        let text: string;
-        if (typeof payload === 'string') {
-          text = payload;
-        } else {
-          const textPayload = payload as Record<string, unknown>;
-          text =
-            typeof textPayload['text'] === 'string' ? textPayload['text'] : JSON.stringify(payload);
-        }
-        quotedSnippet = text.length > 100 ? `${text.slice(0, 100)}...` : text;
+      } else if (quotedMessage && !quotedMessage.deletedAt) {
+        quotedSnippet = quotedSnippetOf(quotedMessage.contentVersions[0]?.payload);
       }
     }
 
