@@ -1,5 +1,40 @@
 # Changelog
 
+## [1.50.0](https://github.com/cevi/conveniat-webpage/compare/v1.49.0...v1.50.0) (2026-11-04)
+
+
+### Features
+
+* **besuchstag:** a QR bill for every registration ([14ced46](https://github.com/cevi/conveniat-webpage/commit/14ced460262e0b763a9b8dfbc98a9012cfe38b4a))
+* **besuchstag:** billing by QR bill ([8f5ac09](https://github.com/cevi/conveniat-webpage/commit/8f5ac098b4f43b8f7ee97548f21057bf6b4a42c3))
+* **besuchstag:** PDF preview, status badges and a shorter sidebar ([e342160](https://github.com/cevi/conveniat-webpage/commit/e342160ebe52b78f20c74b7a67327b2ebf43d99b))
+* **besuchstag:** reports and Banana cover the Besuchstag bills ([dd5d84b](https://github.com/cevi/conveniat-webpage/commit/dd5d84b392b9bc4c1f963d524cb2e57f04e2a26d))
+* **billing:** payments point to a bill of any kind ([fc9bdc7](https://github.com/cevi/conveniat-webpage/commit/fc9bdc79f4e22c4c5afe1af8a82201940a5c05de))
+* **billing:** the bank import moves to «Zahlungen» and records its bank data's time ([47e1c53](https://github.com/cevi/conveniat-webpage/commit/47e1c53b63f91bb9f9fb01e69dcbbead936d0fc7))
+
+
+### Bug Fixes
+
+* **besuchstag:** a bill's PDF is stored once per issue ([9b28808](https://github.com/cevi/conveniat-webpage/commit/9b288082abb4588d5ab81a3e289b8a9925b5e3b9))
+* **billing:** camp bills list their payments through the legacy fields ([8335f3d](https://github.com/cevi/conveniat-webpage/commit/8335f3db592a62f68a7c4d0fe62bdaa5a60e03f6))
+* **chat:** a quoted image reads as Bild behind its icon, not as its payload ([0e585f1](https://github.com/cevi/conveniat-webpage/commit/0e585f11e4c1dc1f4187e60f85709cdeef4e8849))
+* **chat:** a quoted image reads as Bild behind its icon, not as its payload ([f2b89c6](https://github.com/cevi/conveniat-webpage/commit/f2b89c6f0bd327c1c7268b26520bbb42952de7c1))
+* **chat:** a reply's parent must be a live message of the same chat ([30c2f74](https://github.com/cevi/conveniat-webpage/commit/30c2f74d2ee049531bb8ef7bffaf8ca2185537e5))
+* **chat:** a reply's parent must be a live message of the same chat ([b738f54](https://github.com/cevi/conveniat-webpage/commit/b738f5402f1dff5d8365dfe01f3cef144b84a7e2))
+* **chat:** chat list and details show offline and load errors ([c25b0af](https://github.com/cevi/conveniat-webpage/commit/c25b0af5f5390b2dd2357bd1c90bd4957bf93f80))
+* **chat:** chat list and details show offline and load errors ([c7dd2dc](https://github.com/cevi/conveniat-webpage/commit/c7dd2dcf54803088e6596ded3d528c60d485d772))
+* **chat:** Enter writes a new line on phones ([10c2de1](https://github.com/cevi/conveniat-webpage/commit/10c2de118b0b0cda3694cf45a5d42df8dc453ffe))
+* **chat:** Enter writes a new line on phones ([ac5998f](https://github.com/cevi/conveniat-webpage/commit/ac5998f88f47991741f8fb995196aea90b399636))
+* **chat:** image pushes say who sent a picture instead of its storage path ([b14e045](https://github.com/cevi/conveniat-webpage/commit/b14e0459275494f6cf830712b489b8b045a7c2e0))
+* **chat:** image pushes say who sent a picture instead of its storage path ([b5401ca](https://github.com/cevi/conveniat-webpage/commit/b5401ca6f9540a2f15f6bcf4739a90b6b832b3a0))
+* **chat:** leave the in-app banner without an icon ([861e33c](https://github.com/cevi/conveniat-webpage/commit/861e33cd7bebd3b891131e72f1cd398e42dfe6f1))
+* **chat:** the database keeps a reply in its parent's chat ([afd2adf](https://github.com/cevi/conveniat-webpage/commit/afd2adf3e607633318f15b77ef5f11169bb70c0e))
+* **chat:** the database keeps a reply in its parent's chat ([c124832](https://github.com/cevi/conveniat-webpage/commit/c124832c2062786c3d5e7c03687656dbfeb2c952))
+* **db:** replicas take a lock before they run migrations ([2d01416](https://github.com/cevi/conveniat-webpage/commit/2d014167e785a5d4c5c9e758ddebe5c8e2aa5a7e))
+* **db:** replicas take a lock before they run migrations ([29c25ae](https://github.com/cevi/conveniat-webpage/commit/29c25aecc2b5eb0f95b6367f6974081a64520b56))
+* **push:** drop the in-app banner, the open app notifies through the system ([d0aebaa](https://github.com/cevi/conveniat-webpage/commit/d0aebaa028c77ab3d17ce1e4898995ad51fc0851))
+* **push:** drop the in-app banner, the open app notifies through the system ([d9b08a1](https://github.com/cevi/conveniat-webpage/commit/d9b08a1bda7c12339b3363bdf6bd983148b798a6))
+
 ## [1.49.0](https://github.com/cevi/conveniat-webpage/compare/v1.48.0...v1.49.0) (2026-11-03)
 
 
