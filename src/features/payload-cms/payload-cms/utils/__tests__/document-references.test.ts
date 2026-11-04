@@ -203,7 +203,6 @@ describe('findDocumentReferences', () => {
 
   it('tolerates drafts with missing and malformed values', () => {
     const page = {
-      // Mongo stores a cleared locale as null
       content: { mainContent: { de: [{ blockType: 'removedBlock' }, 'garbage'], fr: null } },
     };
 

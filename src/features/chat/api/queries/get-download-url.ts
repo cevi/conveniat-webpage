@@ -39,7 +39,6 @@ export const getDownloadUrl = trpcBaseProcedure
     const deletedImage = await ctx.prisma.messageContent.findFirst({
       where: {
         payload: { path: ['url'], equals: key },
-        // Prisma matches a SQL NULL only through null
         message: { chatId, deletedAt: { not: null } },
       },
       select: { uuid: true },

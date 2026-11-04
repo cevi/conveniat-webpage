@@ -1,4 +1,4 @@
-/* Redis answers `null` for a missing key, and `null` ends a session */
+// Redis answers `null` for a missing key, and `null` ends a session
 import type { RefreshOutcome } from '@/features/next-auth/utils/shared-refresh';
 import type { JWT } from 'next-auth/jwt';
 

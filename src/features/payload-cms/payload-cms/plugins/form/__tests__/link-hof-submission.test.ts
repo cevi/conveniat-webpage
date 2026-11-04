@@ -41,7 +41,6 @@ const run = async (
   extra: Partial<FormSubmission> = {},
 ): Promise<Partial<FormSubmission>> => {
   const findByID = jest.fn(({ collection, id }: { collection: string; id: string }) =>
-    // findByID with disableErrors answers a missing document with null
     Promise.resolve(collection === 'forms' ? form : (HOEFE[id] ?? null)),
   );
   const hookArguments = {

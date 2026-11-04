@@ -13,7 +13,6 @@ describe('getAuthenticateUsingCeviDB', () => {
   // Payload hands the value on through payload.auth(), whose callers tell a visitor who is not
   // signed in by `user === null`; an undefined user took them down the signed-in branch.
   it('reports a visitor without a session as no user, null', async () => {
-    // getServerSession answers no session with null
     (getCachedSession as jest.Mock).mockResolvedValue(null);
     await expect(authenticate()).resolves.toBeNull();
   });

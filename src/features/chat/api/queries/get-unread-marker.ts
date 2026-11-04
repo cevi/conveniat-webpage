@@ -1,4 +1,3 @@
-/* Prisma matches a SQL NULL only through null */
 import { MessageType, type Prisma } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { TRPCError } from '@trpc/server';

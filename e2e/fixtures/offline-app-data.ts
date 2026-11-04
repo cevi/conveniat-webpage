@@ -17,7 +17,6 @@ const emptyRichText = {
   root: {
     type: 'root',
     children: [],
-    // the shape Payload stores and the type asks for
     direction: null,
     format: '' as const,
     indent: 0,
@@ -133,7 +132,6 @@ const answers: Record<string, unknown> = {
   'schedule.getScheduleEntries': [scheduleEntry],
   'schedule.getById': scheduleEntry satisfies RouterOutputs['schedule']['getById'],
   // no course behind the block: nobody enrolls in it
-  // what the procedure answers for no course
   'schedule.getCourseStatus': null satisfies RouterOutputs['schedule']['getCourseStatus'],
   'schedule.getHelperShifts': [helperShift],
   'map.getMapAnnotations': {

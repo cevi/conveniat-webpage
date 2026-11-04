@@ -52,7 +52,6 @@ const prismaWith = (chats: ChatSetup[]): Record<string, unknown> => ({
         chats
           .toSorted((a, b) => b.lastUpdate - a.lastUpdate)
           .map((chat) => ({
-            /* what Postgres answers for an unset column */
             lastReadMessageId: null,
             chatPermission: 'MEMBER',
             pinnedAt: chat.pinnedAt === undefined ? null : at(chat.pinnedAt),

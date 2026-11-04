@@ -40,7 +40,6 @@ describe('extractShiftCategories', () => {
     const shifts = [
       makeShift({ id: 'a', category: 'cat-kitchen' }),
       makeShift({ id: 'b', category: undefined }),
-      // Payload returns null for dangling relationships
       makeShift({ id: 'c', category: null }),
     ];
 

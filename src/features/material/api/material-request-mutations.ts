@@ -107,7 +107,7 @@ export const createLoanRequest = materialProcedure
             // a Hof's request is the Hof's
             personId: input.personId ?? null,
             responsibleName: input.responsibleName,
-            // no comment
+            // an empty comment is stored as none
             comment: input.comment === undefined || input.comment === '' ? null : input.comment,
             createdById: ctx.user.uuid,
           },

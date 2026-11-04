@@ -376,7 +376,6 @@ const mockBackend = async (
       if (procedure === 'hofDashboard.deleteSubmission' && deleteError !== undefined) {
         return deleteError;
       }
-      // tRPC answers "nothing" with null
       return { data: null };
     });
     const failed = answers.find((answer): answer is TrpcError => !('data' in answer));

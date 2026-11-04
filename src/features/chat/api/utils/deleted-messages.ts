@@ -40,7 +40,6 @@ export const findDeletedQuotedMessageIds = async (
   ] as string[];
   if (quotedIds.length === 0) return new Set();
   const deleted = await prisma.message.findMany({
-    // Prisma matches a SQL NULL only through null
     where: { uuid: { in: quotedIds }, deletedAt: { not: null } },
     select: { uuid: true },
   });

@@ -44,7 +44,6 @@ interface StoredMessage {
 let messages: StoredMessage[];
 let reactions: { messageId: string; userId: string; emoji: string }[];
 
-/* mirrors the Prisma rows */
 const seed = (senderId: string | null, type = 'TEXT_MSG'): string => {
   const uuid = `00000000-0000-4000-8000-${String(messages.length).padStart(12, '0')}`;
   messages.push({

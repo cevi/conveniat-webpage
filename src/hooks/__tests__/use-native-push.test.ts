@@ -630,7 +630,6 @@ describe('useNativePush', () => {
     });
 
     it('returns undefined when the link carries no target', () => {
-      // URLSearchParams.get() returns null
       expect(resolveSameOriginPath(null)).toBeUndefined();
       expect(resolveSameOriginPath('  ')).toBeUndefined();
     });

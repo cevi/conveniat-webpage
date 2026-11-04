@@ -53,7 +53,6 @@ let memberships: Membership[];
 const membership = (userId: string, chatId: string): Membership => ({
   userId,
   chatId,
-  /* what Postgres answers for an untouched membership */
   pinnedAt: null,
   mutedAt: null,
   markedUnread: false,

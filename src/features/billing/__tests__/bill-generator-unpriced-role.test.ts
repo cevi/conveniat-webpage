@@ -349,7 +349,6 @@ describe('buildCreditorFromSettings', () => {
     const creditor = buildCreditorFromSettings({
       ...settings,
       creditorBuildingNumber: '',
-      // Payload stores a cleared text field as null
       creditorEmail: null,
       creditorWebsite: '',
     });

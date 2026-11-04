@@ -311,7 +311,6 @@ export const countDocumentUsages = async (payload: Payload): Promise<Map<string,
  */
 export const filterDocumentsByUsage: BaseFilter = async ({ req }) => {
   const linked = req.query[LINKED_QUERY_PARAMETER];
-  // BaseFilter returns null for no constraint
   if (linked !== 'yes' && linked !== 'no') return null;
 
   const [counts, { docs }] = await Promise.all([

@@ -19,7 +19,6 @@ jest.mock('ioredis', () => {
     }
 
     getBuffer(key: string): Promise<Buffer | null> {
-      // ioredis answers a missing key with null
       return Promise.resolve(this.strings.get(key) ?? null);
     }
 
@@ -29,7 +28,6 @@ jest.mock('ioredis', () => {
     }
 
     mget(keys: string[]): Promise<(string | null)[]> {
-      // ioredis answers a missing key with null
       return Promise.resolve(keys.map((key) => this.strings.get(key)?.toString() ?? null));
     }
 

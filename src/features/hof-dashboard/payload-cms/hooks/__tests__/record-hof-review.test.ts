@@ -111,7 +111,6 @@ describe('recordHofReview', () => {
     ).resolves.toEqual({
       changedAt: NOW,
       reviewerName: 'Freigabe-Link (E-Mail)',
-      // Payload stores an empty relationship as null
       reviewer: null,
       status: 'accepted',
       feedback: 'Masthöhe fehlt',
@@ -125,7 +124,6 @@ describe('recordHofReview', () => {
     await expect(
       addedLine({ data: { approved: false }, user: EDITOR, original: approved }),
     ).resolves.toMatchObject({
-      // a cleared select is stored as null
       status: null,
       feedback: 'Masthöhe fehlt',
     });

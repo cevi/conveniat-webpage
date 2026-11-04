@@ -331,7 +331,6 @@ describe('scheduleRouter course statuses', () => {
     beforeEach(() => {
       findByID.mockResolvedValue(course);
       enrollment.count.mockResolvedValue(2);
-      // Prisma answers a miss with null
       enrollment.findFirst.mockResolvedValue(null);
       enrollment.findMany.mockResolvedValue([
         { user: { uuid: 'tn-1', name: 'Mia' } },

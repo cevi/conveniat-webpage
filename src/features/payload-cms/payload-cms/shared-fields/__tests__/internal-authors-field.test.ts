@@ -34,7 +34,6 @@ describe('internalAuthorsField', () => {
     });
 
     it('stays empty when there is no authenticated user', () => {
-      // Payload types an unauthenticated `user` as null
       expect(runDefaultValue(null)).toBeUndefined();
     });
   });
@@ -73,7 +72,6 @@ describe('internalAuthorsField', () => {
 
     it('leaves the value untouched when there is no authenticated user', () => {
       expect(
-        // Payload types an unauthenticated `req.user` as null
         runBeforeChange({ value: undefined, operation: 'create', currentUser: null }),
       ).toBeUndefined();
     });

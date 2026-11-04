@@ -22,7 +22,6 @@ interface TestLoan {
   returnAnnouncedAt?: Date | null;
 }
 
-/* the columns are nullable, as the server sends them */
 const onHof = (id: string, overrides: Partial<TestLoan> = {}): TestLoan => ({
   id,
   status: 'ISSUED',

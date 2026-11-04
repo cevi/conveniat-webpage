@@ -92,7 +92,6 @@ describe('pageStatusProxy', () => {
     mockFetchPublishedPageSlugs.mockReset();
     mockReadPublishedPageSlugsVersion.mockReset();
     mockReadPublishedPageSlugsVersion.mockResolvedValue('0');
-    // `null` is the session of a visitor without one
     mockRequestSession.mockReset().mockReturnValue(null);
   });
 

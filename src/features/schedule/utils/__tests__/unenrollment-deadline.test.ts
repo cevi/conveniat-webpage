@@ -62,7 +62,6 @@ describe('getUnenrollmentDeadline', () => {
     const expected = '2027-07-24T05:30:00.000Z';
     // eslint-disable-next-line unicorn/no-useless-undefined -- exactly what such a shift carries
     expect(getUnenrollmentDeadline(timeslot, undefined)?.toISOString()).toBe(expected);
-    // exactly what Payload stores for an empty number
     expect(getUnenrollmentDeadline(timeslot, null)?.toISOString()).toBe(expected);
   });
 

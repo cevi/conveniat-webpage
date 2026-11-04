@@ -18,7 +18,6 @@ const subscribe = (onChange: () => void): (() => void) => {
   };
 };
 // the server knows of nothing packed
-// the same empty answer local storage gives
 const readNothing = (): string | null => null;
 
 const parsePacked = (stored: string | null): ReadonlySet<string> => {

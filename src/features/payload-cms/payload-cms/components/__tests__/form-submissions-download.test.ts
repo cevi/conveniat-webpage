@@ -48,7 +48,6 @@ describe('form submission export', () => {
   });
 
   it('refuses the submissions to a request without a session', async () => {
-    // what `payload.auth` answers without a session
     mockAuth.mockResolvedValue({ user: null });
 
     await expect(downloadFormSubmissionsAsCSV('form-1')).rejects.toThrow('Forbidden');

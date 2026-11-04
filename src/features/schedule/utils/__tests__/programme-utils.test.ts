@@ -100,7 +100,6 @@ describe('isForQuartiere', () => {
   });
 
   it('does not let a deleted Quartier turn a block into one for the whole camp', () => {
-    // Payload leaves `null` for a dangling relation
     expect(isForQuartiere(entry('a', '09:00 - 10:00', 'program', [null, 'q2']), mine)).toBe(false);
     expect(isForQuartiere(entry('b', '09:00 - 10:00', 'program', [null]), mine)).toBe(false);
   });

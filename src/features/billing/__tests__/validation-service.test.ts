@@ -135,7 +135,6 @@ describe('Validation Service', () => {
       expect(isRoleAllowed('Event::Role::Visitor', configured)).toBe(false);
       // a role can be missing
       expect(isRoleAllowed(undefined, configured)).toBe(false);
-      // Payload hands back null for an unset field
       expect(isRoleAllowed(null, configured)).toBe(false);
       expect(isRoleAllowed('', configured)).toBe(false);
     });

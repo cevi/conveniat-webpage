@@ -14,7 +14,6 @@ const startApp = (
   const { pathname, search } = new URL(url, 'https://conveniat27.ch');
   const location = { pathname, search, replace: (to: string): void => void (goneTo = to) };
   const storageOf = (items: Record<string, string>): Pick<Storage, 'getItem'> => ({
-    // what Storage.getItem answers for a missing key
     getItem: (key: string) => items[key] ?? null,
   });
   // eslint-disable-next-line @typescript-eslint/no-implied-eval -- the inline script under test

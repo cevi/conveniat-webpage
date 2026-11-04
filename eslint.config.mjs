@@ -121,10 +121,11 @@ const config = defineConfig([
         },
       ],
       'unicorn/no-array-reduce': 'off',
-      // Prisma (SQL NULL against "no filter"), React and the web APIs give null its own
-      // meaning. tsc decides where it belongs: `strictNullChecks` and
-      // `exactOptionalPropertyTypes` reject an `undefined` where a type says `null`, such as
-      // `deletedAt: undefined`, which would silently drop a Prisma filter.
+      // Prisma, Payload, React and the web APIs give null its own meaning: in a Prisma filter
+      // null matches SQL NULL, where undefined drops the filter. tsc decides where null belongs:
+      // `strictNullChecks` and `exactOptionalPropertyTypes` reject `deletedAt: undefined` in a
+      // Prisma filter. Payload's `Where` values are untyped, so `equals: null` there is the
+      // reviewer's to check.
       'unicorn/no-null': 'off',
 
       // Other global rules

@@ -1,7 +1,6 @@
 /**
  * @jest-environment node
  */
-/* Payload answers a missing document with `null` */
 
 const findByID = jest.fn();
 const find = jest.fn();

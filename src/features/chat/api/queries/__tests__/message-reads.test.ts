@@ -50,8 +50,6 @@ let reactions: { messageId: string; userId: string; emoji: string }[];
 /** The message the reader read last; the membership stores its position. */
 let lastReadMessageId: string | null;
 
-/* mirrors the Prisma rows and filters */
-
 /**
  * Evaluates the part of a Prisma `where` these queries use: equality, `null`, `not`, `gt`,
  * `in`, `AND`, `OR`, and an empty object matching everything.

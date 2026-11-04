@@ -192,7 +192,6 @@ describe('checkHofDashboardSubmission', () => {
     await expect(run({ user: HOF_NORD_ADMIN, newest: { hofFinal: false } })).resolves.toMatchObject(
       { submittedBy: 'user-nord' },
     );
-    // Payload stores an unset checkbox as null
     await expect(run({ user: HOF_NORD_ADMIN, newest: { hofFinal: null } })).resolves.toMatchObject({
       submittedBy: 'user-nord',
     });
@@ -215,7 +214,6 @@ describe('checkHofDashboardSubmission', () => {
   });
 
   it('leaves a form off the dashboard alone, signed in or not', async () => {
-    // Payload stores an unset select as null
     await expect(run({ settings: { area: null } })).resolves.toMatchObject({
       submittedBy: 'someone-else',
     });

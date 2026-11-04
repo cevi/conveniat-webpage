@@ -31,7 +31,6 @@ const withoutMutedMembers = async (
   }
 
   const muted = await prisma.chatMembership.findMany({
-    // Prisma's filter for a set column
     where: { chatId, userId: { in: recipientUserIds }, mutedAt: { not: null } },
     select: { userId: true },
   });

@@ -62,7 +62,6 @@ export const deleteMessage = trpcBaseProcedure
     const deletedAt = new Date();
     // Conditional, so two deletes that cross announce it only once.
     const { count } = await prisma.message.updateMany({
-      // Prisma matches a SQL NULL only through null
       where: { uuid: message.uuid, deletedAt: null },
       data: { deletedAt, deletedById: user.uuid },
     });

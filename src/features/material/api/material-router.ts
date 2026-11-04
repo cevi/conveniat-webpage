@@ -131,7 +131,6 @@ const loadIncidents = async (
   prisma: MaterialPrisma,
 ): Promise<(IncidentRow & { photoUrl: string | null })[]> => {
   const incidents = await prisma.materialIncident.findMany({
-    // Prisma matches a SQL NULL only through null
     where: { resolvedAt: null },
     include: incidentInclude,
     orderBy: { createdAt: 'desc' },
@@ -173,7 +172,6 @@ export const materialRouter = createTRPCRouter({
           // a request turned down stays in view for a few days, with the reason
           {
             status: 'CANCELLED',
-            // Prisma matches a SQL NULL only through null
             rejectionReason: { not: null },
             updatedAt: { gte: new Date(Date.now() - REJECTED_VISIBLE_MS) },
           },

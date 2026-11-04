@@ -33,7 +33,6 @@ const getDownloadStats = async (documentId: string): Promise<DownloadStats> => {
     prisma.documentDownload.count({ where: { documentId } }),
     prisma.documentDownload.groupBy({
       by: ['userId'],
-      // Prisma matches a SQL NULL only through null
       where: { documentId, userId: { not: null } },
     }),
   ]);

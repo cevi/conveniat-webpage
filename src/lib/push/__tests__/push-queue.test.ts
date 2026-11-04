@@ -97,7 +97,6 @@ const { __logger: mockLogger } = jest.requireMock<{ __logger: MockLogger }>(
 
 const hour = 60 * 60 * 1000;
 
-/* mirrors the Prisma row */
 const notification = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
   id: 'notification-1',
   kind: 'ANNOUNCEMENT',

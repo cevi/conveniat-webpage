@@ -57,7 +57,6 @@ describe('leader notes of a Lager-Programmblock', () => {
   beforeEach(() => hasAdminOrWebAccess.mockReturnValue(false));
 
   it('are left out of a read by the app, which has no user on the request', () => {
-    // Payload sets `null` for no user
     expect(read({ user: null, context: {} })).toBeUndefined();
   });
 
@@ -80,7 +79,6 @@ const flagOf = (leaders: unknown): unknown =>
   (
     hideLeaderNotes({
       doc: { ...block, leaders },
-      // Payload sets `null` for no user
       req: { user: null, context: {} },
     } as never) as { hasLeaderSection?: unknown }
   ).hasLeaderSection;

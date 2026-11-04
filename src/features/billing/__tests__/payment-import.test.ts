@@ -101,7 +101,6 @@ const fakePayload = (
     ),
     findByID: jest.fn(({ collection, id }: { collection: string; id: string }) => {
       const found = store[collection]?.find((document_) => document_.id === id);
-      // what findByID with disableErrors returns
       return found === undefined ? null : structuredClone(found);
     }),
     create: jest.fn(

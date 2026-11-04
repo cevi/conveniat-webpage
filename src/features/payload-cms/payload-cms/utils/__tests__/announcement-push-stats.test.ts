@@ -11,7 +11,6 @@ const log = (
 ): PushLogSummaryRow => ({
   userId,
   status,
-  /* mirrors the Prisma row */
   deliveredAt: status === 'DELIVERED' ? new Date() : null,
   interactionType: interactionType ?? null,
   error: error ?? null,
@@ -61,7 +60,6 @@ describe('summarizePushLogs', () => {
       userId: 'anna',
       status: 'PENDING',
       deliveredAt: new Date(),
-      /* mirrors the Prisma row */
       interactionType: null,
       error: null,
     };

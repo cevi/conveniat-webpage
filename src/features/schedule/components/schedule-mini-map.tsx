@@ -93,7 +93,6 @@ export const ScheduleMiniMap: React.FC<{ location: CampMapAnnotation }> = ({ loc
 
   // If no coordinates, don't render the map
   if (!mapCenter) {
-    // React components can return null
     return null;
   }
 

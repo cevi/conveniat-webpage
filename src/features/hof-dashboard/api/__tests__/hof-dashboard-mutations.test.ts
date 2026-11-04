@@ -28,7 +28,6 @@ const FORMS: Record<string, unknown> = {
   'form-plan': { hofDashboard: { area: 'infrastructure', entries: 'versions' } },
   'form-stand': { hofDashboard: { area: 'program', entries: 'entries' } },
   'form-order': { hofDashboard: { area: 'material', entries: 'versions' } },
-  // Payload stores an unset select as null
   'form-contact': { hofDashboard: { area: null } },
 };
 
@@ -37,7 +36,6 @@ let mockNewest: Record<string, string> = {};
 
 const mockPayload = {
   findByID: jest.fn(({ collection, id }: { collection: string; id: string }) =>
-    // findByID with disableErrors answers a missing document with null
     Promise.resolve((collection === 'forms' ? FORMS[id] : SUBMISSIONS[id]) ?? null),
   ),
   find: jest.fn(({ where }: { where: { and: { form?: { equals: string } }[] } }) => {
