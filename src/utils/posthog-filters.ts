@@ -323,14 +323,12 @@ export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult |
       typeof exceptionMessage === 'string' &&
       noiseMessages.some((message) => exceptionMessage.includes(message))
     ) {
-      // eslint-disable-next-line unicorn/no-null
       return null; // drop the event
     }
 
     const exceptionList = props['$exception_list'] as unknown;
 
     if (hasBrowserExtensionFrame(exceptionList)) {
-      // eslint-disable-next-line unicorn/no-null
       return null; // drop the event
     }
 
@@ -346,12 +344,10 @@ export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult |
           isInjectedDocumentScript(exc) ||
           isNativeOnlyStack(exc)
         ) {
-          // eslint-disable-next-line unicorn/no-null
           return null; // drop the event
         }
       }
     }
   }
-  // eslint-disable-next-line unicorn/no-null
   return event ?? null;
 };

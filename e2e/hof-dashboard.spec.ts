@@ -328,7 +328,7 @@ const mockBackend = async (
               user: { name: 'Hof-Adressverwaltung', email: 'hof@example.com', uuid: 'user-8' },
               expires: inDays(1),
             }
-          : null, // eslint-disable-line unicorn/no-null
+          : null,
       ),
     });
   });
@@ -376,7 +376,6 @@ const mockBackend = async (
       if (procedure === 'hofDashboard.deleteSubmission' && deleteError !== undefined) {
         return deleteError;
       }
-      // eslint-disable-next-line unicorn/no-null -- tRPC answers "nothing" with null
       return { data: null };
     });
     const failed = answers.find((answer): answer is TrpcError => !('data' in answer));

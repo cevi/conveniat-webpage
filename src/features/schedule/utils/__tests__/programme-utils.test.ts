@@ -100,9 +100,7 @@ describe('isForQuartiere', () => {
   });
 
   it('does not let a deleted Quartier turn a block into one for the whole camp', () => {
-    // eslint-disable-next-line unicorn/no-null -- Payload leaves `null` for a dangling relation
     expect(isForQuartiere(entry('a', '09:00 - 10:00', 'program', [null, 'q2']), mine)).toBe(false);
-    // eslint-disable-next-line unicorn/no-null
     expect(isForQuartiere(entry('b', '09:00 - 10:00', 'program', [null]), mine)).toBe(false);
   });
 });
@@ -175,7 +173,6 @@ describe('isDescriptionRedundant', () => {
   it('hides an empty or unreadable description', () => {
     expect(isDescriptionRedundant(richText(''), 'Ballspiele')).toBe(true);
     // a draft skips validation and can leave the description empty
-    // eslint-disable-next-line unicorn/no-null
     expect(isDescriptionRedundant(null, 'Ballspiele')).toBe(true);
   });
 

@@ -27,7 +27,6 @@ describe('assertMembershipCanWrite', () => {
       assertMembershipCanWrite(chatWith(ChatMembershipPermission.MEMBER), 'c', 'user-2'),
     ).toThrow('You are not a member of this chat.');
     // prisma answers a missing chat with null
-    // eslint-disable-next-line unicorn/no-null
     expect(() => assertMembershipCanWrite(null, 'c', 'user-1')).toThrow();
   });
 

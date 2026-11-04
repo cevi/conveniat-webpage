@@ -17,7 +17,7 @@ const subscribeToStorage = (onChange: () => void): (() => void) => {
   return (): void => globalThis.removeEventListener('storage', onChange);
 };
 const readStoredScope = (): string | null => globalThis.localStorage.getItem(storageKey);
-// eslint-disable-next-line unicorn/no-null -- the server has no stored choice
+// the server has no stored choice
 const readNoScope = (): string | null => null;
 
 interface ScheduleScopeState {

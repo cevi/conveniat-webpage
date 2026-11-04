@@ -22,7 +22,6 @@ export const seedPushNotifications = async (payload: Payload, userIds: string[])
       platform: 'web',
       user: testUserId,
       endpoint: 'https://fcm.googleapis.com/fcm/send/test-endpoint-placeholder',
-      // eslint-disable-next-line unicorn/no-null
       expirationTime: null,
       keys: {
         p256dh: 'BAs-test-p256dh-key-placeholder-value-exactly-sixty-five-bytes-long',
@@ -56,11 +55,8 @@ export const seedPushNotifications = async (payload: Payload, userIds: string[])
         sentAt,
         status: deliveredAt ? PushNotificationStatus.DELIVERED : PushNotificationStatus.SENT,
         kind: faker.helpers.arrayElement(Object.values(PushNotificationKind)),
-        // eslint-disable-next-line unicorn/no-null
         deliveredAt: deliveredAt ?? null,
-        // eslint-disable-next-line unicorn/no-null
         interactedAt: interactedAt ?? null,
-        // eslint-disable-next-line unicorn/no-null
         interactionType: interactedAt ? faker.helpers.arrayElement(['OPEN', 'DISMISS']) : null,
         userAgent: faker.internet.userAgent(),
       });

@@ -87,10 +87,8 @@ const chatRow = (uuid: string, type: string, memberCount: number): Record<string
   status: 'OPEN',
   caseNumber: undefined,
   courseId: undefined,
-  /* eslint-disable unicorn/no-null -- what Postgres answers for an open, unread chat */
   archivedAt: null,
   adminReadAt: null,
-  /* eslint-enable unicorn/no-null */
   lastUpdate: new Date(0),
   pinned: false,
   capabilities: [],
@@ -123,11 +121,9 @@ const createPrisma = (
     userId,
     chatId,
     chatPermission: 'MEMBER',
-    /* eslint-disable unicorn/no-null -- what Postgres answers for an untouched membership */
     lastReadSeq: null,
     pinnedAt: null,
     mutedAt: null,
-    /* eslint-enable unicorn/no-null */
     markedUnread: false,
   });
   const memberships: Membership[] = [

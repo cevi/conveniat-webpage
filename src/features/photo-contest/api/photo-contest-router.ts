@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-null */
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import {
   createTRPCRouter,

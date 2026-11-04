@@ -108,7 +108,6 @@ const chatRow = (): unknown => ({
   type: chatType,
   status: 'OPEN',
   capabilities: chatCapabilities,
-  // eslint-disable-next-line unicorn/no-null
   archivedAt: null,
   createdAt: new Date(0),
   lastUpdate: new Date(0),
@@ -137,10 +136,7 @@ const prisma = {
       const match = existingChats.find(
         (chat) => where.type === undefined || chat.type === where.type,
       );
-      return Promise.resolve(
-        // eslint-disable-next-line unicorn/no-null
-        match === undefined ? null : { ...match, chatMemberships: [{}, {}] },
-      );
+      return Promise.resolve(match === undefined ? null : { ...match, chatMemberships: [{}, {}] });
     },
     create: record('chat.create', { uuid: 'new-chat', name: '' }),
     update: record('chat.update'),
@@ -166,8 +162,7 @@ const prisma = {
               createdAt: new Date(0),
               contentVersions: [{ revision: 0, payload: { text: 'Wer kommt mit?' } }],
             }
-          : // eslint-disable-next-line unicorn/no-null
-            null,
+          : null,
       ),
     // the top-level message a reply answers
     findFirst: ({ where }: { where: { uuid: string } }): Promise<unknown> =>
@@ -199,7 +194,6 @@ const prisma = {
     }): Promise<unknown> => {
       const { userId, emoji } = where.messageId_userId_emoji;
       return Promise.resolve(
-        // eslint-disable-next-line unicorn/no-null
         reactions.find((r) => r.userId === userId && r.emoji === emoji) ?? null,
       );
     },
@@ -268,7 +262,6 @@ beforeEach(() => {
   messages = [
     { uuid: THREAD_ID, senderId: BEN },
     { uuid: 'reply-1', parentId: THREAD_ID, senderId: CARLA },
-    // eslint-disable-next-line unicorn/no-null
     { uuid: 'reply-2', parentId: THREAD_ID, senderId: null },
   ];
   reactions = [];

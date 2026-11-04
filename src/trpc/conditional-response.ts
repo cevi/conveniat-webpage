@@ -39,7 +39,7 @@ export const withEntityTag = async (request: Request, response: Response): Promi
 
   if (matchesEntityTag(request.headers.get('if-none-match'), entityTag)) {
     headers.delete('Content-Length');
-    // eslint-disable-next-line unicorn/no-null -- a 304 has no body
+    // a 304 has no body
     return new Response(null, { status: 304, headers });
   }
   return new Response(body, { status: 200, headers });

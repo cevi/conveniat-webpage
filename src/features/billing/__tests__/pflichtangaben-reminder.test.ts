@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-null */
 jest.mock('@/lib/hitobito', () => ({
   HITOBITO_CONFIG: { baseUrl: 'https://db.cevi.test', apiToken: 'mock' },
 }));
@@ -187,10 +186,7 @@ describe('groupRemindersByEvent', () => {
   it('names nobody on a Hof synced before the names were stored', () => {
     const groups = groupRemindersByEvent(
       [participant({ eventId: '11' })],
-      [
-        // eslint-disable-next-line unicorn/no-null
-        { ...events[0], addressManagers: [{ name: null, email: 'av@zueri11.ch' }] },
-      ],
+      [{ ...events[0], addressManagers: [{ name: null, email: 'av@zueri11.ch' }] }],
     );
     expect(groups[0]?.recipientNames).toEqual([]);
   });

@@ -104,7 +104,6 @@ describe('proxy - authSessionProxy', () => {
     async (pathname) => {
       jest.mocked(rotateSessionToken).mockImplementationOnce((request_) => {
         request_.headers.set('cookie', 'authjs.session-token=rotated');
-        // eslint-disable-next-line unicorn/no-null -- `null` is what Auth.js answers for no session
         return Promise.resolve(null);
       });
       const request = {

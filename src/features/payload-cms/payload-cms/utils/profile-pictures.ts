@@ -56,7 +56,6 @@ export const setProfilePicture = async (
   await payload.update({
     collection: 'users',
     id: userId,
-    // eslint-disable-next-line unicorn/no-null
     data: { profilePictureVersion: version ?? null },
     overrideAccess: true,
     context: { [PROFILE_PICTURE_UPLOAD_CONTEXT]: true },

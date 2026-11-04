@@ -63,10 +63,9 @@ export const scheduleRouter = createTRPCRouter({
     .query(async ({ input, ctx }) => {
       // A guest gets the same "nothing" as a participant. A 401 would sign the client out, and
       // the detail page asks this for every block it opens.
-      // eslint-disable-next-line unicorn/no-null -- a query result has to be serialisable
+      // a query result has to be serialisable
       if (!ctx.user) return null;
       const { getLeaderNotesOfEntry } = await import('./viewer');
-      // eslint-disable-next-line unicorn/no-null
       return (await getLeaderNotesOfEntry(ctx.user, input.id, ctx.locale)) ?? null;
     }),
 
@@ -92,7 +91,6 @@ export const scheduleRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const { getHelperShift } = await import('./get-helper-shifts');
       // React Query keeps no `undefined`; `null` is a shift that does not exist
-      // eslint-disable-next-line unicorn/no-null
       return (await getHelperShift(input.id, ctx.locale)) ?? null;
     }),
 
@@ -112,7 +110,6 @@ export const scheduleRouter = createTRPCRouter({
       });
     } catch {
       // Course not found - return null instead of throwing
-      // eslint-disable-next-line unicorn/no-null
       return null;
     }
 

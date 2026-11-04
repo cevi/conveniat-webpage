@@ -268,7 +268,7 @@ function renderMarkdownText(
         width: options.width,
         lineGap: options.lineGap,
         continued: !isLastInParagraph,
-        // eslint-disable-next-line unicorn/no-null -- PDFKit clears an inherited link with null
+        // PDFKit clears an inherited link with null
         link: segment.href ?? null,
       };
 
@@ -719,7 +719,7 @@ export async function generateBillsUseCase(
         billCreatedDate: new Date().toISOString(),
         referenceNumber,
         invoiceNumber,
-        // eslint-disable-next-line unicorn/no-null -- clears the number of an earlier bill
+        // clears the number of an earlier bill
         registrationNumber: customReference ?? null,
         invoiceAmount: vat.totalAmount,
         netAmount: vat.netAmount,

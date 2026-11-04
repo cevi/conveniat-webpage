@@ -106,7 +106,6 @@ describe('toEmergencyCardDto', () => {
   });
 
   it('reads a card without documents or images', () => {
-    // eslint-disable-next-line unicorn/no-null -- Payload returns null for a cleared relationship
     const dto = toEmergencyCardDto({ ...card, documents: null, images: null });
 
     expect(dto.documents).toEqual([]);

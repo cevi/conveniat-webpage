@@ -149,7 +149,6 @@ export const ParticipantsAdminUI: React.FC = () => {
   };
 
   if (id === undefined || collectionSlug === undefined) {
-    // eslint-disable-next-line unicorn/no-null
     return null;
   }
 

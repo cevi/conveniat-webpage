@@ -145,7 +145,7 @@ export const reviewHofSubmission = async ({
     id: submissionId,
     data: {
       approved: status === 'accepted',
-      // eslint-disable-next-line unicorn/no-null -- Payload clears a field only with null
+      // Payload clears a field only with null
       hofReviewStatus: status === 'accepted' || status === undefined ? null : status,
       ...(comment === undefined ? {} : { hofFeedback: comment }),
       hofFinal: final,
@@ -237,7 +237,7 @@ export const acceptHofArea = async ({
         id: submission.id,
         data: {
           approved: true,
-          // eslint-disable-next-line unicorn/no-null -- Payload clears a field only with null
+          // Payload clears a field only with null
           hofReviewStatus: null,
           ...(versions ? { hofFinal: true } : {}),
         },

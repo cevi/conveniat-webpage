@@ -24,7 +24,6 @@ export const muteChat = trpcBaseProcedure
     if (input.muted === (membership.mutedAt !== null)) return { success: true };
 
     await updateOwnChatMembership(prisma, user.uuid, input.chatId, {
-      // eslint-disable-next-line unicorn/no-null
       mutedAt: input.muted ? new Date() : null,
     });
     return { success: true };

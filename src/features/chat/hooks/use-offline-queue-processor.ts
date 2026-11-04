@@ -299,6 +299,5 @@ export const useOfflineQueueProcessor = (): void => {
 
 export const OfflineQueueSync = (): null => {
   useOfflineQueueProcessor();
-  // eslint-disable-next-line unicorn/no-null
   return null;
 };

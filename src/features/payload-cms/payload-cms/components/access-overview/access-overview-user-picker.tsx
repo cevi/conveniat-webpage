@@ -109,7 +109,6 @@ export const AccessOverviewUserPicker: React.FC<{
   const { options, isLoading, search } = useUserSearch(apiRoute, searchFailed);
 
   const handleChange = (option: ReactSelectOption | ReactSelectOption[] | null): void => {
-    // eslint-disable-next-line unicorn/no-null
     const picked = Array.isArray(option) ? option[0] : (option ?? undefined);
     const next = new URLSearchParams(searchParameters);
     if (picked === undefined || typeof picked.value !== 'string') next.delete(parameter);

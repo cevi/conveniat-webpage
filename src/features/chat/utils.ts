@@ -61,7 +61,6 @@ export const isServerCompatibleId = (id: string): boolean => UUID_PATTERN.test(i
  * Updater that empties a cached query entry: `utils.chat.x.setData(input, dropCachedEntry)`.
  * Used to discard optimistic data for a chat that turned out never to exist under that id.
  */
-// eslint-disable-next-line unicorn/no-useless-undefined
 export const dropCachedEntry = (): undefined => undefined;
 
 /**

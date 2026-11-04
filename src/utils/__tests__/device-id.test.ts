@@ -6,7 +6,6 @@ describe('getOrCreateDeviceId', () => {
   beforeEach(() => {
     mockStorage = {};
     const localStorageMock = {
-      // eslint-disable-next-line unicorn/no-null
       getItem: jest.fn((key: string) => mockStorage[key] ?? null),
       setItem: jest.fn((key: string, value: string) => {
         mockStorage[key] = value;

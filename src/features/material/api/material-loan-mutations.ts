@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-null */
 import { materialTeamProcedure } from '@/features/material/api/material-access';
 import {
   applyBooking,

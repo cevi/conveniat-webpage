@@ -83,9 +83,9 @@ const createEvent = (
     organiser,
     description: createRichText(descriptionText),
     enable_enrolment: options.enrolment ?? false,
-    participants_min: options.min ?? null, // eslint-disable-line unicorn/no-null
-    participants_max: options.max ?? null, // eslint-disable-line unicorn/no-null
-    target_group: options.targetGroup ? createRichText(options.targetGroup) : null, // eslint-disable-line unicorn/no-null
+    participants_min: options.min ?? null,
+    participants_max: options.max ?? null,
+    target_group: options.targetGroup ? createRichText(options.targetGroup) : null,
     category: categoryId,
   };
 };

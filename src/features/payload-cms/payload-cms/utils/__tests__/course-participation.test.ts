@@ -35,7 +35,6 @@ describe('parseTimeSlotHours', () => {
     expect(parseTimeSlotHours('12:00')).toBe(0);
     expect(parseTimeSlotHours('25:00 - 26:00')).toBe(0);
     expect(parseTimeSlotHours('nachmittags')).toBe(0);
-    // eslint-disable-next-line unicorn/no-null
     expect(parseTimeSlotHours(null)).toBe(0);
     // eslint-disable-next-line unicorn/no-useless-undefined
     expect(parseTimeSlotHours(undefined)).toBe(0);
@@ -80,7 +79,6 @@ describe('splitFullName', () => {
   it('returns empty names for missing input', () => {
     // eslint-disable-next-line unicorn/no-useless-undefined
     expect(splitFullName(undefined)).toEqual({ firstName: '', lastName: '' });
-    // eslint-disable-next-line unicorn/no-null
     expect(splitFullName(null)).toEqual({ firstName: '', lastName: '' });
     expect(splitFullName('   ')).toEqual({ firstName: '', lastName: '' });
   });
@@ -96,7 +94,6 @@ describe('aggregateCourseParticipation', () => {
   const participants: CourseParticipant[] = [
     { id: 'user-1', fullName: 'Anna Meier', nickname: 'Bambi', email: 'anna@example.org' },
     { id: 'user-2', fullName: 'Hans von Beispiel', nickname: 'Specht', email: 'hans@example.org' },
-    // eslint-disable-next-line unicorn/no-null
     { id: 'user-3', fullName: 'Lea Zwahlen', nickname: null, email: 'lea@example.org' },
   ];
 
@@ -268,7 +265,6 @@ describe('extractOrganiserAssignments', () => {
 
   it('keeps courses without organisers, but yields no assignment for them', () => {
     const { courses, assignments } = extractOrganiserAssignments([
-      // eslint-disable-next-line unicorn/no-null
       { id: 'shift-a', title: 'Küche Mittag', timeslot: { date: '2027-07-25' }, organiser: null },
       { id: 'shift-b', title: 'Abwasch' },
     ]);

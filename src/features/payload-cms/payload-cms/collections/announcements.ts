@@ -282,9 +282,7 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
           'Failed to delete the postgres message on unpublish',
         );
       }
-      // eslint-disable-next-line unicorn/no-null
       data.chatMessageUuid = null;
-      // eslint-disable-next-line unicorn/no-null
       data.publishedAt = null;
     }
   }

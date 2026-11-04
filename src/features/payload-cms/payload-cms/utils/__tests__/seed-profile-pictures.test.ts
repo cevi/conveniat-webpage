@@ -38,13 +38,11 @@ const LEADERS: Record<string, GroupRoleHolder[]> = {
 };
 
 /** 11 has no picture yet, 12 uploaded one, 13 has none in Cevi.DB, 14 never logged in. */
-/* eslint-disable unicorn/no-null -- what Payload stores for an empty field */
 const USERS = [
   { id: 'user-11', cevi_db_uuid: 11, profilePictureVersion: null },
   { id: 'user-12', cevi_db_uuid: 12, profilePictureVersion: 'own' },
   { id: 'user-13', cevi_db_uuid: 13, profilePictureVersion: null },
 ];
-/* eslint-enable unicorn/no-null */
 
 const find = jest.fn(({ collection }: { collection: string }) =>
   Promise.resolve({

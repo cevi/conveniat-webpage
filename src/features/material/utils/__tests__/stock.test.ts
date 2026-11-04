@@ -19,7 +19,6 @@ const tents: StockCounts = {
 const hold = (overrides: Partial<LoanHold>): LoanHold => ({
   status: 'RESERVED',
   quantity: 1,
-  // eslint-disable-next-line unicorn/no-null -- the column is nullable
   issuedQuantity: null,
   isConsumption: false,
   startDate: day(10),
@@ -131,7 +130,6 @@ describe('getLoanDisplayStatus of a turned-down request', () => {
       getLoanDisplayStatus({ status: 'CANCELLED', endDate: day(1), rejectionReason: '' }, day(5)),
     ).toBe('REJECTED');
     expect(
-      // eslint-disable-next-line unicorn/no-null -- the column is nullable
       getLoanDisplayStatus({ status: 'CANCELLED', endDate: day(1), rejectionReason: null }, day(5)),
     ).toBe('CANCELLED');
   });

@@ -147,11 +147,7 @@ describe('ParticipantList', () => {
    */
   it('treats an unset hide flag as a visible list', () => {
     render(
-      <ParticipantList
-        courseId="course-1"
-        // eslint-disable-next-line unicorn/no-null
-        courseStatus={organiserStatus({ hideList: null })}
-      />,
+      <ParticipantList courseId="course-1" courseStatus={organiserStatus({ hideList: null })} />,
     );
 
     expect(screen.getByText('Anna Muster')).toBeInTheDocument();
@@ -235,7 +231,6 @@ describe('ParticipantList', () => {
      */
     it('renders nothing for a shift that no longer exists', () => {
       mockShiftQueryResult = {
-        // eslint-disable-next-line unicorn/no-null
         data: null as unknown as undefined,
         isLoading: false,
       };

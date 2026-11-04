@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-null */
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import { BILLABLE_STATUSES } from '@/features/billing/services/billing-status';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';

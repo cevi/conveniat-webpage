@@ -51,7 +51,6 @@ describe('decodeStoredEventName', () => {
 
   it('passes a missing name through instead of turning it into a string', () => {
     expect(read(decodeStoredEventName)).toBeUndefined();
-    // eslint-disable-next-line unicorn/no-null
     expect(read(decodeStoredEventName, null)).toBeNull();
   });
 });

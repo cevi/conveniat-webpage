@@ -69,7 +69,6 @@ describe('toLlmsLinks', () => {
   });
 
   it('lists a page without a permission, which every visitor can open', () => {
-    // eslint-disable-next-line unicorn/no-null
     expect(toLlmsLinks([buildPage('offen', ['de'], null)], options)).toHaveLength(1);
   });
 

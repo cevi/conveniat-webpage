@@ -11,11 +11,9 @@ const log = (
 ): PushLogSummaryRow => ({
   userId,
   status,
-  /* eslint-disable unicorn/no-null -- mirrors the Prisma row */
   deliveredAt: status === 'DELIVERED' ? new Date() : null,
   interactionType: interactionType ?? null,
   error: error ?? null,
-  /* eslint-enable unicorn/no-null */
 });
 
 describe('summarizePushLogs', () => {
@@ -62,10 +60,8 @@ describe('summarizePushLogs', () => {
       userId: 'anna',
       status: 'PENDING',
       deliveredAt: new Date(),
-      /* eslint-disable unicorn/no-null -- mirrors the Prisma row */
       interactionType: null,
       error: null,
-      /* eslint-enable unicorn/no-null */
     };
 
     expect(summarizePushLogs([confirmedByDevice], 0)).toMatchObject({ accepted: 1, delivered: 1 });

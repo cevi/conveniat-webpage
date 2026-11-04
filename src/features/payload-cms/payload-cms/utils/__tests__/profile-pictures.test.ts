@@ -71,7 +71,7 @@ describe('setProfilePicture', () => {
     await setProfilePicture(payload, 'user-1', undefined, 'old');
 
     expect(update).toHaveBeenCalledWith(
-      // eslint-disable-next-line unicorn/no-null -- what Payload clears a field with
+      // what Payload clears a field with
       expect.objectContaining({ data: { profilePictureVersion: null } }),
     );
     expect(send.mock.calls.map(([command]) => command.input.Key)).toEqual([

@@ -90,7 +90,6 @@ const run = async (options: RunOptions): Promise<Partial<FormSubmission>> => {
     operation,
     req: {
       // Payload answers a visitor who is not signed in with null
-      // eslint-disable-next-line unicorn/no-null
       user: options.user ?? null,
       locale,
       payload: { findByID, find, logger: { info: jest.fn() } },
@@ -193,7 +192,6 @@ describe('checkHofDashboardSubmission', () => {
     await expect(run({ user: HOF_NORD_ADMIN, newest: { hofFinal: false } })).resolves.toMatchObject(
       { submittedBy: 'user-nord' },
     );
-    // eslint-disable-next-line unicorn/no-null -- Payload stores an unset checkbox as null
     await expect(run({ user: HOF_NORD_ADMIN, newest: { hofFinal: null } })).resolves.toMatchObject({
       submittedBy: 'user-nord',
     });
@@ -216,11 +214,10 @@ describe('checkHofDashboardSubmission', () => {
   });
 
   it('leaves a form off the dashboard alone, signed in or not', async () => {
-    // eslint-disable-next-line unicorn/no-null -- Payload stores an unset select as null
     await expect(run({ settings: { area: null } })).resolves.toMatchObject({
       submittedBy: 'someone-else',
     });
-    // eslint-disable-next-line unicorn/no-null -- a form never linked has no group at all
+    // a form never linked has no group at all
     await expect(run({ settings: null })).resolves.toMatchObject({
       submittedBy: 'someone-else',
     });

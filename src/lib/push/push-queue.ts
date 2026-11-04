@@ -439,7 +439,6 @@ async function deliverNextBatch(lane: PushQueueLane): Promise<DrainSummary | und
         messageIds.length === 0
           ? []
           : await prisma.message.findMany({
-              // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
               where: { uuid: { in: messageIds }, deletedAt: { not: null } },
               select: { uuid: true },
             });
@@ -617,7 +616,7 @@ async function writeSettlements(settlements: Settlement[]): Promise<void> {
   for (const { ids, outcome } of settlements) {
     await prisma.pushNotificationLog.updateMany({
       where: { id: { in: ids }, status: 'PENDING' },
-      /* eslint-disable unicorn/no-null -- Prisma clears a column only through null */
+      // Prisma clears a column only through null
       data: {
         status: outcome.status,
         error: outcome.error ?? null,
@@ -625,7 +624,6 @@ async function writeSettlements(settlements: Settlement[]): Promise<void> {
         leaseUntil: null,
         ...(outcome.sentAt !== undefined && { sentAt: outcome.sentAt }),
       },
-      /* eslint-enable unicorn/no-null */
     });
   }
 }
@@ -672,7 +670,6 @@ async function completeFinishedNotifications(notificationIds: string[], now: Dat
   for (const notificationId of notificationIds) {
     if (pendingIds.has(notificationId)) continue;
     const { count } = await prisma.pushNotification.updateMany({
-      // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
       where: { id: notificationId, completedAt: null },
       data: { completedAt: now },
     });

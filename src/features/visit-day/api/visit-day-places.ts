@@ -76,7 +76,6 @@ export const reservePlaces = async (
     if (taken + request.persons > request.capacity) return { status: 'full' };
 
     // Prisma matches an empty Hof with null, never with undefined, which would match every row
-    // eslint-disable-next-line unicorn/no-null
     const hofId = request.hofId ?? null;
     const last = await transaction.visitDayRegistration.aggregate({
       where: { hofId },

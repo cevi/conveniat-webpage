@@ -48,7 +48,6 @@ export const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ payload
   const validationResult = HitobitoNextAuthUserSchema.safeParse(session?.user);
 
   if (!validationResult.success) {
-    // eslint-disable-next-line unicorn/no-null -- Payload's AuthStrategyResult
     return { user: null };
   }
 
@@ -56,7 +55,6 @@ export const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ payload
   const user = await getPayloadUserFromNextAuthUser(payload, nextAuthUser);
 
   if (!user) {
-    // eslint-disable-next-line unicorn/no-null -- Payload's AuthStrategyResult
     return { user: null };
   }
 

@@ -78,7 +78,6 @@ describe('dueReminderPushes', () => {
 
 describe('reminderTimingOf', () => {
   it('reads a missing lead time as none and an unknown one as none', () => {
-    // eslint-disable-next-line unicorn/no-null -- the column is nullable
     expect(reminderTimingOf({ reminderLeadMinutes: null, reminderAtStart: true })).toEqual({
       leadMinutes: 0,
       atStart: true,
