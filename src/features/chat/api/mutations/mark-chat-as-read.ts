@@ -37,7 +37,6 @@ export const markChatAsRead = trpcBaseProcedure
       where: {
         userId: user.uuid,
         chatId,
-        // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
         OR: [{ lastReadSeq: null }, { lastReadSeq: { lt: message.seq } }],
       },
       data: { lastReadSeq: message.seq, lastReadMessageId: lastMessageId, markedUnread: false },

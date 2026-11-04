@@ -65,9 +65,9 @@ export const recordHofReview: CollectionBeforeChangeHook<FormSubmission> = ({
     {
       changedAt: new Date().toISOString(),
       reviewerName: reviewer?.name ?? '',
-      // eslint-disable-next-line unicorn/no-null -- Payload clears a relationship only with null
+      // Payload clears a relationship only with null
       reviewer: reviewer === undefined || reviewer.id === '' ? null : reviewer.id,
-      // eslint-disable-next-line unicorn/no-null -- Payload clears a select only with null
+      // Payload clears a select only with null
       status: after.status ?? null,
       feedback: after.feedback,
       final: after.final,

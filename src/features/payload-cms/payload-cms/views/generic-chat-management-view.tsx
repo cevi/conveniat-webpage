@@ -219,7 +219,6 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
         <ChatManagementSidebar
           title={title}
           chats={chats}
-          // eslint-disable-next-line unicorn/no-null
           selectedChatId={selectedChatId ?? null}
           onSelectChat={(id) => setSelectedChatId(id === '' ? undefined : id)}
           loadingChats={loadingChats}

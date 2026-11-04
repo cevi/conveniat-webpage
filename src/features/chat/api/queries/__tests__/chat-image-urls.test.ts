@@ -71,7 +71,6 @@ const prisma = {
   },
   messageContent: {
     findFirst: jest.fn(({ where }: { where: { payload: { equals: string } } }) =>
-      // eslint-disable-next-line unicorn/no-null
       Promise.resolve(deletedImageKeys.has(where.payload.equals) ? { uuid: 'content-1' } : null),
     ),
   },
@@ -80,7 +79,6 @@ const prisma = {
       ({ where }: { where: { userId_chatId: { userId: string; chatId: string } } }) => {
         const { userId, chatId } = where.userId_chatId;
         const isMember = userId === 'member-1' && chatId === CHAT_ID;
-        // eslint-disable-next-line unicorn/no-null
         return Promise.resolve(isMember ? { userId } : null);
       },
     ),

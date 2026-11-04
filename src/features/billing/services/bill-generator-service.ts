@@ -1,3 +1,4 @@
+import { buildCreditorFromSettings } from '@/features/billing-core/creditor';
 import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
 import { PayloadParticipantRepositoryAdapter } from '@/features/billing/adapters/payload-participant-repository.adapter';
 import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-settings.adapter';
@@ -30,7 +31,6 @@ import {
   isAufbauOrAbbaulager,
   resolveRoleOptions,
 } from '@/features/billing/utils';
-import type { BillSetting } from '@/features/payload-cms/payload-types';
 import type { HitobitoClient } from '@/lib/hitobito/client';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
@@ -95,47 +95,6 @@ export function resolvePricing(
     }
   }
   return undefined;
-}
-
-/** Reads an optional settings text, treating an empty one as not configured. */
-const optionalSetting = (value: string | null | undefined): string | undefined =>
-  typeof value === 'string' && value !== '' ? value : undefined;
-
-/**
- * The creditor printed on every bill, built from the bill settings. Issued bills and the
- * settings preview both go through here, so the preview shows what a participant receives.
- * The MWST-Nr. is not optional in practice: adult bills charge VAT, which requires it.
- */
-export function buildCreditorFromSettings(
-  settings: Pick<
-    BillSetting,
-    | 'creditorName'
-    | 'creditorIban'
-    | 'creditorStreet'
-    | 'creditorBuildingNumber'
-    | 'creditorZip'
-    | 'creditorCity'
-    | 'creditorUid'
-    | 'creditorEmail'
-    | 'creditorWebsite'
-  >,
-): PdfGenerationParameters['creditor'] {
-  const buildingNumber = optionalSetting(settings.creditorBuildingNumber);
-  const uid = optionalSetting(settings.creditorUid);
-  const email = optionalSetting(settings.creditorEmail);
-  const website = optionalSetting(settings.creditorWebsite);
-  return {
-    name: settings.creditorName,
-    street: settings.creditorStreet,
-    ...(buildingNumber === undefined ? {} : { buildingNumber }),
-    zip: settings.creditorZip ?? '',
-    city: settings.creditorCity ?? '',
-    account: settings.creditorIban,
-    country: 'CH',
-    ...(uid === undefined ? {} : { uid }),
-    ...(email === undefined ? {} : { email }),
-    ...(website === undefined ? {} : { website }),
-  };
 }
 
 /** Separator between the footer's items, and the only place the footer may wrap. */
@@ -268,7 +227,7 @@ function renderMarkdownText(
         width: options.width,
         lineGap: options.lineGap,
         continued: !isLastInParagraph,
-        // eslint-disable-next-line unicorn/no-null -- PDFKit clears an inherited link with null
+        // PDFKit clears an inherited link with null
         link: segment.href ?? null,
       };
 
@@ -557,7 +516,7 @@ export async function generateBillsUseCase(
         // Nothing prices this role. Flagged rather than billed at a neighbouring rate, and
         // handled like any other unusable registration: no bill, visible in the admin, and
         // named precisely enough that an operator knows the fix is in the settings.
-        const reason = `Rollentyp "${roleType}" ist in den Rechnungs-Einstellungen nicht konfiguriert.`;
+        const reason = `Rollentyp "${roleType}" ist in den Lager-Rechnungseinstellungen nicht konfiguriert.`;
         // The field is stored as JSON, so it has to be narrowed before it can be appended to.
         const existingReasons = Array.isArray(document_.missingAnmeldeangaben)
           ? document_.missingAnmeldeangaben.filter(
@@ -719,7 +678,7 @@ export async function generateBillsUseCase(
         billCreatedDate: new Date().toISOString(),
         referenceNumber,
         invoiceNumber,
-        // eslint-disable-next-line unicorn/no-null -- clears the number of an earlier bill
+        // clears the number of an earlier bill
         registrationNumber: customReference ?? null,
         invoiceAmount: vat.totalAmount,
         netAmount: vat.netAmount,

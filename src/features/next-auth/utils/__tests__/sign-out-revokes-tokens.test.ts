@@ -66,7 +66,7 @@ describe('signing out', () => {
 
   it('asks nothing of Cevi.DB for a session without a refresh token', async () => {
     await signOut({ token: token({ refresh_token: undefined }) });
-    // eslint-disable-next-line unicorn/no-null -- Auth.js hands on `null` for a cookie it cannot read
+    // Auth.js hands on `null` for a cookie it cannot read
     await signOut({ token: null });
 
     expect(fetchMock).not.toHaveBeenCalled();

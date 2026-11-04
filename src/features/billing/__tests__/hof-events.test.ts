@@ -43,7 +43,6 @@ describe('flattenHofEvents', () => {
         groupId: '22',
         events: [{ eventId: '11', eventName: 'Hof Züri 11' }],
         addressManagerEmails: '',
-        // eslint-disable-next-line unicorn/no-null
         reminderRecipientsOverride: null,
       },
     ]);
@@ -52,7 +51,6 @@ describe('flattenHofEvents', () => {
   });
 
   it('yields nothing for a Hof without events', () => {
-    // eslint-disable-next-line unicorn/no-null
     expect(flattenHofEvents([{ groupId: '22', events: null }, { groupId: '23' }])).toEqual([]);
   });
 });

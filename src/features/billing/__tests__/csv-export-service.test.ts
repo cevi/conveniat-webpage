@@ -1,8 +1,9 @@
 import {
   buildFinanceCsvRows,
+  buildVisitDayFinanceRows,
   formatFinanceCsv,
 } from '@/features/billing/services/csv-export-service';
-import type { BillParticipant } from '@/features/payload-cms/payload-types';
+import type { BillParticipant, VisitDayBill } from '@/features/payload-cms/payload-types';
 
 const participant = (overrides: Partial<BillParticipant>): BillParticipant =>
   ({
@@ -162,7 +163,6 @@ describe('buildFinanceCsvRows with replaced and cancelled bills', () => {
 
   it('writes no line for a registration that was never billed', () => {
     const rows = buildFinanceCsvRows(
-      // eslint-disable-next-line unicorn/no-null -- Payload stores absent text fields as null
       [participant({ status: 'new', invoiceNumber: null, billCreatedDate: null })],
       SETTINGS,
     );
@@ -194,5 +194,74 @@ describe('formatFinanceCsv', () => {
     expect(formatFinanceCsv([])).toBe(
       '﻿Date,DocInvoice,ExternalReference,Amount,DateExpiration,Description,AccountDebit,AccountCredit,Storniert,Stornogrund\r\n',
     );
+  });
+});
+
+type IssuedBill = NonNullable<VisitDayBill['issuedBills']>[number];
+
+const issued = (
+  invoiceNumber: string,
+  referenceNumber: string,
+  supersededAt?: string,
+): IssuedBill => ({
+  invoiceNumber,
+  referenceNumber,
+  amount: 50,
+  issuedAt: '2027-03-01T10:00:00.000Z',
+  ...(supersededAt === undefined ? {} : { supersededAt }),
+});
+
+describe('buildVisitDayFinanceRows', () => {
+  it('books every Besuchstag bill issued, a replaced one as cancelled, against its revenue account', () => {
+    const rows = buildVisitDayFinanceRows(
+      [
+        {
+          registrationNumber: '5321-B007',
+          fullName: 'Anna Muster',
+          status: 'open',
+          issuedAt: '2027-03-02T10:00:00.000Z',
+          dueDate: '2027-04-01T10:00:00.000Z',
+          issuedBills: [
+            issued('BT2027-0007', '091000000000000000007000016', '2027-03-02T10:00:00.000Z'),
+            issued('BT2027-0007-2', '091000000000000000007000023'),
+          ],
+        },
+      ],
+      '3410',
+      30,
+    );
+
+    expect(
+      rows.map((row) => [row.DocInvoice, row.AccountCredit, row.Storniert, row.Stornogrund]),
+    ).toEqual([
+      ['BT2027-0007', '3410', true, 'Neu ausgestellt'],
+      ['BT2027-0007-2', '3410', false, ''],
+    ]);
+    expect(rows[0]).toEqual(
+      expect.objectContaining({
+        Date: '2027-03-01',
+        DateExpiration: '2027-03-31',
+        Description: 'Besuchstag, Anna Muster, 5321-B007',
+        AccountDebit: '11000',
+      }),
+    );
+  });
+
+  it('falls back to the counter account the camp bills use', () => {
+    const [row] = buildVisitDayFinanceRows(
+      [
+        {
+          registrationNumber: 'EXT-B001',
+          fullName: 'Luc',
+          status: 'cancelled',
+          issuedAt: '2027-03-01T10:00:00.000Z',
+          dueDate: '2027-03-31T10:00:00.000Z',
+          issuedBills: [issued('BT2027-0001', '091', '2027-03-05T10:00:00.000Z')],
+        },
+      ],
+      '',
+      30,
+    );
+    expect([row?.AccountCredit, row?.Stornogrund]).toEqual(['[CA]', 'Anmeldung storniert']);
   });
 });

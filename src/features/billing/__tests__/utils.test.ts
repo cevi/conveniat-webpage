@@ -1,5 +1,5 @@
+import { calculateModule10Recursive } from '@/features/billing-core/qr-reference';
 import {
-  calculateModule10Recursive,
   describeQrReference,
   formatQrReference,
   formatRoleName,
@@ -274,7 +274,6 @@ describe('resolveRoleOptions', () => {
     it('safely handles non-string and missing values without throwing', () => {
       // eslint-disable-next-line unicorn/no-useless-undefined
       expect(isAufbauOrAbbaulager(undefined)).toBe(false);
-      // eslint-disable-next-line unicorn/no-null
       expect(isAufbauOrAbbaulager(null)).toBe(false);
       expect(isAufbauOrAbbaulager(12_345)).toBe(false);
       expect(isAufbauOrAbbaulager({})).toBe(false);

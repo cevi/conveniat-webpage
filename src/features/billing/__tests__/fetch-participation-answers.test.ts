@@ -104,7 +104,7 @@ describe('HitobitoServiceAdapter.fetchParticipations', () => {
           id: '900',
           type: 'event_participations',
           attributes: { event_id: 42, active: true },
-          // eslint-disable-next-line unicorn/no-null -- what the API sends for a restricted profile
+          // what the API sends for a restricted profile
           relationships: { participant: { data: null } },
         },
       ],

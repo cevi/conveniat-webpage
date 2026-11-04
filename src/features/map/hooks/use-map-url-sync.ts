@@ -68,7 +68,7 @@ export const useMapUrlSync = (
       polygons.find((a) => a.id === pendingLocationId);
 
     if (foundAnnotation !== undefined) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- the annotation has arrived
+      // the annotation has arrived
       setPendingLocationId(undefined);
       setOpenAnnotation(foundAnnotation);
     }

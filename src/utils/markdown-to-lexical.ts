@@ -271,7 +271,6 @@ function nodeToMarkdown(node: ParagraphNode | ListNode | YoutubeEmbedBlockNode):
     return childrenToMarkdown(node.children as unknown as TextNode[]);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (node.type === 'list') {
     return node.children
       .map((item: ListItemNode) => {
@@ -288,7 +287,6 @@ function nodeToMarkdown(node: ParagraphNode | ListNode | YoutubeEmbedBlockNode):
   // a video stays one link per line, so saving an edit keeps it
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (node.type === 'block' && node.fields?.blockType === 'youtubeEmbed') {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     return (Array.isArray(node.fields.links) ? node.fields.links : [])
       .map((row) => row.link)
       .filter((link) => typeof link === 'string' && link.trim() !== '')

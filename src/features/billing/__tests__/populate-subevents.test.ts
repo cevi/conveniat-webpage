@@ -254,10 +254,7 @@ describe('populateSubeventsUseCase', () => {
         name: 'Basel',
         events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
         addressManagerEmails: 'av@example.com',
-        addressManagers: [
-          // eslint-disable-next-line unicorn/no-null -- what Mongo holds for a name never set
-          { id: 'row-1', name: null, email: 'av@example.com' },
-        ],
+        addressManagers: [{ id: 'row-1', name: null, email: 'av@example.com' }],
       }),
     ]);
     mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1']);

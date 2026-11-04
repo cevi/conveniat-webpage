@@ -154,13 +154,13 @@ export const ReferenceNumberExplainer: React.FC = () => {
         </div>
         <div style={{ fontFamily: MONOSPACE, fontSize: '17px', letterSpacing: '1px' }}>
           {printedGroups.map((group, groupIndex) => (
-            // eslint-disable-next-line react/no-array-index-key -- groups have no id but a fixed order
+            // groups have no id but a fixed order
             <span key={groupIndex} style={{ marginRight: '10px' }}>
               {[...group].map((digit) => {
                 const color = colorPerDigit[digitIndex] ?? 'var(--theme-elevation-800)';
                 digitIndex += 1;
                 return (
-                  // eslint-disable-next-line react/no-array-index-key -- digits are positional
+                  // digits are positional
                   <span key={digitIndex} style={{ color }}>
                     {digit}
                   </span>

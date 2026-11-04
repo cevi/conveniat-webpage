@@ -1,15 +1,10 @@
 'use client';
 
 import type { ChatMessage } from '@/features/chat/api/types';
-import type { Locale, StaticTranslationString } from '@/types/types';
+import { imageSentText } from '@/lib/chat-images';
+import type { StaticTranslationString } from '@/types/types';
 import { getDocumentLocale, notifyForegroundMessage } from '@/utils/foreground-notifications';
 import type { ChatType } from '@prisma/client';
-
-const imageMessagePreview: StaticTranslationString = {
-  de: '📷 Bild',
-  en: '📷 Image',
-  fr: '📷 Image',
-};
 
 const fallbackChatName: StaticTranslationString = {
   de: 'Neue Nachricht',
@@ -18,22 +13,23 @@ const fallbackChatName: StaticTranslationString = {
 };
 
 /**
- * Builds a short preview of a realtime message payload, mirroring the preview the
- * server puts into the push notification body.
+ * The text of a realtime message payload, as the server puts it into the push body.
+ * Empty for an image, which has no text; see {@link isImagePayload}.
  */
-export const extractRealtimeMessagePreview = (messagePayload: unknown, locale: Locale): string => {
+export const extractRealtimeMessagePreview = (messagePayload: unknown): string => {
   if (typeof messagePayload === 'string') return messagePayload;
   if (typeof messagePayload !== 'object' || messagePayload === null) return '';
 
-  const payloadRecord = messagePayload as Record<string, unknown>;
-
-  const text = payloadRecord['text'];
+  const text = (messagePayload as Record<string, unknown>)['text'];
   if (typeof text === 'string' && text.trim() !== '') return text.trim();
-
-  if (typeof payloadRecord['url'] === 'string') return imageMessagePreview[locale];
 
   return '';
 };
+
+const isImagePayload = (messagePayload: unknown): boolean =>
+  typeof messagePayload === 'object' &&
+  messagePayload !== null &&
+  typeof (messagePayload as Record<string, unknown>)['url'] === 'string';
 
 /**
  * Surfaces a message that arrived over the realtime (SSE) stream.
@@ -68,15 +64,18 @@ export const notifyRealtimeChatMessage = ({
   if (message.id.startsWith('optimistic-')) return;
 
   const locale = getDocumentLocale();
-  const preview = extractRealtimeMessagePreview(message.messagePayload, locale);
-  if (preview === '') return;
+  const isImage = isImagePayload(message.messagePayload);
+  const preview = extractRealtimeMessagePreview(message.messagePayload);
+  if (preview === '' && !isImage) return;
 
   const senderName = message.senderName?.trim() ?? '';
   const resolvedChatName = chatName?.trim() ?? '';
 
-  // Same shape as the server-rendered push: chat name as title, "Sender: text" as body.
+  // Same shape as the server-rendered push: chat name as title, "Sender: text" as body, and
+  // for an image the sentence the push uses, "Anna hat ein Bild gesendet".
   const title = resolvedChatName === '' ? senderName || fallbackChatName[locale] : resolvedChatName;
-  const body = senderName === '' ? preview : `${senderName}: ${preview}`;
+  let body = senderName === '' ? preview : `${senderName}: ${preview}`;
+  if (isImage) body = imageSentText(senderName)[locale];
 
   notifyForegroundMessage({
     chatId,

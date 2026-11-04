@@ -1,4 +1,4 @@
-/* eslint-disable unicorn/no-null -- these tests exist precisely because Payload returns `null`
+/* these tests exist precisely because Payload returns `null`
    for a relationship whose target document was deleted. */
 import { scheduleEntriesCollection, type ScheduleEntryRecord } from '@/lib/tanstack-db';
 

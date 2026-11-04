@@ -51,13 +51,12 @@ describe('decodeStoredEventName', () => {
 
   it('passes a missing name through instead of turning it into a string', () => {
     expect(read(decodeStoredEventName)).toBeUndefined();
-    // eslint-disable-next-line unicorn/no-null
     expect(read(decodeStoredEventName, null)).toBeNull();
   });
 });
 
 describe('the Anlass-Name shown in the admin', () => {
-  it('is decoded on the Rechnungsverwaltung participant', () => {
+  it('is decoded on the Lager · Rechnungen participant', () => {
     const field = fieldNamed(dataFields(BillParticipantsCollection.fields), 'eventName');
     const hooks = field !== undefined && 'hooks' in field ? (field.hooks.afterRead ?? []) : [];
 

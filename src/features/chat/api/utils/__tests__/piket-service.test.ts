@@ -81,7 +81,6 @@ const supportChat = (uuid: string, archivedAt: Date | null): Chat => ({
 beforeEach(() => {
   messagesInChat = [];
   chats = [
-    // eslint-disable-next-line unicorn/no-null
     supportChat('open-chat', null),
     supportChat('archived-chat', new Date(Date.now() - 60_000)),
   ];

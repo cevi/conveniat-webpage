@@ -1,10 +1,14 @@
 const visitorRows = { count: jest.fn() };
 const registrationRows = {
   aggregate: jest.fn().mockResolvedValue({ _max: { counter: 6 } }),
-  create: jest.fn<Promise<unknown>, [unknown]>().mockResolvedValue({}),
+  create: jest
+    .fn<Promise<unknown>, [unknown]>()
+    .mockResolvedValue({ id: 'registration-1', billNumber: 42 }),
+  deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
 };
 const fakePrisma = {
   visitDayVisitor: visitorRows,
+  visitDayRegistration: registrationRows,
   $transaction: (work: (transaction: unknown) => Promise<unknown>): Promise<unknown> =>
     work({
       $executeRaw: jest.fn(),
@@ -25,6 +29,11 @@ jest.mock('@/config/environment-variables', () => ({
 }));
 jest.mock('payload', () => ({
   APIError: class extends Error {},
+}));
+// the bill has its own tests; here it matters that a registration asks for one
+const createVisitDayBill = jest.fn().mockResolvedValue('bill-1');
+jest.mock('@/features/visit-day/billing/create-visit-day-bill', () => ({
+  createVisitDayBill: (...args: unknown[]): unknown => createVisitDayBill(...args),
 }));
 
 interface Answer {
@@ -101,7 +110,7 @@ const fakeRequest = (
         docs: [{ id: 'uster', name: 'Cevi Uster', quartier: { id: 'q5', name: 'Quartier 5' } }],
       }),
       delete: remove,
-      logger: { info: jest.fn(), warn: jest.fn() },
+      logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
     },
   } as unknown as PayloadRequest;
   return { request, remove, store };
@@ -139,6 +148,8 @@ const save = async (request: PayloadRequest, answers: Answer[] = []): Promise<An
 beforeEach(() => {
   visitorRows.count.mockReset();
   registrationRows.create.mockClear();
+  registrationRows.deleteMany.mockClear();
+  createVisitDayBill.mockReset().mockResolvedValue('bill-1');
 });
 
 describe('a Besuchstag registration', () => {
@@ -167,6 +178,43 @@ describe('a Besuchstag registration', () => {
         visitors: { create: [{ personNumber: 1 }, { personNumber: 2 }] },
       },
     });
+  });
+
+  it('issues the bill of the saved registration, in the language of the form', async () => {
+    visitorRows.count.mockResolvedValue(0);
+    const { request } = fakeRequest();
+
+    await save(request, await register(request, '2'));
+
+    expect(createVisitDayBill).toHaveBeenCalledWith(
+      request.payload,
+      expect.objectContaining({
+        submissionId: 'submission-1',
+        registrationId: 'registration-1',
+        registrationNumber: '5321-B007',
+        billNumber: 42,
+        date: '2027-07-28',
+        hofId: 'uster',
+        persons: 2,
+        withLunch: true,
+        locale: 'de',
+      }),
+      expect.anything(),
+      request,
+    );
+  });
+
+  it('undoes the registration and frees its places when its bill cannot be issued', async () => {
+    visitorRows.count.mockResolvedValue(0);
+    createVisitDayBill.mockRejectedValue(new Error('settings missing'));
+    const { request, remove } = fakeRequest();
+    const answers = await register(request, '2');
+
+    await expect(save(request, answers)).rejects.toThrow('nicht gespeichert');
+    expect(registrationRows.deleteMany).toHaveBeenCalledWith({
+      where: { submissionId: 'submission-1' },
+    });
+    expect(remove).toHaveBeenCalledWith(expect.objectContaining({ id: 'submission-1' }));
   });
 
   it('does not take a number the sender made up', async () => {
@@ -238,8 +286,6 @@ describe('a Besuchstag registration', () => {
       { field: 'besuchstag', value: 'Mittwoch, 28. Juli 2027' },
     ]);
     expect(registrationRows.create.mock.calls[0]?.[0]).toMatchObject({
-      // eslint-disable-next-line unicorn/no-null
-      // eslint-disable-next-line unicorn/no-null -- Prisma stores a missing Hof as null
       data: { number: 'EXT-B007', hofId: null },
     });
   });
@@ -315,7 +361,6 @@ describe('a Besuchstag field that asks whom they visit and the persons', () => {
 
     expect(answers).toContainEqual({ field: 'hof', value: 'Ohne Bezug zu einer Abteilung' });
     expect(registrationRows.create.mock.calls[0]?.[0]).toMatchObject({
-      // eslint-disable-next-line unicorn/no-null -- Prisma stores a missing Hof as null
       data: { number: 'EXT-B007', hofId: null },
     });
   });

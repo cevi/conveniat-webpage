@@ -37,6 +37,11 @@ export const chatErrorTexts = {
     en: 'You can only start a chat with your contacts.',
     fr: 'Tu ne peux démarrer un chat qu’avec tes contacts.',
   },
+  threadGone: {
+    de: 'Die Nachricht, auf die du im Thread antwortest, gibt es nicht mehr.',
+    en: 'The message you are replying to in this thread no longer exists.',
+    fr: 'Le message auquel tu réponds dans ce fil n’existe plus.',
+  },
   tooManyMessages: {
     de: 'Du sendest zu viele Nachrichten. Warte einen Moment, sie werden danach gesendet.',
     en: 'You are sending too many messages. Wait a moment, they will be sent afterwards.',

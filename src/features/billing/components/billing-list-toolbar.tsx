@@ -8,7 +8,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { BillingPipelineStep } from '@/features/billing/components/billing-pipeline-step';
-import { PaymentImportDialog } from '@/features/billing/components/payment-import-dialog';
 import type { BillingTaskKey } from '@/features/billing/hooks/use-billing-jobs';
 import { useBillingJobs } from '@/features/billing/hooks/use-billing-jobs';
 import type { PipelineLock } from '@/features/billing/services/pipeline-lock';
@@ -20,7 +19,6 @@ import type { StaticTranslationString } from '@/types/types';
 import { Banner, useLocale } from '@payloadcms/ui';
 import {
   AlertTriangle,
-  Banknote,
   Download,
   FilePlus,
   FileSpreadsheet,
@@ -204,12 +202,6 @@ const xlsxExportLabel: StaticTranslationString = {
   fr: 'Synthèse des factures (Excel)',
 };
 
-const importPaymentsLabel: StaticTranslationString = {
-  de: 'Zahlungen importieren (CSV)',
-  en: 'Import payments (CSV)',
-  fr: 'Importer les paiements (CSV)',
-};
-
 const regenerateAllLabel: StaticTranslationString = {
   de: 'Alle neu generieren',
   en: 'Regenerate all',
@@ -310,7 +302,6 @@ export const BillingListToolbar: React.FC = () => {
   // Sending is the one step that reaches people outside the admin panel and cannot be
   // taken back, so it asks — and says how many mails that means — before it starts.
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
-  const [isPaymentImportOpen, setIsPaymentImportOpen] = useState(false);
 
   const {
     jobs,
@@ -436,16 +427,6 @@ export const BillingListToolbar: React.FC = () => {
               <Download className="h-4 w-4" />
               <span>{csvExportLabel[locale]}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(event): void => {
-                event.preventDefault();
-                setIsPaymentImportOpen(true);
-              }}
-              className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-(--theme-elevation-100)"
-            >
-              <Banknote className="h-4 w-4" />
-              <span>{importPaymentsLabel[locale]}</span>
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={(event): void => {
@@ -493,12 +474,6 @@ export const BillingListToolbar: React.FC = () => {
           />
         ))}
       </ol>
-
-      <PaymentImportDialog
-        isOpen={isPaymentImportOpen}
-        locale={locale}
-        onClose={() => setIsPaymentImportOpen(false)}
-      />
 
       {actionError !== undefined && (
         <Banner className="mt-3 mb-0" type="error">

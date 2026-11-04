@@ -57,7 +57,7 @@ describe('order steps', () => {
     expect(isOnOrderStep(7, 1)).toBe(true);
   });
 
-  // eslint-disable-next-line unicorn/no-null -- the column reads as null nowhere, a stale cache as undefined
+  // the column reads as null nowhere, a stale cache as undefined
   it.each([undefined, null, 0, -5, 2.5, '10'])('asks one by one for a step of %p', (step) => {
     expect(orderStepOf(step)).toBe(1);
     expect(isOnOrderStep(7, step)).toBe(true);

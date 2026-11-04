@@ -69,7 +69,7 @@ describe('ordering in steps', () => {
     expect(isAllowedQuantity(7, 5)).toBe(false);
   });
 
-  // eslint-disable-next-line unicorn/no-null -- a step the CMS left empty is stored as null
+  // a step the CMS left empty is stored as null
   it.each([undefined, null, 0, -5, 2.5, '10'])('orders one by one for a step of %p', (step) => {
     expect(materialStep(step)).toBe(1);
     expect(isAllowedQuantity(7, step)).toBe(true);

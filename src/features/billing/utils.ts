@@ -1,17 +1,10 @@
-/**
- * Mod-10 recursive check digit calculation for QR reference numbers.
- */
-export function calculateModule10Recursive(reference: string): number {
-  const table = [0, 9, 4, 6, 8, 2, 7, 1, 3, 5];
-  let carry = 0;
-  for (const char of reference) {
-    carry = table[(carry + Number.parseInt(char, 10)) % 10] ?? 0;
-  }
-  return (10 - carry) % 10;
-}
+import {
+  BILL_REFERENCE_PREFIXES,
+  calculateModule10Recursive,
+} from '@/features/billing-core/qr-reference';
 
 /** The fixed leading digits that mark a reference as a conveniat27 registration bill. */
-const QR_REFERENCE_PREFIX = '090';
+const QR_REFERENCE_PREFIX = BILL_REFERENCE_PREFIXES.camp;
 
 /** One field of the QR reference, in the order the digits appear. */
 export interface QrReferenceSegment {

@@ -73,7 +73,6 @@ describe('groupLegacyHofEvents', () => {
 
   it('skips rows it cannot place and names a nameless event after its id', () => {
     const { hoefe, skippedRows } = groupLegacyHofEvents([
-      // eslint-disable-next-line unicorn/no-null
       { eventId: '11', eventName: null, groupId: ' 22 ' },
       { eventId: '', eventName: 'conveniat27 Ohne Anlass', groupId: '22' },
       { eventId: '12', eventName: 'conveniat27 Ohne Gruppe' },

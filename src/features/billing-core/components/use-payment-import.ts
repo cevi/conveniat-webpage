@@ -1,8 +1,8 @@
 'use client';
 
-import { decodeCsvBytes } from '@/features/billing/services/payment-csv';
-import type { PaymentImportSummary } from '@/features/billing/services/payment-import';
-import { useListQuery } from '@payloadcms/ui';
+import type { BankImportSummary } from '@/features/billing-core/bank-import';
+import { decodeCsvBytes } from '@/features/billing-core/payment-csv';
+import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 
 /**
@@ -17,18 +17,19 @@ export const usePaymentImport = (): {
   /** Why the file was refused, while the dialog is still open. */
   error: string | undefined;
   /** What the last import booked and what it left for the finance team. */
-  result: PaymentImportSummary | undefined;
-  importFile: (file: File) => Promise<boolean>;
+  result: BankImportSummary | undefined;
+  /** @param bankExportedAt when the file was exported from the e-banking */
+  importFile: (file: File, bankExportedAt: Date) => Promise<boolean>;
   clearError: () => void;
   clearResult: () => void;
 } => {
-  const { query, refineListData } = useListQuery();
+  const router = useRouter();
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const [result, setResult] = useState<PaymentImportSummary | undefined>();
+  const [result, setResult] = useState<BankImportSummary | undefined>();
 
   const importFile = useCallback(
-    async (file: File): Promise<boolean> => {
+    async (file: File, bankExportedAt: Date): Promise<boolean> => {
       setIsImporting(true);
       setError(undefined);
       try {
@@ -36,9 +37,13 @@ export const usePaymentImport = (): {
         const response = await fetch('/api/confidential/billing/import-payments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ csv }),
+          body: JSON.stringify({
+            csv,
+            bankExportedAt: bankExportedAt.toISOString(),
+            filename: file.name,
+          }),
         });
-        const body = (await response.json()) as Partial<PaymentImportSummary> & {
+        const body = (await response.json()) as Partial<BankImportSummary> & {
           success?: boolean;
           error?: string;
         };
@@ -48,13 +53,20 @@ export const usePaymentImport = (): {
         }
 
         setResult({
-          totalCount: body.totalCount ?? 0,
-          bookedCount: body.bookedCount ?? 0,
-          alreadyBookedCount: body.alreadyBookedCount ?? 0,
-          errors: Array.isArray(body.errors) ? body.errors.map(String) : [],
-          outcomes: body.outcomes ?? {},
+          sides: (Array.isArray(body.sides) ? body.sides : []).map((side) => ({
+            key: side.key,
+            label: side.label,
+            summary: {
+              totalCount: side.summary.totalCount,
+              bookedCount: side.summary.bookedCount,
+              alreadyBookedCount: side.summary.alreadyBookedCount,
+              errors: Array.isArray(side.summary.errors) ? side.summary.errors.map(String) : [],
+              outcomes: side.summary.outcomes,
+            },
+          })),
         });
-        await refineListData(query);
+        // the list is rendered on the server; the same query again would not reload it
+        router.refresh();
         return true;
       } catch (importError) {
         setError(importError instanceof Error ? importError.message : String(importError));
@@ -63,7 +75,7 @@ export const usePaymentImport = (): {
         setIsImporting(false);
       }
     },
-    [query, refineListData],
+    [router],
   );
 
   return {

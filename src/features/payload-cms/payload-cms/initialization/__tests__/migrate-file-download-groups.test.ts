@@ -118,7 +118,6 @@ describe('migrateFileDownloadBlocks', () => {
   });
 
   it('gives a draft saved without a file an empty group', () => {
-    // eslint-disable-next-line unicorn/no-null
     const block = { blockType: 'fileDownload', file: null };
 
     expect(migrateFileDownloadBlocks(block)).toBe(true);

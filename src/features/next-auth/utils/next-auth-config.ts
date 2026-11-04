@@ -339,7 +339,7 @@ const mustWaitForRequestedSync = (token: JWT): boolean =>
  * What the `jwt` callback answers to end a session: Auth.js clears the session cookie instead of
  * re-signing it, and the user goes back through the Cevi.DB login.
  */
-// eslint-disable-next-line unicorn/no-null -- Auth.js ends a session on null, not on undefined
+// Auth.js ends a session on null, not on undefined
 const SESSION_ENDED = null;
 
 /**

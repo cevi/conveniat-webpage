@@ -26,7 +26,6 @@ const entry = (
     title,
     timeslot: { date: '2027-07-24T12:00:00.000Z', time },
     kind,
-    // eslint-disable-next-line unicorn/no-null
     location: null,
   }) as CampScheduleEntryFrontendType;
 

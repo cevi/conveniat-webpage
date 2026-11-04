@@ -204,9 +204,13 @@ model Message {
   // Relation to the MessageContent model is now on the MessageContent side
   contentVersions MessageContent[]
 
-  /// The parent message if this is a reply in a thread
+  /// The parent message if this is a reply in a thread. The key includes `chatId`, so a reply can
+  /// only answer a message of its own chat: one in another chat would show up in that chat's
+  /// thread and be deleted with it. Write `chatId` and `parentId` as columns, never a nested write
+  /// on `parent` or `replies`: Prisma takes `chatId` from the other side, so `connect` moves the
+  /// message into that chat and `disconnect` clears its chat.
   parentId  String?
-  parent    Message?          @relation("Thread", fields: [parentId], references: [uuid], onDelete: Cascade)
+  parent    Message?          @relation("Thread", fields: [parentId, chatId], references: [uuid, chatId], onDelete: Cascade)
   replies   Message[]         @relation("Thread")
   reactions MessageReaction[]
 
@@ -216,6 +220,8 @@ model Message {
   /// who deleted it, so far always the sender
   deletedById String?
 
+  /// the target of the parent key
+  @@unique([uuid, chatId])
   @@unique([chatId, seq])
   @@index([chatId, createdAt(sort: Asc)])
   @@index([parentId])

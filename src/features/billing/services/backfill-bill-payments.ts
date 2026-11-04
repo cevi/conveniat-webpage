@@ -1,3 +1,4 @@
+import { CAMP_BILL_COLLECTION } from '@/features/billing-core/payment-allocation';
 import type { Payload } from 'payload';
 
 /**
@@ -59,10 +60,17 @@ export async function backfillBillPayments(payload: Payload): Promise<number> {
             ? {}
             : { bookingDate: participant.paidDate }),
           reference: participant.referenceNumber ?? '',
+          matchedBill: { relationTo: CAMP_BILL_COLLECTION, value: participant.id },
           matchedParticipant: participant.id,
           importOutcome: 'booked',
           importedBy: 'Übernahme einer früheren Buchung',
-          allocations: [{ participant: participant.id, amount }],
+          allocations: [
+            {
+              bill: { relationTo: CAMP_BILL_COLLECTION, value: participant.id },
+              participant: participant.id,
+              amount,
+            },
+          ],
         },
       });
       known.add(transaction);

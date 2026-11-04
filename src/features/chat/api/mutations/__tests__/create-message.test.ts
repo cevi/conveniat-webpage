@@ -32,6 +32,8 @@ let committed: boolean;
 let failCommit: boolean;
 const publishedAt: boolean[] = [];
 const pushedAt: boolean[] = [];
+/** What each push would say: its text and the sender it is prefixed with. */
+const pushedTexts: { message: string; senderName: string | undefined }[] = [];
 
 jest.mock('@/lib/db/chat-pubsub', () => ({
   chatPubSub: {
@@ -42,8 +44,15 @@ jest.mock('@/lib/db/chat-pubsub', () => ({
   },
 }));
 jest.mock('@/lib/push/send-notification', () => ({
-  sendNotification: (): Promise<{ success: boolean }> => {
+  sendNotification: (
+    message: string,
+    _recipients: string[],
+    _chatId: string,
+    _messageId: string,
+    options: { senderName?: string },
+  ): Promise<{ success: boolean }> => {
     pushedAt.push(committed);
+    pushedTexts.push({ message, senderName: options.senderName });
     return Promise.resolve({ success: true });
   },
 }));
@@ -55,6 +64,66 @@ import { ChatMembershipPermission, ChatType, MessageType } from '@/lib/prisma/cl
 const CHAT_ID = '00000000-0000-4000-8000-000000000001';
 
 let storedTypes: MessageType[];
+let storedPayloads: unknown[];
+let storedParents: unknown[];
+
+interface ExistingMessage {
+  uuid: string;
+  chatId: string;
+  parentId: string | null;
+  deletedAt: Date | null;
+  /** Its newest content, a text unless given. */
+  payload?: unknown;
+}
+
+const OTHER_CHAT_ID = '00000000-0000-4000-8000-000000000009';
+const PARENT_ID = '00000000-0000-4000-8000-000000000002';
+const parent: ExistingMessage = {
+  uuid: PARENT_ID,
+  chatId: CHAT_ID,
+  parentId: null,
+  deletedAt: null,
+};
+const otherChatMessage: ExistingMessage = {
+  uuid: '00000000-0000-4000-8000-000000000003',
+  chatId: OTHER_CHAT_ID,
+  parentId: null,
+  deletedAt: null,
+};
+const reply: ExistingMessage = {
+  uuid: '00000000-0000-4000-8000-000000000004',
+  chatId: CHAT_ID,
+  parentId: PARENT_ID,
+  deletedAt: null,
+};
+const deletedMessage: ExistingMessage = {
+  uuid: '00000000-0000-4000-8000-000000000005',
+  chatId: CHAT_ID,
+  parentId: null,
+  deletedAt: new Date('2027-07-25T10:00:00Z'),
+};
+const imageMessage: ExistingMessage = {
+  uuid: '00000000-0000-4000-8000-000000000006',
+  chatId: CHAT_ID,
+  parentId: null,
+  deletedAt: null,
+  payload: { url: `chat-images/${CHAT_ID}/1719830400000-k3j9x2.jpg` },
+};
+const existingMessages = [parent, otherChatMessage, reply, deletedMessage, imageMessage];
+
+/** Prisma's `findFirst` over the existing messages, for the equality filters a send uses. */
+const findExistingMessage = ({
+  where,
+}: {
+  where: Partial<ExistingMessage>;
+}): Promise<(ExistingMessage & { contentVersions: unknown[] }) | null> => {
+  const found = existingMessages.find((message) =>
+    Object.entries(where).every(([key, value]) => message[key as keyof ExistingMessage] === value),
+  );
+  if (!found) return Promise.resolve(null);
+  const payload = found.payload ?? { text: 'Wer kommt mit?' };
+  return Promise.resolve({ ...found, contentVersions: [{ payload }] });
+};
 
 /** The rows the procedure touches, and a transaction that commits after the callback. */
 const prisma = {
@@ -78,7 +147,6 @@ const prisma = {
           ChatCapability.THREADS,
         ],
         // prisma answers a chat that was never archived with null
-        // eslint-disable-next-line unicorn/no-null
         archivedAt: null,
       }),
     update: (): Promise<void> => Promise.resolve(),
@@ -92,8 +160,21 @@ const prisma = {
   },
   message: {
     findMany: (): Promise<unknown[]> => Promise.resolve([]),
-    create: ({ data }: { data: { type: MessageType } }): Promise<unknown> => {
+    findFirst: findExistingMessage,
+    findUnique: ({ where }: { where: { uuid: string } }): Promise<unknown> =>
+      findExistingMessage({ where: { uuid: where.uuid } }),
+    create: ({
+      data,
+    }: {
+      data: {
+        type: MessageType;
+        contentVersions: { create: { payload: unknown }[] };
+        parentId?: string;
+      };
+    }): Promise<unknown> => {
       storedTypes.push(data.type);
+      storedPayloads.push(data.contentVersions.create[0]?.payload);
+      storedParents.push(data.parentId);
       return Promise.resolve({ uuid: 'stored', createdAt: new Date(), type: data.type });
     },
   },
@@ -118,10 +199,13 @@ const send = (type?: MessageType): Promise<unknown> =>
 
 beforeEach(() => {
   storedTypes = [];
+  storedPayloads = [];
+  storedParents = [];
   committed = false;
   failCommit = false;
   publishedAt.length = 0;
   pushedAt.length = 0;
+  pushedTexts.length = 0;
   mockPoolRead.mockClear();
 });
 
@@ -162,7 +246,7 @@ describe('the connections a send needs', () => {
       chatId: CHAT_ID,
       content: 'Hoi zäme',
       timestamp: new Date(),
-      parentId: '00000000-0000-4000-8000-000000000002',
+      parentId: PARENT_ID,
     });
 
     expect(storedTypes).toEqual([MessageType.TEXT_MSG]);
@@ -185,5 +269,82 @@ describe('announcing a sent message', () => {
 
     expect(publishedAt).toEqual([]);
     expect(pushedAt).toEqual([]);
+  });
+});
+
+const sendText = (input: { parentId?: string; quotedMessageId?: string }): Promise<unknown> =>
+  anna.sendMessage({ chatId: CHAT_ID, content: 'Ich!', timestamp: new Date(), ...input });
+
+describe('what a reply and a quote may point at', () => {
+  it.each([
+    ['a message of the same chat', parent.uuid],
+    ['a reply, as a thread opened from a thread', reply.uuid],
+    ['a message deleted since, whose thread stays open', deletedMessage.uuid],
+  ])('stores a reply to %s', async (_, parentId) => {
+    await sendText({ parentId });
+    expect(storedParents).toEqual([parentId]);
+  });
+
+  it('refuses a reply to a message of another chat, without a text for the user', async () => {
+    const refusal = await sendText({ parentId: otherChatMessage.uuid }).catch(
+      (error: unknown) => error,
+    );
+
+    expect(refusal).toMatchObject({ code: 'NOT_FOUND' });
+    expect(refusal).not.toHaveProperty('reason');
+    expect(storedTypes).toEqual([]);
+    expect(publishedAt).toEqual([]);
+    expect(pushedAt).toEqual([]);
+  });
+
+  it('says the thread is gone when its message no longer exists', async () => {
+    await expect(
+      sendText({ parentId: '00000000-0000-4000-8000-0000000000ff' }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND', reason: 'threadGone' });
+    expect(storedTypes).toEqual([]);
+  });
+
+  it('stores a quote of a message of the same chat with its snippet', async () => {
+    await sendText({ quotedMessageId: PARENT_ID });
+    expect(storedPayloads).toEqual([
+      { text: 'Ich!', quotedMessageId: PARENT_ID, quotedSnippet: 'Wer kommt mit?' },
+    ]);
+  });
+
+  it('stores a quote of an image without a snippet, not its storage path', async () => {
+    await sendText({ quotedMessageId: imageMessage.uuid });
+    expect(storedPayloads).toEqual([{ text: 'Ich!', quotedMessageId: imageMessage.uuid }]);
+  });
+
+  it('keeps the quote of a message deleted since, but not its text', async () => {
+    await sendText({ quotedMessageId: deletedMessage.uuid });
+    expect(storedPayloads).toEqual([{ text: 'Ich!', quotedMessageId: deletedMessage.uuid }]);
+  });
+
+  it('keeps the quote of a message removed since', async () => {
+    const removed = '00000000-0000-4000-8000-0000000000ff';
+    await sendText({ quotedMessageId: removed });
+    expect(storedPayloads).toEqual([{ text: 'Ich!', quotedMessageId: removed }]);
+  });
+
+  it('drops a quote of a message of another chat and still sends', async () => {
+    await expect(sendText({ quotedMessageId: otherChatMessage.uuid })).resolves.toMatchObject({
+      messagePayload: { text: 'Ich!' },
+    });
+    expect(storedPayloads).toEqual([{ text: 'Ich!' }]);
+  });
+});
+
+describe('the text of the push', () => {
+  it('is the message, prefixed with the sender', async () => {
+    await send(MessageType.TEXT_MSG);
+
+    expect(pushedTexts).toEqual([{ message: 'Hoi zäme', senderName: 'Anna' }]);
+  });
+
+  it('says who sent an image instead of showing where it is stored', async () => {
+    await send(MessageType.IMAGE_MSG);
+
+    expect(pushedTexts).toEqual([{ message: 'Anna hat ein Bild gesendet', senderName: undefined }]);
   });
 });

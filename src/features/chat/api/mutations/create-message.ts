@@ -3,13 +3,15 @@ import {
   assertMembershipCanWrite,
   assertWriteAbilities,
 } from '@/features/chat/api/checks/assert-can-write-in-chat';
+import { quotedSnippetOf } from '@/features/chat/utils/quoted-snippet';
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
-import { isImageKeyOfChat } from '@/lib/chat-images';
+import { imageSentText, isImageKeyOfChat } from '@/lib/chat-images';
 import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatType, MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma/client';
 import { sendNotification } from '@/lib/push/send-notification';
+import { invariantError } from '@/trpc/error-formatter';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { rateLimit } from '@/trpc/middleware/rate-limit';
@@ -154,10 +156,10 @@ export const createMessage = trpcBaseProcedure
       // Only an upload into this very chat, see `getUploadUrl`. Any other URL would be loaded
       // by every member's phone, which is all a tracking pixel needs.
       if (!isImageKeyOfChat(validatedMessage.content, validatedMessage.chatId)) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'An image message must name an image uploaded to this chat.',
-        });
+        throw invariantError(
+          'BAD_REQUEST',
+          'An image message must name an image uploaded to this chat.',
+        );
       }
     }
 
@@ -197,7 +199,9 @@ export const createMessage = trpcBaseProcedure
 
       if (alreadyStored) {
         // The id is client-chosen, so make sure it really is a replay of *this* user's
-        // send in *this* chat rather than an attempt to claim someone else's message.
+        // send in *this* chat rather than an attempt to claim someone else's message. Not an
+        // invariant: outbox items queued before they carried a userId replay under whoever is
+        // signed in on the phone now.
         if (
           alreadyStored.senderId !== user.uuid ||
           alreadyStored.chatId !== validatedMessage.chatId
@@ -230,6 +234,21 @@ export const createMessage = trpcBaseProcedure
                   quotedSnippet: storedPayload.quotedSnippet,
                 },
         };
+      }
+    }
+
+    // A reply belongs to a thread of this chat. Without the check, a reply to another chat's
+    // message would show up in that chat's thread and be deleted along with it. A thread may
+    // start at a reply or at a deleted message, and stays open for replies in both cases.
+    if (validatedMessage.parentId !== undefined) {
+      const parent = await prisma.message.findUnique({
+        where: { uuid: validatedMessage.parentId },
+        select: { chatId: true },
+      });
+      // unpublishing an announcement deletes its message, also under a thread still open
+      if (!parent) throw chatError('NOT_FOUND', 'threadGone');
+      if (parent.chatId !== validatedMessage.chatId) {
+        throw invariantError('NOT_FOUND', 'Thread not found in this chat.');
       }
     }
 
@@ -268,31 +287,20 @@ export const createMessage = trpcBaseProcedure
       }
     }
 
-    // Fetch quoted message content if quotedMessageId is provided. Only from this chat, and
-    // not from a deleted message: a send queued offline may quote one deleted since, and its
-    // text must not come back as the snippet.
+    // A quote of another chat's message is dropped, not stored. A message deleted since (a
+    // send queued offline) keeps its quote, so the reply still reads as one, but its text must
+    // not come back as the snippet.
+    let quotedMessageId = validatedMessage.quotedMessageId;
     let quotedSnippet: string | undefined;
-    if (validatedMessage.quotedMessageId) {
-      const quotedMessage = await prisma.message.findFirst({
-        where: {
-          uuid: validatedMessage.quotedMessageId,
-          chatId: validatedMessage.chatId,
-          // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
-          deletedAt: null,
-        },
+    if (quotedMessageId !== undefined) {
+      const quotedMessage = await prisma.message.findUnique({
+        where: { uuid: quotedMessageId },
         include: { contentVersions: { take: 1, orderBy: { revision: 'desc' } } },
       });
-      if (quotedMessage?.contentVersions[0]?.payload) {
-        const payload = quotedMessage.contentVersions[0].payload;
-        let text: string;
-        if (typeof payload === 'string') {
-          text = payload;
-        } else {
-          const textPayload = payload as Record<string, unknown>;
-          text =
-            typeof textPayload['text'] === 'string' ? textPayload['text'] : JSON.stringify(payload);
-        }
-        quotedSnippet = text.length > 100 ? `${text.slice(0, 100)}...` : text;
+      if (quotedMessage && quotedMessage.chatId !== validatedMessage.chatId) {
+        quotedMessageId = undefined;
+      } else if (quotedMessage && !quotedMessage.deletedAt) {
+        quotedSnippet = quotedSnippetOf(quotedMessage.contentVersions[0]?.payload);
       }
     }
 
@@ -309,17 +317,17 @@ export const createMessage = trpcBaseProcedure
                   ? { url: validatedMessage.content }
                   : {
                       text: validatedMessage.content,
-                      quotedMessageId: validatedMessage.quotedMessageId,
+                      quotedMessageId,
                       quotedSnippet,
                     },
             },
           ],
         },
-        sender: { connect: { uuid: user.uuid } },
-        chat: { connect: { uuid: validatedMessage.chatId } },
-        ...(validatedMessage.parentId && {
-          parent: { connect: { uuid: validatedMessage.parentId } },
-        }),
+        // Columns, not `connect`: the parent key includes the chat, and connecting a parent
+        // would take the chat from the parent instead of refusing one from another chat.
+        senderId: user.uuid,
+        chatId: validatedMessage.chatId,
+        ...(validatedMessage.parentId !== undefined && { parentId: validatedMessage.parentId }),
         messageEvents: {
           create: [
             { type: MessageEventType.CREATED, user: { connect: { uuid: user.uuid } } },
@@ -354,10 +362,16 @@ export const createMessage = trpcBaseProcedure
     // lock screens or live views, and a client refetching on the event must find it.
     // Neither the push fan-out nor the publish is awaited, so a slow push provider does
     // not hold the request or its pool connection.
+    // An image's content is its storage key, which must not reach a lock screen. The push
+    // says in words who sent one, in the sender's locale like every other push, since the
+    // server does not know the recipients' locales.
+    const isImage = validatedMessage.type === MessageType.IMAGE_MSG;
+    const pushText = isImage ? imageSentText(user.name)[ctx.locale] : validatedMessage.content;
+
     ctx.afterTransactionCommit(() => {
       if (pushRecipientUserIds.length > 0) {
         sendNotification(
-          validatedMessage.content,
+          pushText,
           pushRecipientUserIds,
           validatedMessage.chatId,
           createdMessage.uuid,
@@ -367,7 +381,8 @@ export const createMessage = trpcBaseProcedure
                 ? PushNotificationKind.EMERGENCY
                 : PushNotificationKind.CHAT,
             chatName: chat.name,
-            senderName: user.name,
+            // the image line already names the sender
+            ...(isImage ? {} : { senderName: user.name }),
             // Every message in an emergency chat is part of a running alert, so the
             // follow-ups reach the piket members on the siren channel too - a reply that
             // only lands in the notification shade is exactly the failure mode the
@@ -397,7 +412,7 @@ export const createMessage = trpcBaseProcedure
                 ? { url: validatedMessage.content }
                 : {
                     text: validatedMessage.content,
-                    quotedMessageId: validatedMessage.quotedMessageId,
+                    quotedMessageId,
                     quotedSnippet,
                   },
             senderId: user.uuid,
@@ -428,7 +443,7 @@ export const createMessage = trpcBaseProcedure
           ? { url: validatedMessage.content }
           : {
               text: validatedMessage.content,
-              quotedMessageId: validatedMessage.quotedMessageId,
+              quotedMessageId,
               quotedSnippet,
             },
     };

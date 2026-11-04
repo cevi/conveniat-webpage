@@ -3,13 +3,16 @@ import { Button } from '@/components/ui/buttons/button';
 import { formFieldClassName } from '@/components/ui/field';
 import { useMessageInput } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-message-input';
 import { useStagedImage } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-staged-image';
+import { MessagePreviewIcon } from '@/features/chat/components/ui/message-preview-icon';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
+import type { MessagePreviewIcon as MessagePreviewIconName } from '@/features/chat/types/api-dto-types';
 import { generateMessageId } from '@/features/chat/utils';
 import { isMessageDeleted } from '@/features/chat/utils/message-deletion';
+import { describeQuotedMessage } from '@/features/chat/utils/quoted-snippet';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
@@ -472,7 +475,10 @@ export const ChatTextAreaInput: React.FC = () => {
             <textarea
               {...textareaProps}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.shiftKey) {
+                // only with a mouse or trackpad: a phone keyboard has no Shift+Enter, so there
+                // Enter writes a new line and the send button sends
+                const hasFinePointer = globalThis.matchMedia('(pointer: fine)').matches;
+                if (event.key === 'Enter' && !event.shiftKey && hasFinePointer) {
                   event.preventDefault();
                   void sendWithAttachment();
                 }
@@ -485,7 +491,6 @@ export const ChatTextAreaInput: React.FC = () => {
                 canUploadPictures ? 'pl-0' : 'pl-[14px]',
               )}
               rows={1}
-              enterKeyHint="send"
               // five lines, then the textarea scrolls instead of eating the conversation
               style={{ minHeight: '42px', maxHeight: '138px' }}
               aria-label={placeholder}
@@ -560,19 +565,15 @@ const QuotedMessagePreview: React.FC<{
   const { data: message, isLoading } = trpc.chat.getMessage.useQuery({ messageId });
   const { data: currentUser } = trpc.chat.user.useQuery({});
 
-  const getSnippet = (): string => {
-    if (isLoading) return '…';
-    if (!message) return messageNotFoundText[locale];
-    if (isMessageDeleted(message)) return deletedQuoteText[locale];
-
-    const payload = message.messagePayload;
-    if (typeof payload === 'string') return payload;
-    const textPayload = payload as Record<string, unknown>;
-    if ('text' in textPayload) {
-      return String(textPayload['text']);
-    }
-    return '…';
+  // the quoted message as the chat list and the bubble name it, an image as "Bild" behind its icon
+  const getSnippet = (): { text: string; icon?: MessagePreviewIconName | undefined } => {
+    if (isLoading) return { text: '…' };
+    if (!message) return { text: messageNotFoundText[locale] };
+    if (isMessageDeleted(message)) return { text: deletedQuoteText[locale] };
+    const { text, icon } = describeQuotedMessage(message.messagePayload, locale);
+    return { text: text === '' ? '…' : text, icon };
   };
+  const snippet = getSnippet();
 
   let title = replyingText[locale];
   if (message !== undefined && message.senderId === currentUser) {
@@ -586,7 +587,10 @@ const QuotedMessagePreview: React.FC<{
       <Reply className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-[13px] font-semibold text-green-900">{title}</span>
-        <span className="truncate text-[13px] text-green-700">{getSnippet()}</span>
+        <span className="truncate text-[13px] text-green-700">
+          <MessagePreviewIcon icon={snippet.icon} />
+          {snippet.text}
+        </span>
       </div>
       <button
         type="button"

@@ -28,7 +28,6 @@ export const createChatInvite = trpcBaseProcedure
     const now = new Date();
 
     await prisma.chatInvite.deleteMany({
-      // eslint-disable-next-line unicorn/no-null
       where: { issuerId: user.uuid, redeemedById: null, expiresAt: { lt: now } },
     });
 

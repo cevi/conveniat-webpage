@@ -6,10 +6,7 @@ import { readPreference, writePreference } from '@/lib/preferences';
 import { trpc, useOptionalTrpcUtils } from '@/trpc/client';
 import { Cookie } from '@/types/types';
 import { assignLocation } from '@/utils/assign-location';
-import {
-  notifyForegroundMessage,
-  setForegroundNotificationNavigator,
-} from '@/utils/foreground-notifications';
+import { notifyForegroundMessage } from '@/utils/foreground-notifications';
 import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
 import { reloadPage } from '@/utils/reload-page';
 import { isNativeAppWebView } from '@/utils/standalone-check';
@@ -568,15 +565,6 @@ export function useNativePush(): {
   const { mutateAsync: unregisterDevice } = trpc.nativePush.unregisterDevice.useMutation();
   const { mutate: markInteracted } = trpc.pushTracking.markInteracted.useMutation();
   const { mutate: markDelivered } = trpc.pushTracking.markDelivered.useMutation();
-
-  // Foreground notifications are raised from non-React code (SSE listener, bridge
-  // events), so hand them the client-side router instead of a hard navigation.
-  useEffect(() => {
-    setForegroundNotificationNavigator((target: string) =>
-      isOtherOriginTarget(target) ? assignLocation(target) : router.push(target),
-    );
-    return (): void => setForegroundNotificationNavigator(undefined);
-  }, [router]);
 
   useEffect(() => {
     const isNative = isNativeAppWebView();

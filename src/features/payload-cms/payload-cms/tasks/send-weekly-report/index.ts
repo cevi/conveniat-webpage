@@ -1,3 +1,4 @@
+import { environmentVariables as env } from '@/config/environment-variables';
 import {
   cleanupCompletedScheduledJobs,
   cleanupStaleScheduledJobs,
@@ -109,6 +110,19 @@ export const sendWeeklyReportTask: TaskConfig = {
     const result = await sendWeeklyReport(req.payload, {
       runOwner: job ? String(job.id) : undefined,
     });
-    return { output: { success: true, ...result } };
+    // The Besuchstag report goes to its own recipients in its own slot; a failure there must
+    // not cost the camp report its run, which has already gone out.
+    let visitDay: Record<string, unknown> = { sent: false };
+    if (env.FEATURE_ENABLE_VISIT_DAY) {
+      try {
+        const { sendVisitDayWeeklyReport } =
+          await import('@/features/visit-day/billing/visit-day-weekly-report');
+        visitDay = await sendVisitDayWeeklyReport(req.payload);
+      } catch (error) {
+        req.payload.logger.error({ err: error, msg: 'Besuchstag weekly report failed.' });
+        visitDay = { sent: false, reason: error instanceof Error ? error.message : String(error) };
+      }
+    }
+    return { output: { success: true, ...result, visitDay } };
   },
 };

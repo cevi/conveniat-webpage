@@ -183,7 +183,7 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
     : getTimelineEntriesCachedPersistent(timelineEntryUuids, locale));
 
   const timelineEntries = timelineEntriesUnsorted
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, unicorn/no-null
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     .filter((entry: Timeline) => entry.date != null && entry.date !== '')
     .sort((entry1: Timeline, entry2: Timeline) => entry2.date.localeCompare(entry1.date));
 

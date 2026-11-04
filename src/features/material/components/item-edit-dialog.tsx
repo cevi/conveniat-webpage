@@ -154,9 +154,7 @@ export const ItemEditDialog: React.FC<{
     const data = {
       ...form,
       code: form.code.trim().toUpperCase(),
-      // eslint-disable-next-line unicorn/no-null
       usageNotes: form.usageNotes.trim() === '' ? null : form.usageNotes,
-      // eslint-disable-next-line unicorn/no-null
       imageUrl: form.imageUrl.trim() === '' ? null : form.imageUrl.trim(),
     };
     const onSuccess = (): void => {

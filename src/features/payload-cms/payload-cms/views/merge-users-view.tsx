@@ -166,7 +166,6 @@ const findUser = async (
 ): Promise<User | undefined> => {
   if (id === undefined || id === '') return undefined;
   const user = await payload.findByID({ collection: 'users', id, depth: 0, disableErrors: true });
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return user ?? undefined;
 };
 

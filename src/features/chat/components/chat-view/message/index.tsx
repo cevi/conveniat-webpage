@@ -21,11 +21,13 @@ import { SenderAvatar } from '@/features/chat/components/chat-view/message/sende
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
 import { ThreadSummary } from '@/features/chat/components/chat-view/message/thread-summary';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
+import { MessagePreviewIcon } from '@/features/chat/components/ui/message-preview-icon';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date';
 import { useLongPress } from '@/features/chat/hooks/use-long-press';
 import { isMessageDeleted } from '@/features/chat/utils/message-deletion';
+import { describeQuotedMessage } from '@/features/chat/utils/quoted-snippet';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
@@ -237,6 +239,16 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   else if (quotedSource.senderId === currentUserId) quotedAuthor = youText[activeLocale];
   else if (quotedSource.senderName !== undefined)
     quotedAuthor = splitDisplayName(quotedSource.senderName).primary;
+  // the quoted message as the chat list names it, an image as "Bild" behind its icon; the
+  // snippet stored with the reply only stands in until the quoted message is loaded
+  const quotePreview =
+    quotedSource === undefined || isQuoteDeleted
+      ? undefined
+      : describeQuotedMessage(quotedSource.messagePayload, activeLocale);
+  let quoteText = replyToMessageText[activeLocale];
+  if (quotePreview !== undefined && quotePreview.text !== '') quoteText = quotePreview.text;
+  else if (quotePreview === undefined && quotedSnippet !== undefined && quotedSnippet !== '')
+    quoteText = quotedSnippet;
 
   const openActions = (): void => {
     // the finger that held the bubble may still move; that is no swipe any more
@@ -475,9 +487,8 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         </span>
       ) : (
         <span className="line-clamp-2 text-[13px] leading-snug">
-          {typeof quotedSnippet === 'string' && quotedSnippet.length > 0
-            ? quotedSnippet
-            : replyToMessageText[activeLocale]}
+          <MessagePreviewIcon icon={quotePreview?.icon} />
+          {quoteText}
         </span>
       )}
     </button>

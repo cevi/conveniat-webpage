@@ -2,12 +2,12 @@
    nothing, and saying so explicitly is clearer than a bare jest.fn(). */
 /* eslint-disable @typescript-eslint/unbound-method -- asserting on a jest mock reads it off
    its object by design; it is never called from there. */
+import { buildCreditorFromSettings } from '@/features/billing-core/creditor';
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import {
   buildCreditorFooterItems,
-  buildCreditorFromSettings,
   generateBillsUseCase,
   layoutFooterLines,
   resolvePricing,
@@ -112,7 +112,7 @@ describe('generateBillsUseCase with an unpriced role', () => {
     expect(participantRepo.update).toHaveBeenCalledWith('p1', {
       status: 'invalid_anmeldeangaben',
       missingAnmeldeangaben: [
-        'Rollentyp "Event::Role::Cook" ist in den Rechnungs-Einstellungen nicht konfiguriert.',
+        'Rollentyp "Event::Role::Cook" ist in den Lager-Rechnungseinstellungen nicht konfiguriert.',
       ],
     });
   });
@@ -130,7 +130,7 @@ describe('generateBillsUseCase with an unpriced role', () => {
     );
 
     expect(summary.errors).toEqual([
-      'Max Mustermann: Rollentyp "Event::Role::Cook" ist in den Rechnungs-Einstellungen nicht konfiguriert.',
+      'Max Mustermann: Rollentyp "Event::Role::Cook" ist in den Lager-Rechnungseinstellungen nicht konfiguriert.',
     ]);
     expect(summary.relatedDocuments).toEqual(['billSettings']);
   });
@@ -140,7 +140,7 @@ describe('generateBillsUseCase with an unpriced role', () => {
       participant({
         roleType: 'Event::Role::Cook',
         missingAnmeldeangaben: [
-          'Rollentyp "Event::Role::Cook" ist in den Rechnungs-Einstellungen nicht konfiguriert.',
+          'Rollentyp "Event::Role::Cook" ist in den Lager-Rechnungseinstellungen nicht konfiguriert.',
         ],
       }),
     ]);
@@ -150,7 +150,7 @@ describe('generateBillsUseCase with an unpriced role', () => {
     expect(participantRepo.update).toHaveBeenCalledWith('p1', {
       status: 'invalid_anmeldeangaben',
       missingAnmeldeangaben: [
-        'Rollentyp "Event::Role::Cook" ist in den Rechnungs-Einstellungen nicht konfiguriert.',
+        'Rollentyp "Event::Role::Cook" ist in den Lager-Rechnungseinstellungen nicht konfiguriert.',
       ],
     });
   });
@@ -349,7 +349,6 @@ describe('buildCreditorFromSettings', () => {
     const creditor = buildCreditorFromSettings({
       ...settings,
       creditorBuildingNumber: '',
-      // eslint-disable-next-line unicorn/no-null -- Payload stores a cleared text field as null
       creditorEmail: null,
       creditorWebsite: '',
     });

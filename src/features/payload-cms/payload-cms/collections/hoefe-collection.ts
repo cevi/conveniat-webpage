@@ -143,7 +143,8 @@ export const HoefeCollection: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
-    group: AdminPanelDashboardGroups.BackofficeBilling.label,
+    // read by the billing, the Besuchstag, the Hof dashboard and the Quartiere alike
+    group: AdminPanelDashboardGroups.BackofficeHoefeAndMaterial.label,
     defaultColumns: ['name', 'quartier', 'groupId', 'events'],
     description: {
       en: 'One entry per Cevi.DB group that runs a conveniat27 camp. Synced from Cevi.DB and read-only here: change a Hof in Cevi.DB, then run "Load events from Cevi.DB" again.',

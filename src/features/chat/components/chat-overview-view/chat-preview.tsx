@@ -2,6 +2,7 @@
 import { ChatAvatar } from '@/features/chat/components/ui/chat-avatar';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { LinkPendingSpinner } from '@/features/chat/components/ui/link-pending-spinner';
+import { MessagePreviewIcon } from '@/features/chat/components/ui/message-preview-icon';
 import { PersonName } from '@/features/chat/components/ui/person-name';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { isOpenChatPathname, useOpeningChat } from '@/features/chat/context/chat-id-context';
@@ -179,6 +180,7 @@ export const ChatPreview: React.FC<{
     previewText = rawPreview[locale];
   }
   let senderPrefix = previewSenderPrefix(chat.lastMessage, chat.chatType, currentUserId, locale);
+  let previewIcon = chat.lastMessage?.messagePreviewIcon;
   const isOwnMessage = currentUserId !== undefined && chat.lastMessage?.senderId === currentUserId;
 
   // a group with nothing but its creation message, seen by the one who created it
@@ -190,6 +192,7 @@ export const ChatPreview: React.FC<{
   if (isFreshOwnGroup) {
     previewText = groupCreatedText[locale];
     senderPrefix = '';
+    previewIcon = undefined;
   }
 
   const isEmergency = chat.chatType === ChatType.EMERGENCY;
@@ -287,6 +290,7 @@ export const ChatPreview: React.FC<{
                 <SentStatus status={chat.lastMessage.status} locale={locale} />
               )}
               {senderPrefix}
+              <MessagePreviewIcon icon={previewIcon} />
               {previewText}
             </p>
             {hasUnread && (

@@ -1,3 +1,6 @@
+// The ledger's access rules read the group settings; no group matters to the import.
+jest.mock('@/config/environment-variables', () => ({ environmentVariables: {} }));
+
 // The import only reaches the Cevi.DB client through the queued job, never in the request.
 jest.mock('@/features/billing/services/email-service', () => ({
   createHitobitoService: jest.fn(),
@@ -8,11 +11,11 @@ jest.mock('payload', () => ({
   APIError: class extends Error {},
 }));
 
-import {
-  reconcileAfterPaymentChange,
-  validatePaymentChange,
-} from '@/features/billing/collections/bill-payment-hooks';
-import { importPayments, PaymentFileError } from '@/features/billing/services/payment-import';
+import type { PaymentImportSummary } from '@/features/billing-core/bank-import';
+import { importBankFile, PaymentFileError } from '@/features/billing-core/bank-import';
+import { createBillPaymentsCollection } from '@/features/billing-core/bill-payments-collection';
+import { campBillKind } from '@/features/billing/camp-bill-kind';
+import { campPaymentImporter } from '@/features/billing/services/payment-import';
 import { generateQrReference } from '@/features/billing/utils';
 import type { BillPayment } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
@@ -20,6 +23,49 @@ import type { Payload } from 'payload';
 const reference = generateQrReference('123012', '34000', '0567000', 1);
 const siblingReference = generateQrReference('123012', '34000', '0567000', 2);
 const unknownReference = generateQrReference('123012', '34000', '0567000', 3);
+
+/** The bank import as the admin panel runs it, reporting what the camp bills made of the file. */
+const importPayments = async (
+  payload: Payload,
+  csv: string,
+  actor: string,
+): Promise<PaymentImportSummary> => {
+  const { sides } = await importBankFile(
+    payload,
+    csv,
+    { actor, bankExportedAt: new Date('2026-10-09T08:00:00Z') },
+    [campPaymentImporter],
+    new Date('2026-10-09T09:00:00Z'),
+  );
+  const camp = sides.find((side) => side.key === 'camp');
+  if (camp === undefined) throw new Error('The camp bills got no payment');
+  return camp.summary;
+};
+
+const ledger = createBillPaymentsCollection([campBillKind]);
+const [syncLegacyFields] = ledger.hooks?.beforeValidate ?? [];
+const [validatePaymentChange] = ledger.hooks?.beforeChange ?? [];
+const [reconcileAfterPaymentChange] = ledger.hooks?.afterChange ?? [];
+if (
+  syncLegacyFields === undefined ||
+  validatePaymentChange === undefined ||
+  reconcileAfterPaymentChange === undefined
+) {
+  throw new Error('The payment ledger lost its hooks');
+}
+
+/** A camp bill as a payment points to it. */
+const camp = (id: string): { relationTo: 'bill-participants'; value: string } => ({
+  relationTo: 'bill-participants',
+  value: id,
+});
+
+/** An allocation the import stores: the bill, and the legacy field the previous release reads. */
+const stored = (id: string, amount: number): Record<string, unknown> => ({
+  bill: camp(id),
+  participant: id,
+  amount,
+});
 
 const HEADER =
   'Referenz\tBetrag\tWährung\tBuchungsdatum\tZahlungspflichtiger\tTransaktionsreferenz';
@@ -101,7 +147,6 @@ const fakePayload = (
     ),
     findByID: jest.fn(({ collection, id }: { collection: string; id: string }) => {
       const found = store[collection]?.find((document_) => document_.id === id);
-      // eslint-disable-next-line unicorn/no-null -- what findByID with disableErrors returns
       return found === undefined ? null : structuredClone(found);
     }),
     create: jest.fn(
@@ -198,8 +243,14 @@ const editPayment = async (
 ): Promise<void> => {
   const original = structuredClone(fake.payment(transaction)) as unknown as BillPayment;
   const request = { payload: fake.payload, context: {}, user: { name: 'Mia Finanzen' } };
-  const data = (await validatePaymentChange({
+  const synced = (await syncLegacyFields({
     data: structuredClone(changes),
+    originalDoc: original,
+    operation: 'update',
+    req: request,
+  } as never)) as Partial<BillPayment>;
+  const data = (await validatePaymentChange({
+    data: synced,
     originalDoc: original,
     operation: 'update',
     req: request,
@@ -232,9 +283,10 @@ describe('importPayments', () => {
       expect.objectContaining({
         amount: 330,
         bookingDate: '2026-10-08T00:00:00.000Z',
+        matchedBill: camp('lea'),
         matchedParticipant: 'lea',
         importOutcome: 'booked',
-        allocations: [{ participant: 'lea', amount: 330 }],
+        allocations: [stored('lea', 330)],
       }),
     );
     expect(fake.participant('lea')).toEqual(
@@ -286,9 +338,7 @@ describe('importPayments', () => {
     expect(summary.bookedCount).toBe(0);
     expect(summary.outcomes).toEqual({ double_payment: 1 });
     expect(summary.errors).toEqual([expect.stringContaining('Doppelzahlung')]);
-    expect(fake.payment('GS00000000000002')['allocations']).toEqual([
-      { participant: 'lea', amount: 330 },
-    ]);
+    expect(fake.payment('GS00000000000002')['allocations']).toEqual([stored('lea', 330)]);
     expect(fake.participant('lea')).toEqual(
       expect.objectContaining({
         status: 'paid',
@@ -363,6 +413,7 @@ describe('importPayments', () => {
     expect(fake.payment('GS00000000000001')).toEqual(
       expect.objectContaining({ importOutcome: 'unknown_reference', allocations: [] }),
     );
+    expect(fake.payment('GS00000000000001')['matchedBill']).toBeUndefined();
     expect(fake.payment('GS00000000000001')['matchedParticipant']).toBeUndefined();
     expect(fake.participant('lea')['status']).toBe('bill_sent');
   });
@@ -402,7 +453,7 @@ describe('assigning payments by hand', () => {
     fake.queue.mockClear();
 
     await editPayment(fake, 'GS00000000000002', {
-      allocations: [{ participant: 'noah', amount: 330 }],
+      allocations: [{ bill: camp('noah'), amount: 330 }],
     });
 
     expect(fake.participant('lea')).toEqual(
@@ -437,8 +488,8 @@ describe('assigning payments by hand', () => {
 
     await editPayment(fake, 'GS00000000000001', {
       allocations: [
-        { participant: 'lea', amount: 330 },
-        { participant: 'noah', amount: 330 },
+        { bill: camp('lea'), amount: 330 },
+        { bill: camp('noah'), amount: 330 },
       ],
     });
 
@@ -453,7 +504,7 @@ describe('assigning payments by hand', () => {
 
     await expect(
       editPayment(fake, 'GS00000000000001', {
-        allocations: [{ participant: 'noah', amount: 330 }],
+        allocations: [{ bill: camp('noah'), amount: 330 }],
       }),
     ).rejects.toThrow('Lea Muster ist bereits als bezahlt verbucht');
     expect(fake.participant('noah')['status']).toBe('bill_sent');
@@ -466,8 +517,8 @@ describe('assigning payments by hand', () => {
     await expect(
       editPayment(fake, 'GS00000000000001', {
         allocations: [
-          { participant: 'lea', amount: 330 },
-          { participant: 'noah', amount: 330 },
+          { bill: camp('lea'), amount: 330 },
+          { bill: camp('noah'), amount: 330 },
         ],
       }),
     ).rejects.toThrow('die Zahlung beträgt aber nur CHF 400.00');

@@ -1,5 +1,7 @@
 import { environmentVariables as env } from '@/config/environment-variables';
+import { createImportPaymentsEndpoint } from '@/features/billing-core/import-payments-endpoint';
 import { billingEndpoints } from '@/features/billing/api/billing-endpoints';
+import { campPaymentImporter } from '@/features/billing/services/payment-import';
 import { buildSecureConfig } from '@/features/payload-cms/payload-cms/access-rules/build-secure-config';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { collectionsConfig } from '@/features/payload-cms/payload-cms/collections';
@@ -25,6 +27,7 @@ import {
   DEFAULT_QUEUE,
   MAIL_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+import { visitDayPaymentImporter } from '@/features/visit-day/billing/visit-day-payment-import';
 
 import { cleanupTemporaryFormFilesTask } from '@/features/payload-cms/payload-cms/tasks/cleanup-temporary-form-files';
 import { drainEmailOutboxTask } from '@/features/payload-cms/payload-cms/tasks/drain-email-outbox';
@@ -39,6 +42,7 @@ import { refreshUserHoefeTask } from '@/features/payload-cms/payload-cms/tasks/r
 import { runDailyBillingTask } from '@/features/payload-cms/payload-cms/tasks/run-daily-billing';
 import { sendBillsTask } from '@/features/payload-cms/payload-cms/tasks/send-bills';
 import { sendPflichtangabenRemindersTask } from '@/features/payload-cms/payload-cms/tasks/send-pflichtangaben-reminders';
+import { sendVisitDayBillTask } from '@/features/payload-cms/payload-cms/tasks/send-visit-day-bill';
 import { sendWeeklyReportTask } from '@/features/payload-cms/payload-cms/tasks/send-weekly-report';
 import { syncActivePiketMembersTask } from '@/features/payload-cms/payload-cms/tasks/sync-active-piket-members';
 import { syncFunktionenTask } from '@/features/payload-cms/payload-cms/tasks/sync-funktionen';
@@ -381,6 +385,7 @@ const jobsConfig: JobsConfig = {
       sendPflichtangabenRemindersTask,
       runDailyBillingTask,
       writeBackPaymentsTask,
+      sendVisitDayBillTask,
       cleanupTemporaryFormFilesTask,
       refreshUserHoefeTask,
       syncFunktionenTask,
@@ -420,6 +425,8 @@ const customEndpoints: Endpoint[] = [
     handler: autoTranslateHandler,
   },
   ...billingEndpoints,
+  // the Besuchstag claims its payments by their reference; the camp bills take the rest
+  createImportPaymentsEndpoint([visitDayPaymentImporter, campPaymentImporter]),
 ];
 
 export const payloadConfig: RoutableConfig = {

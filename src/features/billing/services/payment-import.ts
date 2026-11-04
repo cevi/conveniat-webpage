@@ -1,35 +1,19 @@
+import type { PaymentImporter, PaymentImportSummary } from '@/features/billing-core/bank-import';
+import { allocatedBillIds, CAMP_BILL_COLLECTION } from '@/features/billing-core/payment-allocation';
+import type { BankPayment } from '@/features/billing-core/payment-csv';
+import type { PaymentOutcome } from '@/features/billing-core/payment-outcome';
+import { isValidQrReference } from '@/features/billing-core/qr-reference';
 import { writeBackPayment } from '@/features/billing/services/anmeldestatus-writeback';
 import { PAID } from '@/features/billing/services/billing-status';
 import { createHitobitoService } from '@/features/billing/services/email-service';
-import { allocatedParticipantIds } from '@/features/billing/services/payment-allocation';
 import {
   queuePaymentWriteBack,
   reconcileParticipantPayments,
 } from '@/features/billing/services/payment-booking';
-import { parsePaymentCsv } from '@/features/billing/services/payment-csv';
-import type { PaymentMatch, PaymentOutcome } from '@/features/billing/services/payment-matching';
-import {
-  isConvertedReference,
-  isValidQrReference,
-  matchPayments,
-} from '@/features/billing/services/payment-matching';
+import type { PaymentMatch } from '@/features/billing/services/payment-matching';
+import { isConvertedReference, matchPayments } from '@/features/billing/services/payment-matching';
 import type { BillParticipant, BillPayment } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
-
-/** What an import did, for the admin panel to report. */
-export interface PaymentImportSummary {
-  totalCount: number;
-  bookedCount: number;
-  /** Payments booked by an earlier import of the same file. */
-  alreadyBookedCount: number;
-  /** Payments not booked, each with why, for the finance team to resolve by hand. */
-  errors: string[];
-  /** How many payments ended in each outcome. */
-  outcomes: Partial<Record<PaymentOutcome, number>>;
-}
-
-/** Refused before anything was booked, because the file cannot be read as a payment list. */
-export class PaymentFileError extends Error {}
 
 interface SyncHistoryEntry {
   date: string;
@@ -66,19 +50,32 @@ const toPaymentRow = (
   reference: payment.reference,
   payer: payment.payer,
   message: payment.message,
-  ...(participantId === undefined ? {} : { matchedParticipant: participantId }),
+  ...(participantId === undefined
+    ? {}
+    : {
+        matchedBill: { relationTo: CAMP_BILL_COLLECTION, value: participantId },
+        // the previous release reads only this, during a rolling deploy
+        matchedParticipant: participantId,
+      }),
   importOutcome: outcome,
   importedBy: actor,
   ...(message === undefined ? {} : { importMessage: message }),
   allocations:
     ALLOCATED_OUTCOMES.has(outcome) && participantId !== undefined
-      ? [{ participant: participantId, amount: payment.amount ?? 0 }]
+      ? [
+          {
+            bill: { relationTo: CAMP_BILL_COLLECTION, value: participantId },
+            participant: participantId,
+            amount: payment.amount ?? 0,
+          },
+        ]
       : [],
 });
 
 /**
- * Stores the payments of a bank CSV, books the bills they pay, and queues the Cevi.DB
- * write-back.
+ * Stores the camp payments of a bank CSV, books the bills they pay, and queues the Cevi.DB
+ * write-back. Gets every payment of the file no other kind of bill claimed, see
+ * `importBankFile`, including those it cannot assign.
  *
  * Every payment becomes a row, booked or not, so one the import could not assign waits for
  * finance in «Zahlungen». A second payment for a bill already paid is linked to that bill and
@@ -91,20 +88,14 @@ const toPaymentRow = (
  *
  * @param actor who imported the file, for each booked registration's history
  */
-export async function importPayments(
+export async function importCampPayments(
   payload: Payload,
-  csv: string,
+  payments: BankPayment[],
   actor: string,
 ): Promise<PaymentImportSummary> {
-  const parsed = parsePaymentCsv(csv);
-  if (parsed.error !== undefined) throw new PaymentFileError(parsed.error);
-  if (parsed.payments.length === 0) {
-    throw new PaymentFileError('Die Datei enthält keine Zahlungen.');
-  }
-
   const references = [
     ...new Set(
-      parsed.payments
+      payments
         .map((payment) => payment.reference)
         .filter((reference) => isValidQrReference(reference)),
     ),
@@ -129,7 +120,7 @@ export async function importPayments(
 
   const transactions = [
     ...new Set(
-      parsed.payments
+      payments
         .map((payment) => payment.transactionReference)
         .filter((transaction) => transaction !== ''),
     ),
@@ -143,7 +134,7 @@ export async function importPayments(
   });
   const knownTransactions = new Set(known.docs.map((payment) => payment.transactionReference));
 
-  const matches = matchPayments(parsed.payments, candidates, knownTransactions);
+  const matches = matchPayments(payments, candidates, knownTransactions);
   const summary: PaymentImportSummary = {
     totalCount: matches.length,
     bookedCount: 0,
@@ -170,7 +161,7 @@ export async function importPayments(
       });
       knownTransactions.add(row.transactionReference);
       saved.push(row);
-      for (const id of allocatedParticipantIds(row)) affected.add(id);
+      for (const id of allocatedBillIds(row, CAMP_BILL_COLLECTION)) affected.add(id);
     } catch (error) {
       // Another import of the same file in the same moment stored the transaction first.
       const reason = error instanceof Error ? error.message : String(error);
@@ -201,6 +192,14 @@ export async function importPayments(
   );
   return summary;
 }
+
+/** The camp bills in the bank import: they take every payment no other kind claims. */
+export const campPaymentImporter: PaymentImporter = {
+  key: 'camp',
+  label: { de: 'Lager', en: 'Camp', fr: 'Camp' },
+  claims: () => true,
+  importPayments: importCampPayments,
+};
 
 /** What the background write-back did. */
 export interface WriteBackPaymentsSummary {

@@ -123,7 +123,6 @@ const mockPrisma = {
   },
   chat: {
     // Anna has no private chat yet, and owns the group she adds people to.
-    // eslint-disable-next-line unicorn/no-null
     findFirst: (): Promise<unknown> => Promise.resolve(null),
     findUniqueOrThrow: (): Promise<unknown> =>
       Promise.resolve({

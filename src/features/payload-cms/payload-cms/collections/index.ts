@@ -1,5 +1,7 @@
+import { BankImportsCollection } from '@/features/billing-core/bank-imports-collection';
+import { createBillPaymentsCollection } from '@/features/billing-core/bill-payments-collection';
+import { campBillKind } from '@/features/billing/camp-bill-kind';
 import { BillParticipantsCollection } from '@/features/billing/collections/bill-participants';
-import { BillPaymentsCollection } from '@/features/billing/collections/bill-payments';
 import { BillPdfsCollection } from '@/features/billing/collections/bill-pdfs-collection';
 import { AnnouncementChannelsCollection } from '@/features/payload-cms/payload-cms/collections/announcement-channels';
 import { AnnouncementsCollection } from '@/features/payload-cms/payload-cms/collections/announcements';
@@ -32,6 +34,9 @@ import { UserSubmittedImagesCollection } from '@/features/payload-cms/payload-cm
 import { asInstrumentalCollection } from '@/features/payload-cms/payload-cms/utils/instrumentalized-collection';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import { PresenceLogCollection } from '@/features/presence/payload-cms/collections/presence-log-collection';
+import { VisitDayBillEventsCollection } from '@/features/visit-day/billing/visit-day-bill-events';
+import { visitDayBillKind } from '@/features/visit-day/billing/visit-day-bill-kind';
+import { VisitDayBillsCollection } from '@/features/visit-day/billing/visit-day-bills-collection';
 import type { RoutableCollectionConfigs } from '@/types/types';
 import type { CollectionConfig } from 'payload';
 
@@ -70,8 +75,12 @@ const rawCollectionsConfig: CollectionConfig[] = [
   UserCollection,
   FunktionenCollection,
   PresenceLogCollection,
+  // the sidebar lists them in this order: the camp's, the Besuchstag's, then what both share
   BillParticipantsCollection,
-  BillPaymentsCollection,
+  VisitDayBillsCollection,
+  VisitDayBillEventsCollection,
+  createBillPaymentsCollection([campBillKind, visitDayBillKind]),
+  BankImportsCollection,
   BillPdfsCollection,
   HoefeCollection,
   OutgoingEmails,

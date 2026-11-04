@@ -75,7 +75,10 @@ export interface Config {
     funktionen: Funktion;
     'presence-logs': PresenceLog;
     'bill-participants': BillParticipant;
+    'visit-day-bills': VisitDayBill;
+    'visit-day-bill-events': VisitDayBillEvent;
     'bill-payments': BillPayment;
+    'bank-imports': BankImport;
     'bill-pdfs': BillPdf;
     hoefe: Hof;
     'outgoing-emails': OutgoingEmail;
@@ -119,6 +122,12 @@ export interface Config {
       relatedEmails: 'outgoing-emails';
       reminderEmails: 'outgoing-emails';
     };
+    'visit-day-bills': {
+      payments: 'bill-payments';
+      matchedPayments: 'bill-payments';
+      events: 'visit-day-bill-events';
+      emails: 'outgoing-emails';
+    };
     forms: {
       submissions: 'form-submissions';
     };
@@ -151,7 +160,10 @@ export interface Config {
     funktionen: FunktionenSelect<false> | FunktionenSelect<true>;
     'presence-logs': PresenceLogsSelect<false> | PresenceLogsSelect<true>;
     'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
+    'visit-day-bills': VisitDayBillsSelect<false> | VisitDayBillsSelect<true>;
+    'visit-day-bill-events': VisitDayBillEventsSelect<false> | VisitDayBillEventsSelect<true>;
     'bill-payments': BillPaymentsSelect<false> | BillPaymentsSelect<true>;
+    'bank-imports': BankImportsSelect<false> | BankImportsSelect<true>;
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
     hoefe: HoefeSelect<false> | HoefeSelect<true>;
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
@@ -191,6 +203,7 @@ export interface Config {
     PWA: PWA;
     'app-feature-flags': AppFeatureFlag;
     'bill-settings': BillSetting;
+    'visit-day-bill-settings': VisitDayBillSetting;
     'hof-dashboard-settings': HofDashboardSetting;
     'visit-day': VisitDaySetting;
     'registration-management': RegistrationManagement;
@@ -211,6 +224,7 @@ export interface Config {
     PWA: PWASelect<false> | PWASelect<true>;
     'app-feature-flags': AppFeatureFlagsSelect<false> | AppFeatureFlagsSelect<true>;
     'bill-settings': BillSettingsSelect<false> | BillSettingsSelect<true>;
+    'visit-day-bill-settings': VisitDayBillSettingsSelect<false> | VisitDayBillSettingsSelect<true>;
     'hof-dashboard-settings': HofDashboardSettingsSelect<false> | HofDashboardSettingsSelect<true>;
     'visit-day': VisitDaySelect<false> | VisitDaySelect<true>;
     'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
@@ -245,6 +259,7 @@ export interface Config {
       sendPflichtangabenReminders: TaskSendPflichtangabenReminders;
       runDailyBilling: TaskRunDailyBilling;
       writeBackPayments: TaskWriteBackPayments;
+      sendVisitDayBill: TaskSendVisitDayBill;
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
       refreshUserHoefe: TaskRefreshUserHoefe;
       syncFunktionen: TaskSyncFunktionen;
@@ -1658,6 +1673,17 @@ export interface Form {
                  * The field asks for the number of persons, from 1 up to this. Empty: the form asks in a field of its own.
                  */
                 maxPersons?: number | null;
+                issuesBill?: boolean | null;
+                billFirstNameField?: string | null;
+                billLastNameField?: string | null;
+                billEmailField?: string | null;
+                billStreetField?: string | null;
+                billPostalCodeField?: string | null;
+                billCityField?: string | null;
+                /**
+                 * Read as oev_abo_1, oev_abo_2 for each person, and counted per address in the export of the rail tickets.
+                 */
+                travelPassField?: string | null;
                 required?: boolean | null;
                 /**
                  * Where this field is rendered when "Split" layout is selected for the section.
@@ -2025,6 +2051,17 @@ export interface Form {
                            * The field asks for the number of persons, from 1 up to this. Empty: the form asks in a field of its own.
                            */
                           maxPersons?: number | null;
+                          issuesBill?: boolean | null;
+                          billFirstNameField?: string | null;
+                          billLastNameField?: string | null;
+                          billEmailField?: string | null;
+                          billStreetField?: string | null;
+                          billPostalCodeField?: string | null;
+                          billCityField?: string | null;
+                          /**
+                           * Read as oev_abo_1, oev_abo_2 for each person, and counted per address in the export of the rail tickets.
+                           */
+                          travelPassField?: string | null;
                           required?: boolean | null;
                           /**
                            * Where this field is rendered when "Split" layout is selected for the section.
@@ -4608,8 +4645,17 @@ export interface BillPayment {
   payer?: string | null;
   message?: string | null;
   /**
-   * The registration whose bill carries the paid reference. Kept when the payment is assigned elsewhere.
+   * The bill that carries the paid reference. Kept when the payment is assigned elsewhere.
    */
+  matchedBill?:
+    | ({
+        relationTo: 'bill-participants';
+        value: string | BillParticipant;
+      } | null)
+    | ({
+        relationTo: 'visit-day-bills';
+        value: string | VisitDayBill;
+      } | null);
   matchedParticipant?: (string | null) | BillParticipant;
   importOutcome?:
     | (
@@ -4634,8 +4680,17 @@ export interface BillPayment {
    */
   allocations?:
     | {
-        participant: string | BillParticipant;
+        bill:
+          | {
+              relationTo: 'bill-participants';
+              value: string | BillParticipant;
+            }
+          | {
+              relationTo: 'visit-day-bills';
+              value: string | VisitDayBill;
+            };
         amount: number;
+        participant?: (string | null) | BillParticipant;
         id?: string | null;
       }[]
     | null;
@@ -4644,6 +4699,137 @@ export interface BillPayment {
    */
   refundedDate?: string | null;
   note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * One bill per Besuchstag registration, created when the registration is saved. Payments come in through the bank import under «Payments».
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visit-day-bills".
+ */
+export interface VisitDayBill {
+  id: string;
+  status: 'open' | 'paid' | 'cancelled';
+  mailStatus: 'pending' | 'queued' | 'sent' | 'failed';
+  registrationNumber: string;
+  submission: string | FormSubmission;
+  visitDate: string;
+  /**
+   * Empty for a visitor without a Hof.
+   */
+  hof?: (string | null) | Hof;
+  persons: number;
+  withLunch?: boolean | null;
+  locale: 'de' | 'fr' | 'en';
+  /**
+   * Per person, for the rail tickets sent by letter.
+   */
+  travelPasses?:
+    | {
+        personNumber: number;
+        pass?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  registrationId: string;
+  billNumber: number;
+  firstName?: string | null;
+  lastName?: string | null;
+  fullName?: string | null;
+  email?: string | null;
+  street?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+  invoiceNumber: string;
+  referenceNumber: string;
+  issue: number;
+  invoiceAmount: number;
+  vatAmount?: number | null;
+  vatRate?: number | null;
+  issuedAt: string;
+  dueDate: string;
+  lines?:
+    | {
+        label: string;
+        quantity: number;
+        unitPrice: number;
+        amount: number;
+        id?: string | null;
+      }[]
+    | null;
+  pdf?: (string | null) | BillPdf;
+  /**
+   * Every bill this registration received. A replaced bill keeps its reference, so a payment against it is still recognised.
+   */
+  issuedBills?:
+    | {
+        invoiceNumber: string;
+        referenceNumber: string;
+        amount: number;
+        persons?: number | null;
+        issuedAt: string;
+        supersededAt?: string | null;
+        pdf?: (string | null) | BillPdf;
+        id?: string | null;
+      }[]
+    | null;
+  paidDate?: string | null;
+  paidAmount?: number | null;
+  paymentTransactionReference?: string | null;
+  doublePayment?: boolean | null;
+  /**
+   * More was paid than the bill asks for. Refund it by hand and record the date on the payment.
+   */
+  refundDue?: number | null;
+  payments?: {
+    docs?: (string | BillPayment)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  matchedPayments?: {
+    docs?: (string | BillPayment)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  events?: {
+    docs?: (string | VisitDayBillEvent)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  emails?: {
+    docs?: (string | OutgoingEmail)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Every change to a Besuchstag bill: created, mailed, paid, reduced, cancelled. Written by the server only.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visit-day-bill-events".
+ */
+export interface VisitDayBillEvent {
+  id: string;
+  bill: string | VisitDayBill;
+  action:
+    | 'created'
+    | 'issued'
+    | 'mail_queued'
+    | 'mail_sent'
+    | 'mail_failed'
+    | 'payment_booked'
+    | 'marked_paid'
+    | 'double_payment_detected'
+    | 'double_payment_resolved'
+    | 'persons_reduced'
+    | 'refund_due'
+    | 'refund_recorded'
+    | 'cancelled';
+  actor: string;
+  details?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -4661,7 +4847,8 @@ export interface OutgoingEmail {
   formSubmission?: (string | null) | FormSubmission;
   billParticipant?: (string | null) | BillParticipant;
   billParticipants?: (string | BillParticipant)[] | null;
-  type?: ('formSubmission' | 'billParticipant' | 'other') | null;
+  visitDayBill?: (string | null) | VisitDayBill;
+  type?: ('formSubmission' | 'billParticipant' | 'visitDayBill' | 'other') | null;
   form?: (string | null) | Form;
   html?: string | null;
   text?: string | null;
@@ -4696,6 +4883,23 @@ export interface OutgoingEmail {
   createdAt: string;
   lastRetriggeredBy?: (string | null) | User;
   updatedAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bank-imports".
+ */
+export interface BankImport {
+  id: string;
+  /**
+   * When the file was exported from the e-banking: every payment up to then is in it.
+   */
+  bankExportedAt: string;
+  importedBy: string;
+  filename?: string | null;
+  paymentCount: number;
+  bookedCount: number;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Mail to these addresses came back because the address does not exist, or kept coming back for two weeks or more. Nothing is sent to them until the entry is deleted.
@@ -5082,6 +5286,7 @@ export interface PayloadJob {
           | 'sendPflichtangabenReminders'
           | 'runDailyBilling'
           | 'writeBackPayments'
+          | 'sendVisitDayBill'
           | 'cleanupTemporaryFormFiles'
           | 'refreshUserHoefe'
           | 'syncFunktionen'
@@ -5141,6 +5346,7 @@ export interface PayloadJob {
         | 'sendPflichtangabenReminders'
         | 'runDailyBilling'
         | 'writeBackPayments'
+        | 'sendVisitDayBill'
         | 'cleanupTemporaryFormFiles'
         | 'refreshUserHoefe'
         | 'syncFunktionen'
@@ -5269,8 +5475,20 @@ export interface PayloadLockedDocument {
         value: string | BillParticipant;
       } | null)
     | ({
+        relationTo: 'visit-day-bills';
+        value: string | VisitDayBill;
+      } | null)
+    | ({
+        relationTo: 'visit-day-bill-events';
+        value: string | VisitDayBillEvent;
+      } | null)
+    | ({
         relationTo: 'bill-payments';
         value: string | BillPayment;
+      } | null)
+    | ({
+        relationTo: 'bank-imports';
+        value: string | BankImport;
       } | null)
     | ({
         relationTo: 'bill-pdfs';
@@ -7124,6 +7342,90 @@ export interface BillParticipantsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visit-day-bills_select".
+ */
+export interface VisitDayBillsSelect<T extends boolean = true> {
+  status?: T;
+  mailStatus?: T;
+  registrationNumber?: T;
+  submission?: T;
+  visitDate?: T;
+  hof?: T;
+  persons?: T;
+  withLunch?: T;
+  locale?: T;
+  travelPasses?:
+    | T
+    | {
+        personNumber?: T;
+        pass?: T;
+        id?: T;
+      };
+  registrationId?: T;
+  billNumber?: T;
+  firstName?: T;
+  lastName?: T;
+  fullName?: T;
+  email?: T;
+  street?: T;
+  postalCode?: T;
+  city?: T;
+  invoiceNumber?: T;
+  referenceNumber?: T;
+  issue?: T;
+  invoiceAmount?: T;
+  vatAmount?: T;
+  vatRate?: T;
+  issuedAt?: T;
+  dueDate?: T;
+  lines?:
+    | T
+    | {
+        label?: T;
+        quantity?: T;
+        unitPrice?: T;
+        amount?: T;
+        id?: T;
+      };
+  pdf?: T;
+  issuedBills?:
+    | T
+    | {
+        invoiceNumber?: T;
+        referenceNumber?: T;
+        amount?: T;
+        persons?: T;
+        issuedAt?: T;
+        supersededAt?: T;
+        pdf?: T;
+        id?: T;
+      };
+  paidDate?: T;
+  paidAmount?: T;
+  paymentTransactionReference?: T;
+  doublePayment?: T;
+  refundDue?: T;
+  payments?: T;
+  matchedPayments?: T;
+  events?: T;
+  emails?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visit-day-bill-events_select".
+ */
+export interface VisitDayBillEventsSelect<T extends boolean = true> {
+  bill?: T;
+  action?: T;
+  actor?: T;
+  details?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bill-payments_select".
  */
 export interface BillPaymentsSelect<T extends boolean = true> {
@@ -7134,6 +7436,7 @@ export interface BillPaymentsSelect<T extends boolean = true> {
   reference?: T;
   payer?: T;
   message?: T;
+  matchedBill?: T;
   matchedParticipant?: T;
   importOutcome?: T;
   importedBy?: T;
@@ -7141,12 +7444,26 @@ export interface BillPaymentsSelect<T extends boolean = true> {
   allocations?:
     | T
     | {
-        participant?: T;
+        bill?: T;
         amount?: T;
+        participant?: T;
         id?: T;
       };
   refundedDate?: T;
   note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bank-imports_select".
+ */
+export interface BankImportsSelect<T extends boolean = true> {
+  bankExportedAt?: T;
+  importedBy?: T;
+  filename?: T;
+  paymentCount?: T;
+  bookedCount?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -7208,6 +7525,7 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
   formSubmission?: T;
   billParticipant?: T;
   billParticipants?: T;
+  visitDayBill?: T;
   type?: T;
   form?: T;
   html?: T;
@@ -7488,6 +7806,14 @@ export interface FormsSelect<T extends boolean = true> {
                           visitorTypeField?: T;
                           childNameField?: T;
                           maxPersons?: T;
+                          issuesBill?: T;
+                          billFirstNameField?: T;
+                          billLastNameField?: T;
+                          billEmailField?: T;
+                          billStreetField?: T;
+                          billPostalCodeField?: T;
+                          billCityField?: T;
+                          travelPassField?: T;
                           required?: T;
                           placement?: T;
                           id?: T;
@@ -7716,6 +8042,14 @@ export interface FormsSelect<T extends boolean = true> {
                                       visitorTypeField?: T;
                                       childNameField?: T;
                                       maxPersons?: T;
+                                      issuesBill?: T;
+                                      billFirstNameField?: T;
+                                      billLastNameField?: T;
+                                      billEmailField?: T;
+                                      billStreetField?: T;
+                                      billPostalCodeField?: T;
+                                      billCityField?: T;
+                                      travelPassField?: T;
                                       required?: T;
                                       placement?: T;
                                       id?: T;
@@ -9076,6 +9410,65 @@ export interface BillSetting {
   createdAt?: string | null;
 }
 /**
+ * Prices, VAT and texts of the Besuchstag bills. Creditor and QR-IBAN come from the camp billing settings.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visit-day-bill-settings".
+ */
+export interface VisitDayBillSetting {
+  id: string;
+  /**
+   * Per person, VAT included.
+   */
+  priceWithLunch: number;
+  /**
+   * Per person, VAT included.
+   */
+  priceWithoutLunch: number;
+  /**
+   * One rate for every Besuchstag bill. 0 prints no VAT. Changed prices and rates apply to bills issued from now on.
+   */
+  vatRate: number;
+  /**
+   * {{year}} is the year of issue, e.g. BT2027-0042.
+   */
+  invoiceNumberPrefix: string;
+  paymentDeadlineDays: number;
+  documentTitle: string;
+  /**
+   * Printed above the lines of the bill. Placeholders: {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{invoiceNumber}}, {{registrationNumber}}, {{visitDay}}, {{dueDate}}.
+   */
+  letterText?: string | null;
+  /**
+   * Placeholders: {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{invoiceNumber}}, {{registrationNumber}}, {{visitDay}}, {{dueDate}}.
+   */
+  emailSubject: string;
+  /**
+   * Placeholders: {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{invoiceNumber}}, {{registrationNumber}}, {{visitDay}}, {{dueDate}}.
+   */
+  emailBody: string;
+  /**
+   * Credited for every Besuchstag bill in the finance export. Empty uses the account of the camp bills.
+   */
+  revenueAccount?: string | null;
+  weeklyReport?: {
+    /**
+     * Receive the Besuchstag report as a PDF. Without recipients no report is sent.
+     */
+    recipients?:
+      | {
+          email: string;
+          id?: string | null;
+        }[]
+      | null;
+    weekday?: ('1' | '2' | '3' | '4' | '5' | '6' | '0') | null;
+    hour?: number | null;
+    lastSentAt?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * Texts are only required in German; French and English fall back to it.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -9697,6 +10090,38 @@ export interface BillSettingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "visit-day-bill-settings_select".
+ */
+export interface VisitDayBillSettingsSelect<T extends boolean = true> {
+  priceWithLunch?: T;
+  priceWithoutLunch?: T;
+  vatRate?: T;
+  invoiceNumberPrefix?: T;
+  paymentDeadlineDays?: T;
+  documentTitle?: T;
+  letterText?: T;
+  emailSubject?: T;
+  emailBody?: T;
+  revenueAccount?: T;
+  weeklyReport?:
+    | T
+    | {
+        recipients?:
+          | T
+          | {
+              email?: T;
+              id?: T;
+            };
+        weekday?: T;
+        hour?: T;
+        lastSentAt?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "hof-dashboard-settings_select".
  */
 export interface HofDashboardSettingsSelect<T extends boolean = true> {
@@ -9993,6 +10418,17 @@ export interface TaskWriteBackPayments {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendVisitDayBill".
+ */
+export interface TaskSendVisitDayBill {
+  input: {
+    billId: string;
+    actor: string;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCleanupTemporaryFormFiles".
  */
 export interface TaskCleanupTemporaryFormFiles {
@@ -10067,7 +10503,10 @@ export interface TaskCreateCollectionExport {
       | 'funktionen'
       | 'presence-logs'
       | 'bill-participants'
+      | 'visit-day-bills'
+      | 'visit-day-bill-events'
       | 'bill-payments'
+      | 'bank-imports'
       | 'bill-pdfs'
       | 'hoefe'
       | 'outgoing-emails'

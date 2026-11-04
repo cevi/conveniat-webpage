@@ -1,10 +1,8 @@
+import { buildCreditorFromSettings } from '@/features/billing-core/creditor';
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import type { StoragePort } from '@/features/billing/ports/storage.port';
-import {
-  buildCreditorFromSettings,
-  generateQrBillPdf,
-} from '@/features/billing/services/bill-generator-service';
+import { generateQrBillPdf } from '@/features/billing/services/bill-generator-service';
 import type { VatSplitConfig } from '@/features/billing/services/vat-calculation';
 import {
   calculateVat,

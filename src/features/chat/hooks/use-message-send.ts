@@ -1,5 +1,5 @@
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
-import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
+import { describeMessagePreview } from '@/features/chat/api/utils/get-message-preview-text';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import {
@@ -13,6 +13,7 @@ import {
   removeMessageFromOutbox,
   setSendInFlight,
 } from '@/features/chat/utils/offline-outbox';
+import { quotedSnippetOf } from '@/features/chat/utils/quoted-snippet';
 import { isRateLimitError } from '@/features/chat/utils/send-errors';
 import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
@@ -83,18 +84,7 @@ const performOptimisticMessageUpdate = async (
 
     const quotedMessage = allCachedMessages.find((m) => m.id === quotedMessageId);
 
-    if (quotedMessage) {
-      const payload = quotedMessage.messagePayload;
-      let text: string;
-      if (typeof payload === 'string') {
-        text = payload;
-      } else {
-        const textPayload = payload as Record<string, unknown>;
-        text =
-          typeof textPayload['text'] === 'string' ? textPayload['text'] : JSON.stringify(payload);
-      }
-      quotedSnippet = text.length > 100 ? `${text.slice(0, 100)}...` : text;
-    }
+    quotedSnippet = quotedSnippetOf(quotedMessage?.messagePayload);
   }
 
   // eslint-disable-next-line unicorn/prefer-global-this
@@ -133,7 +123,6 @@ const performOptimisticMessageUpdate = async (
               nextCursor: undefined,
             },
           ],
-          // eslint-disable-next-line unicorn/no-null
           pageParams: [null],
         };
       }
@@ -179,7 +168,6 @@ const performOptimisticMessageUpdate = async (
       (oldData: ChatDetails | undefined): ChatDetails => {
         if (!oldData) {
           return {
-            // eslint-disable-next-line unicorn/no-null
             archivedAt: null,
             name: '',
             participants: [],
@@ -220,7 +208,7 @@ const performOptimisticMessageUpdate = async (
             senderId: optimisticMessage.senderId ?? SYSTEM_SENDER_ID,
             // derived with the same helper the server uses, so the preview does not
             // change once the real message is synced back
-            messagePreview: getMessagePreviewText({
+            ...describeMessagePreview({
               contentVersions: [{ payload: optimisticMessage.messagePayload }],
             }),
             createdAt: optimisticMessage.createdAt,

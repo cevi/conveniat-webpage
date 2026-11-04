@@ -53,6 +53,7 @@ const features_folder = [
   'push-tracking',
   'auth',
   'billing',
+  'billing-core',
   'native-push',
   'presence',
   'photo-contest',
@@ -82,6 +83,10 @@ const config = defineConfig([
   ...ts.configs.recommendedTypeChecked,
 
   {
+    // A disable that no longer suppresses anything fails lint, so none outlive their rule. The
+    // fix scripts in package.json leave directives alone (`--fix-type` without `directive`),
+    // because removing one by hand is where its `-- reason` is kept as a plain comment.
+    linterOptions: { reportUnusedDisableDirectives: 'error' },
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -117,6 +122,12 @@ const config = defineConfig([
         },
       ],
       'unicorn/no-array-reduce': 'off',
+      // Prisma, Payload, React and the web APIs give null its own meaning: in a Prisma filter
+      // null matches SQL NULL, where undefined drops the filter. tsc decides where null belongs:
+      // `strictNullChecks` and `exactOptionalPropertyTypes` reject `deletedAt: undefined` in a
+      // Prisma filter. Payload's `Where` values are untyped, so `equals: null` there is the
+      // reviewer's to check.
+      'unicorn/no-null': 'off',
 
       // Other global rules
       'prefer-const': 'error',
@@ -336,13 +347,15 @@ const config = defineConfig([
         {
           zones: [
             // enforce unidirectional codebase:
+            // payload-cms may import every feature. billing-core holds what the camp bills and
+            // the Besuchstag bills share, the QR reference and the one payment ledger, so every
+            // feature may import it; it imports no feature but payload-cms itself.
             ...features_folder
-              // no restrictions to payload-cms feature
               .filter((feature) => feature !== 'payload-cms')
               .map((feature) => ({
                 target: `./src/features/${feature}`,
                 from: './src/features',
-                except: [`./${feature}`, './payload-cms'],
+                except: [...new Set([`./${feature}`, './payload-cms', './billing-core'])],
                 message: `Do not import from ${feature} directly, use the shared modules instead.`,
               })),
 

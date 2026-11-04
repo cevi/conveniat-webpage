@@ -65,7 +65,6 @@ describe('getContactDisplayName', () => {
 
   it('returns the plain name when no nickname is set', () => {
     expect(getContactDisplayName({ name: 'Anna Muster' })).toBe('Anna Muster');
-    // eslint-disable-next-line unicorn/no-null
     expect(getContactDisplayName({ name: 'Anna Muster', nickname: null })).toBe('Anna Muster');
     expect(getContactDisplayName({ name: 'Anna Muster', nickname: '  ' })).toBe('Anna Muster');
   });
@@ -82,7 +81,6 @@ describe('getContactShortName', () => {
   });
 
   it('falls back to first name when nickname is missing or empty', () => {
-    // eslint-disable-next-line unicorn/no-null
     expect(getContactShortName({ name: 'Max Mustermann', nickname: null })).toBe('Max');
     expect(getContactShortName({ name: 'Melissa Wilms', nickname: '' })).toBe('Melissa');
   });

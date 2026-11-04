@@ -206,7 +206,7 @@ export class EventService {
           });
         }
 
-        // eslint-disable-next-line unicorn/no-null -- API may return null for last page
+        // API may return null for last page
         nextUrl = parsed.data.links?.next ?? null;
         isFirstPage = false;
       }

@@ -12,7 +12,6 @@ const fakePrisma = (
 } => {
   const create = jest.fn<Promise<unknown>, [unknown]>().mockResolvedValue({});
   // Prisma answers null for a Hof without registrations
-  // eslint-disable-next-line unicorn/no-null
   const aggregate = jest.fn().mockResolvedValue({ _max: { counter: lastCounter ?? null } });
   const count = jest.fn().mockResolvedValue(taken);
   const transaction = {
@@ -85,9 +84,7 @@ describe('reservePlaces', () => {
     await expect(
       reservePlaces(prisma, { ...request, hofId: undefined, hofEventId: 'EXT' }),
     ).resolves.toEqual({ status: 'reserved', number: 'EXT-B003' });
-    // eslint-disable-next-line unicorn/no-null
     expect(aggregate).toHaveBeenCalledWith(expect.objectContaining({ where: { hofId: null } }));
-    // eslint-disable-next-line unicorn/no-null
     expect(create.mock.calls[0]?.[0]).toMatchObject({ data: { hofId: null, counter: 3 } });
   });
 

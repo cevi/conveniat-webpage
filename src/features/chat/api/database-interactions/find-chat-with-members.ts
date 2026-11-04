@@ -34,8 +34,7 @@ export const findChatWithMembers = async (
       },
       ...(includeArchived
         ? {}
-        : // eslint-disable-next-line unicorn/no-null
-          { OR: [{ archivedAt: null }, { archivedAt: { gt: new Date() } }] }),
+        : { OR: [{ archivedAt: null }, { archivedAt: { gt: new Date() } }] }),
     },
     include: {
       chatMemberships: { select: { user: { select: { uuid: true } } } },

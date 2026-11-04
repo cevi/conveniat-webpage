@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-null */
 const mockS3Send = jest.fn();
 jest.mock('@/lib/s3', () => ({
   MAIL_ATTACHMENT_BUCKET_NAME: 'mail-attachments',
