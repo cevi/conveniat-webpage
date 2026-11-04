@@ -16,12 +16,18 @@ export interface VisitDayPlaces {
   /** the places without lunch */
   capacityWithoutLunch: number;
   freeWithoutLunch: number;
+  /**
+   * The places left in the Kontingent for visitors without a Hof: `null` without one, so only
+   * the places of each kind limit them, and -1 when the day takes none of them.
+   */
+  freeExternal: number | null;
 }
 
 /**
  * The Besuchstag registration, for the relatives filling it in. Public: they have no Cevi.DB
  * login. It tells nothing a visitor of the website may not know: the names of the Höfe, the day
- * each Hof's relatives visit and how many places of each kind a day has left.
+ * each Hof's relatives visit and how many places of each kind a day has left, for visitors
+ * without a Hof too.
  */
 export const visitDayRouter = createTRPCRouter({
   getVisitDayHofList: publicProcedure.query(async (): Promise<VisitDayHof[]> => {
@@ -38,13 +44,19 @@ export const visitDayRouter = createTRPCRouter({
       countTakenPlaces(ctx.prisma),
     ]);
     return settings.days.map((day) => {
-      const takenOnDay = taken.get(day.date) ?? { withLunch: 0, withoutLunch: 0 };
+      const takenOnDay = taken.get(day.date) ?? { withLunch: 0, withoutLunch: 0, external: 0 };
+      let freeExternal: number | null = null;
+      if (day.externalCapacity !== undefined) {
+        freeExternal =
+          day.externalCapacity < 0 ? -1 : Math.max(0, day.externalCapacity - takenOnDay.external);
+      }
       return {
         date: day.date,
         capacity: day.capacity,
         free: Math.max(0, day.capacity - takenOnDay.withLunch),
         capacityWithoutLunch: day.capacityWithoutLunch,
         freeWithoutLunch: Math.max(0, day.capacityWithoutLunch - takenOnDay.withoutLunch),
+        freeExternal,
       };
     });
   }),

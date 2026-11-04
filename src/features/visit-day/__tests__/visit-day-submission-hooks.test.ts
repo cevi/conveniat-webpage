@@ -80,6 +80,7 @@ const formWith = (settings: Record<string, unknown>): typeof form => ({
 
 const fakeRequest = (
   blockSettings: Record<string, unknown> = {},
+  daySettings: Record<string, unknown> = {},
 ): { request: PayloadRequest; remove: jest.Mock; store: jest.Mock } => {
   const remove = jest.fn().mockResolvedValue({});
   const store = jest.fn().mockResolvedValue({});
@@ -102,6 +103,7 @@ const fakeRequest = (
             capacity: 500,
             capacityWithoutLunch: 300,
             quartiere: ['q5'],
+            ...daySettings,
           },
         ],
         hiddenHoefe: [],
@@ -380,5 +382,73 @@ describe('a Besuchstag field that asks whom they visit and the persons', () => {
     await expect(
       submit(fakeRequest(settings).request, childVisit('kind', 'uster', '2')),
     ).resolves.toContainEqual({ field: 'hof', value: 'Cevi Uster' });
+  });
+});
+
+/** The answers of a visitor without a Hof for the day in the settings above. */
+const externalVisit = (persons: string): Answer[] => [
+  { field: 'besuch', value: 'extern' },
+  { field: 'besuchstag', value: '2027-07-28' },
+  { field: 'anzahl_personen', value: persons },
+  { field: 'mittagessen', value: 'ja' },
+];
+
+describe('the Kontingent for visitors without a Hof', () => {
+  const settings = { visitorTypeField: 'besuch', maxPersons: 2 };
+
+  it('takes them while it has places left, counting those already registered', async () => {
+    // 10 places with lunch taken, 49 of the Kontingent of 50
+    visitorRows.count.mockImplementation(({ where }: { where: { registration: object } }) =>
+      Promise.resolve('hofId' in where.registration ? 49 : 10),
+    );
+
+    await expect(
+      submit(fakeRequest(settings, { externalCapacity: 50 }).request, externalVisit('1')),
+    ).resolves.toContainEqual({ field: 'hof', value: 'Ohne Bezug zu einer Abteilung' });
+    await expect(
+      submit(fakeRequest(settings, { externalCapacity: 50 }).request, externalVisit('2')),
+    ).rejects.toThrow('ohne Bezug zu einer Abteilung sind an diesem Tag nicht mehr genug');
+  });
+
+  it('refuses them on a day closed to them, or one whose Kontingent is 0', async () => {
+    visitorRows.count.mockResolvedValue(0);
+
+    await expect(
+      submit(fakeRequest(settings, { externalCapacity: -1 }).request, externalVisit('1')),
+    ).rejects.toThrow('keine Anmeldung ohne Bezug zu einer Abteilung möglich');
+    await expect(
+      submit(fakeRequest(settings, { externalCapacity: 0 }).request, externalVisit('1')),
+    ).rejects.toThrow('nicht mehr genug Plätze');
+  });
+
+  it('is removed again when the Kontingent filled up while it was being saved', async () => {
+    visitorRows.count.mockImplementation(({ where }: { where: { registration: object } }) =>
+      Promise.resolve('hofId' in where.registration ? 49 : 0),
+    );
+    const { request, remove } = fakeRequest(settings, { externalCapacity: 50 });
+    const answers = await submit(request, externalVisit('1'));
+
+    // another visitor without a Hof took the last place meanwhile
+    visitorRows.count.mockImplementation(({ where }: { where: { registration: object } }) =>
+      Promise.resolve('hofId' in where.registration ? 50 : 0),
+    );
+    await expect(save(request, answers)).rejects.toThrow('ohne Bezug zu einer Abteilung');
+    expect(registrationRows.create).not.toHaveBeenCalled();
+    expect(remove).toHaveBeenCalled();
+  });
+
+  it('lets a form that no longer asks whom they visit register a child visit', async () => {
+    visitorRows.count.mockResolvedValue(0);
+    const withoutAnswer = childVisit('', 'uster', '1').filter(
+      (answer) => answer.field !== 'besuch',
+    );
+
+    await expect(
+      submit(fakeRequest(settings, { externalCapacity: -1 }).request, withoutAnswer),
+    ).resolves.toContainEqual({ field: 'hof', value: 'Cevi Uster' });
+    // while a day still takes visitors without a Hof, the form asks and the answer is needed
+    await expect(
+      submit(fakeRequest(settings, { externalCapacity: 0 }).request, withoutAnswer),
+    ).rejects.toThrow('wen ihr besucht');
   });
 });
