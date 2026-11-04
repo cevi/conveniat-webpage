@@ -1,4 +1,5 @@
 import { withEntityTag } from '@/trpc/conditional-response';
+import { InvariantTRPCError } from '@/trpc/error-formatter';
 import { createTRPCContext } from '@/trpc/init';
 import { EXPECTED_ERROR_CODES } from '@/trpc/middleware/tracing';
 import { appRouter } from '@/trpc/routers/_app';
@@ -13,7 +14,7 @@ const handleTrpcRequest = (request: Request): Promise<Response> =>
     req: request,
     router: appRouter,
     createContext: createTRPCContext,
-    onError: ({ path, error, req }) => {
+    onError: ({ path, error, req, ctx }) => {
       if (error.code === 'UNAUTHORIZED') {
         const cookieHeader = req.headers.get('cookie');
         const hasAuthCookie =
@@ -28,6 +29,18 @@ const handleTrpcRequest = (request: Request): Promise<Response> =>
             'trpc.code': error.code,
           });
         }
+        return;
+      }
+
+      // Our own client never makes this call, so it is a client bug or someone probing the API.
+      // Rare by construction, and worth seeing without turning on debug.
+      if (error instanceof InvariantTRPCError) {
+        logger.warn('procedure refused a call our client never makes', {
+          'trpc.path': path,
+          'trpc.code': error.code,
+          'user.id': ctx?.user?.uuid,
+          error,
+        });
         return;
       }
 

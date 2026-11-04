@@ -29,6 +29,34 @@ export class UserFacingTRPCError extends TRPCError {
 }
 
 /**
+ * A refusal of a call our own client never makes, like an image or a message of another chat.
+ * It carries no reason, so the user reads the generic fallback, and the tRPC route logs it at
+ * `warn` with the user, because a hit means a bug in our client or someone probing the API.
+ * Throw it only from a rate-limited procedure, so a probe cannot flood the warn level. A refusal
+ * a legitimate client can trigger, also from the offline outbox or a stale persisted cache, is
+ * a reason from `createErrorThrower` instead.
+ */
+export class InvariantTRPCError extends TRPCError {}
+
+/**
+ * The codes an invariant refusal may answer with. Not `UNAUTHORIZED`, which the route reads as
+ * an ended session, and no server fault, which the route and the span count as an outage. Each
+ * is in `EXPECTED_ERROR_CODES`, which a test checks.
+ */
+export const INVARIANT_CODES = [
+  'BAD_REQUEST',
+  'CONFLICT',
+  'FORBIDDEN',
+  'NOT_FOUND',
+  'PRECONDITION_FAILED',
+] as const satisfies readonly TRPCError['code'][];
+type InvariantCode = (typeof INVARIANT_CODES)[number];
+
+/** Refuses a call our own client never makes, see {@link InvariantTRPCError}. */
+export const invariantError = (code: InvariantCode, message: string): InvariantTRPCError =>
+  new InvariantTRPCError({ code, message });
+
+/**
  * Binds a feature's error texts, so its routers can only throw reasons its components can
  * translate.
  */
