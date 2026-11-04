@@ -79,7 +79,15 @@ export const applyDeletionToChatList = (
   if (chat?.lastMessage?.id !== messageId) return chats;
   return chats.map((item) =>
     item.id === chatId && item.lastMessage !== undefined
-      ? { ...item, lastMessage: { ...item.lastMessage, messagePreview: deletedMessagePreviewText } }
+      ? {
+          ...item,
+          lastMessage: {
+            ...item.lastMessage,
+            messagePreview: deletedMessagePreviewText,
+            // a deleted image is no image any more
+            messagePreviewIcon: undefined,
+          },
+        }
       : item,
   );
 };

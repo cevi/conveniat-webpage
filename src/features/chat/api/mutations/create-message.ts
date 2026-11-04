@@ -5,7 +5,7 @@ import {
 } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
-import { isImageKeyOfChat } from '@/lib/chat-images';
+import { imageSentText, isImageKeyOfChat } from '@/lib/chat-images';
 import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatType, MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma/client';
@@ -368,10 +368,16 @@ export const createMessage = trpcBaseProcedure
     // lock screens or live views, and a client refetching on the event must find it.
     // Neither the push fan-out nor the publish is awaited, so a slow push provider does
     // not hold the request or its pool connection.
+    // An image's content is its storage key, which must not reach a lock screen. The push
+    // says in words who sent one, in the sender's locale like every other push, since the
+    // server does not know the recipients' locales.
+    const isImage = validatedMessage.type === MessageType.IMAGE_MSG;
+    const pushText = isImage ? imageSentText(user.name)[ctx.locale] : validatedMessage.content;
+
     ctx.afterTransactionCommit(() => {
       if (pushRecipientUserIds.length > 0) {
         sendNotification(
-          validatedMessage.content,
+          pushText,
           pushRecipientUserIds,
           validatedMessage.chatId,
           createdMessage.uuid,
@@ -381,7 +387,8 @@ export const createMessage = trpcBaseProcedure
                 ? PushNotificationKind.EMERGENCY
                 : PushNotificationKind.CHAT,
             chatName: chat.name,
-            senderName: user.name,
+            // the image line already names the sender
+            ...(isImage ? {} : { senderName: user.name }),
             // Every message in an emergency chat is part of a running alert, so the
             // follow-ups reach the piket members on the siren channel too - a reply that
             // only lands in the notification shade is exactly the failure mode the

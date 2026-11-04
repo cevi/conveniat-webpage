@@ -32,6 +32,8 @@ let committed: boolean;
 let failCommit: boolean;
 const publishedAt: boolean[] = [];
 const pushedAt: boolean[] = [];
+/** What each push would say: its text and the sender it is prefixed with. */
+const pushedTexts: { message: string; senderName: string | undefined }[] = [];
 
 jest.mock('@/lib/db/chat-pubsub', () => ({
   chatPubSub: {
@@ -42,8 +44,15 @@ jest.mock('@/lib/db/chat-pubsub', () => ({
   },
 }));
 jest.mock('@/lib/push/send-notification', () => ({
-  sendNotification: (): Promise<{ success: boolean }> => {
+  sendNotification: (
+    message: string,
+    _recipients: string[],
+    _chatId: string,
+    _messageId: string,
+    options: { senderName?: string },
+  ): Promise<{ success: boolean }> => {
     pushedAt.push(committed);
+    pushedTexts.push({ message, senderName: options.senderName });
     return Promise.resolve({ success: true });
   },
 }));
@@ -188,6 +197,7 @@ beforeEach(() => {
   failCommit = false;
   publishedAt.length = 0;
   pushedAt.length = 0;
+  pushedTexts.length = 0;
   mockPoolRead.mockClear();
 });
 
@@ -292,5 +302,19 @@ describe('what a reply and a quote may point at', () => {
       messagePayload: { text: 'Ich!' },
     });
     expect(storedPayloads).toEqual([{ text: 'Ich!' }]);
+  });
+});
+
+describe('the text of the push', () => {
+  it('is the message, prefixed with the sender', async () => {
+    await send(MessageType.TEXT_MSG);
+
+    expect(pushedTexts).toEqual([{ message: 'Hoi zäme', senderName: 'Anna' }]);
+  });
+
+  it('says who sent an image instead of showing where it is stored', async () => {
+    await send(MessageType.IMAGE_MSG);
+
+    expect(pushedTexts).toEqual([{ message: 'Anna hat ein Bild gesendet', senderName: undefined }]);
   });
 });

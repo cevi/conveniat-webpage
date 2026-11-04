@@ -1,4 +1,7 @@
-import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
+import {
+  describeMessagePreview,
+  getMessagePreviewText,
+} from '@/features/chat/api/utils/get-message-preview-text';
 import type { StaticTranslationString } from '@/types/types';
 
 const previewOf = (payload: unknown): string | StaticTranslationString =>
@@ -78,5 +81,38 @@ describe('getMessagePreviewText of a deleted message', () => {
         deletedAt: new Date(),
       }),
     ).toEqual({ de: 'Nachricht gelöscht', en: 'Message deleted', fr: 'Message supprimé' });
+  });
+});
+
+const describe_ = (payload: unknown): ReturnType<typeof describeMessagePreview> =>
+  describeMessagePreview({ contentVersions: [{ payload }] });
+
+describe('describeMessagePreview of a message without text', () => {
+  it('names an image in words and leaves the picture to the icon', () => {
+    expect(describe_({ url: 'chat-images/chat-1/1719830400000-k3j9x2.jpg' })).toEqual({
+      messagePreview: { de: 'Bild', en: 'Image', fr: 'Image' },
+      messagePreviewIcon: 'image',
+    });
+  });
+
+  it('names a shared location and an emergency alert the same way', () => {
+    expect(describe_({ location: { latitude: 47.3, longitude: 8.5 } })).toMatchObject({
+      messagePreview: { de: 'Standort' },
+      messagePreviewIcon: 'location',
+    });
+    expect(describe_({ system_msg_type: 'emergency_alert' })).toMatchObject({
+      messagePreview: { de: 'Notfallwarnung' },
+      messagePreviewIcon: 'emergency',
+    });
+  });
+
+  it('has no icon for text, nor for a deleted image', () => {
+    expect(describe_({ text: 'Hoi zäme' })).toEqual({ messagePreview: 'Hoi zäme' });
+    expect(
+      describeMessagePreview({
+        contentVersions: [{ payload: { url: 'chat-images/chat-1/a.jpg' } }],
+        deletedAt: new Date(),
+      }).messagePreviewIcon,
+    ).toBeUndefined();
   });
 });

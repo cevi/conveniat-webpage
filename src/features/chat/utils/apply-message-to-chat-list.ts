@@ -1,5 +1,5 @@
 import type { ChatMessage } from '@/features/chat/api/types';
-import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
+import { describeMessagePreview } from '@/features/chat/api/utils/get-message-preview-text';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 
@@ -42,9 +42,7 @@ export const applyMessageToChatList = (
       id: message.id,
       senderId: message.senderId ?? SYSTEM_SENDER_ID,
       ...(message.senderName === undefined ? {} : { senderName: message.senderName }),
-      messagePreview: getMessagePreviewText({
-        contentVersions: [{ payload: message.messagePayload }],
-      }),
+      ...describeMessagePreview({ contentVersions: [{ payload: message.messagePayload }] }),
       createdAt: message.createdAt,
       status: message.status,
     },

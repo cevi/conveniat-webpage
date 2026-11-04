@@ -3,6 +3,8 @@ import {
   getJoinGroupMessagePayload,
   getLeftGroupMessagePayload,
 } from '@/features/chat/api/utils/system-message-helpers';
+import type { MessagePreviewIcon, PreviewMessage } from '@/features/chat/types/api-dto-types';
+import { imagePreviewText } from '@/lib/chat-images';
 import { SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import type { StaticTranslationString } from '@/types/types';
 import { stripMarkdownFormatting } from '@/utils/strip-markdown-formatting';
@@ -14,14 +16,41 @@ export const deletedMessagePreviewText: StaticTranslationString = {
   fr: 'Message supprimé',
 };
 
+// No emoji in these: the chat list draws the matching lucide icon in front of them, and a push
+// says the whole thing in words, see `imageSentText` in `@/lib/chat-images`.
 const locationSharedText: StaticTranslationString = {
-  de: '📍 Standort geteilt',
-  en: '📍 Location shared',
-  fr: '📍 Position partagée',
+  de: 'Standort',
+  en: 'Location',
+  fr: 'Position',
 };
 
+const emergencyAlertText: StaticTranslationString = {
+  de: 'Notfallwarnung',
+  en: 'Emergency alert',
+  fr: "Alerte d'urgence",
+};
+
+type MessagePreview = Pick<PreviewMessage, 'messagePreview' | 'messagePreviewIcon'>;
+
+const withIcon = (
+  messagePreview: StaticTranslationString,
+  messagePreviewIcon: MessagePreviewIcon,
+): MessagePreview => ({ messagePreview, messagePreviewIcon });
+
 /**
- * Extracts a preview text from the last message's content versions.
+ * The preview text of a message, without the icon the chat list draws in front of it.
+ *
+ * @param lastMessage - the message, with its newest content version first
+ * @returns the text, see {@link describeMessagePreview}
+ */
+export const getMessagePreviewText = (lastMessage: {
+  contentVersions: { payload: unknown }[];
+  deletedAt?: Date | null | undefined;
+}): string | StaticTranslationString => describeMessagePreview(lastMessage).messagePreview;
+
+/**
+ * Extracts a preview text from the last message's content versions, and for an image, a
+ * location or an emergency alert the icon that goes in front of it.
  * Converts system messages and special messages to a text
  * representation for preview purposes.
  *
@@ -35,11 +64,14 @@ const locationSharedText: StaticTranslationString = {
  *
  * @param lastMessage
  */
-export const getMessagePreviewText = (lastMessage: {
+export const describeMessagePreview = (lastMessage: {
   contentVersions: { payload: unknown }[];
   deletedAt?: Date | null | undefined;
-}): string | StaticTranslationString => {
-  if (lastMessage.deletedAt instanceof Date) return deletedMessagePreviewText;
+}): MessagePreview => {
+  if (lastMessage.deletedAt instanceof Date) return { messagePreview: deletedMessagePreviewText };
+  const text = (messagePreview: string | StaticTranslationString): MessagePreview => ({
+    messagePreview,
+  });
 
   const payload = lastMessage.contentVersions[0]?.payload;
 
@@ -47,22 +79,22 @@ export const getMessagePreviewText = (lastMessage: {
     if (typeof payload === 'string') {
       const joinedMatch = payload.match(/^(.+) joined the group$/);
       if (joinedMatch?.[1]) {
-        return getJoinGroupMessagePayload(joinedMatch[1]);
+        return text(getJoinGroupMessagePayload(joinedMatch[1]));
       }
 
       const leftMatch = payload.match(/^(.+) left the group$/);
       if (leftMatch?.[1]) {
-        return getLeftGroupMessagePayload(leftMatch[1]);
+        return text(getLeftGroupMessagePayload(leftMatch[1]));
       }
 
       const joinedAdminMatch = payload.match(/^(.+) joined as admin$/);
       if (joinedAdminMatch?.[1]) {
-        return getJoinedAsAdminMessagePayload(joinedAdminMatch[1]);
+        return text(getJoinedAsAdminMessagePayload(joinedAdminMatch[1]));
       }
 
-      return stripMarkdownFormatting(payload);
+      return text(stripMarkdownFormatting(payload));
     }
-    return '';
+    return text('');
   }
 
   const p = payload as Record<string, unknown>;
@@ -71,28 +103,20 @@ export const getMessagePreviewText = (lastMessage: {
     switch (p['system_msg_type']) {
       case SYSTEM_MSG_TYPE_EMERGENCY_ALERT:
       case 'emergency_alert': {
-        return {
-          de: '🚨 Notfallwarnung',
-          en: '🚨 Emergency Alert',
-          fr: "🚨 Alerte d'urgence",
-        };
+        return withIcon(emergencyAlertText, 'emergency');
       }
       default: {
-        return locationSharedText;
+        return withIcon(locationSharedText, 'location');
       }
     }
   }
 
   if ('url' in p && typeof p['url'] === 'string') {
-    return {
-      de: '📷 Bild',
-      en: '📷 Image',
-      fr: '📷 Image',
-    };
+    return withIcon(imagePreviewText, 'image');
   }
 
   if ('text' in p && typeof p['text'] === 'string') {
-    return stripMarkdownFormatting(p['text']);
+    return text(stripMarkdownFormatting(p['text']));
   }
 
   if (
@@ -102,16 +126,16 @@ export const getMessagePreviewText = (lastMessage: {
     'latitude' in (p['location'] as Record<string, unknown>) &&
     'longitude' in (p['location'] as Record<string, unknown>)
   ) {
-    return locationSharedText;
+    return withIcon(locationSharedText, 'location');
   }
 
   // Handle Alert Response and Alert Question
   if ('message' in p && typeof p['message'] === 'string') {
-    return stripMarkdownFormatting(p['message']);
+    return text(stripMarkdownFormatting(p['message']));
   }
 
   if ('question' in p && typeof p['question'] === 'string') {
-    return stripMarkdownFormatting(p['question']);
+    return text(stripMarkdownFormatting(p['question']));
   }
 
   // Handle system messages and announcements with translations
@@ -143,13 +167,13 @@ export const getMessagePreviewText = (lastMessage: {
       const fallbackLanguage = enString === '' ? frString : enString;
       const firstAvailable = deString === '' ? fallbackLanguage : deString;
 
-      return {
+      return text({
         de: deString === '' ? firstAvailable : deString,
         en: enString === '' ? firstAvailable : enString,
         fr: frString === '' ? firstAvailable : frString,
-      };
+      });
     }
   }
 
-  return JSON.stringify(p);
+  return text(JSON.stringify(p));
 };

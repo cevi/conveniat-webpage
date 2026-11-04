@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/no-null */
 import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
 import { findCmsUserNames } from '@/features/chat/api/utils/find-cms-user-names';
-import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
+import { describeMessagePreview } from '@/features/chat/api/utils/get-message-preview-text';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import {
@@ -185,7 +185,9 @@ export const getChatList = trpcBaseProcedure
         fr: 'Nouveau chat créé',
       };
 
-      const messagePreview = lastMessage ? getMessagePreviewText(lastMessage) : fallbackPreview;
+      const preview = lastMessage
+        ? describeMessagePreview(lastMessage)
+        : { messagePreview: fallbackPreview };
 
       const partnerUser = partnerMap.get(chat.uuid);
       const isLarge = chat._count.chatMemberships >= LARGE_CHAT_THRESHOLD;
@@ -230,7 +232,7 @@ export const getChatList = trpcBaseProcedure
         lastMessage: {
           id: lastMessage?.uuid ?? chat.uuid,
           createdAt: chat.lastUpdate,
-          messagePreview,
+          ...preview,
           senderId: lastMessage?.senderId ?? SYSTEM_SENDER_ID,
           ...(typeof lastMessage?.sender?.name === 'string' && lastMessage.sender.name !== ''
             ? { senderName: lastMessage.sender.name }

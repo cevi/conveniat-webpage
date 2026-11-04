@@ -1,4 +1,5 @@
 import { uploadInputShape, type UploadPolicy } from '@/lib/upload-policy';
+import type { StaticTranslationString } from '@/types/types';
 import { z } from 'zod';
 
 /**
@@ -14,6 +15,30 @@ export const CHAT_IMAGE_EXTENSIONS = {
 } as const;
 
 export type ChatImageContentType = keyof typeof CHAT_IMAGE_EXTENSIONS;
+
+/** An image in the chat list, behind its icon. */
+export const imagePreviewText: StaticTranslationString = {
+  de: 'Bild',
+  en: 'Image',
+  fr: 'Image',
+};
+
+/**
+ * The line a push and the in-app banner show for an image, whose content is only its storage
+ * key. A sentence rather than "Anna: Bild", the way Teams and Google Messages word it.
+ *
+ * @param senderName - who sent the image; without one the line is just "Bild"
+ * @returns the line in every locale
+ */
+export const imageSentText = (senderName: string): StaticTranslationString => {
+  const name = senderName.trim();
+  if (name === '') return imagePreviewText;
+  return {
+    de: `${name} hat ein Bild gesendet`,
+    en: `${name} sent an image`,
+    fr: `${name} a envoyé une image`,
+  };
+};
 
 /** Photos are uploaded as picked, without resizing, so this has to fit a full-size phone photo. */
 export const CHAT_IMAGE_MAX_BYTES = 20 * 1024 * 1024;
