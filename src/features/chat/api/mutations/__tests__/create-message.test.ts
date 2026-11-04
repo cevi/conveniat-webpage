@@ -159,12 +159,12 @@ const prisma = {
       data: {
         type: MessageType;
         contentVersions: { create: { payload: unknown }[] };
-        parent?: unknown;
+        parentId?: string;
       };
     }): Promise<unknown> => {
       storedTypes.push(data.type);
       storedPayloads.push(data.contentVersions.create[0]?.payload);
-      storedParents.push(data.parent);
+      storedParents.push(data.parentId);
       return Promise.resolve({ uuid: 'stored', createdAt: new Date(), type: data.type });
     },
   },
@@ -272,7 +272,7 @@ describe('what a reply and a quote may point at', () => {
     ['a message deleted since, whose thread stays open', deletedMessage.uuid],
   ])('stores a reply to %s', async (_, parentId) => {
     await sendText({ parentId });
-    expect(storedParents).toEqual([{ connect: { uuid: parentId } }]);
+    expect(storedParents).toEqual([parentId]);
   });
 
   it('refuses a reply to a message of another chat, without a text for the user', async () => {

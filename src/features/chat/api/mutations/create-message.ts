@@ -335,11 +335,11 @@ export const createMessage = trpcBaseProcedure
             },
           ],
         },
-        sender: { connect: { uuid: user.uuid } },
-        chat: { connect: { uuid: validatedMessage.chatId } },
-        ...(validatedMessage.parentId && {
-          parent: { connect: { uuid: validatedMessage.parentId } },
-        }),
+        // Columns, not `connect`: the parent key includes the chat, and connecting a parent
+        // would take the chat from the parent instead of refusing one from another chat.
+        senderId: user.uuid,
+        chatId: validatedMessage.chatId,
+        ...(validatedMessage.parentId !== undefined && { parentId: validatedMessage.parentId }),
         messageEvents: {
           create: [
             { type: MessageEventType.CREATED, user: { connect: { uuid: user.uuid } } },
