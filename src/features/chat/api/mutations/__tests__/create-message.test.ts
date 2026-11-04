@@ -87,7 +87,6 @@ const prisma = {
           ChatCapability.THREADS,
         ],
         // prisma answers a chat that was never archived with null
-        // eslint-disable-next-line unicorn/no-null
         archivedAt: null,
       }),
     update: (): Promise<void> => Promise.resolve(),

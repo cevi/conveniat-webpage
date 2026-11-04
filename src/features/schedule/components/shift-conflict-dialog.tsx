@@ -10,8 +10,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { cn } from '@/utils/tailwindcss-override';
-/* eslint-enable import/no-restricted-paths */
 import { ChatLinkButton } from '@/components/ui/buttons/chat-link-button';
 import { useConflictingEntry } from '@/features/schedule/hooks/use-conflicting-entry';
 import {
@@ -21,6 +19,7 @@ import {
   getTimeslotOverlap,
 } from '@/features/schedule/utils/unenrollment-deadline';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { AlertTriangle, ArrowDown, Clock, Loader2, Lock } from 'lucide-react';
 import type React from 'react';
 

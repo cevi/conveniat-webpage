@@ -52,7 +52,6 @@ const createPayload = (
   const kv = new Map<string, unknown>();
   const payload = {
     kv: {
-      // eslint-disable-next-line unicorn/no-null -- Payload's KV store answers a missing key with null
       get: (key: string) => Promise.resolve(kv.get(key) ?? null),
       set: (key: string, value: unknown) => Promise.resolve(void kv.set(key, value)),
     },
@@ -91,7 +90,6 @@ const createPayload = (
         const file = formFiles.find(
           (candidate) => candidate.id === id.equals && candidate.filename === filename.equals,
         );
-        // eslint-disable-next-line unicorn/no-null -- the adapter answers a miss with null
         if (file === undefined) return Promise.resolve(null);
         Object.assign(file, data);
         return Promise.resolve(file);

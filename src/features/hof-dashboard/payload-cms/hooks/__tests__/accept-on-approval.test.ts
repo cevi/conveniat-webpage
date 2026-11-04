@@ -22,7 +22,7 @@ describe('acceptOnApproval', () => {
     // what the approval link and the admin checkbox send: only the approval
     expect(save({ approved: true }, IN_REVIEW)).toEqual({
       approved: true,
-      // eslint-disable-next-line unicorn/no-null -- Payload clears a select only with null
+      // Payload clears a select only with null
       hofReviewStatus: null,
     });
   });

@@ -238,8 +238,6 @@ describe('a Besuchstag registration', () => {
       { field: 'besuchstag', value: 'Mittwoch, 28. Juli 2027' },
     ]);
     expect(registrationRows.create.mock.calls[0]?.[0]).toMatchObject({
-      // eslint-disable-next-line unicorn/no-null
-      // eslint-disable-next-line unicorn/no-null -- Prisma stores a missing Hof as null
       data: { number: 'EXT-B007', hofId: null },
     });
   });
@@ -315,7 +313,6 @@ describe('a Besuchstag field that asks whom they visit and the persons', () => {
 
     expect(answers).toContainEqual({ field: 'hof', value: 'Ohne Bezug zu einer Abteilung' });
     expect(registrationRows.create.mock.calls[0]?.[0]).toMatchObject({
-      // eslint-disable-next-line unicorn/no-null -- Prisma stores a missing Hof as null
       data: { number: 'EXT-B007', hofId: null },
     });
   });

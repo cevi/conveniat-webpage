@@ -51,7 +51,6 @@ const logAfter = async ({
     data: { ...data },
     originalDoc: operation === 'update' ? original : undefined,
     // Payload answers a local API call without a user with null
-    // eslint-disable-next-line unicorn/no-null
     req: { user: user ?? null },
     operation,
     context,
@@ -80,7 +79,7 @@ afterEach(() => {
 describe('recordHofReview', () => {
   it('adds who accepted it, when, and what the review reads now', async () => {
     await expect(
-      // eslint-disable-next-line unicorn/no-null -- the dashboard clears the status on accepting
+      // the dashboard clears the status on accepting
       logAfter({ data: { approved: true, hofReviewStatus: null }, user: EDITOR }),
     ).resolves.toEqual([
       EARLIER_CHANGE,
@@ -112,7 +111,6 @@ describe('recordHofReview', () => {
     ).resolves.toEqual({
       changedAt: NOW,
       reviewerName: 'Freigabe-Link (E-Mail)',
-      // eslint-disable-next-line unicorn/no-null -- Payload stores an empty relationship as null
       reviewer: null,
       status: 'accepted',
       feedback: 'Masthöhe fehlt',
@@ -121,12 +119,11 @@ describe('recordHofReview', () => {
   });
 
   it('records taking an approval back as the status left under it', async () => {
-    // eslint-disable-next-line unicorn/no-null -- accepting cleared the status
+    // accepting cleared the status
     const approved: Stored = { ...ORIGINAL, approved: true, hofReviewStatus: null };
     await expect(
       addedLine({ data: { approved: false }, user: EDITOR, original: approved }),
     ).resolves.toMatchObject({
-      // eslint-disable-next-line unicorn/no-null -- a cleared select is stored as null
       status: null,
       feedback: 'Masthöhe fehlt',
     });

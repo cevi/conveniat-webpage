@@ -102,7 +102,6 @@ describe('getLexicalText', () => {
 
   it('returns an empty string for missing content', () => {
     const missing: unknown = undefined;
-    // eslint-disable-next-line unicorn/no-null
     const empty: unknown = null;
 
     expect(getLexicalText(missing)).toBe('');

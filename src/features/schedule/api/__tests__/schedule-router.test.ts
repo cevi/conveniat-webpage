@@ -240,7 +240,6 @@ describe('scheduleRouter course statuses', () => {
     jest.clearAllMocks();
     (getPayload as unknown as jest.Mock).mockResolvedValue({ findByID, find });
     // Prisma answers a miss with null
-    // eslint-disable-next-line unicorn/no-null
     prisma.chat.findFirst.mockResolvedValue(null);
     prisma.chat.findMany.mockResolvedValue([]);
   });
@@ -253,7 +252,6 @@ describe('scheduleRouter course statuses', () => {
           {
             id: 'theater',
             // Payload stores an emptied number field as null: no limit
-            // eslint-disable-next-line unicorn/no-null
             participants_max: null,
             enable_enrolment: true,
             organiser: ['leiter-1'],
@@ -333,7 +331,6 @@ describe('scheduleRouter course statuses', () => {
     beforeEach(() => {
       findByID.mockResolvedValue(course);
       enrollment.count.mockResolvedValue(2);
-      // eslint-disable-next-line unicorn/no-null -- Prisma answers a miss with null
       enrollment.findFirst.mockResolvedValue(null);
       enrollment.findMany.mockResolvedValue([
         { user: { uuid: 'tn-1', name: 'Mia' } },

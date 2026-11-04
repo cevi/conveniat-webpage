@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/prefer-promise-reject-errors, unicorn/no-null, unicorn/prefer-logical-operator-over-ternary, @typescript-eslint/strict-boolean-expressions */
+/* eslint-disable @typescript-eslint/prefer-promise-reject-errors, unicorn/prefer-logical-operator-over-ternary, @typescript-eslint/strict-boolean-expressions */
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { HelperJob } from '@/features/payload-cms/payload-types';

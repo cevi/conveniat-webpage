@@ -62,7 +62,6 @@ describe('getUnenrollmentDeadline', () => {
     const expected = '2027-07-24T05:30:00.000Z';
     // eslint-disable-next-line unicorn/no-useless-undefined -- exactly what such a shift carries
     expect(getUnenrollmentDeadline(timeslot, undefined)?.toISOString()).toBe(expected);
-    // eslint-disable-next-line unicorn/no-null -- exactly what Payload stores for an empty number
     expect(getUnenrollmentDeadline(timeslot, null)?.toISOString()).toBe(expected);
   });
 
@@ -91,7 +90,7 @@ describe('isUnenrollmentClosed', () => {
    */
   it('leaves the window open when no deadline is known', () => {
     expect(isUnenrollmentClosed(undefined, new Date('2027-07-24T07:00:00.000Z'))).toBe(false);
-    // eslint-disable-next-line unicorn/no-null -- a deadline that never made it into the cache
+    // a deadline that never made it into the cache
     expect(isUnenrollmentClosed(null, new Date('2027-07-24T07:00:00.000Z'))).toBe(false);
     expect(isUnenrollmentClosed('not a date', new Date('2027-07-24T07:00:00.000Z'))).toBe(false);
   });

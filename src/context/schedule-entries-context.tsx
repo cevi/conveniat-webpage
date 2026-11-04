@@ -106,7 +106,6 @@ const contentFingerprint = (record: object): string =>
  */
 const overwriteDraft = (draft: Record<string, unknown>, record: ScheduleEntryRecord): void => {
   for (const key of Object.keys(draft)) {
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete draft[key];
   }
   Object.assign(draft, record);

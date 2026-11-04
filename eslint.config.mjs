@@ -82,6 +82,10 @@ const config = defineConfig([
   ...ts.configs.recommendedTypeChecked,
 
   {
+    // A disable that no longer suppresses anything fails lint, so none outlive their rule. The
+    // fix scripts in package.json leave directives alone (`--fix-type` without `directive`),
+    // because removing one by hand is where its `-- reason` is kept as a plain comment.
+    linterOptions: { reportUnusedDisableDirectives: 'error' },
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -117,6 +121,12 @@ const config = defineConfig([
         },
       ],
       'unicorn/no-array-reduce': 'off',
+      // Prisma, Payload, React and the web APIs give null its own meaning: in a Prisma filter
+      // null matches SQL NULL, where undefined drops the filter. tsc decides where null belongs:
+      // `strictNullChecks` and `exactOptionalPropertyTypes` reject `deletedAt: undefined` in a
+      // Prisma filter. Payload's `Where` values are untyped, so `equals: null` there is the
+      // reviewer's to check.
+      'unicorn/no-null': 'off',
 
       // Other global rules
       'prefer-const': 'error',

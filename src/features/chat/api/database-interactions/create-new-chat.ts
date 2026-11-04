@@ -63,7 +63,6 @@ export const createNewChat = async (
       ...(options?.uuid === undefined ? {} : { uuid: options.uuid }),
       name: finalChatName,
       type: chatType,
-      // eslint-disable-next-line unicorn/no-null
       courseId: options?.courseId ?? null,
       messages: {
         create: {

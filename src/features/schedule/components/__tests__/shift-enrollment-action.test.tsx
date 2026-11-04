@@ -130,7 +130,7 @@ describe('ShiftEnrollmentAction when the status query has no usable data', () =>
       refetchOnMount: (query: { state: { data: unknown } }) => boolean | string;
     };
 
-    // eslint-disable-next-line unicorn/no-null -- the exact value the server used to hand back
+    // the exact value the server used to hand back
     expect(options.refetchOnMount({ state: { data: null } })).toBe('always');
     expect(options.refetchOnMount({ state: { data: undefined } })).toBe('always');
     expect(options.refetchOnMount({ state: { data: { enrolledCount: 1 } } })).toBe(true);

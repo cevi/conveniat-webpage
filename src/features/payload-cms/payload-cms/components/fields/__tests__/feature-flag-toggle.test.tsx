@@ -12,7 +12,7 @@ jest.mock('@payloadcms/ui', () => ({
   useLocale: (): { code: string } => ({ code: 'de' }),
 }));
 
-// eslint-disable-next-line import/first -- must be imported after the @payloadcms/ui mock
+// must be imported after the @payloadcms/ui mock
 import { FeatureFlagToggle } from '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle';
 
 type ToggleProperties = React.ComponentProps<typeof FeatureFlagToggle>;

@@ -93,7 +93,7 @@ export const withHof = async <T extends { hofId: string | null }>(
     const name = loan.hofId === null ? undefined : names.get(loan.hofId);
     return {
       ...loan,
-      // eslint-disable-next-line unicorn/no-null -- the same shape for every loan
+      // the same shape for every loan
       hof: loan.hofId === null || name === undefined ? null : { id: loan.hofId, name },
     };
   });

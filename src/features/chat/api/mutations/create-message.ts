@@ -277,7 +277,6 @@ export const createMessage = trpcBaseProcedure
         where: {
           uuid: validatedMessage.quotedMessageId,
           chatId: validatedMessage.chatId,
-          // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
           deletedAt: null,
         },
         include: { contentVersions: { take: 1, orderBy: { revision: 'desc' } } },

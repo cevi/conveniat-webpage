@@ -40,7 +40,6 @@ export const redeemChatInvite = trpcBaseProcedure
     // Claiming is a conditional update, so of two concurrent redemptions exactly one wins:
     // the other waits on the row lock and then no longer matches `redeemedById: null`.
     const claimed = await prisma.chatInvite.updateMany({
-      // eslint-disable-next-line unicorn/no-null
       where: { token, redeemedById: null, expiresAt: { gt: new Date() } },
       data: { redeemedById: user.uuid, redeemedAt: new Date() },
     });

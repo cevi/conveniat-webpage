@@ -138,7 +138,6 @@ export async function syncPiketMembersToOpenChats(payload: Payload): Promise<voi
     const openChats = await prisma.chat.findMany({
       where: {
         status: 'OPEN',
-        // eslint-disable-next-line unicorn/no-null
         archivedAt: null,
         type: { in: chatTypes as ChatType[] },
       },

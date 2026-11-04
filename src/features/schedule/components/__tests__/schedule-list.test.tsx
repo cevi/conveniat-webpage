@@ -31,7 +31,6 @@ jest.mock('@/features/schedule/components/enrollment-action', () => ({
   EnrollmentAction: (): React.ReactNode => <div>Anmelden</div>,
 }));
 
-// eslint-disable-next-line import/first
 import { ScheduleList } from '@/features/schedule/components/schedule-list';
 
 const emptyRichText = {
@@ -47,7 +46,6 @@ const entry = (
   title: id,
   description: emptyRichText,
   timeslot: { date: '2027-07-25T12:00:00.000Z', time },
-  // eslint-disable-next-line unicorn/no-null
   location: null,
   ...extra,
 });

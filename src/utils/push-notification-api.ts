@@ -56,7 +56,6 @@ export async function subscribeUser(
     return { success: false };
   }
 
-  // eslint-disable-next-line unicorn/no-null
   const payloadUser = (await getPayloadUserFromNextAuthUser(payload, hitobitoUser)) ?? null;
 
   if (payloadUser) {
@@ -96,11 +95,8 @@ export async function subscribeUser(
           endpoint: sub.endpoint,
           keys: sub.keys,
           user: payloadUser.id,
-          // eslint-disable-next-line unicorn/no-null
           deviceId: deviceId ?? null,
-          // eslint-disable-next-line unicorn/no-null
           userAgent: userAgent ?? null,
-          // eslint-disable-next-line unicorn/no-null
           registrationSource: registrationSource ?? null,
           lastUsedAt: new Date().toISOString(),
         },
@@ -120,11 +116,8 @@ export async function subscribeUser(
           endpoint: sub.endpoint,
           keys: sub.keys,
           user: payloadUser.id,
-          // eslint-disable-next-line unicorn/no-null
           deviceId: deviceId ?? null,
-          // eslint-disable-next-line unicorn/no-null
           userAgent: userAgent ?? null,
-          // eslint-disable-next-line unicorn/no-null
           registrationSource: registrationSource ?? null,
           lastUsedAt: new Date().toISOString(),
         },
@@ -138,11 +131,8 @@ export async function subscribeUser(
         platform: 'web',
         endpoint: sub.endpoint,
         keys: sub.keys,
-        // eslint-disable-next-line unicorn/no-null
         deviceId: deviceId ?? null,
-        // eslint-disable-next-line unicorn/no-null
         userAgent: userAgent ?? null,
-        // eslint-disable-next-line unicorn/no-null
         registrationSource: registrationSource ?? null,
         lastUsedAt: new Date().toISOString(),
       },

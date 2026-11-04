@@ -54,7 +54,6 @@ export const getChatMessages = trpcBaseProcedure
         take: limit + 1, // Get an extra item at the end to know if there's a next page
         where: {
           chatId: chat.uuid,
-          // eslint-disable-next-line unicorn/no-null
           parentId: parentId ?? null,
         },
         ...(cursor == undefined ? {} : { cursor: { uuid: cursor }, skip: 1 }),

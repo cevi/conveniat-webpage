@@ -42,7 +42,6 @@ describe('isOrganiserOf', () => {
 
   it('treats an entry with no organisers as organised by nobody', () => {
     expect(isOrganiserOf([], ME)).toBe(false);
-    // eslint-disable-next-line unicorn/no-null
     expect(isOrganiserOf(null, ME)).toBe(false);
   });
 
@@ -50,7 +49,6 @@ describe('isOrganiserOf', () => {
    * An unusable entry must not stringify to `[object Object]` and accidentally match, nor throw.
    */
   it('ignores entries that carry no usable id', () => {
-    // eslint-disable-next-line unicorn/no-null
     expect(isOrganiserOf([null, undefined, {}, 42], ME)).toBe(false);
   });
 });

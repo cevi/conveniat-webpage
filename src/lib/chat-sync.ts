@@ -230,7 +230,6 @@ export const syncAllOfflineData = async (
             // The callback has to mutate the draft - TanStack DB tracks property assignments
             // and discards the returned value.
             for (const key of Object.keys(draft)) {
-              // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
               delete draft[key];
             }
             Object.assign(draft, record);

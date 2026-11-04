@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, unicorn/no-null, unicorn/prefer-ternary */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, unicorn/prefer-ternary */
 import {
   hasAdminOrWebAccess,
   shouldHideInAdminPanel,

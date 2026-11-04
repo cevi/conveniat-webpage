@@ -18,7 +18,6 @@ export const pinChat = trpcBaseProcedure
     if (input.pinned === (membership.pinnedAt !== null)) return { success: true };
 
     await updateOwnChatMembership(prisma, user.uuid, input.chatId, {
-      // eslint-disable-next-line unicorn/no-null
       pinnedAt: input.pinned ? new Date() : null,
     });
     return { success: true };

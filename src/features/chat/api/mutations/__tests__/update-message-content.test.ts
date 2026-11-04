@@ -100,7 +100,6 @@ const prisma = {
     }
   },
   chat: {
-    // eslint-disable-next-line unicorn/no-null
     findUniqueOrThrow: (): Promise<unknown> => Promise.resolve({ archivedAt: null }),
     update: (): Promise<void> => Promise.resolve(),
   },

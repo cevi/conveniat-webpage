@@ -133,7 +133,6 @@ const performOptimisticMessageUpdate = async (
               nextCursor: undefined,
             },
           ],
-          // eslint-disable-next-line unicorn/no-null
           pageParams: [null],
         };
       }
@@ -179,7 +178,6 @@ const performOptimisticMessageUpdate = async (
       (oldData: ChatDetails | undefined): ChatDetails => {
         if (!oldData) {
           return {
-            // eslint-disable-next-line unicorn/no-null
             archivedAt: null,
             name: '',
             participants: [],

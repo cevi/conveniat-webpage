@@ -68,7 +68,7 @@ export const groupByHolder = <Loan extends GroupableLoan>(
     const group = groups.get(key) ?? {
       key,
       holder,
-      // eslint-disable-next-line unicorn/no-null -- a Hof deleted since has no name
+      // a Hof deleted since has no name
       name: holder.kind === 'PERSON' ? (loan.person?.name ?? null) : (loan.hof?.name ?? null),
       loans: [],
     };

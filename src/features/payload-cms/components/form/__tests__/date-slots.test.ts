@@ -104,7 +104,6 @@ describe('date range rules', () => {
       }),
     ).toBeUndefined();
     expect(getSelectableDays({})).toBeUndefined();
-    // eslint-disable-next-line unicorn/no-null
     expect(getSelectableDays({ startDate: camp.startDate, endDate: null })).toBeUndefined();
     expect(getSelectableDays({ startDate: 'not a date', endDate: 'neither' })).toBeUndefined();
     expect(getSelectableDays({ startDate: camp.endDate, endDate: camp.startDate })).toBeUndefined();

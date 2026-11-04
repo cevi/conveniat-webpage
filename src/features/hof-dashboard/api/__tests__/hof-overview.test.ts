@@ -200,7 +200,7 @@ describe('acceptHofArea', () => {
       expect.objectContaining({
         collection: 'form-submissions',
         id: 'plan-2',
-        // eslint-disable-next-line unicorn/no-null -- Payload clears a field only with null
+        // Payload clears a field only with null
         data: { approved: true, hofReviewStatus: null, hofFinal: true },
         context: { hofReviewer: REVIEWER },
       }),
@@ -214,7 +214,7 @@ describe('acceptHofArea', () => {
     expect(mockPayload.update.mock.calls.map(([options]) => options)).toEqual([
       expect.objectContaining({
         id: 'stand-b',
-        // eslint-disable-next-line unicorn/no-null -- Payload clears a field only with null
+        // Payload clears a field only with null
         data: { approved: true, hofReviewStatus: null },
       }),
     ]);

@@ -51,7 +51,6 @@ export const canAccessDocuments: Access = async ({ req }) => {
         },
         {
           permissions: {
-            // eslint-disable-next-line unicorn/no-null
             equals: null,
           },
         },

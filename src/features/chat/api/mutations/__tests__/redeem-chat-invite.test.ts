@@ -52,7 +52,6 @@ const prisma = {
   },
   chatInvite: {
     findUnique: ({ where }: { where: { token: string } }): Promise<Invite | null> =>
-      // eslint-disable-next-line unicorn/no-null
       Promise.resolve(invites.find((invite) => invite.token === where.token) ?? null),
     updateMany: ({
       where,
@@ -101,9 +100,7 @@ const unredeemed = (token: string, expiresInMs: number): Invite => ({
   token,
   issuerId: 'issuer',
   expiresAt: new Date(Date.now() + expiresInMs),
-  // eslint-disable-next-line unicorn/no-null
   redeemedById: null,
-  // eslint-disable-next-line unicorn/no-null
   chatId: null,
 });
 

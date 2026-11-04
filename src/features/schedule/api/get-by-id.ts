@@ -5,7 +5,6 @@ import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 
-/* eslint-disable unicorn/no-null */
 export const getById = async (
   id: string,
   locale?: Locale,

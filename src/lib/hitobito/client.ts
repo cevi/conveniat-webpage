@@ -133,7 +133,7 @@ export class HitobitoClient {
       if (becomesGet) {
         const headers = new Headers(currentInit.headers);
         headers.delete('Content-Type');
-        // eslint-disable-next-line unicorn/no-null -- RequestInit spells "no body" as null
+        // RequestInit spells "no body" as null
         currentInit = { ...currentInit, method: 'GET', headers, body: null };
       }
       currentUrl = nextUrl;

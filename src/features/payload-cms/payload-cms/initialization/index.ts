@@ -76,7 +76,6 @@ const startWorkerHeartbeat = (payload: Payload): void => {
       // Production starts the new container before it stops the old one, so for the length of
       // that overlap the old replica's cleanup would see this worker as idle and delete a job
       // it is running. Writing the oldest id here as well keeps it readable on both sides.
-      // eslint-disable-next-line unicorn/no-null
       const activeJobId = runningJobIds[0] ?? null;
 
       const written = await (workerDocumentId === undefined

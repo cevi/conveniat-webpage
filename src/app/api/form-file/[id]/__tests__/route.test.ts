@@ -49,7 +49,6 @@ const FILE_ID = '0123456789abcdef01234567';
 const PARTICIPANT = { id: 'participant', groups: [{ id: 4242 }] };
 const WEB_CORE_TEAM_MEMBER = { id: 'editor', groups: [{ id: 105 }] };
 
-// eslint-disable-next-line unicorn/no-null -- payload.auth reports a request without a session as null
 const ANONYMOUS = null;
 
 /** Switches the Hof dashboard of the mocked deployment on or off. */
@@ -72,7 +71,6 @@ const HOF_NORD_ADMINISTRATOR = {
 /** The forms a file can be handed in with, by id. */
 const FORMS: Record<string, object> = {
   // a contact form, off the dashboard
-  // eslint-disable-next-line unicorn/no-null -- Payload stores an unset select as null
   'form-contact': { hofDashboard: { area: null } },
   // a Hof's plan, handed in by its address administrators only
   'form-plan': { hofDashboard: { area: 'infrastructure', entries: 'versions' } },
@@ -114,7 +112,6 @@ describe('GET /api/form-file/[id]', () => {
     mockPayload.auth.mockResolvedValue({ user });
     mockPayload.findByID.mockImplementation(
       ({ collection, id }: { collection: string; id: string }) =>
-        // eslint-disable-next-line unicorn/no-null -- findByID with disableErrors answers null
         Promise.resolve(collection === 'forms' ? (FORMS[id] ?? null) : fileDocument),
     );
     return GET(new Request(`http://localhost/api/form-file/${FILE_ID}`), {

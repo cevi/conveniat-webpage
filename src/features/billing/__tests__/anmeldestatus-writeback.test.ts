@@ -541,7 +541,6 @@ describe('writeBackAnmeldestatus', () => {
 describe('needsAnmeldestatusWriteBack', () => {
   it('is true for a registration the Cevi.DB has not been told about', () => {
     expect(needsAnmeldestatusWriteBack('erfasst durch AVP')).toBe(true);
-    // eslint-disable-next-line unicorn/no-null -- the column is nullable
     expect(needsAnmeldestatusWriteBack(null)).toBe(true);
     expect(needsAnmeldestatusWriteBack('')).toBe(true);
   });

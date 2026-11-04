@@ -8,8 +8,7 @@ export const SimpleJsonField: React.FC<JSONFieldClientProps> = ({ path, field })
   const { value } = useField<unknown>({ path });
 
   const formattedValue = React.useMemo(() => {
-    // Avoid literal null check to satisfy unicorn/no-null rule
-    if (value === undefined || (typeof value === 'object' && !value)) {
+    if (value === undefined || value === null) {
       return '';
     }
     if (typeof value === 'string') {

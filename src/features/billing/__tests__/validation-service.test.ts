@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-null, unicorn/no-useless-undefined */
 import { isRoleAllowed, validateParticipant } from '@/features/billing/services/validation-service';
 
 describe('Validation Service', () => {
@@ -134,9 +133,8 @@ describe('Validation Service', () => {
     it('rejects a role nothing prices', () => {
       expect(isRoleAllowed('Event::Role::Guest', configured)).toBe(false);
       expect(isRoleAllowed('Event::Role::Visitor', configured)).toBe(false);
-      // eslint-disable-next-line unicorn/no-useless-undefined -- a role can be missing
+      // a role can be missing
       expect(isRoleAllowed(undefined, configured)).toBe(false);
-      // eslint-disable-next-line unicorn/no-null -- Payload hands back null for an unset field
       expect(isRoleAllowed(null, configured)).toBe(false);
       expect(isRoleAllowed('', configured)).toBe(false);
     });

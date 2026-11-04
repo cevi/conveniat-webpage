@@ -464,7 +464,7 @@ describe('pushSubscriptionChangeHandler', () => {
   it('subscribes again with the old options when the browser only dropped the subscription', async () => {
     const oldSubscription = subscriptionOf('old');
 
-    // eslint-disable-next-line unicorn/no-null -- what Firefox sends when it only dropped the subscription
+    // what Firefox sends when it only dropped the subscription
     await dispatchChange({ oldSubscription, newSubscription: null });
 
     expect(mockSubscribe).toHaveBeenCalledWith(oldSubscription.options);
@@ -502,7 +502,7 @@ describe('pushSubscriptionChangeHandler', () => {
   it('reports nothing when the browser does not say which subscription changed', async () => {
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // eslint-disable-next-line unicorn/no-null -- what the browser sends when it does not know
+    // what the browser sends when it does not know
     await dispatchChange({ oldSubscription: null, newSubscription: subscriptionOf('new') });
 
     expect(mockWaitUntil).not.toHaveBeenCalled();

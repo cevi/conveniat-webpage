@@ -186,7 +186,6 @@ export const useCreateChat = (): {
         name: displayName,
         type: chatType,
         status: ChatStatus.OPEN,
-        // eslint-disable-next-line unicorn/no-null
         archivedAt: null,
         messages: [systemMessage],
         participants: [
@@ -220,7 +219,6 @@ export const useCreateChat = (): {
         { chatId, limit: CHAT_PAGE_SIZE, parentId: undefined },
         (): InfiniteMessagesData => ({
           pages: [{ items: [systemMessage], nextCursor: undefined }],
-          // eslint-disable-next-line unicorn/no-null
           pageParams: [null],
         }),
       );

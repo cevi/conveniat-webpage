@@ -53,10 +53,8 @@ let memberships: Membership[];
 const membership = (userId: string, chatId: string): Membership => ({
   userId,
   chatId,
-  /* eslint-disable unicorn/no-null -- what Postgres answers for an untouched membership */
   pinnedAt: null,
   mutedAt: null,
-  /* eslint-enable unicorn/no-null */
   markedUnread: false,
 });
 
@@ -73,7 +71,6 @@ const prisma = {
     }): Promise<unknown> => {
       const row = find(where.userId_chatId);
       return Promise.resolve(
-        // eslint-disable-next-line unicorn/no-null
         row === undefined ? null : { ...row, chat: { type: chatTypes.get(row.chatId) } },
       );
     },
