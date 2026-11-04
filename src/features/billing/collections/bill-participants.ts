@@ -630,11 +630,15 @@ export const BillParticipantsCollection: CollectionConfig = {
                 },
               },
             },
+            // The camp's joins read the legacy fields, which every release writes for a camp
+            // payment. A replica of the previous release, still running while the deploy rolls,
+            // writes only those, so a join on the new fields would miss what it booked. The
+            // migration that drops the legacy fields moves these joins to the new ones.
             {
               name: 'payments',
               type: 'join',
               collection: 'bill-payments',
-              on: 'allocations.bill',
+              on: 'allocations.participant',
               label: {
                 en: 'Bookings',
                 de: 'Buchungen',
@@ -659,7 +663,7 @@ export const BillParticipantsCollection: CollectionConfig = {
               name: 'matchedPayments',
               type: 'join',
               collection: 'bill-payments',
-              on: 'matchedBill',
+              on: 'matchedParticipant',
               label: {
                 en: 'Payments with this Reference',
                 de: 'Zahlungen mit dieser Referenz',
