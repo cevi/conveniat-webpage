@@ -1,4 +1,4 @@
-/* eslint-disable unicorn/no-null -- Payload types an unset field of `issuedBills` as null */
+/* Payload types an unset field of `issuedBills` as null */
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
 
 /**

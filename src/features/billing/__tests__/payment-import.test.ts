@@ -101,7 +101,7 @@ const fakePayload = (
     ),
     findByID: jest.fn(({ collection, id }: { collection: string; id: string }) => {
       const found = store[collection]?.find((document_) => document_.id === id);
-      // eslint-disable-next-line unicorn/no-null -- what findByID with disableErrors returns
+      // what findByID with disableErrors returns
       return found === undefined ? null : structuredClone(found);
     }),
     create: jest.fn(

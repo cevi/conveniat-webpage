@@ -18,7 +18,7 @@ const csrfEvent = (): { event: FetchEvent; responded: () => Promise<Response> } 
     request: {
       url: 'https://konekta.ch/api/auth/csrf',
       mode: 'cors',
-      headers: { get: (): null => null }, // eslint-disable-line unicorn/no-null
+      headers: { get: (): null => null },
     },
     respondWith: (response: Promise<Response>): void => {
       responded = response;

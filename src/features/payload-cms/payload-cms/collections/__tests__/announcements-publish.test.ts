@@ -43,7 +43,6 @@ jest.mock('@/lib/db/prisma', () => ({
     },
     messageContent: {
       create: (...args: unknown[]): unknown => mockContentCreate(...args),
-      // eslint-disable-next-line unicorn/no-null
       findFirst: jest.fn().mockResolvedValue(null),
     },
     chatMembership: {
@@ -114,7 +113,6 @@ describe('publishing an announcement', () => {
 
   it('posts the reserved message and pushes it once the announcement is saved', async () => {
     const data = await beforePublish({ status: 'published' });
-    // eslint-disable-next-line unicorn/no-null
     mockMessageFindUnique.mockResolvedValue(null);
 
     await afterSave(data);

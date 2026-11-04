@@ -32,5 +32,5 @@ export const ChunkErrorHandler: React.FC = () => {
     };
   }, []);
 
-  return null; // eslint-disable-line unicorn/no-null
+  return null;
 };

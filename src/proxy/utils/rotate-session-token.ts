@@ -44,7 +44,7 @@ export async function rotateSessionToken(
 ): Promise<Session | null> {
   // The wrapper form runs the same check as `auth(request, event)` and hands the session it read
   // to the callback, so nothing later in the proxy has to run the check a second time.
-  // eslint-disable-next-line unicorn/no-null -- `null` is what Auth.js answers for no session
+  // `null` is what Auth.js answers for no session
   let session: Session | null = null;
   const authMiddleware = (
     auth as unknown as (

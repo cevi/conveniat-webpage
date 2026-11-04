@@ -18,7 +18,7 @@ const subscribe = (onChange: () => void): (() => void) => {
   };
 };
 // the server knows of nothing packed
-// eslint-disable-next-line unicorn/no-null -- the same empty answer local storage gives
+// the same empty answer local storage gives
 const readNothing = (): string | null => null;
 
 const parsePacked = (stored: string | null): ReadonlySet<string> => {

@@ -25,7 +25,6 @@ export const redis =
             if (property === 'get')
               return async (): Promise<string | null> => {
                 await Promise.resolve();
-                // eslint-disable-next-line unicorn/no-null
                 return null;
               };
             if (property === 'set')

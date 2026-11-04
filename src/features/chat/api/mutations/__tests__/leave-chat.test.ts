@@ -70,7 +70,6 @@ const prisma = {
         uuid: where.uuid,
         name: 'Cevi Uster',
         type: chatType,
-        // eslint-disable-next-line unicorn/no-null
         archivedAt: null,
         createdAt: new Date(0),
         lastUpdate: new Date(0),
@@ -122,7 +121,6 @@ const prisma = {
       const latest = messages
         .filter((m) => m.chatId === where.chatId && where.senderId.in.includes(m.senderId ?? ''))
         .toSorted((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
-      // eslint-disable-next-line unicorn/no-null
       return Promise.resolve(latest === undefined ? null : { senderId: latest.senderId });
     },
     create: ({
@@ -133,7 +131,6 @@ const prisma = {
       const message: StoredMessage = {
         uuid: `message-${messages.length}`,
         chatId: data.chatId,
-        // eslint-disable-next-line unicorn/no-null
         senderId: null,
         createdAt: new Date(),
         payload: data.contentVersions.create[0]?.payload,

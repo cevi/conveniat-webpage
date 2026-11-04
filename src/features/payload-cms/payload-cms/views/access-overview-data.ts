@@ -189,7 +189,6 @@ export const loadPerson = async (
     depth: 0,
     disableErrors: true,
   });
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!user) return undefined;
 
   const groups = (Array.isArray(user.groups) ? user.groups : []) as CeviDatabaseGroup[];

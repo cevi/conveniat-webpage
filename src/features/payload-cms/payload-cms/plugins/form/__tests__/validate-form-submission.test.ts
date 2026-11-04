@@ -327,20 +327,20 @@ describe('validateFormSubmission — file upload', () => {
   });
 
   it('rejects files named by a signed-out request', async () => {
-    // eslint-disable-next-line unicorn/no-null -- Payload reports a request without a session as null
+    // Payload reports a request without a session as null
     await expect(uploadErrorsOf(OWN_FILE, null)).resolves.toEqual(invalid);
   });
 
   it('accepts a file uploaded without a sign-in from the browser that uploaded it', async () => {
     await expect(
-      // eslint-disable-next-line unicorn/no-null -- Payload reports a request without a session as null
+      // Payload reports a request without a session as null
       uploadErrorsOf(ANONYMOUS_FILE, null, `locale=de; form-uploader=${BROWSER_SECRET}`),
     ).resolves.toBeUndefined();
   });
 
   it('rejects a file uploaded without a sign-in from any other browser', async () => {
     await expect(
-      // eslint-disable-next-line unicorn/no-null -- Payload reports a request without a session as null
+      // Payload reports a request without a session as null
       uploadErrorsOf(ANONYMOUS_FILE, null, 'form-uploader=another-secret'),
     ).resolves.toEqual(invalid);
     await expect(uploadErrorsOf(ANONYMOUS_FILE)).resolves.toEqual(invalid);

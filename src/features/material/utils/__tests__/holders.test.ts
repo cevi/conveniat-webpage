@@ -22,7 +22,7 @@ interface TestLoan {
   returnAnnouncedAt?: Date | null;
 }
 
-/* eslint-disable unicorn/no-null -- the columns are nullable, as the server sends them */
+/* the columns are nullable, as the server sends them */
 const onHof = (id: string, overrides: Partial<TestLoan> = {}): TestLoan => ({
   id,
   status: 'ISSUED',

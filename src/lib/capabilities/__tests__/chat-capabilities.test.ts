@@ -13,7 +13,6 @@ const CHAT_ID = 'chat-1';
 const openChat = (capabilities: ChatCapability[]): CapabilityChat => ({
   capabilities,
   status: ChatStatus.OPEN,
-  // eslint-disable-next-line unicorn/no-null
   archivedAt: null,
 });
 
@@ -21,10 +20,7 @@ const openChat = (capabilities: ChatCapability[]): CapabilityChat => ({
 const clientWith = (
   chat?: CapabilityChat,
 ): { prisma: PrismaClientOrTransaction; reads: () => number } => {
-  const findUnique = jest.fn((): Promise<CapabilityChat | null> =>
-    // eslint-disable-next-line unicorn/no-null
-    Promise.resolve(chat ?? null),
-  );
+  const findUnique = jest.fn((): Promise<CapabilityChat | null> => Promise.resolve(chat ?? null));
   return {
     prisma: { chat: { findUnique } } as unknown as PrismaClientOrTransaction,
     reads: (): number => findUnique.mock.calls.length,
@@ -61,7 +57,6 @@ describe('chat capabilities', () => {
     const { prisma, reads } = clientWith(openChat([ChatCapability.PICTURE_UPLOAD]));
 
     await expect(
-      // eslint-disable-next-line unicorn/no-null
       checkCapability(prisma, CapabilityAction.Upload, CapabilitySubject.Images, CHAT_ID, null),
     ).resolves.toBe(false);
     expect(reads()).toBe(0);

@@ -34,7 +34,7 @@ export const auth = ((...arguments_: unknown[]) => {
   if (arguments_.length > 0) {
     return (nextAuth.auth as (...forwarded: unknown[]) => unknown)(...arguments_);
   }
-  // eslint-disable-next-line unicorn/no-null -- `null` is what Auth.js answers for no session
+  // `null` is what Auth.js answers for no session
   return hasSessionTokenCookie().then((hasSession) => (hasSession ? nextAuth.auth() : null));
 }) as typeof nextAuth.auth;
 

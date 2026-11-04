@@ -73,7 +73,6 @@ export const shiftsRouter = createTRPCRouter({
       // must surface as an error: a `null` here is a *successful* response, so the client cached
       // and persisted it and then rendered "offline" for that one shift forever.
       if (error instanceof NotFound) {
-        // eslint-disable-next-line unicorn/no-null
         return null;
       }
       throw new TRPCError({

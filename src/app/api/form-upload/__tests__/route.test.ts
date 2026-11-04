@@ -52,7 +52,7 @@ describe('GET /api/form-upload', () => {
   });
 
   it('refuses a request with neither a sign-in nor an upload of its own', async () => {
-    // eslint-disable-next-line unicorn/no-null -- payload.auth reports a request without a session as null
+    // payload.auth reports a request without a session as null
     const response = await lookUp(null);
     expect(response.status).toBe(401);
     expect(mockPayload.find).not.toHaveBeenCalled();
@@ -85,7 +85,7 @@ describe('GET /api/form-upload', () => {
   });
 
   it('only shows a browser without a sign-in the files it uploaded itself', async () => {
-    // eslint-disable-next-line unicorn/no-null -- payload.auth reports a request without a session as null
+    // payload.auth reports a request without a session as null
     await lookUp(null, 'form-uploader=browser-secret');
     expect(mockPayload.find).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -159,7 +159,7 @@ describe('POST /api/form-upload', () => {
   });
 
   it('takes a file without a sign-in, owned by a secret only that browser holds', async () => {
-    // eslint-disable-next-line unicorn/no-null -- payload.auth reports a request without a session as null
+    // payload.auth reports a request without a session as null
     mockPayload.auth.mockResolvedValue({ user: null });
     const response = await upload(new File([PDF], 'stand.pdf', { type: 'application/pdf' }));
 
@@ -174,7 +174,7 @@ describe('POST /api/form-upload', () => {
   });
 
   it('keeps the secret a browser already holds, so its earlier files stay its own', async () => {
-    // eslint-disable-next-line unicorn/no-null -- payload.auth reports a request without a session as null
+    // payload.auth reports a request without a session as null
     mockPayload.auth.mockResolvedValue({ user: null });
     const response = await upload(
       new File([PDF], 'stand.pdf', { type: 'application/pdf' }),

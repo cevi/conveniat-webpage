@@ -50,7 +50,7 @@ let reactions: { messageId: string; userId: string; emoji: string }[];
 /** The message the reader read last; the membership stores its position. */
 let lastReadMessageId: string | null;
 
-/* eslint-disable unicorn/no-null -- mirrors the Prisma rows and filters */
+/* mirrors the Prisma rows and filters */
 
 /**
  * Evaluates the part of a Prisma `where` these queries use: equality, `null`, `not`, `gt`,
@@ -193,7 +193,6 @@ const seed = (
   });
   return uuid;
 };
-/* eslint-enable unicorn/no-null */
 
 const createCaller = createCallerFactory(
   createTRPCRouter({ getChatMessages, getMessage, getUnreadMarker }),
@@ -210,7 +209,6 @@ const as = (uuid: string): ReturnType<typeof createCaller> => {
 beforeEach(() => {
   messages = [];
   reactions = [];
-  // eslint-disable-next-line unicorn/no-null
   lastReadMessageId = null;
   minute = 0;
 });

@@ -46,7 +46,6 @@ describe('convertLexicalToMarkdown', () => {
   // (edit button, participant list, group-chat link) from the course detail page.
   it.each([
     ['undefined', undefined],
-    // eslint-disable-next-line unicorn/no-null
     ['null', null],
   ])('returns an empty string for an unset editor state (%s)', (_label, editorState) => {
     expect(convertLexicalToMarkdown(editorState)).toBe('');

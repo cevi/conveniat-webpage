@@ -45,7 +45,7 @@ const syncUserToPostgres: NonNullable<
   const avpHofIds = toHofIds(doc.avpHoefe);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const funktionIds = toFunktionIds(doc.funktionen);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, unicorn/no-null
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const profilePictureVersion = (doc.profilePictureVersion as string | undefined | null) ?? null;
 
   if (uuid === undefined || uuid === null || uuid === '') {
@@ -70,7 +70,6 @@ const syncUserToPostgres: NonNullable<
       where: { uuid },
       update: {
         name: name,
-        // eslint-disable-next-line unicorn/no-null
         description: description ?? null,
         hidden: hidden ?? false,
         testAccount,
@@ -82,7 +81,6 @@ const syncUserToPostgres: NonNullable<
       create: {
         uuid: uuid,
         name: name,
-        // eslint-disable-next-line unicorn/no-null
         description: description ?? null,
         hidden: hidden ?? false,
         testAccount,

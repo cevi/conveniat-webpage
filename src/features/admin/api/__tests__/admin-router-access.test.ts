@@ -62,7 +62,6 @@ const prisma = {
     findUnique: jest.fn(({ where }: { where: { uuid: string } }) => {
       const type = CHAT_TYPES[where.uuid];
       return Promise.resolve(
-        // eslint-disable-next-line unicorn/no-null
         type === undefined ? null : { type, capabilities: [], chatMemberships: [] },
       );
     }),

@@ -33,7 +33,7 @@ describe('hasRaisedBill', () => {
 
   it('does not count an empty or absent invoice number', () => {
     expect(hasRaisedBill({})).toBe(false);
-    // eslint-disable-next-line unicorn/no-null -- Payload stores absent text fields as null
+    // Payload stores absent text fields as null
     expect(hasRaisedBill({ invoiceNumber: null, billCreatedDate: null })).toBe(false);
     expect(hasRaisedBill({ invoiceNumber: '   ' })).toBe(false);
   });

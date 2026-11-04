@@ -57,7 +57,7 @@ const ConditionedField: React.FC<{
     }
   }, [isVisible, block.fields, resetField]);
 
-  if (!isVisible) return null; // eslint-disable-line unicorn/no-null
+  if (!isVisible) return null;
 
   return (
     <>
@@ -100,18 +100,18 @@ const SingleField: React.FC<{
 
   if (!Component) {
     console.error(`Field type ${field.blockType} is not supported`);
-    return null; // eslint-disable-line unicorn/no-null
+    return null;
   }
 
   if (fieldName !== undefined && hiddenFields.has(fieldName)) {
-    return null; // eslint-disable-line unicorn/no-null
+    return null;
   }
 
   // Placement logic
   const effectivePlacement = getEffectivePlacement(field);
 
   if (renderMode !== 'all' && renderMode !== effectivePlacement) {
-    return null; // eslint-disable-line unicorn/no-null
+    return null;
   }
 
   return (

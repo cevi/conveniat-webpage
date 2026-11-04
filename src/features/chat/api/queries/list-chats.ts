@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-null */
 import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
 import { findCmsUserNames } from '@/features/chat/api/utils/find-cms-user-names';
 import { describeMessagePreview } from '@/features/chat/api/utils/get-message-preview-text';

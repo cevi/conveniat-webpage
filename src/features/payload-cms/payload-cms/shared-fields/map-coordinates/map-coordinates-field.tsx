@@ -228,7 +228,6 @@ const MapCoordinatesField: PointFieldClientComponent = ({ path }) => {
         console.warn('[MapCoordinatesField] Failed to initialize the map:', error);
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setMapUnavailable(true);
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setShowManualInput(true);
         return;
       }

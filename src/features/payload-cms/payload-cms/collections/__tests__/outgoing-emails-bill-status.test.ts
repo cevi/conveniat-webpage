@@ -77,7 +77,7 @@ describe('a bill follows the delivery of its mail', () => {
   });
 
   it('ignores mails that are not a bill', async () => {
-    // eslint-disable-next-line unicorn/no-null -- what Payload stores for an empty relationship
+    // what Payload stores for an empty relationship
     await runHook('pending', 'error', {}, null);
 
     expect(mockMarkBillMailFailed).not.toHaveBeenCalled();

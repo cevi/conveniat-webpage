@@ -34,7 +34,6 @@ const ANONYMOUS_EVENTS = new Set(['$pageview', '$pageleave', '$exception']);
 
 const filterByConsent = (event: CaptureResult | null): CaptureResult | null => {
   if (event !== null && getAnalyticsConsent() !== 'granted' && !ANONYMOUS_EVENTS.has(event.event)) {
-    // eslint-disable-next-line unicorn/no-null
     return null;
   }
   return filterPostHogNoise(event);

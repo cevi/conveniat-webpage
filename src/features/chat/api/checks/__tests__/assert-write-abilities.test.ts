@@ -15,7 +15,6 @@ const CHAT_ID = 'chat-1';
 const openChat = (capabilities: ChatCapability[]): CapabilityChat => ({
   capabilities,
   status: ChatStatus.OPEN,
-  // eslint-disable-next-line unicorn/no-null
   archivedAt: null,
 });
 

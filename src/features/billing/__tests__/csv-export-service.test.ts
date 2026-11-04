@@ -162,7 +162,7 @@ describe('buildFinanceCsvRows with replaced and cancelled bills', () => {
 
   it('writes no line for a registration that was never billed', () => {
     const rows = buildFinanceCsvRows(
-      // eslint-disable-next-line unicorn/no-null -- Payload stores absent text fields as null
+      // Payload stores absent text fields as null
       [participant({ status: 'new', invoiceNumber: null, billCreatedDate: null })],
       SETTINGS,
     );

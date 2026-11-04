@@ -24,10 +24,8 @@ const mockResponse = (rewriteUrl?: string | null): MockNextResponse => ({
   headers: {
     get: jest.fn((header: string) => {
       if (header === (Header.MIDDLEWARE_REWRITES as string)) {
-        // eslint-disable-next-line unicorn/no-null
         return rewriteUrl ?? null; // Rewritten URL
       }
-      // eslint-disable-next-line unicorn/no-null
       return null;
     }),
   },

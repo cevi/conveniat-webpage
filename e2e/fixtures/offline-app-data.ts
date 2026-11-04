@@ -17,7 +17,7 @@ const emptyRichText = {
   root: {
     type: 'root',
     children: [],
-    // eslint-disable-next-line unicorn/no-null -- the shape Payload stores and the type asks for
+    // the shape Payload stores and the type asks for
     direction: null,
     format: '' as const,
     indent: 0,
@@ -47,7 +47,7 @@ export const scheduleEntry = {
   kind: 'program',
   description: emptyRichText,
   timeslot: { date: todayAtNoon(), time: '08:00 - 09:00' },
-  // eslint-disable-next-line unicorn/no-null -- a block without a place, as Payload sends it
+  // a block without a place, as Payload sends it
   location: null,
   organiser: [],
 } satisfies RouterOutputs['schedule']['getScheduleEntries'][number];
@@ -112,7 +112,7 @@ const chatDetails = {
   name: chatPreview.name,
   type: 'GROUP',
   status: 'OPEN',
-  // eslint-disable-next-line unicorn/no-null -- not archived, as Prisma sends it
+  // not archived, as Prisma sends it
   archivedAt: null,
   messages: [chatMessage],
   participants: [{ id: USER_ID, name: 'Test User', isOnline: true, chatPermission: 'MEMBER' }],
@@ -133,7 +133,7 @@ const answers: Record<string, unknown> = {
   'schedule.getScheduleEntries': [scheduleEntry],
   'schedule.getById': scheduleEntry satisfies RouterOutputs['schedule']['getById'],
   // no course behind the block: nobody enrolls in it
-  // eslint-disable-next-line unicorn/no-null -- what the procedure answers for no course
+  // what the procedure answers for no course
   'schedule.getCourseStatus': null satisfies RouterOutputs['schedule']['getCourseStatus'],
   'schedule.getHelperShifts': [helperShift],
   'map.getMapAnnotations': {

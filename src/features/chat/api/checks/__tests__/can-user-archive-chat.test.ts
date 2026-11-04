@@ -14,7 +14,6 @@ const chatWith = (
   chatMemberships: [{ userId: 'user-1', chatPermission: permission }],
 });
 
-// eslint-disable-next-line unicorn/no-null
 const open = null;
 const archived = new Date(Date.now() - 1000);
 

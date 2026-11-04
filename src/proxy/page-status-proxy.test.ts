@@ -92,7 +92,7 @@ describe('pageStatusProxy', () => {
     mockFetchPublishedPageSlugs.mockReset();
     mockReadPublishedPageSlugsVersion.mockReset();
     mockReadPublishedPageSlugsVersion.mockResolvedValue('0');
-    // eslint-disable-next-line unicorn/no-null -- `null` is the session of a visitor without one
+    // `null` is the session of a visitor without one
     mockRequestSession.mockReset().mockReturnValue(null);
   });
 

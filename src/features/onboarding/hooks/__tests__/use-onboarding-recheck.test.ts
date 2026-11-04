@@ -28,7 +28,7 @@ const sessionAnswer = (body: unknown, fromWorkerCache = false): Response =>
 const lenaMuster = { user: { name: 'Lena Muster' }, expires: '2027-08-01T00:00:00.000Z' };
 
 /** What the session endpoint answers for nobody. */
-// eslint-disable-next-line unicorn/no-null -- next-auth answers `null`, not an empty body
+// next-auth answers `null`, not an empty body
 const NOBODY = null;
 
 describe('the background session check of an app started past the onboarding', () => {

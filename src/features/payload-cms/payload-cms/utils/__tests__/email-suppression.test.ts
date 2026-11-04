@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-null */
 jest.mock('@/config/environment-variables', () => ({
   environmentVariables: { SMTP_USER: 'noreply@cevi.tools' },
 }));

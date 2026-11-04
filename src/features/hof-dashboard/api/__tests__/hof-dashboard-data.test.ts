@@ -213,7 +213,7 @@ const SUBMISSIONS = [
       {
         changedAt: '2026-09-03T12:00:00.000Z',
         reviewerName: 'Tom Frei v/o Dachs',
-        // eslint-disable-next-line unicorn/no-null -- Payload stores a cleared select as null
+        // Payload stores a cleared select as null
         status: null,
         feedback: '',
       },
@@ -231,7 +231,7 @@ const USERS = [
   },
   {
     fullName: 'Lea Roth',
-    // eslint-disable-next-line unicorn/no-null -- Payload stores a missing Cevi name as null
+    // Payload stores a missing Cevi name as null
     nickname: null,
     email: 'lea@example.com',
     groups: [{ id: 990_001, role_class: HOF_ADMINISTRATOR_ROLE_CLASS }],

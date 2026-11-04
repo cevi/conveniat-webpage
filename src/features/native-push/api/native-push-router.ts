@@ -58,7 +58,6 @@ export const nativePushRouter = createTRPCRouter({
           platform: input.platform,
           token: input.token,
           user: payloadUser.id,
-          // eslint-disable-next-line unicorn/no-null
           deviceId: deviceId ?? null,
           lastUsedAt: new Date().toISOString(),
         };

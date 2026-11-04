@@ -57,7 +57,7 @@ describe('leader notes of a Lager-Programmblock', () => {
   beforeEach(() => hasAdminOrWebAccess.mockReturnValue(false));
 
   it('are left out of a read by the app, which has no user on the request', () => {
-    // eslint-disable-next-line unicorn/no-null -- Payload sets `null` for no user
+    // Payload sets `null` for no user
     expect(read({ user: null, context: {} })).toBeUndefined();
   });
 
@@ -66,7 +66,6 @@ describe('leader notes of a Lager-Programmblock', () => {
   });
 
   it('reach the query that has checked the viewer', () => {
-    // eslint-disable-next-line unicorn/no-null
     expect(read({ user: null, context: { [LEADER_NOTES_CONTEXT]: true } })).toEqual(notes);
   });
 
@@ -81,7 +80,7 @@ const flagOf = (leaders: unknown): unknown =>
   (
     hideLeaderNotes({
       doc: { ...block, leaders },
-      // eslint-disable-next-line unicorn/no-null -- Payload sets `null` for no user
+      // Payload sets `null` for no user
       req: { user: null, context: {} },
     } as never) as { hasLeaderSection?: unknown }
   ).hasLeaderSection;
@@ -96,14 +95,12 @@ describe('whether a Lager-Programmblock has a part for Leitende', () => {
 
   it('is no for a block whose part is empty or only blank', () => {
     expect(flagOf({ materials: [], attachments: [], safety: '  ' })).toBe(false);
-    // eslint-disable-next-line unicorn/no-null
     expect(flagOf(null)).toBe(false);
   });
 
   it('is left out of a read that did not select the part', () => {
     const publicPart = hideLeaderNotes({
       doc: { id: 'entry-1', title: 'Kennenlernspiel' },
-      // eslint-disable-next-line unicorn/no-null
       req: { user: null, context: {} },
     } as never) as Record<string, unknown>;
     expect('hasLeaderSection' in publicPart).toBe(false);

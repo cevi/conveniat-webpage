@@ -191,7 +191,6 @@ export const CreateNewGroupPage: React.FC = () => {
             <input
               id={nameId}
               // the step exists for the name, so the keyboard comes up with it
-              // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
               value={groupName}
               maxLength={NAME_MAX}

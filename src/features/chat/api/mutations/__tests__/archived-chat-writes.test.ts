@@ -97,8 +97,7 @@ const chatRow = (where: { uuid: string }, membershipWhere?: { userId: string }):
           (m) => membershipWhere === undefined || m.userId === membershipWhere.userId,
         ),
       }
-    : // eslint-disable-next-line unicorn/no-null
-      null;
+    : null;
 
 const record =
   (write: string, result: unknown = {}) =>
@@ -164,7 +163,6 @@ const mockPrisma = {
   messageContent: { create: record('messageContent.create') },
   messageEvent: { createMany: record('messageEvent.createMany') },
   messageReaction: {
-    // eslint-disable-next-line unicorn/no-null
     findUnique: (): Promise<null> => Promise.resolve(null),
     count: (): Promise<number> => Promise.resolve(0),
     createMany: record('messageReaction.createMany'),
@@ -229,7 +227,6 @@ const writeProcedures: [string, WriteCall][] = [
 
 beforeEach(() => {
   jest.clearAllMocks();
-  // eslint-disable-next-line unicorn/no-null
   archivedAt = null;
   writes = [];
   membershipListReads = 0;

@@ -1,4 +1,4 @@
-/* eslint-disable unicorn/no-null, unicorn/no-useless-undefined -- these cases exist precisely to pin down what happens when Cevi.DB has no birthday
+/* eslint-disable unicorn/no-useless-undefined -- these cases exist precisely to pin down what happens when Cevi.DB has no birthday
    on file and the settings carry no rate. */
 import {
   calculateVat,

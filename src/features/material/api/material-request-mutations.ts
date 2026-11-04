@@ -102,12 +102,12 @@ export const createLoanRequest = materialProcedure
             ...(await applyBooking(tx, booking, new Date())),
             status: 'REQUESTED',
             itemId: item.id,
-            // eslint-disable-next-line unicorn/no-null -- a person asking for themselves has no Hof
+            // a person asking for themselves has no Hof
             hofId: input.hofId ?? null,
-            // eslint-disable-next-line unicorn/no-null -- a Hof's request is the Hof's
+            // a Hof's request is the Hof's
             personId: input.personId ?? null,
             responsibleName: input.responsibleName,
-            // eslint-disable-next-line unicorn/no-null -- no comment
+            // no comment
             comment: input.comment === undefined || input.comment === '' ? null : input.comment,
             createdById: ctx.user.uuid,
           },
@@ -161,7 +161,7 @@ export const updateLoanRequest = materialProcedure
             : { responsibleName: input.responsibleName }),
           ...(input.comment === undefined
             ? {}
-            : // eslint-disable-next-line unicorn/no-null -- an emptied comment is none
+            : // an emptied comment is none
               { comment: input.comment === '' ? null : input.comment }),
         },
       });
@@ -195,7 +195,7 @@ export const announceReturn = materialProcedure
       where: {
         AND: [
           { id: { in: input.ids }, status: 'ISSUED' },
-          // eslint-disable-next-line unicorn/no-null -- announced once is enough
+          // announced once is enough
           { returnAnnouncedAt: null },
           visible,
         ],

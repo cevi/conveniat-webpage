@@ -49,7 +49,7 @@ jest.mock('@/utils/auth', () => ({
       }) => Promise<JWT | null>;
       const headers = new Headers({ 'set-cookie': CSRF_COOKIE });
       for (const cookie of otherSetCookies) headers.append('set-cookie', cookie);
-      // eslint-disable-next-line unicorn/no-null -- `null` is what Auth.js answers for no session
+      // `null` is what Auth.js answers for no session
       const resolved = token === undefined ? null : await jwt({ token });
       callback({
         auth: resolved === null ? resolved : { user: { group_ids: resolved.group_ids } },

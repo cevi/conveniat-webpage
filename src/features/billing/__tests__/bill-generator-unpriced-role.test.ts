@@ -349,7 +349,7 @@ describe('buildCreditorFromSettings', () => {
     const creditor = buildCreditorFromSettings({
       ...settings,
       creditorBuildingNumber: '',
-      // eslint-disable-next-line unicorn/no-null -- Payload stores a cleared text field as null
+      // Payload stores a cleared text field as null
       creditorEmail: null,
       creditorWebsite: '',
     });

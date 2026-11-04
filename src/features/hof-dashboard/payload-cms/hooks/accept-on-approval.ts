@@ -17,7 +17,7 @@ export const acceptOnApproval: CollectionBeforeChangeHook<FormSubmission> = ({
   const hof = 'hof' in data ? data.hof : originalDoc?.hof;
   if (hof === undefined || hof === null || hof === '') return data;
   if (data.approved === true && originalDoc?.approved !== true) {
-    // eslint-disable-next-line unicorn/no-null -- Payload clears a select only with null
+    // Payload clears a select only with null
     data.hofReviewStatus = null;
   }
   return data;

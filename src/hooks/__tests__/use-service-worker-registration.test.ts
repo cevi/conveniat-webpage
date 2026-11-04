@@ -45,7 +45,7 @@ describe('useServiceWorkerRegistration', () => {
 
   it('does nothing when there is no Serwist instance', () => {
     expect(() =>
-      // eslint-disable-next-line unicorn/no-null -- `useSerwist()` yields null when there is no instance.
+      // `useSerwist()` yields null when there is no instance.
       renderHook(() => useServiceWorkerRegistration(null)),
     ).not.toThrow();
   });

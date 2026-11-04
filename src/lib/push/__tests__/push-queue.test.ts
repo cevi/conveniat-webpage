@@ -97,7 +97,7 @@ const { __logger: mockLogger } = jest.requireMock<{ __logger: MockLogger }>(
 
 const hour = 60 * 60 * 1000;
 
-/* eslint-disable unicorn/no-null -- mirrors the Prisma row */
+/* mirrors the Prisma row */
 const notification = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
   id: 'notification-1',
   kind: 'ANNOUNCEMENT',
@@ -113,7 +113,6 @@ const notification = (overrides: Record<string, unknown> = {}): Record<string, u
   completedAt: null,
   ...overrides,
 });
-/* eslint-enable unicorn/no-null */
 
 const claimed = (id: string, overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
   id,
@@ -236,7 +235,7 @@ describe('drainPushQueue', () => {
     // A device can report DELIVERED before the batch is written back; that must survive.
     expect(writesOf()[0]).toMatchObject({
       where: { id: { in: ['a'] }, status: 'PENDING' },
-      // eslint-disable-next-line unicorn/no-null -- Prisma clears a column only through null
+      // Prisma clears a column only through null
       data: { status: 'SENT', error: null, leaseUntil: null },
     });
   });

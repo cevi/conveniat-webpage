@@ -73,7 +73,6 @@ jest.mock('@/components/ui/markdown-editor', () => ({
   MarkdownEditor: (): React.ReactNode => <></>,
 }));
 
-// eslint-disable-next-line import/first
 import { ScheduleDetailContent } from '@/features/schedule/components/schedule-detail-content';
 
 /** An empty Lexical document; the rich-text section that would render it is mocked out. */
@@ -92,7 +91,6 @@ const entryWith = (organiser: CampScheduleEntryFrontendType['organiser']): CampS
     title: 'Workshop Feuermachen',
     description: emptyRichText,
     timeslot: { date: '2027-07-27', time: '09:00 - 11:00' },
-    // eslint-disable-next-line unicorn/no-null
     location: null,
     organiser,
   };
@@ -197,7 +195,6 @@ describe('ScheduleDetailContent tabs', () => {
       title: 'Workshop Feuermachen',
       description: emptyRichText,
       timeslot: { date: '2027-07-27', time: '13:45 - 15:45' },
-      // eslint-disable-next-line unicorn/no-null
       location: null,
       quartiere: [{ id: 'q2', name: 'Quartier 2 - Kelpie', number: 2, rufname: 'Kelpie' }],
     };
@@ -244,7 +241,6 @@ const slot = (
   title: 'Ballspiele',
   description: richText('Ballspiele.'),
   timeslot: { date: '2027-07-24T12:00:00.000Z', time },
-  // eslint-disable-next-line unicorn/no-null
   location: null,
   kind: 'program',
   quartiere,

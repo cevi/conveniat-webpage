@@ -53,7 +53,6 @@ const AdminNav: React.FC<ServerProps & { req?: PayloadRequest }> = async ({
   user,
   visibleEntities,
 }) => {
-  // eslint-disable-next-line unicorn/no-null
   if (permissions === undefined || visibleEntities === undefined) return null;
   const { collections, globals, routes } = payload.config;
 

@@ -52,7 +52,7 @@ describe('remindersRouter', () => {
     count.mockResolvedValue({ totalDocs: 1 });
     prisma.scheduleReminder.findMany.mockResolvedValue([]);
     prisma.enrollment.findMany.mockResolvedValue([]);
-    // eslint-disable-next-line unicorn/no-null -- Prisma's "not found"
+    // Prisma's "not found"
     prisma.enrollment.findFirst.mockResolvedValue(null);
     prisma.user.update.mockResolvedValue({ reminderLeadMinutes: 15, reminderAtStart: true });
   });
@@ -151,7 +151,7 @@ describe('remindersRouter', () => {
   });
 
   it('gives a user without a stored timing the defaults, and says whether a device gets pushes', async () => {
-    // eslint-disable-next-line unicorn/no-null -- Prisma's "not found"
+    // Prisma's "not found"
     prisma.user.findUnique.mockResolvedValue(null);
     count.mockResolvedValue({ totalDocs: 0 });
 

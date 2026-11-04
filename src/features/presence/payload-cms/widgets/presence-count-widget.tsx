@@ -22,7 +22,6 @@ export default async function PresenceCounterWidget({
 }: WidgetServerProps): Promise<React.ReactElement | null> {
   const showPresence = environmentVariables.FEATURE_ENABLE_PRESENCE_TRACKING;
   if (!showPresence) {
-    // eslint-disable-next-line unicorn/no-null
     return null;
   }
 

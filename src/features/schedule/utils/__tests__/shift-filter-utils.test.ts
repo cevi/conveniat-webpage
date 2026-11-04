@@ -40,7 +40,7 @@ describe('extractShiftCategories', () => {
     const shifts = [
       makeShift({ id: 'a', category: 'cat-kitchen' }),
       makeShift({ id: 'b', category: undefined }),
-      // eslint-disable-next-line unicorn/no-null -- Payload returns null for dangling relationships
+      // Payload returns null for dangling relationships
       makeShift({ id: 'c', category: null }),
     ];
 

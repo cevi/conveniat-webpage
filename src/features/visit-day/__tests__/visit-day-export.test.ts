@@ -67,7 +67,6 @@ describe('buildVisitorRows', () => {
           registrationNumber: 'EXT-B001',
           submissionId: 'submission-1',
           personNumber: 1,
-          // eslint-disable-next-line unicorn/no-null
           hofId: null,
           date: '2027-07-29',
         },

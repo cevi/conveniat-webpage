@@ -131,7 +131,7 @@ const loadIncidents = async (
   prisma: MaterialPrisma,
 ): Promise<(IncidentRow & { photoUrl: string | null })[]> => {
   const incidents = await prisma.materialIncident.findMany({
-    // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
+    // Prisma matches a SQL NULL only through null
     where: { resolvedAt: null },
     include: incidentInclude,
     orderBy: { createdAt: 'desc' },
@@ -141,7 +141,7 @@ const loadIncidents = async (
       ...incident,
       photoUrl:
         incident.photoKey === null
-          ? // eslint-disable-next-line unicorn/no-null -- mirrors the nullable photoKey column
+          ? // mirrors the nullable photoKey column
             null
           : await createPresignedDownloadUrl(incident.photoKey),
     })),
@@ -173,7 +173,7 @@ export const materialRouter = createTRPCRouter({
           // a request turned down stays in view for a few days, with the reason
           {
             status: 'CANCELLED',
-            // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
+            // Prisma matches a SQL NULL only through null
             rejectionReason: { not: null },
             updatedAt: { gte: new Date(Date.now() - REJECTED_VISIBLE_MS) },
           },
@@ -181,7 +181,7 @@ export const materialRouter = createTRPCRouter({
         AND: [
           {
             OR: [
-              // eslint-disable-next-line unicorn/no-null -- a person's loan is theirs, not the Hof's
+              // a person's loan is theirs, not the Hof's
               { hofId: { in: mine }, personId: null },
               { personId: ctx.user.uuid },
             ],
@@ -453,14 +453,14 @@ export const materialRouter = createTRPCRouter({
         ctx.prisma.materialLoan.findMany({
           where:
             personId === undefined
-              ? // eslint-disable-next-line unicorn/no-null -- a person's loan is theirs, not the Hof's
+              ? // a person's loan is theirs, not the Hof's
                 { status: 'ISSUED', hofId: hofId ?? '', personId: null }
               : { status: 'ISSUED', personId },
           include: loanInclude,
           orderBy: [{ endDate: 'asc' }, { number: 'asc' }],
         }),
       ]);
-      // eslint-disable-next-line unicorn/no-null -- a deleted Hof has no name
+      // a deleted Hof has no name
       return { name: name ?? null, loans: await withHof(loans) };
     }),
 

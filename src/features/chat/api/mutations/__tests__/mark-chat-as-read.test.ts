@@ -57,7 +57,6 @@ const prisma = {
   message: {
     findFirst: ({ where }: { where: { uuid: string } }): Promise<{ seq: number } | null> => {
       const seq = positions.get(where.uuid);
-      // eslint-disable-next-line unicorn/no-null
       return Promise.resolve(seq === undefined ? null : { seq });
     },
   },
@@ -109,7 +108,6 @@ const chatWithMembers = (count: number): string[] =>
 
 beforeEach(() => {
   memberIds = chatWithMembers(3);
-  // eslint-disable-next-line unicorn/no-null
   lastReadSeq = null;
   markedUnread = false;
   readEvents = [];

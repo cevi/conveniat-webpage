@@ -19,7 +19,7 @@ jest.mock('ioredis', () => {
     }
 
     getBuffer(key: string): Promise<Buffer | null> {
-      // eslint-disable-next-line unicorn/no-null -- ioredis answers a missing key with null
+      // ioredis answers a missing key with null
       return Promise.resolve(this.strings.get(key) ?? null);
     }
 
@@ -29,7 +29,7 @@ jest.mock('ioredis', () => {
     }
 
     mget(keys: string[]): Promise<(string | null)[]> {
-      // eslint-disable-next-line unicorn/no-null -- ioredis answers a missing key with null
+      // ioredis answers a missing key with null
       return Promise.resolve(keys.map((key) => this.strings.get(key)?.toString() ?? null));
     }
 

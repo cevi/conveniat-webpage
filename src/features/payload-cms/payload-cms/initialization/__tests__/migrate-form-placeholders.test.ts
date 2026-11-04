@@ -91,7 +91,6 @@ describe('migratePlaceholderInBlock', () => {
     };
     const blockWithNull: FormBlockData = {
       blockType: 'email',
-      // eslint-disable-next-line unicorn/no-null
       placeholder: null,
     };
 
@@ -188,10 +187,8 @@ describe('migrateSectionsPlaceholders', () => {
 
   it('handles invalid or non-array section values gracefully', () => {
     expect(migrateSectionsPlaceholders()).toBe(false);
-    /* eslint-disable unicorn/no-null */
     expect(migrateSectionsPlaceholders(null)).toBe(false);
     expect(migrateSectionsPlaceholders([null, {}, { formSection: null }])).toBe(false);
-    /* eslint-enable unicorn/no-null */
   });
 });
 

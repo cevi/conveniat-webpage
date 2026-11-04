@@ -115,7 +115,6 @@ const createHttpBatchLink = (): ReturnType<typeof httpBatchLink> => {
  * Setup static persister which falls back to no-op on Server Side Rendering.
  * This guarantees consistent component mounting during hydration and prevents warnings.
  */
-/* eslint-disable unicorn/no-null */
 const indexedDBStorage = {
   getItem: async (key: string): Promise<string | null> => {
     let value: string | undefined;
@@ -138,7 +137,6 @@ const indexedDBStorage = {
     });
   },
 };
-/* eslint-enable unicorn/no-null */
 
 const persister: Persister =
   // eslint-disable-next-line unicorn/prefer-global-this

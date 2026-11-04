@@ -64,9 +64,9 @@ export const recordIssuedBills: CollectionBeforeChangeHook = async ({
       bills,
       {
         invoiceNumber: newInvoice,
-        // eslint-disable-next-line unicorn/no-null -- Payload types an unset field as null
+        // Payload types an unset field as null
         referenceNumber: next.referenceNumber ?? null,
-        // eslint-disable-next-line unicorn/no-null -- Payload types an unset field as null
+        // Payload types an unset field as null
         invoiceAmount: next.invoiceAmount ?? null,
         billCreatedDate: next.billCreatedDate ?? now,
       },

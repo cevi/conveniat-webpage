@@ -52,7 +52,6 @@ describe('extractMessageImages', () => {
     expect(extractMessageImages({ de: { text: 'Hallo' } }, 'de')).toEqual([]);
     expect(extractMessageImages({ text: 'Hallo' }, 'de')).toEqual([]);
     expect(extractMessageImages('Hallo', 'de')).toEqual([]);
-    // eslint-disable-next-line unicorn/no-null
     expect(extractMessageImages(null, 'de')).toEqual([]);
     expect(extractMessageImages(undefined, 'de')).toEqual([]);
     expect(extractMessageImages({ de: { images: 'nope' } }, 'de')).toEqual([]);
