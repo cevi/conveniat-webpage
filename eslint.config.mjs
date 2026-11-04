@@ -227,11 +227,17 @@ const config = defineConfig([
     rules: { 'no-restricted-imports': ['error', { paths: PRESIGNING_IMPORTS }] },
   },
 
-  // 3d. Payload queries say how many documents they want
+  // 3d. Syntax with a silent trap. One entry for both, because a second `no-restricted-syntax`
+  // entry for the same files would replace this one instead of adding to it.
   //
   // `payload.find` returns ten documents unless told otherwise, and nothing in the result looks
   // truncated. A query that needs every match sets `pagination: false`; one that needs a single
   // document or a page sets `limit`.
+  //
+  // A message's parent key includes its chat (prisma/schema/chat.prisma). A nested write on
+  // `parent` sets `chatId` too: `connect` moves the message into the parent's chat instead of
+  // refusing a parent from another chat, and `disconnect` clears the chat. `parent` is the
+  // relation's name only on `Message`; Payload and Lexical write no nested Prisma operations.
   {
     files: ['src/**/*.{ts,tsx}'],
     rules: {
@@ -242,6 +248,12 @@ const config = defineConfig([
             'CallExpression[callee.property.name="find"] > ObjectExpression.arguments:has(> Property[key.name="collection"]):not(:has(> Property[key.name=/^(limit|pagination)$/]))',
           message:
             'payload.find returns only 10 documents by default. Set `pagination: false` to get every match, or an explicit `limit`.',
+        },
+        {
+          selector:
+            'Property[key.name="parent"] > ObjectExpression > Property[key.name=/^(connect|connectOrCreate|create|disconnect|set|update|upsert)$/]',
+          message:
+            "Write a message's `parentId` as a column. The parent key includes `chatId`, so a nested write on `parent` would move the message into the parent's chat or clear its chat.",
         },
       ],
     },
