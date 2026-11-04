@@ -164,8 +164,9 @@ export const VisitDayBillActions: React.FC = () => {
             buttonStyle="secondary"
             size="small"
             margin={false}
-            el="link"
-            url={`/admin/collections/bill-pdfs/${pdfId}`}
+            el="anchor"
+            url={`/api/visit-day-bills/${String(id)}/pdf`}
+            newTab
           >
             {t.pdf[locale]}
           </Button>

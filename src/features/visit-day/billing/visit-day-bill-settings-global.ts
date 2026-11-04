@@ -301,6 +301,21 @@ export const VisitDayBillSettingsGlobal: GlobalConfig = {
             },
           ],
         },
+        {
+          label: { en: 'PDF preview', de: 'PDF-Vorschau', fr: 'Aperçu PDF' },
+          fields: [
+            {
+              name: 'pdfPreview',
+              type: 'ui',
+              admin: {
+                components: {
+                  Field:
+                    '@/features/visit-day/billing/components/visit-day-bill-preview#VisitDayBillPreview',
+                },
+              },
+            },
+          ],
+        },
       ],
     },
   ],

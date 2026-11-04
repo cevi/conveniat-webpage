@@ -1,10 +1,4 @@
-import { environmentVariables } from '@/config/environment-variables';
-import {
-  BILLING_ROLES,
-  canAccessBilling,
-  getUserGroups,
-  hasAccessToThisUser,
-} from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { StaticTranslationString } from '@/types/types';
 import type { CollectionConfig, Payload, PayloadRequest } from 'payload';
@@ -65,9 +59,9 @@ export const VisitDayBillEventsCollection: CollectionConfig = {
   },
   admin: {
     group: AdminPanelDashboardGroups.BackofficeBilling.label,
-    hidden: ({ user }): boolean =>
-      !environmentVariables.FEATURE_ENABLE_VISIT_DAY ||
-      !hasAccessToThisUser({ user: { groups: getUserGroups(user) }, requiredRoles: BILLING_ROLES }),
+    // read in the «Verlauf» tab of each bill, which opens an event in a drawer; every event
+    // belongs to a bill, so a list of its own would show nothing else
+    hidden: true,
     hideAPIURL: true,
     useAsTitle: 'action',
     defaultColumns: ['createdAt', 'bill', 'action', 'actor', 'details'],

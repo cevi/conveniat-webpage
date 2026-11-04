@@ -120,9 +120,9 @@ export const VisitDayBillsCollection: CollectionConfig = {
       'mailStatus',
     ],
     description: {
-      en: 'One bill per Besuchstag registration, created when the registration is saved. Payments come in through the bank import on the camp bills.',
-      de: 'Eine Rechnung pro Besuchstag-Anmeldung, erstellt beim Speichern der Anmeldung. Zahlungen kommen über den Bankimport bei den Lager-Rechnungen.',
-      fr: 'Une facture par inscription, créée à l’enregistrement de l’inscription. Les paiements arrivent par l’import bancaire des factures du camp.',
+      en: 'One bill per Besuchstag registration, created when the registration is saved. Payments come in through the bank import under «Payments».',
+      de: 'Eine Rechnung pro Besuchstag-Anmeldung, erstellt beim Speichern der Anmeldung. Zahlungen kommen über den Bankimport unter «Zahlungen».',
+      fr: 'Une facture par inscription, créée à l’enregistrement de l’inscription. Les paiements arrivent par l’import bancaire sous « Paiements ».',
     },
     components: {
       beforeListTable: ['@/features/visit-day/billing/components/visit-day-bills-toolbar'],
@@ -152,7 +152,12 @@ export const VisitDayBillsCollection: CollectionConfig = {
             label,
           })),
           label: { en: 'Status', de: 'Status', fr: 'Statut' },
-          ...serverOnly,
+          admin: {
+            readOnly: true,
+            components: {
+              Cell: '@/features/visit-day/billing/components/visit-day-bill-status-cell#VisitDayBillStatusCell',
+            },
+          },
         },
         {
           name: 'mailStatus',
@@ -164,7 +169,12 @@ export const VisitDayBillsCollection: CollectionConfig = {
             label,
           })),
           label: { en: 'Bill email', de: 'Rechnungs-E-Mail', fr: 'E-mail de facture' },
-          ...serverOnly,
+          admin: {
+            readOnly: true,
+            components: {
+              Cell: '@/features/visit-day/billing/components/visit-day-bill-status-cell#VisitDayMailStatusCell',
+            },
+          },
         },
       ],
     },
