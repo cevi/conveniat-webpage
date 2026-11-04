@@ -2,6 +2,17 @@ import type { Context } from '@/trpc/init';
 import { createCallerFactory, createTRPCRouter } from '@/trpc/init';
 
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
+const mockLoggedErrors: string[] = [];
+jest.mock('@/utils/server-logger', () => ({
+  createLogger: (): Record<string, (message: string) => void> => ({
+    debug: (): void => {},
+    info: (): void => {},
+    warn: (): void => {},
+    error: (message: string): void => {
+      mockLoggedErrors.push(message);
+    },
+  }),
+}));
 // The pool outside the transaction. A send holds its transaction connection for as long as
 // it runs, so every read it makes there needs a second one: it may read the pool only once
 // it has committed.
@@ -10,6 +21,7 @@ const mockPoolReadsCommitted: boolean[] = [];
 let mockMembershipRowsLoaded: number;
 const mockPoolRead = <T>(rows: T): Promise<T> => {
   mockPoolReadsCommitted.push(committed);
+  if (mockPoolFails) return Promise.reject(new Error('Timed out fetching a new connection'));
   return Promise.resolve(rows);
 };
 interface MockMembership {
@@ -21,6 +33,8 @@ interface MockMembership {
 let mockMembers: MockMembership[];
 /** Who wrote in the thread a reply answers. */
 let mockThreadSenderIds: string[];
+/** Whether the pool is out of connections once the send has committed. */
+let mockPoolFails: boolean;
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
   default: {
@@ -213,12 +227,12 @@ const prisma = {
       where,
       take,
     }: {
-      where: { userId: { not: string } };
+      where: { userId?: { not: string } };
       take: number;
     }): Promise<{ userId: string }[]> =>
       Promise.resolve(
         mockMembers
-          .filter((member) => member.userId !== where.userId.not)
+          .filter((member) => member.userId !== where.userId?.not)
           .slice(0, take)
           .map(({ userId }) => {
             mockMembershipRowsLoaded++;
@@ -294,6 +308,8 @@ beforeEach(() => {
   distributedTo.length = 0;
   mockPoolReadsCommitted.length = 0;
   mockMembershipRowsLoaded = 0;
+  mockPoolFails = false;
+  mockLoggedErrors.length = 0;
   chatType = ChatType.GROUP;
   mockThreadSenderIds = ['ben'];
   mockMembers = [
@@ -529,8 +545,10 @@ describe('who a message reaches', () => {
     expect(mockMembershipRowsLoaded).toBeLessThanOrEqual(1 + LARGE_CHAT_THRESHOLD);
   });
 
-  it('records no DISTRIBUTED events in a large chat, but still pushes to all of it', async () => {
-    const others = Array.from({ length: LARGE_CHAT_THRESHOLD }, (_, index) => ({
+  it('records no DISTRIBUTED events in a chat that reading it treats as large', async () => {
+    // the sender and 127 others: exactly the size at which `markChatAsRead` stops writing
+    // READ events, so a DISTRIBUTED tick here would never turn into a read one
+    const others = Array.from({ length: LARGE_CHAT_THRESHOLD - 1 }, (_, index) => ({
       userId: `member-${index}`,
       chatPermission: ChatMembershipPermission.MEMBER,
       hasDeleted: false,
@@ -545,5 +563,17 @@ describe('who a message reaches', () => {
 
     expect(distributedTo).toEqual([]);
     expect(pushedRecipients).toEqual([others.map(({ userId }) => userId)]);
+  });
+
+  it('still stores and publishes a message when its recipients cannot be read', async () => {
+    mockPoolFails = true;
+
+    await send();
+    await afterCommitSettled();
+
+    expect(storedTypes).toEqual([MessageType.TEXT_MSG]);
+    expect(publishedAt).toEqual([true]);
+    expect(pushedRecipients).toEqual([]);
+    expect(mockLoggedErrors).toEqual(['Reading the push recipients failed']);
   });
 });

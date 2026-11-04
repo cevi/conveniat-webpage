@@ -342,16 +342,22 @@ export const createMessage = trpcBaseProcedure
       'message.id': createdMessage.uuid,
     });
 
-    // Record the DISTRIBUTED events, only for chats with fewer than LARGE_CHAT_THRESHOLD other
-    // members. The read stops at the threshold, so a large chat costs no more than that.
-    const recipients = await prisma.chatMembership.findMany({
-      where: { chatId: validatedMessage.chatId, userId: { not: user.uuid } },
+    // Record the DISTRIBUTED events, only for chats with fewer than LARGE_CHAT_THRESHOLD
+    // members, the sender included, as `markChatAsRead` and `listChats` count them: a chat
+    // they treat as large writes no READ events, so it must get no DISTRIBUTED ones either.
+    // The read stops at the threshold, so a large chat costs no more than that.
+    const members = await prisma.chatMembership.findMany({
+      where: { chatId: validatedMessage.chatId },
       select: { userId: true },
       take: LARGE_CHAT_THRESHOLD,
     });
-    if (recipients.length < LARGE_CHAT_THRESHOLD) {
+    const distributedUserIds =
+      members.length < LARGE_CHAT_THRESHOLD
+        ? members.map(({ userId }) => userId).filter((userId) => userId !== user.uuid)
+        : [];
+    if (distributedUserIds.length > 0) {
       await prisma.messageEvent.createMany({
-        data: recipients.map(({ userId }) => ({
+        data: distributedUserIds.map((userId) => ({
           userId,
           messageId: createdMessage.uuid,
           type: MessageEventType.DISTRIBUTED,
@@ -371,7 +377,22 @@ export const createMessage = trpcBaseProcedure
 
     ctx.afterTransactionCommit(() => {
       findPushRecipientIds(chat.type, validatedMessage.chatId, user.uuid, validatedMessage.parentId)
+        .catch((error: unknown) => {
+          // the message is stored and published; only its push is lost
+          logger.error('Reading the push recipients failed', {
+            error,
+            'chat.id': validatedMessage.chatId,
+            'message.id': createdMessage.uuid,
+          });
+          return [];
+        })
         .then(async (pushRecipientUserIds) => {
+          logger.debug('Message fan-out', {
+            'chat.id': validatedMessage.chatId,
+            'message.id': createdMessage.uuid,
+            'chat.distributed.count': distributedUserIds.length,
+            'chat.push.recipient.count': pushRecipientUserIds.length,
+          });
           if (pushRecipientUserIds.length === 0) return;
           await sendNotification(
             pushText,
