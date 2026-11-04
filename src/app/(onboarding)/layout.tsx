@@ -45,9 +45,14 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
           <link rel="manifest" href="/manifest.webmanifest" />
         )}
       </head>
+      {/*
+        The status bar padding is important: a modal Radix overlay, like the language switcher,
+        locks scrolling with react-remove-scroll, which rewrites the body's padding-top to its
+        margin-top, 0, for as long as it is open. Without it the page jumps up by the status bar.
+      */}
       <body
         suppressHydrationWarning
-        className="flex h-svh w-screen flex-col overflow-x-hidden overflow-y-hidden overscroll-y-none bg-[#f8fafc] pt-(--status-bar-height)"
+        className="flex h-svh w-screen flex-col overflow-x-hidden overflow-y-hidden overscroll-y-none bg-[#f8fafc] pt-(--status-bar-height)!"
       >
         {/*
           First, so a start whose onboarding is done leaves before anything else loads; it only
