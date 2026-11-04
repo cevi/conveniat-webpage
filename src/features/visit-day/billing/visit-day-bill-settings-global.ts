@@ -16,6 +16,16 @@ const placeholderHelp = {
 };
 
 /**
+ * The email text also takes the official signature. Only there: the outbox fills it when the
+ * mail is sent, while the subject and the PDF's letter text would print it as it stands.
+ */
+const emailBodyHelp = {
+  en: `${placeholderHelp.en} {{signatur}} (or {{signatur :: Ressort Finanzen}}) ends the email with the official signature.`,
+  de: `${placeholderHelp.de} {{signatur}} (oder {{signatur :: Ressort Finanzen}}) beendet die E-Mail mit der offiziellen Signatur.`,
+  fr: `${placeholderHelp.fr} {{signatur}} (ou {{signatur :: Ressort Finanzen}}) termine l’e-mail par la signature officielle.`,
+};
+
+/**
  * What a Besuchstag bill costs and says. Only what differs from the camp bills lives here: the
  * creditor and the QR-IBAN are those of the camp bill settings, because both are paid into the
  * same account.
@@ -199,9 +209,9 @@ export const VisitDayBillSettingsGlobal: GlobalConfig = {
               localized: true,
               required: true,
               defaultValue:
-                'Hallo {{firstName}}\n\nIm Anhang findest du die Rechnung {{invoiceNumber}} über {{amount}} für deine Anmeldung {{registrationNumber}} zum Besuchstag am {{visitDay}}. Bitte bezahle sie bis am {{dueDate}} mit dem QR-Einzahlungsschein.\n\nDein Ticket ist gültig, sobald die Rechnung bezahlt ist. Möchtest du dich abmelden, schreib uns bitte; eine Rückerstattung erfolgt von Hand.\n\nBis bald am conveniat27!',
+                'Hallo {{firstName}}\n\nIm Anhang findest du die Rechnung {{invoiceNumber}} über {{amount}} für deine Anmeldung {{registrationNumber}} zum Besuchstag am {{visitDay}}. Bitte bezahle sie bis am {{dueDate}} mit dem QR-Einzahlungsschein.\n\nDein Ticket ist gültig, sobald die Rechnung bezahlt ist. Möchtest du dich abmelden, schreib uns bitte; eine Rückerstattung erfolgt von Hand.\n\nBis bald am conveniat27!\n\nFreundliche Grüsse\n\n{{signatur :: Ressort Finanzen}}',
               label: { en: 'Email text', de: 'Text der E-Mail', fr: 'Texte de l’e-mail' },
-              admin: { rows: 10, description: placeholderHelp },
+              admin: { rows: 10, description: emailBodyHelp },
             },
           ],
         },

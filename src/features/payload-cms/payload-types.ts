@@ -9444,7 +9444,7 @@ export interface VisitDayBillSetting {
    */
   emailSubject: string;
   /**
-   * Placeholders: {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{invoiceNumber}}, {{registrationNumber}}, {{visitDay}}, {{dueDate}}.
+   * Placeholders: {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{invoiceNumber}}, {{registrationNumber}}, {{visitDay}}, {{dueDate}}. {{signatur}} (or {{signatur :: Ressort Finanzen}}) ends the email with the official signature.
    */
   emailBody: string;
   /**
