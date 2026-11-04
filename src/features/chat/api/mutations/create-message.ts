@@ -198,12 +198,17 @@ export const createMessage = trpcBaseProcedure
 
       if (alreadyStored) {
         // The id is client-chosen, so make sure it really is a replay of *this* user's
-        // send in *this* chat rather than an attempt to claim someone else's message.
+        // send in *this* chat rather than an attempt to claim someone else's message. Not an
+        // invariant: outbox items queued before they carried a userId replay under whoever is
+        // signed in on the phone now.
         if (
           alreadyStored.senderId !== user.uuid ||
           alreadyStored.chatId !== validatedMessage.chatId
         ) {
-          throw invariantError('CONFLICT', 'A different message with this ID already exists.');
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'A different message with this ID already exists.',
+          });
         }
 
         logger.debug('Duplicate send ignored, returning the stored copy', {

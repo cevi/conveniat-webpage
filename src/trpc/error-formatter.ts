@@ -37,8 +37,14 @@ export class UserFacingTRPCError extends TRPCError {
  */
 export class InvariantTRPCError extends TRPCError {}
 
+/**
+ * The codes an invariant refusal may answer with. Not `UNAUTHORIZED`, which the route reads as
+ * an ended session, and no server fault, which the route and the span count as an outage.
+ */
+type InvariantCode = 'BAD_REQUEST' | 'CONFLICT' | 'FORBIDDEN' | 'NOT_FOUND' | 'PRECONDITION_FAILED';
+
 /** Refuses a call our own client never makes, see {@link InvariantTRPCError}. */
-export const invariantError = (code: TRPCError['code'], message: string): InvariantTRPCError =>
+export const invariantError = (code: InvariantCode, message: string): InvariantTRPCError =>
   new InvariantTRPCError({ code, message });
 
 /**

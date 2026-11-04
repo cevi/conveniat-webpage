@@ -67,6 +67,7 @@ describe('the level a failed procedure is logged at', () => {
       expect.objectContaining({ 'trpc.path': 'missing', 'trpc.code': 'NOT_FOUND' }),
     );
     expect(mockLog.warn).not.toHaveBeenCalled();
+    expect(mockLog.error).not.toHaveBeenCalled();
   });
 
   it('stays error for a server fault', async () => {
