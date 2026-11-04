@@ -119,7 +119,7 @@ export async function reissueVisitDayBill(
       issue,
       invoiceNumber,
       // the previous issue's PDF is no longer the bill; the send stores and links the new one
-      // eslint-disable-next-line unicorn/no-null -- Payload clears a relationship with null
+      // Payload clears a relationship with null
       pdf: null,
       referenceNumber,
       invoiceAmount: amount.total,

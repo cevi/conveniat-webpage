@@ -54,7 +54,7 @@ export const syncLegacyBillFields: CollectionBeforeValidateHook<BillPayment> = (
       return {
         ...allocation,
         bill: { relationTo: bill.relationTo, value: bill.id } as Allocation['bill'],
-        // eslint-disable-next-line unicorn/no-null -- Payload clears a relationship with null
+        // Payload clears a relationship with null
         participant: bill.relationTo === CAMP_BILL_COLLECTION ? bill.id : null,
       };
     });
@@ -65,7 +65,7 @@ export const syncLegacyBillFields: CollectionBeforeValidateHook<BillPayment> = (
     if (matched === undefined && legacy !== undefined) {
       data.matchedBill = { relationTo: CAMP_BILL_COLLECTION, value: legacy };
     } else if (matched !== undefined) {
-      // eslint-disable-next-line unicorn/no-null -- Payload clears a relationship with null
+      // Payload clears a relationship with null
       data.matchedParticipant = matched.relationTo === CAMP_BILL_COLLECTION ? matched.id : null;
     }
   }

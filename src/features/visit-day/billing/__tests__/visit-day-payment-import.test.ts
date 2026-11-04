@@ -30,7 +30,7 @@ const bill = (overrides: Partial<MatchableVisitDayBill> = {}): MatchableVisitDay
   invoiceNumber: 'BT2027-0007',
   invoiceAmount: 50,
   issuedBills: [],
-  // eslint-disable-next-line unicorn/no-null -- what Payload returns for a bill not paid
+  // what Payload returns for a bill not paid
   paymentTransactionReference: null,
   ...overrides,
 });

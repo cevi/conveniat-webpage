@@ -1,4 +1,4 @@
-/* eslint-disable unicorn/no-null -- Mongo matches a missing or empty field with null */
+// Mongo matches a missing or empty field with null
 import type { MigrateUpArgs } from '@payloadcms/db-mongodb';
 
 /**
