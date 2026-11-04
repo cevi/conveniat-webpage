@@ -236,6 +236,21 @@ export const createMessage = trpcBaseProcedure
       }
     }
 
+    // A reply belongs to a thread of this chat. Without the check, a reply to another chat's
+    // message would show up in that chat's thread and be deleted along with it. A thread may
+    // start at a reply or at a deleted message, and stays open for replies in both cases.
+    if (validatedMessage.parentId !== undefined) {
+      const parent = await prisma.message.findUnique({
+        where: { uuid: validatedMessage.parentId },
+        select: { chatId: true },
+      });
+      // unpublishing an announcement deletes its message, also under a thread still open
+      if (!parent) throw chatError('NOT_FOUND', 'threadGone');
+      if (parent.chatId !== validatedMessage.chatId) {
+        throw invariantError('NOT_FOUND', 'Thread not found in this chat.');
+      }
+    }
+
     logger.debug('Preparing message fan-out', {
       'chat.id': validatedMessage.chatId,
       'chat.membership.count': chat.chatMemberships.length,
@@ -271,20 +286,23 @@ export const createMessage = trpcBaseProcedure
       }
     }
 
-    // Fetch quoted message content if quotedMessageId is provided. Only from this chat, and
-    // not from a deleted message: a send queued offline may quote one deleted since, and its
-    // text must not come back as the snippet.
+    // A quote of another chat's message is dropped, not stored. A message deleted since (a
+    // send queued offline) keeps its quote, so the reply still reads as one, but its text must
+    // not come back as the snippet.
+    let quotedMessageId = validatedMessage.quotedMessageId;
     let quotedSnippet: string | undefined;
-    if (validatedMessage.quotedMessageId) {
-      const quotedMessage = await prisma.message.findFirst({
-        where: {
-          uuid: validatedMessage.quotedMessageId,
-          chatId: validatedMessage.chatId,
-          deletedAt: null,
-        },
+    if (quotedMessageId !== undefined) {
+      const quotedMessage = await prisma.message.findUnique({
+        where: { uuid: quotedMessageId },
         include: { contentVersions: { take: 1, orderBy: { revision: 'desc' } } },
       });
-      if (quotedMessage?.contentVersions[0]?.payload) {
+      if (quotedMessage && quotedMessage.chatId !== validatedMessage.chatId) {
+        quotedMessageId = undefined;
+      } else if (
+        quotedMessage &&
+        !quotedMessage.deletedAt &&
+        quotedMessage.contentVersions[0]?.payload
+      ) {
         const payload = quotedMessage.contentVersions[0].payload;
         let text: string;
         if (typeof payload === 'string') {
@@ -311,7 +329,7 @@ export const createMessage = trpcBaseProcedure
                   ? { url: validatedMessage.content }
                   : {
                       text: validatedMessage.content,
-                      quotedMessageId: validatedMessage.quotedMessageId,
+                      quotedMessageId,
                       quotedSnippet,
                     },
             },
@@ -406,7 +424,7 @@ export const createMessage = trpcBaseProcedure
                 ? { url: validatedMessage.content }
                 : {
                     text: validatedMessage.content,
-                    quotedMessageId: validatedMessage.quotedMessageId,
+                    quotedMessageId,
                     quotedSnippet,
                   },
             senderId: user.uuid,
@@ -437,7 +455,7 @@ export const createMessage = trpcBaseProcedure
           ? { url: validatedMessage.content }
           : {
               text: validatedMessage.content,
-              quotedMessageId: validatedMessage.quotedMessageId,
+              quotedMessageId,
               quotedSnippet,
             },
     };

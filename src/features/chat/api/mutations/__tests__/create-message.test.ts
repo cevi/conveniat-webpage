@@ -64,6 +64,56 @@ import { ChatMembershipPermission, ChatType, MessageType } from '@/lib/prisma/cl
 const CHAT_ID = '00000000-0000-4000-8000-000000000001';
 
 let storedTypes: MessageType[];
+let storedPayloads: unknown[];
+let storedParents: unknown[];
+
+interface ExistingMessage {
+  uuid: string;
+  chatId: string;
+  parentId: string | null;
+  deletedAt: Date | null;
+}
+
+const OTHER_CHAT_ID = '00000000-0000-4000-8000-000000000009';
+const PARENT_ID = '00000000-0000-4000-8000-000000000002';
+const parent: ExistingMessage = {
+  uuid: PARENT_ID,
+  chatId: CHAT_ID,
+  parentId: null,
+  deletedAt: null,
+};
+const otherChatMessage: ExistingMessage = {
+  uuid: '00000000-0000-4000-8000-000000000003',
+  chatId: OTHER_CHAT_ID,
+  parentId: null,
+  deletedAt: null,
+};
+const reply: ExistingMessage = {
+  uuid: '00000000-0000-4000-8000-000000000004',
+  chatId: CHAT_ID,
+  parentId: PARENT_ID,
+  deletedAt: null,
+};
+const deletedMessage: ExistingMessage = {
+  uuid: '00000000-0000-4000-8000-000000000005',
+  chatId: CHAT_ID,
+  parentId: null,
+  deletedAt: new Date('2027-07-25T10:00:00Z'),
+};
+const existingMessages = [parent, otherChatMessage, reply, deletedMessage];
+
+/** Prisma's `findFirst` over the existing messages, for the equality filters a send uses. */
+const findExistingMessage = ({
+  where,
+}: {
+  where: Partial<ExistingMessage>;
+}): Promise<(ExistingMessage & { contentVersions: unknown[] }) | null> => {
+  const found = existingMessages.find((message) =>
+    Object.entries(where).every(([key, value]) => message[key as keyof ExistingMessage] === value),
+  );
+  if (!found) return Promise.resolve(null);
+  return Promise.resolve({ ...found, contentVersions: [{ payload: { text: 'Wer kommt mit?' } }] });
+};
 
 /** The rows the procedure touches, and a transaction that commits after the callback. */
 const prisma = {
@@ -100,8 +150,21 @@ const prisma = {
   },
   message: {
     findMany: (): Promise<unknown[]> => Promise.resolve([]),
-    create: ({ data }: { data: { type: MessageType } }): Promise<unknown> => {
+    findFirst: findExistingMessage,
+    findUnique: ({ where }: { where: { uuid: string } }): Promise<unknown> =>
+      findExistingMessage({ where: { uuid: where.uuid } }),
+    create: ({
+      data,
+    }: {
+      data: {
+        type: MessageType;
+        contentVersions: { create: { payload: unknown }[] };
+        parent?: unknown;
+      };
+    }): Promise<unknown> => {
       storedTypes.push(data.type);
+      storedPayloads.push(data.contentVersions.create[0]?.payload);
+      storedParents.push(data.parent);
       return Promise.resolve({ uuid: 'stored', createdAt: new Date(), type: data.type });
     },
   },
@@ -126,6 +189,8 @@ const send = (type?: MessageType): Promise<unknown> =>
 
 beforeEach(() => {
   storedTypes = [];
+  storedPayloads = [];
+  storedParents = [];
   committed = false;
   failCommit = false;
   publishedAt.length = 0;
@@ -171,7 +236,7 @@ describe('the connections a send needs', () => {
       chatId: CHAT_ID,
       content: 'Hoi zäme',
       timestamp: new Date(),
-      parentId: '00000000-0000-4000-8000-000000000002',
+      parentId: PARENT_ID,
     });
 
     expect(storedTypes).toEqual([MessageType.TEXT_MSG]);
@@ -194,6 +259,64 @@ describe('announcing a sent message', () => {
 
     expect(publishedAt).toEqual([]);
     expect(pushedAt).toEqual([]);
+  });
+});
+
+const sendText = (input: { parentId?: string; quotedMessageId?: string }): Promise<unknown> =>
+  anna.sendMessage({ chatId: CHAT_ID, content: 'Ich!', timestamp: new Date(), ...input });
+
+describe('what a reply and a quote may point at', () => {
+  it.each([
+    ['a message of the same chat', parent.uuid],
+    ['a reply, as a thread opened from a thread', reply.uuid],
+    ['a message deleted since, whose thread stays open', deletedMessage.uuid],
+  ])('stores a reply to %s', async (_, parentId) => {
+    await sendText({ parentId });
+    expect(storedParents).toEqual([{ connect: { uuid: parentId } }]);
+  });
+
+  it('refuses a reply to a message of another chat, without a text for the user', async () => {
+    const refusal = await sendText({ parentId: otherChatMessage.uuid }).catch(
+      (error: unknown) => error,
+    );
+
+    expect(refusal).toMatchObject({ code: 'NOT_FOUND' });
+    expect(refusal).not.toHaveProperty('reason');
+    expect(storedTypes).toEqual([]);
+    expect(publishedAt).toEqual([]);
+    expect(pushedAt).toEqual([]);
+  });
+
+  it('says the thread is gone when its message no longer exists', async () => {
+    await expect(
+      sendText({ parentId: '00000000-0000-4000-8000-0000000000ff' }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND', reason: 'threadGone' });
+    expect(storedTypes).toEqual([]);
+  });
+
+  it('stores a quote of a message of the same chat with its snippet', async () => {
+    await sendText({ quotedMessageId: PARENT_ID });
+    expect(storedPayloads).toEqual([
+      { text: 'Ich!', quotedMessageId: PARENT_ID, quotedSnippet: 'Wer kommt mit?' },
+    ]);
+  });
+
+  it('keeps the quote of a message deleted since, but not its text', async () => {
+    await sendText({ quotedMessageId: deletedMessage.uuid });
+    expect(storedPayloads).toEqual([{ text: 'Ich!', quotedMessageId: deletedMessage.uuid }]);
+  });
+
+  it('keeps the quote of a message removed since', async () => {
+    const removed = '00000000-0000-4000-8000-0000000000ff';
+    await sendText({ quotedMessageId: removed });
+    expect(storedPayloads).toEqual([{ text: 'Ich!', quotedMessageId: removed }]);
+  });
+
+  it('drops a quote of a message of another chat and still sends', async () => {
+    await expect(sendText({ quotedMessageId: otherChatMessage.uuid })).resolves.toMatchObject({
+      messagePayload: { text: 'Ich!' },
+    });
+    expect(storedPayloads).toEqual([{ text: 'Ich!' }]);
   });
 });
 
