@@ -112,7 +112,7 @@ describe('generateBillsUseCase with an unpriced role', () => {
     expect(participantRepo.update).toHaveBeenCalledWith('p1', {
       status: 'invalid_anmeldeangaben',
       missingAnmeldeangaben: [
-        'Rollentyp "Event::Role::Cook" ist in den Rechnungs-Einstellungen nicht konfiguriert.',
+        'Rollentyp "Event::Role::Cook" ist in den Lager-Rechnungseinstellungen nicht konfiguriert.',
       ],
     });
   });
@@ -130,7 +130,7 @@ describe('generateBillsUseCase with an unpriced role', () => {
     );
 
     expect(summary.errors).toEqual([
-      'Max Mustermann: Rollentyp "Event::Role::Cook" ist in den Rechnungs-Einstellungen nicht konfiguriert.',
+      'Max Mustermann: Rollentyp "Event::Role::Cook" ist in den Lager-Rechnungseinstellungen nicht konfiguriert.',
     ]);
     expect(summary.relatedDocuments).toEqual(['billSettings']);
   });
@@ -140,7 +140,7 @@ describe('generateBillsUseCase with an unpriced role', () => {
       participant({
         roleType: 'Event::Role::Cook',
         missingAnmeldeangaben: [
-          'Rollentyp "Event::Role::Cook" ist in den Rechnungs-Einstellungen nicht konfiguriert.',
+          'Rollentyp "Event::Role::Cook" ist in den Lager-Rechnungseinstellungen nicht konfiguriert.',
         ],
       }),
     ]);
@@ -150,7 +150,7 @@ describe('generateBillsUseCase with an unpriced role', () => {
     expect(participantRepo.update).toHaveBeenCalledWith('p1', {
       status: 'invalid_anmeldeangaben',
       missingAnmeldeangaben: [
-        'Rollentyp "Event::Role::Cook" ist in den Rechnungs-Einstellungen nicht konfiguriert.',
+        'Rollentyp "Event::Role::Cook" ist in den Lager-Rechnungseinstellungen nicht konfiguriert.',
       ],
     });
   });

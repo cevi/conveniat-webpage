@@ -56,7 +56,7 @@ describe('decodeStoredEventName', () => {
 });
 
 describe('the Anlass-Name shown in the admin', () => {
-  it('is decoded on the Rechnungsverwaltung participant', () => {
+  it('is decoded on the Lager · Rechnungen participant', () => {
     const field = fieldNamed(dataFields(BillParticipantsCollection.fields), 'eventName');
     const hooks = field !== undefined && 'hooks' in field ? (field.hooks.afterRead ?? []) : [];
 

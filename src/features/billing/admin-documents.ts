@@ -27,9 +27,9 @@ export const BILLING_ADMIN_DOCUMENTS = {
   billSettings: {
     href: '/admin/globals/bill-settings',
     label: {
-      de: 'Rechnungs-Einstellungen öffnen',
-      en: 'Open Bill Settings',
-      fr: 'Ouvrir les paramètres de facturation',
+      de: 'Lager · Rechnungseinstellungen öffnen',
+      en: 'Open Camp · Billing settings',
+      fr: 'Ouvrir Camp · Réglages des factures',
     } satisfies StaticTranslationString,
   },
 } as const;

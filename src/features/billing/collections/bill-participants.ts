@@ -29,16 +29,8 @@ export const BillParticipantsCollection: CollectionConfig = {
   slug: 'bill-participants',
   // «Lager ·» tells them from the Besuchstag bills in the same sidebar group
   labels: {
-    singular: {
-      en: 'Camp · Billing',
-      de: 'Lager · Rechnungsverwaltung',
-      fr: 'Camp · Gestion des factures',
-    },
-    plural: {
-      en: 'Camp · Billing',
-      de: 'Lager · Rechnungsverwaltung',
-      fr: 'Camp · Gestion des factures',
-    },
+    singular: { en: 'Camp · Bill', de: 'Lager · Rechnung', fr: 'Camp · Facture' },
+    plural: { en: 'Camp · Bills', de: 'Lager · Rechnungen', fr: 'Camp · Factures' },
   },
   admin: {
     hidden: ({ user }): boolean =>

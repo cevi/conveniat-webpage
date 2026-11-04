@@ -75,9 +75,10 @@ export interface Config {
     funktionen: Funktion;
     'presence-logs': PresenceLog;
     'bill-participants': BillParticipant;
-    'bill-payments': BillPayment;
     'visit-day-bills': VisitDayBill;
     'visit-day-bill-events': VisitDayBillEvent;
+    'bill-payments': BillPayment;
+    'bank-imports': BankImport;
     'bill-pdfs': BillPdf;
     hoefe: Hof;
     'outgoing-emails': OutgoingEmail;
@@ -159,9 +160,10 @@ export interface Config {
     funktionen: FunktionenSelect<false> | FunktionenSelect<true>;
     'presence-logs': PresenceLogsSelect<false> | PresenceLogsSelect<true>;
     'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
-    'bill-payments': BillPaymentsSelect<false> | BillPaymentsSelect<true>;
     'visit-day-bills': VisitDayBillsSelect<false> | VisitDayBillsSelect<true>;
     'visit-day-bill-events': VisitDayBillEventsSelect<false> | VisitDayBillEventsSelect<true>;
+    'bill-payments': BillPaymentsSelect<false> | BillPaymentsSelect<true>;
+    'bank-imports': BankImportsSelect<false> | BankImportsSelect<true>;
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
     hoefe: HoefeSelect<false> | HoefeSelect<true>;
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
@@ -4701,7 +4703,7 @@ export interface BillPayment {
   createdAt: string;
 }
 /**
- * One bill per Besuchstag registration, created when the registration is saved. Payments come in through the bank import on the camp bills.
+ * One bill per Besuchstag registration, created when the registration is saved. Payments come in through the bank import under «Payments».
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "visit-day-bills".
@@ -4881,6 +4883,23 @@ export interface OutgoingEmail {
   createdAt: string;
   lastRetriggeredBy?: (string | null) | User;
   updatedAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bank-imports".
+ */
+export interface BankImport {
+  id: string;
+  /**
+   * When the file was exported from the e-banking: every payment up to then is in it.
+   */
+  bankExportedAt: string;
+  importedBy: string;
+  filename?: string | null;
+  paymentCount: number;
+  bookedCount: number;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Mail to these addresses came back because the address does not exist, or kept coming back for two weeks or more. Nothing is sent to them until the entry is deleted.
@@ -5456,16 +5475,20 @@ export interface PayloadLockedDocument {
         value: string | BillParticipant;
       } | null)
     | ({
-        relationTo: 'bill-payments';
-        value: string | BillPayment;
-      } | null)
-    | ({
         relationTo: 'visit-day-bills';
         value: string | VisitDayBill;
       } | null)
     | ({
         relationTo: 'visit-day-bill-events';
         value: string | VisitDayBillEvent;
+      } | null)
+    | ({
+        relationTo: 'bill-payments';
+        value: string | BillPayment;
+      } | null)
+    | ({
+        relationTo: 'bank-imports';
+        value: string | BankImport;
       } | null)
     | ({
         relationTo: 'bill-pdfs';
@@ -7319,36 +7342,6 @@ export interface BillParticipantsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "bill-payments_select".
- */
-export interface BillPaymentsSelect<T extends boolean = true> {
-  transactionReference?: T;
-  amount?: T;
-  currency?: T;
-  bookingDate?: T;
-  reference?: T;
-  payer?: T;
-  message?: T;
-  matchedBill?: T;
-  matchedParticipant?: T;
-  importOutcome?: T;
-  importedBy?: T;
-  importMessage?: T;
-  allocations?:
-    | T
-    | {
-        bill?: T;
-        amount?: T;
-        participant?: T;
-        id?: T;
-      };
-  refundedDate?: T;
-  note?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "visit-day-bills_select".
  */
 export interface VisitDayBillsSelect<T extends boolean = true> {
@@ -7428,6 +7421,49 @@ export interface VisitDayBillEventsSelect<T extends boolean = true> {
   action?: T;
   actor?: T;
   details?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bill-payments_select".
+ */
+export interface BillPaymentsSelect<T extends boolean = true> {
+  transactionReference?: T;
+  amount?: T;
+  currency?: T;
+  bookingDate?: T;
+  reference?: T;
+  payer?: T;
+  message?: T;
+  matchedBill?: T;
+  matchedParticipant?: T;
+  importOutcome?: T;
+  importedBy?: T;
+  importMessage?: T;
+  allocations?:
+    | T
+    | {
+        bill?: T;
+        amount?: T;
+        participant?: T;
+        id?: T;
+      };
+  refundedDate?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bank-imports_select".
+ */
+export interface BankImportsSelect<T extends boolean = true> {
+  bankExportedAt?: T;
+  importedBy?: T;
+  filename?: T;
+  paymentCount?: T;
+  bookedCount?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -10467,9 +10503,10 @@ export interface TaskCreateCollectionExport {
       | 'funktionen'
       | 'presence-logs'
       | 'bill-participants'
-      | 'bill-payments'
       | 'visit-day-bills'
       | 'visit-day-bill-events'
+      | 'bill-payments'
+      | 'bank-imports'
       | 'bill-pdfs'
       | 'hoefe'
       | 'outgoing-emails'

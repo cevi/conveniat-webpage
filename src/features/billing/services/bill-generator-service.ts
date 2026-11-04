@@ -516,7 +516,7 @@ export async function generateBillsUseCase(
         // Nothing prices this role. Flagged rather than billed at a neighbouring rate, and
         // handled like any other unusable registration: no bill, visible in the admin, and
         // named precisely enough that an operator knows the fix is in the settings.
-        const reason = `Rollentyp "${roleType}" ist in den Rechnungs-Einstellungen nicht konfiguriert.`;
+        const reason = `Rollentyp "${roleType}" ist in den Lager-Rechnungseinstellungen nicht konfiguriert.`;
         // The field is stored as JSON, so it has to be narrowed before it can be appended to.
         const existingReasons = Array.isArray(document_.missingAnmeldeangaben)
           ? document_.missingAnmeldeangaben.filter(

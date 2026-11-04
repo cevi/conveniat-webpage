@@ -125,7 +125,7 @@ export interface SyncStatusDecision {
 }
 
 const REVIEW_REASONS = {
-  roleUnpriced: 'Rollentyp ist in den Rechnungs-Einstellungen nicht mehr konfiguriert.',
+  roleUnpriced: 'Rollentyp ist in den Lager-Rechnungseinstellungen nicht mehr konfiguriert.',
   mandatoryDataMissing: 'Pflichtangaben fehlen neu in der Cevi.DB.',
 } as const;
 
