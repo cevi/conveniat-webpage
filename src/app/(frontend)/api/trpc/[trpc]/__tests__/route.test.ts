@@ -1,9 +1,12 @@
-import { formatTRPCError, invariantError } from '@/trpc/error-formatter';
+import { formatTRPCError, INVARIANT_CODES, invariantError } from '@/trpc/error-formatter';
+import { EXPECTED_ERROR_CODES } from '@/trpc/middleware/tracing';
 import { type AnyRouter, initTRPC, TRPCError } from '@trpc/server';
 
 const mockLog = { debug: jest.fn(), warn: jest.fn(), error: jest.fn() };
 jest.mock('@/utils/server-logger', () => ({ createLogger: (): typeof mockLog => mockLog }));
-jest.mock('@/trpc/init', () => ({ createTRPCContext: (): object => ({}) }));
+jest.mock('@/trpc/init', () => ({
+  createTRPCContext: (): object => ({ user: { uuid: 'anna' } }),
+}));
 jest.mock('@/trpc/conditional-response', () => ({
   withEntityTag: (_request: Request, response: Response): Response => response,
 }));
@@ -11,7 +14,10 @@ jest.mock('@/trpc/conditional-response', () => ({
 const t = initTRPC.create({ errorFormatter: formatTRPCError });
 const mockRouter: AnyRouter = t.router({
   forged: t.procedure.mutation(() => {
-    throw invariantError('NOT_FOUND', 'Thread not found in this chat.');
+    throw invariantError(
+      'BAD_REQUEST',
+      'An image message must name an image uploaded to this chat.',
+    );
   }),
   missing: t.procedure.mutation(() => {
     throw new TRPCError({ code: 'NOT_FOUND', message: 'Chat not found.' });
@@ -53,7 +59,11 @@ describe('the level a failed procedure is logged at', () => {
 
     expect(mockLog.warn).toHaveBeenCalledWith(
       'procedure refused a call our client never makes',
-      expect.objectContaining({ 'trpc.path': 'forged', 'trpc.code': 'NOT_FOUND' }),
+      expect.objectContaining({
+        'trpc.path': 'forged',
+        'trpc.code': 'BAD_REQUEST',
+        'user.id': 'anna',
+      }),
     );
     expect(mockLog.debug).not.toHaveBeenCalled();
     expect(mockLog.error).not.toHaveBeenCalled();
@@ -78,5 +88,11 @@ describe('the level a failed procedure is logged at', () => {
       expect.objectContaining({ 'trpc.path': 'crash', 'trpc.code': 'INTERNAL_SERVER_ERROR' }),
     );
     expect(mockLog.warn).not.toHaveBeenCalled();
+  });
+});
+
+describe('the codes an invariant refusal may use', () => {
+  it.each(INVARIANT_CODES)('keeps %s out of the error rate', (code) => {
+    expect(EXPECTED_ERROR_CODES.has(code)).toBe(true);
   });
 });

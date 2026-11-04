@@ -14,7 +14,7 @@ const handleTrpcRequest = (request: Request): Promise<Response> =>
     req: request,
     router: appRouter,
     createContext: createTRPCContext,
-    onError: ({ path, error, req }) => {
+    onError: ({ path, error, req, ctx }) => {
       if (error.code === 'UNAUTHORIZED') {
         const cookieHeader = req.headers.get('cookie');
         const hasAuthCookie =
@@ -38,6 +38,7 @@ const handleTrpcRequest = (request: Request): Promise<Response> =>
         logger.warn('procedure refused a call our client never makes', {
           'trpc.path': path,
           'trpc.code': error.code,
+          'user.id': ctx?.user?.uuid,
           error,
         });
         return;

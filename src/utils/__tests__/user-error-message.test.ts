@@ -33,7 +33,10 @@ const router = t.router({
       throw new TRPCError({ code: 'FORBIDDEN', message: 'Chat creation is currently disabled.' });
     }
     if (input.courseId === 'forged') {
-      throw invariantError('NOT_FOUND', 'Thread not found in this chat.');
+      throw invariantError(
+        'BAD_REQUEST',
+        'An image message must name an image uploaded to this chat.',
+      );
     }
     if (input.courseId === 'crash') throw new Error('connect ECONNREFUSED 10.0.0.4:5432');
     return 'enrolled';
