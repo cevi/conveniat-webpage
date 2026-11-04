@@ -2,14 +2,12 @@
 import { ChatAvatar } from '@/features/chat/components/ui/chat-avatar';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { LinkPendingSpinner } from '@/features/chat/components/ui/link-pending-spinner';
+import { MessagePreviewIcon } from '@/features/chat/components/ui/message-preview-icon';
 import { PersonName } from '@/features/chat/components/ui/person-name';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { isOpenChatPathname, useOpeningChat } from '@/features/chat/context/chat-id-context';
 import { useLongPress } from '@/features/chat/hooks/use-long-press';
-import type {
-  ChatWithMessagePreview,
-  MessagePreviewIcon,
-} from '@/features/chat/types/api-dto-types';
+import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { formatChatListDate } from '@/features/chat/utils/format-chat-list-date';
 import { previewSenderPrefix } from '@/features/chat/utils/preview-sender-prefix';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
@@ -18,8 +16,7 @@ import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
-import type { LucideIcon } from 'lucide-react';
-import { BellOff, Check, Clock, ImageIcon, MapPin, Pin, Siren } from 'lucide-react';
+import { BellOff, Check, Clock, Pin } from 'lucide-react';
 import Link, { useLinkStatus } from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
@@ -86,23 +83,6 @@ const groupCreatedText: StaticTranslationString = {
   de: 'Du hast die Gruppe erstellt',
   en: 'You created the group',
   fr: 'Tu as créé le groupe',
-};
-
-/** Drawn in front of a preview that names a kind of message instead of quoting its text. */
-const previewIcons: Record<MessagePreviewIcon, LucideIcon> = {
-  image: ImageIcon,
-  location: MapPin,
-  emergency: Siren,
-};
-
-/**
- * The icon in front of a preview, if it has one. Read defensively: the list may come from a
- * persisted cache written by another version of the app.
- */
-const PreviewIcon: React.FC<{ icon: unknown }> = ({ icon }) => {
-  if (typeof icon !== 'string' || !Object.hasOwn(previewIcons, icon)) return <></>;
-  const Icon = previewIcons[icon as MessagePreviewIcon];
-  return <Icon className="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden="true" />;
 };
 
 const sentStatusText: Partial<Record<MessageEventType, StaticTranslationString>> = {
@@ -310,7 +290,7 @@ export const ChatPreview: React.FC<{
                 <SentStatus status={chat.lastMessage.status} locale={locale} />
               )}
               {senderPrefix}
-              <PreviewIcon icon={previewIcon} />
+              <MessagePreviewIcon icon={previewIcon} />
               {previewText}
             </p>
             {hasUnread && (
