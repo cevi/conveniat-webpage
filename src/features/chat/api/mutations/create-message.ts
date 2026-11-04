@@ -10,6 +10,7 @@ import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatType, MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma/client';
 import { sendNotification } from '@/lib/push/send-notification';
+import { invariantError } from '@/trpc/error-formatter';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { rateLimit } from '@/trpc/middleware/rate-limit';
@@ -154,10 +155,10 @@ export const createMessage = trpcBaseProcedure
       // Only an upload into this very chat, see `getUploadUrl`. Any other URL would be loaded
       // by every member's phone, which is all a tracking pixel needs.
       if (!isImageKeyOfChat(validatedMessage.content, validatedMessage.chatId)) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'An image message must name an image uploaded to this chat.',
-        });
+        throw invariantError(
+          'BAD_REQUEST',
+          'An image message must name an image uploaded to this chat.',
+        );
       }
     }
 
@@ -197,7 +198,9 @@ export const createMessage = trpcBaseProcedure
 
       if (alreadyStored) {
         // The id is client-chosen, so make sure it really is a replay of *this* user's
-        // send in *this* chat rather than an attempt to claim someone else's message.
+        // send in *this* chat rather than an attempt to claim someone else's message. Not an
+        // invariant: outbox items queued before they carried a userId replay under whoever is
+        // signed in on the phone now.
         if (
           alreadyStored.senderId !== user.uuid ||
           alreadyStored.chatId !== validatedMessage.chatId
