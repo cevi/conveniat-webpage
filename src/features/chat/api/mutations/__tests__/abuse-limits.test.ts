@@ -26,7 +26,13 @@ jest.mock('superjson', () => ({
 jest.mock('@prisma/client', () =>
   jest.requireActual<typeof import('@/lib/prisma')>('@/lib/prisma'),
 );
-jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
+// The push recipients are read on the pool after the commit; it sees the same tables.
+jest.mock('@/lib/db/prisma', () => ({
+  __esModule: true,
+  get default(): unknown {
+    return prisma;
+  },
+}));
 jest.mock('@/lib/ability', () => ({
   Ability: { can: (): Promise<boolean> => Promise.resolve(true) },
 }));
@@ -142,7 +148,19 @@ const prisma = {
     update: record('chat.update'),
   },
   chatMembership: {
-    findMany: (): Promise<unknown> => Promise.resolve(memberships),
+    findMany: ({
+      where,
+    }: {
+      where?: { hasDeleted?: boolean; userId?: { not?: string; in?: string[] } };
+    } = {}): Promise<unknown> =>
+      Promise.resolve(
+        memberships.filter(
+          (m) =>
+            (where?.hasDeleted === undefined || m.hasDeleted === where.hasDeleted) &&
+            m.userId !== where?.userId?.not &&
+            (where?.userId?.in === undefined || where.userId.in.includes(m.userId)),
+        ),
+      ),
     createMany: record('chatMembership.createMany'),
   },
   chatInvite: {
@@ -234,8 +252,13 @@ const errorOf = async (
   return failure;
 };
 
-const pushRecipients = (): unknown[] =>
-  (mockSendNotification.mock.calls as unknown[][]).map((call) => call[1]);
+/** Whom each push went to, once the reads that follow the commit have settled. */
+const pushRecipients = async (): Promise<unknown[]> => {
+  await new Promise((resolve) => {
+    setImmediate(resolve);
+  });
+  return (mockSendNotification.mock.calls as unknown[][]).map((call) => call[1]);
+};
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -316,7 +339,7 @@ describe('push notifications for a message', () => {
   it('reach every other member for a message in the chat itself', async () => {
     await as(ANNA).sendMessage({ chatId: CHAT_ID, content: 'Hoi zäme', timestamp: new Date() });
 
-    expect(pushRecipients()).toEqual([[BEN, CARLA, DARIO]]);
+    expect(await pushRecipients()).toEqual([[BEN, CARLA, DARIO]]);
   });
 
   it('reach only the thread author and earlier repliers for a thread reply', async () => {
@@ -327,7 +350,7 @@ describe('push notifications for a message', () => {
       parentId: THREAD_ID,
     });
 
-    expect(pushRecipients()).toEqual([[BEN, CARLA]]);
+    expect(await pushRecipients()).toEqual([[BEN, CARLA]]);
     // everyone still sees the reply live
     expect(mockPublish).toHaveBeenCalledTimes(1);
   });
@@ -346,7 +369,7 @@ describe('push notifications for a message', () => {
       parentId: THREAD_ID,
     });
 
-    expect(pushRecipients()).toEqual([[CARLA]]);
+    expect(await pushRecipients()).toEqual([[CARLA]]);
   });
 
   it('are not sent for a reply in an announcement channel', async () => {
@@ -365,7 +388,7 @@ describe('push notifications for a message', () => {
       parentId: THREAD_ID,
     });
 
-    expect(mockSendNotification).not.toHaveBeenCalled();
+    expect(await pushRecipients()).toEqual([]);
     expect(mockPublish).toHaveBeenCalledTimes(1);
   });
 });

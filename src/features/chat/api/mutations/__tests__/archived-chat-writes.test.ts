@@ -130,9 +130,20 @@ const mockPrisma = {
     update: record('chat.update'),
   },
   chatMembership: {
-    findMany: ({ where }: { where: { chatId: string } }): Promise<unknown> => {
+    findMany: ({
+      where,
+    }: {
+      where: { chatId: string; hasDeleted?: boolean; userId?: { not: string } };
+    }): Promise<unknown> => {
       membershipListReads++;
-      return Promise.resolve(where.chatId === CHAT_ID ? memberships : []);
+      return Promise.resolve(
+        memberships.filter(
+          (m) =>
+            m.chatId === where.chatId &&
+            (where.hasDeleted === undefined || m.hasDeleted === where.hasDeleted) &&
+            m.userId !== where.userId?.not,
+        ),
+      );
     },
     createMany: record('chatMembership.createMany'),
   },
@@ -271,6 +282,10 @@ describe('push fan-out', () => {
     memberships.push(member('dario', ChatMembershipPermission.MEMBER, true));
 
     await as(owner).createMessage({ chatId: CHAT_ID, content: 'Hoi', timestamp: new Date() });
+    // the recipients are read after the commit, ahead of the push
+    await new Promise((resolve) => {
+      setImmediate(resolve);
+    });
 
     expect(mockSendNotification).toHaveBeenCalledTimes(1);
     const recipients = (mockSendNotification.mock.calls as unknown[][])[0]?.[1];
