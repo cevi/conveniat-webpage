@@ -1,8 +1,9 @@
+import type { WeeklySlotConfig } from '@/features/billing-core/weekly-slot';
+import { isWeeklySlotDue } from '@/features/billing-core/weekly-slot';
 import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-settings.adapter';
 import type { BillingAdminDocumentKey } from '@/features/billing/admin-documents';
 import { flattenHofEvents } from '@/features/billing/services/hof-events';
-import type { WeeklySlotConfig } from '@/features/billing/services/send-weekly-report';
-import { isWeeklySlotDue, parseRecipients } from '@/features/billing/services/send-weekly-report';
+import { parseRecipients } from '@/features/billing/services/send-weekly-report';
 import { BillingTaskSlug } from '@/features/billing/types';
 import { queueBackgroundEmail } from '@/features/payload-cms/payload-cms/utils/email-outbox';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';

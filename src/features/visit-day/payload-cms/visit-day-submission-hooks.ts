@@ -6,6 +6,8 @@ import {
   EXTERNAL_NUMBER_PREFIX,
   reservePlaces,
 } from '@/features/visit-day/api/visit-day-places';
+import type { BillAnswerFields } from '@/features/visit-day/billing/create-visit-day-bill';
+import { createVisitDayBill } from '@/features/visit-day/billing/create-visit-day-bill';
 import { formatVisitDay } from '@/features/visit-day/format-visit-day';
 import {
   EXTERNAL_VISIT,
@@ -48,10 +50,13 @@ interface PendingVisit {
   numberField: string;
   /** set once the places are taken, so a failure after it gives them back */
   submissionId?: string;
+  /** the answers that name the payer, and the language the bill goes out in */
+  bill: BillAnswerFields;
+  locale: Locale;
 }
 
 /** The settings of a form's Besuchstag field. */
-interface VisitDayBlock {
+interface VisitDayBlock extends BillAnswerFields {
   name: string;
   personCountField: string;
   dayField: string;
@@ -106,6 +111,12 @@ const invalidLunchMessage: StaticTranslationString = {
   de: 'Bitte wähle, ob ihr im Lager zu Mittag esst.',
   en: 'Please choose whether you have lunch at the camp.',
   fr: 'Indique si vous mangez à midi au camp.',
+};
+
+const notSavedMessage: StaticTranslationString = {
+  de: 'Die Anmeldung konnte nicht gespeichert werden. Bitte versuche es später nochmals.',
+  en: 'The registration could not be saved. Please try again later.',
+  fr: 'L’inscription n’a pas pu être enregistrée. Réessaie plus tard.',
 };
 
 const hofNotOfferedMessage: StaticTranslationString = {
@@ -249,6 +260,9 @@ export const resolveVisitDay: CollectionBeforeChangeHook<FormSubmission> = async
     capacity,
     asksLunch: asksLunch(block),
     numberField: block.registrationNumberField,
+    // the field names the answers of the payer itself
+    bill: block,
+    locale,
   };
   req.context[PENDING_VISIT] = pending;
   return data;
@@ -296,6 +310,42 @@ export const reserveVisitDayPlaces: CollectionAfterChangeHook<FormSubmission> = 
     data: { submissionData },
     req,
   });
+
+  try {
+    await createVisitDayBill(
+      req.payload,
+      {
+        submissionId: doc.id,
+        registrationId: result.registrationId,
+        registrationNumber: result.number,
+        billNumber: result.billNumber,
+        date: pending.date,
+        hofId: pending.hofId,
+        persons: pending.persons,
+        withLunch: pending.withLunch,
+        locale: pending.locale,
+        answers: submissionData,
+      },
+      pending.bill,
+      req,
+    );
+  } catch (error) {
+    // Without a bill nobody would ask this visitor to pay, so the registration is undone and
+    // the person told to try again, like a day that filled up in the meantime.
+    req.context[PENDING_VISIT] = undefined;
+    await prisma.visitDayRegistration.deleteMany({ where: { submissionId: doc.id } });
+    await req.payload.delete({
+      collection: 'form-submissions',
+      id: doc.id,
+      overrideAccess: true,
+      req,
+    });
+    req.payload.logger.error({
+      err: error,
+      msg: `Besuchstag registration ${doc.id} undone: its bill could not be created.`,
+    });
+    return refuse(notSavedMessage, localeOf(req));
+  }
   return { ...doc, submissionData };
 };
 

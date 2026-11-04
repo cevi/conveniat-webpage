@@ -34,6 +34,22 @@ const syncBillWithDelivery: CollectionAfterChangeHook<OutgoingEmail> = async ({
   if (doc.deliveryStatus !== 'success' && doc.deliveryStatus !== 'error') return doc;
   if (req.context['mailDiscarded'] === true) return doc;
 
+  const visitDayBillId =
+    typeof doc.visitDayBill === 'string' ? doc.visitDayBill : doc.visitDayBill?.id;
+  if (visitDayBillId !== undefined) {
+    const { recordVisitDayBillMail } =
+      await import('@/features/visit-day/billing/visit-day-bill-mail');
+    try {
+      await recordVisitDayBillMail(req.payload, visitDayBillId, doc);
+    } catch (error) {
+      req.payload.logger.error({
+        err: error,
+        msg: `Could not update Besuchstag bill ${visitDayBillId} after its mail ${doc.id} turned ${String(doc.deliveryStatus)}.`,
+      });
+    }
+    return doc;
+  }
+
   const { billParticipantIdOf, markBillMailFailed, markBillMailSent } =
     await import('@/features/billing/services/bill-mail-status');
   const participantId = billParticipantIdOf(doc);
@@ -246,6 +262,18 @@ export const OutgoingEmails: CollectionConfig = {
       },
     },
     {
+      name: 'visitDayBill',
+      type: 'relationship',
+      relationTo: 'visit-day-bills',
+      hasMany: false,
+      index: true,
+      label: { en: 'Besuchstag bill', de: 'Besuchstag-Rechnung', fr: 'Facture de la journée' },
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
+    {
       name: 'type',
       label: {
         en: 'Type',
@@ -270,6 +298,14 @@ export const OutgoingEmails: CollectionConfig = {
             fr: 'Participant à la facture',
           },
           value: 'billParticipant',
+        },
+        {
+          label: {
+            en: 'Besuchstag bill',
+            de: 'Besuchstag-Rechnung',
+            fr: 'Facture de la journée des visites',
+          },
+          value: 'visitDayBill',
         },
         {
           label: {
@@ -299,6 +335,8 @@ export const OutgoingEmails: CollectionConfig = {
             if (Array.isArray(billParticipants) && billParticipants.length > 0) {
               return 'billParticipant';
             }
+            const visitDayBill = safeData['visitDayBill'];
+            if (visitDayBill !== undefined && visitDayBill !== null) return 'visitDayBill';
             return 'other';
           }) as FieldHook,
         ],

@@ -27,6 +27,10 @@ model VisitDayRegistration {
   /// the objectID of the registration in the `form-submissions` collection in MongoDB
   submissionId String @unique
 
+  /// numbers the registrations' bills from 1, across all Höfe, from a sequence, so two bills
+  /// never share a QR reference; the reference is `091`, this number and the bill's issue
+  billNumber Int @unique @default(autoincrement())
+
   /// the Besuchstag, taken from the Quartier of the Hof or picked by a visitor without one
   visitDate DateTime @db.Date
 

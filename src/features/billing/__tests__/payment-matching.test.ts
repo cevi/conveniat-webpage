@@ -1,11 +1,8 @@
-import type { BankPayment } from '@/features/billing/services/payment-csv';
+import { OVERPAYMENT_TOLERANCE } from '@/features/billing-core/money';
+import type { BankPayment } from '@/features/billing-core/payment-csv';
+import { isValidQrReference } from '@/features/billing-core/qr-reference';
 import type { MatchableParticipant } from '@/features/billing/services/payment-matching';
-import {
-  isConvertedReference,
-  isValidQrReference,
-  matchPayments,
-  OVERPAYMENT_TOLERANCE,
-} from '@/features/billing/services/payment-matching';
+import { isConvertedReference, matchPayments } from '@/features/billing/services/payment-matching';
 import { generateQrReference } from '@/features/billing/utils';
 
 const reference = generateQrReference('123012', '34000', '0567000', 1);

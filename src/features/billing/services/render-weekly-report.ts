@@ -261,7 +261,7 @@ export async function renderWeeklyReportPdf(report: WeeklyReport): Promise<Buffe
     // ── Footer ───────────────────────────────────────────────────────────────
     document_.font('Helvetica').fontSize(7.5).fillColor(MUTED);
     document_.text(
-      'Automatisch erstellt aus der Rechnungsverwaltung. Zahlen entsprechen dem letzten Cevi.DB-Abgleich.',
+      'Automatisch erstellt aus «Lager · Rechnungen». Zahlen entsprechen dem letzten Cevi.DB-Abgleich.',
       left,
       mm2pt(283),
       { width: contentWidth, align: 'center', lineBreak: false },

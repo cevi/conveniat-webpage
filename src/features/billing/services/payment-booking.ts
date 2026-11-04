@@ -1,14 +1,15 @@
-import { PAYMENT_BOOKED_ACTION } from '@/features/billing/services/anmeldestatus-writeback';
-import { PAID, PAYABLE_STATUSES } from '@/features/billing/services/billing-status';
-import type { AllocatablePayment } from '@/features/billing/services/payment-allocation';
+import { formatChf, toRappen } from '@/features/billing-core/money';
+import type { AllocatablePayment } from '@/features/billing-core/payment-allocation';
 import {
-  allocatedParticipantIds,
+  allocatedBillIds,
+  CAMP_BILL_COLLECTION,
   isDoublePayment,
   paymentsCountingFor,
   settlingPayments,
   totalAllocatedTo,
-} from '@/features/billing/services/payment-allocation';
-import { formatChf, toRappen } from '@/features/billing/services/payment-matching';
+} from '@/features/billing-core/payment-allocation';
+import { PAYMENT_BOOKED_ACTION } from '@/features/billing/services/anmeldestatus-writeback';
+import { PAID, PAYABLE_STATUSES } from '@/features/billing/services/billing-status';
 import { BillingTaskSlug } from '@/features/billing/types';
 import type { BillParticipant, BillPayment } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
@@ -101,7 +102,14 @@ export async function findPaymentsAllocatedTo(
   if (participantIds.length === 0) return [];
   const found = await payload.find({
     collection: 'bill-payments',
-    where: { 'allocations.participant': { in: participantIds } },
+    // a payment the previous release stored during a rolling deploy names the bill only in
+    // the legacy field, until the next save or migration copies it into `bill`
+    where: {
+      or: [
+        { 'allocations.bill.value': { in: participantIds } },
+        { 'allocations.participant': { in: participantIds } },
+      ],
+    },
     pagination: false,
     depth: 0,
     context: { internal: true },
@@ -144,7 +152,7 @@ export async function reconcileParticipantPayments(
   // Grouped once, so each bill only looks at its own payments rather than the whole file's.
   const paymentsByParticipant = new Map<string, BillPayment[]>();
   for (const payment of paymentsById.values()) {
-    for (const participantId of allocatedParticipantIds(payment)) {
+    for (const participantId of allocatedBillIds(payment, CAMP_BILL_COLLECTION)) {
       const list = paymentsByParticipant.get(participantId) ?? [];
       list.push(payment);
       paymentsByParticipant.set(participantId, list);

@@ -56,8 +56,8 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
       return Response.json(
         {
           error:
-            'Diese Rechnungs-E-Mail hat ihr PDF nicht mehr. Bitte die Rechnung in der ' +
-            'Rechnungsverwaltung über «Email senden» erneut versenden.',
+            'Diese Rechnungs-E-Mail hat ihr PDF nicht mehr. Bitte die Rechnung unter ' +
+            '«Lager · Rechnungen» über «Email senden» erneut versenden.',
         },
         { status: 409 },
       );

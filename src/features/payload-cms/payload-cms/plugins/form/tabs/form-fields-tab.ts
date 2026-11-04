@@ -1041,6 +1041,130 @@ const formVisitDaySelectionBlock: Block = {
         },
       },
     },
+    {
+      type: 'collapsible',
+      label: { en: 'Bill', de: 'Rechnung', fr: 'Facture' },
+      admin: {
+        initCollapsed: true,
+        description: {
+          en: 'Every registration gets a QR bill by email, in the language of the form. These answers fill in its address; prices and texts are in «Besuchstag · Rechnungseinstellungen».',
+          de: 'Jede Anmeldung erhält per E-Mail eine QR-Rechnung in der Sprache des Formulars. Diese Antworten füllen ihre Adresse; Preise und Texte stehen in «Besuchstag · Rechnungseinstellungen».',
+          fr: 'Chaque inscription reçoit une facture QR par e-mail, dans la langue du formulaire. Ces réponses remplissent son adresse ; prix et textes sont dans « Journée des visites · Réglages des factures ».',
+        },
+      },
+      fields: [
+        {
+          name: 'issuesBill',
+          type: 'checkbox',
+          defaultValue: true,
+          label: {
+            en: 'Send a QR bill',
+            de: 'QR-Rechnung verschicken',
+            fr: 'Envoyer une facture QR',
+          },
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'billFirstNameField',
+              type: 'text',
+              label: {
+                en: 'Answer with the first name',
+                de: 'Antwort mit dem Vornamen',
+                fr: 'Réponse avec le prénom',
+              },
+              validate: optionalFormNameValidation,
+              defaultValue: 'vorname',
+              admin: { width: '33%' },
+            },
+            {
+              name: 'billLastNameField',
+              type: 'text',
+              label: {
+                en: 'Answer with the last name',
+                de: 'Antwort mit dem Nachnamen',
+                fr: 'Réponse avec le nom',
+              },
+              validate: optionalFormNameValidation,
+              defaultValue: 'nachname',
+              admin: { width: '33%' },
+            },
+            {
+              name: 'billEmailField',
+              type: 'text',
+              label: {
+                en: 'Answer with the email',
+                de: 'Antwort mit der E-Mail',
+                fr: 'Réponse avec l’e-mail',
+              },
+              validate: optionalFormNameValidation,
+              defaultValue: 'email',
+              admin: { width: '33%' },
+            },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'billStreetField',
+              type: 'text',
+              label: {
+                en: 'Answer with the street',
+                de: 'Antwort mit der Strasse',
+                fr: 'Réponse avec la rue',
+              },
+              validate: optionalFormNameValidation,
+              defaultValue: 'strasse',
+              admin: { width: '33%' },
+            },
+            {
+              name: 'billPostalCodeField',
+              type: 'text',
+              label: {
+                en: 'Answer with the postal code',
+                de: 'Antwort mit der PLZ',
+                fr: 'Réponse avec le NPA',
+              },
+              validate: optionalFormNameValidation,
+              defaultValue: 'plz',
+              admin: { width: '33%' },
+            },
+            {
+              name: 'billCityField',
+              type: 'text',
+              label: {
+                en: 'Answer with the city',
+                de: 'Antwort mit dem Ort',
+                fr: 'Réponse avec la localité',
+              },
+              validate: optionalFormNameValidation,
+              defaultValue: 'ort',
+              admin: { width: '33%' },
+            },
+          ],
+        },
+        {
+          name: 'travelPassField',
+          type: 'text',
+          label: {
+            en: 'Answer with the travel pass, per person',
+            de: 'Antwort mit dem ÖV-Abo, pro Person',
+            fr: 'Réponse avec l’abonnement, par personne',
+          },
+          validate: optionalFormNameValidation,
+          defaultValue: 'oev_abo',
+          admin: {
+            description: {
+              en: 'Read as oev_abo_1, oev_abo_2 for each person, and counted per address in the export of the rail tickets.',
+              de: 'Wird pro Person als oev_abo_1, oev_abo_2 gelesen und im Export der SBB-Billette pro Adresse gezählt.',
+              fr: 'Lu par personne comme oev_abo_1, oev_abo_2 et compté par adresse dans l’export des billets CFF.',
+            },
+          },
+        },
+      ],
+    },
     { name: 'required', type: 'checkbox', label: 'Required', defaultValue: true },
     placementField(),
   ],

@@ -1,16 +1,17 @@
+import { toRappen } from '@/features/billing-core/money';
 import {
-  allocatedToParticipant,
+  allocatedTo,
+  allocationBill,
   isRefunded,
+  matchedBillOf,
   paymentsCountingFor,
-  relationId,
   totalAllocatedTo,
-} from '@/features/billing/services/payment-allocation';
+} from '@/features/billing-core/payment-allocation';
 import {
   DOUBLE_PAYMENT_DETECTED_ACTION,
   DOUBLE_PAYMENT_RESOLVED_ACTION,
   findPaymentsAllocatedTo,
 } from '@/features/billing/services/payment-booking';
-import { toRappen } from '@/features/billing/services/payment-matching';
 import { renderDoublePaymentReportPdf } from '@/features/billing/services/render-double-payment-report';
 import type { BillParticipant, BillPayment } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
@@ -128,7 +129,7 @@ export function buildDoublePaymentReport(
           transactionReference: payment.transactionReference,
           bookingDate: payment.bookingDate ?? undefined,
           payer: payment.payer ?? '',
-          amount: allocatedToParticipant(payment, participant.id) / 100,
+          amount: allocatedTo(payment, participant.id) / 100,
         })),
       };
     })
@@ -179,9 +180,9 @@ export function buildResolvedDoublePayments(
       const involved = payments
         .filter(
           (payment) =>
-            relationId(payment.matchedParticipant) === participant.id ||
+            matchedBillOf(payment)?.id === participant.id ||
             (payment.allocations ?? []).some(
-              (allocation) => relationId(allocation.participant) === participant.id,
+              (allocation) => allocationBill(allocation)?.id === participant.id,
             ),
         )
         .toSorted((a, b) => (a.bookingDate ?? '').localeCompare(b.bookingDate ?? ''));
@@ -200,11 +201,11 @@ export function buildResolvedDoublePayments(
             bookingDate: payment.bookingDate ?? undefined,
             payer: payment.payer ?? '',
             amount: payment.amount,
-            countsHere: allocatedToParticipant(payment, participant.id) / 100,
+            countsHere: allocatedTo(payment, participant.id) / 100,
             elsewhere: isRefunded(payment)
               ? []
               : (payment.allocations ?? []).flatMap((allocation): ReassignedShare[] => {
-                  const id = relationId(allocation.participant);
+                  const id = allocationBill(allocation)?.id;
                   if (id === undefined || id === participant.id) return [];
                   const other = othersById.get(id);
                   return [
@@ -260,6 +261,9 @@ export async function findDoublePaymentReport(
     collection: 'bill-payments',
     where: {
       or: [
+        { 'allocations.bill.value': { in: resolvedIds } },
+        { 'matchedBill.value': { in: resolvedIds } },
+        // stored by the previous release during a rolling deploy, see syncLegacyBillFields
         { 'allocations.participant': { in: resolvedIds } },
         { matchedParticipant: { in: resolvedIds } },
       ],
@@ -274,7 +278,7 @@ export async function findDoublePaymentReport(
       id: {
         in: resolvedPayments
           .flatMap((payment) => payment.allocations ?? [])
-          .map((allocation) => relationId(allocation.participant))
+          .map((allocation) => allocationBill(allocation)?.id)
           .filter((id) => id !== undefined && !resolvedIds.includes(id)),
       },
     },
@@ -285,9 +289,42 @@ export async function findDoublePaymentReport(
     context: { internal: true },
   });
 
+  // The Besuchstag bills share the ledger, so finance sees what to refund there in the same
+  // report. A cancelled registration owes back everything it was paid.
+  const { docs: visitDayBills } = await payload.find({
+    collection: 'visit-day-bills',
+    where: { doublePayment: { equals: true } },
+    pagination: false,
+    depth: 0,
+    joins: false,
+    overrideAccess: true,
+  });
+  // `in: []` matches nothing, so a week without such a bill costs one empty read
+  const { docs: visitDayPayments } = await payload.find({
+    collection: 'bill-payments',
+    where: { 'allocations.bill.value': { in: visitDayBills.map((bill) => bill.id) } },
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+  });
+
   return buildDoublePaymentReport(
-    participants.docs,
-    payments,
+    [
+      ...participants.docs,
+      ...visitDayBills.map((bill) => ({
+        id: bill.id,
+        fullName: bill.fullName ?? bill.registrationNumber,
+        invoiceNumber: bill.invoiceNumber,
+        invoiceAmount: bill.status === 'cancelled' ? 0 : bill.invoiceAmount,
+        eventName: `Besuchstag ${bill.registrationNumber}`,
+      })),
+    ],
+    // a payment split across both kinds of bill is read twice, and counts once
+    [
+      ...new Map(
+        [...payments, ...visitDayPayments].map((payment) => [payment.id, payment]),
+      ).values(),
+    ],
     now,
     buildResolvedDoublePayments(resolved, resolvedPayments, [...resolved, ...others]),
   );

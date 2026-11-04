@@ -216,7 +216,9 @@ src/
 
 `eslint.config.mjs` enforces the direction with `import/no-restricted-paths`. `src/app` imports from
 `src/features`, and both import from the shared directories. Nothing goes the other way. Features do
-not import each other, with `payload-cms` and `next-auth` open to everyone. The Cevi.DB client lives
+not import each other, with `payload-cms`, `next-auth` and `billing-core` open to everyone.
+`billing-core` is what the camp bills and the Besuchstag bills share: the QR reference, the
+payment ledger and the bank import. It imports no feature but `payload-cms`. The Cevi.DB client lives
 in `src/lib/hitobito`, so every feature reaches it without an exception.
 
 ## Conventions

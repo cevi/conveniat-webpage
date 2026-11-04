@@ -1,7 +1,5 @@
 'use client';
 
-import type { BillingAdminDocumentKey } from '@/features/billing/admin-documents';
-import { BILLING_ADMIN_DOCUMENTS } from '@/features/billing/admin-documents';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { Button } from '@payloadcms/ui';
 import { ExternalLink, X } from 'lucide-react';
@@ -38,7 +36,7 @@ export const BillingErrorsDialog: React.FC<{
   title: string;
   errors: string[];
   /** Settings pages that have to be fixed for the run to succeed. */
-  relatedDocuments: BillingAdminDocumentKey[];
+  relatedDocuments: { href: string; label: StaticTranslationString }[];
   locale: Locale;
 }> = ({ isOpen, onClose, title, errors, relatedDocuments, locale }) => {
   if (!isOpen) return <></>;
@@ -93,14 +91,14 @@ export const BillingErrorsDialog: React.FC<{
 
         {relatedDocuments.length > 0 && (
           <div className="flex flex-wrap gap-2 border-t border-(--theme-elevation-100) px-5 py-3">
-            {relatedDocuments.map((key) => (
+            {relatedDocuments.map((related) => (
               <a
-                key={key}
+                key={related.href}
                 className="inline-flex items-center gap-1.5 rounded border border-(--theme-elevation-150) px-3 py-1.5 text-sm text-(--theme-elevation-800) hover:bg-(--theme-elevation-100)"
-                href={BILLING_ADMIN_DOCUMENTS[key].href}
+                href={related.href}
               >
                 <ExternalLink className="h-3.5 w-3.5" />
-                {BILLING_ADMIN_DOCUMENTS[key].label[locale]}
+                {related.label[locale]}
               </a>
             ))}
           </div>

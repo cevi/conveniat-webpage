@@ -1,8 +1,8 @@
 'use client';
 
+import { BillingErrorsDialog } from '@/features/billing-core/components/billing-errors-dialog';
 import type { BillingAdminDocumentKey } from '@/features/billing/admin-documents';
 import { BILLING_ADMIN_DOCUMENTS, readAdminDocumentKeys } from '@/features/billing/admin-documents';
-import { BillingErrorsDialog } from '@/features/billing/components/billing-errors-dialog';
 import type { BillingJobView } from '@/features/billing/hooks/use-billing-jobs';
 import { useElapsedSeconds } from '@/features/billing/hooks/use-elapsed-seconds';
 import { documentControlButtonClasses } from '@/features/payload-cms/payload-cms/components/shared/document-control-button-styles';
@@ -416,7 +416,7 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
         isOpen={isErrorsDialogOpen}
         locale={locale}
         onClose={() => setIsErrorsDialogOpen(false)}
-        relatedDocuments={relatedDocuments}
+        relatedDocuments={relatedDocuments.map((key) => BILLING_ADMIN_DOCUMENTS[key])}
         title={title}
       />
     </li>

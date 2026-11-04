@@ -31,9 +31,9 @@ const VatSplitsValidationSchema = z
 export const BillSettingsGlobal: GlobalConfig = {
   slug: 'bill-settings',
   label: {
-    en: 'Bill Settings',
-    de: 'Rechnungs-Einstellungen',
-    fr: 'Paramètres de facturation',
+    en: 'Camp · Billing settings',
+    de: 'Lager · Rechnungseinstellungen',
+    fr: 'Camp · Réglages des factures',
   },
   admin: {
     hideAPIURL: true,

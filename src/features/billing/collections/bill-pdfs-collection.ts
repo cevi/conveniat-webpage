@@ -22,6 +22,8 @@ export const BillPdfsCollection: CollectionConfig = {
   },
   admin: {
     group: AdminPanelDashboardGroups.BackofficeBilling.label,
+    // opened from the bill it belongs to, camp or Besuchstag, neither of which can be deleted
+    hidden: true,
     useAsTitle: 'filename',
   },
   access: {

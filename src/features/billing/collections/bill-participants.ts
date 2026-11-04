@@ -27,17 +27,10 @@ import type { CollectionConfig } from 'payload';
  */
 export const BillParticipantsCollection: CollectionConfig = {
   slug: 'bill-participants',
+  // «Lager ·» tells them from the Besuchstag bills in the same sidebar group
   labels: {
-    singular: {
-      en: 'Billing',
-      de: 'Rechnungsverwaltung',
-      fr: 'Gestion des factures',
-    },
-    plural: {
-      en: 'Billing',
-      de: 'Rechnungsverwaltung',
-      fr: 'Gestion des factures',
-    },
+    singular: { en: 'Camp · Bill', de: 'Lager · Rechnung', fr: 'Camp · Facture' },
+    plural: { en: 'Camp · Bills', de: 'Lager · Rechnungen', fr: 'Camp · Factures' },
   },
   admin: {
     hidden: ({ user }): boolean =>
@@ -629,6 +622,10 @@ export const BillParticipantsCollection: CollectionConfig = {
                 },
               },
             },
+            // The camp's joins read the legacy fields, which every release writes for a camp
+            // payment. A replica of the previous release, still running while the deploy rolls,
+            // writes only those, so a join on the new fields would miss what it booked. The
+            // migration that drops the legacy fields moves these joins to the new ones.
             {
               name: 'payments',
               type: 'join',

@@ -1,5 +1,5 @@
+import { calculateModule10Recursive } from '@/features/billing-core/qr-reference';
 import {
-  calculateModule10Recursive,
   describeQrReference,
   formatQrReference,
   formatRoleName,

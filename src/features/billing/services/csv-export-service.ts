@@ -5,7 +5,11 @@ import {
 } from '@/features/billing/services/issued-bills';
 import { shortenEventName } from '@/features/billing/services/weekly-report';
 import type { FinanceCsvRow } from '@/features/billing/types';
-import type { BillParticipant, BillSetting } from '@/features/payload-cms/payload-types';
+import type {
+  BillParticipant,
+  BillSetting,
+  VisitDayBill,
+} from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
 
 interface RolePricingEntry {
@@ -106,6 +110,51 @@ export function buildFinanceCsvRows(
   return rows.sort((a, b) => a.DocInvoice.localeCompare(b.DocInvoice, 'de', { numeric: true }));
 }
 
+/** Why a Besuchstag bill no longer stands: its registration was cancelled, or it was replaced. */
+const cancelReasonOf = (status: VisitDayBill['status']): string =>
+  status === 'cancelled' ? 'Anmeldung storniert' : 'Neu ausgestellt';
+
+/**
+ * One booking per Besuchstag bill ever issued, so Banana gets both kinds of bill from one
+ * export. A bill issued again keeps its earlier issue as a cancelled line, like a replaced camp
+ * bill, and a cancelled registration cancels its last one. The revenue account comes from the
+ * Besuchstag bill settings, the counter account `[CA]` where none is set.
+ */
+export function buildVisitDayFinanceRows(
+  bills: Pick<
+    VisitDayBill,
+    'registrationNumber' | 'fullName' | 'status' | 'issuedBills' | 'dueDate' | 'issuedAt'
+  >[],
+  revenueAccount: string | null | undefined,
+  paymentDeadlineDays: number,
+): FinanceCsvRow[] {
+  const accountCredit =
+    typeof revenueAccount === 'string' && revenueAccount.trim() !== ''
+      ? revenueAccount.trim()
+      : ACCOUNT_CREDIT;
+  const rows = bills.flatMap((bill) =>
+    (bill.issuedBills ?? []).map((issued): FinanceCsvRow => {
+      const issuedAt = new Date(issued.issuedAt);
+      const expiration = new Date(issuedAt);
+      expiration.setDate(expiration.getDate() + paymentDeadlineDays);
+      const replaced = typeof issued.supersededAt === 'string' && issued.supersededAt !== '';
+      return {
+        Date: formatIsoDate(issuedAt),
+        DocInvoice: issued.invoiceNumber,
+        ExternalReference: issued.referenceNumber,
+        Amount: issued.amount,
+        DateExpiration: formatIsoDate(expiration),
+        Description: ['Besuchstag', bill.fullName ?? '', bill.registrationNumber].join(', '),
+        AccountDebit: ACCOUNT_DEBIT,
+        AccountCredit: accountCredit,
+        Storniert: replaced,
+        Stornogrund: replaced ? cancelReasonOf(bill.status) : '',
+      };
+    }),
+  );
+  return rows.sort((a, b) => a.DocInvoice.localeCompare(b.DocInvoice, 'de', { numeric: true }));
+}
+
 const escapeCsvValue = (value: string | number | boolean | undefined): string => {
   if (value === undefined) return '';
   if (typeof value === 'boolean') return String(value);
@@ -147,7 +196,36 @@ export async function findFinanceCsvRows(payload: Payload): Promise<FinanceCsvRo
     context: { internal: true },
   });
 
-  return buildFinanceCsvRows(participants.docs, settings);
+  return [
+    ...buildFinanceCsvRows(participants.docs, settings),
+    ...(await findVisitDayFinanceRows(payload)),
+  ];
+}
+
+/**
+ * The bookings of every Besuchstag bill. They are paid into the same account, so finance books
+ * both kinds of bill from one file; read by collection, the camp billing imports nothing of the
+ * Besuchstag.
+ */
+export async function findVisitDayFinanceRows(payload: Payload): Promise<FinanceCsvRow[]> {
+  const bills = await payload.find({
+    collection: 'visit-day-bills',
+    limit: 10_000,
+    depth: 0,
+    joins: false,
+    overrideAccess: true,
+  });
+  if (bills.docs.length === 0) return [];
+  const settings = await payload.findGlobal({
+    slug: 'visit-day-bill-settings',
+    depth: 0,
+    overrideAccess: true,
+  });
+  return buildVisitDayFinanceRows(
+    bills.docs,
+    settings.revenueAccount,
+    settings.paymentDeadlineDays,
+  );
 }
 
 /**

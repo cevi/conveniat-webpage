@@ -53,6 +53,7 @@ const features_folder = [
   'push-tracking',
   'auth',
   'billing',
+  'billing-core',
   'native-push',
   'presence',
   'photo-contest',
@@ -346,13 +347,15 @@ const config = defineConfig([
         {
           zones: [
             // enforce unidirectional codebase:
+            // payload-cms may import every feature. billing-core holds what the camp bills and
+            // the Besuchstag bills share, the QR reference and the one payment ledger, so every
+            // feature may import it; it imports no feature but payload-cms itself.
             ...features_folder
-              // no restrictions to payload-cms feature
               .filter((feature) => feature !== 'payload-cms')
               .map((feature) => ({
                 target: `./src/features/${feature}`,
                 from: './src/features',
-                except: [`./${feature}`, './payload-cms'],
+                except: [...new Set([`./${feature}`, './payload-cms', './billing-core'])],
                 message: `Do not import from ${feature} directly, use the shared modules instead.`,
               })),
 
