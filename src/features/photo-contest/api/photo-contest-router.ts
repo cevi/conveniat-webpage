@@ -1,4 +1,5 @@
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { photoContestError } from '@/features/photo-contest/api/photo-contest-errors';
 import {
   createTRPCRouter,
   publicProcedure,
@@ -135,11 +136,11 @@ export const photoContestRouter = createTRPCRouter({
   /**
    * Cast/update votes for a contest.
    * Enforces rules:
-   * 1) Total points assigned by user across images <= maxPointsPerUser (default 2 points).
-   * 2) Maximum points assigned to a single image <= maxPointsPerImage (default 2 points).
-   * 3) User can assign 2 points to 1 image, OR 1 point each to 2 different images.
-   * 4) Verified all submitted imageIds belong to the target contestId.
-   * 5) Atomic update inside a database transaction prevents duplicate voting.
+   * 1) Total points assigned by user across images <= the contest's maxPointsPerUser.
+   * 2) Points assigned to a single image, summed over its allocations, <= the contest's
+   *    maxPointsPerImage. Both bounds are set by editors in Payload, so the input has no cap.
+   * 3) Verified all submitted imageIds belong to the target contestId.
+   * 4) Atomic update inside a database transaction prevents duplicate voting.
    */
   castVotes: trpcBaseProcedure
     .input(
@@ -148,7 +149,7 @@ export const photoContestRouter = createTRPCRouter({
         allocations: z.array(
           z.object({
             imageId: z.string(),
-            points: z.number().int().min(0).max(2),
+            points: z.number().int().min(0),
           }),
         ),
       }),
@@ -161,32 +162,20 @@ export const photoContestRouter = createTRPCRouter({
       });
 
       if (!contest) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Fotowettbewerb nicht gefunden.',
-        });
+        throw photoContestError('NOT_FOUND', 'contestNotFound');
       }
 
       if (contest.status !== 'ACTIVE') {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Abstimmung für diesen Wettbewerb ist aktuell nicht aktiv.',
-        });
+        throw photoContestError('BAD_REQUEST', 'votingNotActive');
       }
 
       const now = new Date();
       if (contest.votingStart && now < contest.votingStart) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Die Abstimmung hat noch nicht begonnen.',
-        });
+        throw photoContestError('BAD_REQUEST', 'votingNotStarted');
       }
 
       if (contest.votingEnd && now > contest.votingEnd) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Die Abstimmung ist bereits beendet.',
-        });
+        throw photoContestError('BAD_REQUEST', 'votingEnded');
       }
 
       // Filter out zero-point allocations
@@ -204,28 +193,25 @@ export const photoContestRouter = createTRPCRouter({
         });
 
         if (validImages.length !== submittedImageIds.length) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Ein oder mehrere ausgewählte Bilder gehören nicht zu diesem Wettbewerb.',
-          });
+          throw photoContestError('BAD_REQUEST', 'imageNotInContest');
         }
       }
 
       // Validate max points per user
       const totalPoints = validAllocations.reduce((sum, a) => sum + a.points, 0);
       if (totalPoints > contest.maxPointsPerUser) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: `Du darfst insgesamt maximal ${contest.maxPointsPerUser} Punkte vergeben.`,
-        });
+        throw photoContestError('BAD_REQUEST', 'tooManyPoints', { max: contest.maxPointsPerUser });
       }
 
-      // Validate max points per image
+      // Validate max points per image; an image sent twice counts with both allocations
+      const pointsPerImage = new Map<string, number>();
       for (const alloc of validAllocations) {
-        if (alloc.points > contest.maxPointsPerImage) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `Pro Bild dürfen maximal ${contest.maxPointsPerImage} Punkte vergeben werden.`,
+        pointsPerImage.set(alloc.imageId, (pointsPerImage.get(alloc.imageId) ?? 0) + alloc.points);
+      }
+      for (const points of pointsPerImage.values()) {
+        if (points > contest.maxPointsPerImage) {
+          throw photoContestError('BAD_REQUEST', 'tooManyPointsPerImage', {
+            max: contest.maxPointsPerImage,
           });
         }
       }
