@@ -17,6 +17,7 @@ import {
   useMaterialLocale,
   type MaterialItemDetail,
 } from '@/features/material/hooks/use-material';
+import { MAX_QUANTITY } from '@/features/material/limits';
 import { orderStepOf } from '@/features/material/utils/basket';
 import { getItemFormProblems, type ItemFormProblem } from '@/features/material/utils/item-form';
 import { itemPath } from '@/features/material/utils/scan';
@@ -139,6 +140,7 @@ export const ItemEditDialog: React.FC<{
   ): React.ReactNode => (
     <NumberInput
       min={key === 'maxLoanQuantity' || key === 'orderStep' ? 1 : 0}
+      max={MAX_QUANTITY}
       value={form[key]}
       onChange={(value) => set(key, value)}
     />

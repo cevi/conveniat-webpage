@@ -4,6 +4,7 @@ import {
   lockItem,
   materialError,
 } from '@/features/material/api/material-shared';
+import { MAX_QUANTITY } from '@/features/material/limits';
 import { Prisma } from '@/lib/prisma/client';
 import { createLogger } from '@/utils/server-logger';
 import { z } from 'zod';
@@ -22,10 +23,10 @@ const itemFields = z.object({
   returnInstructions: z.string().trim().max(2000),
   imageUrl: z.url().nullable(),
   unit: z.string().trim().min(1).max(40),
-  totalQuantity: z.number().int().min(0).max(1_000_000),
-  maxLoanQuantity: z.number().int().min(1).max(1_000_000),
-  orderStep: z.number().int().min(1).max(1_000_000),
-  lowStockThreshold: z.number().int().min(0).max(1_000_000),
+  totalQuantity: z.number().int().min(0).max(MAX_QUANTITY),
+  maxLoanQuantity: z.number().int().min(1).max(MAX_QUANTITY),
+  orderStep: z.number().int().min(1).max(MAX_QUANTITY),
+  lowStockThreshold: z.number().int().min(0).max(MAX_QUANTITY),
   isConsumable: z.boolean(),
   isReservable: z.boolean(),
   isDisabled: z.boolean(),
@@ -83,7 +84,7 @@ export const adjustItemStock = materialTeamProcedure
         'WRITE_OFF_DAMAGED',
         'MARK_REPAIRED_DAMAGED',
       ]),
-      quantity: z.number().int().min(1).max(1_000_000),
+      quantity: z.number().int().min(1).max(MAX_QUANTITY),
     }),
   )
   .mutation(async ({ ctx, input }) => {
