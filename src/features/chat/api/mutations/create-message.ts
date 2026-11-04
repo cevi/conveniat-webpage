@@ -286,18 +286,23 @@ export const createMessage = trpcBaseProcedure
       }
     }
 
-    // A quote names a message of this chat; one from elsewhere is dropped, not stored. A
-    // message deleted since (a send queued offline) keeps its quote, but its text must not
-    // come back as the snippet.
-    let quotedMessageId: string | undefined;
+    // A quote of another chat's message is dropped, not stored. A message deleted since (a
+    // send queued offline) keeps its quote, so the reply still reads as one, but its text must
+    // not come back as the snippet.
+    let quotedMessageId = validatedMessage.quotedMessageId;
     let quotedSnippet: string | undefined;
-    if (validatedMessage.quotedMessageId) {
-      const quotedMessage = await prisma.message.findFirst({
-        where: { uuid: validatedMessage.quotedMessageId, chatId: validatedMessage.chatId },
+    if (quotedMessageId !== undefined) {
+      const quotedMessage = await prisma.message.findUnique({
+        where: { uuid: quotedMessageId },
         include: { contentVersions: { take: 1, orderBy: { revision: 'desc' } } },
       });
-      quotedMessageId = quotedMessage?.uuid;
-      if (quotedMessage && !quotedMessage.deletedAt && quotedMessage.contentVersions[0]?.payload) {
+      if (quotedMessage && quotedMessage.chatId !== validatedMessage.chatId) {
+        quotedMessageId = undefined;
+      } else if (
+        quotedMessage &&
+        !quotedMessage.deletedAt &&
+        quotedMessage.contentVersions[0]?.payload
+      ) {
         const payload = quotedMessage.contentVersions[0].payload;
         let text: string;
         if (typeof payload === 'string') {

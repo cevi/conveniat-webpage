@@ -306,6 +306,12 @@ describe('what a reply and a quote may point at', () => {
     expect(storedPayloads).toEqual([{ text: 'Ich!', quotedMessageId: deletedMessage.uuid }]);
   });
 
+  it('keeps the quote of a message removed since', async () => {
+    const removed = '00000000-0000-4000-8000-0000000000ff';
+    await sendText({ quotedMessageId: removed });
+    expect(storedPayloads).toEqual([{ text: 'Ich!', quotedMessageId: removed }]);
+  });
+
   it('drops a quote of a message of another chat and still sends', async () => {
     await expect(sendText({ quotedMessageId: otherChatMessage.uuid })).resolves.toMatchObject({
       messagePayload: { text: 'Ich!' },
