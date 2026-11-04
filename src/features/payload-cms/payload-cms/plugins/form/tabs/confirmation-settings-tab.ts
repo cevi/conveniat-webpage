@@ -1,5 +1,5 @@
 import { formEmailEditor } from '@/features/payload-cms/payload-cms/plugins/form/tabs/form-email-editor';
-import { EMAIL_SENDER_DOMAIN } from '@/features/payload-cms/payload-cms/utils/email-sender';
+import { validateEmailFrom } from '@/features/payload-cms/payload-cms/plugins/form/validate-email-from';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import type { Field, Tab } from 'payload';
 
@@ -84,19 +84,10 @@ const formEmailField: Field = {
         {
           name: 'emailFrom',
           type: 'text',
+          validate: validateEmailFrom(),
           admin: {
             placeholder: '"Email From" <email-from@email.com>',
             width: '50%',
-            components: {
-              afterInput: [
-                {
-                  path: '@/features/payload-cms/payload-cms/components/fields/email-from-warning',
-                  clientProps: {
-                    smtpDomain: EMAIL_SENDER_DOMAIN,
-                  },
-                },
-              ],
-            },
           },
           label: 'Email From',
         },

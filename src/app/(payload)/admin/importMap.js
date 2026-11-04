@@ -87,7 +87,6 @@ import { default as default_a06f68e0cdad6b2fba6e2223cd5b6303 } from '@/features/
 import { default as default_84e24e99aa7b2bdd4ca81a1fd23b526b } from '@/features/payload-cms/payload-cms/components/smtp-results/raw-smtp-results-field'
 import { FormBlockLabel as FormBlockLabel_38d14c2698379009ac744a1a2c27c19b } from '@/features/payload-cms/payload-cms/components/form-block-label'
 import { FormSectionRowLabel as FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955 } from '@/features/payload-cms/payload-cms/components/form-section-row-label'
-import { default as default_3be47662410c932a09263aa429c0578f } from '@/features/payload-cms/payload-cms/components/fields/email-from-warning'
 import { WorkflowFieldMapping as WorkflowFieldMapping_250a2659e1c657e86d416a8a839c97c5 } from '@/features/payload-cms/payload-cms/plugins/form/components/workflow-field-mapping'
 import { default as default_841c75d2a11733c455bbe07946842305 } from '@/features/payload-cms/payload-cms/components/form/trigger-workflows-button'
 import { FormExportButton as FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4 } from '@/features/payload-cms/payload-cms/components/form-export-button'
@@ -239,7 +238,6 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/smtp-results/raw-smtp-results-field#default": default_84e24e99aa7b2bdd4ca81a1fd23b526b,
   "@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel": FormBlockLabel_38d14c2698379009ac744a1a2c27c19b,
   "@/features/payload-cms/payload-cms/components/form-section-row-label#FormSectionRowLabel": FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955,
-  "@/features/payload-cms/payload-cms/components/fields/email-from-warning#default": default_3be47662410c932a09263aa429c0578f,
   "@/features/payload-cms/payload-cms/plugins/form/components/workflow-field-mapping#WorkflowFieldMapping": WorkflowFieldMapping_250a2659e1c657e86d416a8a839c97c5,
   "@/features/payload-cms/payload-cms/components/form/trigger-workflows-button#default": default_841c75d2a11733c455bbe07946842305,
   "@/features/payload-cms/payload-cms/components/form-export-button#FormExportButton": FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4,
