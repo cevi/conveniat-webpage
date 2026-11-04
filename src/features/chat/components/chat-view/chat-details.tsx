@@ -20,7 +20,13 @@ import { ChatNameSection } from '@/features/chat/components/chat-details-view/se
 import { MemberActionsSheet } from '@/features/chat/components/chat-details-view/sections/member-actions-sheet';
 import type { DetailsParticipant } from '@/features/chat/components/chat-details-view/sections/participants-list';
 import { ParticipantsList } from '@/features/chat/components/chat-details-view/sections/participants-list';
+import { chatScreenClassName } from '@/features/chat/components/chat-view/chat-client-component';
 import { ChatDetailsPageSkeleton } from '@/features/chat/components/chat-view/chat-details-skeleton';
+import {
+  chatErrorTitleText,
+  chatOfflineDescriptionText,
+  QueryUnavailable,
+} from '@/features/chat/components/ui/query-unavailable';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useAddParticipants } from '@/features/chat/hooks/use-add-participants';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
@@ -32,6 +38,7 @@ import {
   describeContactHof,
   matchesContactSearch,
 } from '@/features/chat/utils/contact-search';
+import { queryAvailability } from '@/features/chat/utils/query-availability';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { isChatArchived } from '@/lib/chat-shared';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/client';
@@ -146,7 +153,9 @@ export const ChatDetails: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
   const router = useRouter();
-  const { data: chatDetails, isLoading } = useChatDetail(chatId);
+  const chatDetailQuery = useChatDetail(chatId);
+  const { data: chatDetails } = chatDetailQuery;
+  const availability = queryAvailability(chatDetailQuery);
 
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const [memberInSheet, setMemberInSheet] = useState<DetailsParticipant | undefined>();
@@ -182,9 +191,26 @@ export const ChatDetails: React.FC = () => {
     [allContacts],
   );
 
-  if (isLoading || chatDetails === undefined) {
-    return <ChatDetailsPageSkeleton />;
+  // without this, a lost connection or a failed load with nothing cached pulses forever
+  if (availability !== 'loading' && availability !== 'ready') {
+    return (
+      <div className={chatScreenClassName}>
+        <AppFooterController hideAppFooter />
+        <ChatDetailsHeader chatId={chatId} locale={locale} />
+        <div className="flex flex-1 items-center justify-center">
+          <QueryUnavailable
+            availability={availability}
+            offlineDescription={chatOfflineDescriptionText[locale]}
+            errorTitle={chatErrorTitleText[locale]}
+            onRetry={() => void chatDetailQuery.refetch()}
+            isRetrying={chatDetailQuery.isFetching}
+            locale={locale}
+          />
+        </div>
+      </div>
+    );
   }
+  if (chatDetails === undefined) return <ChatDetailsPageSkeleton />;
 
   const currentUserMembership = chatDetails.participants.find((p) => p.id === currentUser);
   const isAdmin = isChatAdmin(currentUserMembership?.chatPermission);
