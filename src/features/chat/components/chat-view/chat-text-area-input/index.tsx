@@ -475,7 +475,10 @@ export const ChatTextAreaInput: React.FC = () => {
             <textarea
               {...textareaProps}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.shiftKey) {
+                // only with a mouse or trackpad: a phone keyboard has no Shift+Enter, so there
+                // Enter writes a new line and the send button sends
+                const hasFinePointer = globalThis.matchMedia('(pointer: fine)').matches;
+                if (event.key === 'Enter' && !event.shiftKey && hasFinePointer) {
                   event.preventDefault();
                   void sendWithAttachment();
                 }
@@ -488,7 +491,6 @@ export const ChatTextAreaInput: React.FC = () => {
                 canUploadPictures ? 'pl-0' : 'pl-[14px]',
               )}
               rows={1}
-              enterKeyHint="send"
               // five lines, then the textarea scrolls instead of eating the conversation
               style={{ minHeight: '42px', maxHeight: '138px' }}
               aria-label={placeholder}
