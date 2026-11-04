@@ -8,6 +8,7 @@ import type { VisitDay } from '@/features/visit-day/visit-day-settings';
 import { loadVisitDaySettings } from '@/features/visit-day/visit-day-settings';
 import prisma from '@/lib/db/prisma';
 import { redis } from '@/lib/db/redis';
+import { campClockOf } from '@/utils/camp-clock';
 import type { Payload } from 'payload';
 
 /** One Besuchstag in the weekly report. */
@@ -51,10 +52,6 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const sum = (values: number[]): number =>
   Math.round(values.reduce((total, value) => total + value * 100, 0)) / 100;
 
-/** The calendar day of a stored day-only date, read in the camp's timezone. */
-const campDay = (iso: string): string =>
-  new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Zurich' }).format(new Date(iso));
-
 /**
  * Lays out where the Besuchstag stands: for every day its places against its capacity and its
  * bills, and in total what is paid, what is open and what has to go back. A cancelled
@@ -78,7 +75,9 @@ export const buildVisitDayReport = (
     days: days
       .toSorted((a, b) => a.date.localeCompare(b.date))
       .map((day) => {
-        const onDay = active.filter((bill) => campDay(bill.visitDate) === day.date);
+        const onDay = active.filter(
+          (bill) => campClockOf(new Date(bill.visitDate)).dayKey === day.date,
+        );
         const open = onDay.filter((bill) => bill.status === 'open');
         return {
           date: day.date,

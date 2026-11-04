@@ -7,7 +7,10 @@ import {
 } from '@/features/visit-day/billing/visit-day-bill-booking';
 import { recordVisitDayBillEvent } from '@/features/visit-day/billing/visit-day-bill-events';
 import type { SendVisitDayBillInput } from '@/features/visit-day/billing/visit-day-bill-mail';
-import { SEND_VISIT_DAY_BILL_TASK } from '@/features/visit-day/billing/visit-day-bill-mail';
+import {
+  findOrStoreIssuePdf,
+  SEND_VISIT_DAY_BILL_TASK,
+} from '@/features/visit-day/billing/visit-day-bill-mail';
 import {
   visitDayBillReference,
   visitDayInvoiceNumber,
@@ -115,6 +118,9 @@ export async function reissueVisitDayBill(
       persons,
       issue,
       invoiceNumber,
+      // the previous issue's PDF is no longer the bill; the send stores and links the new one
+      // eslint-disable-next-line unicorn/no-null -- Payload clears a relationship with null
+      pdf: null,
       referenceNumber,
       invoiceAmount: amount.total,
       vatAmount: amount.vatAmount,
@@ -144,7 +150,10 @@ export async function reissueVisitDayBill(
   });
   // what was paid on the earlier bill now counts against the new amount
   await reconcileVisitDayBills(payload, [billId], { actor, verb: 'zugeordnet' });
-  if (bill.status !== 'paid') await queueSend(payload, billId, actor);
+  // a paid bill is not mailed again, but its new issue still gets its PDF, for finance to see
+  await (bill.status === 'paid'
+    ? findOrStoreIssuePdf(payload, updated)
+    : queueSend(payload, billId, actor));
   return updated;
 }
 
