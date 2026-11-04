@@ -236,20 +236,18 @@ export const createMessage = trpcBaseProcedure
       }
     }
 
+    // A reply belongs to a thread of this chat. Without the check, a reply to another chat's
+    // message would show up in that chat's thread and be deleted along with it. A thread may
+    // start at a reply or at a deleted message, and stays open for replies in both cases.
     if (validatedMessage.parentId !== undefined) {
-      const parent = await prisma.message.findFirst({
-        where: {
-          uuid: validatedMessage.parentId,
-          chatId: validatedMessage.chatId,
-          // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
-          parentId: null,
-          // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
-          deletedAt: null,
-        },
-        select: { uuid: true },
+      const parent = await prisma.message.findUnique({
+        where: { uuid: validatedMessage.parentId },
+        select: { chatId: true },
       });
-      if (!parent) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Thread not found in this chat.' });
+      // unpublishing an announcement deletes its message, also under a thread still open
+      if (!parent) throw chatError('NOT_FOUND', 'threadGone');
+      if (parent.chatId !== validatedMessage.chatId) {
+        throw invariantError('NOT_FOUND', 'Thread not found in this chat.');
       }
     }
 

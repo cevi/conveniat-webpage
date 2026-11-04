@@ -132,10 +132,14 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
             }
             // offline sends are queued by useMessageSend. Any other failed bubble stays in the
             // list with its own retry, so the text is not put back into the composer. Only a
-            // disabled chat is worth a banner, because retrying cannot help there.
-            if (errorReasonOf(error)?.reason !== 'messagingDisabled') return;
+            // disabled chat and a deleted thread are worth a banner, because retrying cannot
+            // help there.
+            const reason = errorReasonOf(error)?.reason;
+            if (reason !== 'messagingDisabled' && reason !== 'threadGone') return;
             // the server knew before the flags did: disable the composer now
-            trpcUtils.chat.getFeatureFlags.invalidate().catch(console.error);
+            if (reason === 'messagingDisabled') {
+              trpcUtils.chat.getFeatureFlags.invalidate().catch(console.error);
+            }
             setSendError(userErrorMessage(error, locale, chatErrorTexts));
           },
         },

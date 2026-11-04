@@ -76,7 +76,6 @@ interface ExistingMessage {
 
 const OTHER_CHAT_ID = '00000000-0000-4000-8000-000000000009';
 const PARENT_ID = '00000000-0000-4000-8000-000000000002';
-/* eslint-disable unicorn/no-null -- prisma answers a missing parent and a live message with null */
 const parent: ExistingMessage = {
   uuid: PARENT_ID,
   chatId: CHAT_ID,
@@ -101,7 +100,6 @@ const deletedMessage: ExistingMessage = {
   parentId: null,
   deletedAt: new Date('2027-07-25T10:00:00Z'),
 };
-/* eslint-enable unicorn/no-null */
 const existingMessages = [parent, otherChatMessage, reply, deletedMessage];
 
 /** Prisma's `findFirst` over the existing messages, for the equality filters a send uses. */
@@ -113,7 +111,6 @@ const findExistingMessage = ({
   const found = existingMessages.find((message) =>
     Object.entries(where).every(([key, value]) => message[key as keyof ExistingMessage] === value),
   );
-  // eslint-disable-next-line unicorn/no-null -- prisma answers a miss with null
   if (!found) return Promise.resolve(null);
   return Promise.resolve({ ...found, contentVersions: [{ payload: { text: 'Wer kommt mit?' } }] });
 };
@@ -154,6 +151,8 @@ const prisma = {
   message: {
     findMany: (): Promise<unknown[]> => Promise.resolve([]),
     findFirst: findExistingMessage,
+    findUnique: ({ where }: { where: { uuid: string } }): Promise<unknown> =>
+      findExistingMessage({ where: { uuid: where.uuid } }),
     create: ({
       data,
     }: {
@@ -267,21 +266,32 @@ const sendText = (input: { parentId?: string; quotedMessageId?: string }): Promi
   anna.sendMessage({ chatId: CHAT_ID, content: 'Ich!', timestamp: new Date(), ...input });
 
 describe('what a reply and a quote may point at', () => {
-  it('stores a reply to a top-level message of the same chat', async () => {
-    await sendText({ parentId: PARENT_ID });
-    expect(storedParents).toEqual([{ connect: { uuid: PARENT_ID } }]);
+  it.each([
+    ['a message of the same chat', parent.uuid],
+    ['a reply, as a thread opened from a thread', reply.uuid],
+    ['a message deleted since, whose thread stays open', deletedMessage.uuid],
+  ])('stores a reply to %s', async (_, parentId) => {
+    await sendText({ parentId });
+    expect(storedParents).toEqual([{ connect: { uuid: parentId } }]);
   });
 
-  it.each([
-    ['a message of another chat', otherChatMessage.uuid],
-    ['a reply, which has no thread of its own', reply.uuid],
-    ['a deleted message', deletedMessage.uuid],
-    ['a message that does not exist', '00000000-0000-4000-8000-0000000000ff'],
-  ])('refuses a reply to %s', async (_, parentId) => {
-    await expect(sendText({ parentId })).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  it('refuses a reply to a message of another chat, without a text for the user', async () => {
+    const refusal = await sendText({ parentId: otherChatMessage.uuid }).catch(
+      (error: unknown) => error,
+    );
+
+    expect(refusal).toMatchObject({ code: 'NOT_FOUND' });
+    expect(refusal).not.toHaveProperty('reason');
     expect(storedTypes).toEqual([]);
     expect(publishedAt).toEqual([]);
     expect(pushedAt).toEqual([]);
+  });
+
+  it('says the thread is gone when its message no longer exists', async () => {
+    await expect(
+      sendText({ parentId: '00000000-0000-4000-8000-0000000000ff' }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND', reason: 'threadGone' });
+    expect(storedTypes).toEqual([]);
   });
 
   it('stores a quote of a message of the same chat with its snippet', async () => {
