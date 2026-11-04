@@ -2,8 +2,10 @@ import { environmentVariables } from '@/config/environment-variables';
 import { getFormBlocks } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
 import type { FormSubmission } from '@/features/payload-cms/payload-types';
 import {
+  countExternalPlacesOn,
   countTakenPlacesOn,
   EXTERNAL_NUMBER_PREFIX,
+  fitsExternalCapacity,
   reservePlaces,
 } from '@/features/visit-day/api/visit-day-places';
 import type { BillAnswerFields } from '@/features/visit-day/billing/create-visit-day-bill';
@@ -44,6 +46,8 @@ interface PendingVisit {
   withLunch: boolean;
   /** the places of this kind the day has */
   capacity: number;
+  /** the day's Kontingent for visitors without a Hof, see `VisitDay.externalCapacity` */
+  externalCapacity?: number;
   /** whether the form asks about lunch, so a refusal can name the kind of places */
   asksLunch: boolean;
   /** the answer the registration number is stored under */
@@ -101,6 +105,18 @@ const dayNotOfferedMessage: StaticTranslationString = {
   fr: 'Choisis l’une des journées des visites.',
 };
 
+const externalClosedMessage: StaticTranslationString = {
+  de: 'An diesem Besuchstag ist keine Anmeldung ohne Bezug zu einer Abteilung möglich.',
+  en: 'This visiting day takes no registrations without a connection to a local group.',
+  fr: 'Cette journée des visites n’accepte pas d’inscription sans lien avec un groupe local.',
+};
+
+const externalFullMessage: StaticTranslationString = {
+  de: 'Für Besuchende ohne Bezug zu einer Abteilung sind an diesem Tag nicht mehr genug Plätze frei.',
+  en: 'Not enough places are left on this day for visitors without a connection to a local group.',
+  fr: 'Il ne reste plus assez de places ce jour-là pour les visiteurs sans lien avec un groupe local.',
+};
+
 const invalidVisitorTypeMessage: StaticTranslationString = {
   de: 'Bitte wähle, wen ihr besucht.',
   en: 'Please choose whom you are visiting.',
@@ -154,7 +170,8 @@ const asksLunch = (block: VisitDayBlock): block is VisitDayBlock & { lunchField:
  * Checks a new Besuchstag registration and fills in what the person does not pick: the Hof's
  * name in place of its id, and the day, found through the Hof's Quartier, as an answer of its
  * own so the confirmation email can name it. A visitor without a Hof picks the day, which is
- * checked against the days offered and written the same way. Whoever eats lunch takes a place
+ * checked against the days offered and written the same way, and takes a place in the day's
+ * Kontingent for visitors without a Hof where it has one. Whoever eats lunch takes a place
  * with lunch, the others one without. The places and the registration number are taken
  * once the submission is saved, by {@link reserveVisitDayPlaces}; refusing a full day here
  * already spares that work.
@@ -185,9 +202,15 @@ export const resolveVisitDay: CollectionBeforeChangeHook<FormSubmission> = async
   const answers = sent.filter(
     (answer) => answer.field !== block.dayField && answer.field !== block.registrationNumberField,
   );
+  const settings = await loadVisitDaySettings(req.payload);
   let hofAnswer = answers.find((answer) => answer.field === block.name);
   if (typeof block.visitorTypeField === 'string' && block.visitorTypeField !== '') {
-    const visitorType = answers.find((answer) => answer.field === block.visitorTypeField)?.value;
+    let visitorType = answers.find((answer) => answer.field === block.visitorTypeField)?.value;
+    // with no day taking visitors without a Hof the form does not ask, as all visit a child
+    const takesExternals = settings.days.some((day) => day.externalCapacity !== -1);
+    if ((visitorType === undefined || visitorType === '') && !takesExternals) {
+      visitorType = VISITING_CHILD;
+    }
     if (visitorType !== VISITING_CHILD && visitorType !== EXTERNAL_VISIT) {
       return refuse(invalidVisitorTypeMessage, locale);
     }
@@ -205,11 +228,11 @@ export const resolveVisitDay: CollectionBeforeChangeHook<FormSubmission> = async
   if (hofAnswer === undefined || typeof hofId !== 'string' || hofId === '') return data;
   if (!environmentVariables.FEATURE_ENABLE_VISIT_DAY) refuse(hofNotOfferedMessage, locale);
 
-  const settings = await loadVisitDaySettings(req.payload);
   let visit: { hofId: string | undefined; hofName: string; hofEventId: string; day: VisitDay };
   if (hofId === EXTERNAL_VISIT) {
     const day = settings.days.find((candidate) => candidate.date === pickedDay);
     if (day === undefined) return refuse(dayNotOfferedMessage, locale);
+    if (day.externalCapacity === -1) return refuse(externalClosedMessage, locale);
     visit = { hofId: undefined, hofName: NO_HOF_ANSWER, hofEventId: EXTERNAL_NUMBER_PREFIX, day };
   } else {
     const offeredHoefe = await listVisitDayHoefe(req.payload, settings);
@@ -245,6 +268,13 @@ export const resolveVisitDay: CollectionBeforeChangeHook<FormSubmission> = async
 
   const taken = await countTakenPlacesOn(prisma, visit.day.date, withLunch);
   if (taken + persons > capacity) refuse(fullMessageFor({ withLunch }, asksLunch(block)), locale);
+  const { externalCapacity } = visit.day;
+  if (visit.hofId === undefined && externalCapacity !== undefined) {
+    const takenExternal = await countExternalPlacesOn(prisma, visit.day.date);
+    if (!fitsExternalCapacity(externalCapacity, takenExternal, persons)) {
+      refuse(externalFullMessage, locale);
+    }
+  }
 
   hofAnswer.value = visit.hofName;
   // in German like the rest of the confirmation email, which is written in the default locale
@@ -258,6 +288,7 @@ export const resolveVisitDay: CollectionBeforeChangeHook<FormSubmission> = async
     persons,
     withLunch,
     capacity,
+    ...(externalCapacity === undefined ? {} : { externalCapacity }),
     asksLunch: asksLunch(block),
     numberField: block.registrationNumberField,
     // the field names the answers of the payer itself
@@ -283,7 +314,7 @@ export const reserveVisitDayPlaces: CollectionAfterChangeHook<FormSubmission> = 
   if (operation !== 'create' || pending === undefined) return doc;
 
   const result = await reservePlaces(prisma, { ...pending, submissionId: doc.id });
-  if (result.status === 'full') {
+  if (result.status !== 'reserved') {
     req.context[PENDING_VISIT] = undefined;
     await req.payload.delete({
       collection: 'form-submissions',
@@ -292,9 +323,14 @@ export const reserveVisitDayPlaces: CollectionAfterChangeHook<FormSubmission> = 
       req,
     });
     req.payload.logger.info(
-      `Besuchstag ${pending.date} is full (with lunch: ${pending.withLunch}): registration ${doc.id} for ${pending.persons} persons refused.`,
+      `Besuchstag ${pending.date} is full (with lunch: ${pending.withLunch}, ${result.status === 'externalFull' ? 'Kontingent without a Hof' : 'places of that kind'}): registration ${doc.id} for ${pending.persons} persons refused.`,
     );
-    return refuse(fullMessageFor(pending, pending.asksLunch), localeOf(req));
+    return refuse(
+      result.status === 'externalFull'
+        ? externalFullMessage
+        : fullMessageFor(pending, pending.asksLunch),
+      localeOf(req),
+    );
   }
   pending.submissionId = doc.id;
 

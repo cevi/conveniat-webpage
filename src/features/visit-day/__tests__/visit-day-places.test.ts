@@ -88,6 +88,40 @@ describe('reservePlaces', () => {
     expect(create.mock.calls[0]?.[0]).toMatchObject({ data: { hofId: null, counter: 3 } });
   });
 
+  it('counts visitors without a Hof against the Kontingent for them, across both kinds', async () => {
+    const { prisma, create, count } = fakePrisma(0);
+    // the places with lunch are free, the Kontingent has one place left
+    count.mockResolvedValueOnce(0).mockResolvedValueOnce(49);
+    const external = { ...request, hofId: undefined, hofEventId: 'EXT', externalCapacity: 50 };
+
+    await expect(reservePlaces(prisma, external)).resolves.toEqual({ status: 'externalFull' });
+    expect(count).toHaveBeenLastCalledWith({
+      where: { registration: { visitDate: new Date('2027-07-28T00:00:00.000Z'), hofId: null } },
+    });
+    expect(create).not.toHaveBeenCalled();
+
+    count.mockResolvedValueOnce(0).mockResolvedValueOnce(48);
+    await expect(reservePlaces(prisma, external)).resolves.toMatchObject({ status: 'reserved' });
+  });
+
+  it('takes nobody without a Hof on a day closed to them, and leaves the Höfe alone', async () => {
+    const { prisma, create } = fakePrisma(0);
+
+    await expect(
+      reservePlaces(prisma, {
+        ...request,
+        hofId: undefined,
+        hofEventId: 'EXT',
+        externalCapacity: -1,
+      }),
+    ).resolves.toEqual({ status: 'externalFull' });
+    expect(create).not.toHaveBeenCalled();
+
+    await expect(
+      reservePlaces(prisma, { ...request, externalCapacity: -1 }),
+    ).resolves.toMatchObject({ status: 'reserved' });
+  });
+
   it('takes no place and no number when the persons do not all fit', async () => {
     const { prisma, create } = fakePrisma(499, 6);
 

@@ -5,19 +5,27 @@ import type { PrismaClient } from '@/lib/prisma';
 export interface TakenPlaces {
   withLunch: number;
   withoutLunch: number;
+  /** of both kinds, those of visitors without a Hof */
+  external: number;
 }
 
 /** The places taken on each day, by `YYYY-MM-DD`. A day nobody registered for is absent. */
 export const countTakenPlaces = async (prisma: PrismaClient): Promise<Map<string, TakenPlaces>> => {
   const registrations = await prisma.visitDayRegistration.findMany({
-    select: { visitDate: true, withLunch: true, _count: { select: { visitors: true } } },
+    select: {
+      visitDate: true,
+      withLunch: true,
+      hofId: true,
+      _count: { select: { visitors: true } },
+    },
   });
   const taken = new Map<string, TakenPlaces>();
   for (const registration of registrations) {
     const day = registration.visitDate.toISOString().slice(0, 10);
-    const places = taken.get(day) ?? { withLunch: 0, withoutLunch: 0 };
+    const places = taken.get(day) ?? { withLunch: 0, withoutLunch: 0, external: 0 };
     if (registration.withLunch) places.withLunch += registration._count.visitors;
     else places.withoutLunch += registration._count.visitors;
+    if (registration.hofId === null) places.external += registration._count.visitors;
     taken.set(day, places);
   }
   return taken;
@@ -32,6 +40,26 @@ export const countTakenPlacesOn = async (
   prisma.visitDayVisitor.count({
     where: { registration: { visitDate: toDatabaseDate(day), withLunch } },
   });
+
+/** The places of visitors without a Hof taken on one day, with lunch or without. */
+export const countExternalPlacesOn = async (
+  prisma: Pick<PrismaClient, 'visitDayVisitor'>,
+  day: string,
+): Promise<number> =>
+  prisma.visitDayVisitor.count({
+    where: { registration: { visitDate: toDatabaseDate(day), hofId: null } },
+  });
+
+/**
+ * Whether persons without a Hof still fit into the day's Kontingent for them: -1 takes none, and
+ * without a Kontingent only the places of their kind limit them.
+ */
+export const fitsExternalCapacity = (
+  externalCapacity: number | undefined,
+  taken: number,
+  persons: number,
+): boolean =>
+  externalCapacity === undefined || (externalCapacity >= 0 && taken + persons <= externalCapacity);
 
 /** The first part of the number of a registration without a Hof. */
 export const EXTERNAL_NUMBER_PREFIX = 'EXT';
@@ -52,6 +80,8 @@ export interface PlaceRequest {
   withLunch: boolean;
   /** the places of this kind the day has */
   capacity: number;
+  /** the day's Kontingent for visitors without a Hof, see `VisitDay.externalCapacity` */
+  externalCapacity?: number;
 }
 
 export type PlaceResult =
@@ -63,11 +93,14 @@ export type PlaceResult =
       /** the number of the registration's bill, see `visitDayBillReference` */
       billNumber: number;
     }
-  | { status: 'full' };
+  | { status: 'full' }
+  /** a visitor without a Hof found the day's Kontingent for them closed or too small */
+  | { status: 'externalFull' };
 
 /**
  * Takes the places of one registration and gives it the next number of its Hof, or does
- * neither when the day has too few places of its kind left.
+ * neither when the day has too few places of its kind left, or, for a visitor without a Hof,
+ * too few in its Kontingent for them.
  *
  * Everything runs under two advisory locks, the day's first and then the Hof's, always in that
  * order: two registrations for the last places of a day cannot both get in, and two of one Hof
@@ -83,6 +116,12 @@ export const reservePlaces = async (
     await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`visit-day-hof:${request.hofId ?? EXTERNAL_NUMBER_PREFIX}`}))`;
     const taken = await countTakenPlacesOn(transaction, request.date, request.withLunch);
     if (taken + request.persons > request.capacity) return { status: 'full' };
+    if (request.hofId === undefined && request.externalCapacity !== undefined) {
+      const takenExternal = await countExternalPlacesOn(transaction, request.date);
+      if (!fitsExternalCapacity(request.externalCapacity, takenExternal, request.persons)) {
+        return { status: 'externalFull' };
+      }
+    }
 
     // Prisma matches an empty Hof with null, never with undefined, which would match every row
     const hofId = request.hofId ?? null;

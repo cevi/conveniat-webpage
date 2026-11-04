@@ -169,7 +169,13 @@ interface DayPlaces {
   date: string;
   free: number;
   freeWithoutLunch: number;
+  /** left for visitors without a Hof: `null` without a Kontingent, -1 when the day takes none */
+  freeExternal: number | null;
 }
+
+/** The places of a day left to visitors without a Hof, out of `free` of the kind they need. */
+const externalLimit = (day: DayPlaces, free: number): number =>
+  day.freeExternal === null ? free : Math.max(0, Math.min(free, day.freeExternal));
 
 const isFieldName = (name: string | null | undefined): name is string =>
   typeof name === 'string' && name !== '';
@@ -181,6 +187,10 @@ const isFieldName = (name: string | null | undefined): name is string =>
  * and lunch, where each kind has places of its own. A choice without enough free places for the
  * persons is disabled; the server checks the places again on sending. Each question shows only
  * where the form names an answer for it, so an older form keeps its own fields.
+ *
+ * Visitors without a Hof also need a place in the day's Kontingent for them. A day without one
+ * left is disabled for them, a day that takes none is not offered, and when no day takes any the
+ * form no longer asks whom they visit: everybody visits a child.
  */
 export const VisitDaySelection: React.FC<
   VisitDaySelectionBlock & {
@@ -209,7 +219,7 @@ export const VisitDaySelection: React.FC<
     refetchOnMount: true,
     refetchInterval: PLACES_REFRESH_MS,
   });
-  const asksVisitorType = isFieldName(visitorTypeField);
+  const formAsksVisitorType = isFieldName(visitorTypeField);
   const asksLunch = isFieldName(lunchField);
   const asksPersons = typeof maxPersons === 'number' && maxPersons >= 1;
   const [selectedHofId, lunch, pickedDay, persons, visitorType] = useWatch({
@@ -219,44 +229,59 @@ export const VisitDaySelection: React.FC<
       asksLunch ? lunchField : name,
       dayField,
       personCountField,
-      asksVisitorType ? visitorTypeField : name,
+      formAsksVisitorType ? visitorTypeField : name,
     ],
   }) as [unknown, unknown, unknown, unknown, unknown];
 
-  const isExternal = asksVisitorType
-    ? visitorType === EXTERNAL_VISIT
-    : selectedHofId === EXTERNAL_VISIT;
+  // a client restoring a cache from before the places without lunch or the Kontingent for
+  // visitors without a Hof has none of the former and no limit of the latter
+  const dayPlaces: DayPlaces[] = (days.data ?? []).map((day) => ({
+    date: day.date,
+    free: day.free,
+    freeWithoutLunch: (day.freeWithoutLunch as number | undefined) ?? 0,
+    freeExternal: (day.freeExternal as number | null | undefined) ?? null,
+  }));
+  const externalDays = dayPlaces.filter((day) => day.freeExternal !== -1);
+  // until the days are known, the form asks as it always did
+  const takesExternals = days.data === undefined || externalDays.length > 0;
+  const asksVisitorType = formAsksVisitorType && takesExternals;
+
+  const isExternal =
+    takesExternals &&
+    (asksVisitorType ? visitorType === EXTERNAL_VISIT : selectedHofId === EXTERNAL_VISIT);
   const showsHof = asksVisitorType ? visitorType === VISITING_CHILD : true;
   const ownDay = isExternal
     ? pickedDay
     : (hoefe.data ?? []).find((hof) => hof.id === selectedHofId)?.date;
   // without signal the query waits paused instead of failing
   const unavailable = hoefe.data === undefined && (hoefe.isError || hoefe.fetchStatus === 'paused');
-  // a client restoring a cache from before the places without lunch has none for them
-  const dayPlaces: DayPlaces[] = (days.data ?? []).map((day) => ({
-    date: day.date,
-    free: day.free,
-    freeWithoutLunch: (day.freeWithoutLunch as number | undefined) ?? 0,
-  }));
   const visitDay = dayPlaces.find((day) => day.date === ownDay);
   const chosenPersons = Number(persons);
   // until the persons are chosen, a choice needs a place for one
   const personCount = Number.isInteger(chosenPersons) && chosenPersons > 1 ? chosenPersons : 1;
 
-  // all persons of a registration take places of one kind
-  const freeOfKind = (day: DayPlaces, withLunch: boolean): number =>
-    withLunch ? day.free : day.freeWithoutLunch;
-  const freeOfBestKind = (day: DayPlaces): number =>
+  // all persons of a registration take places of one kind, and those without a Hof one of
+  // their Kontingent besides
+  const forVisitor = (day: DayPlaces, free: number): number =>
+    isExternal ? externalLimit(day, free) : free;
+  const freeOfBestKindOf = (day: DayPlaces): number =>
     asksLunch ? Math.max(day.free, day.freeWithoutLunch) : day.free;
+  const freeOfKind = (day: DayPlaces, withLunch: boolean): number =>
+    forVisitor(day, withLunch ? day.free : day.freeWithoutLunch);
+  const freeOfBestKind = (day: DayPlaces): number => forVisitor(day, freeOfBestKindOf(day));
   const freeOfChosenKind = (day: DayPlaces): number => {
-    if (!asksLunch || lunch === WITH_LUNCH) return day.free;
-    if (lunch === WITHOUT_LUNCH) return day.freeWithoutLunch;
+    if (!asksLunch || lunch === WITH_LUNCH) return freeOfKind(day, true);
+    if (lunch === WITHOUT_LUNCH) return freeOfKind(day, false);
     return freeOfBestKind(day);
   };
+  // greyed out once no day has a place left for them, like a full day
+  const externalFull =
+    days.data !== undefined &&
+    externalDays.every((day) => externalLimit(day, freeOfBestKindOf(day)) < personCount);
 
   const hofOptions = (hoefe.data ?? []).map((hof) => ({ value: hof.id, label: hof.name }));
   const options =
-    hoefe.data === undefined || asksVisitorType
+    hoefe.data === undefined || formAsksVisitorType || !takesExternals
       ? hofOptions
       : [...hofOptions, { value: EXTERNAL_VISIT, label: noHofOptionText[locale] }];
 
@@ -272,10 +297,17 @@ export const VisitDaySelection: React.FC<
 
   const visitorTypeChoices: VisitDayChoice[] = [
     { value: VISITING_CHILD, label: visitingChildText[locale] },
-    { value: EXTERNAL_VISIT, label: externalVisitText[locale] },
+    {
+      value: EXTERNAL_VISIT,
+      label: externalVisitText[locale],
+      disabled: externalFull,
+      ...(externalFull
+        ? { sub: <PlacesText free={0} persons={personCount} locale={locale} /> }
+        : {}),
+    },
   ];
 
-  const dayChoices: VisitDayChoice[] = dayPlaces.map((day) => {
+  const dayChoices: VisitDayChoice[] = externalDays.map((day) => {
     const free = freeOfChosenKind(day);
     return {
       value: day.date,
@@ -374,7 +406,7 @@ export const VisitDaySelection: React.FC<
         </div>
       )}
 
-      {isExternal && dayPlaces.length > 0 && (
+      {isExternal && externalDays.length > 0 && (
         <VisitDayChoiceList
           control={control}
           name={dayField}

@@ -9527,6 +9527,10 @@ export interface VisitDaySetting {
          */
         capacityWithoutLunch?: number | null;
         /**
+         * How many persons without a connection to a local group may register for this day. They still take places with or without lunch. Empty: no limit of their own. 0: closed, the choice shows greyed out. -1: none on this day, and with -1 on every day the question "Who are you visiting?" disappears.
+         */
+        externalCapacity?: number | null;
+        /**
          * The relatives of the Höfe in these Quartiere visit on this day.
          */
         quartiere: (string | Quartier)[];
@@ -10162,6 +10166,7 @@ export interface VisitDaySelect<T extends boolean = true> {
         date?: T;
         capacity?: T;
         capacityWithoutLunch?: T;
+        externalCapacity?: T;
         quartiere?: T;
         id?: T;
       };
