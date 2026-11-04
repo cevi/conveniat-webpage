@@ -155,6 +155,9 @@ export const createBillPaymentsCollection = (kinds: BillKind[]): CollectionConfi
       hideAPIURL: true,
       group: AdminPanelDashboardGroups.BackofficeBilling.label,
       useAsTitle: 'transactionReference',
+      components: {
+        beforeListTable: ['@/features/billing-core/components/bill-payments-toolbar'],
+      },
       listSearchableFields: ['transactionReference', 'reference', 'payer'],
       defaultColumns: [
         'transactionReference',

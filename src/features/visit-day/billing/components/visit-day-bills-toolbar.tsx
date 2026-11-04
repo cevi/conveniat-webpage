@@ -1,14 +1,13 @@
 'use client';
 
-import { PaymentImportDialog } from '@/features/billing-core/components/payment-import-dialog';
 import { formatChf } from '@/features/billing-core/money';
 import { ReportDownloadCard } from '@/features/payload-cms/payload-cms/components/shared/report-download-card';
 import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
 import { useVisitDayBillSummary } from '@/features/visit-day/billing/components/use-visit-day-bill-summary';
 import type { StaticTranslationString } from '@/types/types';
-import { Button, toast, useListQuery, useLocale } from '@payloadcms/ui';
+import { Button, toast, useLocale } from '@payloadcms/ui';
+import { useRouter } from 'next/navigation';
 import type React from 'react';
-import { useState } from 'react';
 
 const t = {
   registrations: { de: 'Anmeldungen', en: 'Registrations', fr: 'Inscriptions' },
@@ -16,11 +15,6 @@ const t = {
   paid: { de: 'bezahlt', en: 'paid', fr: 'payées' },
   mailFailed: { de: 'E-Mail fehlgeschlagen', en: 'email failed', fr: 'e-mail échoué' },
   refundDue: { de: 'Rückerstattung offen', en: 'refund due', fr: 'remboursement dû' },
-  importPayments: {
-    de: 'Zahlungen importieren',
-    en: 'Import payments',
-    fr: 'Importer les paiements',
-  },
   resendFailed: {
     de: 'Fehlgeschlagene erneut senden',
     en: 'Send failed ones again',
@@ -34,21 +28,22 @@ const t = {
 } satisfies Record<string, StaticTranslationString>;
 
 /**
- * Above the Besuchstag bills: where they stand, the bank import shared with the camp bills, and
- * the two exports. Bills are issued when someone registers, so there is no run to start here.
+ * Above the Besuchstag bills: where they stand, the mails to send again and the two exports.
+ * The bank import, shared with the camp bills, sits above «Zahlungen». Bills are issued when
+ * someone registers, so there is no run to start here.
  */
 export const VisitDayBillsToolbar: React.FC = () => {
   const locale = resolveAdminLocale(useLocale().code);
-  const { query, refineListData } = useListQuery();
+  const router = useRouter();
   const { summary, reload } = useVisitDayBillSummary();
-  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const resendFailed = async (): Promise<void> => {
     const response = await fetch('/api/visit-day-bills/resend-failed', { method: 'POST' });
     const body = (await response.json()) as { count?: number; error?: string };
     if (response.ok) toast.success(t.resent[locale].replace('{{count}}', String(body.count ?? 0)));
     else toast.error(body.error ?? `HTTP ${String(response.status)}`);
-    await Promise.all([reload(), refineListData(query)]);
+    await reload();
+    router.refresh();
   };
 
   const stats: [string, string][] =
@@ -75,9 +70,6 @@ export const VisitDayBillsToolbar: React.FC = () => {
         </dl>
       )}
       <div className="flex flex-wrap gap-2">
-        <Button buttonStyle="primary" margin={false} onClick={() => setIsImportOpen(true)}>
-          {t.importPayments[locale]}
-        </Button>
         <Button
           buttonStyle="secondary"
           margin={false}
@@ -137,14 +129,6 @@ export const VisitDayBillsToolbar: React.FC = () => {
           }}
         />
       </div>
-      <PaymentImportDialog
-        isOpen={isImportOpen}
-        locale={locale}
-        onClose={() => {
-          setIsImportOpen(false);
-          void reload();
-        }}
-      />
     </div>
   );
 };

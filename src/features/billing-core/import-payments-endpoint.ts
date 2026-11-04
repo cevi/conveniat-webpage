@@ -13,6 +13,8 @@ const ImportPaymentsSchema = z.object({
     .string()
     .min(1, 'Die Datei ist leer.')
     .max(MAX_PAYMENT_CSV_LENGTH, 'Die Datei ist zu gross für einen Zahlungsimport.'),
+  bankExportedAt: z.iso.datetime({ message: 'Bitte angeben, wann die Datei exportiert wurde.' }),
+  filename: z.string().max(255).optional(),
 });
 
 /**
@@ -43,7 +45,13 @@ export const createImportPaymentsEndpoint = (importers: PaymentImporter[]): Endp
         const result = await importBankFile(
           request.payload,
           parseResult.data.csv,
-          describeActor(request.user),
+          {
+            actor: describeActor(request.user),
+            bankExportedAt: new Date(parseResult.data.bankExportedAt),
+            ...(parseResult.data.filename === undefined
+              ? {}
+              : { filename: parseResult.data.filename }),
+          },
           importers,
         );
         return Response.json({ success: true, ...result });

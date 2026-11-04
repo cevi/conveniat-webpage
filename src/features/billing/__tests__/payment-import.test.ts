@@ -30,7 +30,13 @@ const importPayments = async (
   csv: string,
   actor: string,
 ): Promise<PaymentImportSummary> => {
-  const { sides } = await importBankFile(payload, csv, actor, [campPaymentImporter]);
+  const { sides } = await importBankFile(
+    payload,
+    csv,
+    { actor, bankExportedAt: new Date('2026-10-09T08:00:00Z') },
+    [campPaymentImporter],
+    new Date('2026-10-09T09:00:00Z'),
+  );
   const camp = sides.find((side) => side.key === 'camp');
   if (camp === undefined) throw new Error('The camp bills got no payment');
   return camp.summary;

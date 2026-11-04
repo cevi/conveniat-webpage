@@ -1,3 +1,4 @@
+import { BankImportsCollection } from '@/features/billing-core/bank-imports-collection';
 import { createBillPaymentsCollection } from '@/features/billing-core/bill-payments-collection';
 import { campBillKind } from '@/features/billing/camp-bill-kind';
 import { BillParticipantsCollection } from '@/features/billing/collections/bill-participants';
@@ -74,10 +75,12 @@ const rawCollectionsConfig: CollectionConfig[] = [
   UserCollection,
   FunktionenCollection,
   PresenceLogCollection,
+  // the sidebar lists them in this order: the camp's, the Besuchstag's, then what both share
   BillParticipantsCollection,
-  createBillPaymentsCollection([campBillKind, visitDayBillKind]),
   VisitDayBillsCollection,
   VisitDayBillEventsCollection,
+  createBillPaymentsCollection([campBillKind, visitDayBillKind]),
+  BankImportsCollection,
   BillPdfsCollection,
   HoefeCollection,
   OutgoingEmails,

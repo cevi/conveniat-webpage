@@ -3,9 +3,11 @@
 import { BillingErrorsDialog } from '@/features/billing-core/components/billing-errors-dialog';
 import { usePaymentImport } from '@/features/billing-core/components/use-payment-import';
 import { formatChf, OVERPAYMENT_TOLERANCE } from '@/features/billing-core/money';
+import { decodeCsvBytes, parsePaymentCsv } from '@/features/billing-core/payment-csv';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { Banner, Button } from '@payloadcms/ui';
+import { campInstantOf } from '@/utils/camp-clock';
+import { Banner, Button, DatePicker } from '@payloadcms/ui';
 import type React from 'react';
 import { useState } from 'react';
 
@@ -39,6 +41,34 @@ const fileLabel: StaticTranslationString = {
   de: 'Zahlungsdatei (CSV)',
   en: 'Payment file (CSV)',
   fr: 'Fichier des paiements (CSV)',
+};
+
+const exportedAtLabel: StaticTranslationString = {
+  de: 'Stand der Bankdaten (Export aus dem E-Banking)',
+  en: 'Bank data as of (export from the e-banking)',
+  fr: 'Données bancaires au (export de l’e-banking)',
+};
+
+const exportedAtHint: StaticTranslationString = {
+  de: 'Vorausgefüllt mit dem Tag der letzten Buchung in der Datei. Bitte auf den Zeitpunkt des Exports aus dem E-Banking setzen: Zahlungserinnerungen gehen davon aus, dass alle Zahlungen bis zu diesem Zeitpunkt importiert sind.',
+  en: 'Filled in with the day of the last booking in the file. Please set it to when the file was exported from the e-banking: payment reminders assume that every payment up to this time has been imported.',
+  fr: 'Prérempli avec le jour de la dernière écriture du fichier. Réglez-le sur le moment de l’export de l’e-banking : les rappels de paiement partent du principe que tous les paiements jusqu’à ce moment sont importés.',
+};
+
+/**
+ * Where to start the bank data's time: 00:00 of the last booking day in the file. The CSV does
+ * not say when it was exported, and the file's own time moves whenever it is saved again, so
+ * this can only be too early, which holds back a reminder rather than sending one to someone
+ * who paid.
+ */
+const latestBookingOf = async (file: File): Promise<Date | undefined> => {
+  const { payments } = parsePaymentCsv(decodeCsvBytes(new Uint8Array(await file.arrayBuffer())));
+  const day = payments
+    .map((payment) => payment.bookingDate)
+    .filter((date): date is string => date !== undefined)
+    .toSorted()
+    .at(-1);
+  return day === undefined ? undefined : campInstantOf(day, 0);
 };
 
 /** `{{booked}}` and `{{total}}` are filled in. */
@@ -97,6 +127,7 @@ export const PaymentImportDialog: React.FC<{
 }> = ({ isOpen, onClose, locale }) => {
   const { isImporting, error, result, importFile, clearError, clearResult } = usePaymentImport();
   const [file, setFile] = useState<File | undefined>();
+  const [bankExportedAt, setBankExportedAt] = useState<Date | undefined>();
   const [isOpenListShown, setIsOpenListShown] = useState(false);
   // one work list, each payment named with the kind of bill it was for
   const errors = (result?.sides ?? []).flatMap(({ label, summary }) =>
@@ -105,6 +136,7 @@ export const PaymentImportDialog: React.FC<{
 
   const close = (): void => {
     setFile(undefined);
+    setBankExportedAt(undefined);
     clearError();
     onClose();
   };
@@ -115,15 +147,15 @@ export const PaymentImportDialog: React.FC<{
         isOpen={isOpen}
         onClose={close}
         onConfirm={async () => {
-          if (file === undefined) return;
-          if (await importFile(file)) close();
+          if (file === undefined || bankExportedAt === undefined) return;
+          if (await importFile(file, bankExportedAt)) close();
         }}
         message={messageLabel[locale]}
         title={titleLabel[locale]}
         confirmLabel={confirmLabel[locale]}
         submittingText={importingLabel[locale]}
         isSubmitting={isImporting}
-        confirmDisabled={file === undefined}
+        confirmDisabled={file === undefined || bankExportedAt === undefined}
         locale={locale}
       >
         <label className="flex flex-col gap-2 text-sm text-(--theme-elevation-800)">
@@ -133,11 +165,33 @@ export const PaymentImportDialog: React.FC<{
             className="text-sm text-(--theme-elevation-600)"
             onChange={(event) => {
               clearError();
-              setFile(event.target.files?.[0]);
+              const chosen = event.target.files?.[0];
+              setFile(chosen);
+              setBankExportedAt(undefined);
+              if (chosen !== undefined) {
+                void latestBookingOf(chosen).then(setBankExportedAt);
+              }
             }}
             type="file"
           />
         </label>
+        <div className="mt-4 flex flex-col gap-2 text-sm text-(--theme-elevation-800)">
+          <span className="font-medium">{exportedAtLabel[locale]}</span>
+          <DatePicker
+            pickerAppearance="dayAndTime"
+            displayFormat="dd.MM.yyyy HH:mm"
+            timeFormat="HH:mm"
+            timeIntervals={5}
+            maxDate={new Date()}
+            readOnly={file === undefined}
+            {...(bankExportedAt === undefined ? {} : { value: bankExportedAt })}
+            onChange={(value) => {
+              clearError();
+              setBankExportedAt(value);
+            }}
+          />
+          <span className="text-xs text-(--theme-elevation-500)">{exportedAtHint[locale]}</span>
+        </div>
         {error !== undefined && (
           <Banner className="mt-3 mb-0" type="error">
             {error}

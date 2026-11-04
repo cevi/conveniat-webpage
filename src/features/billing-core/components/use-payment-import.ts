@@ -2,7 +2,7 @@
 
 import type { BankImportSummary } from '@/features/billing-core/bank-import';
 import { decodeCsvBytes } from '@/features/billing-core/payment-csv';
-import { useListQuery } from '@payloadcms/ui';
+import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 
 /**
@@ -18,17 +18,18 @@ export const usePaymentImport = (): {
   error: string | undefined;
   /** What the last import booked and what it left for the finance team. */
   result: BankImportSummary | undefined;
-  importFile: (file: File) => Promise<boolean>;
+  /** @param bankExportedAt when the file was exported from the e-banking */
+  importFile: (file: File, bankExportedAt: Date) => Promise<boolean>;
   clearError: () => void;
   clearResult: () => void;
 } => {
-  const { query, refineListData } = useListQuery();
+  const router = useRouter();
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [result, setResult] = useState<BankImportSummary | undefined>();
 
   const importFile = useCallback(
-    async (file: File): Promise<boolean> => {
+    async (file: File, bankExportedAt: Date): Promise<boolean> => {
       setIsImporting(true);
       setError(undefined);
       try {
@@ -36,7 +37,11 @@ export const usePaymentImport = (): {
         const response = await fetch('/api/confidential/billing/import-payments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ csv }),
+          body: JSON.stringify({
+            csv,
+            bankExportedAt: bankExportedAt.toISOString(),
+            filename: file.name,
+          }),
         });
         const body = (await response.json()) as Partial<BankImportSummary> & {
           success?: boolean;
@@ -60,7 +65,8 @@ export const usePaymentImport = (): {
             },
           })),
         });
-        await refineListData(query);
+        // the list is rendered on the server; the same query again would not reload it
+        router.refresh();
         return true;
       } catch (importError) {
         setError(importError instanceof Error ? importError.message : String(importError));
@@ -69,7 +75,7 @@ export const usePaymentImport = (): {
         setIsImporting(false);
       }
     },
-    [query, refineListData],
+    [router],
   );
 
   return {
