@@ -10,7 +10,7 @@ import { useEffect } from 'react';
  * Chrome's autofill dispatches a `keydown` without a `key` when the user picks a suggestion in a
  * form field, so the type lies here and `key` has to be checked before it is read.
  */
-const isSearchShortcut = (event: KeyboardEvent): boolean =>
+export const isSearchShortcut = (event: KeyboardEvent): boolean =>
   typeof (event.key as string | undefined) === 'string' &&
   event.key.toLowerCase() === 'k' &&
   (event.ctrlKey || event.metaKey) &&
@@ -18,7 +18,10 @@ const isSearchShortcut = (event: KeyboardEvent): boolean =>
   !event.shiftKey &&
   !event.isComposing;
 
-/** Calls `onOpen` when the search shortcut is pressed anywhere on the page. */
+/**
+ * Calls `onOpen` when the search shortcut is pressed anywhere on the page. The open dialog closes
+ * on the same shortcut itself and stops the event, so this listener never sees it then.
+ */
 export const useSearchShortcut = (onOpen: () => void): void => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {

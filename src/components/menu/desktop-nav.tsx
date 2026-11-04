@@ -10,6 +10,7 @@ import { useFittingItemCount } from '@/components/menu/use-fitting-item-count';
 import { languageOptions } from '@/config/language-options';
 import { InstantSearchDialog } from '@/features/payload-cms/components/search/instant-search-dialog';
 import { useSearchShortcut } from '@/features/payload-cms/components/search/use-search-shortcut';
+import { useIsApplePlatform } from '@/hooks/use-is-apple-platform';
 import { usePreviewMode } from '@/hooks/use-preview-mode';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -230,6 +231,7 @@ export const DesktopNav: React.FC<{
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const openSearch = useCallback(() => setIsSearchOpen(true), []);
   useSearchShortcut(openSearch);
+  const searchShortcut = useIsApplePlatform() ? '⌘ K' : 'Ctrl K';
 
   const menuId = useId();
   const barReference = useRef<HTMLDivElement>(null);
@@ -375,7 +377,7 @@ export const DesktopNav: React.FC<{
           onClick={openSearch}
           aria-label={searchLabel[locale]}
           aria-keyshortcuts="Control+K Meta+K"
-          title={`${searchLabel[locale]} (Ctrl K)`}
+          title={`${searchLabel[locale]} (${searchShortcut})`}
           className="hover:border-conveniat-green/40 hover:text-conveniat-green flex size-8 items-center justify-center rounded-xl border border-gray-200 bg-gray-50/80 text-gray-600 transition-all duration-200 hover:bg-white"
         >
           <Search className="size-3.5 text-gray-500" aria-hidden="true" />
