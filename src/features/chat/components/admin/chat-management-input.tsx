@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/buttons/button';
 import { useAutoResizeTextarea } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-auto-resize-textarea';
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
+import { CHAT_MESSAGE_MAX_LENGTH } from '@/features/chat/limits';
 import type { MessageType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import { Paperclip, Send } from 'lucide-react';
@@ -13,8 +14,6 @@ interface ChatManagementInputProperties {
   disabled: boolean;
   locale: string;
 }
-
-const MAX_MESSAGE_LENGTH = 2000;
 
 const messagePlaceholder: Record<string, string> = {
   de: 'Nachricht eingeben...',
@@ -100,14 +99,14 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
     const chunks: string[] = [];
     let remaining = message;
     while (remaining.length > 0) {
-      if (remaining.length <= MAX_MESSAGE_LENGTH) {
+      if (remaining.length <= CHAT_MESSAGE_MAX_LENGTH) {
         chunks.push(remaining);
         break;
       }
-      let breakPoint = MAX_MESSAGE_LENGTH;
+      let breakPoint = CHAT_MESSAGE_MAX_LENGTH;
 
-      const searchStart = Math.max(0, MAX_MESSAGE_LENGTH - 200);
-      for (let index = MAX_MESSAGE_LENGTH; index >= searchStart; index--) {
+      const searchStart = Math.max(0, CHAT_MESSAGE_MAX_LENGTH - 200);
+      for (let index = CHAT_MESSAGE_MAX_LENGTH; index >= searchStart; index--) {
         if (remaining[index] === ' ' || remaining[index] === '\n') {
           breakPoint = index;
           break;
@@ -128,8 +127,8 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
   };
 
   const messageLength = newMessage.length;
-  const isTooLong = messageLength > MAX_MESSAGE_LENGTH;
-  const isNearLimit = messageLength > MAX_MESSAGE_LENGTH * 0.8;
+  const isTooLong = messageLength > CHAT_MESSAGE_MAX_LENGTH;
+  const isNearLimit = messageLength > CHAT_MESSAGE_MAX_LENGTH * 0.8;
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>): void => {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -152,7 +151,7 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
         <div
           className={`text-right text-xs ${isTooLong ? 'font-semibold text-(--theme-error-500)' : 'text-(--theme-warning-500)'}`}
         >
-          {messageLength}/{MAX_MESSAGE_LENGTH}
+          {messageLength}/{CHAT_MESSAGE_MAX_LENGTH}
           {isTooLong && ` - ${messageTooLongText[locale] ?? messageTooLongText['en']}`}
         </div>
       )}

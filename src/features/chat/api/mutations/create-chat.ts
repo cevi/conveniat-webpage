@@ -3,7 +3,7 @@ import { assertContactable } from '@/features/chat/api/checks/assert-contactable
 import { assertGroupSize } from '@/features/chat/api/checks/assert-group-size';
 import { checkForDuplicateMembers } from '@/features/chat/api/checks/check-for-duplicate-members';
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
-import { assertChatNameLength, verifyChatName } from '@/features/chat/api/checks/verify-chat-name';
+import { parseChatName, verifyChatName } from '@/features/chat/api/checks/verify-chat-name';
 import { createNewChat } from '@/features/chat/api/database-interactions/create-new-chat';
 import { findOrCreatePrivateChat } from '@/features/chat/api/database-interactions/find-or-create-private-chat';
 import { trpcBaseProcedure } from '@/trpc/init';
@@ -57,9 +57,8 @@ export const createChat = trpcBaseProcedure
     // additional validation checks
     checkForDuplicateMembers(members);
     verifyChatName(chatName, members);
-    assertChatNameLength(chatName);
 
-    const finalChatName = chatName?.trim() ?? '';
+    const finalChatName = members.length === 1 ? '' : parseChatName(chatName ?? '');
 
     // Idempotency: a replay of the same creation carries the same client-generated id.
     // Answer it with the chat that already exists instead of creating a second one.

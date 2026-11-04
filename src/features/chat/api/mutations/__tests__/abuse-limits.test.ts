@@ -493,6 +493,34 @@ describe('chat names', () => {
     expect(writes).toEqual([]);
   });
 
+  it('reject a group name shorter than 3 characters, counted without the surrounding whitespace', async () => {
+    const error = await errorOf(
+      as(ANNA).createChat({ members: [{ userId: BEN }, { userId: CARLA }], chatName: '  AB  ' }),
+    );
+
+    expect(error).toMatchObject({
+      code: 'BAD_REQUEST',
+      reason: 'chatNameTooShort',
+      params: { min: 3 },
+    });
+    expect(writes).toEqual([]);
+  });
+
+  it('reject a group without a name as too short', async () => {
+    const error = await errorOf(
+      as(ANNA).createChat({ members: [{ userId: BEN }, { userId: CARLA }] }),
+    );
+
+    expect(error).toMatchObject({ code: 'BAD_REQUEST', reason: 'chatNameTooShort' });
+  });
+
+  it('reject a rename to a name shorter than 3 characters', async () => {
+    const error = await errorOf(as(ANNA).renameChat({ chatUuid: CHAT_ID, newName: 'AB' }));
+
+    expect(error).toMatchObject({ code: 'BAD_REQUEST', reason: 'chatNameTooShort' });
+    expect(writes).toEqual([]);
+  });
+
   it('store a rename without the surrounding whitespace', async () => {
     await as(ANNA).renameChat({ chatUuid: CHAT_ID, newName: '  Züri 11  ' });
 
