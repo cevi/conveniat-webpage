@@ -4,6 +4,7 @@ import {
   assertWriteAbilities,
 } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { chatMessageContentSchema } from '@/features/chat/limits';
+import { isTopicAdminPermission } from '@/features/chat/api/utils/topic-admins';
 import { quotedSnippetOf } from '@/features/chat/utils/quoted-snippet';
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
@@ -433,6 +434,11 @@ export const createMessage = trpcBaseProcedure
     const isImage = validatedMessage.type === MessageType.IMAGE_MSG;
     const pushText = isImage ? imageSentText(user.name)[ctx.locale] : validatedMessage.content;
 
+    // a comment by the topic's Kernteam carries its badge, live as when it is read back
+    const byTopicAdmin =
+      chat.type === ChatType.FORUM &&
+      isTopicAdminPermission(chat.chatMemberships[0]?.chatPermission);
+
     ctx.afterTransactionCommit(() => {
       if (chat.type === ChatType.FORUM) {
         // the post's subscribers and the piket on duty, see `forum-push`
@@ -529,6 +535,7 @@ export const createMessage = trpcBaseProcedure
           status: MessageEventType.STORED,
           type: validatedMessage.type,
           parentId: validatedMessage.parentId ?? undefined,
+          ...(byTopicAdmin ? { byTopicAdmin } : {}),
         },
       };
       // a comment of a restricted forum post goes only to those who see the post
@@ -559,5 +566,6 @@ export const createMessage = trpcBaseProcedure
               quotedMessageId,
               quotedSnippet,
             },
+      ...(byTopicAdmin ? { byTopicAdmin } : {}),
     };
   });

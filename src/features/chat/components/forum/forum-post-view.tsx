@@ -18,6 +18,7 @@ import {
   forumText,
   relativeTimeText,
 } from '@/features/chat/components/forum/forum-texts';
+import { KernteamBadge } from '@/features/chat/components/forum/kernteam-badge';
 import { useForumStatusFailure } from '@/features/chat/components/forum/use-forum-status-outbox';
 import { ChatActionsProvider } from '@/features/chat/context/chat-actions-context';
 import { ChatIdProvider } from '@/features/chat/context/chat-id-context';
@@ -200,6 +201,7 @@ const MarkedAnswer: React.FC<{ commentId: string; locale: Locale }> = ({ comment
       <p className="flex items-center gap-1.5 text-[12px] font-semibold text-green-800">
         <CheckCircle2 className="text-conveniat-green h-4 w-4" aria-hidden="true" />
         {forumText.answer[locale]} · {data.senderName ?? ''}
+        {data.byTopicAdmin === true && <KernteamBadge locale={locale} />}
       </p>
       <p className="mt-1 text-[14px] leading-[1.45] whitespace-pre-wrap text-green-900">{text}</p>
     </div>
@@ -264,11 +266,7 @@ const PostHeader: React.FC<{
           </span>
           {post.topicName} · {relativeTimeText(new Date(post.createdAt), locale, now)}
         </p>
-        {post.byTopicAdmin && (
-          <span className="bg-conveniat-green ml-auto rounded-[5px] px-1.5 py-px text-[11px] font-bold text-white">
-            {forumText.kernteam[locale]}
-          </span>
-        )}
+        {post.byTopicAdmin && <KernteamBadge locale={locale} className="ml-auto" />}
       </div>
 
       <h2 className="font-heading text-heading text-[22px] leading-tight font-extrabold">

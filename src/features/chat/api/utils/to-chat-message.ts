@@ -29,6 +29,8 @@ export const toChatMessage = (
     status: MessageEventType;
     deletedQuotedIds: ReadonlySet<string>;
     threads: ReadonlyMap<string, MessageThread>;
+    /** the senders who are the Kernteam of the forum topic, see `findTopicAdminIds` */
+    topicAdminIds?: ReadonlySet<string>;
   },
 ): ChatMessage => {
   const isDeleted = message.deletedAt !== null && message.deletedAt !== undefined;
@@ -43,6 +45,9 @@ export const toChatMessage = (
     messagePayload: payload,
     senderId: message.senderId ?? undefined,
     ...(message.sender?.name ? { senderName: message.sender.name } : {}),
+    ...(message.senderId !== null && context.topicAdminIds?.has(message.senderId) === true
+      ? { byTopicAdmin: true }
+      : {}),
     status: context.status,
     type: message.type,
     replyCount: thread?.replyCount ?? 0,
