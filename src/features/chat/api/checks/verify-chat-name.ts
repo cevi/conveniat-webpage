@@ -1,9 +1,14 @@
 import { chatError } from '@/features/chat/api/chat-errors';
+import {
+  CHAT_NAME_MAX_LENGTH,
+  CHAT_NAME_MIN_LENGTH,
+  chatNameProblem,
+} from '@/features/chat/limits';
 import { TRPCError } from '@trpc/server';
 
 /**
- * Verifies the chat name based on the number of members.
- * If there is only one member (private chat), the name must be undefined or empty.
+ * Refuses a name on a private chat (one other member). A group's name is checked by
+ * {@link parseChatName}.
  *
  * @param chatName
  * @param members
@@ -14,33 +19,28 @@ export const verifyChatName = (
     userId: string;
   }[],
 ): void => {
-  if (members.length === 1) {
-    if (chatName !== undefined && chatName.trim() !== '') {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Private chats (with only one other member) cannot have a name.',
-      });
-    }
-  } else {
-    if (chatName === undefined || chatName.trim() === '') {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'Group chats must have a name.',
-      });
-    }
+  if (members.length === 1 && chatName !== undefined && chatName.trim() !== '') {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'Private chats (with only one other member) cannot have a name.',
+    });
   }
 };
 
-/** The same bound the create and rename forms show. A longer name ends up in push titles. */
-export const CHAT_NAME_MAX_LENGTH = 50;
-
 /**
- * Throws unless the trimmed chat name fits {@link CHAT_NAME_MAX_LENGTH}.
+ * Returns the trimmed group name, or throws unless it fits `chatNameSchema`. A browser on the
+ * previous release still allows 2 characters, and its offline outbox may replay such a name,
+ * so both bounds are reasons the user reads.
  *
  * @param chatName - the name as the user typed it
  */
-export const assertChatNameLength = (chatName: string | undefined): void => {
-  if ((chatName?.trim().length ?? 0) > CHAT_NAME_MAX_LENGTH) {
+export const parseChatName = (chatName: string): string => {
+  const problem = chatNameProblem(chatName);
+  if (problem === 'tooShort') {
+    throw chatError('BAD_REQUEST', 'chatNameTooShort', { min: CHAT_NAME_MIN_LENGTH });
+  }
+  if (problem === 'tooLong') {
     throw chatError('BAD_REQUEST', 'chatNameTooLong', { max: CHAT_NAME_MAX_LENGTH });
   }
+  return chatName.trim();
 };

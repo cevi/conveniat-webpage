@@ -3,6 +3,7 @@ import {
   assertMembershipCanWrite,
   assertWriteAbilities,
 } from '@/features/chat/api/checks/assert-can-write-in-chat';
+import { chatMessageContentSchema } from '@/features/chat/limits';
 import { quotedSnippetOf } from '@/features/chat/utils/quoted-snippet';
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
@@ -25,10 +26,7 @@ const logger = createLogger('chat:mutations');
 // Zod schema for input validation
 const sendMessageInputSchema = z.object({
   chatId: z.uuid('Invalid chat ID format.'),
-  content: z
-    .string()
-    .min(1, 'Message content cannot be empty.')
-    .max(2000, 'Message content is too long.'),
+  content: chatMessageContentSchema,
   timestamp: z.preprocess(
     (argument) => {
       if (argument instanceof Date) {

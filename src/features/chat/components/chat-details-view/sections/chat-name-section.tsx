@@ -1,5 +1,10 @@
 import { Button } from '@/components/ui/buttons/button';
 import { fieldInputClassName, formFieldClassName } from '@/components/ui/field';
+import {
+  CHAT_NAME_MAX_LENGTH,
+  CHAT_NAME_MIN_LENGTH,
+  chatNameProblem,
+} from '@/features/chat/limits';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Pencil } from 'lucide-react';
@@ -50,9 +55,6 @@ const cancelText: StaticTranslationString = {
   fr: 'Annuler',
 };
 
-const MIN_NAME_LENGTH = 2;
-const MAX_NAME_LENGTH = 50;
-
 const validationMessages = {
   emptyName: {
     de: 'Chat-Name darf nicht leer sein',
@@ -60,22 +62,21 @@ const validationMessages = {
     fr: 'Le nom du chat ne peut pas être vide',
   },
   tooShort: {
-    de: 'Chat-Name muss mindestens 2 Zeichen haben',
-    en: 'Chat name must be at least 2 characters',
-    fr: 'Le nom du chat doit contenir au moins 2 caractères',
+    de: `Chat-Name muss mindestens ${CHAT_NAME_MIN_LENGTH} Zeichen haben`,
+    en: `Chat name must be at least ${CHAT_NAME_MIN_LENGTH} characters`,
+    fr: `Le nom du chat doit contenir au moins ${CHAT_NAME_MIN_LENGTH} caractères`,
   },
   tooLong: {
-    de: 'Chat-Name darf höchstens 50 Zeichen haben',
-    en: 'Chat name can have at most 50 characters',
-    fr: 'Le nom du chat peut contenir au plus 50 caractères',
+    de: `Chat-Name darf höchstens ${CHAT_NAME_MAX_LENGTH} Zeichen haben`,
+    en: `Chat name can have at most ${CHAT_NAME_MAX_LENGTH} characters`,
+    fr: `Le nom du chat peut contenir au plus ${CHAT_NAME_MAX_LENGTH} caractères`,
   },
 } satisfies Record<string, StaticTranslationString>;
 
 const validateChatName = (name: string, locale: Locale): string => {
   if (name.trim().length === 0) return validationMessages.emptyName[locale];
-  if (name.trim().length < MIN_NAME_LENGTH) return validationMessages.tooShort[locale];
-  if (name.trim().length > MAX_NAME_LENGTH) return validationMessages.tooLong[locale];
-  return '';
+  const problem = chatNameProblem(name);
+  return problem === undefined ? '' : validationMessages[problem][locale];
 };
 
 /**
@@ -98,7 +99,7 @@ export const ChatNameSection: React.FC<ChatNameSectionProperties> = ({
   const [hasTriedToSave, setHasTriedToSave] = useState(false);
 
   const validationError = validateChatName(name, locale);
-  const isTooLong = name.trim().length > MAX_NAME_LENGTH;
+  const isTooLong = chatNameProblem(name) === 'tooLong';
   const shownError = hasTriedToSave || isTooLong ? validationError : '';
 
   const stopEditing = (): void => {
@@ -149,7 +150,7 @@ export const ChatNameSection: React.FC<ChatNameSectionProperties> = ({
           >
             <span>{shownError}</span>
             <span className="shrink-0 tabular-nums">
-              {name.trim().length}/{MAX_NAME_LENGTH}
+              {name.trim().length}/{CHAT_NAME_MAX_LENGTH}
             </span>
           </p>
           <div className="flex justify-center gap-2 pt-1">

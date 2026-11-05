@@ -6,7 +6,6 @@ import {
   holderSchema,
   lockLoan,
   MAX_LINES,
-  MAX_QUANTITY,
   minDate,
   quantitySchema,
   type Booking,
@@ -20,6 +19,7 @@ import {
   materialError,
   PENDING_STATUSES,
 } from '@/features/material/api/material-shared';
+import { MAX_QUANTITY } from '@/features/material/limits';
 import { mergeBasketLines } from '@/features/material/utils/basket';
 import { holderKey, holderOf } from '@/features/material/utils/holders';
 import { INCIDENT_PHOTO_UPLOAD } from '@/features/material/utils/incident-photo';

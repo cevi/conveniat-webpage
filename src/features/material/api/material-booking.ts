@@ -4,10 +4,10 @@ import {
   lockItem,
   materialError,
 } from '@/features/material/api/material-shared';
+import { MAX_QUANTITY } from '@/features/material/limits';
 import type { MaterialItem, Prisma } from '@/lib/prisma/client';
 import { z } from 'zod';
 
-export const MAX_QUANTITY = 100_000;
 export const quantitySchema = z.number().int().min(1).max(MAX_QUANTITY);
 
 /** A basket is what one Hof takes over the counter, not the whole catalogue. */

@@ -9,6 +9,7 @@ import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
+import { CHAT_MESSAGE_MAX_LENGTH } from '@/features/chat/limits';
 import type { MessagePreviewIcon as MessagePreviewIconName } from '@/features/chat/types/api-dto-types';
 import { generateMessageId } from '@/features/chat/utils';
 import { isMessageDeleted } from '@/features/chat/utils/message-deletion';
@@ -33,8 +34,6 @@ import {
   X,
 } from 'lucide-react';
 import React from 'react';
-
-const MAX_MESSAGE_LENGTH = 2000;
 
 const messageToPlaceholder: StaticTranslationString = {
   de: 'Nachricht an {name}',
@@ -283,8 +282,8 @@ export const ChatTextAreaInput: React.FC = () => {
     }
   };
 
-  const isTooLong = messageLength > MAX_MESSAGE_LENGTH;
-  const isNearLimit = messageLength > MAX_MESSAGE_LENGTH * 0.8;
+  const isTooLong = messageLength > CHAT_MESSAGE_MAX_LENGTH;
+  const isNearLimit = messageLength > CHAT_MESSAGE_MAX_LENGTH * 0.8;
 
   const handleSplitAndSend = async (): Promise<void> => {
     if (isSendingReference.current) return;
@@ -304,18 +303,18 @@ export const ChatTextAreaInput: React.FC = () => {
   const sendInChunks = (message: string): void => {
     const chunks: string[] = [];
 
-    // Split message into chunks of MAX_MESSAGE_LENGTH, trying to break at word boundaries
+    // Split message into chunks of CHAT_MESSAGE_MAX_LENGTH, trying to break at word boundaries
     let remaining = message;
     while (remaining.length > 0) {
-      if (remaining.length <= MAX_MESSAGE_LENGTH) {
+      if (remaining.length <= CHAT_MESSAGE_MAX_LENGTH) {
         chunks.push(remaining);
         break;
       }
 
       // Try to find a good break point (space, newline) near the limit
-      let breakPoint = MAX_MESSAGE_LENGTH;
-      const searchStart = Math.max(0, MAX_MESSAGE_LENGTH - 200);
-      for (let index = MAX_MESSAGE_LENGTH; index >= searchStart; index--) {
+      let breakPoint = CHAT_MESSAGE_MAX_LENGTH;
+      const searchStart = Math.max(0, CHAT_MESSAGE_MAX_LENGTH - 200);
+      for (let index = CHAT_MESSAGE_MAX_LENGTH; index >= searchStart; index--) {
         if (remaining[index] === ' ' || remaining[index] === '\n') {
           breakPoint = index;
           break;
@@ -407,7 +406,7 @@ export const ChatTextAreaInput: React.FC = () => {
             isTooLong ? 'text-danger-text font-semibold' : 'text-green-700',
           )}
         >
-          {messageLength}/{MAX_MESSAGE_LENGTH}
+          {messageLength}/{CHAT_MESSAGE_MAX_LENGTH}
           {isTooLong && ` - ${messageTooLongText[locale]}`}
         </div>
       )}

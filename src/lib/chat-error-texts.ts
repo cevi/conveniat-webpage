@@ -2,15 +2,20 @@ import type { StaticTranslationString } from '@/types/types';
 
 /**
  * What the chat routers tell a user when they refuse a call, by reason. The routers throw the
- * reason with `chatError`, and the components translate it with `userErrorMessage`. `{max}` is
- * filled in from the error's params. Shared, because other features call chat procedures too:
- * the map reports a problem through `chat.reportProblem`.
+ * reason with `chatError`, and the components translate it with `userErrorMessage`. `{min}` and
+ * `{max}` are filled in from the error's params. Shared, because other features call chat
+ * procedures too: the map reports a problem through `chat.reportProblem`.
  */
 export const chatErrorTexts = {
   messagingDisabled: {
     de: 'Nachrichten sind gerade ausgeschaltet. Versuche es später nochmals.',
     en: 'Messaging is switched off right now. Please try again later.',
     fr: 'Les messages sont désactivés pour le moment. Réessaie plus tard.',
+  },
+  chatNameTooShort: {
+    de: 'Der Chat-Name braucht mindestens {min} Zeichen.',
+    en: 'The chat name needs at least {min} characters.',
+    fr: 'Le nom du chat doit compter au moins {min} caractères.',
   },
   chatNameTooLong: {
     de: 'Der Chat-Name darf höchstens {max} Zeichen lang sein.',

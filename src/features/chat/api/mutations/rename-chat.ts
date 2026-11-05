@@ -1,6 +1,6 @@
 import { assertChatNotArchived } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
-import { assertChatNameLength } from '@/features/chat/api/checks/verify-chat-name';
+import { parseChatName } from '@/features/chat/api/checks/verify-chat-name';
 import { findChatByUuid } from '@/features/chat/api/database-interactions/find-chat-by-uuid';
 import { ChatMembershipPermission } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 const renameChatMutationSchema = z.object({
   chatUuid: z.string(),
-  newName: z.string().trim().min(1, 'Chat name cannot be empty'),
+  newName: z.string(),
 });
 
 export const renameChat = trpcBaseProcedure
@@ -18,9 +18,8 @@ export const renameChat = trpcBaseProcedure
   .use(databaseTransactionWrapper)
   .mutation(async ({ input, ctx }) => {
     const { prisma, user } = ctx;
-    const { chatUuid, newName } = input;
-
-    assertChatNameLength(newName);
+    const { chatUuid } = input;
+    const newName = parseChatName(input.newName);
 
     const chat = await findChatByUuid(chatUuid, prisma);
 
