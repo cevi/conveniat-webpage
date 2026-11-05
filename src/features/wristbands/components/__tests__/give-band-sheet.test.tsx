@@ -5,6 +5,7 @@
 import { GiveBandSheet } from '@/features/wristbands/components/give-band-sheet';
 import type { BandScannerHandlers } from '@/features/wristbands/hooks/use-band-scanner';
 import type { HofPerson, HofWristbandList } from '@/features/wristbands/types';
+import { navigateWithinApp } from '@/hooks/use-app-webview-navigate';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type React from 'react';
 
@@ -150,5 +151,28 @@ describe('the band sheet at the station', () => {
       kind: 'refused',
       title: 'Das ist das alte Band von Lea Meier v/o Funke',
     });
+  });
+
+  it('keeps a band tapped meanwhile from opening a second sheet over it', async () => {
+    const onClose = show(lea);
+    const push = jest.fn();
+    const tap = (uid: string): boolean =>
+      navigateWithinApp(`${globalThis.location.origin}/tag/${uid}`, push);
+
+    // waiting for a band: the band is the sheet's
+    tap('04CCCCCCCCCCCC');
+    expect(push).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+
+    await holdBand();
+    // the band just given, laid on the phone again while the sheet says whose it is
+    tap(NEW_BAND);
+    expect(push).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+
+    // another band closes the sheet and opens as its own
+    tap('04CCCCCCCCCCCC');
+    expect(onClose).toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith('/tag/04CCCCCCCCCCCC');
   });
 });

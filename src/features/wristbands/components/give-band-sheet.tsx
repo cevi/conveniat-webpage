@@ -2,7 +2,7 @@
 
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/buttons/button';
-import { isBandLink } from '@/features/wristbands/band-link';
+import { bandUidOf, isBandLink } from '@/features/wristbands/band-link';
 import { personDetails } from '@/features/wristbands/components/band-labels';
 import { ScanNoticeBox } from '@/features/wristbands/components/scan-notice-box';
 import type { GiveStep } from '@/features/wristbands/hooks/use-give-band';
@@ -15,7 +15,7 @@ import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Check, ChevronRight, Loader2, Nfc, RefreshCw } from 'lucide-react';
 import type React from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /** How long the sheet shows a band handed out before it closes for the next person. */
 const CLOSE_AFTER_MS = 2500;
@@ -40,28 +40,34 @@ const useCloseWhenDone = (step: GiveStep, onClose: () => void): void => {
   }, [done, undone]);
 };
 
-/** Hands the sheet the scanner's resume while it waits for a band, undefined once it does not. */
-type OfferResume = (resume?: () => void) => void;
+/** How the open part of the sheet takes a tapped band; `true` if it did. */
+type TakeBand = (target: URL) => boolean;
 
-/** Offers the sheet the scanner's resume while it waits for a band. */
-const useResumeOnBandTap = (waiting: boolean, resume: () => void, offer: OfferResume): void => {
+/** Hands the sheet how its open part takes a tapped band, undefined once it takes none. */
+type OfferTake = (take?: TakeBand) => void;
+
+/**
+ * Offers the sheet the band taps its open part takes: while it waits for a band, any band, which
+ * starts the scanner listening again; once a band was given, that band, laid on the phone again
+ * while the sheet still says whose it is now.
+ */
+const useTakeBandTaps = (take: TakeBand | undefined, offer: OfferTake): void => {
   useEffect(() => {
-    if (!waiting) return;
-    offer(resume);
+    if (take === undefined) return;
+    offer(take);
     return (): void => offer();
-  }, [waiting, resume, offer]);
+  }, [take, offer]);
 };
 
 /**
- * A band tapped while the sheet is open never opens a sheet of its own over it. While the sheet
- * waits for a band, the band is meant for it: the tap reached the page only because the scanner
- * was not listening, so it listens again. Otherwise the sheet closes, and the band's own page is
- * the one sheet.
+ * A band tapped while the sheet is open never opens a sheet of its own over it. What the open
+ * part takes stays here, see `useTakeBandTaps`; any other band closes the sheet, and the band's
+ * own page is the one sheet.
  */
-const useBandTapsStayOneSheet = (open: boolean, onClose: () => void): OfferResume => {
-  const resumeOnBandTap = useRef<(() => void) | undefined>(undefined);
-  const offer = useCallback<OfferResume>((resume) => {
-    resumeOnBandTap.current = resume;
+const useBandTapsStayOneSheet = (open: boolean, onClose: () => void): OfferTake => {
+  const takeBand = useRef<TakeBand | undefined>(undefined);
+  const offer = useCallback<OfferTake>((take) => {
+    takeBand.current = take;
   }, []);
   const onCloseReference = useRef(onClose);
   useEffect(() => {
@@ -71,11 +77,7 @@ const useBandTapsStayOneSheet = (open: boolean, onClose: () => void): OfferResum
     if (!open) return;
     return claimAppLinks((target) => {
       if (!isBandLink(target)) return false;
-      const resume = resumeOnBandTap.current;
-      if (resume !== undefined) {
-        resume();
-        return true;
-      }
+      if (takeBand.current?.(target) === true) return true;
       onCloseReference.current();
       return false;
     });
@@ -124,8 +126,8 @@ const GiveBand: React.FC<{
   locale: Locale;
   onClose: () => void;
   /** takes a band tapped while the scanner was not listening, see `useBandTapsStayOneSheet` */
-  offerResume: OfferResume;
-}> = ({ hofId, list, person, replace, locale, onClose, offerResume }) => {
+  offerTake: OfferTake;
+}> = ({ hofId, list, person, replace, locale, onClose, offerTake }) => {
   const nfcAvailable = useNativeNfcAvailable();
   const { step, scanner, undo } = useGiveBand({
     hofId,
@@ -136,7 +138,20 @@ const GiveBand: React.FC<{
     locale,
   });
   useCloseWhenDone(step, onClose);
-  useResumeOnBandTap(step.step === 'scan' && nfcAvailable === true, scanner.resume, offerResume);
+  const waiting = step.step === 'scan' && nfcAvailable === true;
+  const givenUid = 'uid' in step ? step.uid : undefined;
+  const resumeScanner = scanner.resume;
+  const take = useMemo((): TakeBand | undefined => {
+    if (waiting) {
+      return (): boolean => {
+        resumeScanner();
+        return true;
+      };
+    }
+    if (givenUid !== undefined) return (target): boolean => bandUidOf(target) === givenUid;
+    return undefined;
+  }, [waiting, givenUid, resumeScanner]);
+  useTakeBandTaps(take, offerTake);
   const name = person.nickname ?? person.fullName;
 
   if (step.step !== 'scan') {
@@ -234,7 +249,7 @@ export const GiveBandSheet: React.FC<{
   };
   const wearsBand = person?.band !== null && person?.band !== undefined;
   const choosing = wearsBand && !replacing;
-  const offerResume = useBandTapsStayOneSheet(open, close);
+  const offerTake = useBandTapsStayOneSheet(open, close);
 
   return (
     <BottomSheet
@@ -299,7 +314,7 @@ export const GiveBandSheet: React.FC<{
               replace={replacing}
               locale={locale}
               onClose={close}
-              offerResume={offerResume}
+              offerTake={offerTake}
             />
           )}
         </div>
