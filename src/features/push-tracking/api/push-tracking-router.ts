@@ -226,9 +226,9 @@ export const pushTrackingRouter = createTRPCRouter({
         ...(cursor !== undefined && cursor !== null && cursor !== ''
           ? { cursor: { id: cursor } }
           : {}),
-        orderBy: {
-          sentAt: 'desc',
-        },
+        // The id breaks ties, so the deliveries of one push, which share their `sentAt`, come
+        // in a stable order across pages.
+        orderBy: [{ sentAt: 'desc' }, { id: 'desc' }],
       });
 
       let nextCursor: typeof cursor | undefined;

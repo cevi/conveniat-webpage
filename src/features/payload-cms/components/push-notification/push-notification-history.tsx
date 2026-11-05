@@ -1,13 +1,21 @@
 'use client';
+import {
+  type DeliveryStatus,
+  deliveryStatusOf,
+  groupDeliveriesByPush,
+} from '@/features/payload-cms/components/push-notification/push-delivery-groups';
+import { describePushDevice } from '@/features/payload-cms/components/push-notification/push-device-label';
 import { MAX_DELIVERY_ATTEMPTS } from '@/lib/push/push-delivery-policy';
+import type { RouterOutputs } from '@/trpc/client';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Button, Pill, ShimmerEffect } from '@payloadcms/ui';
 import { format } from 'date-fns';
-import { RefreshCw } from 'lucide-react';
+import { ChevronDown, RefreshCw } from 'lucide-react';
 import type React from 'react';
 import type { JSX } from 'react';
+import { useState } from 'react';
 
 export const historyTitle: StaticTranslationString = {
   de: 'Verlauf',
@@ -49,6 +57,28 @@ const chatMessageLabel: StaticTranslationString = {
   fr: 'Message de chat',
   en: 'Chat message',
 };
+const deviceCountLabel = (count: number): StaticTranslationString => ({
+  de: `${String(count)} Geräte`,
+  fr: `${String(count)} appareils`,
+  en: `${String(count)} devices`,
+});
+const failedCountLabel = (count: number): StaticTranslationString => ({
+  de: `${String(count)} fehlgeschlagen`,
+  fr: `${String(count)} en échec`,
+  en: `${String(count)} failed`,
+});
+const removedDeviceLabel: StaticTranslationString = {
+  de: 'Entferntes Gerät',
+  fr: 'Appareil retiré',
+  en: 'Removed device',
+};
+const webPushLabel: StaticTranslationString = { de: 'Web-Push', fr: 'Web push', en: 'Web push' };
+const nativeAppLabel: StaticTranslationString = {
+  de: 'conveniat27-App',
+  fr: 'App conveniat27',
+  en: 'conveniat27 app',
+};
+
 const columnLabels: Record<
   'status' | 'message' | 'sent' | 'delivered' | 'interaction',
   StaticTranslationString
@@ -60,8 +90,7 @@ const columnLabels: Record<
   interaction: { de: 'Interaktion', fr: 'Interaction', en: 'Interaction' },
 };
 
-type LogStatus =
-  'failed' | 'interacted' | 'suppressed' | 'delivered' | 'sent' | 'retrying' | 'pending';
+type LogStatus = DeliveryStatus;
 
 const statusLabels: Record<LogStatus, StaticTranslationString> = {
   failed: { de: 'Fehlgeschlagen', fr: 'Échoué', en: 'Failed' },
@@ -85,6 +114,8 @@ const statusPillStyles: Record<
   retrying: 'warning',
   pending: 'light-gray',
 };
+
+type PushLog = RouterOutputs['pushTracking']['getRecentLogs']['items'][number];
 
 const COLUMN_COUNT = 5;
 const CELL = 'px-4 py-3 align-top';
@@ -126,14 +157,75 @@ export const NotificationHistory: React.FC<{ userId: string; locale: Locale }> =
 }) => {
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
     trpc.pushTracking.getRecentLogs.useInfiniteQuery(
-      { userId, limit: 10 },
+      // a page holds deliveries, several per push when a person has several devices
+      { userId, limit: 30 },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
         refetchInterval: 15_000,
       },
     );
 
-  const logs = data?.pages.flatMap((page) => page.items) ?? [];
+  const { data: devices } = trpc.pushTracking.getPushDeviceList.useQuery(
+    { userId },
+    { meta: { persist: false } },
+  );
+  const [expandedKeys, setExpandedKeys] = useState<ReadonlySet<string>>(new Set());
+
+  const groups = groupDeliveriesByPush(data?.pages.flatMap((page) => page.items) ?? []);
+
+  /** The device a delivery went to, by its subscription, else by what the device reported. */
+  const deviceNameOf = (log: PushLog): string => {
+    const device = devices?.find((candidate) => candidate.id === log.subscriptionId);
+    if (device !== undefined) return describePushDevice(device, locale).name;
+    if (log.channel === 'NATIVE_FCM') return nativeAppLabel[locale];
+    if (log.userAgent !== null) {
+      return describePushDevice({ platform: 'web', userAgent: log.userAgent }, locale).name;
+    }
+    // the list is loaded and the device is not on it: it was removed or pruned since
+    return devices === undefined ? webPushLabel[locale] : removedDeviceLabel[locale];
+  };
+
+  const toggle = (key: string): void =>
+    setExpandedKeys((previous) => {
+      const next = new Set(previous);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  const renderError = (log: PushLog, status: LogStatus): JSX.Element | undefined =>
+    log.error === null ? undefined : (
+      <div
+        className={cn(
+          'mt-1 truncate text-sm',
+          status === 'retrying' ? 'text-(--theme-elevation-500)' : 'text-(--theme-error-500)',
+        )}
+        title={log.error}
+      >
+        {status === 'retrying' ? attemptLabel(log.attempts)[locale] : ''}
+        {log.error}
+      </div>
+    );
+
+  const renderTimes = (log: PushLog): JSX.Element => (
+    <>
+      <td className={cn(CELL, 'whitespace-nowrap')}>
+        {log.deliveredAt === null ? '–' : format(new Date(log.deliveredAt), DATE_FORMAT)}
+      </td>
+      <td className={cn(CELL, 'whitespace-nowrap')}>
+        {log.interactedAt === null ? (
+          '–'
+        ) : (
+          <>
+            {format(new Date(log.interactedAt), DATE_FORMAT)}
+            <div className="text-xs tracking-wide text-(--theme-elevation-500) uppercase">
+              {log.interactionType}
+            </div>
+          </>
+        )}
+      </td>
+    </>
+  );
 
   const renderRows = (): JSX.Element | JSX.Element[] => {
     if (isLoading) {
@@ -145,7 +237,7 @@ export const NotificationHistory: React.FC<{ userId: string; locale: Locale }> =
         </tr>
       );
     }
-    if (logs.length === 0) {
+    if (groups.length === 0) {
       return (
         <tr>
           <td colSpan={COLUMN_COUNT} className={cn(CELL, 'text-(--theme-elevation-500)')}>
@@ -154,65 +246,106 @@ export const NotificationHistory: React.FC<{ userId: string; locale: Locale }> =
         </tr>
       );
     }
-    return logs.map((log) => {
-      let status: LogStatus = 'pending';
-      if (log.status === 'FAILED') status = 'failed';
-      // Still queued after a failed attempt: the error is the last one, not the verdict.
-      else if (log.status === 'PENDING' && log.error !== null) status = 'retrying';
-      else if (log.interactedAt !== null) status = 'interacted';
-      // The device received it but showed nothing, because the app was open on the chat.
-      else if (log.interactionType === 'SUPPRESSED') status = 'suppressed';
-      else if (log.status === 'DELIVERED' || log.deliveredAt !== null) status = 'delivered';
-      else if (log.status === 'SENT') status = 'sent';
+    return groups.flatMap(({ key, deliveries, status }, index) => {
+      const [first] = deliveries;
+      if (first === undefined) return [];
+      const isChat = isChatPayload(first.content);
+      const isGroup = deliveries.length > 1;
+      const isExpanded = expandedKeys.has(key);
+      const failed = deliveries.filter((log) => deliveryStatusOf(log) === 'failed').length;
+      // the earliest answer of any device, so the row says when the push first arrived
+      const earliest = (pick: (log: PushLog) => Date | string | null): PushLog => {
+        let found: { log: PushLog; at: number } | undefined;
+        for (const log of deliveries) {
+          const value = pick(log);
+          if (value === null) continue;
+          const at = new Date(value).getTime();
+          if (found === undefined || at < found.at) found = { log, at };
+        }
+        return found?.log ?? first;
+      };
+      const firstDelivered = earliest((log) => log.deliveredAt);
+      const firstInteracted = earliest((log) => log.interactedAt);
+      const stripe = index % 2 === 0 ? 'bg-(--theme-elevation-50)' : '';
 
-      const isChat = isChatPayload(log.content);
-
-      return (
-        <tr key={log.id} className="odd:bg-(--theme-elevation-50)">
+      const pushRow = (
+        <tr key={key} className={stripe}>
           <td className={cn(CELL, 'whitespace-nowrap')}>
             <Pill pillStyle={statusPillStyles[status]} size="small">
               {statusLabels[status][locale]}
             </Pill>
           </td>
           <td className={cn(CELL, 'max-w-md')}>
-            <div className={cn('truncate', { 'italic opacity-60': isChat })} title={log.content}>
-              {isChat ? chatMessageLabel[locale] : log.content}
+            <div className={cn('truncate', { 'italic opacity-60': isChat })} title={first.content}>
+              {isChat ? chatMessageLabel[locale] : first.content}
             </div>
-            {log.error !== null && (
-              <div
-                className={cn(
-                  'mt-1 truncate text-sm',
-                  status === 'retrying'
-                    ? 'text-(--theme-elevation-500)'
-                    : 'text-(--theme-error-500)',
-                )}
-                title={log.error}
+            {isGroup ? (
+              <button
+                type="button"
+                aria-expanded={isExpanded}
+                className="mt-1 inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-sm text-(--theme-elevation-500) hover:text-(--theme-elevation-800)"
+                onClick={() => toggle(key)}
               >
-                {status === 'retrying' ? attemptLabel(log.attempts)[locale] : ''}
-                {log.error}
-              </div>
+                <ChevronDown
+                  aria-hidden
+                  className={cn('size-3.5 transition-transform', { 'rotate-180': isExpanded })}
+                />
+                {deviceCountLabel(deliveries.length)[locale]}
+                {failed > 0 && (
+                  <span className="text-(--theme-error-500)">
+                    {' · '}
+                    {failedCountLabel(failed)[locale]}
+                  </span>
+                )}
+              </button>
+            ) : (
+              renderError(first, status)
             )}
           </td>
           <td className={cn(CELL, 'whitespace-nowrap')}>
-            {format(new Date(log.sentAt), DATE_FORMAT)}
+            {format(new Date(first.sentAt), DATE_FORMAT)}
           </td>
           <td className={cn(CELL, 'whitespace-nowrap')}>
-            {log.deliveredAt === null ? '–' : format(new Date(log.deliveredAt), DATE_FORMAT)}
+            {firstDelivered.deliveredAt === null
+              ? '–'
+              : format(new Date(firstDelivered.deliveredAt), DATE_FORMAT)}
           </td>
           <td className={cn(CELL, 'whitespace-nowrap')}>
-            {log.interactedAt === null ? (
+            {firstInteracted.interactedAt === null ? (
               '–'
             ) : (
               <>
-                {format(new Date(log.interactedAt), DATE_FORMAT)}
+                {format(new Date(firstInteracted.interactedAt), DATE_FORMAT)}
                 <div className="text-xs tracking-wide text-(--theme-elevation-500) uppercase">
-                  {log.interactionType}
+                  {firstInteracted.interactionType}
                 </div>
               </>
             )}
           </td>
         </tr>
       );
+      if (!isGroup || !isExpanded) return [pushRow];
+
+      // one row per device, indented under the push it belongs to
+      const deviceRows = deliveries.map((log) => {
+        const deviceStatus = deliveryStatusOf(log);
+        return (
+          <tr key={log.id} className={stripe}>
+            <td className={cn(CELL, 'pl-8 whitespace-nowrap')}>
+              <Pill pillStyle={statusPillStyles[deviceStatus]} size="small">
+                {statusLabels[deviceStatus][locale]}
+              </Pill>
+            </td>
+            <td className={cn(CELL, 'max-w-md')}>
+              <div className="truncate">{deviceNameOf(log)}</div>
+              {renderError(log, deviceStatus)}
+            </td>
+            <td className={CELL} />
+            {renderTimes(log)}
+          </tr>
+        );
+      });
+      return [pushRow, ...deviceRows];
     });
   };
 
