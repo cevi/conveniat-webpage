@@ -73,9 +73,10 @@ export const getChat = trpcBaseProcedure
       });
     }
 
-    // An announcement shows its members only themselves, every other chat all of its members.
+    // An announcement or a forum topic shows its members only themselves, every other chat all
+    // of its members: both have the whole camp in them.
     const chatMemberships =
-      chat.type === ChatType.ANNOUNCEMENT
+      chat.type === ChatType.ANNOUNCEMENT || chat.type === ChatType.FORUM
         ? chat.chatMemberships
         : await prisma.chatMembership.findMany({
             where: { chatId },

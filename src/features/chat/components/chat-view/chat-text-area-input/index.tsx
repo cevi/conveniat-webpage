@@ -54,6 +54,13 @@ const threadReplyPlaceholder: StaticTranslationString = {
   fr: 'Répondre dans le fil',
 };
 
+/** in a forum topic the thread is a post, and an answer to it a comment */
+const commentPlaceholder: StaticTranslationString = {
+  de: 'Kommentieren …',
+  en: 'Write a comment …',
+  fr: 'Commenter …',
+};
+
 const enterToSendHint: StaticTranslationString = {
   de: 'Enter zum Senden, Shift + Enter für eine neue Zeile',
   en: 'Enter to send, Shift + Enter for a new line',
@@ -377,8 +384,10 @@ export const ChatTextAreaInput: React.FC = () => {
 
   const localizedError = getLocalizedError(sendError);
   let placeholder = messagePlaceholder[locale];
-  if (activeThreadId !== undefined) placeholder = threadReplyPlaceholder[locale];
-  else if (chatDetails.name !== '')
+  if (activeThreadId !== undefined) {
+    placeholder =
+      chatDetails.type === 'FORUM' ? commentPlaceholder[locale] : threadReplyPlaceholder[locale];
+  } else if (chatDetails.name !== '')
     placeholder = messageToPlaceholder[locale].replace('{name}', chatDetails.name);
 
   return (

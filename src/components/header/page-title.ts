@@ -17,6 +17,7 @@ const appPageTitles: Record<string, StaticTranslationString> = {
   emergency: { de: 'Notfall', en: 'Emergency', fr: 'Urgence' },
   map: { de: 'Lagerplatz', en: 'Campsite', fr: 'Terrain du camp' },
   chat: { de: 'Chats', en: 'Chats', fr: 'Conversations' },
+  forum: { de: 'Forum', en: 'Forum', fr: 'Forum' },
   settings: { de: 'Einstellungen', en: 'Settings', fr: 'Paramètres' },
   'helper-portal': { de: 'Schichteinsätze', en: 'Helper Shifts', fr: 'Services de helpers' },
   'photo-contest': { de: 'Foto-Wettbewerb', en: 'Photo Contest', fr: 'Concours Photo' },

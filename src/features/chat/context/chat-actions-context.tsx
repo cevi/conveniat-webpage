@@ -17,8 +17,14 @@ interface ChatActionsContextType {
 
 const ChatActionsContext = createContext<ChatActionsContextType | undefined>(undefined);
 
-export const ChatActionsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [threadHistory, setThreadHistory] = useState<string[]>([]);
+export const ChatActionsProvider: React.FC<{
+  children: React.ReactNode;
+  /** a screen that is one thread, like a forum post: what it writes answers this message */
+  threadId?: string;
+}> = ({ children, threadId }) => {
+  const [threadHistory, setThreadHistory] = useState<string[]>(
+    threadId === undefined ? [] : [threadId],
+  );
   const [quotedMessageId, setQuotedMessageId] = useState<string | undefined>();
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | undefined>();
 

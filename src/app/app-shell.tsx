@@ -12,6 +12,7 @@ import { NativePushProvider } from '@/components/native-push-provider';
 import { OfflineBanner } from '@/components/offline-banner';
 import { useHideBackgroundLogo } from '@/components/ui/hide-background-logo-context';
 import { ClientProviders } from '@/context/client-providers';
+import { ForumStatusOutboxSync } from '@/features/chat/components/forum/use-forum-status-outbox';
 import { OfflineQueueSync } from '@/features/chat/hooks/use-offline-queue-processor';
 import { OnboardingRecheck } from '@/features/onboarding/components/onboarding-recheck';
 import { PostHogProvider } from '@/providers/post-hog-provider';
@@ -52,6 +53,7 @@ export const AppShell: React.FC<AppShellProperties> = ({
       <TRPCProvider>
         <ClientProviders>
           <OfflineQueueSync />
+          <ForumStatusOutboxSync />
           <OnboardingRecheck />
           <NativePushProvider>
             <HideHeaderProvider>

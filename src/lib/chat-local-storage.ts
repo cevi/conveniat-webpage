@@ -6,6 +6,10 @@
 export const CHAT_OUTBOX_STORAGE_KEY = 'conveniat-offline-outbox';
 export const CHAT_FAILED_SENDS_STORAGE_KEY = 'conveniat-failed-sends';
 export const CHAT_DRAFT_STORAGE_KEY_PREFIX = 'conveniat:chat-draft:';
+/** status changes of forum posts made offline, e.g. a helper reporting a post as done */
+export const FORUM_STATUS_OUTBOX_STORAGE_KEY = 'conveniat-forum-status-outbox';
+/** why a queued status change was refused, by post, until the post is opened and read */
+export const FORUM_STATUS_FAILURES_STORAGE_KEY = 'conveniat-forum-status-failures';
 
 /**
  * Drops queued sends, failed sends and composer drafts, so the next person to log in on a
@@ -15,6 +19,8 @@ export const clearUnsentChatData = (): void => {
   try {
     localStorage.removeItem(CHAT_OUTBOX_STORAGE_KEY);
     localStorage.removeItem(CHAT_FAILED_SENDS_STORAGE_KEY);
+    localStorage.removeItem(FORUM_STATUS_OUTBOX_STORAGE_KEY);
+    localStorage.removeItem(FORUM_STATUS_FAILURES_STORAGE_KEY);
     const draftKeys = Array.from({ length: localStorage.length }, (_, index) =>
       localStorage.key(index),
     ).filter((key): key is string => key?.startsWith(CHAT_DRAFT_STORAGE_KEY_PREFIX) === true);
