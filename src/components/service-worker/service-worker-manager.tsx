@@ -2,7 +2,7 @@
 
 import { environmentVariables } from '@/config/environment-variables';
 import { useAppMode } from '@/hooks/use-app-mode';
-import { performReliablePushNavigation } from '@/hooks/use-native-push';
+import { usePushNavigation } from '@/hooks/use-push-navigation';
 import { usePushSubscriptionKeyRenewal } from '@/hooks/use-push-subscription-key-renewal';
 import { useServiceWorkerClientUrlResponder } from '@/hooks/use-service-worker-client-url-responder';
 import { useServiceWorkerMessage } from '@/hooks/use-service-worker-message';
@@ -10,9 +10,9 @@ import { useServiceWorkerRegistration } from '@/hooks/use-service-worker-registr
 import { SerwistProvider, useSerwist } from '@/lib/serwist-client';
 import { useOptionalTrpcUtils } from '@/trpc/client';
 import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
+import { chatIdOfTarget, resolvePushTarget } from '@/utils/push-target';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import { SW_REGISTRATION_OPTIONS, SW_URL } from '@/utils/service-worker-utils';
-import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import React from 'react';
 
@@ -40,7 +40,7 @@ const ServiceWorkerRegistration: React.FC = () => {
  */
 export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({ children }) => {
   useAppMode();
-  const router = useRouter();
+  const { navigateToPushTarget } = usePushNavigation();
   const trpcUtils = useOptionalTrpcUtils();
 
   useServiceWorkerClientUrlResponder();
@@ -49,39 +49,17 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
   useServiceWorkerMessage<{ url?: string; payload?: Record<string, unknown> }>(
     ServiceWorkerMessages.PUSH_NAVIGATE,
     React.useCallback(
-      (payload) => {
-        if (typeof payload.url === 'string' && payload.url.trim() !== '') {
-          const rawUrl = payload.url.trim();
-          let targetPath = '/app/dashboard';
-          if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) {
-            targetPath = rawUrl;
-          } else {
-            try {
-              const parsedUrl = new URL(rawUrl, globalThis.location.origin);
-              targetPath = parsedUrl.pathname + parsedUrl.search;
-            } catch {
-              console.warn('[Service Worker Manager] Could not parse navigation URL:', rawUrl);
-            }
-          }
+      (payload, event) => {
+        if (typeof payload.url !== 'string' || payload.url.trim() === '') return;
+        // Tells the worker that this page routes the tap itself, so it does not load the
+        // target anew on top of the soft navigation.
+        event.ports[0]?.postMessage({ handled: true });
 
-          let targetChatId: string | undefined;
-          if (targetPath.includes('/app/chat/')) {
-            const parts = targetPath.split('/app/chat/');
-            const firstPart = parts[1];
-            if (typeof firstPart === 'string' && firstPart !== '') {
-              targetChatId = firstPart.split('?')[0];
-            }
-          }
-          refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload.payload);
-
-          console.log(
-            '[Service Worker Manager] PUSH_NAVIGATE received, navigating to:',
-            targetPath,
-          );
-          performReliablePushNavigation(router, targetPath);
-        }
+        const target = resolvePushTarget(payload.url.trim());
+        refreshAndOptimisticallyUpdateChat(trpcUtils, chatIdOfTarget(target), payload.payload);
+        navigateToPushTarget(target);
       },
-      [router, trpcUtils],
+      [navigateToPushTarget, trpcUtils],
     ),
   );
 

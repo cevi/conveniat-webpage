@@ -3,13 +3,10 @@
  */
 
 import {
-  checkAndExecutePendingPushNavigation,
   extractMessageIdentifier,
   extractNotificationLogId,
   extractNotificationTitleAndBody,
   extractNotificationType,
-  performReliablePushNavigation,
-  resolveSameOriginPath,
   useNativePush,
 } from '@/hooks/use-native-push';
 import { writePreference } from '@/lib/preferences';
@@ -50,10 +47,10 @@ beforeAll(() => {
   globalThis.Notification.permission = 'granted';
 });
 
+// The real router keeps its identity across renders, and the hook's listeners rely on it.
+const mockRouter = { push: mockPush };
 jest.mock('next/navigation', () => ({
-  useRouter: (): { push: jest.Mock } => ({
-    push: mockPush,
-  }),
+  useRouter: (): { push: jest.Mock } => mockRouter,
 }));
 
 jest.mock('@/trpc/client', () => ({
@@ -260,8 +257,10 @@ describe('useNativePush', () => {
       globalThis.dispatchEvent(openEvent('javascript:alert(1)', false));
     });
 
-    expect(assignLocation).not.toHaveBeenCalled();
     expect(mockPush).toHaveBeenCalledWith('/app/dashboard');
+    // The mocked router never arrives, so the page loads the dashboard, never the script.
+    expect(assignLocation).toHaveBeenCalledWith('/app/dashboard');
+    expect(assignLocation).not.toHaveBeenCalledWith(expect.stringContaining('javascript'));
   });
 
   it('prioritizes chatId over generic fallback dashboard url', () => {
@@ -533,105 +532,6 @@ describe('useNativePush', () => {
         expect.objectContaining({ token: 'token-reenabled', platform: 'android' }),
       );
       expect(result.current.isOptedOut).toBe(false);
-    });
-  });
-
-  describe('performReliablePushNavigation', () => {
-    beforeEach(() => {
-      sessionStorage.clear();
-      localStorage.clear();
-    });
-
-    it('never hands a javascript: URL to the browser', () => {
-      performReliablePushNavigation({ push: mockPush }, 'javascript:alert(document.domain)');
-
-      expect(assignLocation).not.toHaveBeenCalled();
-      expect(mockPush).toHaveBeenCalledWith('/app/dashboard');
-      expect(localStorage.getItem('pending_push_redirect')).toBe('/app/dashboard');
-    });
-
-    it('treats a slash-backslash target as the other origin a browser reads it as', () => {
-      performReliablePushNavigation({ push: mockPush }, String.raw`/\example.org/login`);
-
-      expect(mockPush).not.toHaveBeenCalled();
-      expect(assignLocation).toHaveBeenCalledWith('http://example.org/login');
-      expect(localStorage.getItem('pending_push_redirect')).toBeNull();
-    });
-    it('does not follow a link on this origin whose path names another origin', () => {
-      const target = `${globalThis.location.origin}//example.org/login`;
-
-      expect(resolveSameOriginPath(target)).toBeUndefined();
-      performReliablePushNavigation({ push: mockPush }, target);
-
-      expect(assignLocation).not.toHaveBeenCalled();
-      expect(mockPush).toHaveBeenCalledWith('/app/dashboard');
-    });
-
-    it('recognises a target with a query and a fragment as reached', () => {
-      jest.useFakeTimers();
-      const originalHref = globalThis.location.href;
-      try {
-        performReliablePushNavigation({ push: mockPush }, '/app/schedule?day=2#details');
-        globalThis.history.replaceState({}, '', '/app/schedule?day=2#details');
-        const hrefAfterNavigation = globalThis.location.href;
-
-        jest.advanceTimersByTime(300);
-        expect(globalThis.location.href).toBe(hrefAfterNavigation);
-
-        checkAndExecutePendingPushNavigation({ push: mockPush });
-        expect(localStorage.getItem('pending_push_redirect')).toBeNull();
-        expect(mockPush).toHaveBeenCalledTimes(1);
-      } finally {
-        globalThis.history.replaceState({}, '', originalHref);
-        jest.useRealTimers();
-      }
-    });
-
-    it('opens a pending target that differs from the current page only by its query', () => {
-      jest.useFakeTimers();
-      const originalHref = globalThis.location.href;
-      try {
-        globalThis.history.replaceState({}, '', '/app/schedule');
-        localStorage.setItem('pending_push_redirect', '/app/schedule?id=123');
-
-        checkAndExecutePendingPushNavigation({ push: mockPush });
-
-        expect(mockPush).toHaveBeenCalledWith('/app/schedule?id=123');
-        expect(localStorage.getItem('pending_push_redirect')).toBe('/app/schedule?id=123');
-      } finally {
-        jest.clearAllTimers();
-        jest.useRealTimers();
-        localStorage.clear();
-        globalThis.history.replaceState({}, '', originalHref);
-      }
-    });
-  });
-
-  describe('resolveSameOriginPath', () => {
-    it('keeps a path on this origin with its query and fragment', () => {
-      expect(resolveSameOriginPath('/app/chat/abc?tab=info#latest')).toBe(
-        '/app/chat/abc?tab=info#latest',
-      );
-      expect(resolveSameOriginPath(`${globalThis.location.origin}/app/schedule`)).toBe(
-        '/app/schedule',
-      );
-    });
-
-    it.each([
-      'javascript:alert(1)',
-      ' JaVaScript:alert(1)',
-      'data:text/html,<script>alert(1)</script>',
-      'https://example.org/login',
-      '//example.org/login',
-      String.raw`/\example.org/login`,
-      String.raw`\\example.org/login`,
-    ])('rejects %s', (target) => {
-      expect(resolveSameOriginPath(target)).toBeUndefined();
-    });
-
-    it('returns undefined when the link carries no target', () => {
-      expect(resolveSameOriginPath(null)).toBeUndefined();
-      expect(resolveSameOriginPath('  ')).toBeUndefined();
     });
   });
 

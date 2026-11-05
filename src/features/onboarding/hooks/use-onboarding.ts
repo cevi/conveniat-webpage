@@ -9,12 +9,9 @@ import {
 } from '@/features/onboarding/state/onboarding-finite-state-machine';
 import { OnboardingAction, OnboardingStep } from '@/features/onboarding/types';
 import { useAuthStatus } from '@/hooks/use-auth-status';
-import {
-  extractTargetUrl,
-  performReliablePushNavigation,
-  resolveSameOriginPath,
-} from '@/hooks/use-native-push';
+import { extractTargetUrl } from '@/hooks/use-native-push';
 import { useOnlineStatus } from '@/hooks/use-online-status';
+import { usePushNavigation } from '@/hooks/use-push-navigation';
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
 import { forgetOnboardingComplete, rememberOnboardingComplete } from '@/lib/onboarding-complete';
 import type { Locale } from '@/types/types';
@@ -25,6 +22,7 @@ import { isCookieTrue } from '@/utils/cookie-utils';
 import { DesignCodes, DesignModeTriggers } from '@/utils/design-codes';
 import { handleSkipLogin as skipLoginUtil } from '@/utils/login-handler';
 import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
+import { resolveSameOriginPath } from '@/utils/push-target';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import Cookies from 'js-cookie';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -71,6 +69,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
   const searchParameters = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
+  const { navigateToPushTarget } = usePushNavigation();
 
   // Fallback timeout if NextAuth session check hangs or delays (e.g. during database/Redis connection issues)
   useEffect(() => {
@@ -267,7 +266,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
             '[Onboarding] Native push open event received, executing navigation to:',
             targetUrl,
           );
-          performReliablePushNavigation(router, targetUrl);
+          navigateToPushTarget(targetUrl);
         }
       }
     };
@@ -276,7 +275,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
     return (): void => {
       globalThis.removeEventListener('app-webview-native-push-event', handleNativePushEvent);
     };
-  }, [router]);
+  }, [navigateToPushTarget]);
 
   // Determine target redirect path for prefetching and post-onboarding navigation
   const targetRedirectPath = useMemo((): string => {
@@ -323,11 +322,13 @@ export const useOnboarding = (): UseOnboardingReturn => {
   }, [onboardingStep]);
 
   // Redirect to target destination or dashboard when finished
-  // The effect runs again whenever `router` changes identity; a second `location.replace` would
-  // abort the page load the first one started.
-  const hasLeftForDashboard = useRef(false);
+  // The effect runs again whenever one of its dependencies changes. Leaving the entrypoint is
+  // always a full page load, and a second one would abort the load the first one started.
+  const hasLeft = useRef(false);
   useEffect(() => {
     if (onboardingStep === OnboardingStep.Loading) {
+      if (hasLeft.current) return;
+      hasLeft.current = true;
       // the next start skips the entrypoint; see ONBOARDING_COMPLETE_KEY
       rememberOnboardingComplete();
       try {
@@ -335,10 +336,8 @@ export const useOnboarding = (): UseOnboardingReturn => {
           sessionStorage.getItem('pending_push_redirect') ??
           localStorage.getItem('pending_push_redirect');
         if (pendingRedirect) {
-          sessionStorage.removeItem('pending_push_redirect');
-          localStorage.removeItem('pending_push_redirect');
           console.log('[Onboarding] Pending push redirect found, navigating to:', pendingRedirect);
-          performReliablePushNavigation(router, pendingRedirect);
+          navigateToPushTarget(pendingRedirect);
           return;
         }
       } catch {
@@ -350,14 +349,12 @@ export const useOnboarding = (): UseOnboardingReturn => {
       // trip online and a whole network timeout on wifi without an uplink. Replacing the entry
       // also keeps the back gesture on the dashboard from returning here.
       if (targetRedirectPath === '/app/dashboard') {
-        if (hasLeftForDashboard.current) return;
-        hasLeftForDashboard.current = true;
         globalThis.location.replace('/app/dashboard');
       } else {
-        performReliablePushNavigation(router, targetRedirectPath);
+        navigateToPushTarget(targetRedirectPath);
       }
     }
-  }, [onboardingStep, router, targetRedirectPath]);
+  }, [onboardingStep, navigateToPushTarget, targetRedirectPath]);
 
   return {
     locale,

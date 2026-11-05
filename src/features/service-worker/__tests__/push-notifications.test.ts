@@ -6,6 +6,25 @@ import {
 } from '@/features/service-worker/push-notifications';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 
+/** A visible window whose page takes a PUSH_NAVIGATE over when `routesTaps` is set. */
+const makeOpenApp = (
+  routesTaps: boolean,
+  navigate: jest.Mock = jest.fn().mockResolvedValue(true),
+  url = 'https://konekta.ch/app/dashboard',
+): WindowClient =>
+  ({
+    id: 'window-1',
+    url,
+    visibilityState: 'visible',
+    focus: jest.fn().mockResolvedValue(true),
+    navigate,
+    postMessage: jest.fn((message: unknown, transfer?: readonly MessagePort[]) => {
+      const isPushNavigate =
+        (message as { type?: string }).type === ServiceWorkerMessages.PUSH_NAVIGATE;
+      if (isPushNavigate && routesTaps) transfer?.[0]?.postMessage({ handled: true });
+    }),
+  }) as unknown as WindowClient;
+
 describe('notificationClickHandler', () => {
   let mockServiceWorkerScope: Partial<ServiceWorkerGlobalScope>;
   let mockNotification: Partial<Notification>;
@@ -69,85 +88,120 @@ describe('notificationClickHandler', () => {
     };
   });
 
-  it('focuses visible client and uses navigate when supported', async () => {
-    const mockFocus = jest.fn().mockResolvedValue(true);
-    const mockNavigate = jest.fn().mockResolvedValue(true);
-    const mockPostMessage = jest.fn();
-
-    const mockClient = {
-      visibilityState: 'visible',
-      focus: mockFocus,
-      navigate: mockNavigate,
-      postMessage: mockPostMessage,
-    } as unknown as WindowClient;
-
-    (mockServiceWorkerScope.clients?.matchAll as jest.Mock).mockResolvedValue([mockClient]);
-
-    const handler = notificationClickHandler(
-      mockServiceWorkerScope as unknown as ServiceWorkerGlobalScope,
+  /**
+   * Taps the chat notification with `client` open and waits until the worker is done. A page
+   * that does not answer is waited for with fake timers; an answer travels over a real port.
+   */
+  const tapWith = async (
+    client: WindowClient,
+    pageAnswers: boolean,
+    controlled = true,
+  ): Promise<void> => {
+    (mockServiceWorkerScope.clients?.matchAll as jest.Mock).mockImplementation(
+      (options?: ClientQueryOptions) =>
+        Promise.resolve(controlled || options?.includeUncontrolled === true ? [client] : []),
     );
-    handler(mockEvent as NotificationEvent);
+    if (!pageAnswers) jest.useFakeTimers();
+    try {
+      notificationClickHandler(mockServiceWorkerScope as unknown as ServiceWorkerGlobalScope)(
+        mockEvent as NotificationEvent,
+      );
+      const calls = mockWaitUntil.mock.calls as Promise<unknown>[][];
+      const done = calls[0]?.[0];
+      if (!pageAnswers) await jest.advanceTimersByTimeAsync(2500);
+      await done;
+    } finally {
+      jest.useRealTimers();
+    }
+  };
 
-    expect(mockNotificationClose).toHaveBeenCalledTimes(1);
+  it('leaves the tap to an open app that routes it, so the app is not loaded anew', async () => {
+    const client = makeOpenApp(true);
+    await tapWith(client, true);
 
-    const calls = mockWaitUntil.mock.calls as Promise<unknown>[][];
-    const waitUntilPromise = calls[0]?.[0];
-    await waitUntilPromise;
-
-    expect(mockFocus).toHaveBeenCalledTimes(1);
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.stringContaining('/app/chat/550e8400-e29b-41d4-a716-446655440000'),
-    );
-    expect(mockPostMessage).toHaveBeenCalledWith({
-      type: ServiceWorkerMessages.PUSH_NAVIGATE,
-      payload: {
-        url: 'https://konekta.ch/app/chat/550e8400-e29b-41d4-a716-446655440000?app-mode=true',
+    expect(client.focus).toHaveBeenCalledTimes(1);
+    expect(client.postMessage).toHaveBeenCalledWith(
+      {
+        type: ServiceWorkerMessages.PUSH_NAVIGATE,
+        payload: {
+          url: 'https://konekta.ch/app/chat/550e8400-e29b-41d4-a716-446655440000?app-mode=true',
+        },
       },
-    });
+      expect.any(Array),
+    );
+    expect(client.navigate).not.toHaveBeenCalled();
+    expect(mockServiceWorkerScope.clients?.openWindow).not.toHaveBeenCalled();
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/trpc/pushTracking.markInteracted?batch=1',
       expect.objectContaining({ method: 'POST' }),
     );
-    expect(mockPostMessage).toHaveBeenCalledWith({
+    expect(client.postMessage).toHaveBeenCalledWith({
       type: ServiceWorkerMessages.CAPTURE_POSTHOG_EVENT,
       payload: { event: 'push_notification_opened', properties: { channel: 'web' } },
     });
   });
 
-  it('falls back to postMessage when client navigate throws', async () => {
-    const mockFocus = jest.fn().mockResolvedValue(true);
-    const mockNavigate = jest.fn().mockRejectedValue(new Error('Navigation blocked'));
-    const mockPostMessage = jest.fn();
+  it('loads the target in an open page that does not route the tap, like the admin panel', async () => {
+    const client = makeOpenApp(false);
+    await tapWith(client, false);
 
-    const mockClient = {
-      visibilityState: 'visible',
-      focus: mockFocus,
-      navigate: mockNavigate,
-      postMessage: mockPostMessage,
-    } as unknown as WindowClient;
-
-    (mockServiceWorkerScope.clients?.matchAll as jest.Mock).mockResolvedValue([mockClient]);
-
-    const handler = notificationClickHandler(
-      mockServiceWorkerScope as unknown as ServiceWorkerGlobalScope,
+    expect(client.navigate).toHaveBeenCalledWith(
+      'https://konekta.ch/app/chat/550e8400-e29b-41d4-a716-446655440000?app-mode=true',
     );
-    handler(mockEvent as NotificationEvent);
+    expect(mockServiceWorkerScope.clients?.openWindow).not.toHaveBeenCalled();
+  });
 
-    const calls = mockWaitUntil.mock.calls as Promise<unknown>[][];
-    const waitUntilPromise = calls[0]?.[0];
-    await waitUntilPromise;
+  it('loads the target on the admin panel at once, which has nobody to route the tap', async () => {
+    const client = makeOpenApp(false, undefined, 'https://konekta.ch/admin/collections/chats');
+    // Real timers: a wait for an answer would show up as a missing navigation.
+    await tapWith(client, true);
 
-    expect(mockFocus).toHaveBeenCalledTimes(1);
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
-    const expectedUrl = expect.stringContaining(
-      '/app/chat/550e8400-e29b-41d4-a716-446655440000',
-    ) as unknown as string;
-    expect(mockPostMessage).toHaveBeenCalledWith({
-      type: ServiceWorkerMessages.PUSH_NAVIGATE,
-      payload: {
-        url: expectedUrl,
-      },
-    });
+    expect(client.postMessage).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: ServiceWorkerMessages.PUSH_NAVIGATE }),
+      expect.anything(),
+    );
+    expect(client.navigate).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the tap to an app page it does not control yet, when that page routes it', async () => {
+    const navigate = jest.fn().mockRejectedValue(new TypeError('uncontrolled'));
+    const client = makeOpenApp(true, navigate);
+    await tapWith(client, true, false);
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(mockServiceWorkerScope.clients?.openWindow).not.toHaveBeenCalled();
+  });
+
+  it('opens a window soon for a page it does not control that does not answer', async () => {
+    const client = makeOpenApp(false, jest.fn().mockRejectedValue(new TypeError('uncontrolled')));
+    (mockServiceWorkerScope.clients?.matchAll as jest.Mock).mockImplementation(
+      (options?: ClientQueryOptions) =>
+        Promise.resolve(options?.includeUncontrolled === true ? [client] : []),
+    );
+    jest.useFakeTimers();
+    try {
+      notificationClickHandler(mockServiceWorkerScope as unknown as ServiceWorkerGlobalScope)(
+        mockEvent as NotificationEvent,
+      );
+      const done = (mockWaitUntil.mock.calls as Promise<unknown>[][])[0]?.[0];
+      await jest.advanceTimersByTimeAsync(500);
+      await done;
+    } finally {
+      jest.useRealTimers();
+    }
+
+    expect(mockServiceWorkerScope.clients?.openWindow).toHaveBeenCalledWith(
+      expect.stringContaining('/app/chat/550e8400-e29b-41d4-a716-446655440000'),
+    );
+  });
+
+  it('opens a new window when the open page neither routes the tap nor can be navigated', async () => {
+    const client = makeOpenApp(false, jest.fn().mockRejectedValue(new TypeError('uncontrolled')));
+    await tapWith(client, false);
+
+    expect(mockServiceWorkerScope.clients?.openWindow).toHaveBeenCalledWith(
+      expect.stringContaining('/app/chat/550e8400-e29b-41d4-a716-446655440000'),
+    );
   });
 
   it('opens a new window when no existing window client is found', async () => {
