@@ -391,6 +391,7 @@ export const createForumPost = trpcBaseProcedure
         messageId: message.uuid,
         chatId: chat.uuid,
         title: input.title,
+        body: input.text,
         private: input.private,
         approvedAt: pending ? null : new Date(),
         ...(input.location === undefined
