@@ -1,7 +1,7 @@
 'use client';
 
-import { useCeviGroupSuggestions } from '@/features/payload-cms/payload-cms/components/announcement-channel/use-cevi-group-suggestions';
-import type { CeviGroupSuggestion } from '@/features/payload-cms/payload-cms/endpoints/announcement-channel-audience';
+import type { CeviGroupSuggestion } from '@/features/payload-cms/payload-cms/chat-channels/channel-endpoints';
+import { useCeviGroupSuggestions } from '@/features/payload-cms/payload-cms/components/chat-channel/use-cevi-group-suggestions';
 import { getAdminLocale } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import type { StaticTranslationString } from '@/types/types';
 import type { ReactSelectOption } from '@payloadcms/ui';

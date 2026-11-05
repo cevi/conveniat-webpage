@@ -1,8 +1,9 @@
 'use client';
 
+import { useChannelApiPath } from '@/features/payload-cms/payload-cms/components/chat-channel/use-channel-api-path';
 import { getAdminLocale } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import type { StaticTranslationString } from '@/types/types';
-import { Banner, useConfig, useFormFields, useTranslation } from '@payloadcms/ui';
+import { Banner, useFormFields, useTranslation } from '@payloadcms/ui';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 
@@ -44,15 +45,15 @@ type CountState = { status: 'loading' } | { status: 'failed' } | { status: 'done
  * `audience` is the request body, as a string so an unchanged audience sends nothing.
  */
 const useAudienceCount = (audience: string): CountState => {
-  const { config } = useConfig();
-  const apiRoute = `${config.serverURL}${config.routes.api}`;
+  const channelApiPath = useChannelApiPath();
   // the answer remembers its audience, so a changed selection reads as loading until it lands
   const [answer, setAnswer] = useState<{ audience: string; state: CountState } | undefined>();
 
   useEffect(() => {
+    if (channelApiPath === undefined) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      fetch(`${apiRoute}/announcement-channels/audience-preview`, {
+      fetch(`${channelApiPath}/audience-preview`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -72,8 +73,9 @@ const useAudienceCount = (audience: string): CountState => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [apiRoute, audience]);
+  }, [channelApiPath, audience]);
 
+  if (channelApiPath === undefined) return { status: 'failed' };
   return answer?.audience === audience ? answer.state : { status: 'loading' };
 };
 

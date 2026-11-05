@@ -9,7 +9,7 @@ jest.mock('@/lib/db/prisma', () => ({
 jest.mock('@/lib/db/publish-membership-revoked', () => ({ publishMembershipRevoked: jest.fn() }));
 
 import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
-import { resyncAvpChannels } from '@/features/payload-cms/payload-cms/utils/announcement-channel-memberships';
+import { resyncAvpChannels } from '@/features/payload-cms/payload-cms/chat-channels/channel-memberships';
 import prisma from '@/lib/db/prisma';
 import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
 import type { Payload } from 'payload';
