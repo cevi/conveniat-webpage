@@ -187,7 +187,14 @@ export const ForumComposer: React.FC = () => {
     }
   };
 
-  const mapPickHref = `/app/map?pickForum=1${topicId === undefined ? '' : `&topic=${topicId}`}`;
+  // the picker opens at the spot already chosen, so "Ändern" moves the pin from there
+  const mapPickHref = `/app/map?${new URLSearchParams({
+    pickForum: '1',
+    ...(topicId === undefined ? {} : { topic: topicId }),
+    ...(location === undefined
+      ? {}
+      : { lng: location.longitude.toFixed(6), lat: location.latitude.toFixed(6) }),
+  }).toString()}`;
   const keepDraft = (): void => saveDraft({ title, text, topicId });
   const canPublish =
     isOnline && topicId !== undefined && title.trim() !== '' && !create.isPending && !isUploading;

@@ -25,6 +25,7 @@ import { i18nConfig } from '@/types/types';
 import { quartierRufnameOf, shortQuartierName } from '@/utils/quartier-names';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 /**
@@ -168,13 +169,19 @@ export const MapLibreRenderer = ({
     locale,
   });
 
+  // While the forum's composer picks a spot, a tap places its pin: no place opens, and the
+  // address keeps the picker's parameters instead of naming a place.
+  const searchParameters = useSearchParams();
+  const isPickingForumSpot = enableSearch && searchParameters.get('pickForum') === '1';
+  const noAnnotation = useCallback((): void => {}, []);
+
   useMapUrlSync(
     openAnnotation,
     setOpenAnnotation,
     closeDrawer,
     annotationPoints,
     annotationPolygons,
-    !disableUrlSync,
+    !disableUrlSync && !isPickingForumSpot,
   );
 
   // Filter annotations based on hiddenOnDefaultMap and open status
@@ -232,7 +239,7 @@ export const MapLibreRenderer = ({
 
   return (
     <MapContextProvider map={map}>
-      {openAnnotation && !hideDrawer && (
+      {openAnnotation && !hideDrawer && !isPickingForumSpot && (
         <AnnotationDetailsDrawer
           closeDrawer={closeDrawer}
           annotation={openAnnotation}
@@ -252,7 +259,7 @@ export const MapLibreRenderer = ({
       )}
       <MaplibreMap
         openAnnotation={openAnnotation}
-        setOpenAnnotation={setOpenAnnotation}
+        setOpenAnnotation={isPickingForumSpot ? noAnnotation : setOpenAnnotation}
         campMapAnnotationPoints={filteredAnnotationPoints}
         campMapAnnotationPolygons={filteredAnnotationPolygons}
         ceviLogoMarkers={ceviLogoMarkers}
