@@ -5,15 +5,20 @@ import { SESSION_EXPIRED_ENTRYPOINT } from '@/features/onboarding/onboarding-con
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import { forgetOnboardingComplete, ONBOARDING_COMPLETE_KEY } from '@/lib/onboarding-complete';
-import { readPreference } from '@/lib/preferences';
+import { readPreference, writePreference } from '@/lib/preferences';
+import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { Cookie } from '@/types/types';
 import { replaceLocation } from '@/utils/assign-location';
 import { isCookieTrue } from '@/utils/cookie-utils';
+import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
 import { restoreLostPushSubscription } from '@/utils/push-notifications/push-subscription';
 import { ANSWERED_BY_SERVICE_WORKER_HEADER } from '@/utils/service-worker-messages';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import { useEffect, useRef } from 'react';
+
+/** How often a web app tells the server that its push subscription is still in use. */
+const PUSH_CHECK_IN_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 const isOnboardingComplete = (): boolean => {
   try {
@@ -52,12 +57,16 @@ const fetchSessionVerdict = async (): Promise<'valid' | 'expired' | undefined> =
  *   start show the push step again, as it did before; the current visit is not interrupted.
  *   An installed web app that still has the permission but lost its subscription is
  *   subscribed again right away, unless the user turned push off (`web-push-opted-out`): the
- *   push step would not show, since the permission is there.
+ *   push step would not show, since the permission is there. One that still has its
+ *   subscription checks in once a day instead, so the admin panel can tell a device in use
+ *   from one that is gone.
  */
 export const useOnboardingRecheck = (locale: Locale): void => {
   const isOnline = useOnlineStatus();
   const hasCheckedSession = useRef(false);
   const hasCheckedPushSubscription = useRef(false);
+  const { mutateAsync: confirmPushSubscription } =
+    trpc.pushTracking.confirmWebPushSubscription.useMutation();
 
   useEffect(() => {
     if (!isOnline || hasCheckedSession.current || !isOnboardingComplete()) return;
@@ -85,10 +94,24 @@ export const useOnboardingRecheck = (locale: Locale): void => {
       return;
 
     hasCheckedPushSubscription.current = true;
-    restoreLostPushSubscription(locale).catch((error: unknown) => {
-      console.warn('Failed to restore the lost push subscription', error);
+    const restoreOrCheckIn = async (): Promise<void> => {
+      // storing a restored subscription renews it on the server as well
+      const isRestored = await restoreLostPushSubscription(locale);
+      if (!isRestored) {
+        const lastCheckIn = readPreference('web-push-checked-in-at');
+        if (Date.now() - lastCheckIn < PUSH_CHECK_IN_INTERVAL_MS) return;
+        const subscription = await getPushSubscription();
+        if (subscription === undefined) return;
+        await confirmPushSubscription(
+          subscription.toJSON() as Parameters<typeof confirmPushSubscription>[0],
+        );
+      }
+      writePreference('web-push-checked-in-at', Date.now());
+    };
+    restoreOrCheckIn().catch((error: unknown) => {
+      console.warn('Failed to restore or check in the push subscription', error);
     });
-  }, [isOnline, locale]);
+  }, [isOnline, locale, confirmPushSubscription]);
 
   useEffect(() => {
     if (!isOnboardingComplete() || isCookieTrue(Cookie.SKIP_PUSH_NOTIFICATION)) return;

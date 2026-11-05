@@ -1,7 +1,13 @@
 import { recordPushTrackingEvent } from '@/lib/push-metrics';
 import { endpointHostOf } from '@/lib/push/push-endpoint';
 import { DatabasePushSubscriptionSchema, PushSubscriptionSchema } from '@/schemas/push';
-import { createTRPCRouter, publicProcedure, trpcFullAdminProcedure } from '@/trpc/init';
+import {
+  createTRPCRouter,
+  publicProcedure,
+  trpcBaseProcedure,
+  trpcFullAdminProcedure,
+} from '@/trpc/init';
+import { getPayloadUserFromNextAuthUser } from '@/utils/auth-helpers';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { headers } from 'next/headers';
@@ -135,6 +141,43 @@ export const pushTrackingRouter = createTRPCRouter({
       });
       logger.info('Renewed push subscription', logAttributes);
       return { renewed: true };
+    }),
+
+  /**
+   * A web app saying, at most once a day, that its push subscription is still in use. It keeps
+   * `lastUsedAt` as true for a browser as it is for the native app, which renews its token on
+   * every launch, so a device that stops checking in shows as inactive after a month.
+   *
+   * Only the signed-in person's own row is touched, matched by endpoint and auth secret. A row
+   * that is gone stays gone: an admin may have removed the device, and the person turns push
+   * on again in the settings.
+   */
+  confirmWebPushSubscription: trpcBaseProcedure
+    .input(PushSubscriptionSchema)
+    .mutation(async ({ ctx, input }) => {
+      const payload = await getPayload({ config });
+      const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
+      if (!payloadUser) return { confirmed: false };
+
+      const { docs } = await payload.update({
+        collection: 'push-notification-subscriptions',
+        where: {
+          and: [
+            { user: { equals: payloadUser.id } },
+            { endpoint: { equals: input.endpoint } },
+            { 'keys.auth': { equals: input.keys.auth } },
+          ],
+        },
+        data: { lastUsedAt: new Date().toISOString() },
+        depth: 0,
+      });
+      // once per device and day
+      logger.debug('Web push subscription checked in', {
+        'server.address': endpointHostOf(input.endpoint),
+        'user.id': payloadUser.id,
+        'subscription.confirmed': docs.length > 0,
+      });
+      return { confirmed: docs.length > 0 };
     }),
 
   // Admin only: it pushes arbitrary text to any subscription the caller names.
