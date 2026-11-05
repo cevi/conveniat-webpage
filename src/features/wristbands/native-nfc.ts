@@ -169,6 +169,44 @@ interface SessionOptions {
 }
 
 /**
+ * Longest the page waits for the app to close a session it cancelled. The app reports the end of
+ * every request once its session is closed, which takes about a second on Android; an app that
+ * does not would otherwise keep every later session from starting.
+ */
+const NATIVE_CLOSE_WAIT_MS = 4000;
+
+/**
+ * The session each bridge is still closing, until the app reports its end. The app refuses a
+ * session while another runs (`busy`), and a page that cancels one, e.g. when a sheet closes, is
+ * done with it long before the app is.
+ */
+const closing = new WeakMap<NativeNfcBridge, Promise<void>>();
+
+/** Waits for the app to close the bridge's last session, or for `signal` to give up on it. */
+const untilClosed = async (
+  previous: Promise<void>,
+  signal: AbortSignal | undefined,
+): Promise<void> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let onAbort: (() => void) | undefined;
+  try {
+    await Promise.race([
+      previous,
+      new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, NATIVE_CLOSE_WAIT_MS);
+      }),
+      new Promise<void>((resolve) => {
+        onAbort = resolve;
+        signal?.addEventListener('abort', onAbort);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+    if (onAbort !== undefined) signal?.removeEventListener('abort', onAbort);
+  }
+};
+
+/**
  * Starts one session of the native app and settles with it: resolves with the detail of its
  * `done` event, rejects with a `NativeNfcError` on `error`, on `cancelled`, on the signal and
  * after `timeoutMs`. Events of other requests are ignored. While the tag lies on the phone,
@@ -181,7 +219,19 @@ const runSession = async <T>(
   options: SessionOptions = {},
 ): Promise<T> => {
   const { onCredentialsNeeded, onCredentialsSent, onProgress, signal, timeoutMs } = options;
+  // only once the app closed the last one, or it answers `busy`; at once when nothing is closing
+  const previous = closing.get(bridge);
+  if (previous !== undefined) await untilClosed(previous, signal);
   if (signal?.aborted === true) throw new NativeNfcError('cancelled');
+
+  let markClosed: (() => void) | undefined;
+  const closed = new Promise<void>((resolve) => {
+    markClosed = resolve;
+  });
+  closing.set(bridge, closed);
+  void closed.then(() => {
+    if (closing.get(bridge) === closed) closing.delete(bridge);
+  });
 
   return await new Promise<T>((resolve, reject) => {
     let requestId: string | undefined;
@@ -276,12 +326,35 @@ const runSession = async <T>(
     signal?.addEventListener('abort', onAbort);
     if (timeoutMs !== undefined) timer = setTimeout(() => cancel('timeout'), timeoutMs);
 
+    // the end of the request as the app reports it, which outlives the page's interest in it
+    const endTypes = [done, 'error', 'cancelled'];
+    const earlyEnds: unknown[] = [];
+    const ended = (): void => {
+      for (const type of endTypes) globalThis.removeEventListener(EVENT_PREFIX + type, onEnd);
+      clearTimeout(closeTimer);
+      markClosed?.();
+    };
+    function onEnd(event: Event): void {
+      const detail: unknown = (event as CustomEvent<unknown>).detail;
+      if (!isRecord(detail)) return;
+      if (requestId === undefined) earlyEnds.push(detail['requestId']);
+      else if (detail['requestId'] === requestId) ended();
+    }
+    for (const type of endTypes) globalThis.addEventListener(EVENT_PREFIX + type, onEnd);
+    // a session the app never reports the end of does not hold up the next one for good
+    const closeTimer = setTimeout(
+      ended,
+      (timeoutMs ?? NFC_SESSION_TIMEOUT_MS) + NATIVE_CLOSE_WAIT_MS,
+    );
+
     try {
       requestId = start(bridge);
     } catch {
+      ended();
       fail(new NativeNfcError('unknown'));
       return;
     }
+    if (earlyEnds.includes(requestId)) ended();
     for (const event of early) {
       if (event.detail['requestId'] === requestId) handle(event.type, event.detail);
     }

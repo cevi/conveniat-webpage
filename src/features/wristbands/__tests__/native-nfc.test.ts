@@ -157,6 +157,44 @@ describe('the native NFC bridge', () => {
     expect(bridge.cancel).toHaveBeenCalledTimes(1);
   });
 
+  it('starts the next session only once the app closed the one the page gave up on', async () => {
+    const first = new AbortController();
+    const cancelled = provisionBand({ signal: first.signal });
+    first.abort();
+    await expect(cancelled).rejects.toMatchObject({ code: 'cancelled' });
+
+    // e.g. the sheet of the next person opens while the app still closes the last session
+    const next = provisionBand({});
+    await flush();
+    expect(bridge.provision).toHaveBeenCalledTimes(1);
+
+    emit('cancelled', { requestId: 'request-1' });
+    await flush();
+    expect(bridge.provision).toHaveBeenCalledTimes(2);
+    emit('provisioned', { requestId: 'request-3', uid: UID });
+    await expect(next).resolves.toMatchObject({ uid: UID });
+  });
+
+  it('starts the next session at once after a band was written', async () => {
+    const written = provisionBand({});
+    emit('provisioned', { requestId: 'request-1', uid: UID });
+    await written;
+    void provisionBand({});
+    expect(bridge.provision).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not wait for good for an app that never reports the end of a cancelled session', async () => {
+    jest.useFakeTimers();
+    const first = new AbortController();
+    const cancelled = provisionBand({ signal: first.signal });
+    first.abort();
+    await expect(cancelled).rejects.toMatchObject({ code: 'cancelled' });
+
+    void provisionBand({});
+    await jest.advanceTimersByTimeAsync(4000);
+    expect(bridge.provision).toHaveBeenCalledTimes(2);
+  });
+
   it('cancels a session that waits for a band too long', async () => {
     jest.useFakeTimers();
     const result = provisionBand({ timeoutMs: 60_000 });
