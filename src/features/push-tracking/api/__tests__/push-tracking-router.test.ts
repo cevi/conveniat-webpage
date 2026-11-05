@@ -56,10 +56,14 @@ jest.mock('@/lib/push/send-notification-to-subscription', () => ({
 import { pushTrackingRouter } from '@/features/push-tracking/api/push-tracking-router';
 
 const mockFindMany = jest.fn();
-const mockUpdate = jest.fn();
+const mockUpdateManyAndReturn = jest.fn();
 const mockGroupBy = jest.fn();
 const prisma = {
-  pushNotificationLog: { findMany: mockFindMany, update: mockUpdate, groupBy: mockGroupBy },
+  pushNotificationLog: {
+    findMany: mockFindMany,
+    updateManyAndReturn: mockUpdateManyAndReturn,
+    groupBy: mockGroupBy,
+  },
 };
 
 const createCaller = createCallerFactory(pushTrackingRouter);
@@ -89,7 +93,7 @@ const testSend = {
 describe('pushTrackingRouter access', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUpdate.mockResolvedValue({ channel: 'WEB_PUSH', kind: 'CHAT' });
+    mockUpdateManyAndReturn.mockResolvedValue([{ channel: 'WEB_PUSH', kind: 'CHAT' }]);
   });
 
   it('refuses the notification history to anyone signed out', async () => {
@@ -147,7 +151,9 @@ describe('pushTrackingRouter access', () => {
     await expect(
       callerAs(signedOut).markInteracted({ id: 'log-1', type: 'CLICK' }),
     ).resolves.toEqual({ success: true });
-    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'log-1' } }));
+    expect(mockUpdateManyAndReturn).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'log-1' } }),
+    );
   });
 });
 
@@ -219,12 +225,12 @@ describe('pushTrackingRouter.renewWebPushSubscription', () => {
 
 /** The `data` of the first row update. */
 const updateData = (): Record<string, unknown> =>
-  (mockUpdate.mock.calls as [{ data: Record<string, unknown> }][])[0]?.[0].data ?? {};
+  (mockUpdateManyAndReturn.mock.calls as [{ data: Record<string, unknown> }][])[0]?.[0].data ?? {};
 
 describe('pushTrackingRouter delivery reports', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUpdate.mockResolvedValue({ channel: 'WEB_PUSH', kind: 'CHAT' });
+    mockUpdateManyAndReturn.mockResolvedValue([{ channel: 'WEB_PUSH', kind: 'CHAT' }]);
   });
 
   /**
@@ -259,6 +265,26 @@ describe('pushTrackingRouter delivery reports', () => {
       success: true,
     });
     expect(updateData()).toEqual(expect.objectContaining({ status: 'DELIVERED' }));
+  });
+
+  /**
+   * A phone that was offline reports long after the send, and the row may be gone by then.
+   * That is the normal end of a stale report, so it answers instead of failing the call.
+   */
+  it('answers a delivery report for a row that no longer exists', async () => {
+    mockUpdateManyAndReturn.mockResolvedValue([]);
+
+    await expect(
+      callerAs(signedOut).markDelivered({ id: 'log-gone', presentation: 'SHOWN' }),
+    ).resolves.toEqual({ success: false });
+  });
+
+  it('answers a click on a push whose row no longer exists', async () => {
+    mockUpdateManyAndReturn.mockResolvedValue([]);
+
+    await expect(
+      callerAs(signedOut).markInteracted({ id: 'log-gone', type: 'CLICK' }),
+    ).resolves.toEqual({ success: false });
   });
 });
 

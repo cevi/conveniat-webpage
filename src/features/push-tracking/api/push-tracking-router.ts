@@ -37,6 +37,11 @@ const reportingUserAgent = async (): Promise<string | undefined> => {
 /**
  * `markDelivered` and `markInteracted` stay public: the service worker calls them, possibly
  * without a session, and a log id is a UUIDv7 with 74 random bits, so it cannot be guessed.
+ *
+ * A report for a row that is gone is not a fault: a phone that was offline for a day reports
+ * long after its push was sent, possibly to a database that no longer holds the row, and
+ * anyone can call these with an id that never existed. Both answer `success: false` and log
+ * at debug, so neither can raise the error rate.
  */
 export const pushTrackingRouter = createTRPCRouter({
   /**
@@ -57,7 +62,7 @@ export const pushTrackingRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const isSuppressed = input.presentation === 'SUPPRESSED';
       const userAgent = await reportingUserAgent();
-      const log = await ctx.prisma.pushNotificationLog.update({
+      const [log] = await ctx.prisma.pushNotificationLog.updateManyAndReturn({
         where: { id: input.id },
         data: {
           status: 'DELIVERED',
@@ -67,6 +72,12 @@ export const pushTrackingRouter = createTRPCRouter({
         },
         select: { channel: true, kind: true },
       });
+      if (log === undefined) {
+        logger.debug('Delivery report for a push log that does not exist', {
+          'push.log_id': input.id,
+        });
+        return { success: false };
+      }
       recordPushTrackingEvent(isSuppressed ? 'suppressed' : 'delivered', log.channel, log.kind);
       return { success: true };
     }),
@@ -80,7 +91,7 @@ export const pushTrackingRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const userAgent = await reportingUserAgent();
-      const log = await ctx.prisma.pushNotificationLog.update({
+      const [log] = await ctx.prisma.pushNotificationLog.updateManyAndReturn({
         where: { id: input.id },
         data: {
           interactedAt: new Date(),
@@ -89,6 +100,12 @@ export const pushTrackingRouter = createTRPCRouter({
         },
         select: { channel: true, kind: true },
       });
+      if (log === undefined) {
+        logger.debug('Interaction report for a push log that does not exist', {
+          'push.log_id': input.id,
+        });
+        return { success: false };
+      }
       recordPushTrackingEvent(input.type === 'CLICK' ? 'click' : 'dismiss', log.channel, log.kind);
       return { success: true };
     }),
