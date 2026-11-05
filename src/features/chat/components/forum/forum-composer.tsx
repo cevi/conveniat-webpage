@@ -1,5 +1,6 @@
 'use client';
 
+import { EmptyState } from '@/components/ui/empty-state';
 import { textInputClassName } from '@/components/ui/field';
 import { forumText } from '@/features/chat/components/forum/forum-texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
@@ -18,7 +19,7 @@ import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
-import { Camera, Loader2, MapPin, Search, ThumbsUp, X } from 'lucide-react';
+import { Camera, Loader2, MapPin, MessageCircleQuestion, Search, ThumbsUp, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useDeferredValue, useState } from 'react';
@@ -136,6 +137,27 @@ export const ForumComposer: React.FC = () => {
   let publishHint = forumText.publishHint;
   if (!isOnline) publishHint = forumText.offlinePublish;
   else if (topic?.isAdmin === true) publishHint = forumText.publishHintKernteam;
+
+  // Without a topic there is nowhere to post: say so, instead of a button that never wakes up.
+  if (topics.data?.length === 0) {
+    return (
+      <div className="bg-page flex min-h-dvh items-start justify-center px-4 pt-16">
+        <EmptyState
+          icon={MessageCircleQuestion}
+          title={forumText.noTopics[locale]}
+          description={forumText.noTopicsHint[locale]}
+          action={
+            <Link
+              href="/app/forum"
+              className="bg-quiet hover:bg-chip focus-visible:focus-surface flex h-11 items-center rounded-xl px-4 text-[15px] font-semibold text-green-900"
+            >
+              {forumText.back[locale]}
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-page min-h-dvh pb-10">
