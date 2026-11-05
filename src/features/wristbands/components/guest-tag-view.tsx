@@ -1,7 +1,6 @@
 'use client';
 
 import { isAppOffered } from '@/components/get-the-app';
-import { SetHeaderActions } from '@/components/header/header-actions';
 import { buttonVariants } from '@/components/ui/buttons/button';
 import { environmentVariables } from '@/config/environment-variables';
 import { SignInToWristbands } from '@/features/wristbands/components/sign-in-to-wristbands';
@@ -44,7 +43,6 @@ export const GuestTagView: React.FC<{
 
   return (
     <>
-      <SetHeaderActions />
       <SignInToWristbands callbackUrl={callbackUrl}>
         {appStore !== undefined && (
           <StoreLink href={appStore} label={tagText('appStore', locale)} />

@@ -1,3 +1,4 @@
+import { AppWebViewNavigation } from '@/components/app-webview-navigation';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
@@ -7,13 +8,15 @@ import React, { Suspense } from 'react';
 
 interface LayoutProperties {
   children: ReactNode;
+  /** a sheet over the page, like the one a band tapped in the app opens, see `@modal` */
+  modal: ReactNode;
   params: Promise<{
     locale: Locale;
     design: DesignCodes;
   }>;
 }
 
-const AppLayout: React.FC<LayoutProperties> = ({ children }) => {
+const AppLayout: React.FC<LayoutProperties> = ({ children, modal }) => {
   return (
     // ClientProviders are mounted once by the AppShell in the parent layout.
     <Suspense fallback={undefined}>
@@ -27,6 +30,8 @@ const AppLayout: React.FC<LayoutProperties> = ({ children }) => {
         <div aria-hidden="true" className="h-(--app-logo-overhang) bg-white" />
         {children}
       </div>
+      <Suspense fallback={undefined}>{modal}</Suspense>
+      <AppWebViewNavigation />
     </Suspense>
   );
 };

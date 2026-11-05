@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import TagPage from '@/app/(frontend)/[locale]/[design]/(app-pages)/tag/[uid]/page';
+import { TagContent } from '@/features/wristbands/components/tag-content';
 import { DesignCodes } from '@/utils/design-codes';
 import { render, screen } from '@testing-library/react';
 
@@ -11,6 +11,14 @@ const notFound = jest.fn((): never => {
   throw new Error('NEXT_NOT_FOUND');
 });
 
+let mockEnabled: boolean;
+jest.mock('@/config/environment-variables', () => ({
+  environmentVariables: {
+    get FEATURE_ENABLE_NFC_WRISTBANDS(): boolean {
+      return mockEnabled;
+    },
+  },
+}));
 jest.mock('@/utils/auth', () => ({ auth: (): Promise<unknown> => Promise.resolve(mockSession) }));
 jest.mock('@/utils/auth-helpers', () => ({
   isValidNextAuthUser: (user: unknown): boolean => user !== undefined,
@@ -40,15 +48,21 @@ const renderPage = async (
   design = DesignCodes.WEB_DESIGN,
   locale: 'de' | 'fr' = 'de',
 ): Promise<void> => {
-  render(await TagPage({ params: Promise.resolve({ uid, locale, design }) }));
+  render(await TagContent({ params: Promise.resolve({ uid, locale, design }) }));
 };
 
 beforeEach(() => {
   mockSession = { user: { uuid: 'flurin' } };
+  mockEnabled = true;
   notFound.mockClear();
 });
 
-describe('the page a tapped band opens', () => {
+describe('what a tapped band shows, in the sheet and on its page', () => {
+  it('is not found where the deployment has no wristbands', async () => {
+    mockEnabled = false;
+    await expect(renderPage('0462415A7E2490')).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
   it('shows a guest only the login, which returns to the same band', async () => {
     mockSession = null;
     await renderPage('0462415a7e2490');

@@ -2,6 +2,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 
 /** The words of the page a tapped band opens, `/tag/{uid}`. `{name}` and the like are filled in. */
 export const tagTexts = {
+  sheetTitle: { de: 'Armband', en: 'Wristband', fr: 'Bracelet' },
   bandTitle: {
     de: 'Das ist ein Armband des conveniat27',
     en: 'This is a conveniat27 wristband',

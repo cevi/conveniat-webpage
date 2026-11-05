@@ -1,6 +1,5 @@
 'use client';
 
-import { SetHeaderActions } from '@/components/header/header-actions';
 import { Button } from '@/components/ui/buttons/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -240,10 +239,5 @@ export const TagView: React.FC<{ uid: string }> = ({ uid }) => {
     );
   }
 
-  return (
-    <>
-      <SetHeaderActions />
-      {content}
-    </>
-  );
+  return <>{content}</>;
 };
