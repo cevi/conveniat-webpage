@@ -260,7 +260,6 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
         notifyRealtimeChatMessage({
           chatId: data.chatId,
           chatName: cachedChat?.name,
-          chatType: cachedChat?.chatType,
           message,
           currentUserId: currentUser,
         });

@@ -144,6 +144,7 @@ export const AnnotationDetailsDrawer: React.FC<{
 
         {(annotation.enableSupportChat ?? true) && (
           <AnnotationForumAndReportSection
+            annotation={{ id: annotation.id, title: annotation.title }}
             coordinates={((): [number, number] | undefined => {
               if (!('geometry' in annotation)) return undefined;
               if (Array.isArray(annotation.geometry.coordinates[0])) {

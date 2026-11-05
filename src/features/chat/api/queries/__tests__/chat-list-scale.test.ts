@@ -79,7 +79,7 @@ const message = {
   contentVersions: [{ payload: { text: 'hallo' } }],
 };
 
-const chatRow = (uuid: string, type: string, memberCount: number): Record<string, unknown> => ({
+const chatRow = (uuid: string, type: string): Record<string, unknown> => ({
   uuid,
   name: type === 'ANNOUNCEMENT' ? 'Infos Gesamtlager' : '',
   description: undefined,
@@ -93,7 +93,6 @@ const chatRow = (uuid: string, type: string, memberCount: number): Record<string
   pinned: false,
   capabilities: [],
   messages: [message],
-  _count: { messages: 1, chatMemberships: memberCount },
 });
 
 interface Membership {
@@ -114,8 +113,8 @@ const createPrisma = (
   announcementSize: number,
 ): { prisma: Record<string, unknown>; membershipRowsRead: () => number } => {
   const chats = new Map([
-    [ONE_TO_ONE_ID, chatRow(ONE_TO_ONE_ID, 'ONE_TO_ONE', 2)],
-    [ANNOUNCEMENT_ID, chatRow(ANNOUNCEMENT_ID, 'ANNOUNCEMENT', announcementSize)],
+    [ONE_TO_ONE_ID, chatRow(ONE_TO_ONE_ID, 'ONE_TO_ONE')],
+    [ANNOUNCEMENT_ID, chatRow(ANNOUNCEMENT_ID, 'ANNOUNCEMENT')],
   ]);
   const membership = (userId: string, chatId: string): Membership => ({
     userId,
@@ -161,6 +160,14 @@ const createPrisma = (
       },
     },
     chatMembership: {
+      // one row per chat, however many members it has
+      groupBy: ({ where }: { where: { chatId: { in: string[] } } }): Promise<unknown[]> =>
+        Promise.resolve(
+          where.chatId.in.map((chatId) => ({
+            chatId,
+            _count: { _all: memberships.filter((m) => m.chatId === chatId).length },
+          })),
+        ),
       findMany: ({
         where,
       }: {
@@ -179,7 +186,21 @@ const createPrisma = (
     },
     message: {
       findMany: jest.fn().mockResolvedValue([]),
-      groupBy: jest.fn().mockResolvedValue([]),
+      // every chat holds its one message; nothing is unread unless a test says so
+      groupBy: jest.fn(
+        ({
+          where,
+          _count,
+        }: {
+          where: { chatId?: { in: string[] } };
+          _count: { uuid?: true };
+        }): Promise<unknown[]> =>
+          Promise.resolve(
+            _count.uuid === true
+              ? []
+              : (where.chatId?.in ?? []).map((chatId) => ({ chatId, _count: { _all: 1 } })),
+          ),
+      ),
     },
   };
 
@@ -204,16 +225,24 @@ describe('chat list and chat details at camp scale', () => {
 
   it('caps the unread count of an announcement to 3000 at 1 and marks it large', async () => {
     const { prisma } = createPrisma(3000);
-    (prisma['message'] as { groupBy: jest.Mock }).groupBy.mockResolvedValueOnce([
-      { chatId: ANNOUNCEMENT_ID, _count: { uuid: 5 } },
-    ]);
+    const messages = prisma['message'] as { groupBy: jest.Mock };
+    const countMessages = messages.groupBy.getMockImplementation() as (query: {
+      _count: { uuid?: true };
+    }) => Promise<unknown[]>;
+    messages.groupBy.mockImplementation((query: { _count: { uuid?: true } }) =>
+      query._count.uuid === true
+        ? Promise.resolve([{ chatId: ANNOUNCEMENT_ID, _count: { uuid: 5 } }])
+        : countMessages(query),
+    );
 
     const chats = await callerWith(prisma).getChatList({});
 
     expect(chats.find((c) => c.id === ANNOUNCEMENT_ID)).toMatchObject({
       unreadCount: 1,
       isLarge: true,
+      messageCount: 1,
     });
+    expect(chats.find((c) => c.id === ONE_TO_ONE_ID)).toMatchObject({ isLarge: false });
   });
 
   it('names a one-to-one chat after a partner beyond the first 1000 users', async () => {

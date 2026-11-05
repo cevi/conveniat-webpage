@@ -23,4 +23,5 @@ export const ROLE_LABELS: Record<Roles, StaticTranslationString> = {
     en: 'Security & first aid',
     fr: 'Sécurité & premiers secours',
   },
+  [Roles.ForumZentrale]: { de: 'Forum-Zentrale', en: 'Forum Zentrale', fr: 'Zentrale du forum' },
 };

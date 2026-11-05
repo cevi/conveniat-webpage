@@ -47,11 +47,45 @@ describe('subscribeToPushNotifications', () => {
   it('fails and drops the browser subscription when the server refuses it', async () => {
     mockSubscribeUser.mockResolvedValue({ success: false });
 
-    await expect(subscribeToPushNotifications('de')).rejects.toThrow(
-      'Failed to send subscription to backend.',
-    );
+    await expect(subscribeToPushNotifications('de')).rejects.toMatchObject({ reason: 'server' });
     expect(mockUnsubscribe).toHaveBeenCalled();
     // The answer is the same every time, so asking again only delays the error.
     expect(mockSubscribeUser).toHaveBeenCalledTimes(1);
+  });
+
+  it('tells a closed prompt from a denied permission', async () => {
+    const notAllowed = new DOMException(
+      'Registration failed - permission denied',
+      'NotAllowedError',
+    );
+    mockRegisterServiceWorker.mockResolvedValue({
+      pushManager: { subscribe: jest.fn().mockRejectedValue(notAllowed) },
+    });
+
+    Object.assign(globalThis, { Notification: { permission: 'default' } });
+    await expect(subscribeToPushNotifications('de')).rejects.toMatchObject({ reason: 'dismissed' });
+
+    Object.assign(globalThis, { Notification: { permission: 'denied' } });
+    await expect(subscribeToPushNotifications('de')).rejects.toMatchObject({ reason: 'blocked' });
+  });
+
+  it('names a failing push service, after retrying it', async () => {
+    const subscribe = jest
+      .fn()
+      .mockRejectedValue(
+        new DOMException('Registration failed - push service error', 'AbortError'),
+      );
+    mockRegisterServiceWorker.mockResolvedValue({ pushManager: { subscribe } });
+
+    await expect(subscribeToPushNotifications('de')).rejects.toMatchObject({
+      reason: 'push-service',
+    });
+    expect(subscribe).toHaveBeenCalledTimes(4);
+  });
+
+  it('names a missing service worker', async () => {
+    mockRegisterServiceWorker.mockResolvedValue(null);
+
+    await expect(subscribeToPushNotifications('de')).rejects.toMatchObject({ reason: 'not-ready' });
   });
 });

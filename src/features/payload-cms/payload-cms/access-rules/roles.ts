@@ -13,6 +13,7 @@ group may hold several roles.
 - Hof dashboard reviewers: review what the Höfe hand in on the Hof dashboard, without the
   admin panel
 - safety team: security and first aid, who read the NFC wristbands in the app
+- Forum-Zentrale: moderates every topic of the forum in the app all year, from its Zentrale
 
 `/admin/access-overview` renders these roles against every collection and global.
 */
@@ -30,6 +31,7 @@ export enum Roles {
   MaterialTeam = 'material-team',
   HofDashboardReviewer = 'hof-dashboard-reviewer',
   SafetyTeam = 'safety-team',
+  ForumZentrale = 'forum-zentrale',
 }
 
 /** The setting that names the Cevi.DB groups of a role, so the access overview can point at it. */
@@ -42,6 +44,7 @@ export const ROLE_ENVIRONMENT_VARIABLES = {
   [Roles.MaterialTeam]: 'CEVIDB_GROUP_MATERIAL_TEAM',
   [Roles.HofDashboardReviewer]: 'CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS',
   [Roles.SafetyTeam]: 'CEVIDB_GROUP_SAFETY_TEAM',
+  [Roles.ForumZentrale]: 'CEVIDB_GROUP_FORUM_ZENTRALE',
 } as const satisfies Record<Roles, keyof typeof environmentVariables>;
 
 /** The Cevi.DB groups whose members hold a role. A role without a group has no holder. */
@@ -115,14 +118,24 @@ export const hasAccessToThis: ({
   return hasAccessToThisUser({ user: { groups: getUserGroups(user) }, requiredRoles });
 };
 
+/**
+ * {@link isFullAdmin} for code that has the user but no request, like the `condition` that
+ * shows an admin field.
+ */
+export const isFullAdminUser = (user: ClientUser | TypedUser | null | undefined): boolean =>
+  hasAccessToThisUser({ user: { groups: getUserGroups(user) }, requiredRoles: [Roles.FullAdmin] });
+
 export const isFullAdmin: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) =>
-  hasAccessToThis({ req, requiredRoles: [Roles.FullAdmin] });
+  isFullAdminUser(req.user);
 
 export const isProgramTeam: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) =>
   hasAccessToThis({ req, requiredRoles: [Roles.ProgramTeam] });
 
+/** Admin and web core team, see `hasAdminOrWebAccess`; also who sees the forum protocol. */
+export const ADMIN_OR_WEB_ROLES: Roles[] = [Roles.FullAdmin, Roles.WebCoreTeam];
+
 export const hasAdminOrWebAccess: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) => {
-  return hasAccessToThis({ req, requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam] });
+  return hasAccessToThis({ req, requiredRoles: ADMIN_OR_WEB_ROLES });
 };
 
 /**
@@ -208,6 +221,17 @@ export const WRISTBAND_ADMIN_ROLES: Roles[] = [Roles.FullAdmin];
  * session user.
  */
 export const SUPPORT_DESK_ROLES: Roles[] = [Roles.FullAdmin, Roles.WebCoreTeam];
+
+/**
+ * Who staffs the forum's Zentrale all year: the full admins, the web core team, which ran the
+ * support desk the forum replaces, and the Forum-Zentrale. They moderate every topic like the
+ * piket on duty, see `resolveForumModerator`. Checked in tRPC with the session user.
+ */
+export const FORUM_ZENTRALE_ROLES: Roles[] = [
+  Roles.FullAdmin,
+  Roles.WebCoreTeam,
+  Roles.ForumZentrale,
+];
 
 /**
  * Who may read and manage every chat, the private ones between participants included: the

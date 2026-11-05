@@ -277,8 +277,47 @@ export const getGenericPageVersion = async (
 };
 
 /**
+ * The ids of the published pages that answered to `slug` in `locale`, under their current slug
+ * or an earlier one.
+ *
+ * Only publishing adds to the slug history, see `trackSlugHistory`, so a draft that renamed a
+ * page carries no trace of the slug it is still published under. A preview of that link finds
+ * the page here and opens its latest draft.
+ */
+const findPublishedPageIdsBySlug = async (
+  slug: string,
+  locale: Locale,
+): Promise<(string | number)[]> => {
+  const payload = await getPayload({ config });
+  const result = await payload.find({
+    depth: 0,
+    collection: 'generic-page',
+    pagination: false,
+    locale: locale,
+    fallbackLocale: false,
+    draft: false,
+    where: {
+      and: [
+        {
+          or: [
+            { 'seo.urlSlug': { equals: slug } },
+            { 'seo.urlSlugHistory.slug': { equals: slug } },
+          ],
+        },
+        { _localized_status: { equals: { published: true } } },
+      ],
+    },
+    select: { internalPageName: true },
+  });
+  return result.docs.map((document_) => document_.id);
+};
+
+/**
  * Reads a Generic Page by its slug history (previous slugs), with no caching layer.
  * Used for fallback redirection when the current slug doesn't match any active page.
+ *
+ * A draft read returns the latest draft of every page that was published under `slug`, see
+ * {@link findPublishedPageIdsBySlug}.
  */
 const fetchGenericPageBySlugHistory = async (
   slug: string,
@@ -288,6 +327,9 @@ const fetchGenericPageBySlugHistory = async (
   return await withSpan('getGenericPageBySlugHistoryCached', async () => {
     const payload = await getPayload({ config });
 
+    const publishedIds = draft ? await findPublishedPageIdsBySlug(slug, locale) : [];
+    if (draft && publishedIds.length === 0) return { docs: [] };
+
     const result = await payload.find({
       depth: 1,
       collection: 'generic-page',
@@ -295,12 +337,14 @@ const fetchGenericPageBySlugHistory = async (
       locale: locale,
       fallbackLocale: false,
       draft: draft,
-      where: {
-        and: [
-          { 'seo.urlSlugHistory.slug': { equals: slug } },
-          ...(draft ? [] : [{ _localized_status: { equals: { published: true } } }]),
-        ],
-      },
+      where: draft
+        ? { id: { in: publishedIds } }
+        : {
+            and: [
+              { 'seo.urlSlugHistory.slug': { equals: slug } },
+              { _localized_status: { equals: { published: true } } },
+            ],
+          },
       select: {
         _localized_status: true,
         internalPageName: true,

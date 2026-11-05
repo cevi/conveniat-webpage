@@ -13,6 +13,7 @@ import { DocumentsCollection } from '@/features/payload-cms/payload-cms/collecti
 import { EmailSuppressions } from '@/features/payload-cms/payload-cms/collections/email-suppressions';
 import { EmergencyCardsCollection } from '@/features/payload-cms/payload-cms/collections/emergency-cards';
 import { FormCollection } from '@/features/payload-cms/payload-cms/collections/form-collection';
+import { ForumTopicsCollection } from '@/features/payload-cms/payload-cms/collections/forum-topics';
 import { FunktionenCollection } from '@/features/payload-cms/payload-cms/collections/funktionen-collection';
 import { GenericPage as GenericPageCollection } from '@/features/payload-cms/payload-cms/collections/generic-page';
 import { JobCollection } from '@/features/payload-cms/payload-cms/collections/helper-job-collection';
@@ -62,6 +63,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
 
   // App
   AnnouncementChannelsCollection,
+  ForumTopicsCollection,
   AnnouncementsCollection,
   EmergencyCardsCollection,
   PhotoContestCollection,

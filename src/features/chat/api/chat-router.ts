@@ -15,7 +15,6 @@ import { pinChat } from '@/features/chat/api/mutations/pin-chat';
 import { redeemChatInvite } from '@/features/chat/api/mutations/redeem-chat-invite';
 import { removeParticipant } from '@/features/chat/api/mutations/remove-participant';
 import { renameChat } from '@/features/chat/api/mutations/rename-chat';
-import { reportProblem } from '@/features/chat/api/mutations/report-problem';
 import { signalTyping } from '@/features/chat/api/mutations/signal-typing';
 import { startChatFromWristband } from '@/features/chat/api/mutations/start-chat-from-wristband';
 import { toggleReaction } from '@/features/chat/api/mutations/toggle-reaction';
@@ -61,7 +60,6 @@ export const chatRouter = createTRPCRouter({
   getUnreadMarker,
   deleteMessage,
   updateMessageContent: updateMessageContent,
-  reportProblem: reportProblem,
   getUploadUrl: getUploadUrl,
   getDownloadUrl: getDownloadUrl,
   addParticipants: addParticipants,

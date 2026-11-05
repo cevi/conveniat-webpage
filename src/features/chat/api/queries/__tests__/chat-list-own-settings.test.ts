@@ -46,6 +46,7 @@ const at = (minutes: number): Date => new Date(Date.UTC(2027, 6, 24, 8, minutes)
 const prismaWith = (chats: ChatSetup[]): Record<string, unknown> => ({
   user: { findUnique: jest.fn().mockResolvedValue({ uuid: READER }) },
   chatMembership: {
+    groupBy: jest.fn().mockResolvedValue([]),
     findMany: ({ where }: { where: { userId?: string } }): Promise<unknown[]> => {
       if (where.userId !== READER) return Promise.resolve([]);
       return Promise.resolve(
@@ -68,7 +69,6 @@ const prismaWith = (chats: ChatSetup[]): Record<string, unknown> => ({
               lastUpdate: at(chat.lastUpdate),
               pinned: chat.pinnedForEveryone === true,
               messages: [],
-              _count: { messages: 0, chatMemberships: 3 },
             },
           })),
       );
@@ -76,12 +76,14 @@ const prismaWith = (chats: ChatSetup[]): Record<string, unknown> => ({
   },
   message: {
     findMany: jest.fn().mockResolvedValue([]),
-    groupBy: jest
-      .fn()
-      .mockResolvedValue(
-        chats
-          .filter((chat) => (chat.unreadMessages ?? 0) > 0)
-          .map((chat) => ({ chatId: chat.id, _count: { uuid: chat.unreadMessages } })),
+    // the unread messages count by `uuid`, every message of a chat by `_all`
+    groupBy: ({ _count }: { _count: { uuid?: true } }): Promise<unknown[]> =>
+      Promise.resolve(
+        _count.uuid === true
+          ? chats
+              .filter((chat) => (chat.unreadMessages ?? 0) > 0)
+              .map((chat) => ({ chatId: chat.id, _count: { uuid: chat.unreadMessages } }))
+          : [],
       ),
   },
 });

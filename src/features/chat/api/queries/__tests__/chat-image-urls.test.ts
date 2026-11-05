@@ -58,6 +58,8 @@ let chatCapabilities: string[];
 
 /** Keys of images whose message its sender deleted. */
 const deletedImageKeys = new Set<string>();
+/** keys of images whose forum post was moved into `CHAT_ID`, carried by one of its messages */
+const movedImageKeys = new Set<string>();
 
 /** One chat with one member; the capability lookup reads the chat through the shared client. */
 const prisma = {
@@ -70,8 +72,21 @@ const prisma = {
     ),
   },
   messageContent: {
-    findFirst: jest.fn(({ where }: { where: { payload: { equals: string } } }) =>
-      Promise.resolve(deletedImageKeys.has(where.payload.equals) ? { uuid: 'content-1' } : null),
+    findFirst: jest.fn(
+      ({
+        where,
+      }: {
+        where: { payload?: { equals: string }; OR?: { payload: { equals?: string } }[] };
+      }) => {
+        // the signer asks whether a message of the chat carries a moved post's key
+        if (where.OR !== undefined) {
+          const key = where.OR[0]?.payload.equals ?? '';
+          return Promise.resolve(movedImageKeys.has(key) ? { uuid: 'content-2' } : null);
+        }
+        return Promise.resolve(
+          deletedImageKeys.has(where.payload?.equals ?? '') ? { uuid: 'content-1' } : null,
+        );
+      },
     ),
   },
   chatMembership: {
@@ -171,6 +186,16 @@ describe('chat image downloads', () => {
     await expect(callerAs(member).getDownloadUrl({ chatId: CHAT_ID, key })).rejects.toMatchObject({
       code: 'FORBIDDEN',
     });
+  });
+
+  it('signs an image of a forum post moved into the chat, which one of its messages carries', async () => {
+    const movedImage = `chat-images/${OTHER_CHAT_ID}/1700000000000-moved.jpg`;
+    movedImageKeys.add(movedImage);
+
+    await expect(
+      callerAs(member).getDownloadUrl({ chatId: CHAT_ID, key: movedImage }),
+    ).resolves.toHaveProperty('url');
+    movedImageKeys.delete(movedImage);
   });
 
   it('no longer signs an image whose message was deleted', async () => {

@@ -94,6 +94,8 @@ const pushedTexts: { message: string; senderName: string | undefined }[] = [];
 const pushedRecipients: string[][] = [];
 /** The members each send recorded a DISTRIBUTED event for. */
 const distributedTo: string[][] = [];
+/** The channel each push asks for, undefined being the regular chat channel. */
+const pushedChannels: (string | undefined)[] = [];
 
 jest.mock('@/lib/db/chat-pubsub', () => ({
   chatPubSub: {
@@ -109,11 +111,12 @@ jest.mock('@/lib/push/send-notification', () => ({
     recipients: string[],
     _chatId: string,
     _messageId: string,
-    options: { senderName?: string },
+    options: { senderName?: string; notificationType?: string },
   ): Promise<{ success: boolean }> => {
     pushedAt.push(committed);
     pushedRecipients.push(recipients);
     pushedTexts.push({ message, senderName: options.senderName });
+    pushedChannels.push(options.notificationType);
     return Promise.resolve({ success: true });
   },
 }));
@@ -197,6 +200,7 @@ const prisma = {
     committed = true;
     return result;
   },
+  $executeRaw: (): Promise<number> => Promise.resolve(1),
   chat: {
     findUnique: ({
       select,
@@ -260,6 +264,20 @@ const prisma = {
       return Promise.resolve({ uuid: 'stored', createdAt: new Date(), type: data.type });
     },
   },
+  messageContent: {
+    findFirst: ({
+      where,
+    }: {
+      where: { payload: { equals: string }; message: { chatId: string } };
+    }): Promise<unknown> => {
+      const found = existingMessages.find(
+        (message) =>
+          message.chatId === where.message.chatId &&
+          (message.payload as { url?: string } | undefined)?.url === where.payload.equals,
+      );
+      return Promise.resolve(found === undefined ? null : { uuid: `content-${found.uuid}` });
+    },
+  },
   messageEvent: {
     createMany: ({ data }: { data: { userId: string }[] }): Promise<void> => {
       distributedTo.push(data.map(({ userId }) => userId));
@@ -305,6 +323,7 @@ beforeEach(() => {
   pushedAt.length = 0;
   pushedTexts.length = 0;
   pushedRecipients.length = 0;
+  pushedChannels.length = 0;
   distributedTo.length = 0;
   mockPoolReadsCommitted.length = 0;
   mockMembershipRowsLoaded = 0;
@@ -341,6 +360,26 @@ describe('the message types a participant can send', () => {
       expect(storedTypes).toEqual([]);
     },
   );
+});
+
+describe('the key of an image', () => {
+  it('is refused when another message of the chat already shows it, and nothing is stored', async () => {
+    // Deleting the second copy would hide the image from everyone, see `getDownloadUrl`.
+    const resent = anna.sendMessage({
+      chatId: CHAT_ID,
+      content: (imageMessage.payload as { url: string }).url,
+      timestamp: new Date(),
+      type: MessageType.IMAGE_MSG,
+    });
+
+    await expect(resent).rejects.toMatchObject({ code: 'CONFLICT' });
+    expect(storedTypes).toEqual([]);
+  });
+
+  it('is accepted when no message of the chat uses it yet', async () => {
+    await send(MessageType.IMAGE_MSG);
+    expect(storedPayloads).toEqual([{ url: `chat-images/${CHAT_ID}/1-abc.jpg` }]);
+  });
 });
 
 describe('the connections a send needs', () => {
@@ -575,5 +614,18 @@ describe('who a message reaches', () => {
     expect(publishedAt).toEqual([true]);
     expect(pushedRecipients).toEqual([]);
     expect(mockLoggedErrors).toEqual(['Reading the push recipients failed']);
+  });
+});
+
+describe('the channel of the push', () => {
+  // Only the alert that opens an emergency chat sirens; the emergency router sends it.
+  // A siren on every reply made a busy case sound like a new emergency each time (#1654).
+  it('is the regular one for a reply in an emergency chat', async () => {
+    chatType = ChatType.EMERGENCY;
+
+    await send(MessageType.TEXT_MSG);
+    await afterCommitSettled();
+
+    expect(pushedChannels).toEqual([undefined]);
   });
 });

@@ -297,6 +297,18 @@ do. `canOpenAdminPanel` decides who gets into `/admin` and grants nothing else.
 `/admin/access-overview` renders every Cevi.DB group and any person against the real rules, so
 open it after you change one and check the column you meant to change, and no other.
 
+Inside the app, chat membership is the other source of rights: what someone may do in a chat
+comes from their membership of it, not from a role. The forum adds two more of the same kind,
+deliberately: the piket schedule, whose entries for forum chats let whoever is on duty change
+posts for the length of the shift, and a forward, which lets whoever a post was forwarded to, a
+person or the holders of a function, see it, reply and change its status until it is done or
+handed back. All three are decided in `resolveForumModerator`, next to the one role among them,
+the Forum-Zentrale in `roles.ts`; every change they allow is written to the forum protocol, and
+`/admin/access-overview` lists them as their own rows. The Kernteam of a forum topic is its
+admins, and editors do not name them: they pick functions from "Funktionen und Adressbuch" on
+the topic, and whoever holds one is made admin by `forum-kernteam.ts`, so the Kernteam follows
+Cevi.DB. A new right outside the app is still a role in `roles.ts`.
+
 `admin.hidden` is not access control. It keeps an entry out of the sidebar and nothing more, so give
 the entry a real rule as well and keep the two saying the same thing.
 
@@ -362,13 +374,14 @@ by its role once a second screen needs it, not before.
   reaches 4.5:1 contrast. Use real buttons and links, never a clickable `div`.
 - **Phones.** Lists scroll natively and snap; content follows the finger and is there before it
   is released. A choice or a set of filters that belongs to the page opens in the shared
-  `BottomSheet`, over the dimmed page; a menu of actions on one item does not float but expands in
-  place. The one floating button is a screen's main action where its list scrolls under it, like
+  `BottomSheet`, over the dimmed page, and so does a menu of actions on one item, like the long
+  press on a message, a chat or a member in the chat. The one floating button is a screen's main action where its list scrolls under it, like
   "Neuer Chat"; nothing else floats over content the user needs, except a map's controls.
 - **Desktops.** The same choice may open as a popup under the button that opened it: pass that
   button to the shared `BottomSheet` as its `anchor`, and it is a popup from Tailwind's `xl` up
   and a sheet below. There is one component for both, never a popover or dropdown of its own,
-  and nothing floats on a phone.
+  and nothing floats on a phone. A menu of actions on one item may expand in place there instead
+  of floating.
 
 ## Git and pull requests
 

@@ -1,7 +1,13 @@
 import { recordPushTrackingEvent } from '@/lib/push-metrics';
 import { endpointHostOf } from '@/lib/push/push-endpoint';
 import { DatabasePushSubscriptionSchema, PushSubscriptionSchema } from '@/schemas/push';
-import { createTRPCRouter, publicProcedure, trpcFullAdminProcedure } from '@/trpc/init';
+import {
+  createTRPCRouter,
+  publicProcedure,
+  trpcBaseProcedure,
+  trpcFullAdminProcedure,
+} from '@/trpc/init';
+import { getPayloadUserFromNextAuthUser } from '@/utils/auth-helpers';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { headers } from 'next/headers';
@@ -9,6 +15,9 @@ import { getPayload } from 'payload';
 import { z } from 'zod';
 
 const logger = createLogger('push:tracking');
+
+/** How many pushes the history of a person in the admin panel shows. */
+const HISTORY_ENTRY_LIMIT = 20;
 
 /** Longer user agents are client hints stuffed with noise, not more useful. */
 const MAX_USER_AGENT_LENGTH = 512;
@@ -137,6 +146,43 @@ export const pushTrackingRouter = createTRPCRouter({
       return { renewed: true };
     }),
 
+  /**
+   * A web app saying, at most once a day, that its push subscription is still in use. It keeps
+   * `lastUsedAt` as true for a browser as it is for the native app, which renews its token on
+   * every launch, so a device that stops checking in shows as inactive after a month.
+   *
+   * Only the signed-in person's own row is touched, matched by endpoint and auth secret, and
+   * none is created. A row that is gone answers `confirmed: false`, and the browser then
+   * subscribes afresh, see `useOnboardingRecheck`.
+   */
+  confirmWebPushSubscription: trpcBaseProcedure
+    .input(PushSubscriptionSchema)
+    .mutation(async ({ ctx, input }) => {
+      const payload = await getPayload({ config });
+      const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
+      if (!payloadUser) return { confirmed: false };
+
+      const { docs } = await payload.update({
+        collection: 'push-notification-subscriptions',
+        where: {
+          and: [
+            { user: { equals: payloadUser.id } },
+            { endpoint: { equals: input.endpoint } },
+            { 'keys.auth': { equals: input.keys.auth } },
+          ],
+        },
+        data: { lastUsedAt: new Date().toISOString() },
+        depth: 0,
+      });
+      // once per device and day
+      logger.debug('Web push subscription checked in', {
+        'server.address': endpointHostOf(input.endpoint),
+        'user.id': payloadUser.id,
+        'subscription.confirmed': docs.length > 0,
+      });
+      return { confirmed: docs.length > 0 };
+    }),
+
   // Admin only: it pushes arbitrary text to any subscription the caller names.
   sendTestNotification: trpcFullAdminProcedure
     .input(
@@ -160,39 +206,109 @@ export const pushTrackingRouter = createTRPCRouter({
     }),
 
   // Admin only: it returns what any person was sent, for the push subscription admin page.
-  getRecentLogs: trpcFullAdminProcedure
-    .input(
-      z.object({
-        userId: z.string(),
-        limit: z.number().min(1).max(100).default(5),
-        cursor: z.string().nullish(),
-      }),
-    )
-    .query(async ({ ctx, input }) => {
-      const { limit, cursor, userId } = input;
-      const items = await ctx.prisma.pushNotificationLog.findMany({
-        take: limit + 1, // get an extra item at the end which we'll use as next cursor
-        where: {
-          userId: userId,
-        },
-        ...(cursor !== undefined && cursor !== null && cursor !== ''
-          ? { cursor: { id: cursor } }
-          : {}),
-        orderBy: {
-          sentAt: 'desc',
-        },
+  /**
+   * The push devices of one person, for the devices tab of a user in the admin panel. Full
+   * admins only, like the subscriptions themselves: the rows say which devices someone uses.
+   */
+  getPushDeviceList: trpcFullAdminProcedure
+    .input(z.object({ userId: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const payload = await getPayload({ config });
+      const { docs } = await payload.find({
+        collection: 'push-notification-subscriptions',
+        where: { user: { equals: input.userId } },
+        sort: '-lastUsedAt',
+        pagination: false,
+        depth: 0,
+        select: { platform: true, userAgent: true, registrationSource: true, lastUsedAt: true },
       });
+      return docs.map((device) => ({
+        id: device.id,
+        platform: device.platform,
+        userAgent: device.userAgent ?? null,
+        registrationSource: device.registrationSource ?? null,
+        lastUsedAt: device.lastUsedAt ?? null,
+      }));
+    }),
 
-      let nextCursor: typeof cursor | undefined;
-      if (items.length > limit) {
-        const nextItem = items.pop();
-        // nextItem is guaranteed to exist since we checked items.length > limit
-        nextCursor = nextItem?.id;
-      }
+  /**
+   * Removes one push device of a person. The device gets no pushes until the person turns them
+   * on again in the settings. Deleting by `where` makes a device that is already gone, removed
+   * in another tab or pruned by a send, a no-op instead of an error.
+   */
+  deletePushDevice: trpcFullAdminProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      const payload = await getPayload({ config });
+      const { docs } = await payload.delete({
+        collection: 'push-notification-subscriptions',
+        where: { id: { equals: input.id } },
+        depth: 0,
+      });
+      const removed = docs[0];
+      logger.info('Removed a push device in the admin panel', {
+        'subscription.removed.count': docs.length,
+        'device.platform': removed?.platform,
+        'user.id': typeof removed?.user === 'string' ? removed.user : undefined,
+      });
+      return { removed: docs.length > 0 };
+    }),
 
-      return {
-        items,
-        nextCursor,
-      };
+  /**
+   * The deliveries of the last {@link HISTORY_ENTRY_LIMIT} pushes to one person. A push goes to
+   * every device of the person, one row each, so the limit counts pushes rather than rows: the
+   * newest pushes, and the newest rows sent outside of one, a test send or a row from before
+   * the queue, whichever came last.
+   */
+  getRecentLogs: trpcFullAdminProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const { userId } = input;
+      const [pushes, singles] = await Promise.all([
+        ctx.prisma.pushNotificationLog.groupBy({
+          by: ['notificationId'],
+          where: { userId, notificationId: { not: null } },
+          _max: { sentAt: true },
+          orderBy: { _max: { sentAt: 'desc' } },
+          take: HISTORY_ENTRY_LIMIT,
+        }),
+        ctx.prisma.pushNotificationLog.findMany({
+          where: { userId, notificationId: null },
+          orderBy: [{ sentAt: 'desc' }, { id: 'desc' }],
+          take: HISTORY_ENTRY_LIMIT,
+          select: { id: true, sentAt: true },
+        }),
+      ]);
+
+      const entries = [
+        ...pushes.flatMap((push) =>
+          push.notificationId === null || push._max.sentAt === null
+            ? []
+            : [{ notificationId: push.notificationId, sentAt: push._max.sentAt }],
+        ),
+        ...singles.map((single) => ({ logId: single.id, sentAt: single.sentAt })),
+      ]
+        .sort((left, right) => right.sentAt.getTime() - left.sentAt.getTime())
+        .slice(0, HISTORY_ENTRY_LIMIT);
+
+      const items = await ctx.prisma.pushNotificationLog.findMany({
+        where: {
+          userId,
+          OR: [
+            {
+              notificationId: {
+                in: entries.flatMap((entry) =>
+                  'notificationId' in entry ? [entry.notificationId] : [],
+                ),
+              },
+            },
+            { id: { in: entries.flatMap((entry) => ('logId' in entry ? [entry.logId] : [])) } },
+          ],
+        },
+        // The id breaks ties, so the deliveries of one push, which share their `sentAt`, stay
+        // together.
+        orderBy: [{ sentAt: 'desc' }, { id: 'desc' }],
+      });
+      return { items };
     }),
 });

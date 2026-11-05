@@ -64,7 +64,12 @@ export const getChatList = trpcBaseProcedure
     }
 
     const memberships = await prisma.chatMembership.findMany({
-      where: { userId: prismaUser.uuid, hasDeleted: false },
+      // a forum topic has its own pages; as a chat, every post would read as a message
+      where: {
+        userId: prismaUser.uuid,
+        hasDeleted: false,
+        chat: { type: { not: ChatType.FORUM } },
+      },
       select: {
         lastReadSeq: true,
         chatPermission: true,
@@ -88,7 +93,6 @@ export const getChatList = trpcBaseProcedure
                 },
               },
             },
-            _count: { select: { messages: true, chatMemberships: true } },
           },
         },
       },
@@ -100,6 +104,8 @@ export const getChatList = trpcBaseProcedure
 
     // 1. Prepare unread count conditions for all chats and fetch them in a single batch groupBy query
     const unreadCountMap = new Map<string, number>();
+    const messageCountMap = new Map<string, number>();
+    const memberCountMap = new Map<string, number>();
 
     if (_chats.length > 0) {
       const unreadQueries = _chats
@@ -138,21 +144,39 @@ export const getChatList = trpcBaseProcedure
         })
         .filter(Boolean);
 
-      if (unreadQueries.length > 0) {
-        const unreadCounts = await prisma.message.groupBy({
+      // Grouped over the chats of the list rather than a `_count` of the relations: Prisma 7
+      // joins a relation count against a count over the whole table, see
+      // https://github.com/prisma/orm/issues/23669, while `chatId IN (…)` reads only these chats.
+      const chatIds = _chats.map((chat) => chat.uuid);
+      const [unreadCounts, messageCounts, memberCounts] = await Promise.all([
+        unreadQueries.length > 0
+          ? prisma.message.groupBy({
+              by: ['chatId'],
+              where: {
+                OR: unreadQueries,
+              },
+              _count: {
+                uuid: true,
+              },
+            })
+          : [],
+        prisma.message.groupBy({
           by: ['chatId'],
-          where: {
-            OR: unreadQueries,
-          },
-          _count: {
-            uuid: true,
-          },
-        });
+          where: { chatId: { in: chatIds } },
+          _count: { _all: true },
+        }),
+        prisma.chatMembership.groupBy({
+          by: ['chatId'],
+          where: { chatId: { in: chatIds } },
+          _count: { _all: true },
+        }),
+      ]);
 
-        for (const item of unreadCounts) {
-          unreadCountMap.set(item.chatId, item._count.uuid);
-        }
+      for (const item of unreadCounts) {
+        unreadCountMap.set(item.chatId, item._count.uuid);
       }
+      for (const item of messageCounts) messageCountMap.set(item.chatId, item._count._all);
+      for (const item of memberCounts) memberCountMap.set(item.chatId, item._count._all);
     }
 
     // One-to-one chats are named after, and show the picture of, the other person.
@@ -189,7 +213,7 @@ export const getChatList = trpcBaseProcedure
         : { messagePreview: fallbackPreview };
 
       const partnerUser = partnerMap.get(chat.uuid);
-      const isLarge = chat._count.chatMemberships >= LARGE_CHAT_THRESHOLD;
+      const isLarge = (memberCountMap.get(chat.uuid) ?? 0) >= LARGE_CHAT_THRESHOLD;
 
       const rawCount = unreadCountMap.get(chat.uuid) ?? 0;
       const messageUnreadCount = isLarge && rawCount > 0 ? 1 : rawCount;
@@ -221,7 +245,7 @@ export const getChatList = trpcBaseProcedure
         chatType: chat.type,
         caseNumber: formatCaseNumber(chat.caseNumber),
         id: chat.uuid,
-        messageCount: chat._count.messages,
+        messageCount: messageCountMap.get(chat.uuid) ?? 0,
         isLarge,
         isPinned: chat.pinned || isPinnedByMe,
         isPinnedForEveryone: chat.pinned,

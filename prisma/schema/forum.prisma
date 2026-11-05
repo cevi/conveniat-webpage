@@ -1,0 +1,206 @@
+/// Where a forum post stands. Changed by the topic's admins, the piket on duty and the helpers
+/// it was assigned to, see `resolveForumModerator`.
+enum ForumPostStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+}
+
+/// The forum part of a top-level message in a `FORUM` chat. The message is the post: its text is
+/// the description, its thread the comments, a 👍 reaction on it "betrifft mich auch". Everything
+/// the message cannot hold, because someone other than its sender changes it, lives here.
+model ForumPost {
+  messageId String  @id
+  message   Message @relation(fields: [messageId], references: [uuid], onDelete: Cascade)
+
+  /// the topic, the chat of the message
+  chatId String
+  chat   Chat   @relation(fields: [chatId], references: [uuid], onDelete: Cascade)
+
+  title String
+  /// the description, a copy of the text of the post's message for the search; written with the
+  /// post, since a post's text is never edited
+  body  String @default("")
+  /// the title and the description as Postgres searches them, generated from both: German stems
+  /// without accents, the title weighted above the description. See `forum-search.ts`
+  search Unsupported("tsvector")? @default(dbgenerated())
+
+  status            ForumPostStatus @default(OPEN)
+  statusChangedAt   DateTime?
+  /// the first reaction of whoever handles posts: a comment or a status change by the Kernteam,
+  /// the piket, the Zentrale or someone it was forwarded to. Until then the post waits in the
+  /// Zentrale's queue
+  reactedAt         DateTime?
+  statusChangedById String?
+
+  /// the place the post is about, picked by the author on the map; never the phone's position
+  /// on its own, see the composer
+  longitude    Float?
+  latitude     Float?
+  /// the map entry in Payload's `camp-map-annotations` the place belongs to; no foreign key, the
+  /// annotations live in MongoDB
+  annotationId String?
+
+  /// set while the post is pinned above the others of its topic
+  pinnedAt        DateTime?
+  /// the comment marked as the answer, shown above the other comments
+  answerMessageId String?
+  /// when a moderator approved the post, while posts need approval (the flag
+  /// `forum_moderation_required`); a post written while it was off is approved at once. Until
+  /// then only its author and the moderators see it
+  approvedAt      DateTime?
+  approvedById    String?
+
+  /// a private report to the Zentrale: only its author, the topic's Kernteam and the piket on
+  /// duty see it and its comments; it lives in the topic editors marked to receive them
+  private Boolean @default(false)
+
+  /// the post this duplicate was merged into; a merged post leaves the lists, and its likes count
+  /// for the post it was merged into
+  mergedIntoId String?
+
+  createdAt DateTime @default(now())
+
+  assignments ForumPostAssignment[]
+
+  @@index([chatId, createdAt])
+  @@index([status])
+  @@index([annotationId])
+  @@index([latitude, longitude])
+  @@index([mergedIntoId])
+  @@index([chatId, approvedAt])
+  @@index([chatId, private])
+  @@index([chatId, reactedAt])
+  @@index([search], type: Gin)
+  // typos and spellings the stemmer does not join, e.g. "Toitoi" and "Toi Toi"
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+}
+
+/// What an assignment of a post is.
+enum ForumAssignmentKind {
+  /// forwarded to someone, a helper or a Ressort, who may see the post, reply and set its status
+  HELPER
+  /// "Ich übernehme": the one who handles it, so nobody else at the desk does too; grants nothing
+  CLAIM
+}
+
+/// A post handed to one person: forwarded to them, a helper sent out to fix what it reports, or
+/// taken by someone at the Zentrale. While a forward is open, its assignee may see the post, a
+/// private report included, reply and change its status, and nothing else.
+model ForumPostAssignment {
+  id String @id @default(uuid(7))
+
+  kind ForumAssignmentKind @default(HELPER)
+  /// the function from Funktionen und Adressbuch the post was forwarded to, e.g. "Ressortleitung
+  /// Infrastruktur": one assignment for each of its holders then, all with this id
+  funktionId String?
+
+  messageId String
+  post      ForumPost @relation(fields: [messageId], references: [messageId], onDelete: Cascade)
+
+  assigneeId String
+  assignee   User   @relation("ForumPostAssignee", fields: [assigneeId], references: [uuid])
+
+  assignedById String
+  assignedBy   User   @relation("ForumPostAssigner", fields: [assignedById], references: [uuid])
+
+  note String?
+
+  /// whether the assignment made the helper a member of the topic, which ending it undoes
+  addedMembership Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  /// withdrawn, or the post was set to done; an ended assignment grants nothing
+  endedAt   DateTime?
+  endedById String?
+
+  @@index([messageId, endedAt])
+  @@index([assigneeId, endedAt])
+}
+
+/// Someone who wants a push for every comment and status change of one post, the post being the
+/// top-level message of the thread. Writing a post or a comment subscribes its author.
+model ThreadSubscription {
+  userId String
+  user   User   @relation(fields: [userId], references: [uuid])
+
+  messageId String
+  message   Message @relation(fields: [messageId], references: [uuid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([userId, messageId])
+  @@index([messageId])
+}
+
+enum ForumAuditAction {
+  STATUS_CHANGED
+  PINNED
+  UNPINNED
+  ANSWER_MARKED
+  ANSWER_UNMARKED
+  MERGED
+  UNMERGED
+  /// a post or a comment deleted for everyone by someone other than its author
+  DELETED
+  ASSIGNED
+  ASSIGNMENT_ENDED
+  /// moved to another topic, with its comments, likes and history
+  MOVED
+  /// a post written while posts need approval, made public
+  APPROVED
+}
+
+/// Why someone was allowed to change a post.
+enum ForumActorCapacity {
+  /// an owner or admin of the topic's chat, its Kernteam
+  TOPIC_ADMIN
+  /// on duty in a piket schedule entry for forum chats
+  PIKET
+  /// a helper with an open assignment for this post
+  DELEGATE
+  /// the Forum-Zentrale role, which moderates every topic all year
+  ZENTRALE
+}
+
+/// Every change someone made to a post they did not write: who, in which capacity, what before
+/// and after. Append only, a trigger refuses updates and deletes. No foreign keys and copies of
+/// the names and titles, so the protocol outlives a deleted post, topic or person.
+model ForumAuditEvent {
+  id        String   @id @default(uuid(7))
+  createdAt DateTime @default(now())
+
+  action ForumAuditAction
+
+  chatId    String
+  topicName String
+  /// the post
+  messageId String
+  postTitle String
+  /// the comment, for a deleted or marked comment
+  commentId String?
+
+  actorId   String
+  actorName String
+  capacity  ForumActorCapacity
+
+  /// the shift that made the actor piket, copied in case the schedule entry changes later
+  piketScheduleId String?
+  shiftStart      DateTime?
+  shiftEnd        DateTime?
+
+  /// the assignment that made the actor a helper, and who handed it out
+  assignmentId    String?
+  delegatedById   String?
+  delegatedByName String?
+
+  before Json?
+  after  Json?
+  /// what the actor wrote about the change, e.g. what was done; public on a status change
+  note   String?
+
+  @@index([createdAt])
+  @@index([chatId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([messageId, createdAt])
+}

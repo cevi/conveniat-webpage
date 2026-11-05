@@ -23,6 +23,7 @@ import {
   isOpenToEveryone,
   listAdminEntities,
 } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
+import { AccessOverviewAppRights } from '@/features/payload-cms/payload-cms/views/access-overview-app-rights';
 import type {
   Capability,
   GroupColumn,
@@ -227,6 +228,11 @@ const capabilityLabels: Record<Capability, StaticTranslationString> = {
     de: 'Materialdepot in der App führen',
     en: 'Run the material depot in the app',
     fr: "Gérer le dépôt de matériel dans l'app",
+  },
+  forumZentrale: {
+    de: 'Forum-Zentrale: jedes Thema moderieren',
+    en: 'Forum Zentrale: moderate every topic',
+    fr: 'Zentrale du forum : modérer chaque thème',
   },
   hofDashboard: {
     de: 'Hof-Dashboard prüfen',
@@ -849,6 +855,7 @@ export default async function AccessOverviewView({
         <PersonPanel data={data} apiRoute={payload.config.routes.api} />
         <CapabilityChecklist data={data} />
         <PersonAccessList data={data} />
+        <AccessOverviewAppRights personId={person.id} locale={locale} req={req} />
         <details className="mt-3">
           <summary className="cursor-pointer text-sm font-semibold">
             {allGroupsLabel[locale]}

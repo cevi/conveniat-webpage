@@ -59,6 +59,12 @@ export const environmentVariables = createEnv({
     CEVIDB_GROUP_MATERIAL_TEAM: optionalGroupIds,
 
     /**
+     * optional: Cevi.DB groups whose members staff the forum's Zentrale all year, e.g. the
+     * people at the Zentrale desk. Without it, the full admins and the web core team do.
+     */
+    CEVIDB_GROUP_FORUM_ZENTRALE: optionalGroupIds,
+
+    /**
      * optional: the Cevi.DB group whose tree the camp functions are synced from, e.g. the
      * Projektleitung. Without it, nobody gets a function.
      */

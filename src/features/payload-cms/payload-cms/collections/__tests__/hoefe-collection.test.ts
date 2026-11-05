@@ -7,15 +7,15 @@ jest.mock('@/config/environment-variables', () => ({
   },
 }));
 
-jest.mock('@/features/payload-cms/payload-cms/utils/announcement-channel-memberships', () => ({
+jest.mock('@/features/payload-cms/payload-cms/chat-channels/channel-memberships', () => ({
   resyncAvpChannels: jest.fn().mockResolvedValue(0),
 }));
 jest.mock('@/features/payload-cms/payload-cms/utils/hof-membership', () => ({
   refreshUserHoefe: jest.fn(),
 }));
 
+import { resyncAvpChannels } from '@/features/payload-cms/payload-cms/chat-channels/channel-memberships';
 import { HoefeCollection } from '@/features/payload-cms/payload-cms/collections/hoefe-collection';
-import { resyncAvpChannels } from '@/features/payload-cms/payload-cms/utils/announcement-channel-memberships';
 import type { Field, FieldAccess, PayloadRequest } from 'payload';
 
 /** A full admin who is in the billing team too: the most anyone can do in the admin panel. */

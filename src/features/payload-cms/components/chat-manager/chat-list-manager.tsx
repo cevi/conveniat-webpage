@@ -244,6 +244,8 @@ export const ChatListManager: React.FC = () => {
       'bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800/50',
     [ChatType.ANNOUNCEMENT]:
       'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50',
+    [ChatType.FORUM]:
+      'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50',
   };
 
   const renderTypeBadge = (type: ChatType): React.ReactNode => {

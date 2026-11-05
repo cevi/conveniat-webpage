@@ -3,6 +3,7 @@ jest.mock('@/config/environment-variables', () => ({
     CEVIDB_GROUP_FULL_ADMIN: [541],
     CEVIDB_GROUP_WEB_CORE_TEAM: [105],
     CEVIDB_GROUP_MATERIAL_TEAM: [108],
+    CEVIDB_GROUP_FORUM_ZENTRALE: [],
   },
 }));
 
@@ -63,6 +64,8 @@ describe('buildAdminNavGroups', () => {
         '/admin/globals/hof-dashboard-settings',
         '/admin/material-setup',
       ],
+      // the Zentrale is a page of the app
+      'App · Betrieb': ['/admin/forum-protocol', '/app/forum/zentrale'],
     });
     expect(groups.flatMap((group) => group.links.map((link) => link.label))).toEqual([
       'Benutzer',
@@ -70,6 +73,8 @@ describe('buildAdminNavGroups', () => {
       'Benutzer zusammenführen',
       'Hof-Dashboard Einstellungen',
       'Materialdepot einrichten',
+      'Forum-Protokoll',
+      'Forum-Zentrale',
     ]);
   });
 
@@ -84,10 +89,11 @@ describe('buildAdminNavGroups', () => {
     expect(groups.map((group) => group.links.map((link) => link.label))).toEqual([
       ['Utilisateurs', 'Accès par groupe Cevi.DB', 'Fusionner des utilisateurs'],
       ['Paramètres du tableau de bord des Hofs', 'Configurer le dépôt de matériel'],
+      ['Protocole du forum', 'Zentrale du forum'],
     ]);
   });
 
-  it('shows an editor neither custom view', () => {
+  it('shows the web core team the forum protocol and the Zentrale, and no other custom view', () => {
     const groups = buildAdminNavGroups({
       entityGroups: entityGroups(),
       user: userIn(WEB_CORE_TEAM),
@@ -98,7 +104,21 @@ describe('buildAdminNavGroups', () => {
     expect(linksByGroup(groups)).toEqual({
       'Backoffice · Personen & Zugriff': ['/admin/collections/users'],
       'Backoffice · Höfe & Material': ['/admin/globals/hof-dashboard-settings'],
+      'App · Betrieb': ['/admin/forum-protocol', '/app/forum/zentrale'],
     });
+  });
+
+  it('opens the Zentrale in a new tab, since it leaves the admin panel', () => {
+    const groups = buildAdminNavGroups({
+      entityGroups: entityGroups(),
+      user: userIn(WEB_CORE_TEAM),
+      locale: 'de',
+      adminRoute: '/admin',
+    });
+
+    const links = groups.flatMap((group) => group.links);
+    expect(links.find((link) => link.href === '/app/forum/zentrale')?.external).toBe(true);
+    expect(links.find((link) => link.href === '/admin/forum-protocol')?.external).toBeUndefined();
   });
 
   it('gives the material team the depot setup in a group of its own', () => {

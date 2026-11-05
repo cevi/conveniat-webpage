@@ -66,7 +66,11 @@ const prisma = {
       );
     }),
   },
-  message: { findMany: mockMessageFindMany, create: mockMessageCreate },
+  message: {
+    findMany: mockMessageFindMany,
+    create: mockMessageCreate,
+    groupBy: jest.fn().mockResolvedValue([]),
+  },
 };
 
 const createCaller = createCallerFactory(adminRouter);

@@ -1,8 +1,12 @@
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import prisma from '@/lib/db/prisma';
-import type { ChatType } from '@/lib/prisma/client';
-import { ChatMembershipPermission, MessageEventType, MessageType } from '@/lib/prisma/client';
+import {
+  ChatMembershipPermission,
+  ChatType,
+  MessageEventType,
+  MessageType,
+} from '@/lib/prisma/client';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
@@ -26,6 +30,44 @@ interface PiketScheduleDocument {
     | string
     | { id: string; fullName?: string; nickname?: string }
     | null;
+}
+
+/** The shift that puts someone on duty, as the forum protocol records it. */
+export interface PiketShift {
+  scheduleId: string;
+  start: Date;
+  end: Date;
+}
+
+/**
+ * The shift during which `userId` is on duty for chats of `chatType` at `date`, or undefined
+ * when they are not. With overlapping entries, the one that ends last.
+ */
+export async function findActivePiketShift(
+  userId: string,
+  chatType: ChatType,
+  date: Date = new Date(),
+): Promise<PiketShift | undefined> {
+  const payload = await getPayload({ config });
+  const dateString = date.toISOString();
+  const entriesResult = (await payload.find({
+    collection: 'piket-schedules' as never,
+    where: {
+      and: [
+        { startTime: { less_than_equal: dateString } },
+        { endTime: { greater_than_equal: dateString } },
+        { chatTypes: { contains: chatType } },
+        { users: { contains: userId } },
+      ],
+    },
+    depth: 0,
+    sort: '-endTime',
+    limit: 1,
+  })) as unknown as { docs: PiketScheduleDocument[] };
+
+  const entry = entriesResult.docs[0];
+  if (entry === undefined) return undefined;
+  return { scheduleId: entry.id, start: new Date(entry.startTime), end: new Date(entry.endTime) };
 }
 
 export async function getActivePiketMembers(
@@ -182,6 +224,10 @@ export async function syncPiketMembersToOpenChats(payload: Payload): Promise<voi
           },
           update: {},
         });
+
+        // A forum topic shows its top-level messages as posts, so a system message would read
+        // as one, and it never appears in the chat list a new_chat event refreshes.
+        if (chat.type === ChatType.FORUM) continue;
 
         // Localized system message text (since background cron runs without locale context, default to German/English)
         const messageText = `${member.name} wurde automatisch hinzugefügt (Piket-Dienst)`;

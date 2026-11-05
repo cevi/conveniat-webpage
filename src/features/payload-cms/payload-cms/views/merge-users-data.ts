@@ -344,6 +344,17 @@ const mergeInPostgres = async (sourceId: string, targetId: string): Promise<void
       where: { userId: sourceId },
       data: { userId: targetId },
     });
+    // no foreign key by design either, and append only: the trigger lets exactly this update
+    // through, the people of an entry and nothing else, while the setting is on
+    await transaction.$executeRawUnsafe(`SET LOCAL forum_audit.reassign_people = 'on'`);
+    await transaction.forumAuditEvent.updateMany({
+      where: { actorId: sourceId },
+      data: { actorId: targetId },
+    });
+    await transaction.forumAuditEvent.updateMany({
+      where: { delegatedById: sourceId },
+      data: { delegatedById: targetId },
+    });
     await transaction.user.deleteMany({ where: { uuid: sourceId } });
   });
 };

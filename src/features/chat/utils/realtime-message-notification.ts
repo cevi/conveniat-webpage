@@ -4,7 +4,6 @@ import type { ChatMessage } from '@/features/chat/api/types';
 import { imageSentText } from '@/lib/chat-images';
 import type { StaticTranslationString } from '@/types/types';
 import { getDocumentLocale, notifyForegroundMessage } from '@/utils/foreground-notifications';
-import type { ChatType } from '@prisma/client';
 
 const fallbackChatName: StaticTranslationString = {
   de: 'Neue Nachricht',
@@ -43,19 +42,11 @@ const isImagePayload = (messagePayload: unknown): boolean =>
 export const notifyRealtimeChatMessage = ({
   chatId,
   chatName,
-  chatType,
   message,
   currentUserId,
 }: {
   chatId: string;
   chatName: string | undefined;
-  /**
-   * Type of the chat the message landed in, used to pick the notification channel.
-   * The push path derives the same thing server-side; whichever channel wins the
-   * race has to reach the same verdict, or an emergency reply sirens only when the
-   * SSE stream happens to lose.
-   */
-  chatType?: ChatType | undefined;
   message: ChatMessage;
   currentUserId: string;
 }): void => {
@@ -82,7 +73,8 @@ export const notifyRealtimeChatMessage = ({
     messageId: message.id,
     title,
     body,
+    // Always the regular channel: the one message that sirens is the alert opening an
+    // emergency chat, a system message this path skips, so it arrives by push only.
     targetPath: `/app/chat/${chatId}`,
-    notificationType: chatType === 'EMERGENCY' ? 'emergency' : 'default',
   });
 };

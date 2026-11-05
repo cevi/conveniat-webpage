@@ -4,6 +4,8 @@ jest.mock('@/lib/db/prisma', () => ({
   default: {
     user: { upsert: jest.fn() },
     chatMembership: { upsert: jest.fn(), findMany: jest.fn(), deleteMany: jest.fn() },
+    forumPostAssignment: { findMany: jest.fn(() => Promise.resolve([])) },
+    forumPost: { findMany: jest.fn(() => Promise.resolve([])) },
   },
 }));
 jest.mock('@/lib/db/publish-membership-revoked', () => ({
@@ -27,17 +29,19 @@ const runFor = async (groups: object[]): Promise<void> => {
   const payload = {
     logger: { debug: jest.fn(), error: jest.fn() },
     findByID: jest.fn().mockResolvedValue({ id: 'user-1', fullName: 'Pia Muster', groups }),
-    find: jest.fn(({ collection }: { collection: string }) =>
-      Promise.resolve({
-        docs:
-          collection === 'hoefe'
-            ? [{ id: 'hof-uster', groupId: USTER }]
-            : [
-                { targetType: 'avps', chatUuid: AVP_CHAT },
-                { targetType: 'all', chatUuid: EVERYONE_CHAT },
-              ],
-      }),
-    ),
+    find: jest.fn(({ collection }: { collection: string }) => {
+      if (collection === 'hoefe') {
+        return Promise.resolve({ docs: [{ id: 'hof-uster', groupId: USTER }] });
+      }
+      // the forum topics are channels too; this user's case has none
+      if (collection === 'forum-topics') return Promise.resolve({ docs: [] });
+      return Promise.resolve({
+        docs: [
+          { targetType: 'avps', chatUuid: AVP_CHAT },
+          { targetType: 'all', chatUuid: EVERYONE_CHAT },
+        ],
+      });
+    }),
   };
   const handler = syncNewUserAnnouncementChatsTask.handler as (args: {
     input: { userId: string };

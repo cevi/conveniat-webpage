@@ -16,6 +16,10 @@ enum ChatType {
 
   /// a channel for broadcasting read-only announcements to target groups
   ANNOUNCEMENT
+
+  /// a topic of the forum: every top-level message is a post, its thread the comments, see
+  /// `ForumPost`
+  FORUM
 }
 
 enum ChatStatus {
@@ -68,6 +72,7 @@ model Chat {
   messages        Message[]
   chatMemberships ChatMembership[]
   capabilities    ChatCapability[]
+  forumPosts      ForumPost[]
 
   @@unique([courseId, courseType])
   @@index([name])
@@ -152,6 +157,10 @@ model ChatMembership {
   /// set when this person marked the chat as unread, cleared once they read it again
   markedUnread Boolean @default(false)
 
+  /// when this person subscribed to every new post of a forum topic, null if not subscribed;
+  /// comments push to the subscribers of their post instead, see `ThreadSubscription`
+  subscribedAt DateTime?
+
   @@id([userId, chatId])
   @@index([userId])
   @@index([chatId, lastReadSeq])
@@ -213,6 +222,10 @@ model Message {
   parent    Message?          @relation("Thread", fields: [parentId, chatId], references: [uuid, chatId], onDelete: Cascade)
   replies   Message[]         @relation("Thread")
   reactions MessageReaction[]
+
+  /// the forum part, for a post in a forum topic
+  forumPost           ForumPost?
+  threadSubscriptions ThreadSubscription[]
 
   /// when the sender deleted the message for everyone, null while it stands; the row stays so
   /// its replies and the quotes of it keep their place, but its content is never served again
