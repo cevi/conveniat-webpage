@@ -4,6 +4,8 @@ import { findDeletedQuotedMessageIds } from '@/features/chat/api/utils/deleted-m
 import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
 import { findThreadSummaries } from '@/features/chat/api/utils/thread-summaries';
 import { toChatMessage } from '@/features/chat/api/utils/to-chat-message';
+import { findTopicAdminIds } from '@/features/chat/api/utils/topic-admins';
+import { ChatType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { createLogger } from '@/utils/server-logger';
 import { MessageEventType } from '@prisma/client';
@@ -43,6 +45,21 @@ export const getChatMessages = trpcBaseProcedure
         });
       }
 
+      // A forum topic's posts come from the forum router, its chat lists only the comments of
+      // one post, and those of a private report or a post waiting for approval only to whom
+      // sees it. Loaded here, so a chat does not pull in the piket schedule the check reads.
+      if (chat.type === ChatType.FORUM && parentId !== undefined) {
+        const { canSeeForumPost, findForumPostVisibility } =
+          await import('@/features/chat/api/forum/forum-visibility');
+        const post = await findForumPostVisibility(prisma, parentId);
+        if (post !== undefined && !(await canSeeForumPost(prisma, ctx.user, post))) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Chat with ID ${chatId} not found or access denied`,
+          });
+        }
+      }
+
       logger.debug('Fetching chat messages', {
         'chat.id': chatId,
         'chat.cursor': cursor,
@@ -55,6 +72,7 @@ export const getChatMessages = trpcBaseProcedure
         where: {
           chatId: chat.uuid,
           parentId: parentId ?? null,
+          ...(chat.type === ChatType.FORUM && parentId === undefined ? { forumPost: null } : {}),
         },
         ...(cursor == undefined ? {} : { cursor: { uuid: cursor }, skip: 1 }),
         orderBy: { seq: 'desc' },
@@ -68,12 +86,6 @@ export const getChatMessages = trpcBaseProcedure
             orderBy: { revision: 'desc' },
           },
           sender: { select: { name: true } },
-          _count: {
-            select: {
-              replies: true,
-              // We want to know if there are replies that the current user hasn't read yet
-            },
-          },
           reactions: {
             include: {
               user: {
@@ -111,16 +123,30 @@ export const getChatMessages = trpcBaseProcedure
         'chat.next_cursor': nextCursor,
       });
 
-      const [deletedQuotedIds, threadSummaries] = await Promise.all([
+      const [deletedQuotedIds, threads, topicAdminIds] = await Promise.all([
         findDeletedQuotedMessageIds(
           prisma,
           messages.map((message) => message.contentVersions[0]?.payload),
         ),
         findThreadSummaries(
           prisma,
-          messages.filter((message) => message._count.replies > 0).map((message) => message.uuid),
+          messages.map((message) => message.uuid),
+        ),
+        findTopicAdminIds(
+          prisma,
+          chat,
+          messages.map((message) => message.senderId),
         ),
       ]);
+
+      // the function behind each of their badges; loaded only then, as it reads Payload
+      const kernteamLabels =
+        topicAdminIds.size === 0
+          ? undefined
+          : await import('@/features/chat/api/forum/forum-kernteam-labels').then(
+              ({ findKernteamLabelsOfTopic }) =>
+                findKernteamLabelsOfTopic(prisma, chat.uuid, topicAdminIds, ctx.locale),
+            );
 
       const mappedMessages = messages.map((message) => {
         const isReadByAdmin = chat.adminReadAt !== null && message.createdAt <= chat.adminReadAt;
@@ -129,7 +155,9 @@ export const getChatMessages = trpcBaseProcedure
             ? MessageEventType.READ
             : getStatusFromMessageEvents(message.messageEvents),
           deletedQuotedIds,
-          threadSummaries,
+          threads,
+          topicAdminIds,
+          ...(kernteamLabels === undefined ? {} : { kernteamLabels }),
         });
       });
 

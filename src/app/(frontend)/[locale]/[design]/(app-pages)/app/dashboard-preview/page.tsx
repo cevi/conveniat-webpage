@@ -21,8 +21,8 @@ export const instant = false;
 
 /**
  * The live preview of the App Landing Page global: Home as the app shows it, with the draft's
- * title, welcome content and Schnellzugriff. Everything else on Home, the greeting and "Jetzt",
- * is the editor's own, as on the real dashboard. The proxy renders this route in the app's design.
+ * title, welcome content and Schnellzugriff, the latter with the default tiles everybody starts
+ * with. The greeting and "Jetzt" are the editor's own, as on the real dashboard. The proxy renders this route in the app's design.
  */
 const DashboardPreview: React.FC<{
   params: Promise<{ locale: Locale }>;
@@ -56,9 +56,13 @@ const DashboardPreview: React.FC<{
           showActionCards={landingPage.showActionCards ?? false}
           flags={{
             imageUploadEnabled: featureFlags.imageUploadEnabled !== false,
+            helperShiftsEnabled: featureFlags.helperShiftsEnabled !== false,
+            photoContestEnabled: featureFlags.photoContestEnabled !== false,
             materialEnabled: environmentVariables.FEATURE_ENABLE_MATERIAL_MANAGEMENT,
+            wristbandsEnabled: environmentVariables.FEATURE_ENABLE_NFC_WRISTBANDS,
           }}
           supportEmail={environmentVariables.APP_SUPPORT_EMAIL}
+          isPreview
         >
           {pageContent.length > 0 && (
             <PageSectionsConverter locale={locale} blocks={pageContent} renderInPreviewMode />

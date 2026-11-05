@@ -2,12 +2,68 @@ import type { Context } from '@/trpc/init';
 import { createCallerFactory, createTRPCRouter } from '@/trpc/init';
 
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
+const mockLoggedErrors: string[] = [];
+jest.mock('@/utils/server-logger', () => ({
+  createLogger: (): Record<string, (message: string) => void> => ({
+    debug: (): void => {},
+    info: (): void => {},
+    warn: (): void => {},
+    error: (message: string): void => {
+      mockLoggedErrors.push(message);
+    },
+  }),
+}));
 // The pool outside the transaction. A send holds its transaction connection for as long as
-// it runs, so every read it makes here needs a second one.
-const mockPoolRead = jest.fn();
+// it runs, so every read it makes there needs a second one: it may read the pool only once
+// it has committed.
+const mockPoolReadsCommitted: boolean[] = [];
+/** How many membership rows the send loaded, on either connection. */
+let mockMembershipRowsLoaded: number;
+const mockPoolRead = <T>(rows: T): Promise<T> => {
+  mockPoolReadsCommitted.push(committed);
+  if (mockPoolFails) return Promise.reject(new Error('Timed out fetching a new connection'));
+  return Promise.resolve(rows);
+};
+interface MockMembership {
+  userId: string;
+  chatPermission: string;
+  hasDeleted: boolean;
+}
+/** The members of the chat. Anna sends; Carla deleted the chat; Gast is a guest. */
+let mockMembers: MockMembership[];
+/** Who wrote in the thread a reply answers. */
+let mockThreadSenderIds: string[];
+/** Whether the pool is out of connections once the send has committed. */
+let mockPoolFails: boolean;
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
-  default: { chat: { findUnique: (): unknown => mockPoolRead() } },
+  default: {
+    chat: { findUnique: (): Promise<null> => mockPoolRead(null) },
+    chatMembership: {
+      findMany: ({
+        where,
+      }: {
+        where: { hasDeleted?: boolean; userId: { not: string; in?: string[] } };
+      }): Promise<{ userId: string }[]> =>
+        mockPoolRead(
+          mockMembers
+            .filter(
+              (member) =>
+                (where.hasDeleted === undefined || member.hasDeleted === where.hasDeleted) &&
+                member.userId !== where.userId.not &&
+                (where.userId.in === undefined || where.userId.in.includes(member.userId)),
+            )
+            .map(({ userId }) => {
+              mockMembershipRowsLoaded++;
+              return { userId };
+            }),
+        ),
+    },
+    message: {
+      findMany: (): Promise<{ senderId: string }[]> =>
+        mockPoolRead(mockThreadSenderIds.map((senderId) => ({ senderId }))),
+    },
+  },
 }));
 jest.mock('@/config/environment-variables', () => ({ environmentVariables: {} }));
 jest.mock('@/utils/get-locale-from-cookies', () => ({
@@ -34,6 +90,12 @@ const publishedAt: boolean[] = [];
 const pushedAt: boolean[] = [];
 /** What each push would say: its text and the sender it is prefixed with. */
 const pushedTexts: { message: string; senderName: string | undefined }[] = [];
+/** Whom each push would reach. */
+const pushedRecipients: string[][] = [];
+/** The members each send recorded a DISTRIBUTED event for. */
+const distributedTo: string[][] = [];
+/** The channel each push asks for, undefined being the regular chat channel. */
+const pushedChannels: (string | undefined)[] = [];
 
 jest.mock('@/lib/db/chat-pubsub', () => ({
   chatPubSub: {
@@ -46,19 +108,21 @@ jest.mock('@/lib/db/chat-pubsub', () => ({
 jest.mock('@/lib/push/send-notification', () => ({
   sendNotification: (
     message: string,
-    _recipients: string[],
+    recipients: string[],
     _chatId: string,
     _messageId: string,
-    options: { senderName?: string },
+    options: { senderName?: string; notificationType?: string },
   ): Promise<{ success: boolean }> => {
     pushedAt.push(committed);
+    pushedRecipients.push(recipients);
     pushedTexts.push({ message, senderName: options.senderName });
+    pushedChannels.push(options.notificationType);
     return Promise.resolve({ success: true });
   },
 }));
 
 import { createMessage } from '@/features/chat/api/mutations/create-message';
-import { ChatCapability } from '@/lib/chat-shared';
+import { ChatCapability, LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 import { ChatMembershipPermission, ChatType, MessageType } from '@/lib/prisma/client';
 
 const CHAT_ID = '00000000-0000-4000-8000-000000000001';
@@ -136,27 +200,49 @@ const prisma = {
     committed = true;
     return result;
   },
+  $executeRaw: (): Promise<number> => Promise.resolve(1),
   chat: {
-    findUnique: (): Promise<unknown> =>
+    findUnique: ({
+      select,
+    }: {
+      select: { chatMemberships: { where: { userId: string } } };
+    }): Promise<unknown> =>
       Promise.resolve({
         name: 'Cevi Uster',
-        type: ChatType.GROUP,
+        type: chatType,
         capabilities: [
           ChatCapability.CAN_SEND_MESSAGES,
           ChatCapability.PICTURE_UPLOAD,
           ChatCapability.THREADS,
+          ChatCapability.THREAD_REPLIES,
         ],
         // prisma answers a chat that was never archived with null
         archivedAt: null,
+        chatMemberships: mockMembers.filter((member) => {
+          if (member.userId !== select.chatMemberships.where.userId) return false;
+          mockMembershipRowsLoaded++;
+          return true;
+        }),
       }),
     update: (): Promise<void> => Promise.resolve(),
   },
   chatMembership: {
-    findMany: (): Promise<unknown> =>
-      Promise.resolve([
-        { userId: 'anna', chatPermission: ChatMembershipPermission.MEMBER },
-        { userId: 'ben', chatPermission: ChatMembershipPermission.MEMBER },
-      ]),
+    findMany: ({
+      where,
+      take,
+    }: {
+      where: { userId?: { not: string } };
+      take: number;
+    }): Promise<{ userId: string }[]> =>
+      Promise.resolve(
+        mockMembers
+          .filter((member) => member.userId !== where.userId?.not)
+          .slice(0, take)
+          .map(({ userId }) => {
+            mockMembershipRowsLoaded++;
+            return { userId };
+          }),
+      ),
   },
   message: {
     findMany: (): Promise<unknown[]> => Promise.resolve([]),
@@ -178,15 +264,45 @@ const prisma = {
       return Promise.resolve({ uuid: 'stored', createdAt: new Date(), type: data.type });
     },
   },
-  messageEvent: { createMany: (): Promise<void> => Promise.resolve() },
+  messageContent: {
+    findFirst: ({
+      where,
+    }: {
+      where: { payload: { equals: string }; message: { chatId: string } };
+    }): Promise<unknown> => {
+      const found = existingMessages.find(
+        (message) =>
+          message.chatId === where.message.chatId &&
+          (message.payload as { url?: string } | undefined)?.url === where.payload.equals,
+      );
+      return Promise.resolve(found === undefined ? null : { uuid: `content-${found.uuid}` });
+    },
+  },
+  messageEvent: {
+    createMany: ({ data }: { data: { userId: string }[] }): Promise<void> => {
+      distributedTo.push(data.map(({ userId }) => userId));
+      return Promise.resolve();
+    },
+  },
 };
+let chatType: ChatType;
 
 const createCaller = createCallerFactory(createTRPCRouter({ sendMessage: createMessage }));
-const anna = createCaller({
-  user: { uuid: 'anna', group_ids: [], name: 'Anna', email: 'anna@example.test' },
-  prisma,
-  locale: 'de',
-} as unknown as Context);
+const callerFor = (uuid: string, name: string): ReturnType<typeof createCaller> =>
+  createCaller({
+    user: { uuid, group_ids: [], name, email: `${uuid}@example.test` },
+    prisma,
+    locale: 'de',
+  } as unknown as Context);
+const anna = callerFor('anna', 'Anna');
+const gast = callerFor('gast', 'Gast');
+const stranger = callerFor('stranger', 'Stranger');
+
+/** The push follows the commit after its own reads, so let those settle first. */
+const afterCommitSettled = (): Promise<void> =>
+  new Promise((resolve) => {
+    setImmediate(resolve);
+  });
 
 const send = (type?: MessageType): Promise<unknown> =>
   anna.sendMessage({
@@ -206,7 +322,21 @@ beforeEach(() => {
   publishedAt.length = 0;
   pushedAt.length = 0;
   pushedTexts.length = 0;
-  mockPoolRead.mockClear();
+  pushedRecipients.length = 0;
+  pushedChannels.length = 0;
+  distributedTo.length = 0;
+  mockPoolReadsCommitted.length = 0;
+  mockMembershipRowsLoaded = 0;
+  mockPoolFails = false;
+  mockLoggedErrors.length = 0;
+  chatType = ChatType.GROUP;
+  mockThreadSenderIds = ['ben'];
+  mockMembers = [
+    { userId: 'anna', chatPermission: ChatMembershipPermission.MEMBER, hasDeleted: false },
+    { userId: 'ben', chatPermission: ChatMembershipPermission.MEMBER, hasDeleted: false },
+    { userId: 'carla', chatPermission: ChatMembershipPermission.MEMBER, hasDeleted: true },
+    { userId: 'gast', chatPermission: ChatMembershipPermission.GUEST, hasDeleted: false },
+  ];
 });
 
 describe('the message types a participant can send', () => {
@@ -232,12 +362,33 @@ describe('the message types a participant can send', () => {
   );
 });
 
+describe('the key of an image', () => {
+  it('is refused when another message of the chat already shows it, and nothing is stored', async () => {
+    // Deleting the second copy would hide the image from everyone, see `getDownloadUrl`.
+    const resent = anna.sendMessage({
+      chatId: CHAT_ID,
+      content: (imageMessage.payload as { url: string }).url,
+      timestamp: new Date(),
+      type: MessageType.IMAGE_MSG,
+    });
+
+    await expect(resent).rejects.toMatchObject({ code: 'CONFLICT' });
+    expect(storedTypes).toEqual([]);
+  });
+
+  it('is accepted when no message of the chat uses it yet', async () => {
+    await send(MessageType.IMAGE_MSG);
+    expect(storedPayloads).toEqual([{ url: `chat-images/${CHAT_ID}/1-abc.jpg` }]);
+  });
+});
+
 describe('the connections a send needs', () => {
   it.each([MessageType.TEXT_MSG, MessageType.IMAGE_MSG])(
     'checks what a %s may do on the connection of its transaction',
     async (type) => {
       await send(type);
-      expect(mockPoolRead).not.toHaveBeenCalled();
+      await afterCommitSettled();
+      expect(mockPoolReadsCommitted).not.toContain(false);
     },
   );
 
@@ -250,13 +401,15 @@ describe('the connections a send needs', () => {
     });
 
     expect(storedTypes).toEqual([MessageType.TEXT_MSG]);
-    expect(mockPoolRead).not.toHaveBeenCalled();
+    await afterCommitSettled();
+    expect(mockPoolReadsCommitted).not.toContain(false);
   });
 });
 
 describe('announcing a sent message', () => {
   it('happens exactly once, after the commit', async () => {
     await send();
+    await afterCommitSettled();
 
     expect(publishedAt).toEqual([true]);
     expect(pushedAt).toEqual([true]);
@@ -266,6 +419,7 @@ describe('announcing a sent message', () => {
     failCommit = true;
 
     await expect(send()).rejects.toThrow('Transaction already closed');
+    await afterCommitSettled();
 
     expect(publishedAt).toEqual([]);
     expect(pushedAt).toEqual([]);
@@ -338,13 +492,140 @@ describe('what a reply and a quote may point at', () => {
 describe('the text of the push', () => {
   it('is the message, prefixed with the sender', async () => {
     await send(MessageType.TEXT_MSG);
+    await afterCommitSettled();
 
     expect(pushedTexts).toEqual([{ message: 'Hoi zäme', senderName: 'Anna' }]);
   });
 
   it('says who sent an image instead of showing where it is stored', async () => {
     await send(MessageType.IMAGE_MSG);
+    await afterCommitSettled();
 
     expect(pushedTexts).toEqual([{ message: 'Anna hat ein Bild gesendet', senderName: undefined }]);
+  });
+});
+
+describe('who may send', () => {
+  it('refuses someone who is not a member, and stores nothing', async () => {
+    await expect(
+      stranger.sendMessage({ chatId: CHAT_ID, content: 'Hoi', timestamp: new Date() }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(storedTypes).toEqual([]);
+  });
+
+  it('lets a guest reply in a thread, but not write in the chat itself', async () => {
+    await expect(
+      gast.sendMessage({ chatId: CHAT_ID, content: 'Hoi', timestamp: new Date() }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await gast.sendMessage({
+      chatId: CHAT_ID,
+      content: 'Mir chömed!',
+      timestamp: new Date(),
+      parentId: PARENT_ID,
+    });
+    expect(storedParents).toEqual([PARENT_ID]);
+  });
+});
+
+describe('who a message reaches', () => {
+  it('pushes a message to every other member who still has the chat', async () => {
+    await send();
+    await afterCommitSettled();
+
+    expect(pushedRecipients).toEqual([['ben', 'gast']]);
+    expect(distributedTo).toEqual([['ben', 'carla', 'gast']]);
+  });
+
+  it('pushes a thread reply only to those who wrote in the thread', async () => {
+    await sendText({ parentId: PARENT_ID });
+    await afterCommitSettled();
+
+    expect(pushedRecipients).toEqual([['ben']]);
+  });
+
+  it('pushes a reply in an announcement thread to nobody, without reading the members', async () => {
+    chatType = ChatType.ANNOUNCEMENT;
+
+    await gast.sendMessage({
+      chatId: CHAT_ID,
+      content: 'Mir chömed!',
+      timestamp: new Date(),
+      parentId: PARENT_ID,
+    });
+    await afterCommitSettled();
+
+    expect(storedParents).toEqual([PARENT_ID]);
+    expect(pushedRecipients).toEqual([]);
+    expect(mockPoolReadsCommitted).toEqual([]);
+    expect(publishedAt).toEqual([true]);
+  });
+
+  it('loads only a bounded share of a camp-wide channel for a guest reply', async () => {
+    chatType = ChatType.ANNOUNCEMENT;
+    mockMembers = [
+      { userId: 'gast', chatPermission: ChatMembershipPermission.GUEST, hasDeleted: false },
+      ...Array.from({ length: 4000 }, (_, index) => ({
+        userId: `member-${index}`,
+        chatPermission: ChatMembershipPermission.GUEST,
+        hasDeleted: false,
+      })),
+    ];
+
+    await gast.sendMessage({
+      chatId: CHAT_ID,
+      content: 'Mir chömed!',
+      timestamp: new Date(),
+      parentId: PARENT_ID,
+    });
+    await afterCommitSettled();
+
+    expect(storedParents).toEqual([PARENT_ID]);
+    // the sender's own membership, and the members it takes to tell the chat is large
+    expect(mockMembershipRowsLoaded).toBeLessThanOrEqual(1 + LARGE_CHAT_THRESHOLD);
+  });
+
+  it('records no DISTRIBUTED events in a chat that reading it treats as large', async () => {
+    // the sender and 127 others: exactly the size at which `markChatAsRead` stops writing
+    // READ events, so a DISTRIBUTED tick here would never turn into a read one
+    const others = Array.from({ length: LARGE_CHAT_THRESHOLD - 1 }, (_, index) => ({
+      userId: `member-${index}`,
+      chatPermission: ChatMembershipPermission.MEMBER,
+      hasDeleted: false,
+    }));
+    mockMembers = [
+      { userId: 'anna', chatPermission: ChatMembershipPermission.MEMBER, hasDeleted: false },
+      ...others,
+    ];
+
+    await send();
+    await afterCommitSettled();
+
+    expect(distributedTo).toEqual([]);
+    expect(pushedRecipients).toEqual([others.map(({ userId }) => userId)]);
+  });
+
+  it('still stores and publishes a message when its recipients cannot be read', async () => {
+    mockPoolFails = true;
+
+    await send();
+    await afterCommitSettled();
+
+    expect(storedTypes).toEqual([MessageType.TEXT_MSG]);
+    expect(publishedAt).toEqual([true]);
+    expect(pushedRecipients).toEqual([]);
+    expect(mockLoggedErrors).toEqual(['Reading the push recipients failed']);
+  });
+});
+
+describe('the channel of the push', () => {
+  // Only the alert that opens an emergency chat sirens; the emergency router sends it.
+  // A siren on every reply made a busy case sound like a new emergency each time (#1654).
+  it('is the regular one for a reply in an emergency chat', async () => {
+    chatType = ChatType.EMERGENCY;
+
+    await send(MessageType.TEXT_MSG);
+    await afterCommitSettled();
+
+    expect(pushedChannels).toEqual([undefined]);
   });
 });

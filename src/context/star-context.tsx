@@ -1,9 +1,9 @@
 'use client';
 
-import { useAuthStatus } from '@/hooks/use-auth-status';
+import { useStarSync } from '@/hooks/use-star-sync';
 import { useStoredRows } from '@/hooks/use-stored-rows';
-import { starsCollection } from '@/lib/tanstack-db';
-import { trpc } from '@/trpc/client';
+import { isStarredRow } from '@/lib/star-sync';
+import { setLocalStar, starsCollection } from '@/lib/tanstack-db';
 import type { StarContextType } from '@/types/types';
 import React, {
   createContext,
@@ -12,7 +12,6 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useState,
 } from 'react';
 
 const STORAGE_KEY = 'starredItems';
@@ -24,20 +23,15 @@ export interface StarProviderProperties {
 export const StarContext = createContext<StarContextType | undefined>(undefined);
 
 export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => {
-  const syncTimerReference = useRef<NodeJS.Timeout | null>(null);
-  const lastSyncedIdsReference = useRef<string>('');
-  const isSyncedReference = useRef(false);
   const isInitializedReference = useRef(false);
-  const status = useAuthStatus();
 
   const starItems = useStoredRows(starsCollection);
 
   // Memoize starredEntries to prevent unnecessary re-renders
-  const starredEntries = useMemo(() => new Set(starItems.map((item) => item.id)), [starItems]);
-
-  // tRPC hooks
-  const toggleStarMutation = trpc.schedule.star.toggleStar.useMutation();
-  const syncStarsMutation = trpc.schedule.star.syncStars.useMutation();
+  const starredEntries = useMemo(
+    () => new Set(starItems.filter((item) => isStarredRow(item)).map((item) => item.id)),
+    [starItems],
+  );
 
   // Initialize and migrate from old localStorage format (runs once)
   useEffect(() => {
@@ -59,97 +53,12 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
     }
   }, []);
 
-  const [isOnlineState, setIsOnlineState] = useState(
-    () => typeof navigator !== 'undefined' && navigator.onLine,
-  );
+  useStarSync(starItems);
 
-  useEffect(() => {
-    const handleOnline = (): void => setIsOnlineState(true);
-    const handleOffline = (): void => setIsOnlineState(false);
-    globalThis.addEventListener('online', handleOnline);
-    globalThis.addEventListener('offline', handleOffline);
-    return (): void => {
-      globalThis.removeEventListener('online', handleOnline);
-      globalThis.removeEventListener('offline', handleOffline);
-    };
+  const toggleStar = useCallback((id: string) => {
+    const row = starsCollection.get(id);
+    setLocalStar(id, row === undefined || !isStarredRow(row));
   }, []);
-
-  // Sync with backend (debounced)
-  useEffect(() => {
-    if (!isInitializedReference.current || !isOnlineState) return;
-
-    if (status !== 'authenticated') {
-      isSyncedReference.current = false;
-      return;
-    }
-
-    const currentIds = [...starredEntries].sort().join(',');
-
-    // Skip if nothing has changed since last sync AND we have synced at least once
-    if (currentIds === lastSyncedIdsReference.current && isSyncedReference.current) return;
-
-    if (syncTimerReference.current) clearTimeout(syncTimerReference.current);
-
-    syncTimerReference.current = setTimeout(() => {
-      const idsArray = currentIds === '' ? [] : currentIds.split(',');
-      lastSyncedIdsReference.current = currentIds;
-
-      syncStarsMutation.mutate(
-        { courseIds: idsArray },
-        {
-          onSuccess: (remoteIds): void => {
-            isSyncedReference.current = true;
-            const remoteSet = new Set(remoteIds);
-            const currentItems = [...starsCollection.state.values()];
-            const currentSet = new Set(currentItems.map((index) => index.id));
-
-            const needsUpdate =
-              remoteIds.length !== currentItems.length ||
-              remoteIds.some((id) => !currentSet.has(id)) ||
-              currentItems.some((index) => !remoteSet.has(index.id));
-
-            if (needsUpdate) {
-              // We only ADD stars from remote, we NEVER delete local stars
-              // This is a safety measure to ensure we never lose user data
-              // if the server is temporarily out of sync or returns a partial list.
-              for (const id of remoteIds) {
-                if (!currentSet.has(id)) {
-                  starsCollection.insert({ id, starredAt: Date.now() });
-                }
-              }
-            }
-          },
-          onError: (error): void => {
-            isSyncedReference.current = false;
-            if (error.data?.code !== 'UNAUTHORIZED' && error.data?.code !== 'FORBIDDEN') {
-              console.warn('Star sync failed:', error.message);
-            }
-          },
-        },
-      );
-    }, 2000);
-
-    return (): void => {
-      if (syncTimerReference.current) clearTimeout(syncTimerReference.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [starredEntries, status, isOnlineState]);
-
-  const toggleStar = useCallback(
-    (id: string) => {
-      const exists = starsCollection.get(id);
-      if (exists) {
-        starsCollection.delete(id);
-      } else {
-        starsCollection.insert({ id, starredAt: Date.now() });
-      }
-
-      if (typeof navigator !== 'undefined' && navigator.onLine) {
-        toggleStarMutation.mutate({ courseId: id });
-      }
-    },
-    [toggleStarMutation],
-  );
 
   const isStarred = useCallback((id: string) => starredEntries.has(id), [starredEntries]);
 

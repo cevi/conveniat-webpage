@@ -1,5 +1,6 @@
 'use server';
 
+import { MAX_QUANTITY, MAX_STOCK_QUANTITY } from '@/features/material/limits';
 import {
   type SetupMessageKey,
   setupMessages,
@@ -112,15 +113,15 @@ const importRowSchema = z.object({
     .regex(/^[A-Z0-9-]{2,24}$/),
   name: z.string().trim().min(1).max(200),
   category: z.string().trim().min(1).max(100),
-  total: z.coerce.number().int().min(0).max(1_000_000),
-  max: z.coerce.number().int().min(1).max(1_000_000),
+  total: z.coerce.number().int().min(0).max(MAX_STOCK_QUANTITY),
+  max: z.coerce.number().int().min(1).max(MAX_QUANTITY),
   unit: z.string().trim().max(40),
   consumable: z.string().trim().toLowerCase(),
   reservable: z.string().trim().toLowerCase(),
   description: z.string().trim().max(5000),
   returnInstructions: z.string().trim().max(2000),
   imageUrl: z.union([z.literal(''), z.string().trim().pipe(z.url())]),
-  step: z.union([z.literal(''), z.coerce.number().int().min(1).max(1_000_000)]),
+  step: z.union([z.literal(''), z.coerce.number().int().min(1).max(MAX_QUANTITY)]),
 });
 
 /** Splits one line at tabs or `;`, the separators a copy out of a spreadsheet produces. */

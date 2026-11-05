@@ -18,7 +18,7 @@ import { previewPdfUseCase } from '@/features/billing/services/preview-pdf';
 import type { PopulateSubeventsStreamMessage } from '@/features/billing/types';
 import { BillingJobStatus, BillingTaskSlug } from '@/features/billing/types';
 import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/roles';
-import { resyncAvpChannels } from '@/features/payload-cms/payload-cms/utils/announcement-channel-memberships';
+import { resyncAvpChannels } from '@/features/payload-cms/payload-cms/chat-channels/channel-memberships';
 import { HITOBITO_CONFIG } from '@/lib/hitobito';
 import { randomUUID } from 'node:crypto';
 import type { PayloadHandler } from 'payload';

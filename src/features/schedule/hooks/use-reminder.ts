@@ -1,7 +1,8 @@
 'use client';
 
 import { useAuthStatus } from '@/hooks/use-auth-status';
-import { starsCollection } from '@/lib/tanstack-db';
+import { isStarredRow } from '@/lib/star-sync';
+import { setLocalStar, starsCollection } from '@/lib/tanstack-db';
 import { trpc } from '@/trpc/client';
 import { useCallback } from 'react';
 
@@ -34,7 +35,8 @@ interface UseReminderResult {
   isAutomatic: boolean;
   /** `false` once it is known that no device of the user receives pushes */
   hasPushDevice: boolean | undefined;
-  setReminder: (enabled: boolean) => void;
+  /** `onError` runs when saving fails, after the reminder has fallen back */
+  setReminder: (enabled: boolean, options?: { onError?: () => void }) => void;
   isSaving: boolean;
   isError: boolean;
 }
@@ -77,12 +79,13 @@ export const useReminder = (entryId: string, entryKind: ReminderEntryKind): UseR
         },
       ]);
       // the server stars the block too; the local copy follows at once instead of on the next sync
+      const star = starsCollection.get(input.entryId);
       if (
         input.enabled &&
         input.entryKind === 'program' &&
-        starsCollection.get(input.entryId) === undefined
+        (star === undefined || !isStarredRow(star))
       ) {
-        starsCollection.insert({ id: input.entryId, starredAt: Date.now() });
+        setLocalStar(input.entryId, true);
       }
       return { previous };
     },
@@ -94,7 +97,8 @@ export const useReminder = (entryId: string, entryKind: ReminderEntryKind): UseR
 
   const { mutate } = mutation;
   const setReminder = useCallback(
-    (enabled: boolean) => mutate({ entryId, entryKind, enabled }),
+    (enabled: boolean, options?: { onError?: () => void }) =>
+      mutate({ entryId, entryKind, enabled }, { onError: () => options?.onError?.() }),
     [entryId, entryKind, mutate],
   );
 

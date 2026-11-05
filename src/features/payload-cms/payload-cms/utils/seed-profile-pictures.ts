@@ -1,6 +1,6 @@
 import {
   setProfilePicture,
-  toAvatar,
+  toProfilePicture,
 } from '@/features/payload-cms/payload-cms/utils/profile-pictures';
 import {
   LEITUNG_ROLE_CLASS,
@@ -119,8 +119,8 @@ export const seedProfilePicturesOfFunktionen = async (
       continue;
     }
     try {
-      const avatar = await toAvatar(await downloadPicture(url));
-      await setProfilePicture(payload, user.id, avatar, undefined);
+      const picture = await toProfilePicture(await downloadPicture(url));
+      await setProfilePicture(payload, user.id, picture, undefined);
       result.seeded += 1;
     } catch (error: unknown) {
       result.failed += 1;

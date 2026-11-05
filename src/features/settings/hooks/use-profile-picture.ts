@@ -1,29 +1,25 @@
 'use client';
 
 import { trpc } from '@/trpc/client';
+import { decodeImage, encodeJpeg } from '@/utils/image-file';
 import { useState } from 'react';
 
-/** The longest edge sent over the camp wifi; the server crops it to a 192px square. */
+/** The longest edge sent over the camp wifi; the server crops it to its 192 and 640px squares. */
 const UPLOAD_EDGE = 768;
 
 /**
  * Shrinks a photo on the phone before it is uploaded, a few megabytes down to a few hundred
- * kilobytes. A browser that cannot decode it, e.g. HEIC outside Safari, uploads the original and
- * lets the server decode it.
+ * kilobytes, and turns HEIC into a JPEG, which the server's sharp cannot read. A file the browser
+ * cannot decode at all goes up as picked, and the server refuses or reads it.
  */
 const shrinkForUpload = async (file: File): Promise<Blob> => {
   try {
-    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-    const scale = Math.min(1, UPLOAD_EDGE / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext('2d')?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close();
-    const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, 'image/jpeg', 0.85);
-    });
-    return blob ?? file;
+    const bitmap = await decodeImage(file);
+    try {
+      return await encodeJpeg(bitmap, UPLOAD_EDGE, 0.85);
+    } finally {
+      bitmap.close();
+    }
   } catch {
     return file;
   }

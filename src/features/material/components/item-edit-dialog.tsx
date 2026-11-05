@@ -1,6 +1,7 @@
 'use client';
 import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
+import { toast } from '@/components/ui/toast';
 import { labels } from '@/features/material/components/material-labels';
 import {
   Field,
@@ -17,6 +18,7 @@ import {
   useMaterialLocale,
   type MaterialItemDetail,
 } from '@/features/material/hooks/use-material';
+import { MAX_QUANTITY, MAX_STOCK_QUANTITY } from '@/features/material/limits';
 import { orderStepOf } from '@/features/material/utils/basket';
 import { getItemFormProblems, type ItemFormProblem } from '@/features/material/utils/item-form';
 import { itemPath } from '@/features/material/utils/scan';
@@ -26,7 +28,6 @@ import { cn } from '@/utils/tailwindcss-override';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 const text = {
   titleNew: { de: 'Neuer Artikel', en: 'New item', fr: 'Nouvel article' },
@@ -110,8 +111,9 @@ const fromItem = (item: EditableItem | undefined): FormState => ({
   imageUrl: item?.imageUrl ?? '',
   unit: item?.unit ?? 'Stück',
   totalQuantity: item?.totalQuantity ?? 0,
-  maxLoanQuantity: item?.maxLoanQuantity ?? 1,
-  orderStep: orderStepOf(item?.orderStep),
+  // an item saved before the cap may allow more; saving it again brings it down to the cap
+  maxLoanQuantity: Math.min(item?.maxLoanQuantity ?? 1, MAX_QUANTITY),
+  orderStep: Math.min(orderStepOf(item?.orderStep), MAX_QUANTITY),
   lowStockThreshold: item?.lowStockThreshold ?? 0,
   isConsumable: item?.isConsumable ?? false,
   isReservable: item?.isReservable ?? true,
@@ -139,6 +141,7 @@ export const ItemEditDialog: React.FC<{
   ): React.ReactNode => (
     <NumberInput
       min={key === 'maxLoanQuantity' || key === 'orderStep' ? 1 : 0}
+      max={key === 'maxLoanQuantity' || key === 'orderStep' ? MAX_QUANTITY : MAX_STOCK_QUANTITY}
       value={form[key]}
       onChange={(value) => set(key, value)}
     />

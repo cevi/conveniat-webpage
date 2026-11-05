@@ -44,10 +44,11 @@ import { FolderTableCell as FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 import { FolderField as FolderField_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { DocumentUsageFilter as DocumentUsageFilter_681da369ca73cb04d87ca9256f8f38db } from '@/features/payload-cms/payload-cms/components/document-usage-filter'
 import { default as default_1e95e18ff98032b69bda4bd8327a52ac } from '@/features/payload-cms/payload-cms/components/pdf-report-generator-ui'
-import { CeviGroupPicker as CeviGroupPicker_76c57f5585cb65c2c36a314c5db9c752 } from '@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-picker'
-import { CeviGroupRowLabel as CeviGroupRowLabel_38817e2c6ebcba764ea26450d397de2b } from '@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-row-label'
-import { AudiencePreview as AudiencePreview_66b946c6443ed5e81bdd7eb37100b09b } from '@/features/payload-cms/payload-cms/components/announcement-channel/audience-preview'
-import { ChannelMembersField as ChannelMembersField_1b8c2f3810cac10d03bf806af07d9413 } from '@/features/payload-cms/payload-cms/components/announcement-channel/channel-members'
+import { CeviGroupPicker as CeviGroupPicker_284df5311270166d7e64a0e780f6a244 } from '@/features/payload-cms/payload-cms/components/chat-channel/cevi-group-picker'
+import { CeviGroupRowLabel as CeviGroupRowLabel_33b19abb2f046c4eafe465547a5eff27 } from '@/features/payload-cms/payload-cms/components/chat-channel/cevi-group-row-label'
+import { AudiencePreview as AudiencePreview_9314fea594b35516aba8d382181f2172 } from '@/features/payload-cms/payload-cms/components/chat-channel/audience-preview'
+import { ChannelMembersField as ChannelMembersField_c78b486620e7ec961b30b14fcca8dd41 } from '@/features/payload-cms/payload-cms/components/chat-channel/channel-members'
+import { default as default_379fbdd236b0270dfb0ea39792c526a1 } from '@/features/payload-cms/payload-cms/components/forum/open-topic-in-app'
 import { AnnouncementPushSummaryField as AnnouncementPushSummaryField_52ba1255fb8c04822ec73339cebef801 } from '@/features/payload-cms/payload-cms/components/announcement-push-summary'
 import { AnnouncementTranslateMissingLanguages as AnnouncementTranslateMissingLanguages_1519d81df2f98fe32884c13868eadfc1 } from '@/features/payload-cms/payload-cms/components/announcement-translate-missing-languages'
 import { default as default_5e6e3bcc43a18e826de12d19a3b1de10 } from '@/features/payload-cms/payload-cms/components/fields/icon-select-field'
@@ -61,6 +62,8 @@ import { HelperShiftOrganiserExport as HelperShiftOrganiserExport_706abe738905a3
 import { ExportListMenuItem as ExportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { ImportListMenuItem as ImportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_de57a7a0310123dd259a53c03db574b9 } from '@/features/payload-cms/components/push-notification/push-notification-panel'
+import { default as default_f3319b28b44963828cb0e92d009cddff } from '@/features/payload-cms/components/push-notification/user-push-devices'
+import { default as default_301b920e3d3378f3646c9c911fe5324a } from '@/features/payload-cms/components/push-notification/user-push-devices-cell'
 import { FunktionenListHeader as FunktionenListHeader_b4889cf2925bee9fd8708afb34e7214c } from '@/features/payload-cms/payload-cms/components/funktionen-list-header'
 import { default as default_720f56d8cf9ba0434ee963ba588968d8 } from '@/features/billing/components/billing-status-cell'
 import { default as default_06b30d36d4fec532358cb0f29e42cc3e } from '@/features/billing/components/billing-actions-cell'
@@ -87,7 +90,6 @@ import { default as default_a06f68e0cdad6b2fba6e2223cd5b6303 } from '@/features/
 import { default as default_84e24e99aa7b2bdd4ca81a1fd23b526b } from '@/features/payload-cms/payload-cms/components/smtp-results/raw-smtp-results-field'
 import { FormBlockLabel as FormBlockLabel_38d14c2698379009ac744a1a2c27c19b } from '@/features/payload-cms/payload-cms/components/form-block-label'
 import { FormSectionRowLabel as FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955 } from '@/features/payload-cms/payload-cms/components/form-section-row-label'
-import { default as default_3be47662410c932a09263aa429c0578f } from '@/features/payload-cms/payload-cms/components/fields/email-from-warning'
 import { WorkflowFieldMapping as WorkflowFieldMapping_250a2659e1c657e86d416a8a839c97c5 } from '@/features/payload-cms/payload-cms/plugins/form/components/workflow-field-mapping'
 import { default as default_841c75d2a11733c455bbe07946842305 } from '@/features/payload-cms/payload-cms/components/form/trigger-workflows-button'
 import { FormExportButton as FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4 } from '@/features/payload-cms/payload-cms/components/form-export-button'
@@ -118,7 +120,6 @@ import { FolderTypeField as FolderTypeField_2b8867833a34864a02ddf429b0728a40 } f
 import { MainEntryRowLabel as MainEntryRowLabel_576220226adef27d36922a63f8de9abd } from '@/features/payload-cms/payload-cms/components/main-menu-row-label'
 import { default as default_ab019a1f47fb69008664ade9a2845503 } from '@/features/payload-cms/payload-cms/views/alert-management'
 import { default as default_72094444c4748ea6819cf00010baebe6 } from '@/features/payload-cms/payload-cms/components/alert-settings-key-component'
-import { default as default_54174459954867e20e36ce19080dde49 } from '@/features/payload-cms/payload-cms/views/chat-management'
 import { default as default_f72329dca34ac878c275d9291e68c35c } from '@/features/payload-cms/components/chat-manager/chat-list-manager-field'
 import { default as default_cd35b3d8d72e9d0e9e863a18826ee991 } from '@/features/presence/payload-cms/components/density-plot-field'
 import { default as default_95aac01a1d24126400a908467acf9d8a } from '@/features/presence/payload-cms/components/open-people-list-field'
@@ -138,6 +139,7 @@ import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/
 import { UploadSizeGuard as UploadSizeGuard_eaeb4abe4034540768dce4d0ae049678 } from '@/features/payload-cms/payload-cms/components/upload-size-guard'
 import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_1e4b7ed358a9b39713ba1bd44bbcc1f1 } from '@/features/payload-cms/payload-cms/views/access-overview-view'
+import { default as default_817448654e157f5910ed2cdc349d2477 } from '@/features/payload-cms/payload-cms/views/forum-protocol-view'
 import { default as default_dbd7fa7f7e394074f3d89896acb3145a } from '@/features/payload-cms/payload-cms/views/merge-users-view'
 import { default as default_1301ab5d76cd2e924cf1719e5409e3b4 } from '@/features/material/payload-cms/material-setup-view'
 import { default as default_e7ca4c1ba39ad98f5b6b68aa103e80ee } from '@/features/payload-cms/payload-cms/widgets/emergency-widget'
@@ -196,10 +198,11 @@ export const importMap = {
   "@payloadcms/next/rsc#FolderField": FolderField_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@/features/payload-cms/payload-cms/components/document-usage-filter#DocumentUsageFilter": DocumentUsageFilter_681da369ca73cb04d87ca9256f8f38db,
   "@/features/payload-cms/payload-cms/components/pdf-report-generator-ui#default": default_1e95e18ff98032b69bda4bd8327a52ac,
-  "@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-picker#CeviGroupPicker": CeviGroupPicker_76c57f5585cb65c2c36a314c5db9c752,
-  "@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-row-label#CeviGroupRowLabel": CeviGroupRowLabel_38817e2c6ebcba764ea26450d397de2b,
-  "@/features/payload-cms/payload-cms/components/announcement-channel/audience-preview#AudiencePreview": AudiencePreview_66b946c6443ed5e81bdd7eb37100b09b,
-  "@/features/payload-cms/payload-cms/components/announcement-channel/channel-members#ChannelMembersField": ChannelMembersField_1b8c2f3810cac10d03bf806af07d9413,
+  "@/features/payload-cms/payload-cms/components/chat-channel/cevi-group-picker#CeviGroupPicker": CeviGroupPicker_284df5311270166d7e64a0e780f6a244,
+  "@/features/payload-cms/payload-cms/components/chat-channel/cevi-group-row-label#CeviGroupRowLabel": CeviGroupRowLabel_33b19abb2f046c4eafe465547a5eff27,
+  "@/features/payload-cms/payload-cms/components/chat-channel/audience-preview#AudiencePreview": AudiencePreview_9314fea594b35516aba8d382181f2172,
+  "@/features/payload-cms/payload-cms/components/chat-channel/channel-members#ChannelMembersField": ChannelMembersField_c78b486620e7ec961b30b14fcca8dd41,
+  "@/features/payload-cms/payload-cms/components/forum/open-topic-in-app#default": default_379fbdd236b0270dfb0ea39792c526a1,
   "@/features/payload-cms/payload-cms/components/announcement-push-summary#AnnouncementPushSummaryField": AnnouncementPushSummaryField_52ba1255fb8c04822ec73339cebef801,
   "@/features/payload-cms/payload-cms/components/announcement-translate-missing-languages#AnnouncementTranslateMissingLanguages": AnnouncementTranslateMissingLanguages_1519d81df2f98fe32884c13868eadfc1,
   "@/features/payload-cms/payload-cms/components/fields/icon-select-field#default": default_5e6e3bcc43a18e826de12d19a3b1de10,
@@ -213,6 +216,8 @@ export const importMap = {
   "@payloadcms/plugin-import-export/rsc#ExportListMenuItem": ExportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@payloadcms/plugin-import-export/rsc#ImportListMenuItem": ImportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/components/push-notification/push-notification-panel#default": default_de57a7a0310123dd259a53c03db574b9,
+  "@/features/payload-cms/components/push-notification/user-push-devices#default": default_f3319b28b44963828cb0e92d009cddff,
+  "@/features/payload-cms/components/push-notification/user-push-devices-cell#default": default_301b920e3d3378f3646c9c911fe5324a,
   "@/features/payload-cms/payload-cms/components/funktionen-list-header#FunktionenListHeader": FunktionenListHeader_b4889cf2925bee9fd8708afb34e7214c,
   "@/features/billing/components/billing-status-cell#default": default_720f56d8cf9ba0434ee963ba588968d8,
   "@/features/billing/components/billing-actions-cell#default": default_06b30d36d4fec532358cb0f29e42cc3e,
@@ -239,7 +244,6 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/smtp-results/raw-smtp-results-field#default": default_84e24e99aa7b2bdd4ca81a1fd23b526b,
   "@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel": FormBlockLabel_38d14c2698379009ac744a1a2c27c19b,
   "@/features/payload-cms/payload-cms/components/form-section-row-label#FormSectionRowLabel": FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955,
-  "@/features/payload-cms/payload-cms/components/fields/email-from-warning#default": default_3be47662410c932a09263aa429c0578f,
   "@/features/payload-cms/payload-cms/plugins/form/components/workflow-field-mapping#WorkflowFieldMapping": WorkflowFieldMapping_250a2659e1c657e86d416a8a839c97c5,
   "@/features/payload-cms/payload-cms/components/form/trigger-workflows-button#default": default_841c75d2a11733c455bbe07946842305,
   "@/features/payload-cms/payload-cms/components/form-export-button#FormExportButton": FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4,
@@ -270,7 +274,6 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/main-menu-row-label#MainEntryRowLabel": MainEntryRowLabel_576220226adef27d36922a63f8de9abd,
   "@/features/payload-cms/payload-cms/views/alert-management#default": default_ab019a1f47fb69008664ade9a2845503,
   "@/features/payload-cms/payload-cms/components/alert-settings-key-component#default": default_72094444c4748ea6819cf00010baebe6,
-  "@/features/payload-cms/payload-cms/views/chat-management#default": default_54174459954867e20e36ce19080dde49,
   "@/features/payload-cms/components/chat-manager/chat-list-manager-field#default": default_f72329dca34ac878c275d9291e68c35c,
   "@/features/presence/payload-cms/components/density-plot-field#default": default_cd35b3d8d72e9d0e9e863a18826ee991,
   "@/features/presence/payload-cms/components/open-people-list-field#default": default_95aac01a1d24126400a908467acf9d8a,
@@ -290,6 +293,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/upload-size-guard#UploadSizeGuard": UploadSizeGuard_eaeb4abe4034540768dce4d0ae049678,
   "@payloadcms/plugin-import-export/rsc#ImportExportProvider": ImportExportProvider_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/payload-cms/views/access-overview-view#default": default_1e4b7ed358a9b39713ba1bd44bbcc1f1,
+  "@/features/payload-cms/payload-cms/views/forum-protocol-view#default": default_817448654e157f5910ed2cdc349d2477,
   "@/features/payload-cms/payload-cms/views/merge-users-view#default": default_dbd7fa7f7e394074f3d89896acb3145a,
   "@/features/material/payload-cms/material-setup-view#default": default_1301ab5d76cd2e924cf1719e5409e3b4,
   "@/features/payload-cms/payload-cms/widgets/emergency-widget#default": default_e7ca4c1ba39ad98f5b6b68aa103e80ee,

@@ -1,7 +1,9 @@
 import { chatError } from '@/features/chat/api/chat-errors';
 import { assertChatNotArchived } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { ChatCapability } from '@/lib/chat-shared';
-import { chatPubSub } from '@/lib/db/chat-pubsub';
+import { type ChatRealtimeEvent, chatPubSub } from '@/lib/db/chat-pubsub';
+import poolPrisma from '@/lib/db/prisma';
+import { ChatType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { createLogger } from '@/utils/server-logger';
@@ -59,6 +61,7 @@ export const toggleReaction = trpcBaseProcedure
       where: { uuid: message.chatId },
       select: {
         uuid: true,
+        type: true,
         capabilities: true,
         archivedAt: true,
         chatMemberships: {
@@ -79,6 +82,26 @@ export const toggleReaction = trpcBaseProcedure
     }
 
     assertChatNotArchived(chat);
+
+    // A private report or a post waiting for approval is seen, and liked, only by its author and
+    // its moderators, and so are its comments. Loaded here, so a reaction elsewhere does not pull
+    // in the piket schedule the check reads.
+    const forumVisibility =
+      chat.type === ChatType.FORUM
+        ? await import('@/features/chat/api/forum/forum-visibility')
+        : undefined;
+    const forumThread = await forumVisibility?.findForumPostVisibility(
+      prisma,
+      message.parentId ?? message.uuid,
+    );
+    if (
+      forumVisibility !== undefined &&
+      forumThread !== undefined &&
+      !(await forumVisibility.canSeeForumPost(prisma, user, forumThread))
+    ) {
+      // answers like a message that does not exist
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Message not found.' });
+    }
 
     // 3. Permission checks: Emoji reactions must be enabled for the chat
     if (!chat.capabilities.includes(ChatCapability.EMOJI_REACTIONS)) {
@@ -128,28 +151,31 @@ export const toggleReaction = trpcBaseProcedure
     // 5. Publish the real-time event once the reaction is committed, so clients that
     // refetch on it read the new reaction.
     ctx.afterTransactionCommit(() => {
-      chatPubSub
-        .publish({
-          type: 'message_updated',
-          chatId: message.chatId,
-          senderId: user.uuid,
-          message: {
-            id: message.uuid,
-            createdAt: message.createdAt,
-            messagePayload: content,
-            senderId: message.senderId ?? undefined,
-            status: 'STORED',
-            type: message.type,
-            parentId: message.parentId ?? undefined,
-          },
-        })
-        .catch((error: unknown) => {
-          logger.error('Failed to publish the message_updated event', {
-            error,
-            'chat.id': message.chatId,
-            'message.id': message.uuid,
-          });
+      const event: ChatRealtimeEvent = {
+        type: 'message_updated',
+        chatId: message.chatId,
+        senderId: user.uuid,
+        message: {
+          id: message.uuid,
+          createdAt: message.createdAt,
+          messagePayload: content,
+          senderId: message.senderId ?? undefined,
+          status: 'STORED',
+          type: message.type,
+          parentId: message.parentId ?? undefined,
+        },
+      };
+      // the event carries the message, so a restricted forum post's goes only to who sees it
+      (forumVisibility !== undefined && forumThread !== undefined
+        ? forumVisibility.publishForumThreadEvent(poolPrisma, forumThread, event)
+        : chatPubSub.publish(event)
+      ).catch((error: unknown) => {
+        logger.error('Failed to publish the message_updated event', {
+          error,
+          'chat.id': message.chatId,
+          'message.id': message.uuid,
         });
+      });
     });
 
     return { success: true };

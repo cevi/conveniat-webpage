@@ -107,4 +107,19 @@ describe('sendVisitDayBill', () => {
       { $set: { pdf: 'pdf-first', updatedAt: expect.any(Date) as unknown } },
     );
   });
+
+  it('leaves the signature to the outbox, which fills it when the mail is sent', async () => {
+    const { payload } = fakePayload([]);
+    (payload.findGlobal as jest.Mock).mockResolvedValue({
+      documentTitle: 'Rechnung',
+      emailSubject: 'Rechnung {{invoiceNumber}}',
+      emailBody:
+        'Hallo\n\nRechnung {{invoiceNumber}}\n\n{{signatur}}\n\n{{signatur :: Ressort Finanzen}}',
+    });
+    await sendVisitDayBill(payload, { billId: 'anna', actor: 'Kim Finanzen' });
+
+    expect(queued.mock.lastCall?.[1].text).toBe(
+      'Hallo\n\nRechnung BT2027-0004\n\n{{signatur}}\n\n{{signatur :: Ressort Finanzen}}',
+    );
+  });
 });

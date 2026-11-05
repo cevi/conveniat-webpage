@@ -17,11 +17,18 @@ const appPageTitles: Record<string, StaticTranslationString> = {
   emergency: { de: 'Notfall', en: 'Emergency', fr: 'Urgence' },
   map: { de: 'Lagerplatz', en: 'Campsite', fr: 'Terrain du camp' },
   chat: { de: 'Chats', en: 'Chats', fr: 'Conversations' },
+  forum: { de: 'Forum', en: 'Forum', fr: 'Forum' },
   settings: { de: 'Einstellungen', en: 'Settings', fr: 'Paramètres' },
   'helper-portal': { de: 'Schichteinsätze', en: 'Helper Shifts', fr: 'Services de helpers' },
   'photo-contest': { de: 'Foto-Wettbewerb', en: 'Photo Contest', fr: 'Concours Photo' },
   'upload-images': { de: 'Bild-Upload', en: 'Image Upload', fr: "Téléchargement d'images" },
   material: { de: 'Materialdepot', en: 'Material depot', fr: 'Dépôt de matériel' },
+  wristbands: { de: 'Armbänder', en: 'Wristbands', fr: 'Bracelets' },
+};
+
+/** Pages one level further down that are called something else than their section. */
+const appSubPageTitles: Record<string, Record<string, StaticTranslationString>> = {
+  forum: { zentrale: { de: 'Zentrale', en: 'Zentrale', fr: 'Zentrale' } },
 };
 
 /**
@@ -39,7 +46,7 @@ export const PageTitle: React.FC<{
   dashboardDraftTitle?: string | undefined;
 }> = ({ locale, dashboardTitle, dashboardDraftTitle }) => {
   // below `[locale]/[design]`: the route group first, then `app` and the page
-  const [group, app, page] = useSelectedLayoutSegments();
+  const [group, app, page, subPage] = useSelectedLayoutSegments();
   if (group !== '(app-pages)' || app !== 'app' || page === undefined) return DEFAULT_APP_TITLE;
 
   if (page === 'dashboard' || page === 'dashboard-preview') {
@@ -49,5 +56,6 @@ export const PageTitle: React.FC<{
     return title === '' ? DEFAULT_APP_TITLE : title;
   }
 
-  return appPageTitles[page]?.[locale] ?? DEFAULT_APP_TITLE;
+  const subPageTitle = subPage === undefined ? undefined : appSubPageTitles[page]?.[subPage];
+  return (subPageTitle ?? appPageTitles[page])?.[locale] ?? DEFAULT_APP_TITLE;
 };

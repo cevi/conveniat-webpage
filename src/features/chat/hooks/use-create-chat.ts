@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from '@/components/ui/toast';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
@@ -21,7 +22,6 @@ import type { InfiniteData } from '@tanstack/react-query';
 import type { inferProcedureOutput } from '@trpc/server';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback } from 'react';
-import { toast } from 'sonner';
 
 type InfiniteMessagesOutput = inferProcedureOutput<AppRouter['chat']['infiniteMessages']>;
 type InfiniteMessagesData = InfiniteData<InfiniteMessagesOutput, string | null>;

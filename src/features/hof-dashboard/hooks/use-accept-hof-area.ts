@@ -1,12 +1,12 @@
 'use client';
 
+import { toast } from '@/components/ui/toast';
 import type { HofDashboardArea } from '@/features/hof-dashboard/constants';
 import { translate } from '@/features/hof-dashboard/texts';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 /**
  * Accepts everything that counts of one Hof in the given areas, one area after the other, then

@@ -32,6 +32,12 @@ const LOCALE_HOOK_IMPORT = {
   message: "Import useCurrentLocale from '@/hooks/use-current-locale' instead.",
 };
 
+const TOAST_IMPORT = {
+  name: 'sonner',
+  message:
+    "Import toast from '@/components/ui/toast', the app's toasts in its own style; in the admin panel use toast from '@payloadcms/ui'.",
+};
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -60,6 +66,7 @@ const features_folder = [
   'material',
   'hof-dashboard',
   'visit-day',
+  'wristbands',
 ];
 
 const featuresDirectory = path.join(__dirname, 'src', 'features');
@@ -214,18 +221,32 @@ const config = defineConfig([
   // to it.
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['src/lib/presigned-urls.ts', 'src/hooks/use-current-locale.ts'],
+    ignores: [
+      'src/lib/presigned-urls.ts',
+      'src/hooks/use-current-locale.ts',
+      'src/components/ui/toast.tsx',
+    ],
     rules: {
-      'no-restricted-imports': ['error', { paths: [...PRESIGNING_IMPORTS, LOCALE_HOOK_IMPORT] }],
+      'no-restricted-imports': [
+        'error',
+        { paths: [...PRESIGNING_IMPORTS, LOCALE_HOOK_IMPORT, TOAST_IMPORT] },
+      ],
     },
   },
   {
     files: ['src/lib/presigned-urls.ts'],
-    rules: { 'no-restricted-imports': ['error', { paths: [LOCALE_HOOK_IMPORT] }] },
+    rules: { 'no-restricted-imports': ['error', { paths: [LOCALE_HOOK_IMPORT, TOAST_IMPORT] }] },
   },
   {
     files: ['src/hooks/use-current-locale.ts'],
-    rules: { 'no-restricted-imports': ['error', { paths: PRESIGNING_IMPORTS }] },
+    rules: { 'no-restricted-imports': ['error', { paths: [...PRESIGNING_IMPORTS, TOAST_IMPORT] }] },
+  },
+  {
+    // the one place the toast library is used
+    files: ['src/components/ui/toast.tsx'],
+    rules: {
+      'no-restricted-imports': ['error', { paths: [...PRESIGNING_IMPORTS, LOCALE_HOOK_IMPORT] }],
+    },
   },
 
   // 3d. Payload queries say how many documents they want
@@ -454,6 +475,7 @@ const config = defineConfig([
     'public/sw.js',
     'public/sw.js.map',
     'public/maplibre-gl-worker*.js',
+    'public/heic-to-*.js',
     'serwist.config.js',
   ]),
 ]);

@@ -3,10 +3,13 @@
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
+import { toast } from '@/components/ui/toast';
+import { photoContestErrorTexts } from '@/features/photo-contest/error-texts';
 import { useAuthStatus } from '@/hooks/use-auth-status';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { userErrorMessage } from '@/utils/user-error-message';
 import {
   Camera,
   Check,
@@ -25,7 +28,6 @@ import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
 
 type ContestStatus = 'HIDDEN' | 'ACTIVE' | 'CLOSED_HIDDEN' | 'CLOSED';
 
@@ -339,7 +341,7 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
             });
             setLastSavedVotes(nextVotes);
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : String(error));
+            toast.error(userErrorMessage(error, locale, photoContestErrorTexts));
             // Fall back to what the server actually holds rather than leaving a lie on screen.
             setLocalOverrides(undefined);
             setLastSavedVotes(undefined);
@@ -348,7 +350,7 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
         });
       }, AUTOSAVE_DELAY_MS);
     },
-    [contestId, castVotesMutation, currentContestQuery],
+    [contestId, castVotesMutation, currentContestQuery, locale],
   );
 
   const handleAddPoint = (imageId: string): void => {

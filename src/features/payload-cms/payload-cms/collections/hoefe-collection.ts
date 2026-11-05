@@ -6,7 +6,7 @@ import {
   isFullAdmin,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import { resyncAvpChannels } from '@/features/payload-cms/payload-cms/utils/announcement-channel-memberships';
+import { resyncAvpChannels } from '@/features/payload-cms/payload-cms/chat-channels/channel-memberships';
 import { refreshUserHoefe } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { Hof } from '@/features/payload-cms/payload-types';

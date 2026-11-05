@@ -15,6 +15,8 @@ interface SendNotificationOptions {
   senderName?: string;
   title?: string;
   notificationType?: NotificationType;
+  /** where the push leads, below the app host; the chat by default */
+  path?: string;
 }
 
 /**
@@ -86,7 +88,7 @@ export async function sendNotification(
         options.senderName === undefined || options.senderName === ''
           ? message
           : `${options.senderName}: ${message}`,
-      url: environmentVariables.APP_HOST_URL + '/app/chat/' + chatId,
+      url: environmentVariables.APP_HOST_URL + (options.path ?? '/app/chat/' + chatId),
       chatId,
       messageId,
       notificationType: options.notificationType,

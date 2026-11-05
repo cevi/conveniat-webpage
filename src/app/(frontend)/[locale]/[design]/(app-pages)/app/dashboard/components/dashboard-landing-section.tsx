@@ -1,11 +1,30 @@
 'use client';
 
-import type { QuickAccessFlags } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-quick-access';
 import { DashboardQuickAccess } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-quick-access';
 import { QuickAccessSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
+import type { QuickAccessFlags } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/utils/quick-access-tiles';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import type React from 'react';
+
+/**
+ * The flags of the cached dashboard configuration. Guarded: a phone may restore a configuration
+ * cached before a flag existed, and a flag never set counts as enabled, as on the server.
+ */
+const quickAccessFlagsOf = (
+  featureFlags: unknown,
+  materialEnabled: boolean,
+  wristbandsEnabled: boolean,
+): QuickAccessFlags => {
+  const flags = (featureFlags ?? {}) as Partial<Record<keyof QuickAccessFlags, boolean>>;
+  return {
+    imageUploadEnabled: flags.imageUploadEnabled !== false,
+    helperShiftsEnabled: flags.helperShiftsEnabled !== false,
+    photoContestEnabled: flags.photoContestEnabled !== false,
+    materialEnabled,
+    wristbandsEnabled,
+  };
+};
 
 /**
  * Schnellzugriff of the dashboard. The CMS switch "Aktionskarten anzeigen" decides whether it is
@@ -22,9 +41,10 @@ import type React from 'react';
 export const DashboardLandingSection: React.FC<{
   locale: Locale;
   materialEnabled: boolean;
+  wristbandsEnabled: boolean;
   supportEmail: string;
   children?: React.ReactNode;
-}> = ({ locale, materialEnabled, supportEmail, children }) => {
+}> = ({ locale, materialEnabled, wristbandsEnabled, supportEmail, children }) => {
   const { data: dashboardConfig } = trpc.appContent.getDashboardConfig.useQuery(
     { locale },
     {
@@ -50,13 +70,7 @@ export const DashboardLandingSection: React.FC<{
     <DashboardLanding
       locale={locale}
       showActionCards={dashboardConfig.showActionCards}
-      flags={{
-        // guarded: a phone may restore a configuration cached before the flags existed
-        imageUploadEnabled:
-          (dashboardConfig.featureFlags as { imageUploadEnabled?: boolean } | undefined)
-            ?.imageUploadEnabled !== false,
-        materialEnabled,
-      }}
+      flags={quickAccessFlagsOf(dashboardConfig.featureFlags, materialEnabled, wristbandsEnabled)}
       supportEmail={supportEmail}
     >
       {children}
@@ -74,12 +88,19 @@ export const DashboardLanding: React.FC<{
   showActionCards: boolean;
   flags: QuickAccessFlags;
   supportEmail: string;
+  /** the CMS preview, which shows the default Schnellzugriff and not the editor's own */
+  isPreview?: boolean;
   children?: React.ReactNode;
-}> = ({ locale, showActionCards, flags, supportEmail, children }) => (
+}> = ({ locale, showActionCards, flags, supportEmail, isPreview = false, children }) => (
   <>
     {children}
     {showActionCards && (
-      <DashboardQuickAccess locale={locale} supportEmail={supportEmail} flags={flags} />
+      <DashboardQuickAccess
+        locale={locale}
+        supportEmail={supportEmail}
+        flags={flags}
+        isPreview={isPreview}
+      />
     )}
   </>
 );

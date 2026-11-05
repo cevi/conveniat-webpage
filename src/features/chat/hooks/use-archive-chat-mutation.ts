@@ -1,8 +1,24 @@
+import { toast } from '@/components/ui/toast';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import type { TRPCClientErrorLike } from '@trpc/client';
 import type { UseTRPCMutationResult } from '@trpc/react-query/shared';
 import type { inferProcedureInput, inferProcedureOutput } from '@trpc/server';
+
+const archiveFailedText: StaticTranslationString = {
+  de: 'Chat konnte nicht gelöscht werden.',
+  en: 'The chat could not be deleted.',
+  fr: "Le chat n'a pas pu être supprimé.",
+};
+
+const tryAgainText: StaticTranslationString = {
+  de: 'Nochmals',
+  en: 'Try again',
+  fr: 'Réessayer',
+};
 
 type UseArchiveChatMutation = UseTRPCMutationResult<
   inferProcedureOutput<AppRouter['chat']['archiveChat']>,
@@ -10,10 +26,17 @@ type UseArchiveChatMutation = UseTRPCMutationResult<
   inferProcedureInput<AppRouter['chat']['archiveChat']>,
   unknown
 >;
+
+/**
+ * Archives a chat, taking it out of the list at once. If the server refuses, the chat comes back
+ * and a toast says so, with a way to send it again: the delete is only sent once its undo has run
+ * out, so without the toast the chat would reappear long after the user deleted it, unexplained.
+ */
 export const useArchiveChatMutation = (): UseArchiveChatMutation => {
   const trpcUtils = trpc.useUtils();
+  const locale = useCurrentLocale(i18nConfig) as Locale;
 
-  return trpc.chat.archiveChat.useMutation({
+  const mutation = trpc.chat.archiveChat.useMutation({
     async onMutate({ chatUuid }) {
       await trpcUtils.chat.chatDetails.cancel({ chatId: chatUuid });
 
@@ -43,7 +66,8 @@ export const useArchiveChatMutation = (): UseArchiveChatMutation => {
       trpcUtils.chat.chats.invalidate().catch(console.error);
     },
 
-    onError: (error, { chatUuid }, context) => {
+    onError: (error, input, context) => {
+      const { chatUuid } = input;
       console.error('Failed to archive chat:', error);
 
       // Roll back the chat details to the previous stateD
@@ -55,6 +79,12 @@ export const useArchiveChatMutation = (): UseArchiveChatMutation => {
       if (context?.previousChats) {
         trpcUtils.chat.chats.setData({}, context.previousChats);
       }
+
+      toast.error(archiveFailedText[locale], {
+        action: { label: tryAgainText[locale], onClick: () => mutation.mutate(input) },
+      });
     },
   });
+
+  return mutation;
 };

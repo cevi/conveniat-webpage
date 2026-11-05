@@ -1,11 +1,11 @@
 'use client';
 
+import { toast } from '@/components/ui/toast';
 import { translate } from '@/features/hof-dashboard/texts';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { TRPCClientError } from '@trpc/client';
-import { toast } from 'sonner';
 
 /**
  * Takes back a submission of the Hof and reloads the dashboard. When the Ressort took it up

@@ -2,6 +2,7 @@
 import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { Card } from '@/components/ui/card';
+import { toast } from '@/components/ui/toast';
 import { Segmented, Stepper } from '@/features/material/components/counter-ui';
 import { MaterialItemImage } from '@/features/material/components/material-item-image';
 import { format, labels } from '@/features/material/components/material-labels';
@@ -39,7 +40,6 @@ import { Send, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 type CatalogItem = RouterOutputs['material']['getCatalog'][number];
 

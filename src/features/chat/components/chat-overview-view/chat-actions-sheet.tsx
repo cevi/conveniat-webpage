@@ -47,6 +47,7 @@ const typeText: Record<ChatType, StaticTranslationString> = {
   [ChatType.ANNOUNCEMENT]: { de: 'Ankündigungen', en: 'Announcements', fr: 'Annonces' },
   [ChatType.SUPPORT_GROUP]: { de: 'Support', en: 'Support', fr: 'Support' },
   [ChatType.EMERGENCY]: { de: 'Notfall', en: 'Emergency', fr: 'Urgence' },
+  [ChatType.FORUM]: { de: 'Forum', en: 'Forum', fr: 'Forum' },
 };
 
 /**

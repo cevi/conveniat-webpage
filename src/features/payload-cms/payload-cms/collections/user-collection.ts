@@ -4,8 +4,10 @@ import {
   canReadUser,
   hasAccessToThisUser,
   hasAdminOrWebAccess,
+  isFullAdminUser,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { syncForumKernteamOfUser } from '@/features/payload-cms/payload-cms/chat-channels/forum-kernteam';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import {
   findFunktionIdsOfPerson,
@@ -147,6 +149,31 @@ const syncUserToPostgres: NonNullable<
 };
 
 /**
+ * A person whose functions changed may have joined or left the Kernteam of a forum topic, which
+ * comes from the functions editors picked for it. After `syncUserToPostgres`, which the forum
+ * reads the functions from.
+ */
+const syncForumKernteamOfChangedUser: NonNullable<
+  NonNullable<CollectionConfig['hooks']>['afterChange']
+>[number] = async ({ doc, previousDoc, req }): Promise<void> => {
+  const user = doc as Partial<User>;
+  const funktionIds = toFunktionIds(user.funktionen);
+  const before = toFunktionIds((previousDoc as Partial<User> | undefined)?.funktionen);
+  const unchanged =
+    funktionIds.length === before.length && funktionIds.every((id) => before.includes(id));
+  if (unchanged || typeof user.id !== 'string') return;
+  try {
+    await syncForumKernteamOfUser(req.payload, user.id, funktionIds, req);
+  } catch (error: unknown) {
+    // the topic's own sync catches up with it the next time the topic is saved
+    req.payload.logger.error(
+      { err: error, 'user.id': user.id },
+      'Could not update the forum Kernteam memberships of a user whose functions changed',
+    );
+  }
+};
+
+/**
  * Looks up the Höfe and the functions of a person the moment the user learns their Cevi.DB
  * id, on the first login or when a manually created user is linked. Later changes come from
  * the registrations, the Höfe and the functions sync, which refresh the users they touch.
@@ -192,7 +219,7 @@ export const UserCollection: CollectionConfig = {
 
   hooks: {
     beforeChange: [fillCampDataOfNewPerson],
-    afterChange: [syncUserToPostgres],
+    afterChange: [syncUserToPostgres, syncForumKernteamOfChangedUser],
   },
 
   access: {
@@ -238,264 +265,336 @@ export const UserCollection: CollectionConfig = {
   },
   fields: [
     {
-      name: 'displayName',
-      type: 'text',
-      admin: {
-        hidden: true,
-      },
-      hooks: {
-        beforeChange: [
-          ({ data, siblingData }): string => {
-            const rawData = siblingData as Record<string, unknown> | undefined;
-            const fallbackData = data as Record<string, unknown> | undefined;
-            const userData = rawData ?? fallbackData ?? {};
-            const email = typeof userData['email'] === 'string' ? userData['email'] : undefined;
-            const fullName =
-              typeof userData['fullName'] === 'string' ? userData['fullName'] : undefined;
-            const nickname =
-              typeof userData['nickname'] === 'string' ? userData['nickname'] : undefined;
-
-            const nameString = formatUserFullName(fullName, nickname);
-            if (typeof email === 'string' && email !== '') {
-              return nameString === '' ? email : `${nameString} (${email})`;
-            }
-            return nameString === '' ? 'Unnamed User' : nameString;
-          },
-        ],
-        afterRead: [
-          async ({ value, data, req }): Promise<string> => {
-            if (typeof value === 'string' && value !== '') {
-              return value;
-            }
-            if (!data) return 'Unnamed User';
-
-            const user = data as Record<string, unknown>;
-            const email = typeof user['email'] === 'string' ? user['email'] : undefined;
-            const fullName = typeof user['fullName'] === 'string' ? user['fullName'] : undefined;
-            const nickname = typeof user['nickname'] === 'string' ? user['nickname'] : undefined;
-
-            if ('email' in user || 'fullName' in user || 'nickname' in user) {
-              const nameString = formatUserFullName(fullName, nickname);
-              if (typeof email === 'string' && email !== '') {
-                return nameString === '' ? email : `${nameString} (${email})`;
-              }
-              if (nameString !== '') return nameString;
-            }
-
-            const id = user['id'];
-            if (typeof id === 'string' && id !== '') {
-              try {
-                const fullUser = await req.payload.findByID({
-                  collection: 'users',
-                  id: id,
-                  depth: 0,
-                });
-                const dbEmail = fullUser.email as string | undefined;
-                const dbFullName = fullUser.fullName as string | undefined;
-                const dbNickname = fullUser.nickname as string | undefined;
-                const nameString = formatUserFullName(dbFullName, dbNickname);
-                if (typeof dbEmail === 'string' && dbEmail !== '') {
-                  return nameString === '' ? dbEmail : `${nameString} (${dbEmail})`;
-                }
-                if (nameString !== '') return nameString;
-              } catch {
-                // Fall back if user not found or db error
-              }
-              return `User ${id}`;
-            }
-
-            return 'Unnamed User';
-          },
-        ],
-      },
-    },
-    {
-      name: 'cevi_db_uuid',
-      label: 'UserID inside Cevi.DB',
-      type: 'number',
-      required: false,
-      access: {
-        update: () => false,
-      },
-      admin: {
-        readOnly: true,
-        description:
-          'The ID of the user in Cevi.DB. Set automatically when the user logs in via Cevi.DB. Leave empty for manually created users.',
-      },
-      unique: true,
-    },
-    {
-      name: 'adminPanelAccess',
-      label: 'Admin Panel Access',
-      type: 'checkbox',
-      defaultValue: false,
-      admin: {
-        readOnly: true,
-        description:
-          'Whether the user has access to the admin panel. This is set automatically based on the user groups.',
-      },
-      hooks: {
-        /**
-         * Stored rather than virtual, so the list view can sort and filter by it. Every write
-         * works it out again from the groups, which a Cevi.DB login rewrites when they changed,
-         * and `refreshAdminPanelAccess` catches up on startup with a change to the role groups.
-         */
-        beforeChange: [
-          ({ siblingData, originalDoc }): boolean => {
-            const groups =
-              'groups' in siblingData
-                ? (siblingData as Partial<User>).groups
-                : (originalDoc as Partial<User> | undefined)?.groups;
-            if (!Array.isArray(groups)) return false;
-            return hasAccessToThisUser({ user: { groups }, requiredRoles: ADMIN_PANEL_ROLES });
-          },
-        ],
-      },
-    },
-    {
-      name: 'email',
-      label: 'Email',
-      type: 'email',
-      required: true,
-      access: {
-        update: () => false,
-      },
-      admin: {
-        readOnly: true,
-        description:
-          'The email address of the user. Used for matching when the user logs in via Cevi.DB.',
-      },
-      unique: true,
-    },
-    {
-      name: 'fullName',
-      label: 'Full Name',
-      type: 'text',
-      required: true,
-      access: {
-        update: () => false,
-      },
-      admin: {
-        readOnly: true,
-        description: 'The full name of the user, as it will be displayed publicly.',
-      },
-    },
-    {
-      name: 'nickname',
-      label: 'Ceviname',
-      type: 'text',
-      required: false,
-      access: {
-        update: () => false,
-      },
-      admin: {
-        readOnly: true,
-        description: 'The Ceviname of the user.',
-      },
-    },
-    {
-      name: 'groups',
-      label: 'Groups of the User',
-      type: 'json',
-      required: false,
-      defaultValue: [],
-      access: {
-        update: () => false,
-      },
-      admin: {
-        readOnly: true,
-        description: 'The groups the user is in. Updated automatically from Cevi.DB on login.',
-      },
-      jsonSchema: {
-        schema: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: {
-                type: 'integer',
-                title: 'The ID of the group',
-                description: 'The ID of the group as used in Cevi.DB.',
+      type: 'tabs',
+      tabs: [
+        {
+          label: { en: 'Profile', de: 'Profil', fr: 'Profil' },
+          fields: [
+            {
+              name: 'displayName',
+              type: 'text',
+              admin: {
+                hidden: true,
               },
-              name: {
-                title: 'The name of the group',
-                description: 'The name of the group as used in Cevi.DB.',
-                type: 'string',
-              },
-              role_name: {
-                title: 'The name of the role',
-                description: 'The name of the role the user has in the group.',
-                type: 'string',
-              },
-              role_class: {
-                title: 'The class of the role',
-                description: 'The class of the role the user has in the group.',
-                type: 'string',
+              hooks: {
+                beforeChange: [
+                  ({ data, siblingData }): string => {
+                    const rawData = siblingData as Record<string, unknown> | undefined;
+                    const fallbackData = data as Record<string, unknown> | undefined;
+                    const userData = rawData ?? fallbackData ?? {};
+                    const email =
+                      typeof userData['email'] === 'string' ? userData['email'] : undefined;
+                    const fullName =
+                      typeof userData['fullName'] === 'string' ? userData['fullName'] : undefined;
+                    const nickname =
+                      typeof userData['nickname'] === 'string' ? userData['nickname'] : undefined;
+
+                    const nameString = formatUserFullName(fullName, nickname);
+                    if (typeof email === 'string' && email !== '') {
+                      return nameString === '' ? email : `${nameString} (${email})`;
+                    }
+                    return nameString === '' ? 'Unnamed User' : nameString;
+                  },
+                ],
+                afterRead: [
+                  async ({ value, data, req }): Promise<string> => {
+                    if (typeof value === 'string' && value !== '') {
+                      return value;
+                    }
+                    if (!data) return 'Unnamed User';
+
+                    const user = data as Record<string, unknown>;
+                    const email = typeof user['email'] === 'string' ? user['email'] : undefined;
+                    const fullName =
+                      typeof user['fullName'] === 'string' ? user['fullName'] : undefined;
+                    const nickname =
+                      typeof user['nickname'] === 'string' ? user['nickname'] : undefined;
+
+                    if ('email' in user || 'fullName' in user || 'nickname' in user) {
+                      const nameString = formatUserFullName(fullName, nickname);
+                      if (typeof email === 'string' && email !== '') {
+                        return nameString === '' ? email : `${nameString} (${email})`;
+                      }
+                      if (nameString !== '') return nameString;
+                    }
+
+                    const id = user['id'];
+                    if (typeof id === 'string' && id !== '') {
+                      try {
+                        const fullUser = await req.payload.findByID({
+                          collection: 'users',
+                          id: id,
+                          depth: 0,
+                        });
+                        const dbEmail = fullUser.email as string | undefined;
+                        const dbFullName = fullUser.fullName as string | undefined;
+                        const dbNickname = fullUser.nickname as string | undefined;
+                        const nameString = formatUserFullName(dbFullName, dbNickname);
+                        if (typeof dbEmail === 'string' && dbEmail !== '') {
+                          return nameString === '' ? dbEmail : `${nameString} (${dbEmail})`;
+                        }
+                        if (nameString !== '') return nameString;
+                      } catch {
+                        // Fall back if user not found or db error
+                      }
+                      return `User ${id}`;
+                    }
+
+                    return 'Unnamed User';
+                  },
+                ],
               },
             },
-            required: ['id', 'name', 'role_class', 'role_name'],
+            {
+              name: 'cevi_db_uuid',
+              label: 'UserID inside Cevi.DB',
+              type: 'number',
+              required: false,
+              access: {
+                update: () => false,
+              },
+              admin: {
+                readOnly: true,
+                description:
+                  'The ID of the user in Cevi.DB. Set automatically when the user logs in via Cevi.DB. Leave empty for manually created users.',
+              },
+              unique: true,
+            },
+            {
+              name: 'adminPanelAccess',
+              label: 'Admin Panel Access',
+              type: 'checkbox',
+              defaultValue: false,
+              admin: {
+                readOnly: true,
+                description:
+                  'Whether the user has access to the admin panel. This is set automatically based on the user groups.',
+              },
+              hooks: {
+                /**
+                 * Stored rather than virtual, so the list view can sort and filter by it. Every write
+                 * works it out again from the groups, which a Cevi.DB login rewrites when they changed,
+                 * and `refreshAdminPanelAccess` catches up on startup with a change to the role groups.
+                 */
+                beforeChange: [
+                  ({ siblingData, originalDoc }): boolean => {
+                    const groups =
+                      'groups' in siblingData
+                        ? (siblingData as Partial<User>).groups
+                        : (originalDoc as Partial<User> | undefined)?.groups;
+                    if (!Array.isArray(groups)) return false;
+                    return hasAccessToThisUser({
+                      user: { groups },
+                      requiredRoles: ADMIN_PANEL_ROLES,
+                    });
+                  },
+                ],
+              },
+            },
+            {
+              name: 'email',
+              label: 'Email',
+              type: 'email',
+              required: true,
+              access: {
+                update: () => false,
+              },
+              admin: {
+                readOnly: true,
+                description:
+                  'The email address of the user. Used for matching when the user logs in via Cevi.DB.',
+              },
+              unique: true,
+            },
+            {
+              name: 'fullName',
+              label: 'Full Name',
+              type: 'text',
+              required: true,
+              access: {
+                update: () => false,
+              },
+              admin: {
+                readOnly: true,
+                description: 'The full name of the user, as it will be displayed publicly.',
+              },
+            },
+            {
+              name: 'nickname',
+              label: 'Ceviname',
+              type: 'text',
+              required: false,
+              access: {
+                update: () => false,
+              },
+              admin: {
+                readOnly: true,
+                description: 'The Ceviname of the user.',
+              },
+            },
+            {
+              name: 'groups',
+              label: 'Groups of the User',
+              type: 'json',
+              required: false,
+              defaultValue: [],
+              access: {
+                update: () => false,
+              },
+              admin: {
+                readOnly: true,
+                description:
+                  'The groups the user is in. Updated automatically from Cevi.DB on login.',
+              },
+              jsonSchema: {
+                schema: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: {
+                        type: 'integer',
+                        title: 'The ID of the group',
+                        description: 'The ID of the group as used in Cevi.DB.',
+                      },
+                      name: {
+                        title: 'The name of the group',
+                        description: 'The name of the group as used in Cevi.DB.',
+                        type: 'string',
+                      },
+                      role_name: {
+                        title: 'The name of the role',
+                        description: 'The name of the role the user has in the group.',
+                        type: 'string',
+                      },
+                      role_class: {
+                        title: 'The class of the role',
+                        description: 'The class of the role the user has in the group.',
+                        type: 'string',
+                      },
+                    },
+                    required: ['id', 'name', 'role_class', 'role_name'],
+                  },
+                  title: 'Groups of the User',
+                  description: 'The groups the user is in as extracted from the Cevi.DB profile.',
+                },
+                // the following are random but unique identifiers for the schema
+                uri: 'https://conveniat27.ch/hitobito-groups.schema.json',
+                fileMatch: ['https://conveniat27.ch/hitobito-groups.schema.json'],
+              },
+            },
+            {
+              name: 'hoefe',
+              type: 'relationship',
+              relationTo: 'hoefe',
+              hasMany: true,
+              label: { en: 'Höfe', de: 'Höfe', fr: 'Hofs' },
+              access: {
+                update: () => false,
+              },
+              admin: {
+                readOnly: true,
+                description: {
+                  en: 'The Höfe this user is registered at, from the registrations synced from Cevi.DB. Kept up to date automatically; the Quartier follows from the Hof.',
+                  de: 'Die Höfe, an denen diese Person angemeldet ist, aus den von der Cevi.DB abgeglichenen Anmeldungen. Wird automatisch nachgeführt; das Quartier ergibt sich aus dem Hof.',
+                  fr: "Les Hofs auxquels cette personne est inscrite, d'après les inscriptions synchronisées depuis Cevi.DB. Mis à jour automatiquement ; le quartier découle du Hof.",
+                },
+              },
+            },
+            {
+              name: 'avpHoefe',
+              type: 'relationship',
+              relationTo: 'hoefe',
+              hasMany: true,
+              label: { en: 'AVP of', de: 'AVP von', fr: 'AVP de' },
+              access: {
+                update: () => false,
+              },
+              admin: {
+                readOnly: true,
+                description: {
+                  en: 'The Höfe where this user holds the Hauptleitung of the camp, and so is the AVP. Kept up to date automatically from the registrations.',
+                  de: 'Die Höfe, bei denen diese Person die Hauptleitung des Lagers innehat und damit AVP ist. Wird automatisch aus den Anmeldungen nachgeführt.',
+                  fr: "Les Hofs dont cette personne assure la direction principale du camp et dont elle est donc l'AVP. Mis à jour automatiquement à partir des inscriptions.",
+                },
+              },
+            },
+            {
+              name: 'funktionen',
+              type: 'relationship',
+              relationTo: 'funktionen',
+              hasMany: true,
+              label: { en: 'Functions', de: 'Funktionen', fr: 'Fonctions' },
+              access: {
+                update: () => false,
+              },
+              admin: {
+                readOnly: true,
+                description: {
+                  en: 'The functions this user holds in the camp organisation, synced from their leader roles in Cevi.DB.',
+                  de: 'Die Funktionen dieser Person in der Lagerorganisation, aus ihren Leitungsrollen in der Cevi.DB abgeglichen.',
+                  fr: "Les fonctions de cette personne dans l'organisation du camp, synchronisées à partir de ses rôles de responsable dans Cevi.DB.",
+                },
+              },
+            },
+            {
+              name: 'description',
+              label: 'Description',
+              type: 'text',
+              required: false,
+              admin: {
+                description: 'An additional description of the user shown in the chat.',
+              },
+            },
+            {
+              name: 'presentAtCamp',
+              label: {
+                en: 'Present at Campsite',
+                de: 'Auf dem Lagerplatz anwesend',
+                fr: 'Présent sur le terrain de camp',
+              },
+              type: 'checkbox',
+              defaultValue: false,
+              admin: {
+                description: 'Whether the user is currently present on the campsite.',
+              },
+            },
+            {
+              name: 'presenceLogs',
+              type: 'join',
+              collection: 'presence-logs',
+              on: 'user',
+              admin: {
+                description: 'Verlauf der Anwesenheit auf dem Lagerplatz (Check-in / Check-out).',
+              },
+            },
+          ],
+        },
+        {
+          label: {
+            en: 'Push notifications',
+            de: 'Push-Benachrichtigungen',
+            fr: 'Notifications push',
           },
-          title: 'Groups of the User',
-          description: 'The groups the user is in as extracted from the Cevi.DB profile.',
+          // the devices load through procedures only full admins may call
+          admin: { condition: (_data, _siblingData, { user }) => isFullAdminUser(user) },
+          fields: [
+            {
+              name: 'pushDevices',
+              type: 'ui',
+              label: { en: 'Push devices', de: 'Push-Geräte', fr: 'Appareils push' },
+              admin: {
+                components: {
+                  Field: '@/features/payload-cms/components/push-notification/user-push-devices',
+                  // Not a default column: its cells query once per row, so only an admin who
+                  // turns the column on pays for it.
+                  Cell: '@/features/payload-cms/components/push-notification/user-push-devices-cell',
+                },
+              },
+            },
+          ],
         },
-        // the following are random but unique identifiers for the schema
-        uri: 'https://conveniat27.ch/hitobito-groups.schema.json',
-        fileMatch: ['https://conveniat27.ch/hitobito-groups.schema.json'],
-      },
-    },
-    {
-      name: 'hoefe',
-      type: 'relationship',
-      relationTo: 'hoefe',
-      hasMany: true,
-      label: { en: 'Höfe', de: 'Höfe', fr: 'Hofs' },
-      access: {
-        update: () => false,
-      },
-      admin: {
-        readOnly: true,
-        description: {
-          en: 'The Höfe this user is registered at, from the registrations synced from Cevi.DB. Kept up to date automatically; the Quartier follows from the Hof.',
-          de: 'Die Höfe, an denen diese Person angemeldet ist, aus den von der Cevi.DB abgeglichenen Anmeldungen. Wird automatisch nachgeführt; das Quartier ergibt sich aus dem Hof.',
-          fr: "Les Hofs auxquels cette personne est inscrite, d'après les inscriptions synchronisées depuis Cevi.DB. Mis à jour automatiquement ; le quartier découle du Hof.",
-        },
-      },
-    },
-    {
-      name: 'avpHoefe',
-      type: 'relationship',
-      relationTo: 'hoefe',
-      hasMany: true,
-      label: { en: 'AVP of', de: 'AVP von', fr: 'AVP de' },
-      access: {
-        update: () => false,
-      },
-      admin: {
-        readOnly: true,
-        description: {
-          en: 'The Höfe where this user holds the Hauptleitung of the camp, and so is the AVP. Kept up to date automatically from the registrations.',
-          de: 'Die Höfe, bei denen diese Person die Hauptleitung des Lagers innehat und damit AVP ist. Wird automatisch aus den Anmeldungen nachgeführt.',
-          fr: "Les Hofs dont cette personne assure la direction principale du camp et dont elle est donc l'AVP. Mis à jour automatiquement à partir des inscriptions.",
-        },
-      },
-    },
-    {
-      name: 'funktionen',
-      type: 'relationship',
-      relationTo: 'funktionen',
-      hasMany: true,
-      label: { en: 'Functions', de: 'Funktionen', fr: 'Fonctions' },
-      access: {
-        update: () => false,
-      },
-      admin: {
-        readOnly: true,
-        description: {
-          en: 'The functions this user holds in the camp organisation, synced from their leader roles in Cevi.DB.',
-          de: 'Die Funktionen dieser Person in der Lagerorganisation, aus ihren Leitungsrollen in der Cevi.DB abgeglichen.',
-          fr: "Les fonctions de cette personne dans l'organisation du camp, synchronisées à partir de ses rôles de responsable dans Cevi.DB.",
-        },
-      },
+      ],
     },
     {
       name: 'profilePictureVersion',
@@ -524,62 +623,44 @@ export const UserCollection: CollectionConfig = {
       },
     },
     {
-      name: 'description',
-      label: 'Description',
-      type: 'text',
-      required: false,
-      admin: {
-        description: 'An additional description of the user shown in the chat.',
-      },
-    },
-    {
-      name: 'hidden',
-      label: {
-        en: 'Hidden from Chat Selection',
-        de: 'Aus Chat-Auswahl ausblenden',
-        fr: 'Masquer de la sélection de chat',
-      },
-      type: 'checkbox',
-      defaultValue: false,
-      admin: {
-        description: 'Hide this user from the chat creation selection.',
-      },
-    },
-    {
-      name: 'testAccount',
-      label: { en: 'Test account', de: 'Testkonto', fr: 'Compte de test' },
-      type: 'checkbox',
-      defaultValue: false,
-      admin: {
-        position: 'sidebar',
-        description: {
-          en: 'For an account that only tries the app, e.g. for the App Store review. Its contact list shows only people of its own Hof and those it exchanged a chat QR code with, not every function holder and AVP.',
-          de: 'Für ein Konto, das die App nur ausprobiert, z.B. für die Prüfung im App Store. Seine Kontaktliste zeigt nur Personen aus dem eigenen Hof und die, mit denen es einen Chat-QR-Code ausgetauscht hat, nicht alle mit einer Funktion und alle AVPs.',
-          fr: "Pour un compte qui ne fait qu'essayer l'application, par ex. pour la vérification dans l'App Store. Sa liste de contacts ne montre que les personnes de son propre Hof et celles avec qui il a échangé un code QR de chat, pas toutes les personnes avec une fonction ni tous les AVP.",
+      // Both checkboxes shape the chat contact list, in opposite directions: `hidden` decides who
+      // finds this person, `testAccount` whom this person finds. Side by side, the descriptions
+      // can say so. A collapsible only changes the layout; the fields stay top level.
+      type: 'collapsible',
+      label: { en: 'Chat', de: 'Chat', fr: 'Chat' },
+      admin: { position: 'sidebar' },
+      fields: [
+        {
+          name: 'hidden',
+          label: {
+            en: 'Not findable in the chat',
+            de: 'Im Chat nicht auffindbar',
+            fr: 'Introuvable dans le chat',
+          },
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description: {
+              en: 'Others do not see this person in their contact list and cannot start a new chat with them. The person still sees their own contacts. As the organiser of a programme entry or a Schichteinsatz, they stay reachable there.',
+              de: 'Andere sehen diese Person nicht in ihrer Kontaktliste und können keinen neuen Chat mit ihr starten. Sie selbst sieht ihre Kontakte weiterhin. Leitet sie einen Programmpunkt oder einen Schichteinsatz, ist sie dort weiterhin erreichbar.',
+              fr: 'Les autres ne voient pas cette personne dans leur liste de contacts et ne peuvent pas démarrer de nouveau chat avec elle. Elle-même voit toujours ses contacts. Si elle organise un point du programme ou un Schichteinsatz, elle reste joignable depuis celui-ci.',
+            },
+          },
         },
-      },
-    },
-    {
-      name: 'presentAtCamp',
-      label: {
-        en: 'Present at Campsite',
-        de: 'Auf dem Lagerplatz anwesend',
-        fr: 'Présent sur le terrain de camp',
-      },
-      type: 'checkbox',
-      defaultValue: false,
-      admin: {
-        description: 'Whether the user is currently present on the campsite.',
-      },
-    },
-    {
-      name: 'presenceLogs',
-      type: 'join',
-      collection: 'presence-logs',
-      on: 'user',
-      admin: {
-        description: 'Verlauf der Anwesenheit auf dem Lagerplatz (Check-in / Check-out).',
-      },
+        {
+          name: 'testAccount',
+          label: { en: 'Test account', de: 'Testkonto', fr: 'Compte de test' },
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description: {
+              en: 'This person sees only their own Hof and the people they exchanged a chat QR code with, not every function holder and AVP. Others still find them; for the App Store review, also tick «Not findable in the chat».',
+              de: 'Diese Person sieht nur ihren eigenen Hof und die Personen, mit denen sie einen Chat-QR-Code ausgetauscht hat, nicht alle mit einer Funktion und alle AVPs. Andere finden sie weiterhin; für die Prüfung im App Store zusätzlich «Im Chat nicht auffindbar» ankreuzen.',
+              fr: "Cette personne ne voit que son propre Hof et les personnes avec qui elle a échangé un code QR de chat, pas toutes les personnes avec une fonction ni tous les AVP. Les autres la trouvent toujours ; pour la vérification dans l'App Store, coche aussi «Introuvable dans le chat».",
+            },
+          },
+        },
+      ],
     },
     LastEditedByUserField,
   ],

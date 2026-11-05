@@ -1,6 +1,7 @@
 'use client';
 
 import { textInputClassName } from '@/components/ui/field';
+import { toast } from '@/components/ui/toast';
 import type {
   MaterialOrderForm,
   MaterialOrderItem,
@@ -27,7 +28,6 @@ import { cn } from '@/utils/tailwindcss-override';
 import { ChevronLeft, Lock, RotateCcw, Undo2 } from 'lucide-react';
 import type React from 'react';
 import { useId, useState } from 'react';
-import { toast } from 'sonner';
 
 /** One line of the order: what the Hof ordered now, and before. */
 interface OrderLine {

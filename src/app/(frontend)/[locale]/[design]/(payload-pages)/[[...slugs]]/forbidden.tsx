@@ -2,7 +2,7 @@ import { LinkComponent } from '@/components/ui/link-component';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { TeaserText } from '@/components/ui/typography/teaser-text';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { getRouteLocale } from '@/utils/get-route-locale';
 import type React from 'react';
 
 const errorForbidden: StaticTranslationString = {
@@ -50,7 +50,7 @@ export const Forbidden = async ({
   locale?: Promise<Locale>;
 }): Promise<React.JSX.Element> => {
   let locale = await localePromise;
-  locale ??= await getLocaleFromCookies();
+  locale ??= await getRouteLocale();
 
   return (
     <>

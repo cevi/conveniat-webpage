@@ -1,12 +1,14 @@
 'use client';
 
+import { decodeImage, encodeJpeg, isHeicFile } from '@/utils/image-file';
+import { LARGE_PROFILE_PICTURE_EDGE } from '@/utils/profile-picture-url';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /** The edge of the square the photo is framed in, in CSS pixels. */
 export const FRAME_EDGE = 256;
-/** The edge of the square that is uploaded; the server shrinks it to its own square. */
-const OUTPUT_EDGE = 512;
+/** The edge of the square that is uploaded, the full-screen size the server keeps. */
+const OUTPUT_EDGE = LARGE_PROFILE_PICTURE_EDGE;
 const MAX_ZOOM = 3;
 /** How far an arrow key moves the photo. */
 const KEY_STEP = 12;
@@ -19,7 +21,7 @@ interface DecodedPhoto {
 }
 
 export interface PhotoFraming {
-  /** `undefined` while decoding, `false` for a photo this browser cannot decode (HEIC outside Safari) */
+  /** `undefined` while decoding, `false` for a file this browser cannot decode as a photo */
   photo: DecodedPhoto | false | undefined;
   zoom: number;
   setZoom: (zoom: number) => void;
@@ -46,7 +48,7 @@ const clamp = (value: number, limit: number): number =>
  */
 export const usePhotoFraming = (
   file: File | undefined,
-  /** called for a photo this browser cannot decode, HEIC outside Safari */
+  /** called for a file this browser cannot decode as a photo, even with the HEIC decoder */
   onUndecodable: (file: File) => void,
 ): PhotoFraming => {
   const [photo, setPhoto] = useState<DecodedPhoto | false | undefined>();
@@ -71,14 +73,19 @@ export const usePhotoFraming = (
     if (file === undefined) return;
     let decoded: DecodedPhoto | undefined;
     let cancelled = false;
-    createImageBitmap(file, { imageOrientation: 'from-image' })
-      .then((bitmap) => {
+    decodeImage(file)
+      .then(async (bitmap) => {
+        // A browser that needed the HEIC decoder cannot show the file either; the stage shows
+        // a JPEG of the decoded photo instead, large enough for the deepest zoom.
+        const shown = isHeicFile(file)
+          ? await encodeJpeg(bitmap, FRAME_EDGE * MAX_ZOOM * 3, 0.9).catch(() => file)
+          : file;
         if (cancelled) {
           bitmap.close();
           return;
         }
         decoded = {
-          src: URL.createObjectURL(file),
+          src: URL.createObjectURL(shown),
           bitmap,
           width: bitmap.width,
           height: bitmap.height,

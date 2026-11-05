@@ -4,7 +4,7 @@ import { trpc } from '@/trpc/server';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { getRouteLocale } from '@/utils/get-route-locale';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import type { LucideIcon } from 'lucide-react';
@@ -83,7 +83,10 @@ const NewChatWithUserPage: React.FC<{
     token: string;
   }>;
 }> = async ({ params }) => {
-  const locale = await getLocaleFromCookies();
+  const locale = await getRouteLocale();
+  // Outside the try: while prerendering, `params` of a token unknown at build time rejects once
+  // the prerender is complete, and the catch below would log that as a fatal error.
+  const { token } = await params;
   let result:
     | 'notLoggedIn'
     | 'cannotCreateChat'
@@ -94,8 +97,6 @@ const NewChatWithUserPage: React.FC<{
     | 'error';
 
   try {
-    const { token } = await params;
-
     const session = await auth();
     const user = isValidNextAuthUser(session?.user) ? session.user : undefined;
 

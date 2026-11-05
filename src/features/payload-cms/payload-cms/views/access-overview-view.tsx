@@ -23,6 +23,7 @@ import {
   isOpenToEveryone,
   listAdminEntities,
 } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
+import { AccessOverviewAppRights } from '@/features/payload-cms/payload-cms/views/access-overview-app-rights';
 import type {
   Capability,
   GroupColumn,
@@ -228,10 +229,25 @@ const capabilityLabels: Record<Capability, StaticTranslationString> = {
     en: 'Run the material depot in the app',
     fr: "Gérer le dépôt de matériel dans l'app",
   },
+  forumZentrale: {
+    de: 'Forum-Zentrale: jedes Thema moderieren',
+    en: 'Forum Zentrale: moderate every topic',
+    fr: 'Zentrale du forum : modérer chaque thème',
+  },
   hofDashboard: {
     de: 'Hof-Dashboard prüfen',
     en: 'Review the Hof dashboard',
     fr: 'Vérifier le tableau de bord des Hofs',
+  },
+  wristbandReader: {
+    de: 'NFC-Armbänder lesen',
+    en: 'Read the NFC wristbands',
+    fr: 'Lire les bracelets NFC',
+  },
+  wristbandAdmin: {
+    de: 'NFC-Armbänder aller Höfe programmieren und vergeben',
+    en: 'Program and hand out the NFC wristbands of every Hof',
+    fr: 'Programmer et attribuer les bracelets NFC de tous les Hofs',
   },
 };
 
@@ -839,6 +855,7 @@ export default async function AccessOverviewView({
         <PersonPanel data={data} apiRoute={payload.config.routes.api} />
         <CapabilityChecklist data={data} />
         <PersonAccessList data={data} />
+        <AccessOverviewAppRights personId={person.id} locale={locale} req={req} />
         <details className="mt-3">
           <summary className="cursor-pointer text-sm font-semibold">
             {allGroupsLabel[locale]}

@@ -1,6 +1,7 @@
 import {
   setProfilePicture,
-  toAvatar,
+  toProfilePicture,
+  type ProfilePictureImages,
 } from '@/features/payload-cms/payload-cms/utils/profile-pictures';
 import prisma from '@/lib/db/prisma';
 import { createPresignedUploadUrl } from '@/lib/presigned-urls';
@@ -62,7 +63,7 @@ export const profilePictureRouter = createTRPCRouter({
       }),
     ),
 
-  /** Makes an uploaded photo the user's picture, as a small square. */
+  /** Makes an uploaded photo the user's picture, as the avatar and the full-screen square. */
   updateProfilePicture: trpcBaseProcedure
     .input(z.object({ key: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
@@ -71,7 +72,7 @@ export const profilePictureRouter = createTRPCRouter({
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Not your upload' });
       }
 
-      let avatar: Buffer;
+      let picture: ProfilePictureImages;
       try {
         const upload = await s3Client.send(
           new GetObjectCommand({ Bucket: S3_BUCKET_NAME, Key: input.key }),
@@ -79,7 +80,7 @@ export const profilePictureRouter = createTRPCRouter({
         if ((upload.ContentLength ?? 0) > MAX_UPLOAD_BYTES) throw new Error('Upload too large');
         const bytes = await upload.Body?.transformToByteArray();
         if (bytes === undefined) throw new Error('Upload is empty');
-        avatar = await toAvatar(Buffer.from(bytes));
+        picture = await toProfilePicture(Buffer.from(bytes));
       } catch (error: unknown) {
         logger.warn('Refused an uploaded profile picture', { error, 'user.id': userId });
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Not a readable photo' });
@@ -98,7 +99,7 @@ export const profilePictureRouter = createTRPCRouter({
       const version = await setProfilePicture(
         payload,
         userId,
-        avatar,
+        picture,
         await currentVersionOf(userId),
       );
       logger.info('Set a profile picture', { 'user.id': userId });

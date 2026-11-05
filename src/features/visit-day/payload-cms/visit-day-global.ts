@@ -6,7 +6,7 @@ import {
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import { visitDayExportHandler } from '@/features/visit-day/api/visit-day-export-endpoint';
-import type { ArrayFieldValidation, GlobalConfig } from 'payload';
+import type { ArrayFieldValidation, GlobalConfig, NumberFieldSingleValidation } from 'payload';
 
 interface DayRow {
   date?: unknown;
@@ -48,6 +48,18 @@ const validateDays: ArrayFieldValidation = (value, { req }) => {
     });
   }
   return true;
+};
+
+/** -1 closes the day to visitors without a Hof, so the Kontingent is a whole number from -1. */
+const validateExternalCapacity: NumberFieldSingleValidation = (value, { req }) => {
+  if (value === null || value === undefined || (Number.isInteger(value) && value >= -1)) {
+    return true;
+  }
+  return getValidationMessage(req.i18n.language, {
+    en: 'Enter a whole number from -1, or leave the field empty.',
+    de: 'Gib eine ganze Zahl ab -1 ein oder lass das Feld leer.',
+    fr: 'Saisis un nombre entier à partir de -1 ou laisse le champ vide.',
+  });
 };
 
 /**
@@ -139,6 +151,24 @@ export const VisitDayGlobal: GlobalConfig = {
               },
             },
           ],
+        },
+        {
+          name: 'externalCapacity',
+          type: 'number',
+          min: -1,
+          validate: validateExternalCapacity,
+          label: {
+            en: 'Places for visitors without a local group',
+            de: 'Kontingent ohne Bezug zu einer Abteilung',
+            fr: 'Contingent sans lien avec un groupe local',
+          },
+          admin: {
+            description: {
+              en: 'How many persons without a connection to a local group may register for this day. They still take places with or without lunch. Empty: no limit of their own. 0: closed, the choice shows greyed out. -1: none on this day, and with -1 on every day the question "Who are you visiting?" disappears.',
+              de: 'Wie viele Personen ohne Bezug zu einer Abteilung sich für diesen Tag anmelden dürfen. Sie belegen weiterhin Plätze mit oder ohne Mittagessen. Leer: keine eigene Grenze. 0: geschlossen, die Wahl erscheint ausgegraut. -1: an diesem Tag keine; mit -1 an allen Tagen entfällt die Frage «Wen besucht ihr?».',
+              fr: 'Combien de personnes sans lien avec un groupe local peuvent s’inscrire pour ce jour. Elles occupent toujours des places avec ou sans repas. Vide : pas de limite propre. 0 : fermé, le choix apparaît grisé. -1 : aucune ce jour-là ; avec -1 tous les jours, la question « Qui venez-vous voir ? » disparaît.',
+            },
+          },
         },
         {
           name: 'quartiere',

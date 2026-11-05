@@ -8,7 +8,6 @@ import type React from 'react';
 import { useMemo, useState } from 'react';
 
 import { IconTile } from '@/components/ui/icon-tile';
-import { PersonAvatar } from '@/components/ui/person-avatar';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { DeleteChat } from '@/features/chat/components/chat-details-view/delete-chat';
 import { LeaveChat } from '@/features/chat/components/chat-details-view/leave-chat';
@@ -20,6 +19,7 @@ import { ChatNameSection } from '@/features/chat/components/chat-details-view/se
 import { MemberActionsSheet } from '@/features/chat/components/chat-details-view/sections/member-actions-sheet';
 import type { DetailsParticipant } from '@/features/chat/components/chat-details-view/sections/participants-list';
 import { ParticipantsList } from '@/features/chat/components/chat-details-view/sections/participants-list';
+import { PartnerPicture } from '@/features/chat/components/chat-details-view/sections/partner-picture';
 import { chatScreenClassName } from '@/features/chat/components/chat-view/chat-client-component';
 import { ChatDetailsPageSkeleton } from '@/features/chat/components/chat-view/chat-details-skeleton';
 import {
@@ -121,19 +121,20 @@ const formatCreationDate = (createdAt: Date | string | undefined, locale: Locale
 const heroTileClassName = 'h-[72px] w-[72px] rounded-full [&_svg]:h-8 [&_svg]:w-8';
 
 /** The big picture of the chat: the other person, or an icon for what kind of chat it is. */
-const ChatHeroAvatar: React.FC<{ chat: ChatDetailsData; currentUser: string | undefined }> = ({
-  chat,
-  currentUser,
-}) => {
+const ChatHeroAvatar: React.FC<{
+  chat: ChatDetailsData;
+  currentUser: string | undefined;
+  locale: Locale;
+}> = ({ chat, currentUser, locale }) => {
   if (chat.type === ChatType.ONE_TO_ONE) {
     const partner = chat.participants.find((participant) => participant.id !== currentUser);
     if (partner !== undefined) {
       return (
-        <PersonAvatar
-          seed={partner.id}
+        <PartnerPicture
+          id={partner.id}
           name={partner.name}
           pictureUrl={partner.pictureUrl}
-          className="h-[72px] w-[72px] text-2xl"
+          locale={locale}
         />
       );
     }
@@ -314,7 +315,7 @@ export const ChatDetails: React.FC = () => {
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-6 pb-10">
         <div className="mx-auto flex max-w-2xl flex-col gap-6">
           <ChatNameSection
-            avatar={<ChatHeroAvatar chat={chatDetails} currentUser={currentUser} />}
+            avatar={<ChatHeroAvatar chat={chatDetails} currentUser={currentUser} locale={locale} />}
             currentName={chatDetails.name}
             meta={meta}
             description={chatDetails.description}

@@ -1,6 +1,7 @@
 'use client';
 
 import { avatarTextColorOf } from '@/components/ui/person-avatar';
+import { toast } from '@/components/ui/toast';
 import type { ChatMessage } from '@/features/chat/api/types';
 import { AlertQuestionMessage } from '@/features/chat/components/chat-view/message/alert-question-message';
 import { AlertResponseMessage } from '@/features/chat/components/chat-view/message/alert-response-message';
@@ -20,6 +21,7 @@ import { ReactionDetailsDialog } from '@/features/chat/components/chat-view/mess
 import { SenderAvatar } from '@/features/chat/components/chat-view/message/sender-avatar';
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
 import { ThreadSummary } from '@/features/chat/components/chat-view/message/thread-summary';
+import { KernteamBadge } from '@/features/chat/components/forum/kernteam-badge';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { MessagePreviewIcon } from '@/features/chat/components/ui/message-preview-icon';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
@@ -38,7 +40,6 @@ import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { AlertCircle, Ban, Check, Clock, Ellipsis } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import { toast } from 'sonner';
 
 const replyToMessageText: StaticTranslationString = {
   de: 'Antwort auf eine Nachricht',
@@ -156,8 +157,9 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     useChatActions();
   const isHighlighted = highlightedMessageId === message.id;
   const showMeta = isLastInGroup || message.sendFailed === true;
-  const hasAvatarSlot =
-    !isCurrentUser && chatType === 'GROUP' && typeof message.senderId === 'string';
+  // a group and a forum topic name who wrote; a private chat and a channel need not
+  const showsSenders = chatType === 'GROUP' || chatType === 'FORUM';
+  const hasAvatarSlot = !isCurrentUser && showsSenders && typeof message.senderId === 'string';
 
   const [isHovered, setIsHovered] = useState(false);
   const [showReactors, setShowReactors] = useState(false);
@@ -174,7 +176,10 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   const hasEmojiReactionCapability =
     chatDetails?.capabilities.includes(ChatCapability.EMOJI_REACTIONS) ?? false;
   const canReact = hasEmojiReactionCapability;
-  const canThread = chatDetails?.capabilities.includes(ChatCapability.THREADS) ?? false;
+  // a forum post is the thread, so its comments open none of their own
+  const canThread =
+    (chatDetails?.capabilities.includes(ChatCapability.THREADS) ?? false) &&
+    chatDetails?.type !== 'FORUM';
   const canSendMessagesInChat =
     (chatDetails?.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES) ?? true) &&
     chatDetails?.status !== ChatStatus.CLOSED;
@@ -350,17 +355,20 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     );
   }
 
-  const senderNameLine = !isCurrentUser &&
-    isFirstInGroup &&
-    chatType === 'GROUP' &&
-    message.senderName && (
-      <span className="mb-1 max-w-full truncate px-1.5 text-[13px] text-green-700">
+  const senderNameLine = !isCurrentUser && isFirstInGroup && showsSenders && message.senderName && (
+    <span className="mb-1 flex max-w-full items-center gap-1.5 px-1.5 text-[13px] text-green-700">
+      <span className="min-w-0 truncate">
         <span className={cn('font-semibold', avatarTextColorOf(message.senderId ?? ''))}>
           {splitDisplayName(message.senderName).primary}
         </span>
-        {senderFunktionen !== '' && ` · ${senderFunktionen}`}
+        {/* the Kernteam badge names the function already */}
+        {senderFunktionen !== '' && message.kernteamLabel === undefined && ` · ${senderFunktionen}`}
       </span>
-    );
+      {message.byTopicAdmin === true && (
+        <KernteamBadge locale={activeLocale} label={message.kernteamLabel} />
+      )}
+    </span>
+  );
 
   // the thread hangs on its message, not between it and the next one
   const threadSummary = !hideReplyCount &&
@@ -382,7 +390,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
       <MessageRow
         id={`message-${message.id}`}
         isCurrentUser={isCurrentUser}
-        isGroup={chatType === 'GROUP'}
+        isGroup={showsSenders}
         className={cn(isHighlighted && 'animate-message-highlight rounded-xl')}
         avatar={
           hasAvatarSlot &&
@@ -498,7 +506,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
       <MessageRow
         id={`message-${message.id}`}
         isCurrentUser={isCurrentUser}
-        isGroup={chatType === 'GROUP'}
+        isGroup={showsSenders}
         className={cn('group', isHighlighted && 'animate-message-highlight rounded-xl')}
         onPointerEnter={(event) => {
           if (event.pointerType === 'mouse') setIsHovered(true);
@@ -647,7 +655,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
               inert
               className={cn(
                 'max-h-[35dvh] max-w-[85%] min-w-[64px] overflow-hidden rounded-[16px] px-3.5 py-2 wrap-anywhere',
-                bubbleColorClassName(isCurrentUser),
+                bubbleColorClassName(isCurrentUser, message.byTopicAdmin === true),
               )}
             >
               <MessageBubbleContent

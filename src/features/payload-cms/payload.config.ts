@@ -140,6 +140,11 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
         path: '/access-overview',
         exact: true,
       },
+      forumProtocol: {
+        Component: '@/features/payload-cms/payload-cms/views/forum-protocol-view#default',
+        path: '/forum-protocol',
+        exact: true,
+      },
       mergeUsers: {
         Component: '@/features/payload-cms/payload-cms/views/merge-users-view#default',
         path: '/merge-users',

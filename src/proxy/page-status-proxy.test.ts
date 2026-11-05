@@ -330,7 +330,11 @@ describe('SEGMENTS_NOT_RESOLVED_BY_SLUG', () => {
   /** The first path segments the folders below `[locale]/[design]` serve, route groups opened. */
   const routeSegments = (directory: string): string[] =>
     readdirSync(directory, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory() && !entry.name.startsWith('['))
+      // a slot like `@modal` mirrors routes that exist anyway
+      .filter(
+        (entry) =>
+          entry.isDirectory() && !entry.name.startsWith('[') && !entry.name.startsWith('@'),
+      )
       .flatMap((entry) =>
         entry.name.startsWith('(') ? routeSegments(path.join(directory, entry.name)) : [entry.name],
       );

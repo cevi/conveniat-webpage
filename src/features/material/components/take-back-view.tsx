@@ -3,6 +3,7 @@ import { toastMaterialError } from '@/features/material/components/material-erro
 
 import { IconTile } from '@/components/ui/icon-tile';
 import { ListRow } from '@/components/ui/list-row';
+import { toast } from '@/components/ui/toast';
 import {
   holderName,
   loanSummary,
@@ -46,7 +47,6 @@ import { Building2, Check, ChevronRight, Hash, User } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 const text = {
   dueToday: { de: 'Heute fällig', en: 'Due today', fr: 'À rendre aujourd’hui' },

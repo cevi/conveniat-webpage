@@ -1,7 +1,4 @@
-import {
-  isFullAdmin,
-  shouldHideInAdminPanelIfNotAdmin,
-} from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
 
@@ -141,7 +138,7 @@ export const PushNotificationSubscriptions: CollectionConfig = {
     {
       type: 'date',
       name: 'lastUsedAt',
-      label: { en: 'Last used', de: 'Zuletzt verwendet', fr: 'Dernière utilisation' },
+      label: { en: 'Last checked in', de: 'Zuletzt gemeldet', fr: 'Dernier signe de vie' },
       required: false,
       admin: {
         position: 'sidebar',
@@ -157,10 +154,23 @@ export const PushNotificationSubscriptions: CollectionConfig = {
       options: [
         { label: '/entrypoint', value: '/entrypoint' },
         { label: '/app/settings', value: '/app/settings' },
+        {
+          label: {
+            en: 'Restored on app start',
+            de: 'Beim App-Start wiederhergestellt',
+            fr: "Restauré au démarrage de l'app",
+          },
+          value: 'restored',
+        },
       ],
       admin: {
         position: 'sidebar',
         readOnly: true,
+        description: {
+          en: 'Where the web subscription was last stored. Restored: the browser had lost its subscription with the permission still granted, and the app subscribed it again on start.',
+          de: 'Wo das Web-Abonnement zuletzt gespeichert wurde. Wiederhergestellt: Der Browser hatte sein Abonnement bei erteilter Berechtigung verloren, und die App hat es beim Start neu abgeschlossen.',
+          fr: "Où l'abonnement web a été enregistré en dernier. Restauré : le navigateur avait perdu son abonnement alors que l'autorisation était accordée, et l'app l'a renouvelé au démarrage.",
+        },
       },
     },
     {
@@ -177,7 +187,9 @@ export const PushNotificationSubscriptions: CollectionConfig = {
   ],
 
   admin: {
-    hidden: shouldHideInAdminPanelIfNotAdmin,
+    // An admin reaches the devices through the person, in the push tab of a user, and opens
+    // one from there. The rules below still decide who may read them at all.
+    hidden: true,
     group: AdminPanelDashboardGroups.AppOperations.label,
     groupBy: true,
     /** this is broken with our localized versions */

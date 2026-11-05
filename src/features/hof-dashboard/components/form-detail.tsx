@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from '@/components/ui/toast';
 import type {
   HofDashboardDocument,
   HofDashboardEntry,
@@ -36,7 +37,6 @@ import { cn } from '@/utils/tailwindcss-override';
 import { ShoppingCart, Trash2, Upload } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useId, useMemo, useState } from 'react';
-import { toast } from 'sonner';
 
 const ENTRY_TONE: Record<HofEntryStatus, 'done' | 'neutral' | 'attention'> = {
   submitted: 'neutral',

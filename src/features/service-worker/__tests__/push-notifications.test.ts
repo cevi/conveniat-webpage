@@ -302,6 +302,24 @@ describe('pushNotificationHandler', () => {
     await calls[0]?.[0];
   };
 
+  const dispatchRawPush = async (
+    scope: ServiceWorkerGlobalScope,
+    data: Partial<PushMessageData> | null,
+  ): Promise<void> => {
+    const pushEvent = { data, waitUntil: mockWaitUntil } as unknown as PushEvent;
+    pushNotificationHandler(scope)(pushEvent);
+    const calls = mockWaitUntil.mock.calls as Promise<unknown>[][];
+    await calls[0]?.[0];
+  };
+
+  const expectShownAndClosed = (): void => {
+    expect(mockShowNotification).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ tag: 'conveniat27-suppressed', silent: true }),
+    );
+    expect(mockCloseNotification).toHaveBeenCalled();
+  };
+
   it('shows the notification when the user is on the chat overview, even if the client creation URL is the target chat', async () => {
     // Reproduces the stale WindowClient.url case: the document was loaded on the
     // chat thread, but the user has since SPA-navigated to the overview.
@@ -416,6 +434,60 @@ describe('pushNotificationHandler', () => {
 
     expect(mockShowNotification).not.toHaveBeenCalled();
     expect(deliveryReport()).toEqual({ id: 'notif-1', presentation: 'SUPPRESSED' });
+  });
+
+  /**
+   * WebKit removes every subscription of the origin after three pushes that show nothing, so a
+   * push the worker cannot make sense of must still end with a notification there.
+   */
+  describe('with a push it cannot handle', () => {
+    let consoleError: jest.SpyInstance;
+    beforeEach(() => {
+      consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
+    afterEach(() => consoleError.mockRestore());
+
+    it('shows and closes a notification on WebKit for a push without data', async () => {
+      await dispatchRawPush(makeScope([], iosWebAppUserAgent), null);
+
+      expectShownAndClosed();
+    });
+
+    it('shows and closes a notification on WebKit for a push that is not JSON', async () => {
+      await dispatchRawPush(makeScope([], iosWebAppUserAgent), {
+        json(): unknown {
+          throw new SyntaxError('Unexpected token');
+        },
+      });
+
+      expectShownAndClosed();
+    });
+
+    it('shows and closes a notification on WebKit when handling the push fails', async () => {
+      const scope = makeScope([], iosWebAppUserAgent);
+      mockMatchAll.mockRejectedValue(new Error('clients unavailable'));
+      await dispatchPush(scope);
+
+      expectShownAndClosed();
+    });
+
+    it('shows a push without a data object while the app is open', async () => {
+      const client = makeClient(chatUrl, chatUrl);
+      await dispatchRawPush(makeScope([client]), {
+        json: (): unknown => ({ title: 'Chat', body: 'New message' }),
+      });
+
+      expect(mockShowNotification).toHaveBeenCalledWith(
+        'Chat',
+        expect.objectContaining({ body: 'New message' }),
+      );
+    });
+
+    it('shows nothing for a push without data outside WebKit', async () => {
+      await dispatchRawPush(makeScope([]), null);
+
+      expect(mockShowNotification).not.toHaveBeenCalled();
+    });
   });
 });
 

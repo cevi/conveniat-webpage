@@ -9,6 +9,7 @@ import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
+import { CHAT_MESSAGE_MAX_LENGTH } from '@/features/chat/limits';
 import type { MessagePreviewIcon as MessagePreviewIconName } from '@/features/chat/types/api-dto-types';
 import { generateMessageId } from '@/features/chat/utils';
 import { isMessageDeleted } from '@/features/chat/utils/message-deletion';
@@ -24,6 +25,7 @@ import { ChatMembershipPermission, ChatType } from '@prisma/client';
 import type { LucideIcon } from 'lucide-react';
 import {
   Archive,
+  Image as ImageIcon,
   Lock,
   Megaphone,
   MessageSquareOff,
@@ -33,8 +35,6 @@ import {
   X,
 } from 'lucide-react';
 import React from 'react';
-
-const MAX_MESSAGE_LENGTH = 2000;
 
 const messageToPlaceholder: StaticTranslationString = {
   de: 'Nachricht an {name}',
@@ -52,6 +52,13 @@ const threadReplyPlaceholder: StaticTranslationString = {
   de: 'Im Thread antworten',
   en: 'Reply in thread',
   fr: 'Répondre dans le fil',
+};
+
+/** in a forum topic the thread is a post, and an answer to it a comment */
+const commentPlaceholder: StaticTranslationString = {
+  de: 'Kommentieren …',
+  en: 'Write a comment …',
+  fr: 'Commenter …',
 };
 
 const enterToSendHint: StaticTranslationString = {
@@ -236,6 +243,8 @@ export const ChatTextAreaInput: React.FC = () => {
   const { uploadImage, isUploading } = useImageUpload({ chatId });
   const { stagedImage, stageImage, clearStagedImage } = useStagedImage();
   const [hasUploadFailed, setHasUploadFailed] = React.useState(false);
+  // a HEIC outside Safari has no preview until it is converted on send
+  const [brokenPreviewUrl, setBrokenPreviewUrl] = React.useState<string>();
 
   // Picking an image only stages it above the text; it is sent together with the text.
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>): void => {
@@ -283,8 +292,8 @@ export const ChatTextAreaInput: React.FC = () => {
     }
   };
 
-  const isTooLong = messageLength > MAX_MESSAGE_LENGTH;
-  const isNearLimit = messageLength > MAX_MESSAGE_LENGTH * 0.8;
+  const isTooLong = messageLength > CHAT_MESSAGE_MAX_LENGTH;
+  const isNearLimit = messageLength > CHAT_MESSAGE_MAX_LENGTH * 0.8;
 
   const handleSplitAndSend = async (): Promise<void> => {
     if (isSendingReference.current) return;
@@ -304,18 +313,18 @@ export const ChatTextAreaInput: React.FC = () => {
   const sendInChunks = (message: string): void => {
     const chunks: string[] = [];
 
-    // Split message into chunks of MAX_MESSAGE_LENGTH, trying to break at word boundaries
+    // Split message into chunks of CHAT_MESSAGE_MAX_LENGTH, trying to break at word boundaries
     let remaining = message;
     while (remaining.length > 0) {
-      if (remaining.length <= MAX_MESSAGE_LENGTH) {
+      if (remaining.length <= CHAT_MESSAGE_MAX_LENGTH) {
         chunks.push(remaining);
         break;
       }
 
       // Try to find a good break point (space, newline) near the limit
-      let breakPoint = MAX_MESSAGE_LENGTH;
-      const searchStart = Math.max(0, MAX_MESSAGE_LENGTH - 200);
-      for (let index = MAX_MESSAGE_LENGTH; index >= searchStart; index--) {
+      let breakPoint = CHAT_MESSAGE_MAX_LENGTH;
+      const searchStart = Math.max(0, CHAT_MESSAGE_MAX_LENGTH - 200);
+      for (let index = CHAT_MESSAGE_MAX_LENGTH; index >= searchStart; index--) {
         if (remaining[index] === ' ' || remaining[index] === '\n') {
           breakPoint = index;
           break;
@@ -377,8 +386,10 @@ export const ChatTextAreaInput: React.FC = () => {
 
   const localizedError = getLocalizedError(sendError);
   let placeholder = messagePlaceholder[locale];
-  if (activeThreadId !== undefined) placeholder = threadReplyPlaceholder[locale];
-  else if (chatDetails.name !== '')
+  if (activeThreadId !== undefined) {
+    placeholder =
+      chatDetails.type === 'FORUM' ? commentPlaceholder[locale] : threadReplyPlaceholder[locale];
+  } else if (chatDetails.name !== '')
     placeholder = messageToPlaceholder[locale].replace('{name}', chatDetails.name);
 
   return (
@@ -407,7 +418,7 @@ export const ChatTextAreaInput: React.FC = () => {
             isTooLong ? 'text-danger-text font-semibold' : 'text-green-700',
           )}
         >
-          {messageLength}/{MAX_MESSAGE_LENGTH}
+          {messageLength}/{CHAT_MESSAGE_MAX_LENGTH}
           {isTooLong && ` - ${messageTooLongText[locale]}`}
         </div>
       )}
@@ -421,15 +432,28 @@ export const ChatTextAreaInput: React.FC = () => {
           {stagedImage !== undefined && (
             <div className="flex items-end gap-3 px-3 pt-3">
               <div className="relative">
-                <img
-                  src={stagedImage.previewUrl}
-                  alt=""
-                  className={cn(
-                    'ring-line h-20 w-20 rounded-xl object-cover ring-1',
-                    isUploading && 'opacity-60',
-                    hasUploadFailed && 'ring-danger ring-2',
-                  )}
-                />
+                {brokenPreviewUrl === stagedImage.previewUrl ? (
+                  <div
+                    className={cn(
+                      'ring-line bg-quiet flex h-20 w-20 items-center justify-center rounded-xl text-green-700 ring-1',
+                      isUploading && 'opacity-60',
+                      hasUploadFailed && 'ring-danger ring-2',
+                    )}
+                  >
+                    <ImageIcon className="h-7 w-7" aria-hidden="true" />
+                  </div>
+                ) : (
+                  <img
+                    src={stagedImage.previewUrl}
+                    alt=""
+                    onError={() => setBrokenPreviewUrl(stagedImage.previewUrl)}
+                    className={cn(
+                      'ring-line h-20 w-20 rounded-xl object-cover ring-1',
+                      isUploading && 'opacity-60',
+                      hasUploadFailed && 'ring-danger ring-2',
+                    )}
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() => {

@@ -9,8 +9,9 @@ jest.mock('@/trpc/client', () => ({
   trpc: {
     schedule: {
       star: {
-        toggleStar: { useMutation: (): { mutate: jest.Mock } => ({ mutate: jest.fn() }) },
-        syncStars: { useMutation: (): { mutate: jest.Mock } => ({ mutate: jest.fn() }) },
+        updateStars: {
+          useMutation: (): { mutateAsync: jest.Mock } => ({ mutateAsync: jest.fn() }),
+        },
       },
     },
   },

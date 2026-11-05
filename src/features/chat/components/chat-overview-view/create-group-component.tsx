@@ -17,6 +17,11 @@ import {
 import { newChatText } from '@/features/chat/components/chat-overview-view/create-chat-skeleton';
 import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
 import { useCreateChat } from '@/features/chat/hooks/use-create-chat';
+import {
+  CHAT_NAME_MAX_LENGTH,
+  CHAT_NAME_MIN_LENGTH,
+  chatNameProblem,
+} from '@/features/chat/limits';
 import { groupContactsByLetter, matchesContactSearch } from '@/features/chat/utils/contact-search';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
@@ -31,9 +36,6 @@ import { useCallback, useEffect, useId, useState } from 'react';
 /** The search parameter of the second step, so the back button returns to the first. */
 const STEP_PARAMETER = 'step';
 
-/** The bounds `createChat` holds a group name to, see `verifyChatName`. */
-const NAME_MIN = 2;
-const NAME_MAX = 50;
 /** A group has the creator and at least two others; with one it is a private chat. */
 const MIN_SELECTED = 2;
 
@@ -41,9 +43,9 @@ const text = {
   nameLabel: { de: 'Gruppenname', en: 'Group name', fr: 'Nom du groupe' },
   namePlaceholder: { de: 'Name der Gruppe', en: 'Name of the group', fr: 'Nom du groupe' },
   nameTooShort: {
-    de: `Der Name braucht mindestens ${NAME_MIN} Zeichen.`,
-    en: `The name needs at least ${NAME_MIN} characters.`,
-    fr: `Le nom doit compter au moins ${NAME_MIN} caractères.`,
+    de: `Der Name braucht mindestens ${CHAT_NAME_MIN_LENGTH} Zeichen.`,
+    en: `The name needs at least ${CHAT_NAME_MIN_LENGTH} characters.`,
+    fr: `Le nom doit compter au moins ${CHAT_NAME_MIN_LENGTH} caractères.`,
   },
   members: {
     de: 'Mit dir in der Gruppe',
@@ -83,7 +85,7 @@ const footerButtonClassName =
 
 /**
  * Creating a group in two steps. First the people: the contacts as checkboxes, the chosen ones
- * as chips, and "Weiter" once two are chosen. Then the name, 2 to 50 characters, and "Gruppe
+ * as chips, and "Weiter" once two are chosen. Then the name, within `chatNameSchema`, and "Gruppe
  * erstellen" — the rules `createChat` holds a group to. The second step has its own history
  * entry, so going back, by the arrow or the phone's back, returns to the choice as it was.
  */
@@ -122,7 +124,7 @@ export const CreateNewGroupPage: React.FC = () => {
   // the creator is a member too
   const isAtLimit = maxGroupMembers !== undefined && selected.length + 1 >= maxGroupMembers;
   const trimmedName = groupName.trim();
-  const hasValidName = trimmedName.length >= NAME_MIN && trimmedName.length <= NAME_MAX;
+  const hasValidName = chatNameProblem(groupName) === undefined;
   const hasEnoughPeople = selected.length >= MIN_SELECTED;
   // a reload on the second step has lost the choice, so it starts over with the first
   const isNaming = searchParameters.get(STEP_PARAMETER) === 'name' && hasEnoughPeople;
@@ -193,7 +195,7 @@ export const CreateNewGroupPage: React.FC = () => {
               // the step exists for the name, so the keyboard comes up with it
               autoFocus
               value={groupName}
-              maxLength={NAME_MAX}
+              maxLength={CHAT_NAME_MAX_LENGTH}
               placeholder={text.namePlaceholder[locale]}
               onChange={(event) => setGroupName(event.target.value)}
               onBlur={() => setHasLeftName(true)}
@@ -215,7 +217,7 @@ export const CreateNewGroupPage: React.FC = () => {
               {showNameError ? text.nameTooShort[locale] : ''}
             </span>
             <span aria-hidden="true" className="shrink-0">
-              {groupName.length}/{NAME_MAX}
+              {groupName.length}/{CHAT_NAME_MAX_LENGTH}
             </span>
           </div>
         </div>

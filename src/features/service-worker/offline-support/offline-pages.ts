@@ -33,6 +33,10 @@ export const offlinePages = [
   `/app/chat/${OFFLINE_CHAT_SHELL_ID}`,
   `/app/chat/${OFFLINE_CHAT_SHELL_ID}/details`,
 
+  // Forum, and the generic shell of a post, read from the URL like a chat
+  '/app/forum',
+  `/app/forum/${OFFLINE_CHAT_SHELL_ID}`,
+
   // Schedule page with local DB offline support
   '/app/schedule',
 
@@ -47,6 +51,11 @@ export const offlinePages = [
 
   // Settings page
   '/app/settings',
+
+  // Security and first aid read the NFC wristbands from the list kept on the phone. The page
+  // is rendered signed in; who may read and the list come from the persisted query cache.
+  // Deployments without the wristbands answer 404, which the download skips.
+  '/app/wristbands/lesen',
 
   // Offline pages
   '/~offline',

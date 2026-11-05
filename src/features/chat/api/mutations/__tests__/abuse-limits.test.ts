@@ -26,7 +26,13 @@ jest.mock('superjson', () => ({
 jest.mock('@prisma/client', () =>
   jest.requireActual<typeof import('@/lib/prisma')>('@/lib/prisma'),
 );
-jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
+// The push recipients are read on the pool after the commit; it sees the same tables.
+jest.mock('@/lib/db/prisma', () => ({
+  __esModule: true,
+  get default(): unknown {
+    return prisma;
+  },
+}));
 jest.mock('@/lib/ability', () => ({
   Ability: { can: (): Promise<boolean> => Promise.resolve(true) },
 }));
@@ -68,7 +74,6 @@ import { createChat } from '@/features/chat/api/mutations/create-chat';
 import { createChatInvite } from '@/features/chat/api/mutations/create-chat-invite';
 import { createMessage } from '@/features/chat/api/mutations/create-message';
 import { renameChat } from '@/features/chat/api/mutations/rename-chat';
-import { reportProblem } from '@/features/chat/api/mutations/report-problem';
 import { toggleReaction } from '@/features/chat/api/mutations/toggle-reaction';
 import { ChatCapability } from '@/lib/chat-shared';
 import { ChatMembershipPermission, ChatType, MessageType } from '@/lib/prisma';
@@ -142,7 +147,19 @@ const prisma = {
     update: record('chat.update'),
   },
   chatMembership: {
-    findMany: (): Promise<unknown> => Promise.resolve(memberships),
+    findMany: ({
+      where,
+    }: {
+      where?: { hasDeleted?: boolean; userId?: { not?: string; in?: string[] } };
+    } = {}): Promise<unknown> =>
+      Promise.resolve(
+        memberships.filter(
+          (m) =>
+            (where?.hasDeleted === undefined || m.hasDeleted === where.hasDeleted) &&
+            m.userId !== where?.userId?.not &&
+            (where?.userId?.in === undefined || where.userId.in.includes(m.userId)),
+        ),
+      ),
     createMany: record('chatMembership.createMany'),
   },
   chatInvite: {
@@ -178,6 +195,8 @@ const prisma = {
     },
     create: record('message.create', { uuid: 'new-message', createdAt: new Date() }),
   },
+  // no image key is in use yet
+  messageContent: { findFirst: (): Promise<null> => Promise.resolve(null) },
   messageEvent: { createMany: record('messageEvent.createMany') },
   messageReaction: {
     findUnique: ({
@@ -200,7 +219,6 @@ const prisma = {
 const createCaller = createCallerFactory(
   createTRPCRouter({
     sendMessage: createMessage,
-    reportProblem,
     createChatInvite,
     createChat,
     addParticipants,
@@ -234,8 +252,13 @@ const errorOf = async (
   return failure;
 };
 
-const pushRecipients = (): unknown[] =>
-  (mockSendNotification.mock.calls as unknown[][]).map((call) => call[1]);
+/** Whom each push went to, once the reads that follow the commit have settled. */
+const pushRecipients = async (): Promise<unknown[]> => {
+  await new Promise((resolve) => {
+    setImmediate(resolve);
+  });
+  return (mockSendNotification.mock.calls as unknown[][]).map((call) => call[1]);
+};
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -271,7 +294,6 @@ describe('rate limits', () => {
       (caller): Promise<unknown> =>
         caller.sendMessage({ chatId: CHAT_ID, content: 'Hoi zäme', timestamp: new Date() }),
     ],
-    ['chat.reportProblem', 3, (caller): Promise<unknown> => caller.reportProblem()],
     ['chat.createChatInvite', 30, (caller): Promise<unknown> => caller.createChatInvite({})],
     [
       'chat.createChat',
@@ -316,7 +338,7 @@ describe('push notifications for a message', () => {
   it('reach every other member for a message in the chat itself', async () => {
     await as(ANNA).sendMessage({ chatId: CHAT_ID, content: 'Hoi zäme', timestamp: new Date() });
 
-    expect(pushRecipients()).toEqual([[BEN, CARLA, DARIO]]);
+    expect(await pushRecipients()).toEqual([[BEN, CARLA, DARIO]]);
   });
 
   it('reach only the thread author and earlier repliers for a thread reply', async () => {
@@ -327,7 +349,7 @@ describe('push notifications for a message', () => {
       parentId: THREAD_ID,
     });
 
-    expect(pushRecipients()).toEqual([[BEN, CARLA]]);
+    expect(await pushRecipients()).toEqual([[BEN, CARLA]]);
     // everyone still sees the reply live
     expect(mockPublish).toHaveBeenCalledTimes(1);
   });
@@ -346,7 +368,7 @@ describe('push notifications for a message', () => {
       parentId: THREAD_ID,
     });
 
-    expect(pushRecipients()).toEqual([[CARLA]]);
+    expect(await pushRecipients()).toEqual([[CARLA]]);
   });
 
   it('are not sent for a reply in an announcement channel', async () => {
@@ -365,7 +387,7 @@ describe('push notifications for a message', () => {
       parentId: THREAD_ID,
     });
 
-    expect(mockSendNotification).not.toHaveBeenCalled();
+    expect(await pushRecipients()).toEqual([]);
     expect(mockPublish).toHaveBeenCalledTimes(1);
   });
 });
@@ -490,6 +512,46 @@ describe('chat names', () => {
     const error = await errorOf(as(ANNA).renameChat({ chatUuid: CHAT_ID, newName: longName }));
 
     expect(error?.code).toBe('BAD_REQUEST');
+    expect(writes).toEqual([]);
+  });
+
+  it('reject a group name shorter than 3 characters, counted without the surrounding whitespace', async () => {
+    const error = await errorOf(
+      as(ANNA).createChat({ members: [{ userId: BEN }, { userId: CARLA }], chatName: '  AB  ' }),
+    );
+
+    expect(error).toMatchObject({
+      code: 'BAD_REQUEST',
+      reason: 'chatNameTooShort',
+      params: { min: 3 },
+    });
+    expect(writes).toEqual([]);
+  });
+
+  it('answer a replayed creation of a group the previous release named with 2 characters', async () => {
+    // the chat was stored before the minimum rose to 3, and the response was lost
+    expect(
+      await as(ANNA).createChat({
+        members: [{ userId: BEN }, { userId: CARLA }],
+        chatName: 'AB',
+        chatId: CHAT_ID,
+      }),
+    ).toBe(CHAT_ID);
+    expect(writes).toEqual([]);
+  });
+
+  it('reject a group without a name as too short', async () => {
+    const error = await errorOf(
+      as(ANNA).createChat({ members: [{ userId: BEN }, { userId: CARLA }] }),
+    );
+
+    expect(error).toMatchObject({ code: 'BAD_REQUEST', reason: 'chatNameTooShort' });
+  });
+
+  it('reject a rename to a name shorter than 3 characters', async () => {
+    const error = await errorOf(as(ANNA).renameChat({ chatUuid: CHAT_ID, newName: 'AB' }));
+
+    expect(error).toMatchObject({ code: 'BAD_REQUEST', reason: 'chatNameTooShort' });
     expect(writes).toEqual([]);
   });
 
