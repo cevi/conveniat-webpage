@@ -5,10 +5,11 @@ import {
   isParticipantRole,
 } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import {
+  BAND_REGISTRATION_FIELDS,
   findAppUserOfPerson,
-  findBandWearer,
   findHofAdministrators,
   shortNameOf,
+  toBandWearer,
 } from '@/features/payload-cms/payload-cms/utils/wristband-people';
 import type { BillParticipant, Wristband } from '@/features/payload-cms/payload-types';
 import { deriveTagCredentials } from '@/features/wristbands/api/tag-password';
@@ -351,10 +352,14 @@ export const revokeWristband = async (
 /** A band with its wearer, Hof and Quartier filled in. */
 type PopulatedBand = Pick<Wristband, 'id' | 'uid' | 'status' | 'participant' | 'hof'>;
 
+const ROSTER_REGISTRATION_FIELDS = { fullName: true, nickname: true } as const;
+
 const findPopulatedBands = async (
   payload: Payload,
   where: Where,
   limit: number,
+  /** what of the wearer's registration to read; the band's card needs more than a read */
+  registrationFields: Record<string, true> = ROSTER_REGISTRATION_FIELDS,
 ): Promise<PopulatedBand[]> => {
   const { docs } = await payload.find({
     collection: 'wristbands',
@@ -365,7 +370,7 @@ const findPopulatedBands = async (
     overrideAccess: true,
     select: { uid: true, status: true, participant: true, hof: true },
     populate: {
-      'bill-participants': { fullName: true, nickname: true },
+      'bill-participants': registrationFields,
       hoefe: { name: true, quartier: true },
       quartiere: { name: true },
     },
@@ -394,6 +399,19 @@ const toRosterEntry = (band: PopulatedBand): RosterEntry | null => {
   };
 };
 
+/** What security and first aid learn about a band found by its UID, or about none. */
+const identityOf = (
+  uid: string,
+  band: PopulatedBand | undefined,
+  verified: boolean,
+): WristbandIdentity => {
+  if (band === undefined) return { state: 'unknown', uid };
+  if (band.status === 'revoked') return { state: 'revoked', uid };
+  const wearer = toRosterEntry(band);
+  if (wearer === null) return { state: 'unassigned', uid, hof: hofNames(band.hof).hof };
+  return { state: 'assigned', ...wearer, verified };
+};
+
 /**
  * Whose a band is, for security and first aid. With the signature from a tap in the app it is
  * checked against NXP's key; a cold tap opens `/tag/{uid}` with the UID alone, and the answer
@@ -420,12 +438,7 @@ export const identifyWristband = async (
     'wristband.verified': verified,
     'wristband.known': band !== undefined,
   });
-
-  if (band === undefined) return { state: 'unknown', uid };
-  if (band.status === 'revoked') return { state: 'revoked', uid };
-  const wearer = toRosterEntry(band);
-  if (wearer === null) return { state: 'unassigned', uid, hof: hofNames(band.hof).hof };
-  return { state: 'assigned', ...wearer, verified };
+  return identityOf(uid, band, verified);
 };
 
 /**
@@ -463,19 +476,31 @@ export const getWristbandRoster = async (
  * What the page of a tapped band shows the user, decided here by role so nothing more leaves
  * the server: for everybody the wearer's Ceviname or first name and whether a chat is
  * possible; for security and first aid also the full name, Hof and Quartier, unchecked since
- * a cold tap carries no signature, and the Hof's AVP to reach. Every read is logged.
+ * a cold tap carries no signature, and the Hof's AVP to reach. Every read is logged at debug.
  */
 export const getWristbandCard = async (
   payload: Payload,
   input: { uid: string; userId: string; reader: boolean },
 ): Promise<WristbandCard> => {
   const { uid, userId, reader } = input;
-  const band = await findBandWearer(payload, uid);
+  const [populated] = await findPopulatedBands(
+    payload,
+    { uid: { equals: uid } },
+    1,
+    BAND_REGISTRATION_FIELDS,
+  );
+  const band = toBandWearer(populated);
   const { registration } = band;
-  const wearerUserId =
-    registration === null
-      ? undefined
-      : await findAppUserOfPerson(payload, registration.ceviPersonId);
+  const [wearerUserId, administrators] = await Promise.all([
+    registration === null ? undefined : findAppUserOfPerson(payload, registration.ceviPersonId),
+    reader && band.hofId !== null ? findHofAdministrators(payload, band.hofId) : null,
+  ]);
+  logger.debug('Opened the page of a band', {
+    'wristband.uid': uid,
+    'user.id': userId,
+    'wristband.reader': reader,
+    'wristband.known': band.band !== 'unknown',
+  });
 
   let wearer: WristbandCard['wearer'];
   if (registration === null) wearer = { state: 'none' };
@@ -487,18 +512,8 @@ export const getWristbandCard = async (
       canChat: wearerUserId !== undefined,
     };
 
-  if (!reader) {
-    logger.info('Opened the page of a band', {
-      'wristband.uid': uid,
-      'user.id': userId,
-      'wristband.known': band.band !== 'unknown',
-    });
-    return { wearer, safety: null };
-  }
-
-  const identity = await identifyWristband(payload, { uid, signature: null, readerId: userId });
-  const administrators =
-    band.hofId === null ? null : await findHofAdministrators(payload, band.hofId);
+  if (!reader) return { wearer, safety: null };
+  const identity = identityOf(uid, populated, false);
   const avps = administrators?.filter((avp) => avp.userId !== userId) ?? null;
   return { wearer, safety: { identity, avps } };
 };

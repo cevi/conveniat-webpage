@@ -1,4 +1,6 @@
 import { getAdministeredGroupIds } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
+import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
+import type { Wristband } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
 
 /*
@@ -22,32 +24,27 @@ export type BandWearer =
   | { band: 'unassigned'; hofId: string; registration: null }
   | { band: 'worn'; hofId: string; registration: BandRegistration };
 
-/** Far more address administrators than one Cevi.DB group has. */
-const MAX_HOF_ADMINISTRATORS = 50;
-
 const idOf = (value: string | { id: string } | null | undefined): string | undefined =>
   typeof value === 'string' ? value : value?.id;
 
 const textOrNull = (value: string | null | undefined): string | null =>
   value === undefined || value === null || value.trim() === '' ? null : value;
 
-/** Whose a band is, by its UID; a blocked band names nobody. */
-export const findBandWearer = async (
-  payload: Pick<Payload, 'find'>,
-  uid: string,
-): Promise<BandWearer> => {
-  const { docs } = await payload.find({
-    collection: 'wristbands',
-    where: { uid: { equals: uid } },
-    depth: 1,
-    limit: 1,
-    overrideAccess: true,
-    select: { status: true, participant: true, hof: true },
-    populate: {
-      'bill-participants': { fullName: true, firstName: true, nickname: true, userId: true },
-    },
-  });
-  const [band] = docs;
+/** What of a band's registration `toBandWearer` reads, for a `populate` of `bill-participants`. */
+export const BAND_REGISTRATION_FIELDS = {
+  fullName: true,
+  firstName: true,
+  nickname: true,
+  userId: true,
+} as const;
+
+/**
+ * Whom a band was handed to, from the band as found with its registration filled in, see
+ * `BAND_REGISTRATION_FIELDS`; undefined for a band nobody knows. A blocked band names nobody.
+ */
+export const toBandWearer = (
+  band: Pick<Wristband, 'status' | 'participant' | 'hof'> | undefined,
+): BandWearer => {
   if (band === undefined) return { band: 'unknown', hofId: null, registration: null };
   if (band.status === 'revoked') return { band: 'revoked', hofId: null, registration: null };
 
@@ -66,6 +63,23 @@ export const findBandWearer = async (
       ceviPersonId: registration.userId,
     },
   };
+};
+
+/** Whose a band is, by its UID; a blocked band names nobody. */
+export const findBandWearer = async (
+  payload: Pick<Payload, 'find'>,
+  uid: string,
+): Promise<BandWearer> => {
+  const { docs } = await payload.find({
+    collection: 'wristbands',
+    where: { uid: { equals: uid } },
+    depth: 1,
+    limit: 1,
+    overrideAccess: true,
+    select: { status: true, participant: true, hof: true },
+    populate: { 'bill-participants': BAND_REGISTRATION_FIELDS },
+  });
+  return toBandWearer(docs[0]);
 };
 
 /**
@@ -107,6 +121,11 @@ export interface HofAdministrator {
  * The app users who are AVP of a Hof by the rule that gives it its wristbands and its Hof
  * dashboard: address administrators of the Hof's Cevi.DB group, read off the groups the login
  * stores on the user.
+ *
+ * The query narrows to users in the group who administer addresses somewhere, which is few
+ * even for a Hof with hundreds of members, and reads all of them: a limit before the exact
+ * match below dropped an AVP whose name sorted after the group's first members. It cannot ask
+ * for both in the same entry, so the role in this very group is matched after.
  */
 export const findHofAdministrators = async (
   payload: Pick<Payload, 'find' | 'findByID'>,
@@ -125,9 +144,14 @@ export const findHofAdministrators = async (
 
   const { docs } = await payload.find({
     collection: 'users',
-    where: { 'groups.id': { equals: Number(groupId) } },
+    where: {
+      and: [
+        { 'groups.id': { equals: Number(groupId) } },
+        { 'groups.role_class': { equals: HOF_ADMINISTRATOR_ROLE_CLASS } },
+      ],
+    },
     depth: 0,
-    limit: MAX_HOF_ADMINISTRATORS,
+    pagination: false,
     overrideAccess: true,
     sort: 'fullName',
     select: { fullName: true, nickname: true, groups: true },

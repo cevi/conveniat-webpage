@@ -3,7 +3,8 @@ import { createCallerFactory } from '@/trpc/init';
 
 /*
 An in-memory Payload that knows just the queries the wristbands ask: `equals`, `not_equals`,
-`in` and `and`, and `depth` filling in a band's registration, Hof and Quartier.
+`in` and `and`, `sort` and `limit` as Payload applies them, and `depth` filling in a band's
+registration, Hof and Quartier.
 */
 type Document_ = Record<string, unknown> & { id: string };
 type Condition = Record<string, Record<string, unknown>> & { and?: Condition[] };
@@ -54,8 +55,28 @@ const populate = (band: Document_): Document_ => {
 let mockNextId = 0;
 const mockPayload = {
   find: jest.fn(
-    ({ collection, where, depth }: { collection: string; where?: Condition; depth?: number }) => {
-      const found = (mockStore[collection] ?? []).filter((document) => matches(document, where));
+    ({
+      collection,
+      where,
+      depth,
+      sort,
+      limit,
+    }: {
+      collection: string;
+      where?: Condition;
+      depth?: number;
+      sort?: string;
+      limit?: number;
+    }) => {
+      let found = (mockStore[collection] ?? []).filter((document) => matches(document, where));
+      if (sort !== undefined) {
+        const key = (document: Document_): string => {
+          const value = document[sort];
+          return typeof value === 'string' ? value : '';
+        };
+        found = found.toSorted((a, b) => key(a).localeCompare(key(b)));
+      }
+      if (limit !== undefined && limit > 0) found = found.slice(0, limit);
       return Promise.resolve({
         docs: (depth ?? 0) >= 1 ? found.map((d) => populate(d)) : found,
       });
@@ -406,8 +427,8 @@ describe('handing out a band', () => {
           nickname: 'Fuchs',
           band: { uid: BAND, status: 'active' },
         }),
-        expect.objectContaining({ registrationId: 'reg-tim', fullName: 'Tim Huber', band: null }),
         expect.objectContaining({ registrationId: 'reg-mia', fullName: 'Mia Brunner', band: null }),
+        expect.objectContaining({ registrationId: 'reg-tim', fullName: 'Tim Huber', band: null }),
       ],
       spareBands: [{ uid: OTHER_BAND, status: 'active' }],
     });
@@ -419,9 +440,9 @@ describe('handing out a band', () => {
       people.map(({ registrationId, abteilung, role }) => ({ registrationId, abteilung, role })),
     ).toEqual([
       { registrationId: 'reg-lea', abteilung: 'Cevi Uster', role: 'participant' },
-      { registrationId: 'reg-tim', abteilung: 'Cevi Uster', role: 'leader' },
       // a registration without a role is no leader by a gap in the data
       { registrationId: 'reg-mia', abteilung: 'Cevi Wetzikon', role: 'participant' },
+      { registrationId: 'reg-tim', abteilung: 'Cevi Uster', role: 'leader' },
     ]);
   });
 
@@ -525,7 +546,6 @@ describe('reading a band', () => {
   });
 
   it('keeps every band in the offline list: worn, spare and blocked', async () => {
-    const SPARE_BAND = '04998877665544';
     await program(usterAvp, OTHER_BAND);
     await usterAvp.revokeWristband({ hofId: 'uster', uid: OTHER_BAND });
     await program(usterAvp, SPARE_BAND);
@@ -634,6 +654,19 @@ describe('the page a tapped band opens', () => {
         },
         avps: [{ userId: 'avp-uster', fullName: 'Andrea Keller', nickname: 'Luchs' }],
       },
+    });
+  });
+
+  it('finds the AVP of a Hof with many members, whatever their name', async () => {
+    for (let index = 0; index < 60; index++) {
+      mockStore['users']?.push({
+        id: `member-${index}`,
+        fullName: `Aaron Member ${index}`,
+        groups: [{ id: 990_001, role_class: 'Group::MitgliederorganisationExterne::Externer' }],
+      });
+    }
+    await expect(sanitaet.getWristbandCard({ uid: BAND })).resolves.toMatchObject({
+      safety: { avps: [{ userId: 'avp-uster' }] },
     });
   });
 
