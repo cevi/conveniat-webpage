@@ -2,6 +2,7 @@
 import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { ListRow } from '@/components/ui/list-row';
+import { toast } from '@/components/ui/toast';
 import { BasketEditor, type BasketStart } from '@/features/material/components/basket-editor';
 import {
   holderName,
@@ -39,7 +40,6 @@ import { Check, ChevronRight, PackageOpen, User } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 const text = {
   requests: { de: 'Anfragen', en: 'Requests', fr: 'Demandes' },

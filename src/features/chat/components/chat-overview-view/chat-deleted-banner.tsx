@@ -1,8 +1,10 @@
 'use client';
 
 import { Button } from '@/components/ui/buttons/button';
+import { toastSurfaceClassName } from '@/components/ui/toast';
 import { CHAT_DELETION_UNDO_MS } from '@/features/chat/hooks/use-pending-chat-deletion';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Trash2, Undo2 } from 'lucide-react';
 import type React from 'react';
@@ -91,7 +93,11 @@ export const ChatDeletedBanner: React.FC<{
     <div
       role="status"
       {...handlers}
-      className="bg-quiet border-line fixed inset-x-4 bottom-[calc(var(--app-tab-bar-height)+16px)] z-30 mx-auto flex min-h-[52px] max-w-md items-center gap-3 overflow-hidden rounded-[14px] border py-1 pr-1 pl-4 shadow-lg xl:sticky xl:inset-x-auto xl:bottom-4 xl:mx-0 xl:max-w-none"
+      // a toast that waits for its undo, so it wears the toasts' surface
+      className={cn(
+        toastSurfaceClassName('info'),
+        'fixed inset-x-4 bottom-[calc(var(--app-tab-bar-height)+16px)] z-30 mx-auto w-auto max-w-md pr-1 xl:sticky xl:inset-x-auto xl:bottom-4 xl:mx-0 xl:max-w-none',
+      )}
     >
       <Trash2 className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
       {/* a longer text wraps rather than squeezing the button */}

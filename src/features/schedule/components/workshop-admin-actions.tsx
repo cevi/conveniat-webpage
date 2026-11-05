@@ -1,6 +1,7 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
 import { SectionLabel } from '@/components/ui/section-label';
+import { toast } from '@/components/ui/toast';
 import { scheduleErrorTexts } from '@/features/schedule/error-texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
@@ -10,7 +11,6 @@ import { userErrorMessage } from '@/utils/user-error-message';
 import { Loader2, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
-import { toast } from 'sonner';
 
 const labels = {
   admin: { de: 'Administration', en: 'Administration', fr: 'Administration' },

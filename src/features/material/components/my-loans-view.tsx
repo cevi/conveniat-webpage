@@ -2,6 +2,7 @@
 import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { buttonVariants } from '@/components/ui/buttons/button';
+import { toast } from '@/components/ui/toast';
 import { SectionTitle, Stepper } from '@/features/material/components/counter-ui';
 import { MaterialItemImage } from '@/features/material/components/material-item-image';
 import { format, formatDay, labels } from '@/features/material/components/material-labels';
@@ -42,7 +43,6 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 type MyLoan = RouterOutputs['material']['getMyHofLoans']['mine'][number];
 

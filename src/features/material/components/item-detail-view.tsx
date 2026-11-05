@@ -2,6 +2,7 @@
 import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { ListRow } from '@/components/ui/list-row';
+import { toast } from '@/components/ui/toast';
 import { HolderAvatar, holderName } from '@/features/material/components/counter-ui';
 import { IncidentPhotoField } from '@/features/material/components/incident-photo-field';
 import { ItemEditDialog } from '@/features/material/components/item-edit-dialog';
@@ -44,7 +45,6 @@ import { AlertTriangle, ArrowLeft, ChevronRight, Pencil, QrCode, Wrench } from '
 import Link from 'next/link';
 import type React from 'react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 const text = {
   back: { de: 'Zum Inventar', en: 'To the inventory', fr: 'Vers l’inventaire' },

@@ -1,10 +1,9 @@
 'use client';
 
 import type { SmtpResult } from '@/features/payload-cms/payload-cms/components/smtp-results/types';
-import { useAuth, useDocumentInfo, useFormFields, useTranslation } from '@payloadcms/ui';
+import { toast, useAuth, useDocumentInfo, useFormFields, useTranslation } from '@payloadcms/ui';
 import { RefreshCw } from 'lucide-react';
 import React, { useState } from 'react';
-import { toast } from 'sonner';
 
 export interface ResendEmailButtonProperties {
   fullAdminGroupIds?: number[];
