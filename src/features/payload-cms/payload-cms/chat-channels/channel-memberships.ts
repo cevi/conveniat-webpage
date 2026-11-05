@@ -6,6 +6,22 @@ import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
 import { ChatMembershipPermission } from '@/lib/prisma/client';
 import type { Payload, PayloadRequest } from 'payload';
 
+/**
+ * Members a channel's chat keeps although they are not in its audience: helpers with an open
+ * assignment of a forum post, who belong to the topic for as long as the task is open. The
+ * piket on duty is kept too, but by its own sync, which adds it again every minute.
+ */
+export const findKeptMemberIds = async (chatUuids: string[]): Promise<Set<string>> => {
+  if (chatUuids.length === 0) return new Set();
+  const assignments = await prisma.forumPostAssignment.findMany({
+    where: { endedAt: null, post: { chatId: { in: chatUuids } } },
+    select: { assigneeId: true, post: { select: { chatId: true } } },
+  });
+  return new Set(
+    assignments.map((assignment) => `${assignment.post.chatId}:${assignment.assigneeId}`),
+  );
+};
+
 /** Options of `syncChannelMemberships`. */
 export interface SyncChannelMembershipsOptions {
   /** What the audience holds in the chat, e.g. GUEST in an announcement channel. */
@@ -61,7 +77,8 @@ export const syncChannelMemberships = async (
     }
   }
 
-  // Remove users who are no longer eligible (excluding OWNER/ADMIN)
+  // Remove users who are no longer eligible (excluding OWNER/ADMIN and the kept members)
+  const kept = await findKeptMemberIds([chatUuid]);
   const membersToRemove = existingMemberships.filter((m) => {
     if (
       m.chatPermission === ChatMembershipPermission.OWNER ||
@@ -69,7 +86,7 @@ export const syncChannelMemberships = async (
     ) {
       return false;
     }
-    return !eligibleUserUuids.has(m.userId);
+    return !eligibleUserUuids.has(m.userId) && !kept.has(`${chatUuid}:${m.userId}`);
   });
 
   if (membersToRemove.length > 0) {

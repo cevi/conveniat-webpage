@@ -61,6 +61,7 @@ export interface Config {
     form_collection: FormCollection;
     'helper-jobs': HelperJob;
     'announcement-channels': AnnouncementChannel;
+    'forum-topics': ForumTopic;
     announcements: Announcement;
     'emergency-cards': EmergencyCard;
     'photo-contests': PhotoContest;
@@ -146,6 +147,7 @@ export interface Config {
     form_collection: FormCollectionSelect<false> | FormCollectionSelect<true>;
     'helper-jobs': HelperJobsSelect<false> | HelperJobsSelect<true>;
     'announcement-channels': AnnouncementChannelsSelect<false> | AnnouncementChannelsSelect<true>;
+    'forum-topics': ForumTopicsSelect<false> | ForumTopicsSelect<true>;
     announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
     'emergency-cards': EmergencyCardsSelect<false> | EmergencyCardsSelect<true>;
     'photo-contests': PhotoContestsSelect<false> | PhotoContestsSelect<true>;
@@ -4127,6 +4129,45 @@ export interface AnnouncementChannel {
   createdAt: string;
 }
 /**
+ * The topics of the forum in the app. Every change someone makes to a post they did not write is in the forum protocol.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "forum-topics".
+ */
+export interface ForumTopic {
+  id: string;
+  chatUuid?: string | null;
+  /**
+   * e.g. "Platz & Infrastruktur", "Programm", "Feedback ans OK"
+   */
+  name: string;
+  description?: string | null;
+  targetType: 'all' | 'roles' | 'cevi_groups' | 'avps';
+  targetRoles?:
+    | (
+        | 'full-admin'
+        | 'web-core-team'
+        | 'translation-team'
+        | 'program-team'
+        | 'billing-team'
+        | 'material-team'
+        | 'hof-dashboard-reviewer'
+      )[]
+    | null;
+  /**
+   * Everyone who is in one of these groups in Cevi.DB. Pick a group by its name or type its ID.
+   */
+  targetCeviGroups?:
+    | {
+        groupId: number;
+        groupName?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "announcements".
  */
@@ -4404,7 +4445,7 @@ export interface PiketSchedule {
   users: (string | User)[];
   startTime: string;
   endTime: string;
-  chatTypes: ('EMERGENCY' | 'SUPPORT_GROUP')[];
+  chatTypes: ('EMERGENCY' | 'SUPPORT_GROUP' | 'FORUM')[];
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -5417,6 +5458,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'announcement-channels';
         value: string | AnnouncementChannel;
+      } | null)
+    | ({
+        relationTo: 'forum-topics';
+        value: string | ForumTopic;
       } | null)
     | ({
         relationTo: 'announcements';
@@ -6920,6 +6965,26 @@ export interface AnnouncementChannelsSelect<T extends boolean = true> {
   allowEmojiReactions?: T;
   allowThreads?: T;
   allowThreadReplies?: T;
+  targetType?: T;
+  targetRoles?: T;
+  targetCeviGroups?:
+    | T
+    | {
+        groupId?: T;
+        groupName?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "forum-topics_select".
+ */
+export interface ForumTopicsSelect<T extends boolean = true> {
+  chatUuid?: T;
+  name?: T;
+  description?: T;
   targetType?: T;
   targetRoles?: T;
   targetCeviGroups?:
@@ -10494,6 +10559,7 @@ export interface TaskCreateCollectionExport {
       | 'form_collection'
       | 'helper-jobs'
       | 'announcement-channels'
+      | 'forum-topics'
       | 'announcements'
       | 'emergency-cards'
       | 'photo-contests'
