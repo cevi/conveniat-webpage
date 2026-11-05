@@ -70,6 +70,7 @@ let subscriptions: { userId: string; messageId: string }[];
 const prisma = {
   $transaction: <T>(callback: (tx: unknown) => Promise<T>): Promise<T> => callback(prisma),
   $executeRaw: (): Promise<number> => Promise.resolve(0),
+  chat: { findUnique: (): Promise<unknown> => Promise.resolve({ type: ChatType.FORUM }) },
   forumPost: {
     findUnique: (): Promise<unknown> =>
       Promise.resolve({

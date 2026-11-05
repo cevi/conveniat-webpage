@@ -44,10 +44,16 @@ export const resolveForumModerator = async (
     where: { userId_chatId: { userId, chatId } },
     select: { chatPermission: true, chat: { select: { type: true } } },
   });
-  if (membership?.chat.type !== ChatType.FORUM) return undefined;
+  // the piket sync makes whoever is on duty a member within a minute; until then the shift
+  // alone counts, so the chat's type is read without the membership
+  const chat =
+    membership?.chat ??
+    (await prisma.chat.findUnique({ where: { uuid: chatId }, select: { type: true } }));
+  const chatType = chat?.type;
+  if (chatType !== ChatType.FORUM) return undefined;
   if (
-    membership.chatPermission === ChatMembershipPermission.OWNER ||
-    membership.chatPermission === ChatMembershipPermission.ADMIN
+    membership?.chatPermission === ChatMembershipPermission.OWNER ||
+    membership?.chatPermission === ChatMembershipPermission.ADMIN
   ) {
     return { capacity: 'TOPIC_ADMIN' };
   }
@@ -70,6 +76,27 @@ export const resolveForumModerator = async (
       assignedByName: assignment.assignedBy.name,
     },
   };
+};
+
+/**
+ * The topics `userId` moderates, for who sees posts that wait for approval: all of them on
+ * forum piket duty, else the topics whose Kernteam they are.
+ */
+export const findModeratedTopicIds = async (
+  prisma: PrismaClientOrTransaction,
+  userId: string,
+  now: Date = new Date(),
+): Promise<'all' | string[]> => {
+  if ((await findActivePiketShift(userId, ChatType.FORUM, now)) !== undefined) return 'all';
+  const memberships = await prisma.chatMembership.findMany({
+    where: {
+      userId,
+      chatPermission: { in: [ChatMembershipPermission.OWNER, ChatMembershipPermission.ADMIN] },
+      chat: { type: ChatType.FORUM },
+    },
+    select: { chatId: true },
+  });
+  return memberships.map((membership) => membership.chatId);
 };
 
 interface AuditEntry {
