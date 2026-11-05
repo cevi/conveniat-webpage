@@ -244,6 +244,28 @@ describe('a network that stops answering', () => {
     ]);
   });
 
+  it('takes a failed request for a dead network once the probe gets no answer in time', async () => {
+    globalThis.fetch = jest.fn((input: RequestInfo | URL, init?: RequestInit) =>
+      input === '/status'
+        ? new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () =>
+              reject(new DOMException('The operation was aborted.', 'AbortError')),
+            );
+          })
+        : Promise.reject(new TypeError('Failed to fetch')),
+    );
+    const worker = await startWorker();
+    const failed = request(worker, DASHBOARD_RSC, rsc);
+    await jest.advanceTimersByTimeAsync(2999);
+    expect(messages).toEqual([]);
+
+    await jest.advanceTimersByTimeAsync(1);
+    await Promise.all(failed.lifetime);
+    expect(messages).toEqual([
+      { type: ServiceWorkerMessages.NETWORK_STATUS, payload: { reachable: false } },
+    ]);
+  });
+
   it('tries the network when a page showing the offline banner asks again', async () => {
     const worker = await startWorker();
     const first = request(worker, DASHBOARD_RSC, rsc);

@@ -432,9 +432,8 @@ const APP_MODE_NETWORK_GIVE_UP_MS = 15_000;
 const noop = (): void => {};
 
 /**
- * Records a failed network request as "no answer" once a probe confirms it, unless the page
- * cancelled it: a navigation away aborts the requests of the page it leaves, which says nothing
- * about the network.
+ * Records a failed network request as "no answer" once a probe confirms it. An `AbortError` is
+ * never one: whoever aborted the request decided that, not the network.
  */
 function recordNetworkFailure(event: FetchEvent, error: unknown, requestStartedAt: number): void {
   if (error instanceof DOMException && error.name === 'AbortError') return;
