@@ -63,6 +63,7 @@ describe('buildAdminNavGroups', () => {
         '/admin/globals/hof-dashboard-settings',
         '/admin/material-setup',
       ],
+      'App · Betrieb': ['/admin/forum-protocol'],
     });
     expect(groups.flatMap((group) => group.links.map((link) => link.label))).toEqual([
       'Benutzer',
@@ -70,6 +71,7 @@ describe('buildAdminNavGroups', () => {
       'Benutzer zusammenführen',
       'Hof-Dashboard Einstellungen',
       'Materialdepot einrichten',
+      'Forum-Protokoll',
     ]);
   });
 
@@ -84,10 +86,11 @@ describe('buildAdminNavGroups', () => {
     expect(groups.map((group) => group.links.map((link) => link.label))).toEqual([
       ['Utilisateurs', 'Accès par groupe Cevi.DB', 'Fusionner des utilisateurs'],
       ['Paramètres du tableau de bord des Hofs', 'Configurer le dépôt de matériel'],
+      ['Protocole du forum'],
     ]);
   });
 
-  it('shows an editor neither custom view', () => {
+  it('shows the web core team the forum protocol and no other custom view', () => {
     const groups = buildAdminNavGroups({
       entityGroups: entityGroups(),
       user: userIn(WEB_CORE_TEAM),
@@ -98,6 +101,7 @@ describe('buildAdminNavGroups', () => {
     expect(linksByGroup(groups)).toEqual({
       'Backoffice · Personen & Zugriff': ['/admin/collections/users'],
       'Backoffice · Höfe & Material': ['/admin/globals/hof-dashboard-settings'],
+      'App · Betrieb': ['/admin/forum-protocol'],
     });
   });
 

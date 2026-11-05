@@ -1,4 +1,5 @@
 import {
+  ADMIN_OR_WEB_ROLES,
   getUserGroups,
   hasAccessToThisUser,
   MATERIAL_DEPOT_ROLES,
@@ -59,6 +60,12 @@ const ADMIN_VIEW_LINKS: AdminViewLink[] = [
     },
     group: 'BackofficePeople',
     requiredRoles: [Roles.FullAdmin],
+  },
+  {
+    path: '/forum-protocol',
+    label: { de: 'Forum-Protokoll', en: 'Forum protocol', fr: 'Protocole du forum' },
+    group: 'AppOperations',
+    requiredRoles: ADMIN_OR_WEB_ROLES,
   },
   {
     // Listed whether or not the app has the feature on yet, so the depot can be set up before it

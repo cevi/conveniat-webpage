@@ -118,8 +118,11 @@ export const isFullAdmin: ({ req }: { req: PayloadRequest }) => boolean = ({ req
 export const isProgramTeam: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) =>
   hasAccessToThis({ req, requiredRoles: [Roles.ProgramTeam] });
 
+/** Admin and web core team, see `hasAdminOrWebAccess`; also who sees the forum protocol. */
+export const ADMIN_OR_WEB_ROLES: Roles[] = [Roles.FullAdmin, Roles.WebCoreTeam];
+
 export const hasAdminOrWebAccess: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) => {
-  return hasAccessToThis({ req, requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam] });
+  return hasAccessToThis({ req, requiredRoles: ADMIN_OR_WEB_ROLES });
 };
 
 /**
