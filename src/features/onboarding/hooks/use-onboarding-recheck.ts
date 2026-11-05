@@ -2,12 +2,16 @@
 
 import { isNativePushActive } from '@/features/onboarding/hooks/use-native-push-subscription-status';
 import { SESSION_EXPIRED_ENTRYPOINT } from '@/features/onboarding/onboarding-constants';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import { forgetOnboardingComplete, ONBOARDING_COMPLETE_KEY } from '@/lib/onboarding-complete';
-import { Cookie } from '@/types/types';
+import { readPreference } from '@/lib/preferences';
+import type { Locale } from '@/types/types';
+import { Cookie, i18nConfig } from '@/types/types';
 import { replaceLocation } from '@/utils/assign-location';
 import { isCookieTrue } from '@/utils/cookie-utils';
+import { restoreLostPushSubscription } from '@/utils/push-notifications/push-subscription';
 import { ANSWERED_BY_SERVICE_WORKER_HEADER } from '@/utils/service-worker-messages';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import { useEffect, useRef } from 'react';
@@ -47,10 +51,15 @@ const fetchSessionVerdict = async (): Promise<'valid' | 'expired' | undefined> =
  *   bad connection never logs anybody out.
  * - **Push.** Push permission withdrawn in the system settings, or a lost token, makes the next
  *   start show the push step again, as it did before; the current visit is not interrupted.
+ *   An installed web app that still has the permission but lost its subscription is
+ *   subscribed again right away, unless the user turned push off (`web-push-opted-out`): the
+ *   push step would not show, since the permission is there.
  */
 export const useOnboardingRecheck = (): void => {
   const isOnline = useOnlineStatus();
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const hasCheckedSession = useRef(false);
+  const hasCheckedPushSubscription = useRef(false);
 
   useEffect(() => {
     if (!isOnline || hasCheckedSession.current || !isOnboardingComplete()) return;
@@ -69,6 +78,19 @@ export const useOnboardingRecheck = (): void => {
       isCancelled = true;
     };
   }, [isOnline]);
+
+  useEffect(() => {
+    if (!isOnline || hasCheckedPushSubscription.current || !isOnboardingComplete()) return;
+    if (isNativeAppWebView() || readPreference('web-push-opted-out')) return;
+    // without a session the server stores nothing; a skipped push step is a choice too
+    if (isCookieTrue(Cookie.HAS_SKIPPED_AUTH) || isCookieTrue(Cookie.SKIP_PUSH_NOTIFICATION))
+      return;
+
+    hasCheckedPushSubscription.current = true;
+    restoreLostPushSubscription(locale).catch((error: unknown) => {
+      console.warn('Failed to restore the lost push subscription', error);
+    });
+  }, [isOnline, locale]);
 
   useEffect(() => {
     if (!isOnboardingComplete() || isCookieTrue(Cookie.SKIP_PUSH_NOTIFICATION)) return;

@@ -4,15 +4,30 @@
 
 import { useOnboardingRecheck } from '@/features/onboarding/hooks/use-onboarding-recheck';
 import { ONBOARDING_COMPLETE_KEY } from '@/lib/onboarding-complete';
+import { Cookie } from '@/types/types';
 import { replaceLocation } from '@/utils/assign-location';
+import { restoreLostPushSubscription } from '@/utils/push-notifications/push-subscription';
 import { ANSWERED_BY_SERVICE_WORKER_HEADER } from '@/utils/service-worker-messages';
 import { renderHook, waitFor } from '@testing-library/react';
+import Cookies from 'js-cookie';
 
 jest.mock('@/utils/assign-location', () => ({ replaceLocation: jest.fn() }));
+jest.mock('@/utils/push-notifications/push-subscription', () => ({
+  restoreLostPushSubscription: jest.fn(() => Promise.resolve(false)),
+}));
+jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'fr' }));
+/** The preferences stored on this device, by key. */
+const mockStoredPreferences = new Map<string, { key: string; value: unknown }>();
 // jsdom has no IndexedDB for the collections the logout clears
 jest.mock('@/lib/tanstack-db', () => ({
   starsCollection: { state: new Map(), delete: jest.fn() },
-  userPreferencesCollection: { state: new Map(), delete: jest.fn() },
+  userPreferencesCollection: {
+    get state(): Map<string, unknown> {
+      return mockStoredPreferences;
+    },
+    get: (key: string): unknown => mockStoredPreferences.get(key),
+    delete: jest.fn(),
+  },
 }));
 
 /** The session endpoint's answer; jsdom has no `Response`. */
@@ -81,5 +96,47 @@ describe('the background session check of an app started past the onboarding', (
     renderHook(() => useOnboardingRecheck());
     expect(globalThis.fetch).not.toHaveBeenCalled();
     Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+  });
+});
+
+describe('the background push check of an installed web app started past the onboarding', () => {
+  const restore = jest.mocked(restoreLostPushSubscription);
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    localStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+    restore.mockClear();
+    // the session check runs next to it; its answer does not matter here
+    globalThis.fetch = jest.fn(() => Promise.resolve(sessionAnswer(lenaMuster)));
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    mockStoredPreferences.clear();
+    Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
+    globalThis.fetch = originalFetch;
+  });
+
+  it('restores a lost subscription in the locale of the page', () => {
+    renderHook(() => useOnboardingRecheck());
+    expect(restore).toHaveBeenCalledWith('fr');
+  });
+
+  it('respects a user who turned push off on this device', () => {
+    mockStoredPreferences.set('web-push-opted-out', { key: 'web-push-opted-out', value: true });
+    renderHook(() => useOnboardingRecheck());
+    expect(restore).not.toHaveBeenCalled();
+  });
+
+  it('respects a user who skipped the push step', () => {
+    Cookies.set(Cookie.SKIP_PUSH_NOTIFICATION, 'true');
+    renderHook(() => useOnboardingRecheck());
+    expect(restore).not.toHaveBeenCalled();
+  });
+
+  it('waits for the onboarding, whose push step asks for itself', () => {
+    localStorage.removeItem(ONBOARDING_COMPLETE_KEY);
+    renderHook(() => useOnboardingRecheck());
+    expect(restore).not.toHaveBeenCalled();
   });
 });
