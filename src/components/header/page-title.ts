@@ -23,6 +23,7 @@ const appPageTitles: Record<string, StaticTranslationString> = {
   'photo-contest': { de: 'Foto-Wettbewerb', en: 'Photo Contest', fr: 'Concours Photo' },
   'upload-images': { de: 'Bild-Upload', en: 'Image Upload', fr: "Téléchargement d'images" },
   material: { de: 'Materialdepot', en: 'Material depot', fr: 'Dépôt de matériel' },
+  wristbands: { de: 'Armbänder', en: 'Wristbands', fr: 'Bracelets' },
 };
 
 /** Pages one level further down that are called something else than their section. */

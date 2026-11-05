@@ -82,6 +82,8 @@ export interface Config {
     'bank-imports': BankImport;
     'bill-pdfs': BillPdf;
     hoefe: Hof;
+    wristbands: Wristband;
+    'wristband-helpers': WristbandHelper;
     'outgoing-emails': OutgoingEmail;
     'email-suppressions': EmailSuppression;
     'payload-workers': PayloadWorker;
@@ -168,6 +170,8 @@ export interface Config {
     'bank-imports': BankImportsSelect<false> | BankImportsSelect<true>;
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
     hoefe: HoefeSelect<false> | HoefeSelect<true>;
+    wristbands: WristbandsSelect<false> | WristbandsSelect<true>;
+    'wristband-helpers': WristbandHelpersSelect<false> | WristbandHelpersSelect<true>;
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
     'email-suppressions': EmailSuppressionsSelect<false> | EmailSuppressionsSelect<true>;
     'payload-workers': PayloadWorkersSelect<false> | PayloadWorkersSelect<true>;
@@ -4111,6 +4115,7 @@ export interface AnnouncementChannel {
         | 'billing-team'
         | 'material-team'
         | 'hof-dashboard-reviewer'
+        | 'safety-team'
         | 'forum-zentrale'
       )[]
     | null;
@@ -4159,6 +4164,7 @@ export interface ForumTopic {
         | 'billing-team'
         | 'material-team'
         | 'hof-dashboard-reviewer'
+        | 'safety-team'
         | 'forum-zentrale'
       )[]
     | null;
@@ -4954,6 +4960,56 @@ export interface BankImport {
   createdAt: string;
 }
 /**
+ * The NFC wristbands, one entry per band. The AVP programs a band in the app and links it to a person of their Hof; here a band is reassigned or blocked without touching the chip. Deleting a band, which only full admins may, resets it: it is unknown again and any Hof programs it anew.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wristbands".
+ */
+export interface Wristband {
+  id: string;
+  /**
+   * Serial number of the chip, 14 hex characters, as the app shows it when reading the band. Set by the factory, it cannot change.
+   */
+  uid: string;
+  /**
+   * The Hof that programmed the band. Its AVP may hand it out and reassign it.
+   */
+  hof: string | Hof;
+  /**
+   * The registration of the person wearing the band. Empty while the band is programmed but not handed out.
+   */
+  participant?: (string | null) | BillParticipant;
+  /**
+   * Block a lost or stolen band. Reading a blocked band names nobody.
+   */
+  status: 'active' | 'revoked';
+  /**
+   * Why the band was blocked or reassigned, e.g. "lost at the lake on Tuesday".
+   */
+  note?: string | null;
+  programmedBy?: (string | null) | User;
+  lastEditedByUser?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Who may hand out the wristbands of a Hof besides its AVP. The AVP adds and removes helpers in the app.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wristband-helpers".
+ */
+export interface WristbandHelper {
+  id: string;
+  hof: string | Hof;
+  /**
+   * The Cevi.DB id of the helper, the same as on their registration.
+   */
+  personId: string;
+  addedBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Mail to these addresses came back because the address does not exist, or kept coming back for two weeks or more. Nothing is sent to them until the entry is deleted.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5553,6 +5609,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'hoefe';
         value: string | Hof;
+      } | null)
+    | ({
+        relationTo: 'wristbands';
+        value: string | Wristband;
+      } | null)
+    | ({
+        relationTo: 'wristband-helpers';
+        value: string | WristbandHelper;
       } | null)
     | ({
         relationTo: 'outgoing-emails';
@@ -7587,6 +7651,32 @@ export interface HoefeSelect<T extends boolean = true> {
         id?: T;
       };
   reminderRecipientsOverride?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wristbands_select".
+ */
+export interface WristbandsSelect<T extends boolean = true> {
+  uid?: T;
+  hof?: T;
+  participant?: T;
+  status?: T;
+  note?: T;
+  programmedBy?: T;
+  lastEditedByUser?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wristband-helpers_select".
+ */
+export interface WristbandHelpersSelect<T extends boolean = true> {
+  hof?: T;
+  personId?: T;
+  addedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -10578,6 +10668,8 @@ export interface TaskCreateCollectionExport {
       | 'bank-imports'
       | 'bill-pdfs'
       | 'hoefe'
+      | 'wristbands'
+      | 'wristband-helpers'
       | 'outgoing-emails'
       | 'email-suppressions'
       | 'payload-workers'

@@ -6,6 +6,7 @@ export const QUICK_ACCESS_TILE_IDS = [
   'upload',
   'qr',
   'material',
+  'wristbands',
   'support',
   'schedule',
   'map',
@@ -22,6 +23,7 @@ export const DEFAULT_QUICK_ACCESS: readonly QuickAccessTileId[] = [
   'upload',
   'qr',
   'material',
+  'wristbands',
   'support',
 ];
 

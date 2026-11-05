@@ -3,6 +3,7 @@ import {
   NEEDS_MANUAL_REVIEW,
   PAID,
 } from '@/features/billing/services/billing-status';
+import { abteilungOfEventName } from '@/features/payload-cms/payload-cms/utils/abteilung-name';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
 
 /**
@@ -63,17 +64,11 @@ export interface WeeklyReport {
 }
 
 /**
- * Every event is called `Hauptlager conveniat27 - <Abteilung>`, so the prefix is noise in
- * a report that is entirely about conveniat27. An event that does not follow the pattern
- * is left alone rather than truncated on a guess.
+ * The Abteilung of an event, for a report that is entirely about conveniat27; see
+ * `abteilungOfEventName`. The missing case is named rather than shown as an empty row.
  */
 export function shortenEventName(eventName: string | null | undefined): string {
-  const name = (eventName ?? '').trim();
-  if (name === '') return 'Ohne Anlass';
-  const separator = name.indexOf(' - ');
-  if (separator === -1) return name;
-  const tail = name.slice(separator + 3).trim();
-  return tail === '' ? name : tail;
+  return abteilungOfEventName(eventName) ?? 'Ohne Anlass';
 }
 
 const isBilled = (status: string): boolean =>

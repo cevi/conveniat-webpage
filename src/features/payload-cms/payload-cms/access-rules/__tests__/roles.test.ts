@@ -8,7 +8,8 @@ jest.mock('@/config/environment-variables', () => ({
     BILLING_ADMIN_GROUP_ID: [900],
     CEVIDB_GROUP_MATERIAL_TEAM: [108],
     CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS: [109],
-    CEVIDB_GROUP_FORUM_ZENTRALE: [110],
+    CEVIDB_GROUP_SAFETY_TEAM: [110],
+    CEVIDB_GROUP_FORUM_ZENTRALE: [111],
   },
 }));
 
@@ -37,7 +38,8 @@ const PROGRAM_TEAM = 107;
 const BILLING = 900;
 const MATERIAL_TEAM = 108;
 const HOF_DASHBOARD_REVIEWER = 109;
-const FORUM_ZENTRALE = 110;
+const SAFETY_TEAM = 110;
+const FORUM_ZENTRALE = 111;
 /** A camp participant: logged in through Cevi.DB, in no group that reaches the admin panel. */
 const PARTICIPANT = 4242;
 
@@ -87,6 +89,7 @@ describe('the roles of a Cevi.DB group', () => {
       { groupId: BILLING, roles: [Roles.BillingTeam] },
       { groupId: MATERIAL_TEAM, roles: [Roles.MaterialTeam] },
       { groupId: HOF_DASHBOARD_REVIEWER, roles: [Roles.HofDashboardReviewer] },
+      { groupId: SAFETY_TEAM, roles: [Roles.SafetyTeam] },
       { groupId: FORUM_ZENTRALE, roles: [Roles.ForumZentrale] },
     ]);
   });

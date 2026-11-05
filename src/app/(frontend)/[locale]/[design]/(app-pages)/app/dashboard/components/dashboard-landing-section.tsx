@@ -11,13 +11,18 @@ import type React from 'react';
  * The flags of the cached dashboard configuration. Guarded: a phone may restore a configuration
  * cached before a flag existed, and a flag never set counts as enabled, as on the server.
  */
-const quickAccessFlagsOf = (featureFlags: unknown, materialEnabled: boolean): QuickAccessFlags => {
+const quickAccessFlagsOf = (
+  featureFlags: unknown,
+  materialEnabled: boolean,
+  wristbandsEnabled: boolean,
+): QuickAccessFlags => {
   const flags = (featureFlags ?? {}) as Partial<Record<keyof QuickAccessFlags, boolean>>;
   return {
     imageUploadEnabled: flags.imageUploadEnabled !== false,
     helperShiftsEnabled: flags.helperShiftsEnabled !== false,
     photoContestEnabled: flags.photoContestEnabled !== false,
     materialEnabled,
+    wristbandsEnabled,
   };
 };
 
@@ -36,9 +41,10 @@ const quickAccessFlagsOf = (featureFlags: unknown, materialEnabled: boolean): Qu
 export const DashboardLandingSection: React.FC<{
   locale: Locale;
   materialEnabled: boolean;
+  wristbandsEnabled: boolean;
   supportEmail: string;
   children?: React.ReactNode;
-}> = ({ locale, materialEnabled, supportEmail, children }) => {
+}> = ({ locale, materialEnabled, wristbandsEnabled, supportEmail, children }) => {
   const { data: dashboardConfig } = trpc.appContent.getDashboardConfig.useQuery(
     { locale },
     {
@@ -64,7 +70,7 @@ export const DashboardLandingSection: React.FC<{
     <DashboardLanding
       locale={locale}
       showActionCards={dashboardConfig.showActionCards}
-      flags={quickAccessFlagsOf(dashboardConfig.featureFlags, materialEnabled)}
+      flags={quickAccessFlagsOf(dashboardConfig.featureFlags, materialEnabled, wristbandsEnabled)}
       supportEmail={supportEmail}
     >
       {children}

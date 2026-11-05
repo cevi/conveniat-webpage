@@ -17,6 +17,7 @@ import { shiftsRouter } from '@/features/schedule/api/shifts-router';
 import { profilePictureRouter } from '@/features/settings/api/profile-picture-router';
 import { quickAccessRouter } from '@/features/settings/api/quick-access-router';
 import { visitDayRouter } from '@/features/visit-day/api/visit-day-router';
+import { wristbandRouter } from '@/features/wristbands/api/wristband-router';
 import { createTRPCRouter } from '@/trpc/init';
 
 export const appRouter = createTRPCRouter({
@@ -38,6 +39,7 @@ export const appRouter = createTRPCRouter({
   material: materialRouter,
   hofDashboard: hofDashboardRouter,
   visitDay: visitDayRouter,
+  wristband: wristbandRouter,
   search: searchRouter,
 });
 

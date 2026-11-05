@@ -52,6 +52,11 @@ export const offlinePages = [
   // Settings page
   '/app/settings',
 
+  // Security and first aid read the NFC wristbands from the list kept on the phone. The page
+  // is rendered signed in; who may read and the list come from the persisted query cache.
+  // Deployments without the wristbands answer 404, which the download skips.
+  '/app/wristbands/lesen',
+
   // Offline pages
   '/~offline',
   '/~offline?app-mode=true',

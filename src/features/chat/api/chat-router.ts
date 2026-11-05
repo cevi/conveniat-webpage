@@ -16,6 +16,7 @@ import { redeemChatInvite } from '@/features/chat/api/mutations/redeem-chat-invi
 import { removeParticipant } from '@/features/chat/api/mutations/remove-participant';
 import { renameChat } from '@/features/chat/api/mutations/rename-chat';
 import { signalTyping } from '@/features/chat/api/mutations/signal-typing';
+import { startChatFromWristband } from '@/features/chat/api/mutations/start-chat-from-wristband';
 import { toggleReaction } from '@/features/chat/api/mutations/toggle-reaction';
 import { updateMessageContent } from '@/features/chat/api/mutations/update-message-content';
 import { getChat } from '@/features/chat/api/queries/get-chat';
@@ -44,6 +45,7 @@ export const chatRouter = createTRPCRouter({
   createChat: createChat,
   createChatInvite,
   redeemChatInvite,
+  startChatFromWristband,
   user: getUser,
   contacts: listContacts,
   onlinePing,

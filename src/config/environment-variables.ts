@@ -79,6 +79,12 @@ export const environmentVariables = createEnv({
      */
     CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS: optionalGroupIds,
 
+    /**
+     * optional: Cevi.DB groups of security and first aid, who read the NFC wristbands. Without
+     * it, only full admins do.
+     */
+    CEVIDB_GROUP_SAFETY_TEAM: optionalGroupIds,
+
     CEVI_DB_CLIENT_ID: z.string().min(1),
     CEVI_DB_CLIENT_SECRET: z.string().min(1),
     S3_ACCESS_KEY_ID: z.string().min(5),
@@ -128,6 +134,24 @@ export const environmentVariables = createEnv({
       .transform((value) => value === 'true')
       .default(false),
     FEATURE_ENABLE_HOF_DASHBOARD: z
+      .string()
+      .transform((value) => value === 'true')
+      .default(false),
+    FEATURE_ENABLE_NFC_WRISTBANDS: z
+      .string()
+      .transform((value) => value === 'true')
+      .default(false),
+    /**
+     * The key the write password of every NFC wristband is derived from. Required once the
+     * wristbands are on, and fixed from the first band programmed: changing it locks every
+     * programmed band against the app. Generate with `openssl rand -hex 32`.
+     */
+    NFC_TAG_SECRET: z.string().min(32).optional(),
+    /**
+     * Accepts bands without NXP's originality signature, like the cheap stickers used for
+     * testing. Never on a deployment that hands out real bands.
+     */
+    NFC_ALLOW_UNSIGNED_TAGS: z
       .string()
       .transform((value) => value === 'true')
       .default(false),

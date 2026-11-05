@@ -1,9 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { listHofZipEntries, zipHofFiles } from '@/features/hof-dashboard/api/hof-files-zip';
 import {
   isHofDashboardReviewer,
   listAccessibleHoefe,
-} from '@/features/hof-dashboard/api/accessible-hoefe';
-import { listHofZipEntries, zipHofFiles } from '@/features/hof-dashboard/api/hof-files-zip';
+} from '@/features/payload-cms/payload-cms/access-rules/accessible-hoefe';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
