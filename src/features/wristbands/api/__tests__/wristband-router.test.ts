@@ -394,7 +394,7 @@ describe('handing out a band', () => {
     ]);
     expect(results.map((result) => result.status).toSorted()).toEqual(['fulfilled', 'rejected']);
     expect(results.find((result) => result.status === 'rejected')).toMatchObject({
-      reason: { code: 'CONFLICT', message: 'person_has_band' },
+      reason: { code: 'CONFLICT', reason: 'personHasBand' },
     });
     expect(
       mockStore['wristbands']?.filter((band) => band['participant'] === 'reg-lea'),
@@ -406,7 +406,7 @@ describe('handing out a band', () => {
     await usterAvp.revokeWristband({ hofId: 'uster', uid: BAND });
     await expect(usterAvp.unassignWristband({ hofId: 'uster', uid: BAND })).rejects.toMatchObject({
       code: 'CONFLICT',
-      message: 'band_revoked',
+      reason: 'bandRevoked',
     });
     expect(byId('wristbands', 'wristbands-1')).toMatchObject({ participant: 'reg-lea' });
   });
@@ -415,7 +415,7 @@ describe('handing out a band', () => {
     await usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-lea' });
     await expect(
       usterAvp.assignWristband({ hofId: 'uster', uid: OTHER_BAND, registrationId: 'reg-lea' }),
-    ).rejects.toMatchObject({ code: 'CONFLICT', message: 'person_has_band' });
+    ).rejects.toMatchObject({ code: 'CONFLICT', reason: 'personHasBand' });
   });
 
   it('hands a replacement once the lost band is blocked', async () => {

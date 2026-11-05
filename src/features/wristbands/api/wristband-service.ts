@@ -2,6 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import { ACTIVE_REGISTRATION } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import type { BillParticipant, Wristband } from '@/features/payload-cms/payload-types';
 import { deriveTagCredentials } from '@/features/wristbands/api/tag-password';
+import { wristbandErrorTexts } from '@/features/wristbands/error-texts';
 import type {
   HofBand,
   HofWristbandList,
@@ -14,11 +15,15 @@ import type {
   WristbandRoster,
 } from '@/features/wristbands/types';
 import { verifyNtagSignature } from '@/lib/nfc/ntag-signature';
+import { createErrorThrower } from '@/trpc/error-formatter';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import type { Payload, Where } from 'payload';
 
 const logger = createLogger('wristbands');
+
+/** A refusal the AVP's page translates, see `wristbandErrorTexts`. */
+const wristbandError = createErrorThrower(wristbandErrorTexts);
 
 /** Far more bands than the camp hands out, around 5000. */
 const MAX_BANDS = 20_000;
@@ -202,9 +207,8 @@ export const registerWristband = async (
 /** A band of the Hof, or an error the AVP can act on. */
 const findBandOfHof = async (payload: Payload, hofId: string, uid: string): Promise<Wristband> => {
   const band = await findBand(payload, uid);
-  if (band === undefined) throw new TRPCError({ code: 'NOT_FOUND', message: 'band_unknown' });
-  if (idOf(band.hof) !== hofId)
-    throw new TRPCError({ code: 'FORBIDDEN', message: 'band_of_other_hof' });
+  if (band === undefined) throw wristbandError('NOT_FOUND', 'bandUnknown');
+  if (idOf(band.hof) !== hofId) throw wristbandError('FORBIDDEN', 'bandOfOtherHof');
   return band;
 };
 
@@ -237,11 +241,11 @@ export const assignWristband = async (
 ): Promise<void> => {
   const { hofId, uid, registrationId, userId } = input;
   const band = await findBandOfHof(payload, hofId, uid);
-  if (band.status === 'revoked') throw new TRPCError({ code: 'CONFLICT', message: 'band_revoked' });
+  if (band.status === 'revoked') throw wristbandError('CONFLICT', 'bandRevoked');
 
   const [registration] = await findHofRegistrations(payload, hofId, registrationId);
   if (registration === undefined) {
-    throw new TRPCError({ code: 'NOT_FOUND', message: 'registration_not_in_hof' });
+    throw wristbandError('NOT_FOUND', 'registrationNotInHof');
   }
 
   const previousWearer = idOf(band.participant) ?? null;
@@ -249,7 +253,7 @@ export const assignWristband = async (
     const activeBandIds = await findActiveBandIds(payload, registrationId);
     return activeBandIds.some((id) => id !== band.id);
   };
-  if (await wearsOtherBand()) throw new TRPCError({ code: 'CONFLICT', message: 'person_has_band' });
+  if (await wearsOtherBand()) throw wristbandError('CONFLICT', 'personHasBand');
 
   try {
     await payload.update({
@@ -261,7 +265,7 @@ export const assignWristband = async (
   } catch (error) {
     // the collection checks the same, and refuses a band written in between like the check above
     if (await wearsOtherBand()) {
-      throw new TRPCError({ code: 'CONFLICT', message: 'person_has_band' });
+      throw wristbandError('CONFLICT', 'personHasBand');
     }
     throw error;
   }
@@ -278,7 +282,7 @@ export const assignWristband = async (
       'wristband.uid': uid,
       'wristband.hof': hofId,
     });
-    throw new TRPCError({ code: 'CONFLICT', message: 'person_has_band' });
+    throw wristbandError('CONFLICT', 'personHasBand');
   }
   logger.info('Handed out a band', { 'wristband.uid': uid, 'wristband.hof': hofId });
 };
@@ -292,7 +296,7 @@ export const unassignWristband = async (
   input: { hofId: string; uid: string; userId: string },
 ): Promise<void> => {
   const band = await findBandOfHof(payload, input.hofId, input.uid);
-  if (band.status === 'revoked') throw new TRPCError({ code: 'CONFLICT', message: 'band_revoked' });
+  if (band.status === 'revoked') throw wristbandError('CONFLICT', 'bandRevoked');
   await payload.update({
     collection: 'wristbands',
     id: band.id,
