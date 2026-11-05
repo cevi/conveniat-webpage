@@ -32,6 +32,7 @@ import {
   MIN_QUERY_LENGTH,
   QUERY_DELAY_MS,
 } from '@/features/payload-cms/components/search/use-live-search';
+import { isSearchShortcut } from '@/features/payload-cms/components/search/use-search-shortcut';
 import { parseSearchWords } from '@/features/payload-cms/search/search-text';
 import type { SearchResult, SearchResultType } from '@/features/payload-cms/search/search-types';
 import {
@@ -206,7 +207,13 @@ export const InstantSearchDialog: React.FC<{
   };
 
   const handleKeyDown = (event: React.KeyboardEvent): void => {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    if (isSearchShortcut(event.nativeEvent)) {
+      // the shortcut that opened the search closes it again, through `close` like Esc; stopped
+      // here, before the page-wide listener that opens it would reopen it
+      event.preventDefault();
+      event.stopPropagation();
+      if (!event.repeat) close();
+    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       moveSelection(event.key === 'ArrowDown' ? 1 : -1);
     } else if (event.key === 'Enter') {
