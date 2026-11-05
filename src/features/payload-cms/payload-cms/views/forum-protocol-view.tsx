@@ -34,6 +34,7 @@ const actionLabel: Record<ForumAuditAction, StaticTranslationString> = {
   UNMERGED: { de: 'Zusammenführung aufgehoben', en: 'Unmerged', fr: 'Fusion annulée' },
   DELETED: { de: 'Gelöscht', en: 'Deleted', fr: 'Supprimé' },
   ASSIGNED: { de: 'Beauftragt', en: 'Assigned', fr: 'Mandaté' },
+  APPROVED: { de: 'Freigegeben', en: 'Approved', fr: 'Approuvé' },
   ASSIGNMENT_ENDED: {
     de: 'Auftrag zurückgezogen',
     en: 'Assignment withdrawn',

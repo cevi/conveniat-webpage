@@ -112,6 +112,7 @@ export const ForumComposer: React.FC = () => {
   const utils = trpc.useUtils();
 
   const topics = trpc.forum.getForumTopicList.useQuery({});
+  const settings = trpc.forum.getForumSettings.useQuery({});
   const [draft] = useState(readDraft);
   const [chosenTopicId, setChosenTopicId] = useState<string | undefined>(
     parameters.get('topic') ?? draft?.topicId,
@@ -276,6 +277,7 @@ export const ForumComposer: React.FC = () => {
   if (!isOnline) publishHint = forumText.offlinePublish;
   else if (isPrivate) publishHint = forumText.privateHint;
   else if (topic?.isAdmin === true) publishHint = forumText.publishHintKernteam;
+  else if (settings.data?.moderationRequired === true) publishHint = forumText.moderationHint;
 
   return (
     <div className="bg-page min-h-dvh pb-10">

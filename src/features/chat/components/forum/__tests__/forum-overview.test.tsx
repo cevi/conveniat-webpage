@@ -20,6 +20,7 @@ jest.mock('@/trpc/client', () => ({
     forum: {
       getForumTopicList: { useQuery: (): object => query(topics) },
       getForumPinnedPostList: { useQuery: (): object => query([]) },
+      getForumSettings: { useQuery: (): object => query({ moderationRequired: false }) },
       getForumPostSuggestionList: { useQuery: (): object => query([]) },
       getForumPostList: {
         useInfiniteQuery: (): object => ({

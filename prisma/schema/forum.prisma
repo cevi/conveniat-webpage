@@ -35,9 +35,15 @@ model ForumPost {
   pinnedAt        DateTime?
   /// the comment marked as the answer, shown above the other comments
   answerMessageId String?
+  /// when a moderator approved the post, while posts need approval (the flag
+  /// `forum_moderation_required`); a post written while it was off is approved at once. Until
+  /// then only its author and the moderators see it
+  approvedAt      DateTime?
+  approvedById    String?
+
   /// the post this duplicate was merged into; a merged post leaves the lists, and its likes count
   /// for the post it was merged into
-  mergedIntoId    String?
+  mergedIntoId String?
 
   createdAt DateTime @default(now())
 
@@ -48,6 +54,7 @@ model ForumPost {
   @@index([annotationId])
   @@index([latitude, longitude])
   @@index([mergedIntoId])
+  @@index([chatId, approvedAt])
 }
 
 /// A post handed to one person, a helper sent out to fix what it reports. While it is open, the
@@ -105,6 +112,8 @@ enum ForumAuditAction {
   DELETED
   ASSIGNED
   ASSIGNMENT_ENDED
+  /// a post written while posts need approval, made public
+  APPROVED
 }
 
 /// Why someone was allowed to change a post.

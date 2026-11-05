@@ -11,11 +11,12 @@ import {
   pushForumPerson,
   pushForumThread,
   pushNewForumPost,
+  pushPendingForumPost,
 } from '@/features/chat/api/forum/forum-push';
 import { isImageKeyOfChat } from '@/lib/chat-images';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { getFeatureFlag } from '@/lib/db/redis';
-import { FEATURE_FLAG_FORUM_ENABLED } from '@/lib/feature-flags';
+import { FEATURE_FLAG_FORUM_ENABLED, FEATURE_FLAG_FORUM_MODERATION } from '@/lib/feature-flags';
 import {
   FORUM_NOTE_MAX_LENGTH,
   FORUM_POST_MAX_IMAGES,
@@ -52,6 +53,12 @@ const assignmentEndedText = (actor: string): StaticTranslationString => ({
   de: `${actor} hat deinen Auftrag zurückgezogen.`,
   en: `${actor} withdrew your assignment.`,
   fr: `${actor} a retiré ta mission.`,
+});
+
+const pendingText = (title: string): StaticTranslationString => ({
+  de: `Wartet auf Freigabe: ${title}`,
+  en: `Waiting for approval: ${title}`,
+  fr: `En attente d’approbation : ${title}`,
 });
 
 const mergedText = (title: string): StaticTranslationString => ({
@@ -192,6 +199,48 @@ const endAssignments = async (
 };
 
 /**
+ * Makes a public post known: its pushes, and the live event for open forum pages. Right after
+ * writing it, or once a moderator approved it.
+ */
+const announceForumPost = (post: {
+  chatId: string;
+  postId: string;
+  title: string;
+  text: string;
+  rawText: string;
+  images: string[];
+  topicName: string;
+  senderId: string;
+  senderName: string;
+  byTopicAdmin: boolean;
+  createdAt: Date;
+}): void => {
+  pushNewForumPost(post);
+  chatPubSub
+    .publish({
+      type: 'new_message',
+      chatId: post.chatId,
+      senderId: post.senderId,
+      message: {
+        id: post.postId,
+        createdAt: post.createdAt,
+        messagePayload: { text: post.rawText, images: post.images },
+        senderId: post.senderId,
+        senderName: post.senderName,
+        status: MessageEventType.STORED,
+        type: MessageType.TEXT_MSG,
+      },
+    })
+    .catch((error: unknown) => {
+      logger.error('Failed to publish a new forum post', {
+        error,
+        'chat.id': post.chatId,
+        'forum.post.id': post.postId,
+      });
+    });
+};
+
+/**
  * Writes a post: a top-level message in the topic's chat, its `ForumPost` row, and the author's
  * subscription to it. Idempotent on `postId`, which the client picks, so the offline outbox and
  * a lost response cannot post twice.
@@ -222,7 +271,7 @@ export const createForumPost = trpcBaseProcedure
     }),
   )
   .use(databaseTransactionWrapper)
-  .mutation(async ({ ctx, input }): Promise<{ id: string }> => {
+  .mutation(async ({ ctx, input }): Promise<{ id: string; pending: boolean }> => {
     const { prisma, user } = ctx;
     if (!(await getFeatureFlag(FEATURE_FLAG_FORUM_ENABLED))) {
       throw forumError('FORBIDDEN', 'forumDisabled');
@@ -266,7 +315,11 @@ export const createForumPost = trpcBaseProcedure
       if (existing.senderId !== user.uuid || existing.chatId !== chat.uuid) {
         throw invariantError('CONFLICT', 'A different message with this ID already exists.');
       }
-      return { id: input.postId };
+      const stored = await prisma.forumPost.findUnique({
+        where: { messageId: input.postId },
+        select: { approvedAt: true },
+      });
+      return { id: input.postId, pending: stored?.approvedAt === null };
     }
 
     const message = await prisma.message.create({
@@ -284,11 +337,19 @@ export const createForumPost = trpcBaseProcedure
         },
       },
     });
+    const byTopicAdmin =
+      membership.chatPermission === ChatMembershipPermission.OWNER ||
+      membership.chatPermission === ChatMembershipPermission.ADMIN;
+    // against spam, the admin panel can hold new posts back until a moderator approves them;
+    // the Kernteam's own posts need no approval
+    const pending = !byTopicAdmin && (await getFeatureFlag(FEATURE_FLAG_FORUM_MODERATION));
+
     await prisma.forumPost.create({
       data: {
         messageId: message.uuid,
         chatId: chat.uuid,
         title: input.title,
+        approvedAt: pending ? null : new Date(),
         ...(input.location === undefined
           ? {}
           : {
@@ -303,18 +364,15 @@ export const createForumPost = trpcBaseProcedure
     });
     await prisma.chat.update({ where: { uuid: chat.uuid }, data: { lastUpdate: new Date() } });
 
-    const byTopicAdmin =
-      membership.chatPermission === ChatMembershipPermission.OWNER ||
-      membership.chatPermission === ChatMembershipPermission.ADMIN;
-
     ctx.afterTransactionCommit(() => {
       logger.info('Forum post created', {
         'chat.id': chat.uuid,
         'forum.post.id': message.uuid,
         'forum.by_topic_admin': byTopicAdmin,
+        'forum.pending': pending,
         'forum.has_location': input.location !== undefined,
       });
-      pushNewForumPost({
+      const post = {
         chatId: chat.uuid,
         postId: message.uuid,
         title: input.title,
@@ -322,33 +380,21 @@ export const createForumPost = trpcBaseProcedure
         topicName: chat.name,
         senderId: user.uuid,
         senderName: user.name,
+      };
+      if (pending) {
+        pushPendingForumPost({ ...post, pendingText: pendingText(input.title)[ctx.locale] });
+        return;
+      }
+      announceForumPost({
+        ...post,
         byTopicAdmin,
+        createdAt: message.createdAt,
+        images: input.images,
+        rawText: input.text,
       });
-      chatPubSub
-        .publish({
-          type: 'new_message',
-          chatId: chat.uuid,
-          senderId: user.uuid,
-          message: {
-            id: message.uuid,
-            createdAt: message.createdAt,
-            messagePayload: { text: input.text, images: input.images },
-            senderId: user.uuid,
-            senderName: user.name,
-            status: MessageEventType.STORED,
-            type: MessageType.TEXT_MSG,
-          },
-        })
-        .catch((error: unknown) => {
-          logger.error('Failed to publish a new forum post', {
-            error,
-            'chat.id': chat.uuid,
-            'forum.post.id': message.uuid,
-          });
-        });
     });
 
-    return { id: message.uuid };
+    return { id: message.uuid, pending };
   });
 
 /**
@@ -858,4 +904,69 @@ export const updateForumPostSubscription = trpcBaseProcedure
           where: { userId: user.uuid, messageId: post.messageId },
         }));
     return { subscribed: input.subscribed };
+  });
+
+/**
+ * Approves a post that waited for it, while the admin panel holds new posts back: it becomes
+ * public, and only now do its pushes go out. Rejecting is deleting it, `deleteForumMessage`.
+ */
+export const approveForumPost = trpcBaseProcedure
+  .input(z.object({ postId: z.uuid() }))
+  .use(moderationLimit)
+  .use(databaseTransactionWrapper)
+  .mutation(async ({ ctx, input }): Promise<{ approved: boolean }> => {
+    const { prisma, user } = ctx;
+    const post = await loadPost(prisma, input.postId);
+    const moderator = await requireModerator(prisma, user.uuid, post, true);
+    const row = await prisma.forumPost.findUniqueOrThrow({
+      where: { messageId: post.messageId },
+      select: {
+        approvedAt: true,
+        message: {
+          select: {
+            createdAt: true,
+            sender: { select: { name: true } },
+            contentVersions: { take: 1, orderBy: { revision: 'desc' }, select: { payload: true } },
+          },
+        },
+      },
+    });
+    // a second moderator, or a double tap: nothing more to do
+    if (row.approvedAt !== null) return { approved: true };
+
+    await prisma.forumPost.update({
+      where: { messageId: post.messageId },
+      data: { approvedAt: new Date(), approvedById: user.uuid },
+    });
+    await recordForumAuditEvent(prisma, {
+      action: 'APPROVED',
+      post: { messageId: post.messageId, chatId: post.chatId, title: post.title },
+      topicName: post.topicName,
+      actor: { id: user.uuid, name: user.name },
+      moderator,
+    });
+
+    const content = readForumPostContent(row.message.contentVersions[0]?.payload);
+    ctx.afterTransactionCommit(() => {
+      logger.info('Forum post approved', {
+        'chat.id': post.chatId,
+        'forum.post.id': post.messageId,
+        'forum.capacity': moderator.capacity,
+      });
+      if (post.senderId === null) return;
+      announceForumPost({
+        chatId: post.chatId,
+        postId: post.messageId,
+        title: post.title,
+        text: content.text === '' ? post.title : content.text,
+        rawText: content.text,
+        images: content.images,
+        topicName: post.topicName,
+        senderId: post.senderId,
+        senderName: row.message.sender?.name ?? '',
+        byTopicAdmin: false,
+        createdAt: row.message.createdAt,
+      });
+    });
+    return { approved: true };
   });

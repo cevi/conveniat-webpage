@@ -17,6 +17,7 @@ export const FORUM_POST_SUMMARY_SELECT = {
   latitude: true,
   annotationId: true,
   pinnedAt: true,
+  approvedAt: true,
   chat: { select: { name: true } },
   message: {
     select: {
@@ -125,21 +126,43 @@ export const toForumPostSummaries = async (
       likedByMe: liked?.has(userId) ?? false,
       commentCount: commentCount.get(row.messageId) ?? 0,
       pinned: row.pinnedAt !== null,
+      pending: row.approvedAt === null,
       imageCount: content.images.length,
     };
   });
 };
 
 /**
- * The posts a user may see: those of the topics they belong to. A helper belongs to the topic
+ * The posts a user may see: those of the topics they belong to, and of those the approved ones,
+ * their own, and the ones of the topics they moderate. A helper belongs to the topic
  * of their assignment for as long as it is open, see `createForumPostAssignment`.
  */
-export const visibleForumPostsWhere = (userId: string): Prisma.ForumPostWhereInput => ({
-  mergedIntoId: null,
-  message: { deletedAt: null },
-  chat: {
-    type: 'FORUM',
-    archivedAt: null,
-    chatMemberships: { some: { userId } },
-  },
+export const visibleForumPostsWhere = (
+  userId: string,
+  moderatedTopics: ModeratedTopics,
+): Prisma.ForumPostWhereInput => ({
+  AND: [
+    {
+      mergedIntoId: null,
+      message: { deletedAt: null },
+      chat: {
+        type: 'FORUM',
+        archivedAt: null,
+        chatMemberships: { some: { userId } },
+      },
+    },
+    // a post waiting for approval: only its author and its moderators
+    moderatedTopics === 'all'
+      ? {}
+      : {
+          OR: [
+            { approvedAt: { not: null } },
+            { message: { senderId: userId } },
+            { chatId: { in: moderatedTopics } },
+          ],
+        },
+  ],
 });
+
+/** The topics someone moderates: every topic while on forum piket duty, else their Kernteam's. */
+export type ModeratedTopics = 'all' | string[];

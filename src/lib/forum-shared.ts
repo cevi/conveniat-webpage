@@ -45,6 +45,8 @@ export interface ForumPostSummary {
   likedByMe: boolean;
   commentCount: number;
   pinned: boolean;
+  /** waits for a moderator's approval; absent in a persisted cache from before approvals */
+  pending?: boolean;
   imageCount: number;
 }
 
