@@ -30,6 +30,11 @@ export const forumText = {
     en: 'You are not in any forum topic yet.',
     fr: 'Tu ne fais encore partie d’aucun thème du forum.',
   },
+  noTopicsPrivate: {
+    de: 'Über «Neuer Beitrag» kannst du trotzdem etwas privat an die Zentrale melden.',
+    en: 'With "New post" you can still report something privately to the Zentrale.',
+    fr: 'Avec « Nouvelle publication », tu peux quand même signaler quelque chose en privé à la Zentrale.',
+  },
   loadFailed: {
     de: 'Das Forum konnte nicht geladen werden',
     en: 'The forum could not be loaded',
