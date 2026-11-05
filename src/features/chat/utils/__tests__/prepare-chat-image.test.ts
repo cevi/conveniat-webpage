@@ -4,7 +4,10 @@
 import { isHeicFile, prepareChatImage, scaledSize } from '@/features/chat/utils/prepare-chat-image';
 
 const mockHeicTo = jest.fn();
-jest.mock('heic-to/csp', () => ({ heicTo: (...args: unknown[]): unknown => mockHeicTo(...args) }));
+jest.mock('@/utils/heic-decoder', () => ({
+  loadHeicDecoder: (): Promise<unknown> =>
+    Promise.resolve((...args: unknown[]): unknown => mockHeicTo(...args)),
+}));
 
 /** The size a decoded test image has; `createImageBitmap` is not in jsdom. */
 let decodedSize: { width: number; height: number };
@@ -71,6 +74,14 @@ describe('prepareChatImage', () => {
     expect(image.name).toBe('Züri 11.jpg');
     expect(drawnSize).toEqual({ width: 1600, height: 1200 });
     expect(mockHeicTo).not.toHaveBeenCalled();
+  });
+
+  it('decodes without the orientation option older Safari and Chrome refuse', async () => {
+    const picked = photo('IMG_0002.jpg', 'image/jpeg');
+
+    await prepareChatImage(picked);
+
+    expect(globalThis.createImageBitmap).toHaveBeenCalledWith(picked);
   });
 
   it('converts a HEIC the browser decodes itself without the decoder', async () => {

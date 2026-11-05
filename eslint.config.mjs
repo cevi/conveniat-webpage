@@ -454,6 +454,7 @@ const config = defineConfig([
     'public/sw.js',
     'public/sw.js.map',
     'public/maplibre-gl-worker*.js',
+    'public/heic-to-*.js',
     'serwist.config.js',
   ]),
 ]);

@@ -1,3 +1,5 @@
+import { loadHeicDecoder } from '@/utils/heic-decoder';
+
 /**
  * The long edge a chat photo is sent at. WhatsApp's standard quality uses the same, which is
  * sharp on a phone screen and a few hundred kilobytes over camp wifi instead of megabytes.
@@ -29,13 +31,15 @@ export const scaledSize = (
 
 const decode = async (file: File): Promise<ImageBitmap> => {
   try {
-    return await createImageBitmap(file, { imageOrientation: 'from-image' });
+    // Without options: the default applies the EXIF orientation, and `imageOrientation:
+    // 'from-image'` is only known since Safari 17 and Chrome 111, which refuse it before.
+    return await createImageBitmap(file);
   } catch (error) {
-    // Safari decodes HEIC itself. Elsewhere the decoder, about 780 kB, is only fetched now,
-    // for the first HEIC this browser cannot open; it is too large for the precache.
+    // Safari decodes HEIC itself. Elsewhere the decoder is only fetched now, for the first
+    // HEIC this browser cannot open; libheif turns the photo upright itself.
     if (!isHeicFile(file)) throw error;
-    const { heicTo } = await import('heic-to/csp');
-    return heicTo({ blob: file, type: 'bitmap', options: { imageOrientation: 'from-image' } });
+    const heicTo = await loadHeicDecoder();
+    return heicTo({ blob: file, type: 'bitmap' });
   }
 };
 
@@ -52,7 +56,13 @@ const encodeJpeg = (bitmap: ImageBitmap, width: number, height: number): Promise
   context.drawImage(bitmap, 0, 0, width, height);
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (blob) => (blob === null ? reject(new Error('Could not encode the image')) : resolve(blob)),
+      (blob) => {
+        // iOS Safari counts a canvas's memory until it is collected, unless it is emptied
+        canvas.width = 0;
+        canvas.height = 0;
+        if (blob === null) reject(new Error('Could not encode the image'));
+        else resolve(blob);
+      },
       'image/jpeg',
       CHAT_IMAGE_JPEG_QUALITY,
     );

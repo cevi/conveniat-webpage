@@ -8,9 +8,9 @@ export default await serwist({
   swSrc: 'src/features/service-worker/sw.ts',
   swDest: 'public/sw.js',
   precachePrerendered: false,
-  // Serwist's default, written out because it keeps the HEIC decoder of the chat (about 3 MB,
-  // see `prepareChatImage`) out of the precache: every phone would download it on install, and
-  // only a HEIC that the browser cannot open needs it.
+  // Serwist's default, written out because it keeps the HEIC decoder (about 3 MB,
+  // `public/heic-to-*.js`, see `loadHeicDecoder`) out of the precache: every phone would
+  // download it on install, and only a HEIC that the browser cannot open needs it.
   maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
   globIgnores: [
     '**/node_modules/**/*',
