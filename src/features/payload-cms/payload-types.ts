@@ -61,6 +61,7 @@ export interface Config {
     form_collection: FormCollection;
     'helper-jobs': HelperJob;
     'announcement-channels': AnnouncementChannel;
+    'forum-topics': ForumTopic;
     announcements: Announcement;
     'emergency-cards': EmergencyCard;
     'photo-contests': PhotoContest;
@@ -146,6 +147,7 @@ export interface Config {
     form_collection: FormCollectionSelect<false> | FormCollectionSelect<true>;
     'helper-jobs': HelperJobsSelect<false> | HelperJobsSelect<true>;
     'announcement-channels': AnnouncementChannelsSelect<false> | AnnouncementChannelsSelect<true>;
+    'forum-topics': ForumTopicsSelect<false> | ForumTopicsSelect<true>;
     announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
     'emergency-cards': EmergencyCardsSelect<false> | EmergencyCardsSelect<true>;
     'photo-contests': PhotoContestsSelect<false> | PhotoContestsSelect<true>;
@@ -197,7 +199,6 @@ export interface Config {
     'app-landing-page': AppLandingPage;
     'alert-management': AlertManagement;
     alert_settings: AlertSetting;
-    'support-chat-management': SupportChatManagement;
     'all-chats-management': AllChatsManagement;
     'campsite-presence': CampsitePresence;
     PWA: PWA;
@@ -218,7 +219,6 @@ export interface Config {
     'app-landing-page': AppLandingPageSelect<false> | AppLandingPageSelect<true>;
     'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
     alert_settings: AlertSettingsSelect<false> | AlertSettingsSelect<true>;
-    'support-chat-management': SupportChatManagementSelect<false> | SupportChatManagementSelect<true>;
     'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
     'campsite-presence': CampsitePresenceSelect<false> | CampsitePresenceSelect<true>;
     PWA: PWASelect<false> | PWASelect<true>;
@@ -4111,6 +4111,55 @@ export interface AnnouncementChannel {
         | 'billing-team'
         | 'material-team'
         | 'hof-dashboard-reviewer'
+        | 'forum-zentrale'
+      )[]
+    | null;
+  /**
+   * Everyone who is in one of these groups in Cevi.DB. Pick a group by its name or type its ID.
+   */
+  targetCeviGroups?:
+    | {
+        groupId: number;
+        groupName?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * The topics of the forum in the app. Every change someone makes to a post they did not write is in the forum protocol.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "forum-topics".
+ */
+export interface ForumTopic {
+  id: string;
+  chatUuid?: string | null;
+  /**
+   * e.g. "Platz & Infrastruktur", "Programm", "Feedback ans OK"
+   */
+  name: string;
+  description?: string | null;
+  /**
+   * Whoever holds one of these functions is the core team of this topic: they moderate it, their posts reach everyone, and the app shows the function as a badge with their name. Who holds a function is changed in Cevi.DB.
+   */
+  kernteamFunktionen?: (string | Funktion)[] | null;
+  /**
+   * A report sent "privately to the Zentrale" becomes a post in this topic that only its author, the Kernteam of this topic and the piket on duty see. One topic at most; whoever reports joins it for their own reports.
+   */
+  receivesPrivateReports?: boolean | null;
+  targetType: 'all' | 'roles' | 'cevi_groups' | 'avps';
+  targetRoles?:
+    | (
+        | 'full-admin'
+        | 'web-core-team'
+        | 'translation-team'
+        | 'program-team'
+        | 'billing-team'
+        | 'material-team'
+        | 'hof-dashboard-reviewer'
+        | 'forum-zentrale'
       )[]
     | null;
   /**
@@ -4404,7 +4453,7 @@ export interface PiketSchedule {
   users: (string | User)[];
   startTime: string;
   endTime: string;
-  chatTypes: ('EMERGENCY' | 'SUPPORT_GROUP')[];
+  chatTypes: ('EMERGENCY' | 'FORUM')[];
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -5420,6 +5469,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'announcement-channels';
         value: string | AnnouncementChannel;
+      } | null)
+    | ({
+        relationTo: 'forum-topics';
+        value: string | ForumTopic;
       } | null)
     | ({
         relationTo: 'announcements';
@@ -6923,6 +6976,28 @@ export interface AnnouncementChannelsSelect<T extends boolean = true> {
   allowEmojiReactions?: T;
   allowThreads?: T;
   allowThreadReplies?: T;
+  targetType?: T;
+  targetRoles?: T;
+  targetCeviGroups?:
+    | T
+    | {
+        groupId?: T;
+        groupName?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "forum-topics_select".
+ */
+export interface ForumTopicsSelect<T extends boolean = true> {
+  chatUuid?: T;
+  name?: T;
+  description?: T;
+  kernteamFunktionen?: T;
+  receivesPrivateReports?: T;
   targetType?: T;
   targetRoles?: T;
   targetCeviGroups?:
@@ -9102,16 +9177,6 @@ export interface AlertSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "support-chat-management".
- */
-export interface SupportChatManagement {
-  id: string;
-  dummy?: string | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "all-chats-management".
  */
 export interface AllChatsManagement {
@@ -9203,6 +9268,10 @@ export interface AppFeatureFlag {
    * Toggles visibility of the conveniat27 Forum menu item in the app.
    */
   forumEnabled?: boolean | null;
+  /**
+   * Against spam. While on, a new forum post is seen only by its author and the moderators (the Kernteam of its topic and the piket on duty) until one of them approves it. Posts by the Kernteam need no approval, comments are never held back.
+   */
+  forumModerationRequired?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -9935,16 +10004,6 @@ export interface AlertSettingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "support-chat-management_select".
- */
-export interface SupportChatManagementSelect<T extends boolean = true> {
-  dummy?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "all-chats-management_select".
  */
 export interface AllChatsManagementSelect<T extends boolean = true> {
@@ -9991,6 +10050,7 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   photoContestEnabled?: T;
   reservationsEnabled?: T;
   forumEnabled?: T;
+  forumModerationRequired?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -10497,6 +10557,7 @@ export interface TaskCreateCollectionExport {
       | 'form_collection'
       | 'helper-jobs'
       | 'announcement-channels'
+      | 'forum-topics'
       | 'announcements'
       | 'emergency-cards'
       | 'photo-contests'

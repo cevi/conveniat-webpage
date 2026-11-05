@@ -3,8 +3,8 @@ jest.mock('@/config/environment-variables', () => ({
 }));
 
 import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
-import type { ChannelAudience } from '@/features/payload-cms/payload-cms/utils/announcement-channel-audience';
-import { isInChannelAudience } from '@/features/payload-cms/payload-cms/utils/announcement-channel-audience';
+import type { ChannelAudience } from '@/features/payload-cms/payload-cms/chat-channels/channel-audience';
+import { isInChannelAudience } from '@/features/payload-cms/payload-cms/chat-channels/channel-audience';
 
 /** Cevi Uster's Hof group, and Züri 11's. */
 const USTER = 4101;

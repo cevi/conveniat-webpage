@@ -2,6 +2,7 @@
 
 import type { AdminNavGroup } from '@/features/payload-cms/payload-cms/components/admin-nav/admin-nav-groups';
 import { Link, NavGroup } from '@payloadcms/ui';
+import { ExternalLink } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import type { NavPreferences } from 'payload';
 import type React from 'react';
@@ -26,7 +27,24 @@ export const AdminNavClient: React.FC<{
             ? {}
             : { isOpen: navPreferences.groups[groupLabel].open })}
         >
-          {links.map(({ id, href, label }) => {
+          {links.map(({ id, href, label, external }) => {
+            if (external === true) {
+              return (
+                <a
+                  className="nav__link"
+                  href={href}
+                  id={id}
+                  key={id}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span className="nav__link-label flex items-center gap-1">
+                    {label}
+                    <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                  </span>
+                </a>
+              );
+            }
             const isActive =
               pathname.startsWith(href) && ['/', undefined].includes(pathname[href.length]);
             const content = (

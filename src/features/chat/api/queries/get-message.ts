@@ -4,6 +4,8 @@ import { findDeletedQuotedMessageIds } from '@/features/chat/api/utils/deleted-m
 import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
 import { findThreadSummaries } from '@/features/chat/api/utils/thread-summaries';
 import { toChatMessage } from '@/features/chat/api/utils/to-chat-message';
+import { findTopicAdminIds } from '@/features/chat/api/utils/topic-admins';
+import { ChatType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { MessageEventType } from '@prisma/client';
 import { z } from 'zod';
@@ -24,6 +26,7 @@ export const getMessage = trpcBaseProcedure
         chat: { chatMemberships: { some: { userId: ctx.user.uuid } } },
       },
       include: {
+        chat: { select: { type: true } },
         messageEvents: {
           where: { type: { in: USER_RELEVANT_MESSAGE_EVENTS } },
           orderBy: { uuid: 'desc' },
@@ -59,14 +62,37 @@ export const getMessage = trpcBaseProcedure
 
     if (!message) return;
 
-    const [deletedQuotedIds, threads] = await Promise.all([
+    // a private report or a post waiting for approval, or one of its comments: only to whom
+    // sees the post, see `getChatMessages`
+    if (message.chat.type === ChatType.FORUM) {
+      const { canSeeForumPost, findForumPostVisibility } =
+        await import('@/features/chat/api/forum/forum-visibility');
+      const post = await findForumPostVisibility(prisma, message.parentId ?? message.uuid);
+      if (post !== undefined && !(await canSeeForumPost(prisma, ctx.user, post))) return;
+    }
+
+    const [deletedQuotedIds, threads, topicAdminIds] = await Promise.all([
       findDeletedQuotedMessageIds(prisma, [message.contentVersions[0]?.payload]),
       findThreadSummaries(prisma, [message.uuid]),
+      findTopicAdminIds(prisma, { uuid: message.chatId, type: message.chat.type }, [
+        message.senderId,
+      ]),
     ]);
+
+    // the function behind the badge; loaded only then, as it reads Payload
+    const kernteamLabels =
+      topicAdminIds.size === 0
+        ? undefined
+        : await import('@/features/chat/api/forum/forum-kernteam-labels').then(
+            ({ findKernteamLabelsOfTopic }) =>
+              findKernteamLabelsOfTopic(prisma, message.chatId, topicAdminIds, ctx.locale),
+          );
 
     return toChatMessage(message, {
       status: getStatusFromMessageEvents(message.messageEvents),
       deletedQuotedIds,
       threads,
+      topicAdminIds,
+      ...(kernteamLabels === undefined ? {} : { kernteamLabels }),
     });
   });

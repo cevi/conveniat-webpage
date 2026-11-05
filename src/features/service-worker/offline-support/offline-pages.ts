@@ -33,6 +33,10 @@ export const offlinePages = [
   `/app/chat/${OFFLINE_CHAT_SHELL_ID}`,
   `/app/chat/${OFFLINE_CHAT_SHELL_ID}/details`,
 
+  // Forum, and the generic shell of a post, read from the URL like a chat
+  '/app/forum',
+  `/app/forum/${OFFLINE_CHAT_SHELL_ID}`,
+
   // Schedule page with local DB offline support
   '/app/schedule',
 

@@ -8,6 +8,7 @@ import { setFeatureFlag } from '@/lib/db/redis';
 import {
   FEATURE_FLAG_CREATE_CHATS_ENABLED,
   FEATURE_FLAG_FORUM_ENABLED,
+  FEATURE_FLAG_FORUM_MODERATION,
   FEATURE_FLAG_HELPER_SHIFTS_ENABLED,
   FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS,
   FEATURE_FLAG_IMAGE_UPLOAD_ENABLED,
@@ -274,6 +275,34 @@ export const AppFeatureFlags: GlobalConfig = {
         afterChange: [
           async ({ value }): Promise<void> => {
             await setFeatureFlag(FEATURE_FLAG_FORUM_ENABLED, Boolean(value));
+          },
+        ],
+      },
+    },
+    {
+      name: 'forumModerationRequired',
+      label: {
+        en: 'Forum: approve posts before they are published',
+        de: 'Forum: Beiträge vor Veröffentlichung freigeben',
+        fr: 'Forum : approuver les publications avant leur parution',
+      },
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: {
+          en: 'Against spam. While on, a new forum post is seen only by its author and the moderators (the Kernteam of its topic and the piket on duty) until one of them approves it. Posts by the Kernteam need no approval, comments are never held back.',
+          de: 'Gegen Spam. Solange eingeschaltet, sehen einen neuen Beitrag nur die Person, die ihn geschrieben hat, und die Moderation (das Kernteam des Themas und das Piket im Dienst), bis jemand davon ihn freigibt. Beiträge des Kernteams brauchen keine Freigabe, Kommentare werden nie zurückgehalten.',
+          fr: 'Contre le spam. Tant que c’est activé, une nouvelle publication n’est visible que par son auteur et la modération (l’équipe centrale du thème et le piquet de service) jusqu’à ce que quelqu’un l’approuve. Les publications de l’équipe centrale n’ont pas besoin d’approbation, les commentaires ne sont jamais retenus.',
+        },
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle',
+        },
+      },
+      hooks: {
+        afterChange: [
+          async ({ value }): Promise<void> => {
+            await setFeatureFlag(FEATURE_FLAG_FORUM_MODERATION, Boolean(value));
           },
         ],
       },

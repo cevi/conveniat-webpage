@@ -26,8 +26,9 @@ export const getChat = trpcBaseProcedure
     const chat = await prisma.chat.findUnique({
       where: { uuid: chatId },
       include: {
+        // a forum topic's posts come from the forum router, which knows who sees each one
         messages: {
-          where: { parentId: null },
+          where: { parentId: null, forumPost: null },
           orderBy: { seq: 'desc' }, // Get newest messages first
           take: 25, // limit to the last 25 messages
           include: {
@@ -58,24 +59,19 @@ export const getChat = trpcBaseProcedure
     }
 
     const messages = chat.messages;
-    if (messages.length === 0) {
+    // a forum topic's chat has no messages of its own, only the threads of its posts, and the
+    // comment field of a post still reads the topic here
+    if (messages.length === 0 && chat.type !== ChatType.FORUM) {
       throw new TRPCError({
         code: 'NOT_FOUND',
         message: `No messages found in chat with ID ${chatId} `,
       });
     }
 
-    const lastMessage = messages.at(-1);
-    if (lastMessage === undefined) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: `No last message found in chat with ID ${chatId} `,
-      });
-    }
-
-    // An announcement shows its members only themselves, every other chat all of its members.
+    // An announcement or a forum topic shows its members only themselves, every other chat all
+    // of its members: both have the whole camp in them.
     const chatMemberships =
-      chat.type === ChatType.ANNOUNCEMENT
+      chat.type === ChatType.ANNOUNCEMENT || chat.type === ChatType.FORUM
         ? chat.chatMemberships
         : await prisma.chatMembership.findMany({
             where: { chatId },

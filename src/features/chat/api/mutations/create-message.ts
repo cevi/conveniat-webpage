@@ -3,13 +3,14 @@ import {
   assertMembershipCanWrite,
   assertWriteAbilities,
 } from '@/features/chat/api/checks/assert-can-write-in-chat';
+import { isTopicAdminPermission } from '@/features/chat/api/utils/topic-admins';
 import { chatMessageContentSchema } from '@/features/chat/limits';
 import { quotedSnippetOf } from '@/features/chat/utils/quoted-snippet';
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { imageSentText, isImageKeyOfChat } from '@/lib/chat-images';
 import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
-import { chatPubSub } from '@/lib/db/chat-pubsub';
+import { type ChatRealtimeEvent, chatPubSub } from '@/lib/db/chat-pubsub';
 import poolPrisma from '@/lib/db/prisma';
 import { ChatType, MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma/client';
 import { sendNotification } from '@/lib/push/send-notification';
@@ -205,6 +206,30 @@ export const createMessage = trpcBaseProcedure
     // 2. Validate that the user is part of the chat and has permission to send messages.
     assertMembershipCanWrite(chat, validatedMessage.chatId, user.uuid, validatedMessage.parentId);
 
+    // A post needs its title and row, so it is written by `forum.createForumPost`; here a forum
+    // topic only takes comments. Our client never sends a post this way.
+    if (chat.type === ChatType.FORUM && validatedMessage.parentId === undefined) {
+      throw invariantError('BAD_REQUEST', 'A forum post is written with forum.createForumPost.');
+    }
+    // A private report or a post waiting for approval takes comments only from those who see
+    // it; to anyone else its thread does not exist. Loaded here, so a chat send does not pull
+    // in the piket schedule the check reads.
+    const forumVisibility =
+      chat.type === ChatType.FORUM
+        ? await import('@/features/chat/api/forum/forum-visibility')
+        : undefined;
+    const forumThread =
+      forumVisibility !== undefined && validatedMessage.parentId !== undefined
+        ? await forumVisibility.findForumPostVisibility(prisma, validatedMessage.parentId)
+        : undefined;
+    if (
+      forumVisibility !== undefined &&
+      forumThread !== undefined &&
+      !(await forumVisibility.canSeeForumPost(prisma, user, forumThread))
+    ) {
+      throw chatError('NOT_FOUND', 'threadGone');
+    }
+
     // 3. Idempotency: adopt the client-generated id as the message id when it is a UUID.
     // A replay of the same send then hits the row that already exists and is answered with
     // it, instead of storing the message a second time and notifying everyone again.
@@ -354,6 +379,29 @@ export const createMessage = trpcBaseProcedure
       data: { lastUpdate: new Date() },
     });
 
+    // A comment on a forum post subscribes its author to the post, like writing the post does.
+    // The comments of a post all answer the post itself, so the thread's parent is the post.
+    const forumPost =
+      chat.type === ChatType.FORUM && validatedMessage.parentId !== undefined
+        ? await prisma.forumPost.findUnique({
+            where: { messageId: validatedMessage.parentId },
+            select: { messageId: true, title: true },
+          })
+        : null;
+    if (forumPost !== null) {
+      await prisma.threadSubscription.upsert({
+        where: { userId_messageId: { userId: user.uuid, messageId: forumPost.messageId } },
+        create: { userId: user.uuid, messageId: forumPost.messageId },
+        update: {},
+      });
+    }
+    // a comment by whoever handles posts is the post's reaction, which takes it out of the
+    // Zentrale's queue; loaded only for a forum thread, as it reads the piket schedule
+    if (forumThread !== undefined) {
+      const { recordForumReaction } = await import('@/features/chat/api/forum/forum-zentrale');
+      await recordForumReaction(prisma, user, forumThread);
+    }
+
     logger.debug('Message created', {
       'chat.id': validatedMessage.chatId,
       'message.id': createdMessage.uuid,
@@ -392,82 +440,133 @@ export const createMessage = trpcBaseProcedure
     const isImage = validatedMessage.type === MessageType.IMAGE_MSG;
     const pushText = isImage ? imageSentText(user.name)[ctx.locale] : validatedMessage.content;
 
-    ctx.afterTransactionCommit(() => {
-      findPushRecipientIds(chat.type, validatedMessage.chatId, user.uuid, validatedMessage.parentId)
-        .catch((error: unknown) => {
-          // the message is stored and published; only its push is lost
-          logger.error('Reading the push recipients failed', {
-            error,
-            'chat.id': validatedMessage.chatId,
-            'message.id': createdMessage.uuid,
-          });
-          return [];
-        })
-        .then(async (pushRecipientUserIds) => {
-          logger.debug('Message fan-out', {
-            'chat.id': validatedMessage.chatId,
-            'message.id': createdMessage.uuid,
-            'chat.distributed.count': distributedUserIds.length,
-            'chat.push.recipient.count': pushRecipientUserIds.length,
-          });
-          if (pushRecipientUserIds.length === 0) return;
-          await sendNotification(
-            pushText,
-            pushRecipientUserIds,
-            validatedMessage.chatId,
-            createdMessage.uuid,
-            {
-              kind:
-                chat.type === ChatType.EMERGENCY
-                  ? PushNotificationKind.EMERGENCY
-                  : PushNotificationKind.CHAT,
-              chatName: chat.name,
-              // the image line already names the sender
-              ...(isImage ? {} : { senderName: user.name }),
-              // No notificationType: only the alert that opens an emergency chat sirens (see
-              // the emergency router). A siren on every reply drowned out a busy case, so the
-              // follow-ups ring like any chat message (#1654).
-            },
-          );
-        })
-        .catch((error: unknown) => {
-          logger.error('Failed to send push notification', {
-            error,
-            'chat.id': validatedMessage.chatId,
-            'message.id': createdMessage.uuid,
-          });
-        });
+    // a comment by the topic's Kernteam carries its badge, live as when it is read back
+    const byTopicAdmin =
+      chat.type === ChatType.FORUM &&
+      isTopicAdminPermission(chat.chatMemberships[0]?.chatPermission);
+    // the function behind the badge, for the live event, in the writer's language like a push;
+    // the thread read back has it in the reader's. Loaded only then, as it reads Payload
+    const kernteamLabel = byTopicAdmin
+      ? await import('@/features/chat/api/forum/forum-kernteam-labels')
+          .then(({ findKernteamLabelsOfTopic }) =>
+            findKernteamLabelsOfTopic(prisma, validatedMessage.chatId, [user.uuid], ctx.locale),
+          )
+          .then((labels) => labels.get(user.uuid))
+      : undefined;
+    const kernteam = byTopicAdmin
+      ? { byTopicAdmin, ...(kernteamLabel === undefined ? {} : { kernteamLabel }) }
+      : {};
 
-      chatPubSub
-        .publish({
-          type: 'new_message',
-          chatId: validatedMessage.chatId,
-          senderId: user.uuid,
-          message: {
-            id: createdMessage.uuid,
-            createdAt: createdMessage.createdAt,
-            messagePayload:
-              validatedMessage.type === MessageType.IMAGE_MSG
-                ? { url: validatedMessage.content }
-                : {
-                    text: validatedMessage.content,
-                    quotedMessageId,
-                    quotedSnippet,
-                  },
-            senderId: user.uuid,
-            senderName: user.name,
-            status: MessageEventType.STORED,
-            type: validatedMessage.type,
-            parentId: validatedMessage.parentId ?? undefined,
-          },
-        })
-        .catch((error: unknown) => {
-          logger.error('Failed to publish the new_message real-time event', {
-            error,
-            'chat.id': validatedMessage.chatId,
-            'message.id': createdMessage.uuid,
+    ctx.afterTransactionCommit(() => {
+      if (chat.type === ChatType.FORUM) {
+        // the post's subscribers and the piket on duty, see `forum-push`
+        // loaded here, so a chat send does not pull in the piket schedule it reads
+        if (forumPost !== null) {
+          void import('@/features/chat/api/forum/forum-push')
+            .then(({ pushForumThread }) => {
+              pushForumThread({
+                chatId: validatedMessage.chatId,
+                postId: forumPost.messageId,
+                messageId: createdMessage.uuid,
+                postTitle: forumPost.title,
+                text: pushText,
+                actorId: user.uuid,
+                ...(isImage ? {} : { senderName: user.name }),
+                includePiket: true,
+              });
+            })
+            .catch((error: unknown) => {
+              logger.error('Failed to load the forum push', {
+                error,
+                'chat.id': validatedMessage.chatId,
+              });
+            });
+        }
+      } else
+        findPushRecipientIds(
+          chat.type,
+          validatedMessage.chatId,
+          user.uuid,
+          validatedMessage.parentId,
+        )
+          .catch((error: unknown) => {
+            // the message is stored and published; only its push is lost
+            logger.error('Reading the push recipients failed', {
+              error,
+              'chat.id': validatedMessage.chatId,
+              'message.id': createdMessage.uuid,
+            });
+            return [];
+          })
+          .then(async (pushRecipientUserIds) => {
+            logger.debug('Message fan-out', {
+              'chat.id': validatedMessage.chatId,
+              'message.id': createdMessage.uuid,
+              'chat.distributed.count': distributedUserIds.length,
+              'chat.push.recipient.count': pushRecipientUserIds.length,
+            });
+            if (pushRecipientUserIds.length === 0) return;
+            await sendNotification(
+              pushText,
+              pushRecipientUserIds,
+              validatedMessage.chatId,
+              createdMessage.uuid,
+              {
+                kind:
+                  chat.type === ChatType.EMERGENCY
+                    ? PushNotificationKind.EMERGENCY
+                    : PushNotificationKind.CHAT,
+                chatName: chat.name,
+                // the image line already names the sender
+                ...(isImage ? {} : { senderName: user.name }),
+                // No notificationType: only the alert that opens an emergency chat sirens (see
+                // the emergency router). A siren on every reply drowned out a busy case, so the
+                // follow-ups ring like any chat message (#1654).
+              },
+            );
+          })
+          .catch((error: unknown) => {
+            logger.error('Failed to send push notification', {
+              error,
+              'chat.id': validatedMessage.chatId,
+              'message.id': createdMessage.uuid,
+            });
           });
+
+      const newMessageEvent: ChatRealtimeEvent = {
+        type: 'new_message',
+        chatId: validatedMessage.chatId,
+        senderId: user.uuid,
+        message: {
+          id: createdMessage.uuid,
+          createdAt: createdMessage.createdAt,
+          messagePayload:
+            validatedMessage.type === MessageType.IMAGE_MSG
+              ? { url: validatedMessage.content }
+              : {
+                  text: validatedMessage.content,
+                  quotedMessageId,
+                  quotedSnippet,
+                },
+          senderId: user.uuid,
+          senderName: user.name,
+          status: MessageEventType.STORED,
+          type: validatedMessage.type,
+          parentId: validatedMessage.parentId ?? undefined,
+          ...kernteam,
+        },
+      };
+      // a comment of a restricted forum post goes only to those who see the post
+      (forumVisibility !== undefined && forumThread !== undefined
+        ? forumVisibility.publishForumThreadEvent(poolPrisma, forumThread, newMessageEvent)
+        : chatPubSub.publish(newMessageEvent)
+      ).catch((error: unknown) => {
+        logger.error('Failed to publish the new_message real-time event', {
+          error,
+          'chat.id': validatedMessage.chatId,
+          'message.id': createdMessage.uuid,
         });
+      });
     });
 
     return {
@@ -485,5 +584,6 @@ export const createMessage = trpcBaseProcedure
               quotedMessageId,
               quotedSnippet,
             },
+      ...kernteam,
     };
   });
