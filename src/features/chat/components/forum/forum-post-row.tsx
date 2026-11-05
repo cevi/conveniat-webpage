@@ -1,6 +1,6 @@
-import type { ForumPostSummary } from '@/features/chat/api/forum/forum-posts';
 import { ForumStatusPill } from '@/features/chat/components/forum/forum-status-pill';
 import { forumText, relativeTimeText } from '@/features/chat/components/forum/forum-texts';
+import type { ForumPostSummary } from '@/lib/forum-shared';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Image as ImageIcon, MapPin, MessageCircle, ThumbsUp } from 'lucide-react';
