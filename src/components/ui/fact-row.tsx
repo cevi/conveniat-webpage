@@ -13,8 +13,10 @@ export const FactRow: React.FC<{
   title?: React.ReactNode;
   sub?: React.ReactNode;
   href?: string;
+  /** a control at the end of a row without `href`, like a 44px icon button */
+  action?: React.ReactNode;
   children?: React.ReactNode;
-}> = ({ icon, title, sub, href, children }) => {
+}> = ({ icon, title, sub, href, action, children }) => {
   const body = (
     <>
       <IconTile icon={icon} />
@@ -27,7 +29,9 @@ export const FactRow: React.FC<{
         )}
         {children}
       </div>
-      {href !== undefined && (
+      {href === undefined ? (
+        action
+      ) : (
         <ChevronRight className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />
       )}
     </>

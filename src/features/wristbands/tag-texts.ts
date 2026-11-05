@@ -54,6 +54,24 @@ export const tagTexts = {
     fr: 'Le chat n’a pas pu être démarré.',
   },
   hofAvp: { de: 'AVP des Hofs', en: 'AVP of the Hof', fr: 'AVP du Hof' },
+  hofWithAvp: { de: 'Hof · AVP {names}', en: 'Hof · AVP {names}', fr: 'Hof · AVP {names}' },
+  hofWithoutAvp: {
+    de: 'Hof · keine AVP mit der App',
+    en: 'Hof · no AVP with the app',
+    fr: 'Hof · aucune AVP avec l’app',
+  },
+  chatWithAvp: {
+    de: 'Chat mit der AVP des Hofs starten',
+    en: 'Start a chat with the AVP of the Hof',
+    fr: 'Démarrer un chat avec l’AVP du Hof',
+  },
+  chatWith: { de: 'mit {name}', en: 'with {name}', fr: 'avec {name}' },
+  chatNoApp: {
+    de: '{name} hat die App nicht',
+    en: '{name} does not have the app',
+    fr: '{name} n’a pas l’app',
+  },
+  chat: { de: 'Chat', en: 'Chat', fr: 'Chat' },
   noAvp: {
     de: 'Niemand von der AVP dieses Hofs hat die App.',
     en: 'Nobody of this Hof’s AVP has the app.',

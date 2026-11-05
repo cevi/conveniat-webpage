@@ -7,6 +7,7 @@ import { IconTile } from '@/components/ui/icon-tile';
 import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import { toast } from '@/components/ui/toast';
+import type { WearerContacts } from '@/features/wristbands/components/band-identity-card';
 import { BandIdentityCard, BandRefusal } from '@/features/wristbands/components/band-identity-card';
 import { personName } from '@/features/wristbands/components/band-labels';
 import { ReadBandCard } from '@/features/wristbands/components/read-band-card';
@@ -33,6 +34,7 @@ import { ChevronRight, Loader2, MessageSquare, Nfc, ScanLine, UserRound, X } fro
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
+import { useState } from 'react';
 
 /**
  * Starts the private chat a band leads to and opens it: with the wearer, or for the safety
@@ -248,6 +250,145 @@ const CheckBand: React.FC<{
   );
 };
 
+interface StartChat {
+  start: (avpUserId?: string) => void;
+  pending: boolean;
+}
+type Avps = NonNullable<NonNullable<WristbandCard['safety']>['avps']>;
+
+/** The Ceviname, or without one the first name: how the Hof calls its AVP. */
+const callName = (person: { fullName: string; nickname: string | null }): string =>
+  person.nickname ?? person.fullName.split(' ')[0] ?? person.fullName;
+
+/** A 44px chat button at the end of a row of the band's card. */
+const ChatIconButton: React.FC<{ label: string; pending: boolean; onClick: () => void }> = ({
+  label,
+  pending,
+  onClick,
+}) => (
+  <Button
+    variant="plain"
+    size="touchIcon"
+    className="-my-1"
+    aria-label={label}
+    disabled={pending}
+    onClick={onClick}
+  >
+    <MessageSquare aria-hidden />
+  </Button>
+);
+
+/**
+ * The safety team's ways to reach someone about a verified band, in its card's rows: the Hof's
+ * AVP at the end of the Hof's row, all of them under it when there are several, and the wearer
+ * in the card's last row, where the scan row was, so the card keeps its height.
+ */
+const useSafetyContacts = (
+  card: WristbandCard | undefined,
+  chat: StartChat,
+  locale: Locale,
+): WearerContacts | undefined => {
+  const [showAvps, setShowAvps] = useState(false);
+  const avps: Avps | null = card?.safety?.avps ?? null;
+  if (card === undefined || !card.verified || avps === null) return undefined;
+
+  const { wearer } = card;
+  const identity = card.safety?.identity;
+  let wearerName = identity?.state === 'assigned' ? callName(identity) : '';
+  if (wearer.state === 'worn' && wearer.name !== null) wearerName = wearer.name;
+  const canChat = wearer.state === 'worn' && wearer.canChat;
+  const [onlyAvp] = avps;
+
+  let hofAction: React.ReactNode;
+  if (avps.length === 1 && onlyAvp !== undefined) {
+    hofAction = (
+      <ChatIconButton
+        label={tagText('startChatWith', locale, { name: personName(onlyAvp) })}
+        pending={chat.pending}
+        onClick={() => chat.start(onlyAvp.userId)}
+      />
+    );
+  } else if (avps.length > 1) {
+    hofAction = (
+      <Button
+        variant="plain"
+        size="touchIcon"
+        className="-my-1"
+        aria-label={tagText('chatWithAvp', locale)}
+        aria-expanded={showAvps}
+        onClick={() => setShowAvps((shown) => !shown)}
+      >
+        <MessageSquare aria-hidden />
+      </Button>
+    );
+  }
+
+  const lastRowClassName = 'border-line border-t px-3.5';
+  const chatTile = (
+    <span className="bg-tint text-conveniat-green grid size-10 shrink-0 place-items-center rounded-xl">
+      {chat.pending ? (
+        <Loader2 className="size-5 animate-spin" aria-hidden />
+      ) : (
+        <MessageSquare className="size-5" aria-hidden />
+      )}
+    </span>
+  );
+  const lastRow = canChat ? (
+    <ListRow className={lastRowClassName} disabled={chat.pending} onClick={() => chat.start()}>
+      {chatTile}
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-semibold text-green-900">
+          {tagText('startChat', locale)}
+        </span>
+        <span className="block truncate text-[13px] text-green-700">
+          {tagText('chatWith', locale, { name: wearerName })}
+        </span>
+      </span>
+      <ChevronRight className="size-5 shrink-0 text-green-500" aria-hidden />
+    </ListRow>
+  ) : (
+    <div className={cn(lastRowClassName, 'flex min-h-14 items-center gap-3 py-2.5')}>
+      <span className="bg-quiet grid size-10 shrink-0 place-items-center rounded-xl text-green-400">
+        <MessageSquare className="size-5" aria-hidden />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-semibold text-green-900">
+          {tagText('chat', locale)}
+        </span>
+        <span className="block truncate text-[13px] text-green-700">
+          {tagText('chatNoApp', locale, { name: wearerName })}
+        </span>
+      </span>
+    </div>
+  );
+
+  return {
+    hofSub:
+      avps.length === 0
+        ? tagText('hofWithoutAvp', locale)
+        : tagText('hofWithAvp', locale, { names: avps.map((avp) => callName(avp)).join(', ') }),
+    hofAction,
+    afterHof:
+      showAvps && avps.length > 1 ? (
+        <ul className="bg-quiet/60">
+          {avps.map((avp) => (
+            <li key={avp.userId} className="flex min-h-14 items-center gap-3 py-1.5 pr-3.5 pl-16">
+              <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-green-900">
+                {personName(avp)}
+              </span>
+              <ChatIconButton
+                label={tagText('startChatWith', locale, { name: personName(avp) })}
+                pending={chat.pending}
+                onClick={() => chat.start(avp.userId)}
+              />
+            </li>
+          ))}
+        </ul>
+      ) : undefined,
+    lastRow,
+  };
+};
+
 /**
  * The last row of the band's card for the safety team while the band is known by its UID alone:
  * held to the phone again, the band shows its Hof, its Quartier and the AVP. Starts the scan on
@@ -394,6 +535,7 @@ export const TagView: React.FC<{ uid: string }> = ({ uid }) => {
   const cardQuery = useWristbandCard(uid, check.signature, check.ready);
   const chat = useStartChat(uid, check.signature, locale);
   const card = cardQuery.data;
+  const contacts = useSafetyContacts(card, chat, locale);
 
   let content: React.ReactNode;
   if (card === undefined) {
@@ -467,6 +609,7 @@ export const TagView: React.FC<{ uid: string }> = ({ uid }) => {
               identity={safety.identity}
               locale={locale}
               unlock={<UnlockRow check={check} checking={checking} locale={locale} />}
+              {...(contacts === undefined ? {} : { contacts })}
             />
             {/* an assigned band reads again from its card's last row; what went wrong shows here */}
             {!verified &&
@@ -474,7 +617,6 @@ export const TagView: React.FC<{ uid: string }> = ({ uid }) => {
                 (safety.identity.state === 'assigned' &&
                   (check.state.step === 'failed' || check.state.step === 'other-band'))) &&
               checkBand}
-            <SafetyContacts card={card} chat={chat} locale={locale} />
           </>
         )}
       </div>

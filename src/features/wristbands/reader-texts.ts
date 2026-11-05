@@ -47,6 +47,7 @@ export const readerTexts = {
     fr: 'seulement après un nouveau scan',
   },
   quartier: { de: 'Quartier', en: 'Quartier', fr: 'Quartier' },
+  noQuartier: { de: 'Kein Quartier', en: 'No Quartier', fr: 'Pas de Quartier' },
   notGenuineTitle: {
     de: 'Kein echtes conveniat27-Armband',
     en: 'Not a genuine conveniat27 wristband',

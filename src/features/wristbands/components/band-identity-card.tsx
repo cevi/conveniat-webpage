@@ -85,44 +85,80 @@ const LockedRow: React.FC<{ icon: LucideIcon; label: string; locale: Locale }> =
   </div>
 );
 
-/** The wearer, large: the name, the Ceviname, and in one card the Hof and the Quartier. */
+/** Who to reach about the wearer of a verified band, folded into the card's rows. */
+export interface WearerContacts {
+  /** under the Hof's name, e.g. "Hof · AVP Funke" */
+  hofSub: string;
+  /** at the end of the Hof's row: the chat with its AVP */
+  hofAction?: React.ReactNode;
+  /** under the Hof's row, e.g. its AVPs to choose from */
+  afterHof?: React.ReactNode;
+  /** the card's last row: the chat with the wearer */
+  lastRow: React.ReactNode;
+}
+
+/**
+ * The wearer, large: the name, the Ceviname, and in one card the Hof and the Quartier. A band
+ * known by its UID alone shows the two locked, with `unlock` as the last row; once read again,
+ * the same rows hold the facts and `contacts` the chats, so the card keeps its height.
+ */
 const Wearer: React.FC<{
   identity: Extract<WristbandIdentity, { state: 'assigned' }>;
   locale: Locale;
   /** for a band known by its UID alone: the way to its Hof and Quartier, as the last row */
   unlock?: React.ReactNode;
-}> = ({ identity, locale, unlock }) => (
-  <Card as="section">
-    <div className="px-4 pt-4 pb-3" aria-live="polite">
-      <h2 className="font-heading text-heading text-[28px] leading-tight font-extrabold">
-        {identity.fullName}
-      </h2>
-      {identity.nickname !== null && identity.nickname !== '' && (
-        <p className="mt-0.5 text-[17px] font-semibold text-green-700">v/o {identity.nickname}</p>
-      )}
-    </div>
-    {(identity.hof !== '' || identity.quartier !== null) && (
-      <div className="border-line border-t">
-        {identity.hof !== '' && (
-          <FactRow icon={Tent} title={identity.hof} sub={readerText('hof', locale)} />
-        )}
-        {identity.quartier !== null && (
-          <FactRow icon={MapIcon} title={identity.quartier} sub={readerText('quartier', locale)} />
+  contacts?: WearerContacts | undefined;
+}> = ({ identity, locale, unlock, contacts }) => {
+  // with contacts every row stays, so nothing moves from the locked card to this one
+  const showQuartier = identity.quartier !== null || contacts !== undefined;
+  return (
+    <Card as="section">
+      <div className="px-4 pt-4 pb-3" aria-live="polite">
+        <h2 className="font-heading text-heading text-[28px] leading-tight font-extrabold">
+          {identity.fullName}
+        </h2>
+        {identity.nickname !== null && identity.nickname !== '' && (
+          <p className="mt-0.5 text-[17px] font-semibold text-green-700">v/o {identity.nickname}</p>
         )}
       </div>
-    )}
-    {unlock !== undefined && (
-      <>
-        {/* the same frame as the facts, so nothing moves once they replace these */}
+      {(identity.hof !== '' || identity.quartier !== null) && (
         <div className="border-line border-t">
-          <LockedRow icon={Tent} label={readerText('hof', locale)} locale={locale} />
-          <LockedRow icon={MapIcon} label={readerText('quartier', locale)} locale={locale} />
+          {identity.hof !== '' && (
+            <FactRow
+              icon={Tent}
+              title={identity.hof}
+              sub={
+                <span className="block truncate">
+                  {contacts?.hofSub ?? readerText('hof', locale)}
+                </span>
+              }
+              action={contacts?.hofAction}
+            />
+          )}
+          {contacts?.afterHof}
+          {showQuartier && (
+            <FactRow
+              icon={MapIcon}
+              title={identity.quartier ?? readerText('noQuartier', locale)}
+              sub={readerText('quartier', locale)}
+            />
+          )}
         </div>
-        {unlock}
-      </>
-    )}
-  </Card>
-);
+      )}
+      {contacts?.lastRow}
+      {unlock !== undefined && (
+        <>
+          {/* the same frame as the facts, so nothing moves once they replace these */}
+          <div className="border-line border-t">
+            <LockedRow icon={Tent} label={readerText('hof', locale)} locale={locale} />
+            <LockedRow icon={MapIcon} label={readerText('quartier', locale)} locale={locale} />
+          </div>
+          {unlock}
+        </>
+      )}
+    </Card>
+  );
+};
 
 /**
  * Whose a band is, as security and first aid read it: the wearer large and clear, or why the
@@ -141,7 +177,9 @@ export const BandIdentityCard: React.FC<{
    * card, which reads the band again
    */
   unlock?: React.ReactNode;
-}> = ({ identity, locale, fromRoster = null, unlock }) => {
+  /** for a verified band: the chats with its wearer and its Hof's AVP, in the card's rows */
+  contacts?: WearerContacts;
+}> = ({ identity, locale, fromRoster = null, unlock, contacts }) => {
   let body: React.ReactNode;
   switch (identity.state) {
     case 'assigned': {
@@ -150,6 +188,7 @@ export const BandIdentityCard: React.FC<{
           identity={identity}
           locale={locale}
           unlock={identity.verified ? undefined : unlock}
+          contacts={identity.verified ? contacts : undefined}
         />
       );
       break;
