@@ -27,7 +27,8 @@ export const useSearchShortcut = (onOpen: () => void): void => {
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (!isSearchShortcut(event)) return;
       event.preventDefault();
-      onOpen();
+      // a held shortcut repeats; only the first press counts, or the search would flicker
+      if (!event.repeat) onOpen();
     };
     globalThis.addEventListener('keydown', handleKeyDown);
     return (): void => globalThis.removeEventListener('keydown', handleKeyDown);

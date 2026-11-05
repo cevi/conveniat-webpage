@@ -62,6 +62,16 @@ const pressCtrlK = (target: Element): void => {
   });
 };
 
+/** The repeats a held Ctrl K sends after the first press; each one says whether it was prevented. */
+const holdCtrlK = (target: Element): boolean[] =>
+  [1, 2, 3].map(() => {
+    let wasPrevented = false;
+    act(() => {
+      wasPrevented = !fireEvent.keyDown(target, { key: 'k', ctrlKey: true, repeat: true });
+    });
+    return wasPrevented;
+  });
+
 describe('InstantSearchDialog with the search shortcut', () => {
   it('opens on Ctrl K and closes again on Ctrl K, without the page reopening it', () => {
     render(<SearchWithShortcut />);
@@ -73,5 +83,18 @@ describe('InstantSearchDialog with the search shortcut', () => {
     pressCtrlK(screen.getByRole('searchbox'));
     expect(state).toHaveTextContent('false');
     expect(screen.queryByRole('searchbox')).toBeNull();
+  });
+
+  it('counts a held Ctrl K once, and keeps its repeats from the browser', () => {
+    render(<SearchWithShortcut />);
+    const state = screen.getByLabelText('Suche offen');
+
+    pressCtrlK(globalThis.document.body);
+    expect(holdCtrlK(globalThis.document.body)).toEqual([true, true, true]);
+    expect(state).toHaveTextContent('true');
+
+    const input = screen.getByRole('searchbox');
+    expect(holdCtrlK(input)).toEqual([true, true, true]);
+    expect(state).toHaveTextContent('true');
   });
 });

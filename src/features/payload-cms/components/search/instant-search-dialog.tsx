@@ -212,7 +212,7 @@ export const InstantSearchDialog: React.FC<{
       // here, before the page-wide listener that opens it would reopen it
       event.preventDefault();
       event.stopPropagation();
-      close();
+      if (!event.repeat) close();
     } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       moveSelection(event.key === 'ArrowDown' ? 1 : -1);
