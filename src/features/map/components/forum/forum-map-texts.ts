@@ -38,6 +38,7 @@ export const forumMapText = {
     fr: 'Utiliser cet emplacement',
   },
   cancel: { de: 'Abbrechen', en: 'Cancel', fr: 'Annuler' },
+  locate: { de: 'Meinen Standort zeigen', en: 'Show my location', fr: 'Montrer ma position' },
   forum: { de: 'conveniat27 Forum', en: 'conveniat27 Forum', fr: 'Forum conveniat27' },
   otherProblem: {
     de: 'Anderes Problem melden',

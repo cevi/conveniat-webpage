@@ -1,8 +1,10 @@
 'use client';
 
 import { AppFooterController } from '@/components/footer/hide-footer-context';
+import { SetHideHeader } from '@/components/header/hide-header-context';
 import { forumMapText } from '@/features/map/components/forum/forum-map-texts';
 import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
+import { useLocateControl } from '@/features/map/hooks/use-locate-control';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 import {
   composerHrefFor,
@@ -13,7 +15,7 @@ import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { CheckCircle2, Crosshair, MapPin } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Crosshair, Loader2, LocateFixed, MapPin } from 'lucide-react';
 import type { MapMouseEvent, Map as MaplibreMap } from 'maplibre-gl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
@@ -37,7 +39,11 @@ const useMapCentre = (map: MaplibreMap | undefined): [number, number] | undefine
 };
 
 /** The height of an element, followed as it changes; the setter goes on the element as `ref`. */
-const useElementHeight = (): [(element: HTMLDivElement | null) => void, number] => {
+const useElementHeight = (): [
+  (element: HTMLDivElement | null) => void,
+  number,
+  HTMLDivElement | null,
+] => {
   const [element, setElement] = useState<HTMLDivElement | null>(null);
   const [height, setHeight] = useState(0);
   useEffect(() => {
@@ -46,7 +52,7 @@ const useElementHeight = (): [(element: HTMLDivElement | null) => void, number] 
     observer.observe(element);
     return (): void => observer.disconnect();
   }, [element]);
-  return [setElement, height];
+  return [setElement, height, element];
 };
 
 /** How close the picker opens, close enough to tell one Toitoi from the next. */
@@ -60,17 +66,27 @@ const PICK_ZOOM = 17.5;
 const usePickerMap = (
   map: MaplibreMap | undefined,
   start: [number, number] | undefined,
-  sheetHeight: number,
+  visible: { layer: HTMLDivElement | null; barHeight: number; sheetHeight: number },
 ): void => {
+  const { layer, barHeight, sheetHeight } = visible;
   const startLongitude = start?.[0];
   const startLatitude = start?.[1];
+  // The map's canvas lies under the picker's bar and sheet; padding it by what they cover keeps
+  // its centre in the middle of what is left, which is where the pin is.
   useEffect(() => {
-    if (map === undefined) return;
-    map.setPadding({ top: 0, left: 0, right: 0, bottom: sheetHeight });
+    if (map === undefined || layer === null) return;
+    const canvas = map.getContainer().getBoundingClientRect();
+    const area = layer.getBoundingClientRect();
+    map.setPadding({
+      top: Math.max(0, area.top + barHeight - canvas.top),
+      bottom: Math.max(0, canvas.bottom - (area.bottom - sheetHeight)),
+      left: 0,
+      right: 0,
+    });
     return (): void => {
       map.setPadding({ top: 0, left: 0, right: 0, bottom: 0 });
     };
-  }, [map, sheetHeight]);
+  }, [map, layer, barHeight, sheetHeight]);
   useEffect(() => {
     if (map === undefined || startLongitude === undefined || startLatitude === undefined) return;
     map.jumpTo({
@@ -116,15 +132,12 @@ export const ForumLocationPicker: React.FC<{
   const parameters = useSearchParams();
   const map = useMap();
   const [measureSheet, sheetHeight] = useElementHeight();
-  const [measureLayer, layerHeight] = useElementHeight();
-  // The map's canvas leaves room for the tab bar, which is hidden while picking; the layer
-  // reaches the bottom of the screen. The pin sits in the middle of what the sheet leaves of
-  // the layer, and the map's centre must be the same point, so the canvas is padded by the
-  // part of the sheet that lies over it.
-  const canvasHeight = map?.getContainer().clientHeight ?? layerHeight;
-  const coveredByTheSheet = Math.max(0, sheetHeight - (layerHeight - canvasHeight));
-  usePickerMap(map, startOf(parameters), coveredByTheSheet);
-  const pinTop = (layerHeight - sheetHeight) / 2;
+  const [measureBar, barHeight] = useElementHeight();
+  const [measureLayer, layerHeight, layer] = useElementHeight();
+  usePickerMap(map, startOf(parameters), { layer, barHeight, sheetHeight });
+  // the middle of what the bar and the sheet leave of the screen
+  const pinTop = barHeight + (layerHeight - barHeight - sheetHeight) / 2;
+  const { locate, state: locateState } = useLocateControl();
   const centre = useMapCentre(map);
   const nearby: NearbyAnnotation | undefined =
     centre === undefined
@@ -134,13 +147,49 @@ export const ForumLocationPicker: React.FC<{
   const withEntry = useEntry && nearby !== undefined;
 
   return (
-    // Over the whole screen below the header, the tab bar hidden: picking is a task of its own,
-    // and its sheet with the button that ends it must never sit under the tab bar.
+    // Over the whole app shell, like an open chat: picking is a task of its own, with its own
+    // bar to go back, and its sheet with the button that ends it never sits under the tab bar.
     <div
       ref={measureLayer}
-      className="pointer-events-none fixed inset-x-0 top-[calc(var(--app-header-height)+var(--offline-banner-height,0px))] bottom-0 z-[60] xl:left-(--app-content-left)"
+      className="pointer-events-none fixed inset-x-0 top-(--app-top-inset) bottom-0 z-[110] xl:left-(--app-content-left)"
     >
       <AppFooterController hideAppFooter />
+      <SetHideHeader value />
+      <div
+        ref={measureBar}
+        className="border-line pointer-events-auto flex h-[60px] items-center gap-1 border-b bg-white pr-2 pl-1"
+      >
+        <button
+          type="button"
+          onClick={() => router.back()}
+          aria-label={forumMapText.cancel[locale]}
+          className="focus-visible:focus-surface hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900"
+        >
+          <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
+        </button>
+        <h1 className="font-heading text-heading min-w-0 flex-1 truncate pl-1 text-[17px] font-bold">
+          {forumMapText.pickTitle[locale]}
+        </h1>
+        <button
+          type="button"
+          onClick={locate}
+          aria-label={forumMapText.locate[locale]}
+          aria-pressed={locateState === 'active'}
+          aria-busy={locateState === 'searching'}
+          className={cn(
+            'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full',
+            locateState === 'active'
+              ? 'bg-conveniat-green focus-visible:focus-surface-filled text-white'
+              : 'hover:bg-quiet focus-visible:focus-surface text-green-900',
+          )}
+        >
+          {locateState === 'searching' ? (
+            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+          ) : (
+            <LocateFixed className="h-5 w-5" aria-hidden="true" />
+          )}
+        </button>
+      </div>
       {/* the pin over the centre of the map; its tip is the spot */}
       <div
         className="pointer-events-none absolute left-1/2 z-40 -translate-x-1/2 -translate-y-full"
@@ -161,9 +210,6 @@ export const ForumLocationPicker: React.FC<{
         ref={measureSheet}
         className="bg-page pointer-events-auto absolute inset-x-0 bottom-0 z-50 flex flex-col gap-2.5 rounded-t-[20px] px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_18px_rgba(0,0,0,0.12)]"
       >
-        <h2 className="font-heading text-heading text-[18px] font-extrabold">
-          {forumMapText.pickTitle[locale]}
-        </h2>
         <p className="text-[13px] text-green-700">{forumMapText.pickHint[locale]}</p>
         <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
           {nearby !== undefined && (

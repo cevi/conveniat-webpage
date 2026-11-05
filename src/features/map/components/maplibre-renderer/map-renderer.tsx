@@ -247,7 +247,8 @@ export const MapLibreRenderer = ({
         />
       )}
       <div className="h-full w-full" ref={(element) => setMapContainer(element ?? undefined)} />
-      {enableSearch && (
+      {/* the picker brings its own bar, with the way back and the locate button */}
+      {enableSearch && !isPickingForumSpot && (
         <MapSearchRow value={searchTerm} onSearch={handleSearch} results={searchResults} />
       )}
       {/* the forum belongs to the camp map, not to the small maps of a block or a message */}
