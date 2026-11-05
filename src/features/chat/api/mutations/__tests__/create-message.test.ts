@@ -210,12 +210,7 @@ const prisma = {
       Promise.resolve({
         name: 'Cevi Uster',
         type: chatType,
-        capabilities: [
-          ChatCapability.CAN_SEND_MESSAGES,
-          ChatCapability.PICTURE_UPLOAD,
-          ChatCapability.THREADS,
-          ChatCapability.THREAD_REPLIES,
-        ],
+        capabilities: chatCapabilities,
         // prisma answers a chat that was never archived with null
         archivedAt: null,
         chatMemberships: mockMembers.filter((member) => {
@@ -286,6 +281,7 @@ const prisma = {
   },
 };
 let chatType: ChatType;
+let chatCapabilities: ChatCapability[];
 
 const createCaller = createCallerFactory(createTRPCRouter({ sendMessage: createMessage }));
 const callerFor = (uuid: string, name: string): ReturnType<typeof createCaller> =>
@@ -330,6 +326,12 @@ beforeEach(() => {
   mockPoolFails = false;
   mockLoggedErrors.length = 0;
   chatType = ChatType.GROUP;
+  chatCapabilities = [
+    ChatCapability.CAN_SEND_MESSAGES,
+    ChatCapability.PICTURE_UPLOAD,
+    ChatCapability.THREADS,
+    ChatCapability.THREAD_REPLIES,
+  ];
   mockThreadSenderIds = ['ben'];
   mockMembers = [
     { userId: 'anna', chatPermission: ChatMembershipPermission.MEMBER, hasDeleted: false },
@@ -373,6 +375,15 @@ describe('the key of an image', () => {
     });
 
     await expect(resent).rejects.toMatchObject({ code: 'CONFLICT' });
+    expect(storedTypes).toEqual([]);
+  });
+
+  it('is refused with a reason the composer can show when the chat takes no images', async () => {
+    chatCapabilities = chatCapabilities.filter((c) => c !== ChatCapability.PICTURE_UPLOAD);
+    await expect(send(MessageType.IMAGE_MSG)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      reason: 'imagesDisabled',
+    });
     expect(storedTypes).toEqual([]);
   });
 

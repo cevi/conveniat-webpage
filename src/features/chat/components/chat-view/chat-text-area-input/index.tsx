@@ -16,11 +16,15 @@ import { isMessageDeleted } from '@/features/chat/utils/message-deletion';
 import { describeQuotedMessage } from '@/features/chat/utils/quoted-snippet';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { useOnlineStatus } from '@/hooks/use-online-status';
+import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { noConnectionTranslation } from '@/utils/shared-translations';
 import { cn } from '@/utils/tailwindcss-override';
+import { userErrorMessage } from '@/utils/user-error-message';
 import { ChatMembershipPermission, ChatType } from '@prisma/client';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -202,6 +206,7 @@ export const ChatTextAreaInput: React.FC = () => {
     messageLength,
     isGlobalMessagingDisabled,
     sendError,
+    reportSendRefusal,
   } = useMessageInput();
 
   const getLocalizedError = (error: string | undefined): string | undefined => {
@@ -240,9 +245,17 @@ export const ChatTextAreaInput: React.FC = () => {
     (chatDetails?.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES) ?? true) &&
     chatDetails?.status !== ChatStatus.CLOSED;
 
-  const { uploadImage, isUploading } = useImageUpload({ chatId });
+  const isOnline = useOnlineStatus();
+  // why the staged image was not sent, shown next to it
+  const [uploadError, setUploadError] = React.useState<string>();
+  const { uploadImage, isUploading } = useImageUpload({
+    chatId,
+    onError: (error) =>
+      setUploadError(userErrorMessage(error, locale, chatErrorTexts, uploadFailedText)),
+    onSendError: reportSendRefusal,
+  });
   const { stagedImage, stageImage, clearStagedImage } = useStagedImage();
-  const [hasUploadFailed, setHasUploadFailed] = React.useState(false);
+  const hasUploadFailed = uploadError !== undefined;
   // a HEIC outside Safari has no preview until it is converted on send
   const [brokenPreviewUrl, setBrokenPreviewUrl] = React.useState<string>();
 
@@ -250,7 +263,7 @@ export const ChatTextAreaInput: React.FC = () => {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const file = event.target.files?.[0];
     if (file) {
-      setHasUploadFailed(false);
+      setUploadError(undefined);
       stageImage(file);
     }
     // reset so picking the same file again still fires a change
@@ -264,8 +277,13 @@ export const ChatTextAreaInput: React.FC = () => {
   /** Uploads and sends the staged image, if any; false when that failed. */
   const sendStagedImage = async (): Promise<boolean> => {
     if (stagedImage === undefined) return true;
+    // unlike a text, an image cannot wait in the outbox: its upload has to go through first
+    if (!isOnline) {
+      setUploadError(noConnectionTranslation[locale]);
+      return false;
+    }
+    setUploadError(undefined);
     const isUploaded = await uploadImage(stagedImage.file, activeThreadId);
-    setHasUploadFailed(!isUploaded);
     if (isUploaded) clearStagedImage();
     return isUploaded;
   };
@@ -457,7 +475,7 @@ export const ChatTextAreaInput: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setHasUploadFailed(false);
+                    setUploadError(undefined);
                     clearStagedImage();
                   }}
                   disabled={isUploading}
@@ -470,8 +488,8 @@ export const ChatTextAreaInput: React.FC = () => {
                 </button>
               </div>
               {hasUploadFailed && (
-                <span className="text-danger-text pb-1 text-xs font-semibold">
-                  {uploadFailedText[locale]}
+                <span className="text-danger-text pb-1 text-xs font-semibold" role="alert">
+                  {uploadError}
                 </span>
               )}
             </div>

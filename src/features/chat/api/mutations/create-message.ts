@@ -187,10 +187,8 @@ export const createMessage = trpcBaseProcedure
         chat,
       );
       if (!canUpload) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Image uploading is not enabled in this chat.',
-        });
+        // the phone's chat details said images were allowed, or an outbox replays an older send
+        throw chatError('FORBIDDEN', 'imagesDisabled');
       }
 
       // Only an upload into this very chat, see `getUploadUrl`. Any other URL would be loaded
