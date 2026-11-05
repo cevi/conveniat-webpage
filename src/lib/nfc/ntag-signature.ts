@@ -21,8 +21,7 @@ const G: Point = {
 
 /**
  * NXP's originality key for NTAG21x, uncompressed, as published in AN11350. It is a point of
- * secp128r1, which a mistyped key would not be, but it still has to be confirmed with the first
- * genuine wristband: every band read so far was a copy without a signature.
+ * secp128r1, and a genuine NTAG213 wristband read on iOS and Android verifies against it.
  */
 export const NXP_NTAG21X_PUBLIC_KEY =
   '04494E1A386D3D3CFE3DC10E5DE68A499B1C202DB5B132393E89ED19FE5BE8BC61';

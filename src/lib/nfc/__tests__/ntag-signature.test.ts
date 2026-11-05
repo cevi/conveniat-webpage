@@ -1,7 +1,7 @@
 import { NXP_NTAG21X_PUBLIC_KEY, verifyNtagSignature } from '@/lib/nfc/ntag-signature';
 
 /*
-A key of our own on secp128r1, since no genuine band has been read yet. The signatures were
+A key of our own on secp128r1, so the tests need no genuine band. The signatures were
 made with OpenSSL the way NXP signs: `openssl pkeyutl -sign` over the raw UID bytes, no digest.
 */
 const TEST_KEY = '04FCD6E276B9C1C66957FC0FE23E196E1A13AE1E301CBF0AB99C8B2728AEC32E9C';
