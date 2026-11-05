@@ -5,11 +5,12 @@ import { useEffect } from 'react';
 /**
  * Hook to listen for messages from the service worker.
  * @param messageType The specific message type to listen for.
- * @param callback The callback to execute when the message is received.
+ * @param callback The callback to execute when the message is received. It gets the event as
+ *   well, whose `ports` carry the reply channel of a message that waits for an answer.
  */
 export const useServiceWorkerMessage = <T = unknown>(
   messageType: string,
-  callback: (payload: T) => void,
+  callback: (payload: T, event: MessageEvent) => void,
 ): void => {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
@@ -20,7 +21,7 @@ export const useServiceWorkerMessage = <T = unknown>(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (data?.type === messageType) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        callback(data.payload as T);
+        callback(data.payload as T, event);
       }
     };
 
