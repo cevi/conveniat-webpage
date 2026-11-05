@@ -48,6 +48,50 @@ const locationFromParameters = (parameters: URLSearchParams): PickedLocation | u
   };
 };
 
+const DRAFT_KEY = 'conveniat:forum-composer-draft';
+
+interface ComposerDraft {
+  title: string;
+  text: string;
+  topicId?: string | undefined;
+}
+
+/**
+ * The title and text while the map is open to pick a spot: picking leaves this page, and coming
+ * back must not cost what was typed. Kept for the tab only; publishing clears it. Photos are not
+ * kept, their previews live in this page.
+ */
+const readDraft = (): ComposerDraft | undefined => {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    if (raw === null) return undefined;
+    const draft = JSON.parse(raw) as Partial<ComposerDraft>;
+    return {
+      title: typeof draft.title === 'string' ? draft.title : '',
+      text: typeof draft.text === 'string' ? draft.text : '',
+      topicId: typeof draft.topicId === 'string' ? draft.topicId : undefined,
+    };
+  } catch {
+    return undefined;
+  }
+};
+
+const saveDraft = (draft: ComposerDraft): void => {
+  try {
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // storage blocked: the draft is lost on the way to the map
+  }
+};
+
+const clearDraft = (): void => {
+  try {
+    sessionStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // nothing to clear
+  }
+};
+
 interface UploadedImage {
   key: string;
   preview: string;
@@ -66,15 +110,16 @@ export const ForumComposer: React.FC = () => {
   const utils = trpc.useUtils();
 
   const topics = trpc.forum.getForumTopicList.useQuery({});
+  const [draft] = useState(readDraft);
   const [chosenTopicId, setChosenTopicId] = useState<string | undefined>(
-    parameters.get('topic') ?? undefined,
+    parameters.get('topic') ?? draft?.topicId,
   );
   const topicId = chosenTopicId ?? topics.data?.[0]?.id;
   const topic = topics.data?.find((candidate) => candidate.id === topicId);
 
   const [postId] = useState(() => crypto.randomUUID());
-  const [title, setTitle] = useState('');
-  const [text, setText] = useState('');
+  const [title, setTitle] = useState(draft?.title ?? '');
+  const [text, setText] = useState(draft?.text ?? '');
   const [location, setLocation] = useState(() => locationFromParameters(parameters));
   // The composer stays mounted while the map is open to pick a spot, so the spot the picker
   // hands back in the address arrives as a change, not as a new page: take it then.
@@ -107,6 +152,7 @@ export const ForumComposer: React.FC = () => {
   const uploadUrl = trpc.chat.getUploadUrl.useMutation();
   const create = trpc.forum.createForumPost.useMutation({
     onSuccess: ({ id }) => {
+      clearDraft();
       void utils.forum.invalidate();
       router.replace(`/app/forum/${id}`);
     },
@@ -142,6 +188,7 @@ export const ForumComposer: React.FC = () => {
   };
 
   const mapPickHref = `/app/map?pickForum=1${topicId === undefined ? '' : `&topic=${topicId}`}`;
+  const keepDraft = (): void => saveDraft({ title, text, topicId });
   const canPublish =
     isOnline && topicId !== undefined && title.trim() !== '' && !create.isPending && !isUploading;
   const matching = (suggestions.data ?? []).slice(0, 3);
@@ -233,6 +280,7 @@ export const ForumComposer: React.FC = () => {
             </span>
             <Link
               href={mapPickHref}
+              onClick={keepDraft}
               className="focus-visible:focus-surface hover:bg-quiet flex h-11 items-center rounded-xl px-2 text-[13px] font-semibold text-green-800"
             >
               {forumText.changeLocation[locale]}
@@ -358,6 +406,7 @@ export const ForumComposer: React.FC = () => {
           {location === undefined && (
             <Link
               href={mapPickHref}
+              onClick={keepDraft}
               className="border-line focus-visible:focus-surface hover:bg-quiet flex h-11 flex-[1.4] items-center justify-center gap-2 rounded-xl border bg-white text-[14px] font-semibold text-green-900"
             >
               <MapPin className="h-5 w-5" aria-hidden="true" />

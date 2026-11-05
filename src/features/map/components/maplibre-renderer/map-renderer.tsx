@@ -1,6 +1,7 @@
 'use client';
 
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
+import { ForumMapOverlays } from '@/features/map/components/forum/forum-map-overlays';
 import { AnnotationDetailsDrawer } from '@/features/map/components/map-annotations/annotation-details-drawer';
 import { MapSearchRow } from '@/features/map/components/map-search-row';
 import { MapUnavailableFallback } from '@/features/map/components/map-unavailable-fallback';
@@ -241,6 +242,13 @@ export const MapLibreRenderer = ({
       <div className="h-full w-full" ref={(element) => setMapContainer(element ?? undefined)} />
       {enableSearch && (
         <MapSearchRow value={searchTerm} onSearch={handleSearch} results={searchResults} />
+      )}
+      {/* the forum belongs to the camp map, not to the small maps of a block or a message */}
+      {enableSearch && (
+        <ForumMapOverlays
+          annotationPoints={annotationPoints}
+          annotationPolygons={annotationPolygons}
+        />
       )}
       <MaplibreMap
         openAnnotation={openAnnotation}

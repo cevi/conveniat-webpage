@@ -1,28 +1,8 @@
-import { FORUM_LIKE_EMOJI, type ForumPostStatusValue } from '@/lib/forum-shared';
+import { FORUM_LIKE_EMOJI, type ForumPostSummary } from '@/lib/forum-shared';
 import { ChatMembershipPermission, type Prisma } from '@/lib/prisma/client';
 import type { PrismaClientOrTransaction } from '@/types/types';
 
-/** What the lists, the map and the composer's suggestions show of a post. */
-export interface ForumPostSummary {
-  id: string;
-  topicId: string;
-  topicName: string;
-  title: string;
-  /** the start of the description, without line breaks */
-  excerpt: string;
-  status: ForumPostStatusValue;
-  createdAt: Date;
-  author: { id: string; name: string } | null;
-  /** written by an owner or admin of the topic, its Kernteam */
-  byTopicAdmin: boolean;
-  location: { longitude: number; latitude: number; annotationId: string | null } | null;
-  /** the people who liked it, the posts merged into it included */
-  likeCount: number;
-  likedByMe: boolean;
-  commentCount: number;
-  pinned: boolean;
-  imageCount: number;
-}
+export type { ForumPostSummary } from '@/lib/forum-shared';
 
 export const EXCERPT_LENGTH = 160;
 
