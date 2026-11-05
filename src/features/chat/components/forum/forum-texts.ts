@@ -30,6 +30,11 @@ export const forumText = {
     en: 'You are not in any forum topic yet.',
     fr: 'Tu ne fais encore partie d’aucun thème du forum.',
   },
+  noTopicsHint: {
+    de: 'Die Themen des Forums richtet das Kernteam ein. Sobald du zu einem gehörst, kannst du hier schreiben.',
+    en: 'The core team sets up the forum’s topics. As soon as you belong to one, you can write here.',
+    fr: 'L’équipe centrale crée les thèmes du forum. Dès que tu fais partie de l’un d’eux, tu peux écrire ici.',
+  },
   loadFailed: {
     de: 'Das Forum konnte nicht geladen werden',
     en: 'The forum could not be loaded',
