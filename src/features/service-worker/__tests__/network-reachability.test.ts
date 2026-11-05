@@ -209,6 +209,63 @@ describe('a network that stops answering', () => {
     await jest.advanceTimersByTimeAsync(3000);
     await expect(next.answeredAfter).resolves.toBe(3000);
   });
+
+  it('does not take a failed request for a dead network while the network still answers', async () => {
+    // one request failing, a reset connection say, while the network itself still answers
+    globalThis.fetch = jest.fn((input: RequestInfo | URL) =>
+      input === '/status'
+        ? Promise.resolve(new Response('ok'))
+        : Promise.reject(new TypeError('Failed to fetch')),
+    );
+    const worker = await startWorker();
+    const dropped = request(worker, DASHBOARD_RSC, rsc);
+    await jest.advanceTimersByTimeAsync(0);
+    await dropped.answeredAfter;
+    await Promise.all(dropped.lifetime);
+    expect(messages).toEqual([]);
+
+    globalThis.fetch = jest.fn(() => new Promise<Response>(() => {}));
+    const next = request(worker, SCHEDULE_RSC, rsc);
+    await jest.advanceTimersByTimeAsync(3000);
+    await expect(next.answeredAfter).resolves.toBe(3000);
+  });
+
+  it('takes a failed request for a dead network when the network does not answer either', async () => {
+    globalThis.fetch = jest.fn(() => Promise.reject(new TypeError('Failed to fetch')));
+    const worker = await startWorker();
+    const failed = request(worker, DASHBOARD_RSC, rsc);
+    await jest.advanceTimersByTimeAsync(0);
+    await failed.answeredAfter;
+    await Promise.all(failed.lifetime);
+
+    expect(globalThis.fetch).toHaveBeenLastCalledWith('/status', expect.anything());
+    expect(messages).toEqual([
+      { type: ServiceWorkerMessages.NETWORK_STATUS, payload: { reachable: false } },
+    ]);
+  });
+
+  it('takes a failed request for a dead network once the probe gets no answer in time', async () => {
+    globalThis.fetch = jest.fn((input: RequestInfo | URL, init?: RequestInit) =>
+      input === '/status'
+        ? new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () =>
+              reject(new DOMException('The operation was aborted.', 'AbortError')),
+            );
+          })
+        : Promise.reject(new TypeError('Failed to fetch')),
+    );
+    const worker = await startWorker();
+    const failed = request(worker, DASHBOARD_RSC, rsc);
+    await jest.advanceTimersByTimeAsync(2999);
+    expect(messages).toEqual([]);
+
+    await jest.advanceTimersByTimeAsync(1);
+    await Promise.all(failed.lifetime);
+    expect(messages).toEqual([
+      { type: ServiceWorkerMessages.NETWORK_STATUS, payload: { reachable: false } },
+    ]);
+  });
+
   it('tries the network when a page showing the offline banner asks again', async () => {
     const worker = await startWorker();
     const first = request(worker, DASHBOARD_RSC, rsc);
