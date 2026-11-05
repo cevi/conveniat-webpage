@@ -196,6 +196,8 @@ const prisma = {
     },
     create: record('message.create', { uuid: 'new-message', createdAt: new Date() }),
   },
+  // no image key is in use yet
+  messageContent: { findFirst: (): Promise<null> => Promise.resolve(null) },
   messageEvent: { createMany: record('messageEvent.createMany') },
   messageReaction: {
     findUnique: ({

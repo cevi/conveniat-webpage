@@ -297,6 +297,25 @@ export const createMessage = trpcBaseProcedure
       }
     }
 
+    // An image key belongs to one message. Its sender can delete the message, and a deleted
+    // image is not signed again for anyone, see `getDownloadUrl`, so a resent key would let
+    // a member take someone else's image away by deleting their own copy. Our client uploads
+    // every image under a new key; a replay of the same send was answered above. The lock
+    // keeps two sends of one key from both finding it unused.
+    if (validatedMessage.type === MessageType.IMAGE_MSG) {
+      await prisma.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${validatedMessage.content}, 0))`;
+      const keyInUse = await prisma.messageContent.findFirst({
+        where: {
+          payload: { path: ['url'], equals: validatedMessage.content },
+          message: { chatId: validatedMessage.chatId },
+        },
+        select: { uuid: true },
+      });
+      if (keyInUse !== null) {
+        throw invariantError('CONFLICT', 'This image belongs to another message.');
+      }
+    }
+
     // Create the message and its initial events within a transaction
     const createdMessage = await prisma.message.create({
       data: {

@@ -197,6 +197,7 @@ const prisma = {
     committed = true;
     return result;
   },
+  $executeRaw: (): Promise<number> => Promise.resolve(1),
   chat: {
     findUnique: ({
       select,
@@ -258,6 +259,20 @@ const prisma = {
       storedPayloads.push(data.contentVersions.create[0]?.payload);
       storedParents.push(data.parentId);
       return Promise.resolve({ uuid: 'stored', createdAt: new Date(), type: data.type });
+    },
+  },
+  messageContent: {
+    findFirst: ({
+      where,
+    }: {
+      where: { payload: { equals: string }; message: { chatId: string } };
+    }): Promise<unknown> => {
+      const found = existingMessages.find(
+        (message) =>
+          message.chatId === where.message.chatId &&
+          (message.payload as { url?: string } | undefined)?.url === where.payload.equals,
+      );
+      return Promise.resolve(found === undefined ? null : { uuid: `content-${found.uuid}` });
     },
   },
   messageEvent: {
@@ -341,6 +356,26 @@ describe('the message types a participant can send', () => {
       expect(storedTypes).toEqual([]);
     },
   );
+});
+
+describe('the key of an image', () => {
+  it('is refused when another message of the chat already shows it, and nothing is stored', async () => {
+    // Deleting the second copy would hide the image from everyone, see `getDownloadUrl`.
+    const resent = anna.sendMessage({
+      chatId: CHAT_ID,
+      content: (imageMessage.payload as { url: string }).url,
+      timestamp: new Date(),
+      type: MessageType.IMAGE_MSG,
+    });
+
+    await expect(resent).rejects.toMatchObject({ code: 'CONFLICT' });
+    expect(storedTypes).toEqual([]);
+  });
+
+  it('is accepted when no message of the chat uses it yet', async () => {
+    await send(MessageType.IMAGE_MSG);
+    expect(storedPayloads).toEqual([{ url: `chat-images/${CHAT_ID}/1-abc.jpg` }]);
+  });
 });
 
 describe('the connections a send needs', () => {
