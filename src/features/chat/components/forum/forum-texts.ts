@@ -30,11 +30,6 @@ export const forumText = {
     en: 'You are not in any forum topic yet.',
     fr: 'Tu ne fais encore partie d’aucun thème du forum.',
   },
-  noTopicsHint: {
-    de: 'Die Themen des Forums richtet das Kernteam ein. Sobald du zu einem gehörst, kannst du hier schreiben.',
-    en: 'The core team sets up the forum’s topics. As soon as you belong to one, you can write here.',
-    fr: 'L’équipe centrale crée les thèmes du forum. Dès que tu fais partie de l’un d’eux, tu peux écrire ici.',
-  },
   loadFailed: {
     de: 'Das Forum konnte nicht geladen werden',
     en: 'The forum could not be loaded',
@@ -190,6 +185,33 @@ export const forumText = {
     de: 'Zum Veröffentlichen brauchst du Netz.',
     en: 'You need a connection to publish.',
     fr: 'Il te faut du réseau pour publier.',
+  },
+  public: { de: 'Öffentlich', en: 'Public', fr: 'Public' },
+  private: { de: 'Privat', en: 'Private', fr: 'Privé' },
+  publicExplain: {
+    de: 'Im Forum, für alle sichtbar. Andere können «Ich auch» sagen, die Zentrale wird benachrichtigt.',
+    en: 'In the forum, visible to everyone. Others can say "me too", the Zentrale is notified.',
+    fr: 'Dans le forum, visible par tous. D’autres peuvent dire « moi aussi », la Zentrale est notifiée.',
+  },
+  privateExplain: {
+    de: 'Nur an die Zentrale, in einem Chat mit dem Piket. Für alles, was nicht öffentlich sein soll.',
+    en: 'Only to the Zentrale, in a chat with the person on duty. For anything that should not be public.',
+    fr: 'Seulement à la Zentrale, dans un chat avec le piquet. Pour tout ce qui ne doit pas être public.',
+  },
+  onlyPrivate: {
+    de: 'Du bist in keinem Forum-Thema. Deine Meldung geht privat an die Zentrale.',
+    en: 'You are not in any forum topic. Your report goes privately to the Zentrale.',
+    fr: 'Tu ne fais partie d’aucun thème du forum. Ton signalement va en privé à la Zentrale.',
+  },
+  privateHint: {
+    de: 'Nur du und das Piket der Zentrale sehen die Meldung.',
+    en: 'Only you and the Zentrale’s person on duty see the report.',
+    fr: 'Seuls toi et le piquet de la Zentrale voyez le signalement.',
+  },
+  sendPrivately: {
+    de: 'An die Zentrale senden',
+    en: 'Send to the Zentrale',
+    fr: 'Envoyer à la Zentrale',
   },
   privateReport: {
     de: 'Privat an die Zentrale melden',

@@ -54,6 +54,7 @@ export const composerHrefFor = (
   spot: [number, number],
   annotation: { id: string; title: string } | undefined,
   topicId?: string | null,
+  options: { private?: boolean } = {},
 ): string => {
   const parameters = new URLSearchParams({
     lng: spot[0].toFixed(6),
@@ -64,5 +65,7 @@ export const composerHrefFor = (
     parameters.set('label', annotation.title);
   }
   if (topicId !== undefined && topicId !== null) parameters.set('topic', topicId);
+  // the composer opens on "Privat", a report to the Zentrale instead of a forum post
+  if (options.private === true) parameters.set('private', '1');
   return `/app/forum/new?${parameters.toString()}`;
 };

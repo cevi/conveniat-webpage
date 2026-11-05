@@ -273,7 +273,11 @@ export const ForumLocationPicker: React.FC<{
             disabled={centre === undefined}
             onClick={() => {
               if (centre === undefined) return;
-              router.replace(composerHrefFor(centre, withEntry ? nearby : undefined, topicId));
+              router.replace(
+                composerHrefFor(centre, withEntry ? nearby : undefined, topicId, {
+                  private: parameters.get('private') === '1',
+                }),
+              );
             }}
             className={cn(
               'bg-conveniat-green focus-visible:focus-surface-filled h-11 flex-[2] cursor-pointer rounded-xl text-[15px] font-semibold text-white hover:bg-green-700 disabled:opacity-50',

@@ -1,10 +1,11 @@
 'use client';
 
-import { EmptyState } from '@/components/ui/empty-state';
 import { textInputClassName } from '@/components/ui/field';
+import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { forumText } from '@/features/chat/components/forum/forum-texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
+import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { CHAT_IMAGE_MAX_BYTES, isChatImageContentType } from '@/lib/chat-images';
 import { forumErrorTexts } from '@/lib/forum-error-texts';
 import {
@@ -19,7 +20,7 @@ import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
-import { Camera, Loader2, MapPin, MessageCircleQuestion, Search, ThumbsUp, X } from 'lucide-react';
+import { Camera, Loader2, Lock, MapPin, Search, ThumbsUp, Users, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useDeferredValue, useState } from 'react';
@@ -92,8 +93,9 @@ const clearDraft = (): void => {
   }
 };
 
-interface UploadedImage {
-  key: string;
+/** A photo picked for the post, uploaded on publishing: a private report's chat exists only then. */
+interface PickedImage {
+  file: File;
   preview: string;
 }
 
@@ -132,9 +134,13 @@ export const ForumComposer: React.FC = () => {
     const handedBack = locationFromParameters(parameters);
     if (handedBack !== undefined) setLocation(handedBack);
   }
-  const [images, setImages] = useState<UploadedImage[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
+  const [images, setImages] = useState<PickedImage[]>([]);
+  const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const [wantsPrivate, setWantsPrivate] = useState(parameters.get('private') === '1');
+  // without a topic of their own, a report can only go privately to the Zentrale
+  const canPostPublic = topics.data === undefined || topics.data.length > 0;
+  const isPrivate = wantsPrivate || !canPostPublic;
   const deferredTitle = useDeferredValue(title);
 
   const suggestions = trpc.forum.getForumPostSuggestionList.useQuery(
@@ -150,27 +156,26 @@ export const ForumComposer: React.FC = () => {
     onSettled: () => void utils.forum.getForumPostSuggestionList.invalidate(),
   });
   const uploadUrl = trpc.chat.getUploadUrl.useMutation();
-  const create = trpc.forum.createForumPost.useMutation({
-    onSuccess: ({ id }) => {
-      clearDraft();
-      void utils.forum.invalidate();
-      router.replace(`/app/forum/${id}`);
-    },
-    onError: (caught) =>
-      setError(userErrorMessage(caught, locale, forumErrorTexts, forumText.changeFailed)),
-  });
+  const create = trpc.forum.createForumPost.useMutation();
+  const report = trpc.chat.reportProblem.useMutation();
+  const sendMessage = trpc.chat.sendMessage.useMutation();
 
-  const addImage = async (file: File | undefined): Promise<void> => {
-    if (file === undefined || topicId === undefined) return;
+  const addImage = (file: File | undefined): void => {
+    if (file === undefined) return;
     if (!isChatImageContentType(file.type) || file.size > CHAT_IMAGE_MAX_BYTES) {
       setError(forumText.changeFailed[locale]);
       return;
     }
-    setIsUploading(true);
-    try {
+    setImages((previous) => [...previous, { file, preview: URL.createObjectURL(file) }]);
+  };
+
+  /** Uploads the picked photos into a chat, the topic or the private report, by their keys. */
+  const uploadImagesTo = async (chatId: string): Promise<string[]> => {
+    const keys: string[] = [];
+    for (const { file } of images) {
       const { url, key } = await uploadUrl.mutateAsync({
-        chatId: topicId,
-        contentType: file.type,
+        chatId,
+        contentType: file.type as Parameters<typeof uploadUrl.mutateAsync>[0]['contentType'],
         contentLength: file.size,
       });
       const response = await fetch(url, {
@@ -179,11 +184,70 @@ export const ForumComposer: React.FC = () => {
         headers: { 'Content-Type': file.type },
       });
       if (!response.ok) throw new Error('Upload failed');
-      setImages((previous) => [...previous, { key, preview: URL.createObjectURL(file) }]);
-    } catch {
-      setError(forumText.changeFailed[locale]);
+      keys.push(key);
+    }
+    return keys;
+  };
+
+  /**
+   * A public post goes into its topic. A private report opens a support chat with the piket on
+   * duty, as the map's report always did: what the reporter wrote is its first message, the
+   * photos follow it, and the reporter lands in that chat.
+   */
+  const publish = async (): Promise<void> => {
+    setError(undefined);
+    setIsBusy(true);
+    try {
+      if (isPrivate) {
+        const chat = await report.mutateAsync({
+          title: title.trim(),
+          ...(text.trim() === '' ? {} : { text: text.trim() }),
+          ...(location === undefined ? {} : { location: [location.longitude, location.latitude] }),
+        });
+        for (const key of await uploadImagesTo(chat.uuid)) {
+          await sendMessage.mutateAsync({
+            chatId: chat.uuid,
+            content: key,
+            type: 'IMAGE_MSG',
+            timestamp: new Date(),
+            messageId: crypto.randomUUID(),
+          });
+        }
+        clearDraft();
+        router.replace(`/app/chat/${chat.uuid}`);
+        return;
+      }
+      if (topicId === undefined) return;
+      const keys = await uploadImagesTo(topicId);
+      const { id } = await create.mutateAsync({
+        topicId,
+        postId,
+        title: title.trim(),
+        text: text.trim(),
+        images: keys,
+        ...(location === undefined
+          ? {}
+          : {
+              location: {
+                longitude: location.longitude,
+                latitude: location.latitude,
+                ...(location.annotationId === undefined
+                  ? {}
+                  : { annotationId: location.annotationId }),
+              },
+            }),
+      });
+      clearDraft();
+      void utils.forum.invalidate();
+      router.replace(`/app/forum/${id}`);
+    } catch (error_) {
+      setError(
+        isPrivate
+          ? userErrorMessage(error_, locale, chatErrorTexts, forumText.changeFailed)
+          : userErrorMessage(error_, locale, forumErrorTexts, forumText.changeFailed),
+      );
     } finally {
-      setIsUploading(false);
+      setIsBusy(false);
     }
   };
 
@@ -191,43 +255,58 @@ export const ForumComposer: React.FC = () => {
   const mapPickHref = `/app/map?${new URLSearchParams({
     pickForum: '1',
     ...(topicId === undefined ? {} : { topic: topicId }),
+    // back from the map, the composer is still on "Privat"
+    ...(isPrivate ? { private: '1' } : {}),
     ...(location === undefined
       ? {}
       : { lng: location.longitude.toFixed(6), lat: location.latitude.toFixed(6) }),
   }).toString()}`;
   const keepDraft = (): void => saveDraft({ title, text, topicId });
   const canPublish =
-    isOnline && topicId !== undefined && title.trim() !== '' && !create.isPending && !isUploading;
+    isOnline && title.trim() !== '' && !isBusy && (isPrivate || topicId !== undefined);
   const matching = (suggestions.data ?? []).slice(0, 3);
   let publishHint = forumText.publishHint;
   if (!isOnline) publishHint = forumText.offlinePublish;
+  else if (isPrivate) publishHint = forumText.privateHint;
   else if (topic?.isAdmin === true) publishHint = forumText.publishHintKernteam;
-
-  // Without a topic there is nowhere to post: say so, instead of a button that never wakes up.
-  if (topics.data?.length === 0) {
-    return (
-      <div className="bg-page flex min-h-dvh items-start justify-center px-4 pt-16">
-        <EmptyState
-          icon={MessageCircleQuestion}
-          title={forumText.noTopics[locale]}
-          description={forumText.noTopicsHint[locale]}
-          action={
-            <Link
-              href="/app/forum"
-              className="bg-quiet hover:bg-chip focus-visible:focus-surface flex h-11 items-center rounded-xl px-4 text-[15px] font-semibold text-green-900"
-            >
-              {forumText.back[locale]}
-            </Link>
-          }
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="bg-page min-h-dvh pb-10">
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-3">
-        {(topics.data?.length ?? 0) > 1 && (
+        {canPostPublic ? (
+          <div className="flex flex-col gap-1.5">
+            <div className={segmentedTrackClassName}>
+              {([false, true] as const).map((value) => (
+                <button
+                  key={String(value)}
+                  type="button"
+                  aria-pressed={isPrivate === value}
+                  onClick={() => setWantsPrivate(value)}
+                  className={cn(
+                    segmentClassName(isPrivate === value),
+                    'flex-1 gap-1.5 text-[14px] font-semibold',
+                  )}
+                >
+                  {value ? (
+                    <Lock className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Users className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  {value ? forumText.private[locale] : forumText.public[locale]}
+                </button>
+              ))}
+            </div>
+            <p className="text-[13px] text-green-700">
+              {isPrivate ? forumText.privateExplain[locale] : forumText.publicExplain[locale]}
+            </p>
+          </div>
+        ) : (
+          <p className="bg-quiet rounded-xl px-3 py-2 text-[13px] text-green-800">
+            {forumText.onlyPrivate[locale]}
+          </p>
+        )}
+
+        {!isPrivate && (topics.data?.length ?? 0) > 1 && (
           <fieldset className="flex flex-col gap-1.5">
             <legend className="mb-1.5 text-[13px] font-semibold text-green-800">
               {forumText.topic[locale]}
@@ -238,11 +317,7 @@ export const ForumComposer: React.FC = () => {
                   key={candidate.id}
                   type="button"
                   aria-pressed={candidate.id === topicId}
-                  onClick={() => {
-                    setChosenTopicId(candidate.id);
-                    // an image belongs to the topic it was uploaded to
-                    setImages([]);
-                  }}
+                  onClick={() => setChosenTopicId(candidate.id)}
                   className="focus-visible:focus-surface flex h-11 cursor-pointer items-center"
                 >
                   <span
@@ -370,7 +445,7 @@ export const ForumComposer: React.FC = () => {
         {images.length > 0 && (
           <ul className="grid grid-cols-4 gap-2">
             {images.map((image) => (
-              <li key={image.key} className="relative aspect-square overflow-hidden rounded-xl">
+              <li key={image.preview} className="relative aspect-square overflow-hidden rounded-xl">
                 {/* eslint-disable-next-line @next/next/no-img-element -- a local preview blob */}
                 <img src={image.preview} alt="" className="h-full w-full object-cover" />
                 <button
@@ -390,22 +465,17 @@ export const ForumComposer: React.FC = () => {
           <label
             className={cn(
               'border-line focus-within:ring-conveniat-green hover:bg-quiet flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border bg-white text-[14px] font-semibold text-green-900 focus-within:ring-2',
-              (images.length >= FORUM_POST_MAX_IMAGES || topicId === undefined) &&
-                'pointer-events-none opacity-50',
+              images.length >= FORUM_POST_MAX_IMAGES && 'pointer-events-none opacity-50',
             )}
           >
-            {isUploading ? (
-              <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-            ) : (
-              <Camera className="h-5 w-5" aria-hidden="true" />
-            )}
+            <Camera className="h-5 w-5" aria-hidden="true" />
             {forumText.photo[locale]}
             <input
               type="file"
               accept="image/*"
               className="sr-only"
               onChange={(event) => {
-                void addImage(event.target.files?.[0]);
+                addImage(event.target.files?.[0]);
                 event.target.value = '';
               }}
             />
@@ -435,32 +505,11 @@ export const ForumComposer: React.FC = () => {
           <button
             type="button"
             disabled={!canPublish}
-            onClick={() => {
-              if (topicId === undefined) return;
-              setError(undefined);
-              create.mutate({
-                topicId,
-                postId,
-                title: title.trim(),
-                text: text.trim(),
-                images: images.map((image) => image.key),
-                ...(location === undefined
-                  ? {}
-                  : {
-                      location: {
-                        longitude: location.longitude,
-                        latitude: location.latitude,
-                        ...(location.annotationId === undefined
-                          ? {}
-                          : { annotationId: location.annotationId }),
-                      },
-                    }),
-              });
-            }}
+            onClick={() => void publish()}
             className="bg-conveniat-green focus-visible:focus-surface-filled flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl text-[15px] font-bold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {create.isPending && <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />}
-            {forumText.publish[locale]}
+            {isBusy && <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />}
+            {isPrivate ? forumText.sendPrivately[locale] : forumText.publish[locale]}
           </button>
           <p className="text-center text-[12px] text-green-700">{publishHint[locale]}</p>
         </div>
