@@ -1,0 +1,159 @@
+'use client';
+
+import { AnnotationDrawerHeader } from '@/components/map/map-annotations/drawer-header';
+import { AnnotationScheduleTableComponent } from '@/components/map/map-annotations/sections/annotation-schedule-table-component';
+import { AnnotationDescriptionSection } from '@/components/map/map-annotations/sections/description-section';
+import { AnnotationForumAndReportSection } from '@/components/map/map-annotations/sections/forum-and-report-section';
+import { AnnotationImagesSection } from '@/components/map/map-annotations/sections/image-section';
+import { AnnotationOpeningHoursSection } from '@/components/map/map-annotations/sections/opening-hours-section';
+import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/components/map/types';
+import { ANNOTATION_DRAWER_ATTRIBUTE } from '@/components/map/utils/annotation-focus';
+import type { Locale } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+
+const snapPoints = [20, 50, 80]; // Snap points in vh
+const CLOSE_THRESHOLD = 15; // If height is less than 15vh on release, close the drawer
+
+export const AnnotationDetailsDrawer: React.FC<{
+  closeDrawer: () => void;
+  annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon;
+  locale: Locale;
+}> = ({ closeDrawer, annotation, locale }) => {
+  const [drawerHeight, setDrawerHeight] = useState(50);
+  const [isResizing, setIsResizing] = useState(false);
+  const drawerReference = useRef<HTMLDivElement>(null);
+  const scrollableContentReference = useRef<HTMLDivElement>(null);
+
+  const handleMouseDown = useCallback(() => {
+    setIsResizing(true);
+  }, []);
+
+  const handleMouseMove = useCallback(
+    (mouseEvent: MouseEvent) => {
+      if (!isResizing || !drawerReference.current) return;
+
+      const newHeightVh = ((window.innerHeight - mouseEvent.clientY) / window.innerHeight) * 100;
+      const clampedHeight = Math.max(0, Math.min(90, newHeightVh));
+      setDrawerHeight(clampedHeight);
+    },
+    [isResizing],
+  );
+
+  const handleTouchStart = useCallback(() => {
+    setIsResizing(true);
+  }, []);
+
+  const handleTouchMove = useCallback(
+    (event: TouchEvent) => {
+      if (!isResizing || !drawerReference.current) return;
+
+      const newHeightVh =
+        ((window.innerHeight - (event.touches[0]?.clientY ?? 0)) / window.innerHeight) * 100;
+      const clampedHeight = Math.max(0, Math.min(90, newHeightVh));
+      setDrawerHeight(clampedHeight);
+    },
+    [isResizing],
+  );
+
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+    setDrawerHeight((currentHeight) => {
+      if (currentHeight < CLOSE_THRESHOLD) {
+        closeDrawer();
+        return 0;
+      }
+
+      // Find the closest snap point
+      const newHeight = snapPoints.reduce((previous, current) =>
+        Math.abs(current - currentHeight) < Math.abs(previous - currentHeight) ? current : previous,
+      );
+
+      if (scrollableContentReference.current && newHeight !== 0) {
+        scrollableContentReference.current.scrollTop = 0;
+      }
+
+      return newHeight;
+    });
+  }, [closeDrawer]);
+
+  useEffect(() => {
+    if (isResizing) {
+      globalThis.addEventListener('mousemove', handleMouseMove);
+      globalThis.addEventListener('mouseup', handleResizeEnd);
+      globalThis.addEventListener('touchmove', handleTouchMove, { passive: false });
+      globalThis.addEventListener('touchend', handleResizeEnd);
+    } else {
+      globalThis.removeEventListener('mousemove', handleMouseMove);
+      globalThis.removeEventListener('mouseup', handleResizeEnd);
+      globalThis.removeEventListener('touchmove', handleTouchMove);
+      globalThis.removeEventListener('touchend', handleResizeEnd);
+    }
+
+    return (): void => {
+      globalThis.removeEventListener('mousemove', handleMouseMove);
+      globalThis.removeEventListener('mouseup', handleResizeEnd);
+      globalThis.removeEventListener('touchmove', handleTouchMove);
+      globalThis.removeEventListener('touchend', handleResizeEnd);
+    };
+  }, [isResizing, handleMouseMove, handleTouchMove, handleResizeEnd]);
+
+  useEffect(() => {
+    if (scrollableContentReference.current) {
+      scrollableContentReference.current.scrollTop = 0;
+    }
+  }, [annotation]);
+
+  if (drawerHeight === 0) {
+    return <></>;
+  }
+
+  return (
+    <div
+      ref={drawerReference}
+      // marks the drawer for `useFlyToAnnotation`, which measures how much of the map it covers
+      {...{ [ANNOTATION_DRAWER_ATTRIBUTE]: '' }}
+      className="fixed right-0 bottom-(--app-tab-bar-height) left-0 z-[999] flex flex-col overflow-hidden rounded-t-2xl bg-white shadow-[0px_-4px_38px_-19px_rgba(1,1,1,0.5)] select-none xl:left-(--app-content-left)"
+      style={{ height: `${drawerHeight}vh` }}
+      onDragStart={(event) => event.preventDefault()}
+    >
+      {/* the grabber and the header sit above the scrolling content rather than sticking inside
+          it: iPad Safari let the content scroll through a gap above a sticky header */}
+      <div className="shrink-0 px-4" onMouseDown={handleMouseDown} onTouchStart={handleTouchStart}>
+        <div className="flex cursor-ns-resize justify-center pt-2 pb-3">
+          <div className="bg-rail-dash h-1 w-9 rounded-full"></div>
+        </div>
+
+        <AnnotationDrawerHeader closeDrawer={closeDrawer} annotation={annotation} locale={locale} />
+      </div>
+
+      <div
+        ref={scrollableContentReference}
+        className={cn('min-h-0 flex-1 px-4', {
+          'overflow-hidden': isResizing,
+          'overflow-y-auto': !isResizing,
+        })}
+      >
+        <AnnotationDescriptionSection description={annotation.description} />
+
+        <AnnotationOpeningHoursSection openingHours={annotation.openingHours} locale={locale} />
+
+        <AnnotationImagesSection images={annotation.images} locale={locale} />
+
+        <AnnotationScheduleTableComponent locale={locale} placeId={annotation.id} />
+
+        {(annotation.enableSupportChat ?? true) && (
+          <AnnotationForumAndReportSection
+            coordinates={((): [number, number] | undefined => {
+              if (!('geometry' in annotation)) return undefined;
+              if (Array.isArray(annotation.geometry.coordinates[0])) {
+                return annotation.geometry.coordinates[0];
+              }
+              return annotation.geometry.coordinates as [number, number];
+            })()}
+          />
+        )}
+      </div>
+    </div>
+  );
+};

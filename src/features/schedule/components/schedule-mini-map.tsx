@@ -1,9 +1,7 @@
 'use client';
 
-// eslint-disable-next-line import/no-restricted-paths -- schedule feature needs to display maps for locations
-import { MiniMapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
-// eslint-disable-next-line import/no-restricted-paths -- schedule feature needs types from map
-import type { CampMapAnnotationPolygon } from '@/features/map/types/types';
+import { MiniMapLibreRenderer } from '@/components/map/map-renderer-wrapper';
+import type { CampMapAnnotationPolygon } from '@/components/map/types';
 import type { CampMapAnnotation, Image } from '@/features/payload-cms/payload-types';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';

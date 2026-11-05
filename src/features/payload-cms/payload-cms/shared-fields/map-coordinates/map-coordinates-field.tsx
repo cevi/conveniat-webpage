@@ -7,7 +7,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import type { PointFieldClientComponent } from 'payload';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { DynamicLucidIconRenderer } from '@/features/map/components/maplibre-renderer/dynamic-lucid-icon-renderer';
+import { DynamicLucidIconRenderer } from '@/components/map/maplibre-renderer/dynamic-lucid-icon-renderer';
 import { configureMapLibreWorker } from '@/lib/maplibre-worker';
 import { formatHexColor } from '@/utils/format-hex-color';
 import { reactToDomElement } from '@/utils/react-to-dom-element';

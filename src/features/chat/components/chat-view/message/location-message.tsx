@@ -1,9 +1,7 @@
 import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
+import { MapLibreRenderer } from '@/components/map/map-renderer-wrapper';
+import { MapUnavailableFallback } from '@/components/map/map-unavailable-fallback';
 import type { ChatMessage } from '@/features/chat/api/types';
-// eslint-disable-next-line import/no-restricted-paths
-import { MapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
-// eslint-disable-next-line import/no-restricted-paths
-import { MapUnavailableFallback } from '@/features/map/components/map-unavailable-fallback';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';

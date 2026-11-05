@@ -2,7 +2,7 @@ import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
   MapQuartier,
-} from '@/features/map/types/types';
+} from '@/components/map/types';
 import { resolveLinksInArray } from '@/features/payload-cms/payload-cms/utils/resolve-rich-text-links';
 import type { Locale } from '@/types/types';
 import { formatHexColor } from '@/utils/format-hex-color';

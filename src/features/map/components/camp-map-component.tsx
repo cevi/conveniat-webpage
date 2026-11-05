@@ -1,6 +1,6 @@
+import { MapLibreRenderer } from '@/components/map/map-renderer-wrapper';
+import type { InitialMapPose } from '@/components/map/types';
 import { environmentVariables } from '@/config/environment-variables';
-import { MapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
-import type { InitialMapPose } from '@/features/map/types/types';
 import type React from 'react';
 import 'server-only';
 

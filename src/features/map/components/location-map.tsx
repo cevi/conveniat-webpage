@@ -1,4 +1,4 @@
-import { MapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
+import { MapLibreRenderer } from '@/components/map/map-renderer-wrapper';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import React from 'react';
 

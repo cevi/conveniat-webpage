@@ -1,0 +1,177 @@
+'use client';
+
+import { useIntersectionObserver } from '@/components/map/hooks/use-intersection-observer';
+import type {
+  CampMapAnnotationPoint,
+  CampMapAnnotationPolygon,
+  CeviLogoMarker,
+  InitialMapPose,
+  MapControlOptions,
+} from '@/components/map/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
+import { Loader2 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import type React from 'react';
+import { Suspense, useRef } from 'react';
+
+const mapLoadingText: StaticTranslationString = {
+  en: 'Loading map …',
+  de: 'Karte wird geladen …',
+  fr: 'Chargement de la carte …',
+};
+
+/** The map's box in the quiet grey of a page loading, with a word on what is coming. */
+const MapLoadingFallback: React.FC = () => {
+  const locale = (useCurrentLocale(i18nConfig) as Locale | undefined) ?? 'de';
+  return (
+    <div className="bg-quiet flex h-full w-full items-center justify-center">
+      <p
+        role="status"
+        className="flex items-center gap-2 rounded-full bg-white px-3.5 py-2 text-[13px] font-medium text-green-700 shadow-[0_2px_10px_rgba(0,0,0,0.15)]"
+      >
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        {mapLoadingText[locale]}
+      </p>
+    </div>
+  );
+};
+
+const LazyMapLibreRenderer = dynamic(
+  () => import('@/components/map/maplibre-renderer/map-renderer'),
+  {
+    ssr: false,
+  },
+);
+
+const MiniMapLoadingFallback: React.FC = () => <Skeleton className="h-full w-full rounded-none" />;
+
+const LazyMiniMapLibreRenderer = dynamic(
+  () => import('@/components/map/maplibre-renderer/map-renderer'),
+  {
+    ssr: false,
+  },
+);
+
+export interface MapLibreRendererProperties {
+  initialMapPose: InitialMapPose;
+  ceviLogoMarkers: CeviLogoMarker[];
+  campMapAnnotationPoints?: CampMapAnnotationPoint[];
+  campMapAnnotationPolygons?: CampMapAnnotationPolygon[];
+  limitUsage?: boolean;
+  /** URL of the MapLibre style; the swisstopo base map when omitted. */
+  mapStyle?: string;
+  validateStyle?: boolean;
+  mapControlOptions?: MapControlOptions;
+  selectedAnnotationId?: string;
+  hideDrawer?: boolean;
+  disableUrlSync?: boolean;
+  disableFlyTo?: boolean;
+  enableSearch?: boolean;
+  /** Rendered instead of the map when it cannot be initialized on this device. */
+  unavailableFallback?: React.ReactNode;
+}
+
+export const MapLibreRenderer = ({
+  initialMapPose,
+  ceviLogoMarkers,
+  campMapAnnotationPoints,
+  campMapAnnotationPolygons,
+  limitUsage = true,
+  validateStyle = true,
+  mapControlOptions,
+  selectedAnnotationId,
+  hideDrawer,
+  disableUrlSync,
+  disableFlyTo,
+  enableSearch,
+  unavailableFallback,
+  mapStyle,
+}: MapLibreRendererProperties): React.JSX.Element => {
+  const reference = useRef<HTMLDivElement>(null);
+  const isVisible = useIntersectionObserver(reference);
+
+  // default values for optional parameters
+  campMapAnnotationPoints ??= [];
+  campMapAnnotationPolygons ??= [];
+
+  return (
+    <div ref={reference} className="h-full w-full">
+      {isVisible ? (
+        <Suspense fallback={<MapLoadingFallback />}>
+          <LazyMapLibreRenderer
+            initialMapPose={initialMapPose}
+            ceviLogoMarkers={ceviLogoMarkers}
+            campMapAnnotationPoints={campMapAnnotationPoints}
+            campMapAnnotationPolygons={campMapAnnotationPolygons}
+            limitUsage={limitUsage}
+            validateStyle={validateStyle}
+            mapControlOptions={mapControlOptions}
+            {...(selectedAnnotationId !== undefined && { selectedAnnotationId })}
+            {...(hideDrawer !== undefined && { hideDrawer })}
+            {...(disableUrlSync !== undefined && { disableUrlSync })}
+            {...(disableFlyTo !== undefined && { disableFlyTo })}
+            {...(enableSearch !== undefined && { enableSearch })}
+            {...(unavailableFallback !== undefined && { unavailableFallback })}
+            {...(mapStyle !== undefined && { mapStyle })}
+          />
+        </Suspense>
+      ) : (
+        <MapLoadingFallback />
+      )}
+    </div>
+  );
+};
+
+export const MiniMapLibreRenderer = ({
+  initialMapPose,
+  ceviLogoMarkers,
+  campMapAnnotationPoints,
+  campMapAnnotationPolygons,
+  limitUsage = true,
+  validateStyle = true,
+  mapControlOptions,
+  selectedAnnotationId,
+  hideDrawer,
+  disableUrlSync,
+  disableFlyTo,
+  enableSearch,
+  unavailableFallback,
+  mapStyle,
+}: MapLibreRendererProperties): React.JSX.Element => {
+  const reference = useRef<HTMLDivElement>(null);
+  const isVisible = useIntersectionObserver(reference);
+
+  // default values for optional parameters
+  campMapAnnotationPoints ??= [];
+  campMapAnnotationPolygons ??= [];
+
+  return (
+    <div ref={reference} className="h-full w-full">
+      {isVisible ? (
+        <Suspense fallback={<MiniMapLoadingFallback />}>
+          <LazyMiniMapLibreRenderer
+            initialMapPose={initialMapPose}
+            ceviLogoMarkers={ceviLogoMarkers}
+            campMapAnnotationPoints={campMapAnnotationPoints}
+            campMapAnnotationPolygons={campMapAnnotationPolygons}
+            limitUsage={limitUsage}
+            validateStyle={validateStyle}
+            mapControlOptions={mapControlOptions}
+            {...(selectedAnnotationId !== undefined && { selectedAnnotationId })}
+            {...(hideDrawer !== undefined && { hideDrawer })}
+            {...(disableUrlSync !== undefined && { disableUrlSync })}
+            {...(disableFlyTo !== undefined && { disableFlyTo })}
+            {...(enableSearch !== undefined && { enableSearch })}
+            {...(unavailableFallback !== undefined && { unavailableFallback })}
+            {...(mapStyle !== undefined && { mapStyle })}
+          />
+        </Suspense>
+      ) : (
+        <MiniMapLoadingFallback />
+      )}
+    </div>
+  );
+};
