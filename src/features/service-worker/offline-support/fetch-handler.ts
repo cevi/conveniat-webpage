@@ -6,8 +6,8 @@ import {
 } from '@/features/service-worker/app-mode';
 import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
 import {
+  reloadStaleBuildPage,
   reportSkewRefusal,
-  reportStaleBuildPage,
 } from '@/features/service-worker/offline-support/build-skew-reporting';
 import { normalizeTileUrl } from '@/features/service-worker/offline-support/map-viewer';
 import {
@@ -637,7 +637,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
             event.waitUntil(
               fromNetwork.then(
                 (late) =>
-                  reportStaleBuildPage(
+                  reloadStaleBuildPage(
                     cachedCopy,
                     late,
                     event.resultingClientId,

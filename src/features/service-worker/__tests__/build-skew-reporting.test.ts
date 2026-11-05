@@ -1,4 +1,5 @@
 import { CACHE_NAMES } from '@/features/service-worker/constants';
+import { staleBuildPagePlugin } from '@/features/service-worker/offline-support/build-skew-reporting';
 import { handleFetchEvent } from '@/features/service-worker/offline-support/fetch-handler';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import type { Serwist } from 'serwist';
@@ -96,25 +97,36 @@ describe('reporting pages of an outdated build to PostHog', () => {
   const originalCaches = globalThis.caches;
   const originalNavigator = globalThis.navigator;
   let sent: Sent[];
+  let reloads: { clientId: string; url: string }[];
 
   beforeEach(() => {
     jest.useFakeTimers();
     sent = [];
+    reloads = [];
     Object.defineProperty(globalThis, 'navigator', { value: { onLine: true }, configurable: true });
     Object.defineProperty(globalThis, 'self', {
       value: {
         location: { origin: ORIGIN },
         clients: {
-          get: (clientId: string) =>
-            Promise.resolve({
-              url: `${ORIGIN}/app/dashboard`,
-              postMessage: (message: Sent['message']) => sent.push({ clientId, message }),
-            }),
-          matchAll: () => Promise.resolve([]),
+          get: (clientId: string) => Promise.resolve(openPage(clientId)),
+          // the one open app page, which WebKit gives no id to while it loads
+          matchAll: () => Promise.resolve([openPage('open-dashboard')]),
         },
       },
       configurable: true,
     });
+  });
+
+  const openPage = (
+    clientId: string,
+  ): Pick<WindowClient, 'id' | 'url' | 'postMessage' | 'navigate'> => ({
+    id: clientId,
+    url: `${ORIGIN}/app/dashboard`,
+    postMessage: (message: Sent['message']) => sent.push({ clientId, message }),
+    navigate: (url: string): Promise<null> => {
+      reloads.push({ clientId, url });
+      return Promise.resolve(null);
+    },
   });
 
   afterEach(() => {
@@ -137,9 +149,9 @@ describe('reporting pages of an outdated build to PostHog', () => {
 
   /**
    * After a release, a cold start on slow wifi served the previous build's dashboard from the
-   * cache. That page could no longer navigate, and nothing anywhere recorded that it ran.
+   * cache. Some taps on that page never reloaded it, so it stopped navigating.
    */
-  it('reports a cached page of another build once the network answers for it', async () => {
+  it('reports and reloads a cached page of another build once the network answers for it', async () => {
     globalThis.caches = cachesWithDashboardOf(OLD_BUILD);
     globalThis.fetch = jest.fn(
       () => new Promise<Response>((resolve) => setTimeout(() => resolve(page(NEW_BUILD)), 5000)),
@@ -163,14 +175,76 @@ describe('reporting pages of an outdated build to PostHog', () => {
               path: '/app/dashboard',
               cached_build: OLD_BUILD,
               server_build: NEW_BUILD,
+              reloaded: true,
             }) as unknown,
           },
         }) as unknown,
       }),
     ]);
+    // the page of the old build could no longer navigate; it is replaced by the new one
+    expect(reloads).toEqual([{ clientId: 'ipad-page', url: `${ORIGIN}/app/dashboard` }]);
   });
 
-  it('stays quiet when the cached page is of the build the server runs', async () => {
+  /** WebKit, which the iPad runs, leaves `resultingClientId` empty for a navigation. */
+  it('finds the page by its path when the browser names no page for the navigation', async () => {
+    globalThis.caches = cachesWithDashboardOf(OLD_BUILD);
+    globalThis.fetch = jest.fn(
+      () => new Promise<Response>((resolve) => setTimeout(() => resolve(page(NEW_BUILD)), 5000)),
+    );
+
+    const { lifetime } = send(openDashboard(), { resultingClientId: '' });
+    await jest.advanceTimersByTimeAsync(5000);
+    await Promise.all(lifetime);
+
+    expect(events('stale_build_page_served')).toHaveLength(1);
+    expect(reloads).toEqual([{ clientId: 'open-dashboard', url: `${ORIGIN}/app/dashboard` }]);
+  });
+
+  /**
+   * In WebKit the worker cannot tell the app's page loads apart, so they go through Serwist's
+   * page route: on its timeout it serves the cached copy and lets the network request run on.
+   */
+  it('reloads a page Serwist served from its cache once the network answers with another build', async () => {
+    const lifetime: Promise<unknown>[] = [];
+    const event = {
+      resultingClientId: '',
+      waitUntil: (promise: Promise<unknown>) => lifetime.push(promise),
+    } as unknown as ExtendableEvent;
+    const request = new Request(`${ORIGIN}/app/dashboard`);
+    const state = {};
+    const hooks = staleBuildPagePlugin as Required<typeof staleBuildPagePlugin>;
+
+    await hooks.requestWillFetch({ request, event, state });
+    await hooks.cachedResponseWillBeUsed({
+      cacheName: CACHE_NAMES.PAGES,
+      request,
+      cachedResponse: page(OLD_BUILD),
+      event,
+      state,
+    });
+    await hooks.fetchDidSucceed({ request, response: page(NEW_BUILD), event, state });
+    await Promise.all(lifetime);
+
+    expect(reloads).toEqual([{ clientId: 'open-dashboard', url: `${ORIGIN}/app/dashboard` }]);
+  });
+
+  it('leaves a page alone that Serwist got from the network in time', async () => {
+    const lifetime: Promise<unknown>[] = [];
+    const event = {
+      waitUntil: (promise: Promise<unknown>) => lifetime.push(promise),
+    } as unknown as ExtendableEvent;
+    const request = new Request(`${ORIGIN}/app/dashboard`);
+    const state = {};
+    const hooks = staleBuildPagePlugin as Required<typeof staleBuildPagePlugin>;
+
+    await hooks.requestWillFetch({ request, event, state });
+    await hooks.fetchDidSucceed({ request, response: page(NEW_BUILD), event, state });
+    await Promise.all(lifetime);
+
+    expect(reloads).toEqual([]);
+  });
+
+  it('leaves a cached page of the build the server runs alone', async () => {
     globalThis.caches = cachesWithDashboardOf(NEW_BUILD);
     globalThis.fetch = jest.fn(
       () => new Promise<Response>((resolve) => setTimeout(() => resolve(page(NEW_BUILD)), 5000)),
@@ -181,6 +255,7 @@ describe('reporting pages of an outdated build to PostHog', () => {
     await Promise.all(lifetime);
 
     expect(events('stale_build_page_served')).toEqual([]);
+    expect(reloads).toEqual([]);
   });
 
   it('reports a page whose requests the proxy turns away, once per page', async () => {

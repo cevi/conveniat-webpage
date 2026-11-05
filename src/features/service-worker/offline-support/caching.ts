@@ -1,4 +1,5 @@
 import { CACHE_NAMES } from '@/features/service-worker/constants';
+import { staleBuildPagePlugin } from '@/features/service-worker/offline-support/build-skew-reporting';
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
 import { defaultCache } from '@serwist/next/worker';
 import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig, SerwistPlugin } from 'serwist';
@@ -150,6 +151,8 @@ const pageCaching: RuntimeCaching = {
         maxEntries: 50,
         maxAgeSeconds: 14 * 24 * 60 * 60,
       }),
+      // last, so it sees the cached copy the other plugins let through
+      staleBuildPagePlugin,
     ],
   }),
 };
