@@ -239,7 +239,11 @@ export const ForumOverview: React.FC = () => {
                 <EmptyState icon={MessageCircleQuestion} title={forumText.loadFailed[locale]} />
               )}
               {topics.data?.length === 0 && (
-                <EmptyState icon={MessageCircleQuestion} title={forumText.noTopics[locale]} />
+                <EmptyState
+                  icon={MessageCircleQuestion}
+                  title={forumText.noTopics[locale]}
+                  description={forumText.noTopicsPrivate[locale]}
+                />
               )}
               {!list.isLoading && posts.length === 0 && (topics.data?.length ?? 0) > 0 && (
                 <EmptyState
@@ -282,15 +286,15 @@ export const ForumOverview: React.FC = () => {
         )}
       </div>
 
-      {(topics.data?.length ?? 0) > 0 && (
-        <Link
-          href={topicId === undefined ? '/app/forum/new' : `/app/forum/new?topic=${topicId}`}
-          className="bg-conveniat-green focus-visible:focus-surface-filled fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 flex h-[52px] items-center gap-2 rounded-2xl px-5 text-[15px] font-bold text-white shadow-lg hover:bg-green-700 xl:bottom-8"
-        >
-          <Plus className="h-5 w-5" aria-hidden="true" />
-          {forumText.newPost[locale]}
-        </Link>
-      )}
+      {/* always there, also before the topics load and without one: the composer then sends
+          the report privately to the Zentrale */}
+      <Link
+        href={topicId === undefined ? '/app/forum/new' : `/app/forum/new?topic=${topicId}`}
+        className="bg-conveniat-green focus-visible:focus-surface-filled fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 flex h-[52px] items-center gap-2 rounded-2xl px-5 text-[15px] font-bold text-white shadow-lg hover:bg-green-700 xl:bottom-8"
+      >
+        <Plus className="h-5 w-5" aria-hidden="true" />
+        {forumText.newPost[locale]}
+      </Link>
     </div>
   );
 };
