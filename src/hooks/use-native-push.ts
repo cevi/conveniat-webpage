@@ -8,7 +8,7 @@ import { trpc, useOptionalTrpcUtils } from '@/trpc/client';
 import { Cookie } from '@/types/types';
 import { notifyForegroundMessage } from '@/utils/foreground-notifications';
 import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
-import { resolvePushTarget } from '@/utils/push-target';
+import { chatIdOfTarget, resolvePushTarget } from '@/utils/push-target';
 import { reloadPage } from '@/utils/reload-page';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import Cookies from 'js-cookie';
@@ -608,14 +608,7 @@ export function useNativePush(): {
         case 'native-push-open': {
           const targetPath = resolvePushTarget(extractTargetUrl(payload));
 
-          let targetChatId: string | undefined;
-          if (targetPath.includes('/app/chat/')) {
-            const parts = targetPath.split('/app/chat/');
-            const firstPart = parts[1];
-            if (typeof firstPart === 'string' && firstPart !== '') {
-              targetChatId = firstPart.split(/[?#]/)[0];
-            }
-          }
+          const targetChatId = chatIdOfTarget(targetPath);
           refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
 
           // Native pushes never reach the service worker, whose click handler tracks
@@ -639,15 +632,7 @@ export function useNativePush(): {
         case 'push-received':
         case 'notification': {
           const rawUrl = extractTargetUrl(payload);
-          let targetChatId: string | undefined;
-
-          if (typeof rawUrl === 'string' && rawUrl.includes('/app/chat/')) {
-            const parts = rawUrl.split('/app/chat/');
-            const firstPart = parts[1];
-            if (typeof firstPart === 'string' && firstPart !== '') {
-              targetChatId = firstPart.split(/[?#]/)[0];
-            }
-          }
+          const targetChatId = rawUrl === undefined ? undefined : chatIdOfTarget(rawUrl);
 
           console.log(
             `[Chat][FCM] Foreground push message received (chat: ${targetChatId ?? 'unknown'}).`,

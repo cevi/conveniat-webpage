@@ -98,7 +98,7 @@ describe('notificationClickHandler', () => {
       );
       const calls = mockWaitUntil.mock.calls as Promise<unknown>[][];
       const done = calls[0]?.[0];
-      if (!pageAnswers) await jest.advanceTimersByTimeAsync(1000);
+      if (!pageAnswers) await jest.advanceTimersByTimeAsync(2500);
       await done;
     } finally {
       jest.useRealTimers();
@@ -139,6 +139,26 @@ describe('notificationClickHandler', () => {
       'https://konekta.ch/app/chat/550e8400-e29b-41d4-a716-446655440000?app-mode=true',
     );
     expect(mockServiceWorkerScope.clients?.openWindow).not.toHaveBeenCalled();
+  });
+
+  it('does not ask a page it does not control, whose window must open while the click allows', async () => {
+    const client = makeOpenApp(true, jest.fn().mockRejectedValue(new TypeError('uncontrolled')));
+    (mockServiceWorkerScope.clients?.matchAll as jest.Mock).mockImplementation(
+      (options?: ClientQueryOptions) =>
+        Promise.resolve(options?.includeUncontrolled === true ? [client] : []),
+    );
+    notificationClickHandler(mockServiceWorkerScope as unknown as ServiceWorkerGlobalScope)(
+      mockEvent as NotificationEvent,
+    );
+    await (mockWaitUntil.mock.calls as Promise<unknown>[][])[0]?.[0];
+
+    expect(client.postMessage).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: ServiceWorkerMessages.PUSH_NAVIGATE }),
+      expect.anything(),
+    );
+    expect(mockServiceWorkerScope.clients?.openWindow).toHaveBeenCalledWith(
+      expect.stringContaining('/app/chat/550e8400-e29b-41d4-a716-446655440000'),
+    );
   });
 
   it('opens a new window when the open page neither routes the tap nor can be navigated', async () => {

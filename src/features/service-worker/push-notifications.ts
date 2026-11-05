@@ -186,10 +186,11 @@ function broadcastToClients(clients: readonly Client[], data: NotificationPayloa
 const CLIENT_URL_RESPONSE_TIMEOUT_MS = 400;
 
 /**
- * How long the service worker waits for the page to take over a tap. The page was just focused,
- * and a phone that wakes it may take a moment before its listeners run.
+ * How long the service worker waits for a page it controls to take over a tap. The page was
+ * just focused, and a cheap phone thawing a frozen tab takes a while before its listeners run;
+ * navigating it before they do reloads the app under its own soft navigation.
  */
-const PUSH_NAVIGATE_RESPONSE_TIMEOUT_MS = 1000;
+const PUSH_NAVIGATE_RESPONSE_TIMEOUT_MS = 2500;
 
 /**
  * Strips an optional locale prefix so `/de/app/chat/x` compares equal to `/app/chat/x`.
@@ -507,10 +508,10 @@ export const notificationClickHandler =
       : Promise.resolve();
 
     const openOrFocusPromise = (async (): Promise<void> => {
-      const clientList = await serviceWorkerScope.clients.matchAll({
-        type: 'window',
-        includeUncontrolled: true,
-      });
+      const [clientList, controlledClients] = await Promise.all([
+        serviceWorkerScope.clients.matchAll({ type: 'window', includeUncontrolled: true }),
+        serviceWorkerScope.clients.matchAll({ type: 'window' }),
+      ]);
 
       const existingClient =
         clientList.find((client) => client.visibilityState === 'visible') ?? clientList[0];
@@ -531,8 +532,10 @@ export const notificationClickHandler =
 
       // The open app routes a target on this origin itself, a soft navigation that keeps the
       // app loaded. Only a page that does not take the tap over, like the admin panel, or a link
-      // to another origin is loaded anew.
-      if (isSameOrigin) {
+      // to another origin is loaded anew. An uncontrolled page is not asked: navigate() rejects
+      // for it, and the window opened instead must open while the click still allows it.
+      const isControlled = controlledClients.some((client) => client.id === existingClient.id);
+      if (isSameOrigin && isControlled) {
         const answer = await requestFromClient(
           existingClient,
           { type: ServiceWorkerMessages.PUSH_NAVIGATE, payload: { url: targetUrlString } },
@@ -546,7 +549,11 @@ export const notificationClickHandler =
       try {
         await existingClient.navigate(targetUrlString);
       } catch {
-        await serviceWorkerScope.clients.openWindow(targetUrlString);
+        try {
+          await serviceWorkerScope.clients.openWindow(targetUrlString);
+        } catch (error: unknown) {
+          console.warn('[SW Push] Could not open the notification target:', error);
+        }
       }
     })();
 

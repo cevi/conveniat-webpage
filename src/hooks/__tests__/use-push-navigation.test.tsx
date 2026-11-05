@@ -96,12 +96,14 @@ describe('usePushNavigation', () => {
     }
   });
 
-  it('loads the target when the router ends without getting anywhere', () => {
+  it('loads the target when the router ends without getting anywhere, and only once', () => {
     const { result } = renderHook(() => usePushNavigation());
 
     act(() => result.current.navigateToPushTarget('/app/schedule'));
 
     expect(assignLocation).toHaveBeenCalledWith('/app/schedule');
+    // Remembered, a target the server keeps sending elsewhere would reload after every load.
+    expect(localStorage.getItem('pending_push_redirect')).toBeNull();
   });
 
   it('loads the target when the router is not ready', () => {
@@ -167,6 +169,17 @@ describe('usePushNavigation', () => {
 
       expect(push).toHaveBeenCalledWith('/app/schedule?id=123');
       expect(localStorage.getItem('pending_push_redirect')).toBeNull();
+    });
+
+    it('opens a chat whose id only starts like the one on screen', () => {
+      moveTo('/app/chat/123');
+      localStorage.setItem('pending_push_redirect', '/app/chat/12');
+      push.mockImplementation((target: string) => moveTo(target));
+      const { result } = renderHook(() => usePushNavigation());
+
+      act(() => result.current.resumePendingPushNavigation());
+
+      expect(push).toHaveBeenCalledWith('/app/chat/12');
     });
 
     it('forgets a target the page already shows', () => {

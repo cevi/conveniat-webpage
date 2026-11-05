@@ -49,7 +49,7 @@ const currentHref = (): string => {
 const isAtTarget = (target: string): boolean => {
   if (currentHref() === target) return true;
   const chatId = chatIdOfTarget(target);
-  return chatId !== undefined && globalThis.location.pathname.includes(`/app/chat/${chatId}`);
+  return chatId !== undefined && chatIdOfTarget(globalThis.location.pathname) === chatId;
 };
 
 /**
@@ -102,6 +102,9 @@ export function usePushNavigation(): {
       '[PushNavigation] Router did not reach the target, loading it:',
       navigation.target,
     );
+    // The page load is the last attempt: a target the server sends elsewhere would otherwise be
+    // resumed and loaded again after every load.
+    forgetPendingTarget();
     assignLocation(navigation.target);
   }, [isPending]);
 

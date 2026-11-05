@@ -322,7 +322,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
   }, [onboardingStep]);
 
   // Redirect to target destination or dashboard when finished
-  // The effect runs again whenever `navigateToPushTarget` changes identity; a second
+  // The effect runs again whenever one of its dependencies changes; a second
   // `location.replace` would abort the page load the first one started.
   const hasLeftForDashboard = useRef(false);
   useEffect(() => {
@@ -334,8 +334,6 @@ export const useOnboarding = (): UseOnboardingReturn => {
           sessionStorage.getItem('pending_push_redirect') ??
           localStorage.getItem('pending_push_redirect');
         if (pendingRedirect) {
-          sessionStorage.removeItem('pending_push_redirect');
-          localStorage.removeItem('pending_push_redirect');
           console.log('[Onboarding] Pending push redirect found, navigating to:', pendingRedirect);
           navigateToPushTarget(pendingRedirect);
           return;
