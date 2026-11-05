@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/buttons/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { IconTile } from '@/components/ui/icon-tile';
+import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import { toast } from '@/components/ui/toast';
 import { BandIdentityCard, BandRefusal } from '@/features/wristbands/components/band-identity-card';
@@ -23,11 +24,12 @@ import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { keepPreviousData } from '@tanstack/react-query';
 import type { TRPCClientErrorLike } from '@trpc/client';
 import type { UseTRPCQueryResult } from '@trpc/react-query/shared';
-import { Loader2, MessageSquare, Nfc, ScanLine, UserRound } from 'lucide-react';
+import { ChevronRight, Loader2, MessageSquare, Nfc, ScanLine, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
@@ -246,6 +248,68 @@ const CheckBand: React.FC<{
   );
 };
 
+/**
+ * The last row of the band's card for the safety team while the band is known by its UID alone:
+ * held to the phone again, the band shows its Hof, its Quartier and the AVP. Starts the scan on
+ * a tap, which iOS needs for its own NFC sheet anyway.
+ */
+const UnlockRow: React.FC<{ check: BandCheck; checking: boolean; locale: Locale }> = ({
+  check,
+  checking,
+  locale,
+}) => {
+  const nfcAvailable = useNativeNfcAvailable();
+  const waiting = check.state.step === 'waiting';
+  const tile = (
+    <span
+      className={cn(
+        'bg-tint text-conveniat-green grid size-10 shrink-0 place-items-center rounded-xl',
+        waiting && 'animate-pulse',
+      )}
+    >
+      {checking ? (
+        <Loader2 className="size-5 animate-spin" aria-hidden />
+      ) : (
+        <Nfc className="size-5" aria-hidden />
+      )}
+    </span>
+  );
+  let sub = tagText('unlockSafety', locale);
+  if (nfcAvailable === false) sub = tagText('rescanInApp', locale);
+  else if (checking) sub = tagText('unlockChecking', locale);
+  else if (waiting) sub = tagText('unlockWaiting', locale);
+  const text = (
+    <span className="min-w-0 flex-1" aria-live="polite">
+      <span className="block text-[15px] font-semibold text-green-900">
+        {tagText('unlockTitle', locale)}
+      </span>
+      <span className="block text-[13px] text-green-700">{sub}</span>
+    </span>
+  );
+  const rowClassName = 'border-line bg-tint/50 border-t';
+
+  if (nfcAvailable !== true || waiting || checking) {
+    return (
+      <div className={cn(rowClassName, 'flex min-h-14 items-center gap-3 px-3.5 py-2.5')}>
+        {tile}
+        {text}
+        {waiting && (
+          <Button variant="plain" size="touch" onClick={check.cancel}>
+            {translate('cancel', locale)}
+          </Button>
+        )}
+      </div>
+    );
+  }
+  return (
+    <ListRow className={cn(rowClassName, 'px-3.5')} onClick={check.start}>
+      {tile}
+      {text}
+      <ChevronRight className="size-5 shrink-0 text-green-500" aria-hidden />
+    </ListRow>
+  );
+};
+
 /** What a verified band leads the safety team to: a chat with the wearer and the Hof's AVP. */
 const SafetyContacts: React.FC<{
   card: WristbandCard;
@@ -395,10 +459,13 @@ export const TagView: React.FC<{ uid: string }> = ({ uid }) => {
             <BandIdentityCard
               identity={safety.identity}
               locale={locale}
-              coldTap={check.signature === undefined}
+              unlock={<UnlockRow check={check} checking={checking} locale={locale} />}
             />
+            {/* an assigned band reads again from its card's last row; what went wrong shows here */}
             {!verified &&
-              (safety.identity.state === 'assigned' || safety.identity.state === 'unassigned') &&
+              (safety.identity.state === 'unassigned' ||
+                (safety.identity.state === 'assigned' &&
+                  (check.state.step === 'failed' || check.state.step === 'other-band'))) &&
               checkBand}
             <SafetyContacts card={card} chat={chat} locale={locale} />
           </>

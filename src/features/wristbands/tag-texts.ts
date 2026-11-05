@@ -60,6 +60,22 @@ export const tagTexts = {
     fr: 'Personne de l’AVP de ce Hof n’a l’app.',
   },
   checkBand: { de: 'Band prüfen', en: 'Check the wristband', fr: 'Vérifier le bracelet' },
+  unlockTitle: {
+    de: 'Nochmals ans Handy halten',
+    en: 'Hold it to the phone again',
+    fr: 'Retiens-le contre le téléphone',
+  },
+  unlockSafety: {
+    de: 'Zeigt Hof, Quartier und die AVP',
+    en: 'Shows the Hof, the Quartier and the AVP',
+    fr: 'Affiche le Hof, le Quartier et l’AVP',
+  },
+  unlockWaiting: {
+    de: 'Wartet auf das Band …',
+    en: 'Waiting for the wristband …',
+    fr: 'En attente du bracelet …',
+  },
+  unlockChecking: { de: 'Wird geprüft …', en: 'Checking …', fr: 'Vérification …' },
   rescanTitle: {
     de: 'Erneut scannen, um Details zu sehen oder einen Chat zu starten',
     en: 'Scan again to see details or start a chat',

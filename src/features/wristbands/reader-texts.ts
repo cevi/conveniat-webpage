@@ -41,7 +41,11 @@ export const readerTexts = {
     fr: 'Seuls la sécurité et les samaritains du conveniat27 voient qui porte un bracelet.',
   },
   hof: { de: 'Hof', en: 'Hof', fr: 'Hof' },
-  details: { de: 'Details', en: 'Details', fr: 'Détails' },
+  lockedUntilScan: {
+    de: 'erst nach nochmaligem Scannen',
+    en: 'only after scanning again',
+    fr: 'seulement après un nouveau scan',
+  },
   quartier: { de: 'Quartier', en: 'Quartier', fr: 'Quartier' },
   notGenuineTitle: {
     de: 'Kein echtes conveniat27-Armband',
@@ -89,11 +93,6 @@ export const readerTexts = {
     de: 'Echtheit nicht geprüft',
     en: 'Authenticity not checked',
     fr: 'Authenticité non vérifiée',
-  },
-  notCheckedColdTap: {
-    de: 'Ein Tippen vom Startbildschirm liest nur die Nummer des Bands, nicht seine Signatur. Eine Kopie zeigte dasselbe.',
-    en: 'A tap from the home screen reads only the number of the band, not its signature. A copy would show the same.',
-    fr: 'Un contact depuis l’écran d’accueil ne lit que le numéro du bracelet, pas sa signature. Une copie afficherait la même chose.',
   },
   notCheckedNoSignature: {
     de: 'Dieses Band gibt keine Signatur heraus, seine Echtheit lässt sich nicht prüfen.',

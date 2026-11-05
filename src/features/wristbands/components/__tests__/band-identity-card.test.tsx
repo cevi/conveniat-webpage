@@ -24,21 +24,35 @@ describe('a band as security and first aid read it', () => {
     expect(screen.getByText('Quartier 5 - Greif')).toBeInTheDocument();
   });
 
-  it('keeps the UID folded away under Details, in bytes', () => {
+  it('says the band number in bytes, without anything to unfold', () => {
     const { container } = render(<BandIdentityCard identity={LEA} locale="de" />);
-    const details = container.querySelector('details');
-    expect(details).not.toBeNull();
-    expect(details?.open).toBe(false);
-    expect(details).toHaveTextContent('Band 04 62 41 5A 7E 24 90');
+    expect(screen.getByText('Band 04 62 41 5A 7E 24 90')).toBeInTheDocument();
+    expect(container.querySelector('details')).toBeNull();
   });
 
-  it('says when the list on the phone answered, and when a band was not checked', () => {
+  it('locks the Hof and the Quartier of a band known by its number alone, until it is read again', () => {
+    render(
+      <BandIdentityCard
+        identity={{ ...LEA, hof: '', quartier: null, verified: false }}
+        locale="de"
+        unlock={<button type="button">Nochmals ans Handy halten</button>}
+      />,
+    );
+    // greyed rows, which a screen reader reads as locked
+    expect(screen.getByText('Hof')).toHaveTextContent('Hof: erst nach nochmaligem Scannen');
+    expect(screen.getByText('Quartier')).toHaveTextContent(
+      'Quartier: erst nach nochmaligem Scannen',
+    );
+    expect(screen.getByRole('button', { name: 'Nochmals ans Handy halten' })).toBeInTheDocument();
+    expect(screen.queryByText('Echtheit nicht geprüft')).not.toBeInTheDocument();
+  });
+
+  it('says when the list on the phone answered, and when a band gave no signature', () => {
     render(
       <BandIdentityCard
         identity={{ ...LEA, verified: false }}
         fromRoster={{ updatedAt: Date.UTC(2027, 6, 25, 8, 30) }}
         locale="de"
-        coldTap
       />,
     );
     expect(screen.getByText('Echtheit nicht geprüft')).toBeInTheDocument();
