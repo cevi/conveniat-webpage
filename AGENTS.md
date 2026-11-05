@@ -301,7 +301,10 @@ deliberately: the piket schedule, whose entries for forum chats let whoever is o
 posts for the length of the shift, and an assignment, which lets one helper change the status of
 one post until it is done or withdrawn. All three are decided in `resolveForumModerator`, every
 change they allow is written to the forum protocol, and `/admin/access-overview` lists them as
-their own rows. A new right outside the app is still a role in `roles.ts`.
+their own rows. The Kernteam of a forum topic is its admins, and editors do not name them: they
+pick functions from "Funktionen und Adressbuch" on the topic, and whoever holds one is made
+admin by `forum-kernteam.ts`, so the Kernteam follows Cevi.DB. A new right outside the app is
+still a role in `roles.ts`.
 
 `admin.hidden` is not access control. It keeps an entry out of the sidebar and nothing more, so give
 the entry a real rule as well and keep the two saying the same thing.

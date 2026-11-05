@@ -361,9 +361,12 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         <span className={cn('font-semibold', avatarTextColorOf(message.senderId ?? ''))}>
           {splitDisplayName(message.senderName).primary}
         </span>
-        {senderFunktionen !== '' && ` · ${senderFunktionen}`}
+        {/* the Kernteam badge names the function already */}
+        {senderFunktionen !== '' && message.kernteamLabel === undefined && ` · ${senderFunktionen}`}
       </span>
-      {message.byTopicAdmin === true && <KernteamBadge locale={activeLocale} />}
+      {message.byTopicAdmin === true && (
+        <KernteamBadge locale={activeLocale} label={message.kernteamLabel} />
+      )}
     </span>
   );
 

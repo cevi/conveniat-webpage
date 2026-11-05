@@ -6,6 +6,7 @@ import {
   hasAdminOrWebAccess,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { syncForumKernteamOfUser } from '@/features/payload-cms/payload-cms/chat-channels/forum-kernteam';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import {
   findFunktionIdsOfPerson,
@@ -147,6 +148,31 @@ const syncUserToPostgres: NonNullable<
 };
 
 /**
+ * A person whose functions changed may have joined or left the Kernteam of a forum topic, which
+ * comes from the functions editors picked for it. After `syncUserToPostgres`, which the forum
+ * reads the functions from.
+ */
+const syncForumKernteamOfChangedUser: NonNullable<
+  NonNullable<CollectionConfig['hooks']>['afterChange']
+>[number] = async ({ doc, previousDoc, req }): Promise<void> => {
+  const user = doc as Partial<User>;
+  const funktionIds = toFunktionIds(user.funktionen);
+  const before = toFunktionIds((previousDoc as Partial<User> | undefined)?.funktionen);
+  const unchanged =
+    funktionIds.length === before.length && funktionIds.every((id) => before.includes(id));
+  if (unchanged || typeof user.id !== 'string') return;
+  try {
+    await syncForumKernteamOfUser(req.payload, user.id, funktionIds, req);
+  } catch (error: unknown) {
+    // the topic's own sync catches up with it the next time the topic is saved
+    req.payload.logger.error(
+      { err: error, 'user.id': user.id },
+      'Could not update the forum Kernteam memberships of a user whose functions changed',
+    );
+  }
+};
+
+/**
  * Looks up the Höfe and the functions of a person the moment the user learns their Cevi.DB
  * id, on the first login or when a manually created user is linked. Later changes come from
  * the registrations, the Höfe and the functions sync, which refresh the users they touch.
@@ -192,7 +218,7 @@ export const UserCollection: CollectionConfig = {
 
   hooks: {
     beforeChange: [fillCampDataOfNewPerson],
-    afterChange: [syncUserToPostgres],
+    afterChange: [syncUserToPostgres, syncForumKernteamOfChangedUser],
   },
 
   access: {

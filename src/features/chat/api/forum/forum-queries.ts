@@ -193,7 +193,12 @@ export const getForumPostList = trpcBaseProcedure
       }
 
       const hasMore = rows.length > input.limit;
-      const items = await toForumPostSummaries(ctx.prisma, userId, rows.slice(0, input.limit));
+      const items = await toForumPostSummaries(
+        ctx.prisma,
+        userId,
+        rows.slice(0, input.limit),
+        ctx.locale,
+      );
       return { items, nextCursor: hasMore ? offset + input.limit : null };
     },
   );
@@ -213,7 +218,7 @@ export const getForumPinnedPostList = trpcBaseProcedure
       orderBy: { pinnedAt: 'desc' },
       take: 5,
     });
-    return toForumPostSummaries(ctx.prisma, ctx.user.uuid, rows);
+    return toForumPostSummaries(ctx.prisma, ctx.user.uuid, rows, ctx.locale);
   });
 
 /**
@@ -259,7 +264,7 @@ export const getForumPostSuggestionList = trpcBaseProcedure
       orderBy: { createdAt: 'desc' },
       take: 40,
     });
-    const summaries = await toForumPostSummaries(ctx.prisma, ctx.user.uuid, rows);
+    const summaries = await toForumPostSummaries(ctx.prisma, ctx.user.uuid, rows, ctx.locale);
     const suggestions = summaries
       .map((summary): ForumSuggestion => ({
         ...summary,
@@ -293,7 +298,7 @@ export const getForumPostMapList = trpcBaseProcedure
       orderBy: { createdAt: 'desc' },
       take: 300,
     });
-    return toForumPostSummaries(ctx.prisma, ctx.user.uuid, rows);
+    return toForumPostSummaries(ctx.prisma, ctx.user.uuid, rows, ctx.locale);
   });
 
 export interface ForumStatusChange {
@@ -370,7 +375,7 @@ export const getForumPost = trpcBaseProcedure
     // a stale link or a persisted cache after the post was deleted or the caller left the topic
     if (row === null) throw forumError('NOT_FOUND', 'postGone');
 
-    const [summary] = await toForumPostSummaries(ctx.prisma, userId, [row]);
+    const [summary] = await toForumPostSummaries(ctx.prisma, userId, [row], ctx.locale);
     if (summary === undefined) throw forumError('NOT_FOUND', 'postGone');
 
     const [mergedInto, mergedPostCount, subscription, history, assignments, moderator] =

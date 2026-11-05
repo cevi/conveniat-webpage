@@ -3,12 +3,15 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { audienceTab } from '@/features/payload-cms/payload-cms/chat-channels/audience-tab';
 import { createChannelChatHooks } from '@/features/payload-cms/payload-cms/chat-channels/channel-chat-hooks';
 import { channelEndpoints } from '@/features/payload-cms/payload-cms/chat-channels/channel-endpoints';
+import { syncChannelMemberships } from '@/features/payload-cms/payload-cms/chat-channels/channel-memberships';
+import { syncForumKernteam } from '@/features/payload-cms/payload-cms/chat-channels/forum-kernteam';
 import { membersTab } from '@/features/payload-cms/payload-cms/chat-channels/members-tab';
+import { toFunktionIds } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import type { ForumTopic } from '@/features/payload-cms/payload-types';
 import { ChatCapability } from '@/lib/chat-shared';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/client';
 import type { StaticTranslationString } from '@/types/types';
-import type { CheckboxFieldValidation, CollectionConfig } from 'payload';
+import type { CheckboxFieldValidation, CollectionAfterChangeHook, CollectionConfig } from 'payload';
 
 /**
  * Everything a forum needs, always: posts and comments are messages and threads, a like is a
@@ -64,9 +67,28 @@ const onlyOneTopicReceivesPrivateReports: CheckboxFieldValidation = async (value
 };
 
 /**
+ * Makes the holders of the topic's Kernteam functions its admins, after the audience sync of
+ * `chatHooks`. Whoever that made an ordinary member is synced against the audience once more,
+ * so a former Kernteam member outside the audience leaves the topic right away.
+ */
+const syncKernteamOfTopic: CollectionAfterChangeHook<ForumTopic> = async ({ doc, req }) => {
+  // the chat of a new topic exists once `chatHooks` wrote its id back, which saves again
+  if (typeof doc.chatUuid !== 'string' || doc.chatUuid === '') return doc;
+  const demoted = await syncForumKernteam(doc.chatUuid, toFunktionIds(doc.kernteamFunktionen));
+  if (demoted > 0) {
+    await syncChannelMemberships(req.payload, doc.chatUuid, doc, {
+      memberPermission: ChatMembershipPermission.MEMBER,
+      req,
+      actorId: req.user?.id,
+    });
+  }
+  return doc;
+};
+
+/**
  * A topic of the conveniat27 forum, like "Platz & Infrastruktur" or "Feedback ans OK". Its
- * audience may post and comment; its owners and admins on the Members tab are its Kernteam:
- * their posts reach the whole audience, and they moderate. The piket on duty for forum chats
+ * audience may post and comment; the holders of its Kernteam functions are its Kernteam, see
+ * `forum-kernteam.ts`: their posts reach the whole audience, and they moderate. The piket on duty for forum chats
  * moderates every topic, see the piket schedule.
  */
 export const ForumTopicsCollection: CollectionConfig = {
@@ -93,7 +115,7 @@ export const ForumTopicsCollection: CollectionConfig = {
   },
   endpoints: channelEndpoints(),
   hooks: {
-    afterChange: [chatHooks.afterChange],
+    afterChange: [chatHooks.afterChange, syncKernteamOfTopic],
     afterDelete: [chatHooks.afterDelete],
   },
   fields: [
@@ -133,6 +155,20 @@ export const ForumTopicsCollection: CollectionConfig = {
               name: 'description',
               label: { en: 'Description', de: 'Beschreibung', fr: 'Description' },
               type: 'text',
+            },
+            {
+              name: 'kernteamFunktionen',
+              label: { en: 'Core team', de: 'Kernteam', fr: 'Équipe centrale' },
+              type: 'relationship',
+              relationTo: 'funktionen',
+              hasMany: true,
+              admin: {
+                description: {
+                  en: 'Whoever holds one of these functions is the core team of this topic: they moderate it, their posts reach everyone, and the app shows the function as a badge with their name. Who holds a function is changed in Cevi.DB.',
+                  de: 'Wer eine dieser Funktionen innehat, ist das Kernteam dieses Themas: moderiert es, erreicht mit Beiträgen alle, und die App zeigt die Funktion als Badge beim Namen. Wer eine Funktion innehat, wird in der Cevi.DB geändert.',
+                  fr: 'Qui occupe l’une de ces fonctions forme l’équipe centrale de ce thème : la modère, atteint tout le monde avec ses publications, et l’app affiche la fonction comme badge à côté du nom. Qui occupe une fonction se modifie dans Cevi.DB.',
+                },
+              },
             },
             {
               name: 'receivesPrivateReports',

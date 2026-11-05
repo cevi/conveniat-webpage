@@ -4141,6 +4141,10 @@ export interface ForumTopic {
   name: string;
   description?: string | null;
   /**
+   * Whoever holds one of these functions is the core team of this topic: they moderate it, their posts reach everyone, and the app shows the function as a badge with their name. Who holds a function is changed in Cevi.DB.
+   */
+  kernteamFunktionen?: (string | Funktion)[] | null;
+  /**
    * A report sent "privately to the Zentrale" becomes a post in this topic that only its author, the Kernteam of this topic and the piket on duty see. One topic at most; whoever reports joins it for their own reports.
    */
   receivesPrivateReports?: boolean | null;
@@ -6987,6 +6991,7 @@ export interface ForumTopicsSelect<T extends boolean = true> {
   chatUuid?: T;
   name?: T;
   description?: T;
+  kernteamFunktionen?: T;
   receivesPrivateReports?: T;
   targetType?: T;
   targetRoles?: T;

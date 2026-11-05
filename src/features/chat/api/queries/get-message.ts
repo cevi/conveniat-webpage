@@ -82,10 +82,20 @@ export const getMessage = trpcBaseProcedure
       ]),
     ]);
 
+    // the function behind the badge; loaded only then, as it reads Payload
+    const kernteamLabels =
+      topicAdminIds.size === 0
+        ? undefined
+        : await import('@/features/chat/api/forum/forum-kernteam-labels').then(
+            ({ findKernteamLabelsOfTopic }) =>
+              findKernteamLabelsOfTopic(prisma, message.chatId, topicAdminIds, ctx.locale),
+          );
+
     return toChatMessage(message, {
       status: getStatusFromMessageEvents(message.messageEvents),
       deletedQuotedIds,
       threadSummaries,
       topicAdminIds,
+      ...(kernteamLabels === undefined ? {} : { kernteamLabels }),
     });
   });

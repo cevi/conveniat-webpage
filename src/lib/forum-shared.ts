@@ -39,6 +39,11 @@ export interface ForumPostSummary {
   author: { id: string; name: string } | null;
   /** written by an owner or admin of the topic, its Kernteam */
   byTopicAdmin: boolean;
+  /**
+   * the function that makes the author Kernteam of the topic, e.g. "Ressortleitung
+   * Infrastruktur", the badge's text; missing for an owner without one and in older caches
+   */
+  kernteamLabel?: string;
   location: { longitude: number; latitude: number; annotationId: string | null } | null;
   /** the people who liked it, the posts merged into it included */
   likeCount: number;

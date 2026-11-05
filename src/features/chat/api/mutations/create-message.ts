@@ -421,6 +421,18 @@ export const createMessage = trpcBaseProcedure
     const byTopicAdmin =
       chat.type === ChatType.FORUM &&
       isTopicAdminPermission(chat.chatMemberships[0]?.chatPermission);
+    // the function behind the badge, for the live event, in the writer's language like a push;
+    // the thread read back has it in the reader's. Loaded only then, as it reads Payload
+    const kernteamLabel = byTopicAdmin
+      ? await import('@/features/chat/api/forum/forum-kernteam-labels')
+          .then(({ findKernteamLabelsOfTopic }) =>
+            findKernteamLabelsOfTopic(prisma, validatedMessage.chatId, [user.uuid], ctx.locale),
+          )
+          .then((labels) => labels.get(user.uuid))
+      : undefined;
+    const kernteam = byTopicAdmin
+      ? { byTopicAdmin, ...(kernteamLabel === undefined ? {} : { kernteamLabel }) }
+      : {};
 
     ctx.afterTransactionCommit(() => {
       if (chat.type === ChatType.FORUM) {
@@ -523,7 +535,7 @@ export const createMessage = trpcBaseProcedure
           status: MessageEventType.STORED,
           type: validatedMessage.type,
           parentId: validatedMessage.parentId ?? undefined,
-          ...(byTopicAdmin ? { byTopicAdmin } : {}),
+          ...kernteam,
         },
       };
       // a comment of a restricted forum post goes only to those who see the post
@@ -554,6 +566,6 @@ export const createMessage = trpcBaseProcedure
               quotedMessageId,
               quotedSnippet,
             },
-      ...(byTopicAdmin ? { byTopicAdmin } : {}),
+      ...kernteam,
     };
   });

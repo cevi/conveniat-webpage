@@ -31,6 +31,8 @@ export const toChatMessage = (
     threadSummaries: ReadonlyMap<string, ThreadSummary>;
     /** the senders who are the Kernteam of the forum topic, see `findTopicAdminIds` */
     topicAdminIds?: ReadonlySet<string>;
+    /** the badge's text for each of those senders, by sender, see `findKernteamLabels` */
+    kernteamLabels?: ReadonlyMap<string, string>;
   },
 ): ChatMessage => {
   const isDeleted = message.deletedAt !== null && message.deletedAt !== undefined;
@@ -46,7 +48,7 @@ export const toChatMessage = (
     senderId: message.senderId ?? undefined,
     ...(message.sender?.name ? { senderName: message.sender.name } : {}),
     ...(message.senderId !== null && context.topicAdminIds?.has(message.senderId) === true
-      ? { byTopicAdmin: true }
+      ? { byTopicAdmin: true, kernteamLabel: context.kernteamLabels?.get(message.senderId) }
       : {}),
     status: context.status,
     type: message.type,

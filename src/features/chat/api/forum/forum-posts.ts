@@ -1,6 +1,7 @@
+import { findKernteamLabels, kernteamKey } from '@/features/chat/api/forum/forum-kernteam-labels';
 import { FORUM_LIKE_EMOJI, type ForumPostSummary } from '@/lib/forum-shared';
 import { ChatMembershipPermission, type Prisma } from '@/lib/prisma/client';
-import type { PrismaClientOrTransaction } from '@/types/types';
+import type { Locale, PrismaClientOrTransaction } from '@/types/types';
 
 export type { ForumPostSummary } from '@/lib/forum-shared';
 
@@ -47,6 +48,9 @@ export const readForumPostContent = (payload: unknown): { text: string; images: 
   return { text, images };
 };
 
+const withKernteamLabel = (label: string | undefined): { kernteamLabel?: string } =>
+  label === undefined ? {} : { kernteamLabel: label };
+
 const excerptOf = (text: string): string => {
   const flat = text.replaceAll(/\s+/g, ' ').trim();
   return flat.length > EXCERPT_LENGTH ? `${flat.slice(0, EXCERPT_LENGTH - 1)}…` : flat;
@@ -60,6 +64,7 @@ export const toForumPostSummaries = async (
   prisma: PrismaClientOrTransaction,
   userId: string,
   rows: ForumPostSummaryRow[],
+  locale: Locale,
 ): Promise<ForumPostSummary[]> => {
   if (rows.length === 0) return [];
   const postIds = rows.map((row) => row.messageId);
@@ -104,6 +109,11 @@ export const toForumPostSummaries = async (
   }
   const commentCount = new Map(comments.map((group) => [group.parentId, group._count._all]));
   const admins = new Set(adminMemberships.map((m) => `${m.chatId}:${m.userId}`));
+  const kernteamLabels = await findKernteamLabels(
+    prisma,
+    adminMemberships.map((m) => ({ chatId: m.chatId, userId: m.userId })),
+    locale,
+  );
 
   return rows.map((row) => {
     const content = readForumPostContent(row.message.contentVersions[0]?.payload);
@@ -119,6 +129,9 @@ export const toForumPostSummaries = async (
       createdAt: row.createdAt,
       author: senderId === null ? null : { id: senderId, name: row.message.sender?.name ?? '' },
       byTopicAdmin: senderId !== null && admins.has(`${row.chatId}:${senderId}`),
+      ...(senderId === null
+        ? {}
+        : withKernteamLabel(kernteamLabels.get(kernteamKey(row.chatId, senderId)))),
       location:
         row.longitude === null || row.latitude === null
           ? null

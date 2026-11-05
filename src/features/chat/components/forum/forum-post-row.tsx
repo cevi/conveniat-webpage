@@ -39,7 +39,7 @@ export const ForumPostRow: React.FC<{
             {forumText.privatePill[locale]}
           </span>
         )}
-        {post.byTopicAdmin && <KernteamBadge locale={locale} />}
+        {post.byTopicAdmin && <KernteamBadge locale={locale} label={post.kernteamLabel} />}
         {post.location !== null && (
           <span className="bg-tint inline-flex items-center gap-1 rounded-md px-1.5 py-px text-green-800">
             <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
