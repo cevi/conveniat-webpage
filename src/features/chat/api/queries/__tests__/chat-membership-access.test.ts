@@ -66,7 +66,6 @@ const message = {
   contentVersions: [{ payload: { de: 'hallo' } }],
   reactions: [],
   replies: [],
-  _count: { replies: 0 },
 };
 
 const chat = {
@@ -108,6 +107,8 @@ const prisma = {
     ),
   },
   message: {
+    // the message has no thread
+    groupBy: jest.fn().mockResolvedValue([]),
     findFirst: jest.fn(
       ({
         where,
