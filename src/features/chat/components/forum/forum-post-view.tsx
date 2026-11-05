@@ -319,24 +319,27 @@ const PostHeader: React.FC<{
       )}
 
       <div className="flex gap-2">
-        <button
-          type="button"
-          aria-pressed={post.likedByMe}
-          disabled={post.mergedInto !== null}
-          onClick={() => like.mutate({ messageId: post.id, emoji: FORUM_LIKE_EMOJI })}
-          className={cn(
-            'focus-visible:focus-surface flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border text-[14px] font-bold transition-colors disabled:opacity-50',
-            post.likedByMe
-              ? 'bg-conveniat-green border-conveniat-green text-white'
-              : 'border-line hover:bg-quiet bg-white text-green-800',
-          )}
-        >
-          <ThumbsUp
-            className={cn('h-5 w-5', post.likedByMe && 'fill-current')}
-            aria-hidden="true"
-          />
-          {forumText.likeAction[locale]} · {post.likeCount}
-        </button>
+        {/* nobody else sees a private report, so nobody else is affected by it too */}
+        {post.private !== true && (
+          <button
+            type="button"
+            aria-pressed={post.likedByMe}
+            disabled={post.mergedInto !== null}
+            onClick={() => like.mutate({ messageId: post.id, emoji: FORUM_LIKE_EMOJI })}
+            className={cn(
+              'focus-visible:focus-surface flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border text-[14px] font-bold transition-colors disabled:opacity-50',
+              post.likedByMe
+                ? 'bg-conveniat-green border-conveniat-green text-white'
+                : 'border-line hover:bg-quiet bg-white text-green-800',
+            )}
+          >
+            <ThumbsUp
+              className={cn('h-5 w-5', post.likedByMe && 'fill-current')}
+              aria-hidden="true"
+            />
+            {forumText.likeAction[locale]} · {post.likeCount}
+          </button>
+        )}
         <button
           type="button"
           aria-pressed={post.subscribed}
