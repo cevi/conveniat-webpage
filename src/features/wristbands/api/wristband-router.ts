@@ -1,5 +1,8 @@
+import { listAccessibleHoefe } from '@/features/payload-cms/payload-cms/access-rules/accessible-hoefe';
 import {
   hofWristbandProcedure,
+  isWristbandReader,
+  wristbandProcedure,
   wristbandReaderProcedure,
 } from '@/features/wristbands/api/wristband-access';
 import {
@@ -12,6 +15,7 @@ import {
   revokeWristband,
   unassignWristband,
 } from '@/features/wristbands/api/wristband-service';
+import type { WristbandAccess } from '@/features/wristbands/types';
 import { createTRPCRouter } from '@/trpc/init';
 import { z } from 'zod';
 
@@ -37,6 +41,15 @@ const hofBand = z.object({ hofId, uid });
  * it is derived anew on every call.
  */
 export const wristbandRouter = createTRPCRouter({
+  /**
+   * What the user does with the bands, so the app shows the AVP's page and the reader's only to
+   * whom the server lets in. Persisted with the query cache, so the reader's page opens offline.
+   */
+  getWristbandAccess: wristbandProcedure.query(async ({ ctx }): Promise<WristbandAccess> => {
+    const hoefe = await listAccessibleHoefe(ctx.payload, ctx.user);
+    return { hoefe: hoefe.length, reader: isWristbandReader(ctx.user) };
+  }),
+
   /** The Höfe whose bands the user hands out. */
   getMyHofList: hofWristbandProcedure.query(async ({ ctx }) => await ctx.accessibleHoefe()),
 

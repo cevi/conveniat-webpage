@@ -86,3 +86,11 @@ export interface WristbandRoster {
   /** Blocked bands, so a phone offline does not take one for a band it has not heard of. */
   revokedUids: string[];
 }
+
+/** What the user may do with the bands. */
+export interface WristbandAccess {
+  /** how many Höfe the user programs and hands out bands for, as their AVP */
+  hoefe: number;
+  /** whether the user reads bands, for security and first aid */
+  reader: boolean;
+}

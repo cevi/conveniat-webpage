@@ -533,3 +533,22 @@ describe('reading a band', () => {
     }
   });
 });
+
+describe('what the app shows whom', () => {
+  it('counts the Höfe of an AVP, who reads no band', async () => {
+    await expect(usterAvp.getWristbandAccess()).resolves.toEqual({ hoefe: 1, reader: false });
+  });
+
+  it('lets security and first aid read, without a Hof of their own', async () => {
+    await expect(sanitaet.getWristbandAccess()).resolves.toEqual({ hoefe: 0, reader: true });
+  });
+
+  it('shows a participant neither page', async () => {
+    await expect(participant.getWristbandAccess()).resolves.toEqual({ hoefe: 0, reader: false });
+  });
+
+  it('is not there while the wristbands are off', async () => {
+    environmentVariables.FEATURE_ENABLE_NFC_WRISTBANDS = false;
+    await expect(sanitaet.getWristbandAccess()).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+});

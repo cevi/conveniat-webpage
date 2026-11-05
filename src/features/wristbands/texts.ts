@@ -430,10 +430,7 @@ export const failureNotice = (
 });
 
 /** What to tell the AVP for a session that failed with `code`, refused for `reason`. */
-export const nfcFailureText = (
-  code: NfcFailureCode,
-  reason: NfcAbortReason | undefined,
-): NfcFailureText => {
+export const nfcFailureText = (code: NfcFailureCode, reason?: NfcAbortReason): NfcFailureText => {
   if (code === 'aborted') return refusalTexts[reason ?? 'other'];
   return failureTexts[code] ?? somethingWrong;
 };

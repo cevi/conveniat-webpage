@@ -26,6 +26,7 @@ import {
   NO_FILTERS,
   readWristbandList,
 } from '@/features/wristbands/queue';
+import { readerText } from '@/features/wristbands/reader-texts';
 import { translate } from '@/features/wristbands/texts';
 import type { HofPerson, HofWristbandList } from '@/features/wristbands/types';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
@@ -33,7 +34,16 @@ import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Check, ChevronsUpDown, Loader2, Nfc, Tent, Users } from 'lucide-react';
+import {
+  Check,
+  ChevronRight,
+  ChevronsUpDown,
+  Loader2,
+  Nfc,
+  ScanLine,
+  Tent,
+  Users,
+} from 'lucide-react';
 import type React from 'react';
 import { useRef, useState } from 'react';
 
@@ -479,14 +489,31 @@ const HofWristbands: React.FC<{
  * "Jetzt dran", then the next comes up. Before the camp, "Nur programmieren" prepares spare
  * bands. Taking a band back, passing it on and blocking it work in any browser.
  */
+/** The way to reading bands, for security and first aid. */
+const ReadBandLink: React.FC<{ locale: Locale }> = ({ locale }) => (
+  <Card className="mb-6">
+    <ListRow href="/app/wristbands/lesen">
+      <IconTile icon={ScanLine} />
+      <span className="min-w-0 flex-1 text-[15px] font-semibold text-green-900">
+        {readerText('read', locale)}
+      </span>
+      <ChevronRight className="size-5 shrink-0 text-green-500" aria-hidden />
+    </ListRow>
+  </Card>
+);
+
 export const WristbandsView: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const hoefeQuery = trpc.wristband.getMyHofList.useQuery();
   const hoefe = hoefeQuery.data;
+  const reader = trpc.wristband.getWristbandAccess.useQuery().data?.reader === true;
 
   let content: React.ReactNode;
   if (hoefe !== undefined && hoefe.length > 0) {
     content = <HofWristbands hoefe={hoefe} locale={locale} />;
+  } else if (hoefe !== undefined && reader) {
+    // security and first aid without a Hof of their own only read bands
+    content = <></>;
   } else if (hoefe !== undefined) {
     content = (
       <EmptyState
@@ -505,6 +532,7 @@ export const WristbandsView: React.FC = () => {
     <>
       {/* the title on the left, the way Programm has it */}
       <SetHeaderActions />
+      {reader && <ReadBandLink locale={locale} />}
       {content}
     </>
   );

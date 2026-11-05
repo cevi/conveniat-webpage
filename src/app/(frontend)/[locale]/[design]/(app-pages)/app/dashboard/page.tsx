@@ -35,6 +35,7 @@ const Dashboard: React.FC<{
         <DashboardLandingSection
           locale={locale}
           materialEnabled={environmentVariables.FEATURE_ENABLE_MATERIAL_MANAGEMENT}
+          wristbandsEnabled={environmentVariables.FEATURE_ENABLE_NFC_WRISTBANDS}
           supportEmail={environmentVariables.APP_SUPPORT_EMAIL}
         >
           {/* Welcome content blocks can only be rendered on the server */}

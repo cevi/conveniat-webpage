@@ -8,6 +8,7 @@ import {
   LifeBuoy,
   MapIcon,
   MessageSquare,
+  Nfc,
   Package,
   QrCode,
   Settings,
@@ -21,6 +22,9 @@ export interface QuickAccessFlags {
   materialEnabled: boolean;
   helperShiftsEnabled: boolean;
   photoContestEnabled: boolean;
+  /** the NFC wristbands of this deployment, see `FEATURE_ENABLE_NFC_WRISTBANDS`, and the user's
+   * access to them */
+  wristbandsEnabled: boolean;
 }
 
 /**
@@ -63,6 +67,14 @@ export const QUICK_ACCESS_TILES = [
     label: { de: 'Materialdepot', en: 'Material depot', fr: 'Dépôt de matériel' },
     needsAccount: true,
     flag: 'materialEnabled',
+  },
+  {
+    id: 'wristbands',
+    href: '/app/wristbands',
+    icon: Nfc,
+    label: { de: 'Armbänder', en: 'Wristbands', fr: 'Bracelets' },
+    needsAccount: true,
+    flag: 'wristbandsEnabled',
   },
   {
     id: 'support',

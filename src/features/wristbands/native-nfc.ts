@@ -68,6 +68,17 @@ export interface NfcProvisioned {
   alreadyProvisioned: boolean;
 }
 
+/** The band on the phone as a read-only session found it. */
+export interface NfcIdentified {
+  requestId: string;
+  uid: string;
+  /** NXP's signature over the UID, or null for a chip that returns none */
+  signature: string | null;
+  chip: NfcChip;
+  protection: NfcProtection;
+  url: string | null;
+}
+
 /** The page's answer to `credentials-needed`: the band's password, or why it is refused. */
 export type NfcCredentialsAnswer = { password: string; pack: string } | { abort: NfcAbortReason };
 
@@ -293,4 +304,26 @@ export const provisionBand = async (
     'provisioned',
     sessionOptions,
   );
+};
+
+/**
+ * Reads the band on the phone without writing anything: its UID and NXP's signature, which the
+ * server or the list on the phone checks. The app's own `signatureValid` is not passed on.
+ */
+export const identifyBand = async (
+  options: Pick<SessionOptions, 'signal' | 'timeoutMs'> = {},
+): Promise<NfcIdentified> => {
+  const bridge = globalThis.AppWebViewNativeNfc;
+  if (bridge === undefined) throw new NativeNfcError('unsupported');
+  const detail = await runSession<Record<string, unknown>>(
+    bridge,
+    (nfc) => nfc.identify(),
+    'identified',
+    options,
+  );
+  const signature = detail['signature'];
+  return {
+    ...(detail as unknown as NfcIdentified),
+    signature: typeof signature === 'string' && signature !== '' ? signature : null,
+  };
 };

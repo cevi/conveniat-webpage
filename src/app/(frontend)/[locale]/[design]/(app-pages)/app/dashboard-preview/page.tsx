@@ -59,6 +59,7 @@ const DashboardPreview: React.FC<{
             helperShiftsEnabled: featureFlags.helperShiftsEnabled !== false,
             photoContestEnabled: featureFlags.photoContestEnabled !== false,
             materialEnabled: environmentVariables.FEATURE_ENABLE_MATERIAL_MANAGEMENT,
+            wristbandsEnabled: environmentVariables.FEATURE_ENABLE_NFC_WRISTBANDS,
           }}
           supportEmail={environmentVariables.APP_SUPPORT_EMAIL}
           isPreview

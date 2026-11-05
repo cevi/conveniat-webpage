@@ -4,6 +4,7 @@
 
 import type { NativeNfcBridge } from '@/features/wristbands/native-nfc';
 import {
+  identifyBand,
   isNativeNfcAvailable,
   NativeNfcError,
   provisionBand,
@@ -175,5 +176,29 @@ describe('the native NFC bridge', () => {
   it('fails as unsupported outside the native app', async () => {
     globalThis.AppWebViewNativeNfc = undefined;
     await expect(provisionBand({})).rejects.toMatchObject({ code: 'unsupported' });
+  });
+});
+
+describe('reading a band', () => {
+  it('resolves with the UID and the signature, and writes nothing', async () => {
+    const result = identifyBand({});
+    emit('identified', { ...credentialsNeeded('request-1'), signatureValid: true });
+
+    await expect(result).resolves.toMatchObject({ uid: UID, signature: SIGNATURE });
+    expect(bridge.identify).toHaveBeenCalledTimes(1);
+    expect(bridge.provision).not.toHaveBeenCalled();
+    expect(bridge.submitCredentials).not.toHaveBeenCalled();
+  });
+
+  it('reads a chip without a signature as null', async () => {
+    const result = identifyBand({});
+    emit('identified', { ...credentialsNeeded('request-1'), signature: '' });
+    await expect(result).resolves.toMatchObject({ uid: UID, signature: null });
+  });
+
+  it('rejects a lost tag, so the reader can tap again', async () => {
+    const result = identifyBand({});
+    emit('error', { requestId: 'request-1', code: 'tag-lost' });
+    await expect(result).rejects.toMatchObject({ code: 'tag-lost' });
   });
 });
