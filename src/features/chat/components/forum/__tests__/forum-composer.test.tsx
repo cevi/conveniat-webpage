@@ -45,27 +45,26 @@ beforeEach(() => {
 });
 
 describe('the composer', () => {
-  it('shows the toggle without a topic, starts on Privat and sends to the Zentrale', () => {
+  it('is the private report, without a toggle, for someone in no topic', () => {
     topics = [];
     render(<ForumComposer />);
     writeTitle();
 
-    expect(segment('Privat').getAttribute('aria-pressed')).toBe('true');
+    expect(screen.queryByRole('button', { name: 'Öffentlich' })).toBeNull();
     expect(
       screen.getByRole<HTMLButtonElement>('button', { name: 'An die Zentrale senden' }).disabled,
     ).toBe(false);
+    expect(screen.getByText(/Nur du und das OK sehen deine Nachricht/)).toBeTruthy();
   });
 
-  it('turns the button into Veröffentlichen, which needs a topic, when switched to Öffentlich', () => {
-    topics = [];
+  it('switches between Öffentlich and Privat for someone in a topic', () => {
+    topics = [{ id: 'topic', name: 'Platz & Infrastruktur', isAdmin: false }];
     render(<ForumComposer />);
     writeTitle();
-    fireEvent.click(segment('Öffentlich'));
+    fireEvent.click(segment('Privat'));
 
-    expect(
-      screen.getByRole<HTMLButtonElement>('button', { name: 'Veröffentlichen' }).disabled,
-    ).toBe(true);
-    expect(screen.getByText(/sobald du zu einem Forum-Thema gehörst/)).toBeTruthy();
+    expect(segment('Privat').getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'An die Zentrale senden' })).toBeTruthy();
   });
 
   it('starts on Öffentlich for someone in a topic', () => {
