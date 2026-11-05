@@ -19,7 +19,7 @@ jest.mock('@/utils/get-locale-from-cookies', () => ({
 jest.mock('@/utils/server-logger', () => ({
   createLogger: (): Record<string, jest.Mock> => ({ info: jest.fn(), warn: jest.fn() }),
 }));
-jest.mock('@/features/hof-dashboard/api/accessible-hoefe', () => ({
+jest.mock('@/features/payload-cms/payload-cms/access-rules/accessible-hoefe', () => ({
   isHofDashboardReviewer: (user: unknown): boolean => mockIsReviewer(user),
   listAccessibleHoefe: (): Promise<unknown[]> => Promise.resolve([{ id: 'hof-uster' }]),
 }));

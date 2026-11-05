@@ -135,6 +135,20 @@ export const environmentVariables = createEnv({
       .string()
       .transform((value) => value === 'true')
       .default(false),
+    /**
+     * The key the write password of every NFC wristband is derived from. Required once the
+     * wristbands are on, and fixed from the first band programmed: changing it locks every
+     * programmed band against the app. Generate with `openssl rand -hex 32`.
+     */
+    NFC_TAG_SECRET: z.string().min(32).optional(),
+    /**
+     * Accepts bands without NXP's originality signature, like the cheap stickers used for
+     * testing. Never on a deployment that hands out real bands.
+     */
+    NFC_ALLOW_UNSIGNED_TAGS: z
+      .string()
+      .transform((value) => value === 'true')
+      .default(false),
     // the Besuchstag registration of conveniat27; konekta has no Besuchstag
     FEATURE_ENABLE_VISIT_DAY: z
       .string()

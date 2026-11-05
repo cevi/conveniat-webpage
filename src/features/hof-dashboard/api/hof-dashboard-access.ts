@@ -2,7 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import {
   isHofDashboardReviewer,
   listAccessibleHoefe,
-} from '@/features/hof-dashboard/api/accessible-hoefe';
+} from '@/features/payload-cms/payload-cms/access-rules/accessible-hoefe';
 import type { HofName } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { middleware, trpcBaseProcedure } from '@/trpc/init';
 import config from '@payload-config';
