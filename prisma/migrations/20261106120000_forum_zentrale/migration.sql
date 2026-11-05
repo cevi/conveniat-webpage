@@ -10,10 +10,20 @@ ALTER TABLE "ForumPostAssignment"
 
 ALTER TABLE "ForumPost" ADD COLUMN "reactedAt" TIMESTAMP(3);
 
--- a post whose status changed, or that its topic's Kernteam commented on, had its reaction
+-- a post whose status changed, or that its topic's Kernteam wrote or commented on, had its
+-- reaction
 UPDATE "ForumPost" AS post
 SET "reactedAt" = LEAST(
   post."statusChangedAt",
+  (
+    SELECT post."createdAt"
+    FROM "Message" AS message
+    JOIN "ChatMembership" AS membership
+      ON membership."chatId" = message."chatId"
+     AND membership."userId" = message."senderId"
+     AND membership."chatPermission" IN ('OWNER', 'ADMIN')
+    WHERE message."uuid" = post."messageId"
+  ),
   (
     SELECT min(comment."createdAt")
     FROM "Message" AS comment

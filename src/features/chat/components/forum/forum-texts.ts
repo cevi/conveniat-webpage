@@ -234,9 +234,9 @@ export const forumText = {
   assign: { de: 'Weiterleiten', en: 'Forward', fr: 'Transférer' },
   assignSearch: { de: 'Name suchen', en: 'Search a name', fr: 'Chercher un nom' },
   assignNote: {
-    de: 'Hinweis für die Person (optional)',
-    en: 'Note for the person (optional)',
-    fr: 'Remarque pour la personne (facultatif)',
+    de: 'Hinweis (optional)',
+    en: 'Note (optional)',
+    fr: 'Remarque (facultatif)',
   },
   assignAction: { de: 'Weiterleiten', en: 'Forward', fr: 'Transférer' },
   withdraw: { de: 'Zurückziehen', en: 'Withdraw', fr: 'Retirer' },

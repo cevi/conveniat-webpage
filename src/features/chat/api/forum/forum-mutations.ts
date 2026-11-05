@@ -404,6 +404,8 @@ export const createForumPost = trpcBaseProcedure
         body: input.text,
         private: input.private,
         approvedAt: pending ? null : new Date(),
+        // the Kernteam's own post waits for nobody in the Zentrale
+        reactedAt: byTopicAdmin ? new Date() : null,
         ...(input.location === undefined
           ? {}
           : {

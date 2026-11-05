@@ -25,6 +25,11 @@ const appPageTitles: Record<string, StaticTranslationString> = {
   material: { de: 'Materialdepot', en: 'Material depot', fr: 'Dépôt de matériel' },
 };
 
+/** Pages one level further down that are called something else than their section. */
+const appSubPageTitles: Record<string, Record<string, StaticTranslationString>> = {
+  forum: { zentrale: { de: 'Zentrale', en: 'Zentrale', fr: 'Zentrale' } },
+};
+
 /**
  * The page's title in the header, decided from the route the header is rendered for. The server
  * and the browser read the same segments, so the prerendered header already names the page and
@@ -40,7 +45,7 @@ export const PageTitle: React.FC<{
   dashboardDraftTitle?: string | undefined;
 }> = ({ locale, dashboardTitle, dashboardDraftTitle }) => {
   // below `[locale]/[design]`: the route group first, then `app` and the page
-  const [group, app, page] = useSelectedLayoutSegments();
+  const [group, app, page, subPage] = useSelectedLayoutSegments();
   if (group !== '(app-pages)' || app !== 'app' || page === undefined) return DEFAULT_APP_TITLE;
 
   if (page === 'dashboard' || page === 'dashboard-preview') {
@@ -50,5 +55,6 @@ export const PageTitle: React.FC<{
     return title === '' ? DEFAULT_APP_TITLE : title;
   }
 
-  return appPageTitles[page]?.[locale] ?? DEFAULT_APP_TITLE;
+  const subPageTitle = subPage === undefined ? undefined : appSubPageTitles[page]?.[subPage];
+  return (subPageTitle ?? appPageTitles[page])?.[locale] ?? DEFAULT_APP_TITLE;
 };
