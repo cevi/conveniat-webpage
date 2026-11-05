@@ -53,7 +53,10 @@ import { pushTrackingRouter } from '@/features/push-tracking/api/push-tracking-r
 
 const mockFindMany = jest.fn();
 const mockUpdate = jest.fn();
-const prisma = { pushNotificationLog: { findMany: mockFindMany, update: mockUpdate } };
+const mockGroupBy = jest.fn();
+const prisma = {
+  pushNotificationLog: { findMany: mockFindMany, update: mockUpdate, groupBy: mockGroupBy },
+};
 
 const createCaller = createCallerFactory(pushTrackingRouter);
 
@@ -107,11 +110,11 @@ describe('pushTrackingRouter access', () => {
   });
 
   it('shows the notification history to a full admin', async () => {
+    mockGroupBy.mockResolvedValue([]);
     mockFindMany.mockResolvedValue([{ id: 'log-1' }]);
 
     await expect(callerAs(fullAdmin).getRecentLogs({ userId: 'someone' })).resolves.toEqual({
       items: [{ id: 'log-1' }],
-      nextCursor: undefined,
     });
   });
 
@@ -305,6 +308,60 @@ describe('pushTrackingRouter push devices of a person', () => {
 
     await expect(callerAs(fullAdmin).deletePushDevice({ id: 'device-1' })).resolves.toEqual({
       removed: false,
+    });
+  });
+});
+
+/** A moment the given number of minutes ago. */
+const at = (minutesAgo: number): Date => new Date(Date.now() - minutesAgo * 60_000);
+
+describe('pushTrackingRouter.getRecentLogs', () => {
+  beforeEach(() => {
+    mockGroupBy.mockReset();
+    mockFindMany.mockReset();
+  });
+
+  it('counts a push to several devices as one of the last 20 entries', async () => {
+    mockGroupBy.mockResolvedValue(
+      Array.from({ length: 20 }, (_, index) => ({
+        notificationId: `push-${String(index)}`,
+        _max: { sentAt: at(index + 1) },
+      })),
+    );
+    // a test send older than all 20 pushes, and the rows of the pushes themselves
+    mockFindMany
+      .mockResolvedValueOnce([{ id: 'test-send', sentAt: at(60) }])
+      .mockResolvedValueOnce([{ id: 'row' }]);
+
+    await callerAs(fullAdmin).getRecentLogs({ userId: 'user-lena' });
+
+    expect(mockGroupBy).toHaveBeenCalledWith(expect.objectContaining({ take: 20 }));
+    const [, rowsQuery] = mockFindMany.mock.calls as [unknown, [{ where: unknown }]];
+    expect(rowsQuery[0].where).toEqual({
+      userId: 'user-lena',
+      OR: [
+        {
+          notificationId: {
+            in: Array.from({ length: 20 }, (_, index) => `push-${String(index)}`),
+          },
+        },
+        { id: { in: [] } },
+      ],
+    });
+  });
+
+  it('mixes test sends and pushes by when they were sent', async () => {
+    mockGroupBy.mockResolvedValue([{ notificationId: 'push-chat', _max: { sentAt: at(30) } }]);
+    mockFindMany
+      .mockResolvedValueOnce([{ id: 'test-send', sentAt: at(5) }])
+      .mockResolvedValueOnce([]);
+
+    await callerAs(fullAdmin).getRecentLogs({ userId: 'user-lena' });
+
+    const [, rowsQuery] = mockFindMany.mock.calls as [unknown, [{ where: unknown }]];
+    expect(rowsQuery[0].where).toEqual({
+      userId: 'user-lena',
+      OR: [{ notificationId: { in: ['push-chat'] } }, { id: { in: ['test-send'] } }],
     });
   });
 });

@@ -23,24 +23,14 @@ export const historyTitle: StaticTranslationString = {
   en: 'History',
 };
 const historyDescription: StaticTranslationString = {
-  de: 'Alle Benachrichtigungen an diese Person, über alle ihre Geräte.',
-  fr: 'Toutes les notifications envoyées à cette personne, sur tous ses appareils.',
-  en: 'Every notification sent to this person, across all of their devices.',
+  de: 'Die letzten 20 Benachrichtigungen an diese Person, über alle ihre Geräte.',
+  fr: 'Les 20 dernières notifications envoyées à cette personne, sur tous ses appareils.',
+  en: 'The last 20 notifications sent to this person, across all of their devices.',
 };
 const refreshLabel: StaticTranslationString = {
   de: 'Aktualisieren',
   fr: 'Actualiser',
   en: 'Refresh',
-};
-const loadMoreLabel: StaticTranslationString = {
-  de: 'Mehr laden',
-  fr: 'Charger plus',
-  en: 'Load more',
-};
-const loadingLabel: StaticTranslationString = {
-  de: 'Wird geladen …',
-  fr: 'Chargement …',
-  en: 'Loading …',
 };
 const noNotificationsLabel: StaticTranslationString = {
   de: 'Noch keine Benachrichtigungen.',
@@ -150,28 +140,22 @@ export const SectionHeading: React.FC<{
   </div>
 );
 
-/** Every push sent to one person, newest first, refreshed every 15 seconds. */
+/** The last 20 pushes to one person, newest first, refreshed every 15 seconds. */
 export const NotificationHistory: React.FC<{ userId: string; locale: Locale }> = ({
   userId,
   locale,
 }) => {
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
-    trpc.pushTracking.getRecentLogs.useInfiniteQuery(
-      // a page holds deliveries, several per push when a person has several devices
-      { userId, limit: 30 },
-      {
-        getNextPageParam: (lastPage) => lastPage.nextCursor,
-        refetchInterval: 15_000,
-      },
-    );
-
+  const { data, isLoading, refetch, isRefetching } = trpc.pushTracking.getRecentLogs.useQuery(
+    { userId },
+    { refetchInterval: 15_000 },
+  );
   const { data: devices } = trpc.pushTracking.getPushDeviceList.useQuery(
     { userId },
     { meta: { persist: false } },
   );
   const [expandedKeys, setExpandedKeys] = useState<ReadonlySet<string>>(new Set());
 
-  const groups = groupDeliveriesByPush(data?.pages.flatMap((page) => page.items) ?? []);
+  const groups = groupDeliveriesByPush(data?.items ?? []);
 
   /** The device a delivery went to, by its subscription, else by what the device reported. */
   const deviceNameOf = (log: PushLog): string => {
@@ -386,17 +370,6 @@ export const NotificationHistory: React.FC<{ userId: string; locale: Locale }> =
           <tbody>{renderRows()}</tbody>
         </table>
       </div>
-      {hasNextPage && (
-        <Button
-          buttonStyle="pill"
-          className="m-0"
-          disabled={isFetchingNextPage}
-          onClick={() => void fetchNextPage()}
-          size="small"
-        >
-          {isFetchingNextPage ? loadingLabel[locale] : loadMoreLabel[locale]}
-        </Button>
-      )}
     </section>
   );
 };

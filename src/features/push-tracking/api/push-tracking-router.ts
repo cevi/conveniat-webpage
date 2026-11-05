@@ -10,6 +10,9 @@ import { z } from 'zod';
 
 const logger = createLogger('push:tracking');
 
+/** How many pushes the history of a person in the admin panel shows. */
+const HISTORY_ENTRY_LIMIT = 20;
+
 /** Longer user agents are client hints stuffed with noise, not more useful. */
 const MAX_USER_AGENT_LENGTH = 512;
 
@@ -208,39 +211,61 @@ export const pushTrackingRouter = createTRPCRouter({
       return { removed: docs.length > 0 };
     }),
 
+  /**
+   * The deliveries of the last {@link HISTORY_ENTRY_LIMIT} pushes to one person. A push goes to
+   * every device of the person, one row each, so the limit counts pushes rather than rows: the
+   * newest pushes, and the newest rows sent outside of one, a test send or a row from before
+   * the queue, whichever came last.
+   */
   getRecentLogs: trpcFullAdminProcedure
-    .input(
-      z.object({
-        userId: z.string(),
-        limit: z.number().min(1).max(100).default(5),
-        cursor: z.string().nullish(),
-      }),
-    )
+    .input(z.object({ userId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const { limit, cursor, userId } = input;
+      const { userId } = input;
+      const [pushes, singles] = await Promise.all([
+        ctx.prisma.pushNotificationLog.groupBy({
+          by: ['notificationId'],
+          where: { userId, notificationId: { not: null } },
+          _max: { sentAt: true },
+          orderBy: { _max: { sentAt: 'desc' } },
+          take: HISTORY_ENTRY_LIMIT,
+        }),
+        ctx.prisma.pushNotificationLog.findMany({
+          where: { userId, notificationId: null },
+          orderBy: [{ sentAt: 'desc' }, { id: 'desc' }],
+          take: HISTORY_ENTRY_LIMIT,
+          select: { id: true, sentAt: true },
+        }),
+      ]);
+
+      const entries = [
+        ...pushes.flatMap((push) =>
+          push.notificationId === null || push._max.sentAt === null
+            ? []
+            : [{ notificationId: push.notificationId, sentAt: push._max.sentAt }],
+        ),
+        ...singles.map((single) => ({ logId: single.id, sentAt: single.sentAt })),
+      ]
+        .sort((left, right) => right.sentAt.getTime() - left.sentAt.getTime())
+        .slice(0, HISTORY_ENTRY_LIMIT);
+
       const items = await ctx.prisma.pushNotificationLog.findMany({
-        take: limit + 1, // get an extra item at the end which we'll use as next cursor
         where: {
-          userId: userId,
+          userId,
+          OR: [
+            {
+              notificationId: {
+                in: entries.flatMap((entry) =>
+                  'notificationId' in entry ? [entry.notificationId] : [],
+                ),
+              },
+            },
+            { id: { in: entries.flatMap((entry) => ('logId' in entry ? [entry.logId] : [])) } },
+          ],
         },
-        ...(cursor !== undefined && cursor !== null && cursor !== ''
-          ? { cursor: { id: cursor } }
-          : {}),
-        // The id breaks ties, so the deliveries of one push, which share their `sentAt`, come
-        // in a stable order across pages.
+        // The id breaks ties, so the deliveries of one push, which share their `sentAt`, stay
+        // together.
         orderBy: [{ sentAt: 'desc' }, { id: 'desc' }],
       });
-
-      let nextCursor: typeof cursor | undefined;
-      if (items.length > limit) {
-        const nextItem = items.pop();
-        // nextItem is guaranteed to exist since we checked items.length > limit
-        nextCursor = nextItem?.id;
-      }
-
-      return {
-        items,
-        nextCursor,
-      };
+      return { items };
     }),
 });
