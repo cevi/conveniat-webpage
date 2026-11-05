@@ -2,6 +2,7 @@
 
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { useStoredRows } from '@/hooks/use-stored-rows';
+import { scheduleEntryFingerprint } from '@/lib/schedule-entry-fingerprint';
 import { scheduleEntriesCollection, type ScheduleEntryRecord } from '@/lib/tanstack-db';
 import type React from 'react';
 import {
@@ -91,13 +92,6 @@ const reportSyncFailure = (entryId: string, error: unknown): void => {
 };
 
 /**
- * Serialises a record ignoring `_syncedAt`, which changes on every sync by definition and would
- * otherwise mark every entry as modified.
- */
-const contentFingerprint = (record: object): string =>
-  JSON.stringify({ ...record, _syncedAt: undefined });
-
-/**
  * Overwrite a draft in place.
  *
  * The update callback has to *mutate* the draft it receives - TanStack DB derives the mutation
@@ -144,7 +138,7 @@ const applyServerEntries = (serverEntries: CampScheduleEntryFrontendType[]): voi
       toInsert.push(record);
       continue;
     }
-    if (contentFingerprint(current) === contentFingerprint(record)) continue;
+    if (scheduleEntryFingerprint(current) === scheduleEntryFingerprint(record)) continue;
 
     updateKeys.push(entry.id);
     updateById.set(entry.id, record);
