@@ -134,6 +134,9 @@ export const ForumComposer: React.FC = () => {
     const handedBack = locationFromParameters(parameters);
     if (handedBack !== undefined) setLocation(handedBack);
   }
+  // the spot just removed, for "Rückgängig" right after
+  const [removedLocation, setRemovedLocation] = useState<PickedLocation | undefined>();
+  if (location !== undefined && removedLocation !== undefined) setRemovedLocation(undefined);
   const [images, setImages] = useState<PickedImage[]>([]);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -371,11 +374,31 @@ export const ForumComposer: React.FC = () => {
             </Link>
             <button
               type="button"
-              onClick={() => setLocation(undefined)}
+              onClick={() => {
+                setRemovedLocation(location);
+                setLocation(undefined);
+              }}
               aria-label={forumText.removeLocation[locale]}
               className="focus-visible:focus-surface hover:bg-quiet absolute top-1/2 right-1.5 flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-green-700"
             >
               <X className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </div>
+        )}
+
+        {location === undefined && removedLocation !== undefined && (
+          <div className="bg-quiet flex min-h-11 items-center gap-2 rounded-xl py-1 pr-1 pl-3 text-[13px] text-green-800">
+            <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span className="min-w-0 flex-1 truncate">
+              {forumText.locationRemoved[locale]}
+              {removedLocation.label === undefined ? '' : ` · ${removedLocation.label}`}
+            </span>
+            <button
+              type="button"
+              onClick={() => setLocation(removedLocation)}
+              className="focus-visible:focus-surface hover:bg-chip h-11 shrink-0 cursor-pointer rounded-lg px-3 font-semibold text-green-900"
+            >
+              {forumText.undo[locale]}
             </button>
           </div>
         )}
