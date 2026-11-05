@@ -1,5 +1,6 @@
 'use client';
 
+import { AppFooterController } from '@/components/footer/hide-footer-context';
 import { forumMapText } from '@/features/map/components/forum/forum-map-texts';
 import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
@@ -33,6 +34,19 @@ const useMapCentre = (map: MaplibreMap | undefined): [number, number] | undefine
     };
   }, [map]);
   return centre;
+};
+
+/** The height of an element, followed as it changes; the setter goes on the element as `ref`. */
+const useElementHeight = (): [(element: HTMLDivElement | null) => void, number] => {
+  const [element, setElement] = useState<HTMLDivElement | null>(null);
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    if (element === null) return;
+    const observer = new ResizeObserver(() => setHeight(element.offsetHeight));
+    observer.observe(element);
+    return (): void => observer.disconnect();
+  }, [element]);
+  return [setElement, height];
 };
 
 /** How close the picker opens, close enough to tell one Toitoi from the next. */
@@ -101,15 +115,16 @@ export const ForumLocationPicker: React.FC<{
   const router = useRouter();
   const parameters = useSearchParams();
   const map = useMap();
-  const [sheet, setSheet] = useState<HTMLDivElement | null>(null);
-  const [sheetHeight, setSheetHeight] = useState(0);
-  useEffect(() => {
-    if (sheet === null) return;
-    const observer = new ResizeObserver(() => setSheetHeight(sheet.offsetHeight));
-    observer.observe(sheet);
-    return (): void => observer.disconnect();
-  }, [sheet]);
-  usePickerMap(map, startOf(parameters), sheetHeight);
+  const [measureSheet, sheetHeight] = useElementHeight();
+  const [measureLayer, layerHeight] = useElementHeight();
+  // The map's canvas leaves room for the tab bar, which is hidden while picking; the layer
+  // reaches the bottom of the screen. The pin sits in the middle of what the sheet leaves of
+  // the layer, and the map's centre must be the same point, so the canvas is padded by the
+  // part of the sheet that lies over it.
+  const canvasHeight = map?.getContainer().clientHeight ?? layerHeight;
+  const coveredByTheSheet = Math.max(0, sheetHeight - (layerHeight - canvasHeight));
+  usePickerMap(map, startOf(parameters), coveredByTheSheet);
+  const pinTop = (layerHeight - sheetHeight) / 2;
   const centre = useMapCentre(map);
   const nearby: NearbyAnnotation | undefined =
     centre === undefined
@@ -119,11 +134,17 @@ export const ForumLocationPicker: React.FC<{
   const withEntry = useEntry && nearby !== undefined;
 
   return (
-    <>
+    // Over the whole screen below the header, the tab bar hidden: picking is a task of its own,
+    // and its sheet with the button that ends it must never sit under the tab bar.
+    <div
+      ref={measureLayer}
+      className="pointer-events-none fixed inset-x-0 top-[calc(var(--app-header-height)+var(--offline-banner-height,0px))] bottom-0 z-[60] xl:left-(--app-content-left)"
+    >
+      <AppFooterController hideAppFooter />
       {/* the pin over the centre of the map; its tip is the spot */}
       <div
         className="pointer-events-none absolute left-1/2 z-40 -translate-x-1/2 -translate-y-full"
-        style={{ top: `calc((100% - ${sheetHeight}px) / 2)` }}
+        style={{ top: pinTop }}
       >
         <MapPin
           className="fill-conveniat-green h-11 w-11 text-white drop-shadow-md"
@@ -133,12 +154,12 @@ export const ForumLocationPicker: React.FC<{
       </div>
       <div
         className="pointer-events-none absolute left-1/2 z-30 h-1.5 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/30"
-        style={{ top: `calc((100% - ${sheetHeight}px) / 2)` }}
+        style={{ top: pinTop }}
       />
 
       <div
-        ref={setSheet}
-        className="bg-page absolute inset-x-0 bottom-0 z-50 flex flex-col gap-2.5 rounded-t-[20px] px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_18px_rgba(0,0,0,0.12)]"
+        ref={measureSheet}
+        className="bg-page pointer-events-auto absolute inset-x-0 bottom-0 z-50 flex flex-col gap-2.5 rounded-t-[20px] px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_18px_rgba(0,0,0,0.12)]"
       >
         <h2 className="font-heading text-heading text-[18px] font-extrabold">
           {forumMapText.pickTitle[locale]}
@@ -216,6 +237,6 @@ export const ForumLocationPicker: React.FC<{
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 };
