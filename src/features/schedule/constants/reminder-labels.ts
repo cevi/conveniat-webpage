@@ -35,6 +35,12 @@ export const reminderLabels = {
     en: 'This block has a reminder set.',
     fr: 'Un rappel est réglé pour ce bloc.',
   },
+  removeFailed: {
+    de: 'Erinnerung konnte nicht entfernt werden.',
+    en: 'The reminder could not be removed.',
+    fr: "Le rappel n'a pas pu être supprimé.",
+  },
+  tryAgain: { de: 'Nochmals', en: 'Try again', fr: 'Réessayer' },
   yesRemove: { de: 'Ja, entfernen', en: 'Yes, remove', fr: 'Oui, supprimer' },
   keep: { de: 'Behalten', en: 'Keep', fr: 'Garder' },
   pushLead: {
