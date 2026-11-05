@@ -12,6 +12,7 @@ group may hold several roles.
 - material team: runs the material depot in the app (/app/material)
 - Hof dashboard reviewers: review what the Höfe hand in on the Hof dashboard, without the
   admin panel
+- safety team: security and first aid, who read the NFC wristbands in the app
 
 `/admin/access-overview` renders these roles against every collection and global.
 */
@@ -28,6 +29,7 @@ export enum Roles {
   BillingTeam = 'billing-team',
   MaterialTeam = 'material-team',
   HofDashboardReviewer = 'hof-dashboard-reviewer',
+  SafetyTeam = 'safety-team',
 }
 
 /** The setting that names the Cevi.DB groups of a role, so the access overview can point at it. */
@@ -39,6 +41,7 @@ export const ROLE_ENVIRONMENT_VARIABLES = {
   [Roles.BillingTeam]: 'BILLING_ADMIN_GROUP_ID',
   [Roles.MaterialTeam]: 'CEVIDB_GROUP_MATERIAL_TEAM',
   [Roles.HofDashboardReviewer]: 'CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS',
+  [Roles.SafetyTeam]: 'CEVIDB_GROUP_SAFETY_TEAM',
 } as const satisfies Record<Roles, keyof typeof environmentVariables>;
 
 /** The Cevi.DB groups whose members hold a role. A role without a group has no holder. */
@@ -180,6 +183,14 @@ export const HOF_DASHBOARD_REVIEWER_ROLES: Roles[] = [
   Roles.WebCoreTeam,
   Roles.HofDashboardReviewer,
 ];
+
+/**
+ * Who reads an NFC wristband in the app and sees whose it is, and keeps the list of every
+ * band offline on the phone: security and first aid, and the full admins. Checked on the tRPC
+ * side with the session user. Programming a band is not a role: the AVP of a Hof programs the
+ * bands of that Hof, by the same rule that opens its Hof dashboard.
+ */
+export const WRISTBAND_READER_ROLES: Roles[] = [Roles.FullAdmin, Roles.SafetyTeam];
 
 /**
  * Who runs the support desk in the admin panel: the full admins and the web core team. They

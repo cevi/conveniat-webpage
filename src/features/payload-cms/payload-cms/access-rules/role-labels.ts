@@ -18,4 +18,9 @@ export const ROLE_LABELS: Record<Roles, StaticTranslationString> = {
     en: 'Hof dashboard reviewers',
     fr: 'Vérification du tableau de bord des Hofs',
   },
+  [Roles.SafetyTeam]: {
+    de: 'Sicherheit & Sanität',
+    en: 'Security & first aid',
+    fr: 'Sécurité & premiers secours',
+  },
 };

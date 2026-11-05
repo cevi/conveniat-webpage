@@ -233,6 +233,11 @@ const capabilityLabels: Record<Capability, StaticTranslationString> = {
     en: 'Review the Hof dashboard',
     fr: 'Vérifier le tableau de bord des Hofs',
   },
+  wristbandReader: {
+    de: 'NFC-Armbänder lesen',
+    en: 'Read the NFC wristbands',
+    fr: 'Lire les bracelets NFC',
+  },
 };
 
 const OPERATION_ICONS: Record<AccessOperation, React.FC<{ className?: string }>> = {

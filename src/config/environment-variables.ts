@@ -73,6 +73,12 @@ export const environmentVariables = createEnv({
      */
     CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS: optionalGroupIds,
 
+    /**
+     * optional: Cevi.DB groups of security and first aid, who read the NFC wristbands. Without
+     * it, only full admins do.
+     */
+    CEVIDB_GROUP_SAFETY_TEAM: optionalGroupIds,
+
     CEVI_DB_CLIENT_ID: z.string().min(1),
     CEVI_DB_CLIENT_SECRET: z.string().min(1),
     S3_ACCESS_KEY_ID: z.string().min(5),
@@ -122,6 +128,10 @@ export const environmentVariables = createEnv({
       .transform((value) => value === 'true')
       .default(false),
     FEATURE_ENABLE_HOF_DASHBOARD: z
+      .string()
+      .transform((value) => value === 'true')
+      .default(false),
+    FEATURE_ENABLE_NFC_WRISTBANDS: z
       .string()
       .transform((value) => value === 'true')
       .default(false),
