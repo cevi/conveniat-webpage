@@ -60,6 +60,7 @@ const features_folder = [
   'material',
   'hof-dashboard',
   'visit-day',
+  'wristbands',
 ];
 
 const featuresDirectory = path.join(__dirname, 'src', 'features');

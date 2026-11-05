@@ -68,6 +68,13 @@ SELECTABLE_GROUPS = [
         "role_class": "editor",
         "description": "Reviews Hof dashboard submissions without full admin access.",
     },
+    {
+        "id": get_env_int("CEVIDB_GROUP_SAFETY_TEAM", 110),
+        "group_name": "Safety Team",
+        "role_name": "Safety Team",
+        "role_class": "editor",
+        "description": "Security and first aid, reads the NFC wristbands.",
+    },
 ]
 
 
