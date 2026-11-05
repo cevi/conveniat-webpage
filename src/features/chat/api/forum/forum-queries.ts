@@ -474,9 +474,32 @@ export const getForumAssigneeList = trpcBaseProcedure
     return users.map((user) => ({ id: user.uuid, name: user.name }));
   });
 
-/** What the forum's pages need to know of the admin panel's switches. */
+export interface ForumSettings {
+  /** the admin panel's switch: new posts wait for a moderator */
+  moderationRequired: boolean;
+  /** the caller moderates at least one topic, as its Kernteam or on piket duty */
+  canModerate: boolean;
+  /** the caller holds an open assignment, so "Meine Aufträge" has something to show */
+  hasOpenAssignments: boolean;
+}
+
+/**
+ * What the forum's pages need to know beyond the posts: the admin panel's switch, and which of
+ * the filters apply to the caller at all, so a participant sees only the ones that do.
+ */
 export const getForumSettings = trpcBaseProcedure
   .input(z.object({}))
-  .query(async (): Promise<{ moderationRequired: boolean }> => ({
-    moderationRequired: await getFeatureFlag(FEATURE_FLAG_FORUM_MODERATION),
-  }));
+  .query(async ({ ctx }): Promise<ForumSettings> => {
+    const [moderationRequired, moderated, openAssignments] = await Promise.all([
+      getFeatureFlag(FEATURE_FLAG_FORUM_MODERATION),
+      findModeratedTopicIds(ctx.prisma, ctx.user.uuid),
+      ctx.prisma.forumPostAssignment.count({
+        where: { assigneeId: ctx.user.uuid, endedAt: null },
+      }),
+    ]);
+    return {
+      moderationRequired,
+      canModerate: moderated === 'all' || moderated.length > 0,
+      hasOpenAssignments: openAssignments > 0,
+    };
+  });
