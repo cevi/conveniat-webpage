@@ -166,7 +166,11 @@ const GenericPage: LocalizedCollectionComponent = async ({
 
     if (historyResult.docs.length > 0) {
       const historicArticle = historyResult.docs[0];
-      if (typeof historicArticle?.seo.urlSlug === 'string') {
+      // a preview finds a page by its published slug, which its draft may still carry
+      if (
+        typeof historicArticle?.seo.urlSlug === 'string' &&
+        historicArticle.seo.urlSlug !== slug
+      ) {
         const historicSlug = historicArticle.seo.urlSlug;
         const redirectPath = historicSlug === '' ? `/${locale}` : `/${locale}/${historicSlug}`;
 

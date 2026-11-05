@@ -70,6 +70,13 @@ export const rememberDraftSave: CollectionBeforeOperationHook = ({ args, operati
   return args;
 };
 
+/**
+ * Whether the running save only writes a draft, as recorded by {@link rememberDraftSave}. False
+ * when nothing was recorded.
+ */
+export const isDraftOnlySave = (request: PayloadRequest): boolean =>
+  request.context[IS_DRAFT_SAVE] === true;
+
 /** {@link rememberDraftSave} for a global. */
 export const rememberDraftSaveGlobal: GlobalBeforeOperationHook = ({ args, operation, req }) => {
   if (operation === 'update') {
@@ -89,7 +96,7 @@ const wasDraftSave = (
   config: { versions?: unknown },
   document_: unknown,
 ): boolean =>
-  request.context[IS_DRAFT_SAVE] === true &&
+  isDraftOnlySave(request) &&
   hasDrafts(config) &&
   (document_ as { _status?: unknown })._status !== 'published';
 
