@@ -29,7 +29,7 @@ import { userErrorMessage } from '@/utils/user-error-message';
 import { keepPreviousData } from '@tanstack/react-query';
 import type { TRPCClientErrorLike } from '@trpc/client';
 import type { UseTRPCQueryResult } from '@trpc/react-query/shared';
-import { ChevronRight, Loader2, MessageSquare, Nfc, ScanLine, UserRound } from 'lucide-react';
+import { ChevronRight, Loader2, MessageSquare, Nfc, ScanLine, UserRound, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
@@ -294,8 +294,15 @@ const UnlockRow: React.FC<{ check: BandCheck; checking: boolean; locale: Locale 
         {tile}
         {text}
         {waiting && (
-          <Button variant="plain" size="touch" onClick={check.cancel}>
-            {translate('cancel', locale)}
+          // an icon, so the title keeps its one line and the row its height
+          <Button
+            variant="plain"
+            size="touchIcon"
+            className="-my-1"
+            aria-label={translate('cancel', locale)}
+            onClick={check.cancel}
+          >
+            <X aria-hidden />
           </Button>
         )}
       </div>

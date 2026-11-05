@@ -67,13 +67,16 @@ const LockedRow: React.FC<{ icon: LucideIcon; label: string; locale: Locale }> =
   label,
   locale,
 }) => (
-  <div className="border-line flex min-h-[60px] items-center gap-3 border-t px-3.5 py-2.5">
-    <span className="bg-quiet grid size-10 shrink-0 place-items-center rounded-xl text-green-400">
+  <div className="not-first:before:bg-line relative flex min-h-[60px] items-center gap-3 px-3.5 py-2.5 not-first:before:absolute not-first:before:top-0 not-first:before:right-0 not-first:before:left-16 not-first:before:h-px">
+    <span className="bg-quiet grid h-[38px] w-[38px] shrink-0 place-items-center rounded-[10px] text-green-400">
       <Icon className="size-5" aria-hidden />
     </span>
+    {/* the line heights of `FactRow`, so the row keeps its height once the fact is there */}
     <div className="min-w-0 flex-1">
-      <div className="bg-chip h-3 w-32 rounded-full" aria-hidden />
-      <div className="mt-1.5 text-[13px] leading-[18px] text-green-500">
+      <div className="flex h-5 items-center" aria-hidden>
+        <div className="bg-chip h-3 w-32 rounded-full" />
+      </div>
+      <div className="mt-px text-[13px] leading-[18px] text-green-500">
         {label}
         <span className="sr-only">: {readerText('lockedUntilScan', locale)}</span>
       </div>
@@ -110,8 +113,11 @@ const Wearer: React.FC<{
     )}
     {unlock !== undefined && (
       <>
-        <LockedRow icon={Tent} label={readerText('hof', locale)} locale={locale} />
-        <LockedRow icon={MapIcon} label={readerText('quartier', locale)} locale={locale} />
+        {/* the same frame as the facts, so nothing moves once they replace these */}
+        <div className="border-line border-t">
+          <LockedRow icon={Tent} label={readerText('hof', locale)} locale={locale} />
+          <LockedRow icon={MapIcon} label={readerText('quartier', locale)} locale={locale} />
+        </div>
         {unlock}
       </>
     )}

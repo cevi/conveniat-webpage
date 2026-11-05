@@ -37,6 +37,9 @@ export const TagSheet: React.FC<{
         if (!next) close();
       }}
       title={tagText('sheetTitle', locale)}
+      // a band read again brings its Hof and the contacts: the sheet keeps its height, so
+      // nothing already on it moves
+      fullHeight
     >
       {children}
     </BottomSheet>
