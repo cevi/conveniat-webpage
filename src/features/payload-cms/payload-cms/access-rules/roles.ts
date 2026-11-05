@@ -112,8 +112,15 @@ export const hasAccessToThis: ({
   return hasAccessToThisUser({ user: { groups: getUserGroups(user) }, requiredRoles });
 };
 
+/**
+ * {@link isFullAdmin} for code that has the user but no request, like the `condition` that
+ * shows an admin field.
+ */
+export const isFullAdminUser = (user: ClientUser | TypedUser | null | undefined): boolean =>
+  hasAccessToThisUser({ user: { groups: getUserGroups(user) }, requiredRoles: [Roles.FullAdmin] });
+
 export const isFullAdmin: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) =>
-  hasAccessToThis({ req, requiredRoles: [Roles.FullAdmin] });
+  isFullAdminUser(req.user);
 
 export const isProgramTeam: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) =>
   hasAccessToThis({ req, requiredRoles: [Roles.ProgramTeam] });

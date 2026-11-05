@@ -160,6 +160,54 @@ export const pushTrackingRouter = createTRPCRouter({
     }),
 
   // Admin only: it returns what any person was sent, for the push subscription admin page.
+  /**
+   * The push devices of one person, for the devices tab of a user in the admin panel. Full
+   * admins only, like the subscriptions themselves: the rows say which devices someone uses.
+   */
+  getPushDeviceList: trpcFullAdminProcedure
+    .input(z.object({ userId: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const payload = await getPayload({ config });
+      const { docs } = await payload.find({
+        collection: 'push-notification-subscriptions',
+        where: { user: { equals: input.userId } },
+        sort: '-lastUsedAt',
+        pagination: false,
+        depth: 0,
+        select: { platform: true, userAgent: true, registrationSource: true, lastUsedAt: true },
+      });
+      return docs.map((device) => ({
+        id: device.id,
+        platform: device.platform,
+        userAgent: device.userAgent ?? null,
+        registrationSource: device.registrationSource ?? null,
+        lastUsedAt: device.lastUsedAt ?? null,
+      }));
+    }),
+
+  /**
+   * Removes one push device of a person. The device gets no pushes until the person turns them
+   * on again in the settings. Deleting by `where` makes a device that is already gone, removed
+   * in another tab or pruned by a send, a no-op instead of an error.
+   */
+  deletePushDevice: trpcFullAdminProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      const payload = await getPayload({ config });
+      const { docs } = await payload.delete({
+        collection: 'push-notification-subscriptions',
+        where: { id: { equals: input.id } },
+        depth: 0,
+      });
+      const removed = docs[0];
+      logger.info('Removed a push device in the admin panel', {
+        'subscription.removed.count': docs.length,
+        'device.platform': removed?.platform,
+        'user.id': typeof removed?.user === 'string' ? removed.user : undefined,
+      });
+      return { removed: docs.length > 0 };
+    }),
+
   getRecentLogs: trpcFullAdminProcedure
     .input(
       z.object({

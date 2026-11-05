@@ -5,8 +5,13 @@ jest.mock('@payload-config', () => ({}), { virtual: true });
 
 const mockPayloadFind = jest.fn();
 const mockPayloadUpdate = jest.fn();
+const mockPayloadDelete = jest.fn();
 jest.mock('payload', () => ({
-  getPayload: (): unknown => ({ find: mockPayloadFind, update: mockPayloadUpdate }),
+  getPayload: (): unknown => ({
+    find: mockPayloadFind,
+    update: mockPayloadUpdate,
+    delete: mockPayloadDelete,
+  }),
 }));
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
@@ -247,5 +252,59 @@ describe('pushTrackingRouter delivery reports', () => {
       success: true,
     });
     expect(updateData()).toEqual(expect.objectContaining({ status: 'DELIVERED' }));
+  });
+});
+
+describe('pushTrackingRouter push devices of a person', () => {
+  const lenasPhone = {
+    id: 'device-1',
+    platform: 'web',
+    userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/141.0.0.0 Mobile Safari/537.36',
+    registrationSource: '/entrypoint',
+    lastUsedAt: '2026-11-05T12:00:00.000Z',
+  };
+
+  beforeEach(() => {
+    mockPayloadFind.mockReset();
+    mockPayloadDelete.mockReset();
+  });
+
+  it('lists them for a full admin', async () => {
+    mockPayloadFind.mockResolvedValue({ docs: [lenasPhone] });
+
+    await expect(callerAs(fullAdmin).getPushDeviceList({ userId: 'user-lena' })).resolves.toEqual([
+      lenasPhone,
+    ]);
+    expect(mockPayloadFind).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { user: { equals: 'user-lena' } } }),
+    );
+  });
+
+  it('refuses the list and the removal to the web core team', async () => {
+    await expect(
+      callerAs(webCoreTeam).getPushDeviceList({ userId: 'user-lena' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(callerAs(webCoreTeam).deletePushDevice({ id: 'device-1' })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    expect(mockPayloadFind).not.toHaveBeenCalled();
+    expect(mockPayloadDelete).not.toHaveBeenCalled();
+  });
+
+  it('removes a device for a full admin', async () => {
+    mockPayloadDelete.mockResolvedValue({ docs: [{ ...lenasPhone, user: 'user-lena' }] });
+
+    await expect(callerAs(fullAdmin).deletePushDevice({ id: 'device-1' })).resolves.toEqual({
+      removed: true,
+    });
+  });
+
+  it('answers a device that is already gone without an error', async () => {
+    // removed in another tab, or pruned by a send that met an expired subscription
+    mockPayloadDelete.mockResolvedValue({ docs: [] });
+
+    await expect(callerAs(fullAdmin).deletePushDevice({ id: 'device-1' })).resolves.toEqual({
+      removed: false,
+    });
   });
 });
