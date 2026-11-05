@@ -1,6 +1,6 @@
 'use server';
 
-import { MAX_QUANTITY } from '@/features/material/limits';
+import { MAX_QUANTITY, MAX_STOCK_QUANTITY } from '@/features/material/limits';
 import {
   type SetupMessageKey,
   setupMessages,
@@ -113,7 +113,7 @@ const importRowSchema = z.object({
     .regex(/^[A-Z0-9-]{2,24}$/),
   name: z.string().trim().min(1).max(200),
   category: z.string().trim().min(1).max(100),
-  total: z.coerce.number().int().min(0).max(MAX_QUANTITY),
+  total: z.coerce.number().int().min(0).max(MAX_STOCK_QUANTITY),
   max: z.coerce.number().int().min(1).max(MAX_QUANTITY),
   unit: z.string().trim().max(40),
   consumable: z.string().trim().toLowerCase(),

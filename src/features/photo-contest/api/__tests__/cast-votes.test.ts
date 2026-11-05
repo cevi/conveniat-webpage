@@ -108,6 +108,12 @@ describe('castVotes', () => {
     expect(storedVotes).toEqual([]);
   });
 
+  it('store an image sent twice within the limit as one vote with both points', async () => {
+    await vote([IMAGES[0] as string, 1], [IMAGES[0] as string, 1]);
+
+    expect(storedVotes).toEqual([expect.objectContaining({ imageId: IMAGES[0], points: 2 })]);
+  });
+
   it('refuse more points in total than the contest allows', async () => {
     expect(
       await errorOf(

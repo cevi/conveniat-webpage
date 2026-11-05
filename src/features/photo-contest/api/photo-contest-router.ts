@@ -203,7 +203,8 @@ export const photoContestRouter = createTRPCRouter({
         throw photoContestError('BAD_REQUEST', 'tooManyPoints', { max: contest.maxPointsPerUser });
       }
 
-      // Validate max points per image; an image sent twice counts with both allocations
+      // Validate max points per image; an image sent twice counts with both allocations and is
+      // stored as one vote, which the unique key on contest, user and image requires
       const pointsPerImage = new Map<string, number>();
       for (const alloc of validAllocations) {
         pointsPerImage.set(alloc.imageId, (pointsPerImage.get(alloc.imageId) ?? 0) + alloc.points);
@@ -227,13 +228,13 @@ export const photoContestRouter = createTRPCRouter({
         });
 
         // Insert new allocations
-        if (validAllocations.length > 0) {
+        if (pointsPerImage.size > 0) {
           await tx.photoContestVote.createMany({
-            data: validAllocations.map((alloc) => ({
+            data: [...pointsPerImage].map(([imageId, points]) => ({
               contestId: contest.id,
-              imageId: alloc.imageId,
+              imageId,
               userId,
-              points: alloc.points,
+              points,
             })),
           });
         }

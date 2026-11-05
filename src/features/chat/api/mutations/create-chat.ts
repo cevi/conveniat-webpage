@@ -58,8 +58,6 @@ export const createChat = trpcBaseProcedure
     checkForDuplicateMembers(members);
     verifyChatName(chatName, members);
 
-    const finalChatName = members.length === 1 ? '' : parseChatName(chatName ?? '');
-
     // Idempotency: a replay of the same creation carries the same client-generated id.
     // Answer it with the chat that already exists instead of creating a second one.
     if (chatId !== undefined) {
@@ -90,6 +88,10 @@ export const createChat = trpcBaseProcedure
         return alreadyCreated.uuid;
       }
     }
+
+    // After the replay above: a group created by the previous release, which allowed shorter
+    // names, stays answered when its outbox replays it.
+    const finalChatName = members.length === 1 ? '' : parseChatName(chatName ?? '');
 
     // After the replay above: a chat created offline stays answered even if a member has
     // left the contact list since.

@@ -506,6 +506,18 @@ describe('chat names', () => {
     expect(writes).toEqual([]);
   });
 
+  it('answer a replayed creation of a group the previous release named with 2 characters', async () => {
+    // the chat was stored before the minimum rose to 3, and the response was lost
+    expect(
+      await as(ANNA).createChat({
+        members: [{ userId: BEN }, { userId: CARLA }],
+        chatName: 'AB',
+        chatId: CHAT_ID,
+      }),
+    ).toBe(CHAT_ID);
+    expect(writes).toEqual([]);
+  });
+
   it('reject a group without a name as too short', async () => {
     const error = await errorOf(
       as(ANNA).createChat({ members: [{ userId: BEN }, { userId: CARLA }] }),
