@@ -10,6 +10,8 @@ export type ProgramRefusal = 'not-genuine' | 'revoked' | 'assigned-to-other';
 export type ProgramWristbandResult =
   { ok: true; password: string; pack: string } | { ok: false; reason: ProgramRefusal };
 
+export type RegisterWristbandResult = { ok: true } | { ok: false; reason: ProgramRefusal };
+
 /** A band of a Hof, as the AVP sees it. */
 export interface HofBand {
   uid: string;

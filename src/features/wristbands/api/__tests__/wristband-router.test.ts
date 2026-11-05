@@ -220,7 +220,12 @@ const program = async (
   uid = BAND,
   signature: string | null = GOOD_SIGNATURE,
   hofId = 'uster',
-): Promise<unknown> => await caller.programWristband({ hofId, uid, signature });
+): Promise<unknown> => {
+  // what the app does: the password while the band lies on the phone, the record once written
+  const answer = await caller.programWristband({ hofId, uid, signature });
+  if (answer.ok) await caller.registerWristband({ hofId, uid, signature });
+  return answer;
+};
 
 describe('programming a band', () => {
   it('hands the AVP the password derived from the UID and records the band for the Hof', async () => {
@@ -236,6 +241,19 @@ describe('programming a band', () => {
         programmedBy: 'avp-uster',
       }),
     ]);
+  });
+
+  it('records nothing until the phone reports the band written', async () => {
+    await usterAvp.programWristband({ hofId: 'uster', uid: BAND, signature: GOOD_SIGNATURE });
+    expect(mockStore['wristbands']).toEqual([]);
+  });
+
+  it('refuses to record a band another Hof recorded in the meantime', async () => {
+    await usterAvp.programWristband({ hofId: 'uster', uid: BAND, signature: GOOD_SIGNATURE });
+    await program(zueriAvp, BAND, GOOD_SIGNATURE, 'zueri');
+    await expect(
+      usterAvp.registerWristband({ hofId: 'uster', uid: BAND, signature: GOOD_SIGNATURE }),
+    ).resolves.toEqual({ ok: false, reason: 'assigned-to-other' });
   });
 
   it('gives the same password again for a band programmed before, without a second entry', async () => {

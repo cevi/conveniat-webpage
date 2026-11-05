@@ -8,6 +8,7 @@ import {
   getWristbandRoster,
   identifyWristband,
   programWristband,
+  registerWristband,
   revokeWristband,
   unassignWristband,
 } from '@/features/wristbands/api/wristband-service';
@@ -55,7 +56,15 @@ export const wristbandRouter = createTRPCRouter({
     .input(hofBand.extend({ signature }))
     .mutation(async ({ ctx, input }) => {
       await ctx.assertHofAccess(input.hofId);
-      return await programWristband(ctx.payload, { ...input, userId: ctx.user.uuid });
+      return await programWristband(ctx.payload, input);
+    }),
+
+  /** Records the band for the Hof after the native `provisioned` event. */
+  registerWristband: hofWristbandProcedure
+    .input(hofBand.extend({ signature }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.assertHofAccess(input.hofId);
+      return await registerWristband(ctx.payload, { ...input, userId: ctx.user.uuid });
     }),
 
   assignWristband: hofWristbandProcedure
