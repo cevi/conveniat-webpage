@@ -23,9 +23,6 @@ const USER = '65f000000000000000000001';
 /** The bucket, by key; a missing key fails the way S3 does. */
 let objects: Record<string, string>;
 
-const keysRead = (): string[] =>
-  mockSend.mock.calls.map(([command]) => (command as { input: { Key: string } }).input.Key);
-
 const get = (query: string): Promise<Response> =>
   GET(new NextRequest(`http://localhost/api/profile-pictures/${USER}?${query}`), {
     params: Promise.resolve({ userId: USER }),
@@ -61,16 +58,13 @@ describe('GET /api/profile-pictures/[userId]', () => {
     expect(await large.text()).toBe('large');
   });
 
-  it('serves the avatar for size=640 when the picture is older than the large size', async () => {
+  it('answers 404 for size=640 when the picture is older than the large size', async () => {
     objects = { [`profile-pictures/${USER}/v1.webp`]: 'avatar' };
 
-    const response = await get('v=v1&size=640');
+    const large = await get('v=v1&size=640');
+    const avatar = await get('v=v1');
 
-    expect(response.status).toBe(200);
-    expect(await response.text()).toBe('avatar');
-    expect(keysRead()).toEqual([
-      `profile-pictures/${USER}/v1-640.webp`,
-      `profile-pictures/${USER}/v1.webp`,
-    ]);
+    expect(large.status).toBe(404);
+    expect(avatar.status).toBe(200);
   });
 });

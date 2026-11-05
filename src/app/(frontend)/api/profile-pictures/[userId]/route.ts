@@ -4,16 +4,23 @@ import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { LARGE_PROFILE_PICTURE_EDGE, profilePictureKey } from '@/utils/profile-picture-url';
 import { createLogger } from '@/utils/server-logger';
-import { GetObjectCommand, type GetObjectCommandOutput } from '@aws-sdk/client-s3';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 import type { NextRequest } from 'next/server';
 
 const logger = createLogger('api:profile-pictures');
+
+/** Whether S3 refused a read because the key does not exist. */
+const isMissingKey = (error: unknown): boolean =>
+  error instanceof Error &&
+  (error.name === 'NoSuchKey' ||
+    (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode === 404);
 
 /** A versioned URL never changes its picture, so the browser keeps it without asking again. */
 const CACHE_OF_CURRENT_VERSION = 'private, max-age=31536000, immutable';
 
 /**
- * Streams a user's profile picture, the avatar or with `size=640` the full-screen one. Like the
+ * Streams a user's profile picture, the avatar or with `size=640` the full-screen one, which a
+ * picture stored before that size existed does not have. Like the
  * address book, only for logged-in users. A URL with an outdated version gets the current picture, but is
  * not cached, so the next list refresh brings the new URL.
  */
@@ -39,20 +46,20 @@ export async function GET(
 
     const wantsLarge =
       request.nextUrl.searchParams.get('size') === String(LARGE_PROFILE_PICTURE_EDGE);
-    const read = (size: 'avatar' | 'large'): Promise<GetObjectCommandOutput> =>
-      s3Client.send(
+    const object = await s3Client
+      .send(
         new GetObjectCommand({
           Bucket: S3_BUCKET_NAME,
-          Key: profilePictureKey(userId, version, size),
+          Key: profilePictureKey(userId, version, wantsLarge ? 'large' : 'avatar'),
         }),
-      );
-    // a picture stored before the large size existed has only its avatar
-    const object = wantsLarge
-      ? await read('large').catch((error: unknown) => {
-          if (error instanceof Error && error.name === 'NoSuchKey') return read('avatar');
-          throw error;
-        })
-      : await read('avatar');
+      )
+      .catch((error: unknown) => {
+        // A picture stored before the large size existed has only its avatar. The viewer then
+        // shows that one at its own size rather than this route stretching it full screen.
+        if (wantsLarge && isMissingKey(error)) return;
+        throw error;
+      });
+    if (object === undefined) return new Response('Not Found', { status: 404 });
     const body = object.Body?.transformToWebStream();
     if (body === undefined) return new Response('Not Found', { status: 404 });
 

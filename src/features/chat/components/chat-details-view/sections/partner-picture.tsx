@@ -23,7 +23,8 @@ const avatarClassName = 'h-[72px] w-[72px] text-2xl';
 
 /**
  * The other person of a private chat at the head of its details. With a profile picture, a tap
- * opens it full screen at 640 pixels, the way WhatsApp does, and the back gesture closes it.
+ * opens it full screen at 640 pixels, the way WhatsApp does, and the back gesture closes it. A
+ * picture stored before that size, or one offline and not yet loaded, shows as the avatar.
  * Without one it is their initials, and nothing to open.
  */
 export const PartnerPicture: React.FC<{
@@ -58,6 +59,7 @@ export const PartnerPicture: React.FC<{
           src={largeUrl}
           alt={pictureOfText[locale].replace('{name}', name)}
           caption={name}
+          fallbackSrc={pictureUrl}
           locale={locale}
           onClose={viewer.close}
         />
