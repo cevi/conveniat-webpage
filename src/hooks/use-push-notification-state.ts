@@ -2,28 +2,61 @@
 
 import { useServiceWorkerStatus } from '@/hooks/use-service-worker-status';
 import { writePreference } from '@/lib/preferences';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import {
   getPushSubscription,
   isPushSupported,
 } from '@/utils/push-notifications/push-manager-utils';
+import {
+  PushSubscribeError,
+  type PushSubscribeFailureReason,
+} from '@/utils/push-notifications/push-subscribe-error';
 import {
   subscribeToPushNotifications,
   unsubscribeFromPushNotifications,
 } from '@/utils/push-notifications/push-subscription';
 import { useCallback, useEffect, useState } from 'react';
 
-// TODO: extract to i18n file or constants
-const notificationsBlockedText: Record<Locale, string> = {
+const notificationsBlockedText: StaticTranslationString = {
   en: 'Notifications blocked. Please enable them in your browser settings.',
   de: 'Benachrichtigungen blockiert. Bitte in den Browsereinstellungen aktivieren.',
   fr: 'Notifications bloquées. Veuillez les activer dans les paramètres du navigateur.',
 };
 
-const notificationsIncognitoText: Record<Locale, string> = {
-  en: 'Could not enable notifications. You might be in Incognito mode.',
-  de: 'Benachrichtigungen konnten nicht aktiviert werden. Möglicherweise Inkognito-Modus.',
-  fr: "Impossible d'activer les notifications. Vous êtes peut-être en mode privé.",
+const failureTexts: Record<
+  Exclude<PushSubscribeFailureReason, 'blocked'> | 'offline' | 'unknown',
+  StaticTranslationString
+> = {
+  dismissed: {
+    en: 'Notifications were not allowed. Tap again to allow them.',
+    de: 'Benachrichtigungen wurden nicht erlaubt. Tippe nochmals, um sie zu erlauben.',
+    fr: "Les notifications n'ont pas été autorisées. Appuyez à nouveau pour les autoriser.",
+  },
+  offline: {
+    en: 'No connection. Try again once you are online.',
+    de: 'Keine Verbindung. Versuche es nochmals, sobald du online bist.',
+    fr: 'Pas de connexion. Réessayez une fois en ligne.',
+  },
+  'not-ready': {
+    en: 'The app is not ready yet. Reload the page and try again.',
+    de: 'Die App ist noch nicht bereit. Lade die Seite neu und versuche es nochmals.',
+    fr: "L'application n'est pas encore prête. Rechargez la page et réessayez.",
+  },
+  'push-service': {
+    en: 'Your browser could not set up notifications. This often fails in a private window.',
+    de: 'Dein Browser konnte Benachrichtigungen nicht einrichten. In einem privaten Fenster geht das oft nicht.',
+    fr: "Votre navigateur n'a pas pu activer les notifications. C'est souvent impossible dans une fenêtre privée.",
+  },
+  server: {
+    en: 'Notifications could not be saved. Please try again.',
+    de: 'Benachrichtigungen konnten nicht gespeichert werden. Versuche es nochmals.',
+    fr: "Les notifications n'ont pas pu être enregistrées. Veuillez réessayer.",
+  },
+  unknown: {
+    en: 'Notifications could not be enabled. Please try again.',
+    de: 'Benachrichtigungen konnten nicht aktiviert werden. Versuche es nochmals.',
+    fr: "Les notifications n'ont pas pu être activées. Veuillez réessayer.",
+  },
 };
 
 interface PushNotificationState {
@@ -33,32 +66,31 @@ interface PushNotificationState {
   isSubscribed: boolean;
   isLoading: boolean;
   errorMessage: string | undefined;
+  /** the permission is denied, so asking again cannot help; any other error can be retried */
+  isBlocked: boolean;
 }
 
 /**
- * Parses a push subscription error to log correctly and return the user-facing message.
+ * Logs a failed subscription and returns what the user reads. The reason comes from
+ * {@link PushSubscribeError}; a failure while offline says so whatever step it hit.
  */
-function getSubscriptionErrorMessage(error: unknown, locale: Locale): string {
-  const message = error instanceof Error ? error.message : String(error);
-  const cause = error instanceof Error ? (error as { cause?: unknown }).cause : undefined;
-  const causeMessage = cause instanceof Error ? cause.message : '';
+function describeSubscriptionError(
+  error: unknown,
+  locale: Locale,
+): { message: string; isBlocked: boolean } {
+  const reason = error instanceof PushSubscribeError ? error.reason : undefined;
+  const isPermission = reason === 'blocked' || reason === 'dismissed';
+  const isOffline = !isPermission && typeof navigator !== 'undefined' && !navigator.onLine;
 
-  const isBlocked =
-    message.toLowerCase().includes('blocked') ||
-    (error instanceof DOMException && error.name === 'NotAllowedError');
-
-  const isIncognito =
-    message.toLowerCase().includes('failed to subscribe to push manager') &&
-    (causeMessage.toLowerCase().includes('permission denied') ||
-      causeMessage.toLowerCase().includes('registration failed'));
-
-  if (isBlocked || isIncognito) {
+  if (isPermission || isOffline) {
     console.warn('Push subscription failed (expected):', error);
   } else {
     console.error('Failed to subscribe:', error);
   }
 
-  return isBlocked ? notificationsBlockedText[locale] : notificationsIncognitoText[locale];
+  if (reason === 'blocked') return { message: notificationsBlockedText[locale], isBlocked: true };
+  const text = isOffline ? failureTexts.offline : failureTexts[reason ?? 'unknown'];
+  return { message: text[locale], isBlocked: false };
 }
 
 interface UsePushNotificationStateResult {
@@ -67,6 +99,8 @@ interface UsePushNotificationStateResult {
   isSubscribed: boolean;
   isLoading: boolean;
   errorMessage: string | undefined;
+  /** whether the error is a denied permission, the one failure a retry cannot fix */
+  isBlocked: boolean;
   toggleSubscription: () => Promise<boolean>;
 }
 
@@ -85,6 +119,7 @@ export function usePushNotificationState(
     isSubscribed: false,
     isLoading: false,
     errorMessage: undefined,
+    isBlocked: false,
   });
 
   const updateState = useCallback((updates: Partial<PushNotificationState>) => {
@@ -107,13 +142,15 @@ export function usePushNotificationState(
             isSubscribed: false,
             isLoading: false,
             errorMessage: undefined,
+            isBlocked: false,
           });
         }
         return;
       }
 
       let permissionErrorMessage: string | undefined;
-      if (Notification.permission === 'denied') {
+      const isBlocked = Notification.permission === 'denied';
+      if (isBlocked) {
         permissionErrorMessage = notificationsBlockedText[locale];
       }
 
@@ -126,6 +163,7 @@ export function usePushNotificationState(
             isSubscribed: false,
             isLoading: false,
             errorMessage: permissionErrorMessage,
+            isBlocked,
           });
         }
         return;
@@ -142,6 +180,7 @@ export function usePushNotificationState(
             isSubscribed: !!sub,
             isLoading: false,
             errorMessage: permissionErrorMessage,
+            isBlocked,
           });
         }
       } catch (error) {
@@ -153,6 +192,7 @@ export function usePushNotificationState(
             isSubscribed: false,
             isLoading: false,
             errorMessage: permissionErrorMessage,
+            isBlocked,
           });
         }
       }
@@ -175,19 +215,20 @@ export function usePushNotificationState(
   }, [locale, swReady, swError, updateState]);
 
   const subscribeToPush = useCallback(async (): Promise<boolean> => {
-    updateState({ isLoading: true, isSubscribed: true, errorMessage: undefined });
+    updateState({
+      isLoading: true,
+      isSubscribed: true,
+      errorMessage: undefined,
+      isBlocked: false,
+    });
     writePreference('web-push-opted-out', false);
     try {
       await subscribeToPushNotifications(locale, registrationSource);
       updateState({ isLoading: false, isSubscribed: true });
       return true;
     } catch (error: unknown) {
-      const subscriptionErrorMessage = getSubscriptionErrorMessage(error, locale);
-      updateState({
-        isLoading: false,
-        isSubscribed: false,
-        errorMessage: subscriptionErrorMessage,
-      });
+      const { message, isBlocked } = describeSubscriptionError(error, locale);
+      updateState({ isLoading: false, isSubscribed: false, errorMessage: message, isBlocked });
       return false;
     }
   }, [locale, registrationSource, updateState]);
@@ -223,6 +264,7 @@ export function usePushNotificationState(
     isSubscribed: state.isSubscribed,
     isLoading: state.isLoading,
     errorMessage: state.errorMessage,
+    isBlocked: state.isBlocked,
     toggleSubscription,
   };
 }

@@ -52,6 +52,7 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
     isSubscribed: isWebSubscribed,
     isLoading: isWebLoading,
     errorMessage: webError,
+    isBlocked: isWebBlocked,
     toggleSubscription,
   } = usePushNotificationState({ registrationSource: '/app/settings', locale });
 
@@ -261,7 +262,8 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
           <Switch
             checked={isSubscribed}
             onCheckedChange={handleToggle}
-            disabled={!isSupported || isLoading || !!errorMessage}
+            // a web error other than a denied permission is worth another tap
+            disabled={!isSupported || isLoading || (isNativeApp ? !!errorMessage : isWebBlocked)}
             loading={isLoading}
             aria-label={pushNotificationSettingsTitle[locale]}
           />

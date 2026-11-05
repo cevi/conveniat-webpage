@@ -4,12 +4,19 @@ import {
   getPushSubscription,
   isPushSupported,
 } from '@/utils/push-notifications/push-manager-utils';
+import { PushSubscribeError } from '@/utils/push-notifications/push-subscribe-error';
 import { reportRenewedPushSubscription } from '@/utils/push-notifications/report-renewed-push-subscription';
 import { registerServiceWorker } from '@/utils/service-worker-utils';
 import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
 import type webpush from 'web-push';
 
 const vapidPublicKey: string | undefined = environmentVariables.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+const isNotAllowedError = (error: unknown): boolean =>
+  error instanceof DOMException && error.name === 'NotAllowedError';
+
+// A function, so the answer to the prompt is read and not the value narrowed before it.
+const currentPermission = (): NotificationPermission => Notification.permission;
 
 /**
  * Retries a promise-returning function a specified number of times.
@@ -25,7 +32,7 @@ const retry = async <T>(
     if (retries <= 0) throw error;
 
     // Do not retry if permission is denied
-    if (error instanceof DOMException && error.name === 'NotAllowedError') {
+    if (isNotAllowedError(error)) {
       throw error;
     }
 
@@ -39,7 +46,7 @@ export const subscribeToPushNotifications = async (
   registrationSource?: '/entrypoint' | '/app/settings' | 'restored',
 ): Promise<PushSubscription> => {
   if (Notification.permission === 'denied') {
-    throw new Error('Notifications are blocked. Please enable them in your browser settings.');
+    throw new PushSubscribeError('blocked', 'Notifications are blocked in this browser.');
   }
 
   // 1. Register Service Worker
@@ -47,16 +54,18 @@ export const subscribeToPushNotifications = async (
   try {
     registration = await registerServiceWorker();
   } catch (error) {
-    throw new Error('Failed to register service worker for push.', { cause: error });
+    throw new PushSubscribeError('not-ready', 'Failed to register service worker for push.', {
+      cause: error,
+    });
   }
 
   if (!registration) {
-    throw new Error('Service Workers are not supported in this browser.');
+    throw new PushSubscribeError('not-ready', 'No service worker to subscribe with.');
   }
 
   // 2. Check VAPID Key
   if (vapidPublicKey === '') {
-    throw new Error('VAPID public key is not defined.');
+    throw new PushSubscribeError('not-ready', 'VAPID public key is not defined.');
   }
 
   // 3. Subscribe to Push Manager (with retry)
@@ -72,7 +81,14 @@ export const subscribeToPushNotifications = async (
       500,
     );
   } catch (error) {
-    throw new Error('Failed to subscribe to Push Manager.', { cause: error });
+    // The prompt was refused or closed. Whether it can be asked again is the permission's call.
+    if (isNotAllowedError(error)) {
+      const reason = currentPermission() === 'denied' ? 'blocked' : 'dismissed';
+      throw new PushSubscribeError(reason, 'Notifications were not allowed.', { cause: error });
+    }
+    throw new PushSubscribeError('push-service', 'Failed to subscribe to Push Manager.', {
+      cause: error,
+    });
   }
 
   // 4. Send subscription to backend (with retry)
@@ -102,7 +118,9 @@ export const subscribeToPushNotifications = async (
     } catch (cleanupError) {
       console.warn('Failed to cleanup subscription after backend error', cleanupError);
     }
-    throw new Error('Failed to send subscription to backend.', { cause: error });
+    throw new PushSubscribeError('server', 'Failed to send subscription to backend.', {
+      cause: error,
+    });
   }
 
   return sub;

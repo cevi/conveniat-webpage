@@ -28,7 +28,7 @@ export const PushNotificationSubscriptionManager: React.FC<{
 
   // Always call the web push hook so hook call order is stable across renders.
   // The result is intentionally unused in native mode.
-  const { isSupported, isSubscribed, isLoading, errorMessage, toggleSubscription } =
+  const { isSupported, isSubscribed, isLoading, errorMessage, isBlocked, toggleSubscription } =
     usePushNotificationState({ registrationSource: '/entrypoint', locale });
 
   if (isNative) {
@@ -55,6 +55,7 @@ export const PushNotificationSubscriptionManager: React.FC<{
       isSubscribed={isSubscribed}
       isLoading={isLoading}
       errorMessage={errorMessage}
+      isBlocked={isBlocked}
       onToggle={toggleSubscription}
       onContinue={callback}
     />
