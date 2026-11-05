@@ -44,8 +44,6 @@ const claimBatches: unknown[][] = [];
 const mockNotificationCreate = jest.fn().mockResolvedValue({ id: 'notification-1' });
 const mockLogCreateMany = jest.fn().mockResolvedValue({ count: 0 });
 const mockNotificationFindMany = jest.fn();
-/** The chat of the push that completes, `null` for a push outside a chat. */
-const mockCompletedChatId = jest.fn((): string | null => 'chat-1');
 const mockNotificationUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
 const mockLogUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
 const mockPendingGroups = jest.fn().mockResolvedValue([]);
@@ -70,7 +68,7 @@ jest.mock('@/lib/db/prisma', () => ({
         Promise.resolve({
           kind: 'EMERGENCY',
           createdAt: new Date(Date.now() - 4000),
-          chatId: mockCompletedChatId(),
+          chatId: 'chat-1',
           messageId: undefined,
         }),
     },
@@ -98,6 +96,12 @@ const { __logger: mockLogger } = jest.requireMock<{ __logger: MockLogger }>(
 );
 
 const hour = 60 * 60 * 1000;
+
+/** What the queue writes to a push it completes. */
+interface CompletionUpdate {
+  where: Record<string, unknown>;
+  data: { completedAt: unknown; title?: string; body?: string };
+}
 
 const notification = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
   id: 'notification-1',
@@ -382,14 +386,17 @@ describe('drainPushQueue', () => {
     expect(mockLogger.info).toHaveBeenCalledWith('Push completed', expect.anything());
 
     jest.clearAllMocks();
-    mockNotificationUpdateMany.mockResolvedValueOnce({ count: 0 });
+    // another worker completed it: neither conditional update matches
+    mockNotificationUpdateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 0 });
     claimBatches.push([claimed('b')]);
     givenSubscriptions(['sub-b']);
     await drainPushQueue('urgent');
     expect(mockLogger.info).not.toHaveBeenCalledWith('Push completed', expect.anything());
   });
 
-  it('forgets the text of a chat push once its last delivery settled', async () => {
+  it('forgets the text of a push in a chat once its last delivery settled', async () => {
     mockNotificationFindMany.mockResolvedValue([notification({ kind: 'CHAT' })]);
     claimBatches.push([claimed('a')]);
     givenSubscriptions(['sub-a']);
@@ -397,23 +404,30 @@ describe('drainPushQueue', () => {
     await drainPushQueue('all');
 
     // the message lives in the chat; the push kept it only for a retry
-    expect(mockNotificationUpdateMany).toHaveBeenCalledWith({
-      where: { id: 'notification-1' },
-      data: { title: '', body: '' },
+    expect(mockNotificationUpdateMany).toHaveBeenCalledTimes(1);
+    const [update] = mockNotificationUpdateMany.mock.calls[0] as [CompletionUpdate];
+    expect(update.where).toEqual({
+      id: 'notification-1',
+      completedAt: null,
+      chatId: { not: null },
     });
+    expect(update.data).toMatchObject({ title: '', body: '' });
+    expect(update.data.completedAt).toBeInstanceOf(Date);
   });
 
-  it('keeps the text of a push outside a chat, like an announcement', async () => {
-    mockCompletedChatId.mockReturnValueOnce(null);
-    mockNotificationFindMany.mockResolvedValue([notification({ chatId: null })]);
+  it('keeps the text of a push outside a chat, like a reminder', async () => {
+    // no row matches the update for a push in a chat
+    mockNotificationUpdateMany.mockResolvedValueOnce({ count: 0 });
+    mockNotificationFindMany.mockResolvedValue([notification({ kind: 'REMINDER', chatId: null })]);
     claimBatches.push([claimed('a')]);
     givenSubscriptions(['sub-a']);
 
     await drainPushQueue('all');
 
-    expect(mockNotificationUpdateMany).not.toHaveBeenCalledWith(
-      expect.objectContaining({ data: { title: '', body: '' } }),
-    );
+    const [update] = mockNotificationUpdateMany.mock.calls.at(-1) as [CompletionUpdate];
+    expect(update.where).toEqual({ id: 'notification-1', completedAt: null });
+    expect(Object.keys(update.data)).toEqual(['completedAt']);
+    expect(mockLogger.info).toHaveBeenCalledWith('Push completed', expect.anything());
   });
 
   it('does not report a push as complete while deliveries are still waiting', async () => {
