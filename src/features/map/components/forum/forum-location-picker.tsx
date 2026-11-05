@@ -13,8 +13,8 @@ import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { CheckCircle2, Crosshair, MapPin } from 'lucide-react';
-import type { Map as MaplibreMap } from 'maplibre-gl';
-import { useRouter } from 'next/navigation';
+import type { MapMouseEvent, Map as MaplibreMap } from 'maplibre-gl';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
 /** The map's centre, followed as the map moves under the pin. */
@@ -35,6 +35,57 @@ const useMapCentre = (map: MaplibreMap | undefined): [number, number] | undefine
   return centre;
 };
 
+/** How close the picker opens, close enough to tell one Toitoi from the next. */
+const PICK_ZOOM = 17.5;
+
+/**
+ * Starts the picker at the spot the composer already had, if any, and lets a tap anywhere put
+ * the pin there: the map glides so that the tapped point lies under the pin. The map's centre
+ * is kept above the sheet, so the pin and the centre are the same point.
+ */
+const usePickerMap = (
+  map: MaplibreMap | undefined,
+  start: [number, number] | undefined,
+  sheetHeight: number,
+): void => {
+  const startLongitude = start?.[0];
+  const startLatitude = start?.[1];
+  useEffect(() => {
+    if (map === undefined) return;
+    map.setPadding({ top: 0, left: 0, right: 0, bottom: sheetHeight });
+    return (): void => {
+      map.setPadding({ top: 0, left: 0, right: 0, bottom: 0 });
+    };
+  }, [map, sheetHeight]);
+  useEffect(() => {
+    if (map === undefined || startLongitude === undefined || startLatitude === undefined) return;
+    map.jumpTo({
+      center: [startLongitude, startLatitude],
+      zoom: Math.max(map.getZoom(), PICK_ZOOM),
+    });
+  }, [map, startLongitude, startLatitude]);
+  useEffect(() => {
+    if (map === undefined) return;
+    const onClick = (event: MapMouseEvent): void => {
+      map.easeTo({ center: event.lngLat, duration: 250 });
+    };
+    map.on('click', onClick);
+    return (): void => {
+      map.off('click', onClick);
+    };
+  }, [map]);
+};
+
+/** The spot the composer handed over, `lng` and `lat` in the address. */
+const startOf = (parameters: URLSearchParams): [number, number] | undefined => {
+  const longitude = Number(parameters.get('lng'));
+  const latitude = Number(parameters.get('lat'));
+  if (parameters.get('lng') === null || !Number.isFinite(longitude) || !Number.isFinite(latitude)) {
+    return undefined;
+  }
+  return [longitude, latitude];
+};
+
 /**
  * Picks the spot of a post. The pin stays in the middle and the map moves under it, which one
  * thumb can do precisely. The position of the phone only centres the map, through the locate
@@ -48,7 +99,17 @@ export const ForumLocationPicker: React.FC<{
 }> = ({ annotationPoints, annotationPolygons, topicId }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const router = useRouter();
+  const parameters = useSearchParams();
   const map = useMap();
+  const [sheet, setSheet] = useState<HTMLDivElement | null>(null);
+  const [sheetHeight, setSheetHeight] = useState(0);
+  useEffect(() => {
+    if (sheet === null) return;
+    const observer = new ResizeObserver(() => setSheetHeight(sheet.offsetHeight));
+    observer.observe(sheet);
+    return (): void => observer.disconnect();
+  }, [sheet]);
+  usePickerMap(map, startOf(parameters), sheetHeight);
   const centre = useMapCentre(map);
   const nearby: NearbyAnnotation | undefined =
     centre === undefined
@@ -60,16 +121,25 @@ export const ForumLocationPicker: React.FC<{
   return (
     <>
       {/* the pin over the centre of the map; its tip is the spot */}
-      <div className="pointer-events-none absolute top-1/2 left-1/2 z-40 -translate-x-1/2 -translate-y-full">
+      <div
+        className="pointer-events-none absolute left-1/2 z-40 -translate-x-1/2 -translate-y-full"
+        style={{ top: `calc((100% - ${sheetHeight}px) / 2)` }}
+      >
         <MapPin
           className="fill-conveniat-green h-11 w-11 text-white drop-shadow-md"
           strokeWidth={1.5}
           aria-hidden="true"
         />
       </div>
-      <div className="pointer-events-none absolute top-1/2 left-1/2 z-30 h-1.5 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/30" />
+      <div
+        className="pointer-events-none absolute left-1/2 z-30 h-1.5 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/30"
+        style={{ top: `calc((100% - ${sheetHeight}px) / 2)` }}
+      />
 
-      <div className="bg-page absolute inset-x-0 bottom-0 z-50 flex flex-col gap-2.5 rounded-t-[20px] px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_18px_rgba(0,0,0,0.12)]">
+      <div
+        ref={setSheet}
+        className="bg-page absolute inset-x-0 bottom-0 z-50 flex flex-col gap-2.5 rounded-t-[20px] px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_18px_rgba(0,0,0,0.12)]"
+      >
         <h2 className="font-heading text-heading text-[18px] font-extrabold">
           {forumMapText.pickTitle[locale]}
         </h2>

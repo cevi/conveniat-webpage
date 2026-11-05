@@ -20,9 +20,9 @@ export const forumMapText = {
   reportsHere: { de: 'Meldungen hier', en: 'Reports here', fr: 'Signalements ici' },
   pickTitle: { de: 'Standort wählen', en: 'Choose a location', fr: 'Choisir un emplacement' },
   pickHint: {
-    de: 'Verschiebe die Karte, bis der Pin auf dem Ort steht.',
-    en: 'Move the map until the pin is on the spot.',
-    fr: 'Déplace la carte jusqu’à ce que l’épingle soit sur le lieu.',
+    de: 'Tippe auf den Ort, oder verschiebe die Karte, bis der Pin darauf steht.',
+    en: 'Tap the spot, or move the map until the pin is on it.',
+    fr: 'Touche le lieu, ou déplace la carte jusqu’à ce que l’épingle soit dessus.',
   },
   here: { de: 'Hier', en: 'Here', fr: 'Ici' },
   exactlyHere: { de: 'Genau hier', en: 'Exactly here', fr: 'Exactement ici' },
