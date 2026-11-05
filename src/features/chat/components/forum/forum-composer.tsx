@@ -349,28 +349,31 @@ export const ForumComposer: React.FC = () => {
         </label>
 
         {location !== undefined && (
-          <div className="border-line flex min-h-14 items-center gap-3 rounded-[14px] border bg-white px-3 py-2">
-            <MapPin className="text-conveniat-green h-5 w-5 shrink-0" aria-hidden="true" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[15px] font-semibold text-green-900">
-                {location.label ?? forumText.pickedSpot[locale]}
-              </span>
-              <span className="text-[12px] text-green-700">
-                {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
-              </span>
-            </span>
+          // the whole card changes the spot; the ✕ beside it, outside the link, removes it
+          <div className="relative">
             <Link
               href={mapPickHref}
               onClick={keepDraft}
-              className="focus-visible:focus-surface hover:bg-quiet flex h-11 items-center rounded-xl px-2 text-[13px] font-semibold text-green-800"
+              className="border-line focus-visible:focus-surface hover:bg-quiet flex min-h-14 items-center gap-3 rounded-[14px] border bg-white py-2 pr-14 pl-3 transition-colors"
             >
-              {forumText.changeLocation[locale]}
+              <MapPin className="text-conveniat-green h-5 w-5 shrink-0" aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[15px] font-semibold text-green-900">
+                  {location.label ?? forumText.pickedSpot[locale]}
+                </span>
+                <span className="text-[12px] text-green-700">
+                  {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
+                </span>
+              </span>
+              <span className="shrink-0 text-[13px] font-semibold text-green-800">
+                {forumText.changeLocation[locale]}
+              </span>
             </Link>
             <button
               type="button"
               onClick={() => setLocation(undefined)}
               aria-label={forumText.removeLocation[locale]}
-              className="focus-visible:focus-surface hover:bg-quiet flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-green-700"
+              className="focus-visible:focus-surface hover:bg-quiet absolute top-1/2 right-1.5 flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-green-700"
             >
               <X className="h-5 w-5" aria-hidden="true" />
             </button>

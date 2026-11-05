@@ -209,9 +209,9 @@ export const forumText = {
     fr: 'Tu pourras publier dès que tu feras partie d’un thème du forum. Le signalement privé à la Zentrale fonctionne toujours.',
   },
   privateHint: {
-    de: 'Nur du und das Piket der Zentrale sehen die Meldung.',
-    en: 'Only you and the Zentrale’s person on duty see the report.',
-    fr: 'Seuls toi et le piquet de la Zentrale voyez le signalement.',
+    de: 'Nur du und das OK sehen deine Nachricht.',
+    en: 'Only you and the OK see your message.',
+    fr: 'Seuls toi et l’OK voyez ton message.',
   },
   sendPrivately: {
     de: 'An die Zentrale senden',
