@@ -34,6 +34,7 @@ export const SEGMENTS_NOT_RESOLVED_BY_SLUG = new Set([
   'go',
   'offline',
   'preview-fallback',
+  'tag',
   '~offline',
   NOT_FOUND_SEGMENT,
   UNAUTHORIZED_SEGMENT,

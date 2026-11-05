@@ -17,13 +17,22 @@ const matches = (document: Document_, where: Condition | undefined): boolean => 
       return (condition as unknown as Condition[]).every((c) => matches(document, c));
     if (field === 'or')
       return (condition as unknown as Condition[]).some((c) => matches(document, c));
-    const value = document[field] ?? null;
-    return Object.entries(condition).every(([operator, expected]) => {
-      if (operator === 'equals') return value === expected;
-      if (operator === 'not_equals') return value !== expected;
-      if (operator === 'in') return (expected as unknown[]).includes(value);
-      throw new Error(`the fake does not know ${operator}`);
-    });
+    // `groups.id`: any entry of the array field
+    const [name = field, key] = field.split('.');
+    const values =
+      key === undefined
+        ? [document[name] ?? null]
+        : ((document[name] as Record<string, unknown>[] | undefined) ?? []).map(
+            (entry) => entry[key] ?? null,
+          );
+    return Object.entries(condition).every(([operator, expected]) =>
+      values.some((value) => {
+        if (operator === 'equals') return value === expected;
+        if (operator === 'not_equals') return value !== expected;
+        if (operator === 'in') return (expected as unknown[]).includes(value);
+        throw new Error(`the fake does not know ${operator}`);
+      }),
+    );
   });
 };
 
@@ -47,7 +56,9 @@ const mockPayload = {
   find: jest.fn(
     ({ collection, where, depth }: { collection: string; where?: Condition; depth?: number }) => {
       const found = (mockStore[collection] ?? []).filter((document) => matches(document, where));
-      return Promise.resolve({ docs: depth === 2 ? found.map((d) => populate(d)) : found });
+      return Promise.resolve({
+        docs: (depth ?? 0) >= 1 ? found.map((d) => populate(d)) : found,
+      });
     },
   ),
   findByID: jest.fn(({ collection, id }: { collection: string; id: string }) =>
@@ -100,6 +111,10 @@ jest.mock('@/utils/server-logger', () => ({
   }),
 }));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
+jest.mock('@/lib/db/redis', () => ({
+  // every rate limit counter at its first call
+  redis: { eval: (): Promise<number> => Promise.resolve(1) },
+}));
 jest.mock('@/utils/get-locale-from-cookies', () => ({
   getLocaleFromCookies: jest.fn().mockResolvedValue('de'),
 }));
@@ -134,6 +149,7 @@ const GOOD_SIGNATURE = 'AB'.repeat(32);
 const FORGED_SIGNATURE = 'CD'.repeat(32);
 const BAND = '04A1B2C3D4E5F6';
 const OTHER_BAND = '04112233445566';
+const SPARE_BAND = '04AABBCCDDEEFF';
 const ADDRESS_ADMINISTRATOR = 'Group::MitgliederorganisationExterne::Adressverwalter';
 
 const createCaller = createCallerFactory(wristbandRouter);
@@ -190,7 +206,9 @@ beforeEach(() => {
       {
         id: 'reg-lea',
         fullName: 'Lea Meier',
+        firstName: 'Lea',
         nickname: 'Fuchs',
+        userId: '5001',
         eventId: '7001',
         eventName: 'Hauptlager conveniat27 - Cevi Uster',
         roleType: 'Event::Camp::Role::Participant',
@@ -200,7 +218,9 @@ beforeEach(() => {
       {
         id: 'reg-tim',
         fullName: 'Tim Huber',
+        firstName: 'Tim',
         nickname: null,
+        userId: '5002',
         eventId: '7001',
         eventName: 'Hauptlager conveniat27 - Cevi Uster',
         roleType: 'Event::Camp::Role::AssistantLeader',
@@ -555,5 +575,79 @@ describe('what the app shows whom', () => {
   it('is not there while the wristbands are off', async () => {
     environmentVariables.FEATURE_ENABLE_NFC_WRISTBANDS = false;
     await expect(sanitaet.getWristbandAccess()).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+});
+
+describe('the page a tapped band opens', () => {
+  beforeEach(async () => {
+    Object.assign(mockStore['users']?.[0] ?? {}, { fullName: 'Andrea Keller', nickname: 'Luchs' });
+    mockStore['users']?.push({ id: 'lea-user', cevi_db_uuid: 5001, fullName: 'Lea Meier' });
+    await program(usterAvp);
+    await usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-lea' });
+    await program(usterAvp, OTHER_BAND);
+    await usterAvp.assignWristband({ hofId: 'uster', uid: OTHER_BAND, registrationId: 'reg-tim' });
+  });
+
+  it('shows a participant the Ceviname and a chat, and nothing more', async () => {
+    await expect(participant.getWristbandCard({ uid: BAND })).resolves.toEqual({
+      wearer: { state: 'worn', name: 'Fuchs', canChat: true },
+      safety: null,
+    });
+  });
+
+  it('shows the first name of someone without a Ceviname, without a chat if they have no app', async () => {
+    await expect(participant.getWristbandCard({ uid: OTHER_BAND })).resolves.toEqual({
+      wearer: { state: 'worn', name: 'Tim', canChat: false },
+      safety: null,
+    });
+  });
+
+  it('tells the wearer it is their own band', async () => {
+    await expect(callerAs('lea-user').getWristbandCard({ uid: BAND })).resolves.toMatchObject({
+      wearer: { state: 'own' },
+    });
+  });
+
+  it('names nobody on a blocked band, a spare one or one nobody knows', async () => {
+    await program(usterAvp, SPARE_BAND);
+    await usterAvp.revokeWristband({ hofId: 'uster', uid: BAND });
+    for (const uid of [BAND, SPARE_BAND, '04FFFFFFFFFFFF']) {
+      await expect(participant.getWristbandCard({ uid })).resolves.toEqual({
+        wearer: { state: 'none' },
+        safety: null,
+      });
+    }
+  });
+
+  it('shows the safety team the full name, Hof and Quartier, unchecked, and the Hof’s AVP', async () => {
+    await expect(sanitaet.getWristbandCard({ uid: BAND })).resolves.toEqual({
+      wearer: { state: 'worn', name: 'Fuchs', canChat: true },
+      safety: {
+        identity: {
+          state: 'assigned',
+          uid: BAND,
+          fullName: 'Lea Meier',
+          nickname: 'Fuchs',
+          hof: 'Cevi Uster',
+          quartier: 'Quartier 5 - Greif',
+          verified: false,
+        },
+        avps: [{ userId: 'avp-uster', fullName: 'Andrea Keller', nickname: 'Luchs' }],
+      },
+    });
+  });
+
+  it('reads no band for someone who is not signed in', async () => {
+    const guest = createCaller({ prisma: {}, locale: 'de' } as unknown as Context);
+    await expect(guest.getWristbandCard({ uid: BAND })).rejects.toMatchObject({
+      code: 'UNAUTHORIZED',
+    });
+  });
+
+  it('is not there while the wristbands are off', async () => {
+    environmentVariables.FEATURE_ENABLE_NFC_WRISTBANDS = false;
+    await expect(participant.getWristbandCard({ uid: BAND })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
   });
 });

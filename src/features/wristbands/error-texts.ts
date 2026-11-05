@@ -31,6 +31,11 @@ export const wristbandErrorTexts = {
     en: 'This person already wears a band. Block the old one first.',
     fr: 'Cette personne porte déjà un bracelet. Bloque d’abord l’ancien.',
   },
+  tooManyReads: {
+    de: 'Du hast in kurzer Zeit zu viele Armbänder geöffnet. Versuche es in ein paar Minuten wieder.',
+    en: 'You opened too many wristbands in a short time. Try again in a few minutes.',
+    fr: 'Tu as ouvert trop de bracelets en peu de temps. Réessaie dans quelques minutes.',
+  },
 } satisfies Record<string, StaticTranslationString>;
 
 export type WristbandErrorReason = keyof typeof wristbandErrorTexts;

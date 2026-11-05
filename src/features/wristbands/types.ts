@@ -94,3 +94,34 @@ export interface WristbandAccess {
   /** whether the user reads bands, for security and first aid */
   reader: boolean;
 }
+
+/** An AVP of a Hof, as the safety team reaches them from a band. */
+export interface HofContact {
+  userId: string;
+  fullName: string;
+  nickname: string | null;
+}
+
+/** The wearer on the page a tapped band opens, as everybody signed in sees them. */
+export type WristbandWearerCard =
+  /** unknown, blocked or not handed out yet: nobody to name */
+  | { state: 'none' }
+  | { state: 'own' }
+  | {
+      state: 'worn';
+      /** the Ceviname, or without one the first name; null if the registration has neither */
+      name: string | null;
+      /** whether the wearer has the app, so a chat can be started */
+      canChat: boolean;
+    };
+
+/** What the page of a tapped band shows the user. The server decides what by role. */
+export interface WristbandCard {
+  wearer: WristbandWearerCard;
+  /** for security and first aid only */
+  safety: {
+    identity: WristbandIdentity;
+    /** the AVP of the band's Hof with the app, or null for a band without a Hof */
+    avps: HofContact[] | null;
+  } | null;
+}

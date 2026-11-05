@@ -8,6 +8,7 @@ import {
 import {
   assignWristband,
   getHofWristbandList,
+  getWristbandCard,
   getWristbandRoster,
   identifyWristband,
   programWristband,
@@ -15,8 +16,11 @@ import {
   revokeWristband,
   unassignWristband,
 } from '@/features/wristbands/api/wristband-service';
+import { wristbandErrorTexts } from '@/features/wristbands/error-texts';
 import type { WristbandAccess } from '@/features/wristbands/types';
+import { createErrorThrower } from '@/trpc/error-formatter';
 import { createTRPCRouter } from '@/trpc/init';
+import { rateLimit } from '@/trpc/middleware/rate-limit';
 import { z } from 'zod';
 
 /** The UID as the native bridge reports it, 7 bytes in uppercase hex. */
@@ -24,6 +28,8 @@ const uid = z
   .string()
   .regex(/^[0-9A-Fa-f]{14}$/)
   .transform((value) => value.toUpperCase());
+
+const wristbandError = createErrorThrower(wristbandErrorTexts);
 
 /** NXP's 32-byte signature, or null for a chip that has none or a cold tap that read none. */
 const signature = z
@@ -103,6 +109,30 @@ export const wristbandRouter = createTRPCRouter({
     .mutation(
       async ({ ctx, input }) =>
         await identifyWristband(ctx.payload, { ...input, readerId: ctx.user.uuid }),
+    ),
+
+  /**
+   * The page a tapped band opens, for everybody signed in; what it holds depends on who asks.
+   * UIDs are not secret and bands of one bag differ in a byte or two, so this is rate limited
+   * against walking through them.
+   */
+  getWristbandCard: wristbandProcedure
+    .input(z.object({ uid }))
+    .use(
+      rateLimit({
+        name: 'wristband.getWristbandCard',
+        limit: 60,
+        windowMs: 10 * 60 * 1000,
+        refuse: () => wristbandError('TOO_MANY_REQUESTS', 'tooManyReads'),
+      }),
+    )
+    .query(
+      async ({ ctx, input }) =>
+        await getWristbandCard(ctx.payload, {
+          uid: input.uid,
+          userId: ctx.user.uuid,
+          reader: isWristbandReader(ctx.user),
+        }),
     ),
 
   /** Every worn band, for reading them offline on the campsite. */

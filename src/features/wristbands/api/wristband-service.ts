@@ -4,6 +4,12 @@ import {
   ACTIVE_REGISTRATION,
   isParticipantRole,
 } from '@/features/payload-cms/payload-cms/utils/hof-membership';
+import {
+  findAppUserOfPerson,
+  findBandWearer,
+  findHofAdministrators,
+  shortNameOf,
+} from '@/features/payload-cms/payload-cms/utils/wristband-people';
 import type { BillParticipant, Wristband } from '@/features/payload-cms/payload-types';
 import { deriveTagCredentials } from '@/features/wristbands/api/tag-password';
 import { wristbandErrorTexts } from '@/features/wristbands/error-texts';
@@ -15,6 +21,7 @@ import type {
   RegisterWristbandResult,
   RosterEntry,
   SpareRosterBand,
+  WristbandCard,
   WristbandIdentity,
   WristbandRoster,
 } from '@/features/wristbands/types';
@@ -450,4 +457,48 @@ export const getWristbandRoster = async (
     'wristband.spare_bands': spareBands.length,
   });
   return roster;
+};
+
+/**
+ * What the page of a tapped band shows the user, decided here by role so nothing more leaves
+ * the server: for everybody the wearer's Ceviname or first name and whether a chat is
+ * possible; for security and first aid also the full name, Hof and Quartier, unchecked since
+ * a cold tap carries no signature, and the Hof's AVP to reach. Every read is logged.
+ */
+export const getWristbandCard = async (
+  payload: Payload,
+  input: { uid: string; userId: string; reader: boolean },
+): Promise<WristbandCard> => {
+  const { uid, userId, reader } = input;
+  const band = await findBandWearer(payload, uid);
+  const { registration } = band;
+  const wearerUserId =
+    registration === null
+      ? undefined
+      : await findAppUserOfPerson(payload, registration.ceviPersonId);
+
+  let wearer: WristbandCard['wearer'];
+  if (registration === null) wearer = { state: 'none' };
+  else if (wearerUserId === userId) wearer = { state: 'own' };
+  else
+    wearer = {
+      state: 'worn',
+      name: shortNameOf(registration),
+      canChat: wearerUserId !== undefined,
+    };
+
+  if (!reader) {
+    logger.info('Opened the page of a band', {
+      'wristband.uid': uid,
+      'user.id': userId,
+      'wristband.known': band.band !== 'unknown',
+    });
+    return { wearer, safety: null };
+  }
+
+  const identity = await identifyWristband(payload, { uid, signature: null, readerId: userId });
+  const administrators =
+    band.hofId === null ? null : await findHofAdministrators(payload, band.hofId);
+  const avps = administrators?.filter((avp) => avp.userId !== userId) ?? null;
+  return { wearer, safety: { identity, avps } };
 };
