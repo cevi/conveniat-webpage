@@ -1,10 +1,32 @@
-import { deploymentId } from '@/deployment-id';
+import { deploymentId, SERVER_DEPLOYMENT_ID_HEADER } from '@/deployment-id';
 import type { ProxyModule } from '@/proxy/types';
 import { createLogger } from '@/utils/server-logger';
+import type { Counter } from '@opentelemetry/api';
+import { metrics, trace, ValueType } from '@opentelemetry/api';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 const logger = createLogger('proxy:deployment-skew');
+
+let refusedCounter: Counter | undefined;
+
+/**
+ * Counts the Flight requests turned away. A refused request ends in the proxy and leaves no
+ * trace in Tempo, so this is the only place a page stuck on an old build shows up server side.
+ * No label for the client's build: the header is whatever the client sends, and a label from
+ * it would let anyone add series. Taken on first use, after `sdk.start()` registered the
+ * provider, see `startRuntimeMetrics` in `src/tracing.ts`.
+ */
+const countRefusal = (): void => {
+  refusedCounter ??= metrics
+    .getMeter('deployment-skew')
+    .createCounter('deployment_skew_refused_total', {
+      description:
+        'Flight requests answered with 409 because they came from a page of another build',
+      valueType: ValueType.INT,
+    });
+  refusedCounter.add(1);
+};
 
 /**
  * Whether `request` is a Flight request of a page of another build: a navigation, prefetch or
@@ -39,12 +61,21 @@ export const isFlightRequestOfAnotherBuild = (request: NextRequest): boolean => 
  */
 export const deploymentSkewProxy: ProxyModule = (next) => {
   return async (request, event, response) => {
+    // Which build the page that sent this runs: empty for a document or anything else the
+    // router did not send. Lets Tempo tell a request of an outdated page from a current one.
+    const clientDeploymentId = request.headers.get('x-deployment-id') ?? '';
+    trace.getActiveSpan()?.setAttribute('deployment.client_id', clientDeploymentId);
+
     if (isFlightRequestOfAnotherBuild(request)) {
       logger.debug('Turning away a Flight request of another build', {
         'deployment.id': deploymentId,
-        'deployment.client_id': request.headers.get('x-deployment-id') ?? '',
+        'deployment.client_id': clientDeploymentId,
       });
-      return new NextResponse('', { status: 409, headers: { 'Cache-Control': 'no-store' } });
+      countRefusal();
+      return new NextResponse('', {
+        status: 409,
+        headers: { 'Cache-Control': 'no-store', [SERVER_DEPLOYMENT_ID_HEADER]: deploymentId },
+      });
     }
     return next(request, event, response);
   };

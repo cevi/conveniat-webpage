@@ -21,3 +21,10 @@ export const deploymentId: string = [
 ]
   .join('-')
   .replaceAll(/[^\w-]/g, '_');
+
+/**
+ * Header on the proxy's 409 for a Flight request of another build, naming the build that turned
+ * it away, so the service worker can report both builds to PostHog. See
+ * `@/proxy/deployment-skew-proxy`.
+ */
+export const SERVER_DEPLOYMENT_ID_HEADER = 'x-server-deployment-id';
