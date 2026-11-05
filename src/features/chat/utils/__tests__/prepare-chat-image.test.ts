@@ -1,7 +1,8 @@
 /**
  * @jest-environment jsdom
  */
-import { isHeicFile, prepareChatImage, scaledSize } from '@/features/chat/utils/prepare-chat-image';
+import { prepareChatImage } from '@/features/chat/utils/prepare-chat-image';
+import { isHeicFile, scaledSize } from '@/utils/image-file';
 
 const mockHeicTo = jest.fn();
 jest.mock('@/utils/heic-decoder', () => ({
@@ -49,12 +50,12 @@ const photo = (name: string, type: string): File => new File(['original'], name,
 
 describe('scaledSize', () => {
   it('brings the long edge of a landscape or portrait photo down to 1600 pixels', () => {
-    expect(scaledSize(4032, 3024)).toEqual({ width: 1600, height: 1200 });
-    expect(scaledSize(3024, 4032)).toEqual({ width: 1200, height: 1600 });
+    expect(scaledSize(4032, 3024, 1600)).toEqual({ width: 1600, height: 1200 });
+    expect(scaledSize(3024, 4032, 1600)).toEqual({ width: 1200, height: 1600 });
   });
 
   it('never enlarges a small image', () => {
-    expect(scaledSize(800, 600)).toEqual({ width: 800, height: 600 });
+    expect(scaledSize(800, 600, 1600)).toEqual({ width: 800, height: 600 });
   });
 });
 

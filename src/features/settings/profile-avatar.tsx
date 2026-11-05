@@ -94,7 +94,7 @@ export const ProfileAvatar: React.FC<{
   const [chosenFile, setChosenFile] = useState<File>();
   const [confirmation, setConfirmation] = useState<string>();
   const { pictureUrl, isBusy, hasFailed, upload, remove } = useProfilePicture(initialPictureUrl);
-  // a photo this browser cannot decode, HEIC outside Safari, goes up as it is
+  // a file this browser cannot decode as a photo goes up as it is, for the server to judge
   const framing = usePhotoFraming(chosenFile, (file) => {
     setStep('closed');
     setChosenFile(undefined);
