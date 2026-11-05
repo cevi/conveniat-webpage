@@ -20,6 +20,7 @@ import { ReactionDetailsDialog } from '@/features/chat/components/chat-view/mess
 import { SenderAvatar } from '@/features/chat/components/chat-view/message/sender-avatar';
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
 import { ThreadSummary } from '@/features/chat/components/chat-view/message/thread-summary';
+import { KernteamBadge } from '@/features/chat/components/forum/kernteam-badge';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { MessagePreviewIcon } from '@/features/chat/components/ui/message-preview-icon';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
@@ -355,11 +356,14 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   }
 
   const senderNameLine = !isCurrentUser && isFirstInGroup && showsSenders && message.senderName && (
-    <span className="mb-1 max-w-full truncate px-1.5 text-[13px] text-green-700">
-      <span className={cn('font-semibold', avatarTextColorOf(message.senderId ?? ''))}>
-        {splitDisplayName(message.senderName).primary}
+    <span className="mb-1 flex max-w-full items-center gap-1.5 px-1.5 text-[13px] text-green-700">
+      <span className="min-w-0 truncate">
+        <span className={cn('font-semibold', avatarTextColorOf(message.senderId ?? ''))}>
+          {splitDisplayName(message.senderName).primary}
+        </span>
+        {senderFunktionen !== '' && ` · ${senderFunktionen}`}
       </span>
-      {senderFunktionen !== '' && ` · ${senderFunktionen}`}
+      {message.byTopicAdmin === true && <KernteamBadge locale={activeLocale} />}
     </span>
   );
 
@@ -648,7 +652,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
               inert
               className={cn(
                 'max-h-[35dvh] max-w-[85%] min-w-[64px] overflow-hidden rounded-[16px] px-3.5 py-2 wrap-anywhere',
-                bubbleColorClassName(isCurrentUser),
+                bubbleColorClassName(isCurrentUser, message.byTopicAdmin === true),
               )}
             >
               <MessageBubbleContent

@@ -1,5 +1,6 @@
 import { ForumStatusPill } from '@/features/chat/components/forum/forum-status-pill';
 import { forumText, relativeTimeText } from '@/features/chat/components/forum/forum-texts';
+import { KernteamBadge } from '@/features/chat/components/forum/kernteam-badge';
 import type { ForumPostSummary } from '@/lib/forum-shared';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -38,11 +39,7 @@ export const ForumPostRow: React.FC<{
             {forumText.privatePill[locale]}
           </span>
         )}
-        {post.byTopicAdmin && (
-          <span className="bg-conveniat-green rounded-[5px] px-1.5 py-px text-[11px] font-bold text-white">
-            {forumText.kernteam[locale]}
-          </span>
-        )}
+        {post.byTopicAdmin && <KernteamBadge locale={locale} />}
         {post.location !== null && (
           <span className="bg-tint inline-flex items-center gap-1 rounded-md px-1.5 py-px text-green-800">
             <MapPin className="h-3.5 w-3.5" aria-hidden="true" />

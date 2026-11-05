@@ -38,8 +38,12 @@ const TOPIC = '0193f1a0-0000-7000-8000-000000000001';
 const REPORT = '0193f1a0-0000-7000-8000-0000000000aa';
 const COMMENT = '0193f1a0-0000-7000-8000-0000000000bb';
 
-/** Noah wrote the private report, Lea is on piket duty, Sina is only a member of the topic. */
+/**
+ * Noah wrote the private report, Lea is on piket duty, Sina is only a member of the topic, Mira
+ * is its Kernteam.
+ */
 const memberships = [
+  { userId: 'mira', chatPermission: ChatMembershipPermission.ADMIN },
   { userId: 'noah', chatPermission: ChatMembershipPermission.MEMBER },
   { userId: 'lea', chatPermission: ChatMembershipPermission.MEMBER },
   { userId: 'sina', chatPermission: ChatMembershipPermission.MEMBER },
@@ -59,6 +63,14 @@ const comment = {
   reactions: [],
   replies: [],
   _count: { replies: 0 },
+};
+
+const kernteamComment = {
+  ...comment,
+  uuid: '0193f1a0-0000-7000-8000-0000000000cc',
+  senderId: 'mira',
+  sender: { name: 'Mira v/o Pfau' },
+  contentVersions: [{ payload: { text: 'Die Pumpe wird heute um 16 Uhr ersetzt.' } }],
 };
 
 const prisma = {
@@ -83,6 +95,18 @@ const prisma = {
         membership === undefined ? null : { ...membership, chat: { type: ChatType.FORUM } },
       );
     },
+    findMany: ({
+      where,
+    }: {
+      where: { userId: { in: string[] }; chatPermission: { in: string[] } };
+    }): Promise<unknown[]> =>
+      Promise.resolve(
+        memberships.filter(
+          (m) =>
+            where.userId.in.includes(m.userId) &&
+            where.chatPermission.in.includes(m.chatPermission),
+        ),
+      ),
   },
   forumPost: {
     findUnique: ({ where }: { where: { messageId: string } }): Promise<unknown> =>
@@ -100,7 +124,7 @@ const prisma = {
   },
   forumPostAssignment: { findFirst: (): Promise<null> => Promise.resolve(null) },
   message: {
-    findMany: (): Promise<unknown[]> => Promise.resolve([comment]),
+    findMany: (): Promise<unknown[]> => Promise.resolve([kernteamComment, comment]),
     findFirst: (): Promise<unknown> => Promise.resolve(comment),
   },
 };
@@ -117,7 +141,7 @@ describe('the thread of a private report', () => {
   it('is read by its author and by the piket on duty', async () => {
     for (const reader of ['noah', 'lea']) {
       const { items } = await as(reader).getChatMessages({ chatId: TOPIC, parentId: REPORT });
-      expect(items.map((item) => item.id)).toEqual([COMMENT]);
+      expect(items.map((item) => item.id)).toContain(COMMENT);
     }
   });
 
@@ -126,5 +150,16 @@ describe('the thread of a private report', () => {
       as('sina').getChatMessages({ chatId: TOPIC, parentId: REPORT }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await expect(as('sina').getMessage({ messageId: COMMENT })).resolves.toBeUndefined();
+  });
+});
+
+describe('the comments of a forum thread', () => {
+  it("mark what the topic's Kernteam wrote, and nothing else", async () => {
+    const { items } = await as('noah').getChatMessages({ chatId: TOPIC, parentId: REPORT });
+
+    expect(items.map((item) => [item.senderId, item.byTopicAdmin === true])).toEqual([
+      ['mira', true],
+      ['lea', false],
+    ]);
   });
 });

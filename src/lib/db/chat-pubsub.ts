@@ -51,6 +51,8 @@ export interface ChatRealtimeEvent {
     status: string;
     type: string;
     parentId?: string | undefined;
+    /** Set in a forum topic when its Kernteam wrote the message, see `ChatMessage`. */
+    byTopicAdmin?: boolean | undefined;
     /** Set on `message_deleted`: when the sender deleted it; the payload is then empty. */
     deletedAt?: Date | undefined;
   };

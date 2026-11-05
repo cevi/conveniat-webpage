@@ -27,9 +27,16 @@ export const bubbleCornerClassName = (
   return cn(!isFirstInGroup && 'rounded-tl-[6px]', !isLastInGroup && 'rounded-bl-[6px]');
 };
 
-/** Brand green for the user's own messages, white for everyone else's. */
-export const bubbleColorClassName = (isCurrentUser: boolean): string =>
-  isCurrentUser ? 'bg-conveniat-green text-white' : 'border-line border bg-white text-green-900';
+/**
+ * Brand green for the user's own messages, white for everyone else's, and soft green for what
+ * a forum topic's Kernteam wrote, so their answer stands out among the comments.
+ */
+export const bubbleColorClassName = (isCurrentUser: boolean, byTopicAdmin = false): string => {
+  if (isCurrentUser) return 'bg-conveniat-green text-white';
+  return byTopicAdmin
+    ? 'border-tint-line bg-tint border text-green-900'
+    : 'border-line border bg-white text-green-900';
+};
 
 interface MessageRowProperties {
   isCurrentUser: boolean;
@@ -175,7 +182,7 @@ export const MessageBubble: React.FC<MessageBubbleProperties> = ({
       // `anywhere`, not `break-word`: only it lowers the min-content width, so a long URL
       // wraps inside the bubble instead of stretching it past the screen edge
       'max-w-full min-w-[64px] wrap-anywhere',
-      bubbleColorClassName(isCurrentUser),
+      bubbleColorClassName(isCurrentUser, message.byTopicAdmin === true),
       bubbleCornerClassName(isCurrentUser, isFirstInGroup, isLastInGroup),
       // pending shows as a quieter bubble and a clock, never a spinner
       message.status === MessageEventType.CREATED && message.sendFailed !== true && 'opacity-80',

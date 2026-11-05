@@ -35,6 +35,11 @@ export interface ChatMessage {
   /** The message this one quotes was deleted, and the quote lost its snippet with it. */
   quotedMessageDeleted?: boolean | undefined;
   isAdminMessage?: boolean;
+  /**
+   * Written by an owner or admin of the forum topic, its Kernteam, which the comment shows.
+   * Set in forum topics only; missing elsewhere and in caches from before.
+   */
+  byTopicAdmin?: boolean | undefined;
   reactions?: {
     emoji: string;
     userId: string;

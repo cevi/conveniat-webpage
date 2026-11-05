@@ -4,6 +4,7 @@ import { findDeletedQuotedMessageIds } from '@/features/chat/api/utils/deleted-m
 import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
 import { findThreadSummaries } from '@/features/chat/api/utils/thread-summaries';
 import { toChatMessage } from '@/features/chat/api/utils/to-chat-message';
+import { findTopicAdminIds } from '@/features/chat/api/utils/topic-admins';
 import { ChatType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { MessageEventType } from '@prisma/client';
@@ -73,14 +74,18 @@ export const getMessage = trpcBaseProcedure
       if (post !== undefined && !(await canSeeForumPost(prisma, ctx.user.uuid, post))) return;
     }
 
-    const [deletedQuotedIds, threadSummaries] = await Promise.all([
+    const [deletedQuotedIds, threadSummaries, topicAdminIds] = await Promise.all([
       findDeletedQuotedMessageIds(prisma, [message.contentVersions[0]?.payload]),
       findThreadSummaries(prisma, message._count.replies > 0 ? [message.uuid] : []),
+      findTopicAdminIds(prisma, { uuid: message.chatId, type: message.chat.type }, [
+        message.senderId,
+      ]),
     ]);
 
     return toChatMessage(message, {
       status: getStatusFromMessageEvents(message.messageEvents),
       deletedQuotedIds,
       threadSummaries,
+      topicAdminIds,
     });
   });
