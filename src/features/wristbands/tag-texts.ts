@@ -71,7 +71,12 @@ export const tagTexts = {
     en: '{name} does not have the app',
     fr: '{name} n’a pas l’app',
   },
-  chat: { de: 'Chat', en: 'Chat', fr: 'Chat' },
+  reachThroughAvp: {
+    de: 'Erreichbar über die AVP des Hofs',
+    en: 'Reachable through the AVP of the Hof',
+    fr: 'Joignable par l’AVP du Hof',
+  },
+  noChat: { de: 'Kein Chat möglich', en: 'No chat possible', fr: 'Pas de chat possible' },
   noAvp: {
     de: 'Niemand von der AVP dieses Hofs hat die App.',
     en: 'Nobody of this Hof’s AVP has the app.',

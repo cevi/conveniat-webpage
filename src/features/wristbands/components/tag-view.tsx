@@ -347,16 +347,17 @@ const useSafetyContacts = (
       <ChevronRight className="size-5 shrink-0 text-green-500" aria-hidden />
     </ListRow>
   ) : (
+    // no chat to offer: says so without a chat icon, and keeps the row so the card does not shrink
     <div className={cn(lastRowClassName, 'flex min-h-14 items-center gap-3 py-2.5')}>
-      <span className="bg-quiet grid size-10 shrink-0 place-items-center rounded-xl text-green-400">
-        <MessageSquare className="size-5" aria-hidden />
+      <span className="bg-quiet grid size-10 shrink-0 place-items-center rounded-xl text-green-500">
+        <UserRound className="size-5" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[15px] font-semibold text-green-900">
-          {tagText('chat', locale)}
+        <span className="block truncate text-[15px] font-semibold text-green-900">
+          {tagText('chatNoApp', locale, { name: wearerName })}
         </span>
         <span className="block truncate text-[13px] text-green-700">
-          {tagText('chatNoApp', locale, { name: wearerName })}
+          {tagText(avps.length > 0 ? 'reachThroughAvp' : 'noChat', locale)}
         </span>
       </span>
     </div>
