@@ -543,6 +543,11 @@ describe('what the app shows whom', () => {
     await expect(sanitaet.getWristbandAccess()).resolves.toEqual({ hoefe: 0, reader: true });
   });
 
+  it('counts no Hof for a Hof dashboard reviewer, and every Hof for a full admin', async () => {
+    await expect(reviewer.getWristbandAccess()).resolves.toEqual({ hoefe: 0, reader: false });
+    await expect(fullAdmin.getWristbandAccess()).resolves.toEqual({ hoefe: 2, reader: true });
+  });
+
   it('shows a participant neither page', async () => {
     await expect(participant.getWristbandAccess()).resolves.toEqual({ hoefe: 0, reader: false });
   });

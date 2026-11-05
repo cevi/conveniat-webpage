@@ -21,6 +21,13 @@ export interface ReadResult {
   fromRoster: { updatedAt: number } | null;
 }
 
+/**
+ * How long the server has to answer before the list on the phone does. Wifi that is up but has
+ * no working uplink leaves a request open for minutes, with a child waiting in front of the
+ * reader.
+ */
+export const SERVER_ANSWER_TIMEOUT_MS = 4000;
+
 /** Where reading one band stands. */
 export type ReadState =
   | { step: 'idle' }
@@ -34,8 +41,10 @@ export type ReadState =
 /**
  * Reads one band for security and first aid: the native session for its UID and NXP's
  * signature, then the server, which checks the signature and logs the read. Without a
- * connection, or when the request does not get through, the list on the phone answers, checked
- * against the same signature. A session still open when the page goes away is cancelled.
+ * connection, when the request does not get through, or when the server has not answered
+ * within `SERVER_ANSWER_TIMEOUT_MS`, the list on the phone answers, checked against the same
+ * signature, and says so. Without a list the read waits for the server. A session still open
+ * when the page goes away is cancelled.
  *
  * The read goes through the plain tRPC client: a mutation hook holds its call while the app is
  * offline, which is exactly when the list has to answer at once.
@@ -73,12 +82,34 @@ export const useReadWristband = (
       });
       if (!onlineManager.isOnline()) return fromRoster({ uid, signature });
       setState({ step: 'checking' });
+      const request = new AbortController();
+      const abortRequest = (): void => request.abort();
+      session.signal.addEventListener('abort', abortRequest);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const askServer = async (): Promise<ReadState> => {
+        try {
+          const identity = await utils.client.wristband.identifyWristband.mutate(
+            { uid, signature },
+            { signal: request.signal },
+          );
+          return { step: 'read', result: { identity, fromRoster: null } };
+        } catch (error) {
+          if (isTransportError(error)) return fromRoster({ uid, signature });
+          throw error;
+        }
+      };
+      const listAnswersInstead = new Promise<ReadState>((resolve) => {
+        if (roster.data === undefined) return;
+        timer = setTimeout(() => {
+          request.abort();
+          resolve(fromRoster({ uid, signature }));
+        }, SERVER_ANSWER_TIMEOUT_MS);
+      });
       try {
-        const identity = await utils.client.wristband.identifyWristband.mutate({ uid, signature });
-        return { step: 'read', result: { identity, fromRoster: null } };
-      } catch (error) {
-        if (isTransportError(error)) return fromRoster({ uid, signature });
-        throw error;
+        return await Promise.race([askServer(), listAnswersInstead]);
+      } finally {
+        clearTimeout(timer);
+        session.signal.removeEventListener('abort', abortRequest);
       }
     };
 

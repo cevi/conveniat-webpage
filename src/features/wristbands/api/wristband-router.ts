@@ -1,4 +1,4 @@
-import { listAccessibleHoefe } from '@/features/payload-cms/payload-cms/access-rules/accessible-hoefe';
+import { listWristbandHoefe } from '@/features/payload-cms/payload-cms/access-rules/accessible-hoefe';
 import {
   hofWristbandProcedure,
   isWristbandReader,
@@ -46,7 +46,7 @@ export const wristbandRouter = createTRPCRouter({
    * whom the server lets in. Persisted with the query cache, so the reader's page opens offline.
    */
   getWristbandAccess: wristbandProcedure.query(async ({ ctx }): Promise<WristbandAccess> => {
-    const hoefe = await listAccessibleHoefe(ctx.payload, ctx.user);
+    const hoefe = await listWristbandHoefe(ctx.payload, ctx.user);
     return { hoefe: hoefe.length, reader: isWristbandReader(ctx.user) };
   }),
 

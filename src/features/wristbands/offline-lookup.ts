@@ -1,4 +1,9 @@
-import type { RosterEntry, WristbandIdentity, WristbandRoster } from '@/features/wristbands/types';
+import type {
+  RosterEntry,
+  SpareRosterBand,
+  WristbandIdentity,
+  WristbandRoster,
+} from '@/features/wristbands/types';
 import { verifyNtagSignature } from '@/lib/nfc/ntag-signature';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -17,6 +22,15 @@ const toRosterEntry = (value: unknown): RosterEntry | null => {
     nickname: stringOrNull(value['nickname']),
     hof: typeof hof === 'string' ? hof : '',
     quartier: stringOrNull(value['quartier']),
+  };
+};
+
+/** One spare band of a roster restored from the phone, or null if it is not one. */
+const toSpareBand = (value: unknown): SpareRosterBand | null => {
+  if (!isRecord(value) || typeof value['uid'] !== 'string') return null;
+  return {
+    uid: value['uid'].toUpperCase(),
+    hof: typeof value['hof'] === 'string' ? value['hof'] : '',
   };
 };
 
@@ -51,6 +65,15 @@ export const identifyFromRoster = (
   const wearer = (Array.isArray(bands) ? bands : [])
     .map((band) => toRosterEntry(band))
     .find((entry) => entry?.uid === uid);
-  if (wearer === undefined || wearer === null) return { state: 'unknown', uid };
-  return { state: 'assigned', ...wearer, verified: signature !== null };
+  if (wearer !== undefined && wearer !== null) {
+    return { state: 'assigned', ...wearer, verified: signature !== null };
+  }
+
+  // a list from before the spare bands were on it has none, and reads them as unknown
+  const spareBands: unknown = isRecord(record) ? record['spareBands'] : undefined;
+  const spare = (Array.isArray(spareBands) ? spareBands : [])
+    .map((band) => toSpareBand(band))
+    .find((entry) => entry?.uid === uid);
+  if (spare !== undefined && spare !== null) return { state: 'unassigned', ...spare };
+  return { state: 'unknown', uid };
 };

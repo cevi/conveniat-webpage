@@ -89,7 +89,7 @@ export interface WristbandRoster {
 
 /** What the user may do with the bands. */
 export interface WristbandAccess {
-  /** how many Höfe the user programs and hands out bands for, as their AVP */
+  /** how many Höfe the user programs and hands out bands for, see `listWristbandHoefe` */
   hoefe: number;
   /** whether the user reads bands, for security and first aid */
   reader: boolean;

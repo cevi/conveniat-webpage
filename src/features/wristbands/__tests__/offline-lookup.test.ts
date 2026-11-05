@@ -10,6 +10,7 @@ const GOOD_SIGNATURE = 'AB'.repeat(32);
 const FORGED_SIGNATURE = 'CD'.repeat(32);
 const LEA = '04A1B2C3D4E5F6';
 const LOST = '04112233445566';
+const SPARE = '04998877665544';
 
 const roster: WristbandRoster = {
   bands: [
@@ -21,6 +22,7 @@ const roster: WristbandRoster = {
       quartier: 'Quartier 5 - Greif',
     },
   ],
+  spareBands: [{ uid: SPARE, hof: 'Cevi Uster' }],
   revokedUids: [LOST],
 };
 
@@ -55,6 +57,14 @@ describe('reading a band from the list on the phone', () => {
     expect(identifyFromRoster(roster, { uid: LOST, signature: GOOD_SIGNATURE })).toEqual({
       state: 'revoked',
       uid: LOST,
+    });
+  });
+
+  it('names the Hof of a spare band, as the server does', () => {
+    expect(identifyFromRoster(roster, { uid: SPARE, signature: GOOD_SIGNATURE })).toEqual({
+      state: 'unassigned',
+      uid: SPARE,
+      hof: 'Cevi Uster',
     });
   });
 
