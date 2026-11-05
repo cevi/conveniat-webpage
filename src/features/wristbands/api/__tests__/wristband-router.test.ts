@@ -176,7 +176,7 @@ beforeEach(() => {
         name: 'Cevi Uster',
         groupId: '990001',
         quartier: 'q5',
-        events: [{ eventId: '7001' }],
+        events: [{ eventId: '7001' }, { eventId: '7003' }],
       },
       {
         id: 'zueri',
@@ -192,6 +192,8 @@ beforeEach(() => {
         fullName: 'Lea Meier',
         nickname: 'Fuchs',
         eventId: '7001',
+        eventName: 'Hauptlager conveniat27 - Cevi Uster',
+        roleType: 'Event::Camp::Role::Participant',
         active: true,
         status: 'new',
       },
@@ -200,6 +202,18 @@ beforeEach(() => {
         fullName: 'Tim Huber',
         nickname: null,
         eventId: '7001',
+        eventName: 'Hauptlager conveniat27 - Cevi Uster',
+        roleType: 'Event::Camp::Role::AssistantLeader',
+        active: true,
+        status: 'new',
+      },
+      {
+        id: 'reg-mia',
+        fullName: 'Mia Brunner',
+        nickname: 'Wiesel',
+        eventId: '7003',
+        eventName: 'Hauptlager conveniat27 - Cevi Wetzikon',
+        roleType: null,
         active: true,
         status: 'new',
       },
@@ -366,16 +380,29 @@ describe('handing out a band', () => {
     await usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-lea' });
     await expect(usterAvp.getHofWristbandList({ hofId: 'uster' })).resolves.toEqual({
       people: [
-        {
+        expect.objectContaining({
           registrationId: 'reg-lea',
           fullName: 'Lea Meier',
           nickname: 'Fuchs',
           band: { uid: BAND, status: 'active' },
-        },
-        { registrationId: 'reg-tim', fullName: 'Tim Huber', nickname: null, band: null },
+        }),
+        expect.objectContaining({ registrationId: 'reg-tim', fullName: 'Tim Huber', band: null }),
+        expect.objectContaining({ registrationId: 'reg-mia', fullName: 'Mia Brunner', band: null }),
       ],
       spareBands: [{ uid: OTHER_BAND, status: 'active' }],
     });
+  });
+
+  it('says for every person their Abteilung and whether they come to lead', async () => {
+    const { people } = await usterAvp.getHofWristbandList({ hofId: 'uster' });
+    expect(
+      people.map(({ registrationId, abteilung, role }) => ({ registrationId, abteilung, role })),
+    ).toEqual([
+      { registrationId: 'reg-lea', abteilung: 'Cevi Uster', role: 'participant' },
+      { registrationId: 'reg-tim', abteilung: 'Cevi Uster', role: 'leader' },
+      // a registration without a role is no leader by a gap in the data
+      { registrationId: 'reg-mia', abteilung: 'Cevi Wetzikon', role: 'participant' },
+    ]);
   });
 
   it('moves a band to someone else of the Hof, and takes it back', async () => {

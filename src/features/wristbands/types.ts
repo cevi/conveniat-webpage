@@ -18,11 +18,20 @@ export interface HofBand {
   status: 'active' | 'revoked';
 }
 
+/**
+ * How a person comes to the camp: as a participant, or to lead or help in any other role of
+ * the registration, see `isParticipantRole`.
+ */
+export type HofRole = 'participant' | 'leader';
+
 /** One registration of a Hof, with the band the person wears. */
 export interface HofPerson {
   registrationId: string;
   fullName: string;
   nickname: string | null;
+  /** the Abteilung whose Cevi.DB event the person registered through, null if it has no name */
+  abteilung: string | null;
+  role: HofRole;
   band: HofBand | null;
 }
 

@@ -1,5 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { ACTIVE_REGISTRATION } from '@/features/payload-cms/payload-cms/utils/hof-membership';
+import { abteilungOfEventName } from '@/features/payload-cms/payload-cms/utils/abteilung-name';
+import {
+  ACTIVE_REGISTRATION,
+  isParticipantRole,
+} from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import type { BillParticipant, Wristband } from '@/features/payload-cms/payload-types';
 import { deriveTagCredentials } from '@/features/wristbands/api/tag-password';
 import { wristbandErrorTexts } from '@/features/wristbands/error-texts';
@@ -60,12 +64,17 @@ const findBand = async (payload: Payload, uid: string): Promise<Wristband | unde
   return docs[0];
 };
 
+type HofRegistration = Pick<
+  BillParticipant,
+  'id' | 'fullName' | 'nickname' | 'eventName' | 'roleType'
+>;
+
 /** The active registrations of a Hof's camp events: the people its AVP hands bands to. */
 const findHofRegistrations = async (
   payload: Payload,
   hofId: string,
   registrationId?: string,
-): Promise<Pick<BillParticipant, 'id' | 'fullName' | 'nickname'>[]> => {
+): Promise<HofRegistration[]> => {
   const hof = await payload.findByID({
     collection: 'hoefe',
     id: hofId,
@@ -91,7 +100,7 @@ const findHofRegistrations = async (
     pagination: false,
     overrideAccess: true,
     sort: 'fullName',
-    select: { fullName: true, nickname: true },
+    select: { fullName: true, nickname: true, eventName: true, roleType: true },
   });
   return docs;
 };
@@ -128,6 +137,14 @@ export const getHofWristbandList = async (
       registrationId: registration.id,
       fullName: registration.fullName,
       nickname: registration.nickname ?? null,
+      abteilung: abteilungOfEventName(registration.eventName),
+      // a registration without a role counts as a participant: nobody leads by a gap in the data
+      role:
+        typeof registration.roleType === 'string' &&
+        registration.roleType !== '' &&
+        !isParticipantRole(registration.roleType)
+          ? 'leader'
+          : 'participant',
       band: bandOfRegistration.get(registration.id) ?? null,
     })),
     spareBands,

@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/buttons/button';
 import { listRowClassName } from '@/components/ui/list-row';
-import { personName, shortUid } from '@/features/wristbands/components/band-labels';
+import { personName } from '@/features/wristbands/components/band-labels';
 import { wristbandErrorTexts } from '@/features/wristbands/error-texts';
 import { translate } from '@/features/wristbands/texts';
 import type { HofPerson } from '@/features/wristbands/types';
@@ -10,34 +10,48 @@ import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { Check, ChevronDown, CircleAlert, Loader2 } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
-const PersonText: React.FC<{ person: HofPerson; locale: Locale }> = ({ person, locale }) => (
-  <>
-    <span className="min-w-0 flex-1">
-      <span className="block truncate text-[15px] font-semibold text-green-900">
-        {person.fullName}
+/** Ceviname and, on a Hof of several Abteilungen, the person's. */
+const detailsOf = (person: HofPerson, showAbteilung: boolean): string =>
+  [person.nickname, showAbteilung ? person.abteilung : null]
+    .filter((part) => part !== null && part !== '')
+    .join(' · ');
+
+const PersonText: React.FC<{ person: HofPerson; locale: Locale; showAbteilung: boolean }> = ({
+  person,
+  locale,
+  showAbteilung,
+}) => {
+  const details = detailsOf(person, showAbteilung);
+  return (
+    <>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[15px] font-semibold text-green-900">
+          {person.fullName}
+        </span>
+        {details !== '' && (
+          <span className="block truncate text-[13px] text-green-700">{details}</span>
+        )}
       </span>
-      {person.nickname !== null && person.nickname !== '' && (
-        <span className="block truncate text-[13px] text-green-700">{person.nickname}</span>
-      )}
-    </span>
-    <span
-      className={cn(
-        'shrink-0 text-[13px] tabular-nums',
-        person.band === null ? 'text-green-500' : 'font-semibold text-green-900',
-      )}
-    >
-      {person.band === null ? translate('noBand', locale) : shortUid(person.band.uid)}
-    </span>
-  </>
-);
+      <span
+        className={cn(
+          'flex shrink-0 items-center gap-1 text-[13px]',
+          person.band === null ? 'text-green-500' : 'font-semibold text-green-900',
+        )}
+      >
+        {person.band !== null && <Check className="text-conveniat-green size-4" aria-hidden />}
+        {translate(person.band === null ? 'noBand' : 'hasBand', locale)}
+      </span>
+    </>
+  );
+};
 
 /**
- * A person of the Hof and the band they wear. A person with a band opens the band's actions
+ * A person of the Hof and whether they wear a band, never its UID: an AVP knows a band by who
+ * wears it. A person with a band opens the band's actions
  * right under the row: give it to someone else, take it back, or block it as lost, which asks
  * first because only the admins can release it again.
  */
@@ -45,34 +59,37 @@ export const PersonRow: React.FC<{
   hofId: string;
   person: HofPerson;
   locale: Locale;
+  showAbteilung: boolean;
   expanded: boolean;
   onToggle: () => void;
-  onReassign: (uid: string) => void;
-}> = ({ hofId, person, locale, expanded, onToggle, onReassign }) => {
+  onReassign: (person: HofPerson) => void;
+}> = ({ hofId, person, locale, showAbteilung, expanded, onToggle, onReassign }) => {
   const utils = trpc.useUtils();
   const unassign = trpc.wristband.unassignWristband.useMutation();
   const revoke = trpc.wristband.revokeWristband.useMutation();
   const [askingRevoke, setAskingRevoke] = useState(false);
+  const [problem, setProblem] = useState<string | undefined>();
   const band = person.band;
   const busy = unassign.isPending || revoke.isPending;
 
   if (band === null) {
     return (
       <li className="flex min-h-14 items-center gap-3 px-4 py-2.5">
-        <PersonText person={person} locale={locale} />
+        <PersonText person={person} locale={locale} showAbteilung={showAbteilung} />
       </li>
     );
   }
 
-  const uid = shortUid(band.uid);
-  const done = async (message: string): Promise<void> => {
-    toast.success(message);
+  const name = personName(person);
+  // the row confirms by itself: once the list is fresh, it says "kein Band"
+  const done = async (): Promise<void> => {
     setAskingRevoke(false);
+    setProblem(undefined);
     onToggle();
     await utils.wristband.getHofWristbandList.invalidate({ hofId });
   };
   const failed = async (error: unknown): Promise<void> => {
-    toast.error(userErrorMessage(error, locale, wristbandErrorTexts));
+    setProblem(userErrorMessage(error, locale, wristbandErrorTexts));
     await utils.wristband.getHofWristbandList.invalidate({ hofId });
   };
 
@@ -82,13 +99,14 @@ export const PersonRow: React.FC<{
         type="button"
         className={listRowClassName()}
         aria-expanded={expanded}
-        aria-label={`${person.fullName}, ${translate('band', locale, { uid })}`}
+        aria-label={`${person.fullName}, ${translate('hasBand', locale)}`}
         onClick={() => {
           setAskingRevoke(false);
+          setProblem(undefined);
           onToggle();
         }}
       >
-        <PersonText person={person} locale={locale} />
+        <PersonText person={person} locale={locale} showAbteilung={showAbteilung} />
         <ChevronDown
           className={cn(
             'size-5 shrink-0 text-green-500 transition-transform',
@@ -103,10 +121,19 @@ export const PersonRow: React.FC<{
           aria-label={translate('bandActions', locale, { name: person.fullName })}
           className="grid gap-2 px-4 pb-4"
         >
+          {problem !== undefined && (
+            <p
+              role="alert"
+              className="border-danger-line bg-danger-soft text-danger-text flex items-start gap-2 rounded-xl border p-3 text-[15px] leading-snug"
+            >
+              <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+              {problem}
+            </p>
+          )}
           {askingRevoke ? (
             <div className="bg-danger-soft space-y-3 rounded-xl p-3">
               <p className="text-danger-text text-[15px] leading-normal">
-                {translate('revokeAsk', locale, { uid, name: personName(person) })}
+                {translate('revokeAsk', locale, { name })}
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <Button
@@ -125,7 +152,7 @@ export const PersonRow: React.FC<{
                     revoke.mutate(
                       { hofId, uid: band.uid },
                       {
-                        onSuccess: () => void done(translate('revoked', locale, { uid })),
+                        onSuccess: () => void done(),
                         onError: (error) => void failed(error),
                       },
                     )
@@ -142,7 +169,7 @@ export const PersonRow: React.FC<{
                 variant="outlined"
                 size="touch"
                 disabled={busy}
-                onClick={() => onReassign(band.uid)}
+                onClick={() => onReassign(person)}
               >
                 {translate('reassign', locale)}
               </Button>
@@ -154,7 +181,7 @@ export const PersonRow: React.FC<{
                   unassign.mutate(
                     { hofId, uid: band.uid },
                     {
-                      onSuccess: () => void done(translate('unassigned', locale, { uid })),
+                      onSuccess: () => void done(),
                       onError: (error) => void failed(error),
                     },
                   )
