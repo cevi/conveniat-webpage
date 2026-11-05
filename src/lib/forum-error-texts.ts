@@ -16,6 +16,11 @@ export const forumErrorTexts = {
     en: 'You cannot write in this topic.',
     fr: 'Tu ne peux pas écrire dans ce thème.',
   },
+  privateReportsUnavailable: {
+    de: 'Private Meldungen sind gerade nicht möglich. Wende dich an die Zentrale.',
+    en: 'Private reports are not possible right now. Please contact the Zentrale.',
+    fr: 'Les signalements privés ne sont pas possibles pour le moment. Adresse-toi à la Zentrale.',
+  },
   postGone: {
     de: 'Diesen Beitrag gibt es nicht mehr.',
     en: 'This post no longer exists.',

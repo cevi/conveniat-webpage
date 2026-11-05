@@ -57,6 +57,7 @@ const chatMemberships = [
 const message = {
   uuid: MESSAGE_ID,
   chatId: CHAT_ID,
+  chat: { type: 'GROUP' },
   createdAt: new Date(0),
   senderId: 'someone-else',
   sender: { name: 'Name of someone-else' },

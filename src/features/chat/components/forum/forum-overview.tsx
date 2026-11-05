@@ -121,8 +121,10 @@ export const ForumOverview: React.FC = () => {
   const posts = list.data?.pages.flatMap((page) => page.items) ?? [];
   const pinnedIds = new Set((pinned.data ?? []).map((post) => post.id));
 
-  // In no topic there is no forum to read: no search, no filters, only the way to the Zentrale.
+  // In no topic there is no forum to read: no search, no filters, only the way to the Zentrale,
+  // while editors chose a topic for private reports.
   if (topics.data?.length === 0) {
+    const canReport = settings.data?.privateReportsAvailable !== false;
     return (
       <div className="bg-page min-h-dvh pb-28">
         <SetHeaderActions />
@@ -131,14 +133,16 @@ export const ForumOverview: React.FC = () => {
           <EmptyState
             icon={MessageCircleQuestion}
             title={forumText.noTopics[locale]}
-            description={forumText.noTopicsPrivate[locale]}
+            description={canReport ? forumText.noTopicsPrivate[locale] : undefined}
             action={
-              <Link
-                href="/app/forum/new"
-                className="bg-conveniat-green focus-visible:focus-surface-filled flex h-11 items-center rounded-xl px-5 text-[15px] font-semibold text-white hover:bg-green-700"
-              >
-                {forumText.reportToZentrale[locale]}
-              </Link>
+              canReport && (
+                <Link
+                  href="/app/forum/new"
+                  className="bg-conveniat-green focus-visible:focus-surface-filled flex h-11 items-center rounded-xl px-5 text-[15px] font-semibold text-white hover:bg-green-700"
+                >
+                  {forumText.reportToZentrale[locale]}
+                </Link>
+              )
             }
           />
         </div>
@@ -315,6 +319,9 @@ export const ForumOverview: React.FC = () => {
           ...(settings.data?.hasOpenAssignments === true ? (['assignedToMe'] as const) : []),
           ...(settings.data?.moderationRequired === true && settings.data.canModerate
             ? (['pending'] as const)
+            : []),
+          ...(settings.data?.privateReportsAvailable === true && settings.data.canModerate
+            ? (['private'] as const)
             : []),
         ]}
         locale={locale}

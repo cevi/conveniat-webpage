@@ -12,7 +12,6 @@ import { FooterGlobal } from '@/features/payload-cms/payload-cms/globals/footer-
 import { HeaderGlobal } from '@/features/payload-cms/payload-cms/globals/header-global';
 import { PWAGlobal } from '@/features/payload-cms/payload-cms/globals/pwa-global';
 import { SeoGlobal } from '@/features/payload-cms/payload-cms/globals/seo-global';
-import { SupportChatManagement } from '@/features/payload-cms/payload-cms/globals/support-chat-management';
 import { CampsitePresenceGlobal } from '@/features/presence/payload-cms/globals/campsite-presence';
 import { VisitDayBillSettingsGlobal } from '@/features/visit-day/billing/visit-day-bill-settings-global';
 import { VisitDayGlobal } from '@/features/visit-day/payload-cms/visit-day-global';
@@ -33,7 +32,6 @@ export const globalConfig: GlobalConfig[] = [
   AppLandingPageGlobal,
   AlertManagement,
   AlertSettingsGlobal,
-  SupportChatManagement,
   AllChatsManagement,
   CampsitePresenceGlobal,
   PWAGlobal,

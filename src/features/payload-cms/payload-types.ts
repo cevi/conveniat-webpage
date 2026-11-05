@@ -199,7 +199,6 @@ export interface Config {
     'app-landing-page': AppLandingPage;
     'alert-management': AlertManagement;
     alert_settings: AlertSetting;
-    'support-chat-management': SupportChatManagement;
     'all-chats-management': AllChatsManagement;
     'campsite-presence': CampsitePresence;
     PWA: PWA;
@@ -220,7 +219,6 @@ export interface Config {
     'app-landing-page': AppLandingPageSelect<false> | AppLandingPageSelect<true>;
     'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
     alert_settings: AlertSettingsSelect<false> | AlertSettingsSelect<true>;
-    'support-chat-management': SupportChatManagementSelect<false> | SupportChatManagementSelect<true>;
     'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
     'campsite-presence': CampsitePresenceSelect<false> | CampsitePresenceSelect<true>;
     PWA: PWASelect<false> | PWASelect<true>;
@@ -4142,6 +4140,10 @@ export interface ForumTopic {
    */
   name: string;
   description?: string | null;
+  /**
+   * A report sent "privately to the Zentrale" becomes a post in this topic that only its author, the Kernteam of this topic and the piket on duty see. One topic at most; whoever reports joins it for their own reports.
+   */
+  receivesPrivateReports?: boolean | null;
   targetType: 'all' | 'roles' | 'cevi_groups' | 'avps';
   targetRoles?:
     | (
@@ -4445,7 +4447,7 @@ export interface PiketSchedule {
   users: (string | User)[];
   startTime: string;
   endTime: string;
-  chatTypes: ('EMERGENCY' | 'SUPPORT_GROUP' | 'FORUM')[];
+  chatTypes: ('EMERGENCY' | 'FORUM')[];
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -6985,6 +6987,7 @@ export interface ForumTopicsSelect<T extends boolean = true> {
   chatUuid?: T;
   name?: T;
   description?: T;
+  receivesPrivateReports?: T;
   targetType?: T;
   targetRoles?: T;
   targetCeviGroups?:
@@ -9164,16 +9167,6 @@ export interface AlertSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "support-chat-management".
- */
-export interface SupportChatManagement {
-  id: string;
-  dummy?: string | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "all-chats-management".
  */
 export interface AllChatsManagement {
@@ -9995,16 +9988,6 @@ export interface AlertSettingsSelect<T extends boolean = true> {
       };
   finalResponseMessage?: T;
   emergencyPhoneNumber?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "support-chat-management_select".
- */
-export interface SupportChatManagementSelect<T extends boolean = true> {
-  dummy?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

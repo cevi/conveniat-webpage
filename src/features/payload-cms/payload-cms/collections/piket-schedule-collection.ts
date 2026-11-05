@@ -108,7 +108,6 @@ export const PiketScheduleCollection: CollectionConfig = {
       required: true,
       options: [
         { label: 'Emergency', value: 'EMERGENCY' },
-        { label: 'Support Group', value: 'SUPPORT_GROUP' },
         // on duty for the forum: a push for every post and comment, and the right to change
         // the status of posts and hand them to helpers, see `resolveForumModerator`
         { label: 'Forum', value: 'FORUM' },

@@ -7,29 +7,20 @@ import { composerHrefFor } from '@/features/map/utils/nearest-annotation';
 import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { FORUM_LIKE_EMOJI, forumStatusLabel } from '@/lib/forum-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
 import { cn } from '@/utils/tailwindcss-override';
-import { userErrorMessage } from '@/utils/user-error-message';
-import { ChevronRight, Flag, Loader2, Lock, LogIn, Plus, ThumbsUp, WifiOff } from 'lucide-react';
+import { ChevronRight, Lock, LogIn, Plus, ThumbsUp, WifiOff } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import React from 'react';
 
 const reportIssueText: StaticTranslationString = {
   en: 'Report an Issue',
   de: 'Problem melden',
   fr: 'Signaler un problème',
-};
-
-const reportIssueDescription: StaticTranslationString = {
-  en: 'Broken toilet, maintenance needed, etc.',
-  de: 'Defekte Toilette, Wartung erforderlich usw.',
-  fr: 'Toilettes cassées, maintenance nécessaire, etc.',
 };
 
 const loginToReportText: StaticTranslationString = {
@@ -68,12 +59,11 @@ const rowClassName =
 /** The big row of the section: what it does, a line on what it is for, and a chevron. */
 const ActionRowContent: React.FC<{
   icon: React.ComponentProps<typeof IconTile>['icon'];
-  spinning?: boolean;
   title: string;
   description: string;
-}> = ({ icon, spinning = false, title, description }) => (
+}> = ({ icon, title, description }) => (
   <>
-    <IconTile icon={icon} className={cn(spinning && '[&_svg]:animate-spin')} />
+    <IconTile icon={icon} />
     <span className="min-w-0 flex-1">
       <span className="block text-[15px] leading-5 font-semibold text-green-900">{title}</span>
       <span className="block text-[13px] leading-[18px] text-balance text-green-700">
@@ -140,17 +130,16 @@ const OpenPostsHere: React.FC<{ annotationId: string; locale: Locale }> = ({
 };
 
 /**
- * Reporting a problem at a place of the map. Where the forum is on, what is already reported
- * here comes first, then a new post with the place filled in; the private report to the
- * Zentrale is the same composer switched to "Privat", for what does not belong in public. Without the forum, the
- * report opens the support chat, as it always did.
+ * Reporting a problem at a place of the map, in the forum: what is already reported here comes
+ * first, then a new post with the place filled in, and the private report to the Zentrale, the
+ * same composer switched to "Privat", for what does not belong in public. Hidden while the forum
+ * is off, since the forum is where every report goes.
  */
 export const AnnotationForumAndReportSection: React.FC<{
   coordinates: [number, number] | undefined;
   annotation?: { id: string; title: string };
 }> = ({ coordinates, annotation }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const router = useRouter();
   const isOnline = useOnlineStatus();
   // A report needs a login. A guest who sent one got a 401, which signs the client out and
   // sends it back to `/entrypoint`, out of the map they were using.
@@ -161,33 +150,16 @@ export const AnnotationForumAndReportSection: React.FC<{
     { locale },
     { enabled: isSignedIn },
   );
-  const forumEnabled = isSignedIn && dashboard?.featureFlags.forumEnabled !== false;
-  const [isRedirecting, setIsRedirecting] = React.useState(false);
+  const forumEnabled = dashboard?.featureFlags.forumEnabled !== false;
+  const { data: settings } = trpc.forum.getForumSettings.useQuery(
+    {},
+    { enabled: isSignedIn && forumEnabled },
+  );
 
-  // ensure the report button state is reset on every mount
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  React.useEffect(() => setIsRedirecting(false), []);
+  if (coordinates === undefined || (isSignedIn && !forumEnabled)) return <></>;
 
-  const {
-    mutate: createReport,
-    isPending,
-    error: reportError,
-  } = trpc.chat.reportProblem.useMutation({
-    onSuccess: (chat) => {
-      setIsRedirecting(true);
-      router.push(`/${locale}/app/chat/${chat.uuid}`);
-    },
-    onError: (error) => {
-      console.error('Failed to create report:', error);
-      setIsRedirecting(false);
-    },
-  });
-  const isBusy = isPending || isRedirecting;
-  const sendPrivateReport = (): void => createReport({ location: coordinates });
-
-  let content: React.ReactNode;
-  if (!isOnline || isGuest || sessionStatus === 'loading') {
-    content = (
+  const content =
+    !isOnline || isGuest || sessionStatus === 'loading' ? (
       <button
         type="button"
         onClick={() => handleLogin('/entrypoint')}
@@ -200,9 +172,7 @@ export const AnnotationForumAndReportSection: React.FC<{
           description={isOnline ? loginToReportDescription[locale] : offlineDescription[locale]}
         />
       </button>
-    );
-  } else if (forumEnabled && coordinates !== undefined) {
-    content = (
+    ) : (
       <>
         {annotation !== undefined && <OpenPostsHere annotationId={annotation.id} locale={locale} />}
         <Link href={composerHrefFor(coordinates, annotation)} className={rowClassName}>
@@ -212,47 +182,23 @@ export const AnnotationForumAndReportSection: React.FC<{
             description={forumMapText.newPostHere[locale]}
           />
         </Link>
-        <Link
-          href={composerHrefFor(coordinates, annotation, undefined, { private: true })}
-          className="focus-visible:focus-surface hover:bg-quiet flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl text-[13px] font-semibold text-green-800"
-        >
-          <Lock className="h-4 w-4" aria-hidden="true" />
-          {privateReportText[locale]}
-        </Link>
+        {/* absent in a persisted cache from before private reports */}
+        {settings?.privateReportsAvailable === true && (
+          <Link
+            href={composerHrefFor(coordinates, annotation, undefined, { private: true })}
+            className="focus-visible:focus-surface hover:bg-quiet flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl text-[13px] font-semibold text-green-800"
+          >
+            <Lock className="h-4 w-4" aria-hidden="true" />
+            {privateReportText[locale]}
+          </Link>
+        )}
       </>
     );
-  } else {
-    content = (
-      <button
-        type="button"
-        onClick={sendPrivateReport}
-        disabled={isBusy}
-        aria-busy={isBusy}
-        className={rowClassName}
-      >
-        <ActionRowContent
-          icon={isBusy ? Loader2 : Flag}
-          spinning={isBusy}
-          title={reportIssueText[locale]}
-          description={reportIssueDescription[locale]}
-        />
-      </button>
-    );
-  }
 
   return (
     <section className="space-y-2 pt-3 pb-4">
       <SectionLabel as="h3">{forumMapText.forum[locale]}</SectionLabel>
       {content}
-      {/* the rate limit says what to do instead */}
-      {reportError?.data?.code === 'TOO_MANY_REQUESTS' && (
-        <p
-          role="alert"
-          className="bg-danger-soft text-danger-text rounded-xl px-3 py-2 text-[13px] font-medium"
-        >
-          {userErrorMessage(reportError, locale, chatErrorTexts)}
-        </p>
-      )}
     </section>
   );
 };

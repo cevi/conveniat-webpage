@@ -51,6 +51,17 @@ export const forumText = {
   },
   pendingPill: { de: 'Wartet auf Freigabe', en: 'Awaiting approval', fr: 'En attente' },
   filterPending: { de: 'Zur Freigabe', en: 'To approve', fr: 'À approuver' },
+  filterPrivate: {
+    de: 'Private Meldungen',
+    en: 'Private reports',
+    fr: 'Signalements privés',
+  },
+  privatePill: { de: 'Privat', en: 'Private', fr: 'Privé' },
+  privateBanner: {
+    de: 'Private Meldung an die Zentrale. Nur wer sie geschrieben hat, das Kernteam und das Piket sehen sie und ihre Kommentare.',
+    en: 'Private report to the Zentrale. Only its author, the core team and the person on duty see it and its comments.',
+    fr: 'Signalement privé à la Zentrale. Seuls son auteur, l’équipe centrale et le piquet le voient, avec ses commentaires.',
+  },
   pendingAuthor: {
     de: 'Wartet auf Freigabe. Bis das Kernteam oder das Piket den Beitrag freigibt, sehen ihn nur du und sie.',
     en: 'Awaiting approval. Until the core team or the person on duty approves it, only you and they see this post.',
@@ -187,11 +198,16 @@ export const forumText = {
   },
   description: { de: 'Beschreibung', en: 'Description', fr: 'Description' },
   descriptionPlaceholder: {
-    de: 'Was ist los, seit wann?',
-    en: 'What is wrong, since when?',
-    fr: 'Que se passe-t-il, depuis quand ?',
+    de: 'Was ist los, seit wann? Was hast du schon versucht?',
+    en: 'What is wrong, since when? What have you tried already?',
+    fr: 'Que se passe-t-il, depuis quand ? Qu’as-tu déjà essayé ?',
   },
   photo: { de: 'Foto', en: 'Photo', fr: 'Photo' },
+  photoHint: {
+    de: 'Am besten zwei Fotos: eines von nah, eines mit der Umgebung.',
+    en: 'Two photos work best: one close up, one showing the surroundings.',
+    fr: 'Idéalement deux photos : une de près, une avec les alentours.',
+  },
   removePhoto: { de: 'Foto entfernen', en: 'Remove photo', fr: 'Retirer la photo' },
   location: { de: 'Standort', en: 'Location', fr: 'Emplacement' },
   addLocation: { de: 'Standort hinzufügen', en: 'Add a location', fr: 'Ajouter un emplacement' },
@@ -234,9 +250,9 @@ export const forumText = {
     fr: 'Dans le forum, visible par tous. D’autres peuvent dire « moi aussi », la Zentrale est notifiée.',
   },
   privateExplain: {
-    de: 'Nur an die Zentrale, in einem Chat mit dem Piket. Für alles, was nicht öffentlich sein soll.',
-    en: 'Only to the Zentrale, in a chat with the person on duty. For anything that should not be public.',
-    fr: 'Seulement à la Zentrale, dans un chat avec le piquet. Pour tout ce qui ne doit pas être public.',
+    de: 'Nur an die Zentrale, als privater Beitrag. Für alles, was nicht öffentlich sein soll.',
+    en: 'Only to the Zentrale, as a private post. For anything that should not be public.',
+    fr: 'Seulement à la Zentrale, comme publication privée. Pour tout ce qui ne doit pas être public.',
   },
   privateHint: {
     de: 'Nur du und das OK sehen deine Nachricht.',

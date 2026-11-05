@@ -4,6 +4,7 @@ import { findDeletedQuotedMessageIds } from '@/features/chat/api/utils/deleted-m
 import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
 import { findThreadSummaries } from '@/features/chat/api/utils/thread-summaries';
 import { toChatMessage } from '@/features/chat/api/utils/to-chat-message';
+import { ChatType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { createLogger } from '@/utils/server-logger';
 import { MessageEventType } from '@prisma/client';
@@ -43,6 +44,21 @@ export const getChatMessages = trpcBaseProcedure
         });
       }
 
+      // A forum topic's posts come from the forum router, its chat lists only the comments of
+      // one post, and those of a private report or a post waiting for approval only to whom
+      // sees it. Loaded here, so a chat does not pull in the piket schedule the check reads.
+      if (chat.type === ChatType.FORUM && parentId !== undefined) {
+        const { canSeeForumPost, findForumPostVisibility } =
+          await import('@/features/chat/api/forum/forum-visibility');
+        const post = await findForumPostVisibility(prisma, parentId);
+        if (post !== undefined && !(await canSeeForumPost(prisma, ctx.user.uuid, post))) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Chat with ID ${chatId} not found or access denied`,
+          });
+        }
+      }
+
       logger.debug('Fetching chat messages', {
         'chat.id': chatId,
         'chat.cursor': cursor,
@@ -55,6 +71,7 @@ export const getChatMessages = trpcBaseProcedure
         where: {
           chatId: chat.uuid,
           parentId: parentId ?? null,
+          ...(chat.type === ChatType.FORUM && parentId === undefined ? { forumPost: null } : {}),
         },
         ...(cursor == undefined ? {} : { cursor: { uuid: cursor }, skip: 1 }),
         orderBy: { seq: 'desc' },

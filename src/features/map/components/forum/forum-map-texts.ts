@@ -45,7 +45,6 @@ export const forumMapText = {
     en: 'Report another problem',
     fr: 'Signaler un autre problème',
   },
-  reportProblem: { de: 'Problem melden', en: 'Report a problem', fr: 'Signaler un problème' },
   newPostHere: {
     de: 'Neuer Beitrag mit diesem Ort',
     en: 'New post with this place',

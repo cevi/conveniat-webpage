@@ -18,6 +18,7 @@ export const FORUM_POST_SUMMARY_SELECT = {
   annotationId: true,
   pinnedAt: true,
   approvedAt: true,
+  private: true,
   chat: { select: { name: true } },
   message: {
     select: {
@@ -127,14 +128,16 @@ export const toForumPostSummaries = async (
       commentCount: commentCount.get(row.messageId) ?? 0,
       pinned: row.pinnedAt !== null,
       pending: row.approvedAt === null,
+      private: row.private,
       imageCount: content.images.length,
     };
   });
 };
 
 /**
- * The posts a user may see: those of the topics they belong to, and of those the approved ones,
- * their own, and the ones of the topics they moderate. A helper belongs to the topic
+ * The posts a user may see: those of the topics they belong to, and of those the public ones,
+ * their own, and the ones of the topics they moderate. Private reports and posts waiting for
+ * approval are restricted the same way, see `forum-visibility.ts`. A helper belongs to the topic
  * of their assignment for as long as it is open, see `createForumPostAssignment`.
  */
 export const visibleForumPostsWhere = (
@@ -151,12 +154,12 @@ export const visibleForumPostsWhere = (
         chatMemberships: { some: { userId } },
       },
     },
-    // a post waiting for approval: only its author and its moderators
+    // a private report or a post waiting for approval: only its author and its moderators
     moderatedTopics === 'all'
       ? {}
       : {
           OR: [
-            { approvedAt: { not: null } },
+            { approvedAt: { not: null }, private: false },
             { message: { senderId: userId } },
             { chatId: { in: moderatedTopics } },
           ],

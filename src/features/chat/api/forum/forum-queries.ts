@@ -11,6 +11,10 @@ import {
   toForumPostSummaries,
   visibleForumPostsWhere,
 } from '@/features/chat/api/forum/forum-posts';
+import {
+  findPrivateReportTopicId,
+  isRestrictedForumPost,
+} from '@/features/chat/api/forum/forum-visibility';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_FORUM_MODERATION } from '@/lib/feature-flags';
 import {
@@ -104,7 +108,9 @@ export const getForumPostList = trpcBaseProcedure
     z.object({
       topicId: z.uuid().optional(),
       status: z.enum(['active', 'done', 'all']).default('active'),
-      filter: z.enum(['all', 'mine', 'assignedToMe', 'subscribed', 'pending']).default('all'),
+      filter: z
+        .enum(['all', 'mine', 'assignedToMe', 'subscribed', 'pending', 'private'])
+        .default('all'),
       sort: z.enum(['new', 'popular']).default('new'),
       annotationId: z.string().max(64).optional(),
       cursor: z.number().int().min(0).nullish(),
@@ -120,6 +126,7 @@ export const getForumPostList = trpcBaseProcedure
         AND: [
           visibleForumPostsWhere(userId, moderated),
           input.filter === 'pending' ? { approvedAt: null } : {},
+          input.filter === 'private' ? { private: true } : {},
         ],
         ...(input.topicId === undefined ? {} : { chatId: input.topicId }),
         ...(input.annotationId === undefined ? {} : { annotationId: input.annotationId }),
@@ -406,9 +413,13 @@ export const getForumPost = trpcBaseProcedure
         resolveForumModerator(ctx.prisma, userId, row.chatId, row.messageId),
       ]);
 
-    // a post waiting for approval answers like one that does not exist, but to its author and
-    // its moderators
-    if (row.approvedAt === null && row.message.senderId !== userId && !isFullModerator(moderator)) {
+    // a private report or a post waiting for approval answers like one that does not exist, but
+    // to its author and its moderators
+    if (
+      isRestrictedForumPost(row) &&
+      row.message.senderId !== userId &&
+      !isFullModerator(moderator)
+    ) {
       throw forumError('NOT_FOUND', 'postGone');
     }
 
@@ -481,6 +492,8 @@ export interface ForumSettings {
   canModerate: boolean;
   /** the caller holds an open assignment, so "Meine Aufträge" has something to show */
   hasOpenAssignments: boolean;
+  /** editors chose a topic for private reports, so the composer offers "Privat" */
+  privateReportsAvailable: boolean;
 }
 
 /**
@@ -490,16 +503,19 @@ export interface ForumSettings {
 export const getForumSettings = trpcBaseProcedure
   .input(z.object({}))
   .query(async ({ ctx }): Promise<ForumSettings> => {
-    const [moderationRequired, moderated, openAssignments] = await Promise.all([
-      getFeatureFlag(FEATURE_FLAG_FORUM_MODERATION),
-      findModeratedTopicIds(ctx.prisma, ctx.user.uuid),
-      ctx.prisma.forumPostAssignment.count({
-        where: { assigneeId: ctx.user.uuid, endedAt: null },
-      }),
-    ]);
+    const [moderationRequired, moderated, openAssignments, privateReportTopicId] =
+      await Promise.all([
+        getFeatureFlag(FEATURE_FLAG_FORUM_MODERATION),
+        findModeratedTopicIds(ctx.prisma, ctx.user.uuid),
+        ctx.prisma.forumPostAssignment.count({
+          where: { assigneeId: ctx.user.uuid, endedAt: null },
+        }),
+        findPrivateReportTopicId(),
+      ]);
     return {
       moderationRequired,
       canModerate: moderated === 'all' || moderated.length > 0,
       hasOpenAssignments: openAssignments > 0,
+      privateReportsAvailable: privateReportTopicId !== undefined,
     };
   });
