@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
+import { toast } from '@/components/ui/toast';
 import { BandIdentityCard, BandRefusal } from '@/features/wristbands/components/band-identity-card';
 import { personName } from '@/features/wristbands/components/band-labels';
 import { ReadBandCard } from '@/features/wristbands/components/read-band-card';
@@ -30,7 +31,6 @@ import { Loader2, MessageSquare, Nfc, ScanLine, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
-import { toast } from 'sonner';
 
 /**
  * Starts the private chat a band leads to and opens it: with the wearer, or for the safety
@@ -52,19 +52,19 @@ const useStartChat = (
           break;
         }
         case 'ownBand': {
-          toast(tagText('ownBand', locale));
+          toast.info(tagText('ownBand', locale));
           break;
         }
         case 'noAccount': {
-          toast(tagText('noAccount', locale));
+          toast.info(tagText('noAccount', locale));
           break;
         }
         case 'unknownBand': {
-          toast(tagText('bandGone', locale));
+          toast.info(tagText('bandGone', locale));
           break;
         }
         case 'notVerified': {
-          toast(tagText('notVerified', locale));
+          toast.info(tagText('notVerified', locale));
           break;
         }
       }
