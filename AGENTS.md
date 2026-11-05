@@ -362,13 +362,14 @@ by its role once a second screen needs it, not before.
   reaches 4.5:1 contrast. Use real buttons and links, never a clickable `div`.
 - **Phones.** Lists scroll natively and snap; content follows the finger and is there before it
   is released. A choice or a set of filters that belongs to the page opens in the shared
-  `BottomSheet`, over the dimmed page; a menu of actions on one item does not float but expands in
-  place. The one floating button is a screen's main action where its list scrolls under it, like
+  `BottomSheet`, over the dimmed page, and so does a menu of actions on one item, like the long
+  press on a message, a chat or a member in the chat. The one floating button is a screen's main action where its list scrolls under it, like
   "Neuer Chat"; nothing else floats over content the user needs, except a map's controls.
 - **Desktops.** The same choice may open as a popup under the button that opened it: pass that
   button to the shared `BottomSheet` as its `anchor`, and it is a popup from Tailwind's `xl` up
   and a sheet below. There is one component for both, never a popover or dropdown of its own,
-  and nothing floats on a phone.
+  and nothing floats on a phone. A menu of actions on one item may expand in place there instead
+  of floating.
 
 ## Git and pull requests
 
