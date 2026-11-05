@@ -148,9 +148,9 @@ export const pushTrackingRouter = createTRPCRouter({
    * `lastUsedAt` as true for a browser as it is for the native app, which renews its token on
    * every launch, so a device that stops checking in shows as inactive after a month.
    *
-   * Only the signed-in person's own row is touched, matched by endpoint and auth secret. A row
-   * that is gone stays gone: an admin may have removed the device, and the person turns push
-   * on again in the settings.
+   * Only the signed-in person's own row is touched, matched by endpoint and auth secret, and
+   * none is created. A row that is gone answers `confirmed: false`, and the browser then
+   * subscribes afresh, see `useOnboardingRecheck`.
    */
   confirmWebPushSubscription: trpcBaseProcedure
     .input(PushSubscriptionSchema)

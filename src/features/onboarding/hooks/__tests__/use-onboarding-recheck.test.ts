@@ -7,7 +7,10 @@ import { ONBOARDING_COMPLETE_KEY } from '@/lib/onboarding-complete';
 import { Cookie } from '@/types/types';
 import { replaceLocation } from '@/utils/assign-location';
 import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
-import { restoreLostPushSubscription } from '@/utils/push-notifications/push-subscription';
+import {
+  restoreLostPushSubscription,
+  unsubscribeFromPushNotifications,
+} from '@/utils/push-notifications/push-subscription';
 import { ANSWERED_BY_SERVICE_WORKER_HEADER } from '@/utils/service-worker-messages';
 import { renderHook, waitFor } from '@testing-library/react';
 import Cookies from 'js-cookie';
@@ -15,6 +18,7 @@ import Cookies from 'js-cookie';
 jest.mock('@/utils/assign-location', () => ({ replaceLocation: jest.fn() }));
 jest.mock('@/utils/push-notifications/push-subscription', () => ({
   restoreLostPushSubscription: jest.fn(() => Promise.resolve(false)),
+  unsubscribeFromPushNotifications: jest.fn(() => Promise.resolve()),
 }));
 jest.mock('@/utils/push-notifications/push-manager-utils', () => ({
   getPushSubscription: jest.fn(() => Promise.resolve()),
@@ -157,6 +161,17 @@ describe('the background push check of an installed web app started past the onb
     expect(restore).not.toHaveBeenCalled();
   });
 
+  it('takes a restore back when the user turned push off while it ran', async () => {
+    restore.mockImplementationOnce(() => {
+      // the user taps "off" in the settings while the subscribe is still on its way
+      mockStoredPreferences.set('web-push-opted-out', { key: 'web-push-opted-out', value: true });
+      return Promise.resolve(true);
+    });
+    renderHook(() => useOnboardingRecheck('fr'));
+
+    await waitFor(() => expect(unsubscribeFromPushNotifications).toHaveBeenCalled());
+  });
+
   it('waits for the onboarding, whose push step asks for itself', () => {
     localStorage.removeItem(ONBOARDING_COMPLETE_KEY);
     renderHook(() => useOnboardingRecheck('fr'));
@@ -211,6 +226,20 @@ describe('the daily push check-in of an installed web app', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mockConfirmPushSubscription).not.toHaveBeenCalled();
     expect(checkedInAt()).toBe(anHourAgo);
+  });
+
+  it('subscribes afresh when the server no longer has the subscription', async () => {
+    // a send found the endpoint expired and the server dropped the row
+    const unsubscribe = jest.fn(() => Promise.resolve(true));
+    currentSubscription.mockResolvedValue({
+      toJSON: () => lenasPhone,
+      unsubscribe,
+    } as unknown as PushSubscription);
+    mockConfirmPushSubscription.mockResolvedValueOnce({ confirmed: false });
+    renderHook(() => useOnboardingRecheck('de'));
+
+    await waitFor(() => expect(unsubscribe).toHaveBeenCalled());
+    await waitFor(() => expect(restore).toHaveBeenCalledTimes(2));
   });
 
   it('counts a restored subscription as a check-in', async () => {

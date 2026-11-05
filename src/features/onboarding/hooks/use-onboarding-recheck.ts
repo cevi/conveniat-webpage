@@ -12,7 +12,10 @@ import { Cookie } from '@/types/types';
 import { replaceLocation } from '@/utils/assign-location';
 import { isCookieTrue } from '@/utils/cookie-utils';
 import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
-import { restoreLostPushSubscription } from '@/utils/push-notifications/push-subscription';
+import {
+  restoreLostPushSubscription,
+  unsubscribeFromPushNotifications,
+} from '@/utils/push-notifications/push-subscription';
 import { ANSWERED_BY_SERVICE_WORKER_HEADER } from '@/utils/service-worker-messages';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import { useEffect, useRef } from 'react';
@@ -96,15 +99,27 @@ export const useOnboardingRecheck = (locale: Locale): void => {
     hasCheckedPushSubscription.current = true;
     const restoreOrCheckIn = async (): Promise<void> => {
       // storing a restored subscription renews it on the server as well
-      const isRestored = await restoreLostPushSubscription(locale);
+      let isRestored = await restoreLostPushSubscription(locale);
       if (!isRestored) {
         const lastCheckIn = readPreference('web-push-checked-in-at');
         if (Date.now() - lastCheckIn < PUSH_CHECK_IN_INTERVAL_MS) return;
         const subscription = await getPushSubscription();
         if (subscription === undefined) return;
-        await confirmPushSubscription(
+        const { confirmed } = await confirmPushSubscription(
           subscription.toJSON() as Parameters<typeof confirmPushSubscription>[0],
         );
+        if (!confirmed) {
+          // The server has no row for it: a send found the endpoint expired, or an admin
+          // removed the device. A browser that is in use subscribes afresh, with an endpoint
+          // that works, instead of staying silent while its switch still shows push as on.
+          await subscription.unsubscribe();
+          isRestored = await restoreLostPushSubscription(locale);
+        }
+      }
+      // Subscribing can take seconds on a bad connection. A user who turned push off in the
+      // meantime found nothing to unsubscribe, so the restore takes itself back.
+      if (isRestored && readPreference('web-push-opted-out')) {
+        await unsubscribeFromPushNotifications();
       }
       writePreference('web-push-checked-in-at', Date.now());
     };
