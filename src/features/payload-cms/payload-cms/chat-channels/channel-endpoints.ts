@@ -1,11 +1,11 @@
 import { hasAdminOrWebAccess, isRole } from '@/features/payload-cms/payload-cms/access-rules/roles';
-import type { ChannelAudience } from '@/features/payload-cms/payload-cms/utils/announcement-channel-audience';
+import type { ChannelAudience } from '@/features/payload-cms/payload-cms/chat-channels/channel-audience';
 import {
   findAudienceUserIds,
   MAX_USERS,
-} from '@/features/payload-cms/payload-cms/utils/announcement-channel-audience';
+} from '@/features/payload-cms/payload-cms/chat-channels/channel-audience';
 import prisma from '@/lib/db/prisma';
-import type { PayloadHandler } from 'payload';
+import type { Endpoint, PayloadHandler } from 'payload';
 
 /** A Cevi.DB group an editor can pick as the audience of a channel. */
 export interface CeviGroupSuggestion {
@@ -142,3 +142,12 @@ export const audiencePreviewHandler: PayloadHandler = async (request) => {
   const count = await prisma.user.count({ where: { uuid: { in: userIds } } });
   return Response.json({ count });
 };
+
+/**
+ * The endpoints the audience tab calls, under the channel collection's own API path:
+ * `/group-suggestions` for the group picker and `/audience-preview` for the count.
+ */
+export const channelEndpoints = (): Endpoint[] => [
+  { path: '/group-suggestions', method: 'get', handler: groupSuggestionsHandler },
+  { path: '/audience-preview', method: 'post', handler: audiencePreviewHandler },
+];

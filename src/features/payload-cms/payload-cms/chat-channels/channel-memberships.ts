@@ -1,19 +1,29 @@
-import type { ChannelAudience } from '@/features/payload-cms/payload-cms/utils/announcement-channel-audience';
-import { findAudienceUserIds } from '@/features/payload-cms/payload-cms/utils/announcement-channel-audience';
+import type { ChannelAudience } from '@/features/payload-cms/payload-cms/chat-channels/channel-audience';
+import { findAudienceUserIds } from '@/features/payload-cms/payload-cms/chat-channels/channel-audience';
+import { CHANNEL_COLLECTIONS } from '@/features/payload-cms/payload-cms/chat-channels/channel-collections';
 import prisma from '@/lib/db/prisma';
 import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
 import { ChatMembershipPermission } from '@/lib/prisma/client';
 import type { Payload, PayloadRequest } from 'payload';
 
+/** Options of `syncChannelMemberships`. */
+export interface SyncChannelMembershipsOptions {
+  /** What the audience holds in the chat, e.g. GUEST in an announcement channel. */
+  memberPermission: ChatMembershipPermission;
+  req?: PayloadRequest;
+  /** Who removed the members, for their open streams; each removed member if unset. */
+  actorId?: string | undefined;
+}
+
 /**
- * Reconciles the GUEST memberships of a channel's chat with its audience: adds whoever
- * belongs to it and removes whoever no longer does. Owners and admins stay.
+ * Reconciles the memberships of a channel's chat with its audience: adds whoever belongs to it
+ * with `memberPermission` and removes whoever no longer does. Owners and admins stay.
  */
-export const syncAnnouncementChannelMemberships = async (
+export const syncChannelMemberships = async (
   payload: Payload,
   chatUuid: string,
   audience: ChannelAudience,
-  { req, actorId }: { req?: PayloadRequest; actorId?: string | undefined } = {},
+  { memberPermission, req, actorId }: SyncChannelMembershipsOptions,
 ): Promise<void> => {
   const eligibleUserUuids = new Set(await findAudienceUserIds(payload, audience, req));
 
@@ -24,7 +34,7 @@ export const syncAnnouncementChannelMemberships = async (
 
   const existingUserUuids = new Set(existingMemberships.map((m) => m.userId));
 
-  // Add missing members as GUEST
+  // Add missing members
   // eslint-disable-next-line unicorn/prefer-spread
   const membersToAdd = Array.from(eligibleUserUuids).filter((uuid) => !existingUserUuids.has(uuid));
   if (membersToAdd.length > 0) {
@@ -45,7 +55,7 @@ export const syncAnnouncementChannelMemberships = async (
         data: validMembersToAdd.map((uuid) => ({
           chatId: chatUuid,
           userId: uuid,
-          chatPermission: ChatMembershipPermission.GUEST,
+          chatPermission: memberPermission,
         })),
       });
     }
@@ -77,7 +87,7 @@ export const syncAnnouncementChannelMemberships = async (
   }
 };
 
-/** Most announcement channels the camp will have; far more than it will ever have. */
+/** Most channels of one collection the camp will have; far more than it will ever have. */
 const MAX_CHANNELS = 1000;
 
 /**
@@ -91,26 +101,26 @@ export const resyncAvpChannels = async (
   payload: Payload,
   request?: PayloadRequest,
 ): Promise<number> => {
-  const { docs } = await payload.find({
-    collection: 'announcement-channels',
-    where: { targetType: { equals: 'avps' } },
-    depth: 0,
-    limit: MAX_CHANNELS,
-    pagination: false,
-    overrideAccess: true,
-    select: { targetType: true, chatUuid: true },
-    ...(request === undefined ? {} : { req: request }),
-  });
   let synced = 0;
-  for (const channel of docs) {
-    if (typeof channel.chatUuid !== 'string' || channel.chatUuid === '') continue;
-    await syncAnnouncementChannelMemberships(
-      payload,
-      channel.chatUuid,
-      channel,
-      request === undefined ? {} : { req: request },
-    );
-    synced += 1;
+  for (const { slug, memberPermission } of CHANNEL_COLLECTIONS) {
+    const { docs } = await payload.find({
+      collection: slug,
+      where: { targetType: { equals: 'avps' } },
+      depth: 0,
+      limit: MAX_CHANNELS,
+      pagination: false,
+      overrideAccess: true,
+      select: { targetType: true, chatUuid: true },
+      ...(request === undefined ? {} : { req: request }),
+    });
+    for (const channel of docs) {
+      if (typeof channel.chatUuid !== 'string' || channel.chatUuid === '') continue;
+      await syncChannelMemberships(payload, channel.chatUuid, channel, {
+        memberPermission,
+        ...(request === undefined ? {} : { req: request }),
+      });
+      synced += 1;
+    }
   }
   return synced;
 };

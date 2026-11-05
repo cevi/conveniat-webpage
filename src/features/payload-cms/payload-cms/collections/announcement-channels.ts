@@ -1,149 +1,40 @@
-import { environmentVariables } from '@/config/environment-variables';
-import { ROLE_LABELS } from '@/features/payload-cms/payload-cms/access-rules/role-labels';
-import { hasAdminOrWebAccess, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import {
-  audiencePreviewHandler,
-  groupSuggestionsHandler,
-} from '@/features/payload-cms/payload-cms/endpoints/announcement-channel-audience';
-import { syncAnnouncementChannelMemberships } from '@/features/payload-cms/payload-cms/utils/announcement-channel-memberships';
+import { audienceTab } from '@/features/payload-cms/payload-cms/chat-channels/audience-tab';
+import { createChannelChatHooks } from '@/features/payload-cms/payload-cms/chat-channels/channel-chat-hooks';
+import { channelEndpoints } from '@/features/payload-cms/payload-cms/chat-channels/channel-endpoints';
+import { membersTab } from '@/features/payload-cms/payload-cms/chat-channels/members-tab';
 import type { AnnouncementChannel } from '@/features/payload-cms/payload-types';
-import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
-import prisma from '@/lib/db/prisma';
-import {
-  ChatMembershipPermission,
-  ChatType,
-  MessageEventType,
-  MessageType,
-} from '@/lib/prisma/client';
-import type {
-  CollectionAfterChangeHook,
-  CollectionAfterDeleteHook,
-  CollectionConfig,
-} from 'payload';
+import { ChatCapability } from '@/lib/chat-shared';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/client';
+import type { CollectionConfig } from 'payload';
 
-/** Marks the update that only stores the id of a newly created chat. */
-const CHAT_ID_WRITE_BACK = 'announcementChannelChatIdWriteBack';
-
-const afterChannelChange: CollectionAfterChangeHook<AnnouncementChannel> = async ({
-  doc,
-  req: request,
-  operation,
-  context,
-}) => {
-  // the write-back of the chat id below; the outer run already set up the chat and its members
-  if (context[CHAT_ID_WRITE_BACK] === true) return doc;
-
-  const name = doc.name;
-  const description = doc.description;
-  let chatUuid = doc.chatUuid;
-
-  const currentAdminUuid = request.user?.id;
-
-  // Build the capabilities array dynamically based on the CMS selections
+/** What members may do in the chat, as the editor ticked it on the Chat tab. */
+const capabilitiesOf = (channel: AnnouncementChannel): ChatCapability[] => {
   const capabilities: ChatCapability[] = [ChatCapability.CAN_SEND_MESSAGES];
-  if (doc['allowEmojiReactions']) {
+  if (channel.allowEmojiReactions === true) {
     capabilities.push(ChatCapability.EMOJI_REACTIONS);
   }
-  if (doc['allowThreads']) {
+  if (channel.allowThreads === true) {
     capabilities.push(ChatCapability.THREADS);
-    if (doc['allowThreadReplies']) {
+    if (channel.allowThreadReplies === true) {
       capabilities.push(ChatCapability.THREAD_REPLIES);
     }
   }
-
-  if (operation === 'create' || chatUuid === undefined || chatUuid === null || chatUuid === '') {
-    // A. CREATE: Set up PostgreSQL Chat & default Owner/Admin
-    const newChat = await prisma.chat.create({
-      data: {
-        name: name,
-        description: description ?? '',
-        type: ChatType.ANNOUNCEMENT,
-        status: ChatStatus.OPEN,
-        capabilities: capabilities,
-        pinned: doc.pinned === true,
-        messages: {
-          create: {
-            contentVersions: {
-              create: [
-                {
-                  payload: {
-                    en: 'Announcement channel created',
-                    de: 'Ankündigungskanal erstellt',
-                    fr: "Canal d'annonces créé",
-                  },
-                },
-              ],
-            },
-            type: MessageType.SYSTEM_MSG,
-            messageEvents: {
-              create: [{ type: MessageEventType.CREATED }, { type: MessageEventType.STORED }],
-            },
-          },
-        },
-        chatMemberships: {
-          create:
-            currentAdminUuid !== undefined && currentAdminUuid !== ''
-              ? [
-                  {
-                    userId: currentAdminUuid,
-                    chatPermission: ChatMembershipPermission.OWNER,
-                  },
-                ]
-              : [],
-        },
-      },
-    });
-
-    chatUuid = newChat.uuid;
-    doc.chatUuid = chatUuid;
-
-    // Immediately update Payload doc with the created PostgreSQL chat UUID
-    await request.payload.update({
-      collection: 'announcement-channels',
-      id: doc.id,
-      data: { chatUuid },
-      context: { [CHAT_ID_WRITE_BACK]: true },
-    });
-  } else {
-    // B. UPDATE: Reconcile Chat details in PostgreSQL
-    await prisma.chat.update({
-      where: { uuid: chatUuid },
-      data: {
-        name,
-        description: description ?? '',
-        capabilities: capabilities,
-        pinned: doc.pinned === true,
-        lastUpdate: new Date(),
-      },
-    });
-  }
-
-  // C. Sync targeted GUEST memberships
-  await syncAnnouncementChannelMemberships(request.payload, chatUuid, doc, {
-    req: request,
-    actorId: request.user?.id,
-  });
-
-  return doc;
+  return capabilities;
 };
 
-const afterChannelDelete: CollectionAfterDeleteHook<AnnouncementChannel> = async ({ doc, req }) => {
-  const chatUuid = doc.chatUuid;
-  if (chatUuid !== undefined && chatUuid !== null && chatUuid !== '') {
-    // Delete PostgreSQL chat structure cascade-deletes memberships & messages
-    await prisma.chat
-      .delete({
-        where: { uuid: chatUuid },
-      })
-      .catch((error: unknown) => {
-        req.payload.logger.error(
-          { error, 'chat.id': chatUuid },
-          'Failed to cascade-delete the postgres chat on CMS channel deletion',
-        );
-      });
-  }
-};
+const chatHooks = createChannelChatHooks<AnnouncementChannel>({
+  slug: 'announcement-channels',
+  chatType: ChatType.ANNOUNCEMENT,
+  memberPermission: ChatMembershipPermission.GUEST,
+  capabilities: capabilitiesOf,
+  createdMessage: {
+    en: 'Announcement channel created',
+    de: 'Ankündigungskanal erstellt',
+    fr: "Canal d'annonces créé",
+  },
+});
 
 export const AnnouncementChannelsCollection: CollectionConfig = {
   slug: 'announcement-channels',
@@ -170,13 +61,10 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
     update: hasAdminOrWebAccess,
     delete: hasAdminOrWebAccess,
   },
-  endpoints: [
-    { path: '/group-suggestions', method: 'get', handler: groupSuggestionsHandler },
-    { path: '/audience-preview', method: 'post', handler: audiencePreviewHandler },
-  ],
+  endpoints: channelEndpoints(),
   hooks: {
-    afterChange: [afterChannelChange],
-    afterDelete: [afterChannelDelete],
+    afterChange: [chatHooks.afterChange],
+    afterDelete: [chatHooks.afterDelete],
   },
   fields: [
     {
@@ -297,147 +185,8 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
             },
           ],
         },
-        {
-          label: { en: 'Audience', de: 'Zielgruppe', fr: 'Public cible' },
-          admin: {
-            description: {
-              en: 'Who is added to the channel. Saving updates the members right away.',
-              de: 'Wer in den Kanal aufgenommen wird. Beim Speichern werden die Mitglieder sofort angepasst.',
-              fr: 'Qui est ajouté au canal. L’enregistrement met les membres à jour immédiatement.',
-            },
-          },
-          fields: [
-            {
-              name: 'targetType',
-              label: {
-                en: 'Target Group Type',
-                de: 'Zielgruppentyp',
-                fr: 'Type de groupe cible',
-              },
-              type: 'select',
-              required: true,
-              defaultValue: 'all',
-              options: [
-                {
-                  label: { en: 'All Users', de: 'Alle Benutzer', fr: 'Tous les utilisateurs' },
-                  value: 'all',
-                },
-                {
-                  label: {
-                    en: 'Specific Roles',
-                    de: 'Spezifische Rollen',
-                    fr: 'Rôles spécifiques',
-                  },
-                  value: 'roles',
-                },
-                {
-                  label: { en: 'Cevi.DB groups', de: 'Cevi.DB-Gruppen', fr: 'Groupes Cevi.DB' },
-                  value: 'cevi_groups',
-                },
-                {
-                  label: { en: 'All AVPs', de: 'Alle AVPs', fr: 'Tous les AVP' },
-                  value: 'avps',
-                },
-              ],
-              // the AVPs are found through the Höfe, which only the Hof dashboard keeps
-              filterOptions: ({ options }) =>
-                environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD
-                  ? options
-                  : options.filter(
-                      (option) => (typeof option === 'string' ? option : option.value) !== 'avps',
-                    ),
-            },
-            {
-              name: 'targetRoles',
-              label: {
-                en: 'Target Roles',
-                de: 'Zielrollen',
-                fr: 'Rôles cibles',
-              },
-              type: 'select',
-              hasMany: true,
-              options: Object.values(Roles).map((role) => ({
-                label: ROLE_LABELS[role],
-                value: role,
-              })),
-              admin: {
-                condition: (data) => data['targetType'] === 'roles',
-              },
-            },
-            {
-              name: 'targetCeviGroups',
-              label: {
-                en: 'Target Cevi.DB groups',
-                de: 'Ziel-Cevi.DB-Gruppen',
-                fr: 'Groupes Cevi.DB cibles',
-              },
-              labels: {
-                singular: { en: 'Cevi.DB group', de: 'Cevi.DB-Gruppe', fr: 'Groupe Cevi.DB' },
-                plural: { en: 'Cevi.DB groups', de: 'Cevi.DB-Gruppen', fr: 'Groupes Cevi.DB' },
-              },
-              type: 'array',
-              admin: {
-                condition: (data) => data['targetType'] === 'cevi_groups',
-                description: {
-                  en: 'Everyone who is in one of these groups in Cevi.DB. Pick a group by its name or type its ID.',
-                  de: 'Alle, die in der Cevi.DB in einer dieser Gruppen sind. Wähle eine Gruppe über ihren Namen aus oder gib ihre ID ein.',
-                  fr: "Toutes les personnes membres d'un de ces groupes dans Cevi.DB. Choisis un groupe par son nom ou saisis son ID.",
-                },
-                components: {
-                  RowLabel:
-                    '@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-row-label#CeviGroupRowLabel',
-                },
-              },
-              fields: [
-                {
-                  name: 'groupId',
-                  label: { en: 'Cevi.DB group', de: 'Cevi.DB-Gruppe', fr: 'Groupe Cevi.DB' },
-                  type: 'number',
-                  required: true,
-                  admin: {
-                    components: {
-                      Field:
-                        '@/features/payload-cms/payload-cms/components/announcement-channel/cevi-group-picker#CeviGroupPicker',
-                    },
-                  },
-                },
-                {
-                  // filled in by the picker; only shown so a group typed in by its ID can be named
-                  name: 'groupName',
-                  label: { en: 'Group Name', de: 'Gruppenname', fr: 'Nom du groupe' },
-                  type: 'text',
-                },
-              ],
-            },
-            {
-              name: 'audiencePreview',
-              type: 'ui',
-              admin: {
-                components: {
-                  Field:
-                    '@/features/payload-cms/payload-cms/components/announcement-channel/audience-preview#AudiencePreview',
-                },
-                disableListColumn: true,
-              },
-            },
-          ],
-        },
-        {
-          label: { en: 'Members', de: 'Mitglieder', fr: 'Membres' },
-          fields: [
-            {
-              name: 'members',
-              type: 'ui',
-              admin: {
-                components: {
-                  Field:
-                    '@/features/payload-cms/payload-cms/components/announcement-channel/channel-members#ChannelMembersField',
-                },
-                disableListColumn: true,
-              },
-            },
-          ],
-        },
+        audienceTab(),
+        membersTab(),
       ],
     },
   ],

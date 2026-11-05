@@ -1,12 +1,37 @@
+import type { ChannelAudience } from '@/features/payload-cms/payload-cms/chat-channels/channel-audience';
 import {
   isInChannelAudience,
   loadAudienceContext,
-} from '@/features/payload-cms/payload-cms/utils/announcement-channel-audience';
+} from '@/features/payload-cms/payload-cms/chat-channels/channel-audience';
+import { CHANNEL_COLLECTIONS } from '@/features/payload-cms/payload-cms/chat-channels/channel-collections';
 import prisma from '@/lib/db/prisma';
 import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
-import { ChatMembershipPermission } from '@/lib/prisma/client';
+import type { ChatMembershipPermission } from '@/lib/prisma/client';
 import { formatUserFullName } from '@/utils/format-user-name';
-import type { TaskConfig } from 'payload';
+import type { Payload, TaskConfig } from 'payload';
+
+/** Most channels of one collection the camp will have; far more than it will ever have. */
+const MAX_CHANNELS = 1000;
+
+/** A channel with a chat, and what its audience holds in that chat. */
+interface ChannelChat {
+  audience: ChannelAudience;
+  chatUuid: string;
+  memberPermission: ChatMembershipPermission;
+}
+
+/** The chats of every channel collection; a channel whose chat is not set up yet has none. */
+const findChannelChats = async (payload: Payload): Promise<ChannelChat[]> => {
+  const chats: ChannelChat[] = [];
+  for (const { slug, memberPermission } of CHANNEL_COLLECTIONS) {
+    const { docs } = await payload.find({ collection: slug, limit: MAX_CHANNELS, depth: 0 });
+    for (const channel of docs) {
+      if (typeof channel.chatUuid !== 'string' || channel.chatUuid === '') continue;
+      chats.push({ audience: channel, chatUuid: channel.chatUuid, memberPermission });
+    }
+  }
+  return chats;
+};
 
 export const syncNewUserAnnouncementChatsTask: TaskConfig<{
   input: { userId: string };
@@ -41,24 +66,19 @@ export const syncNewUserAnnouncementChatsTask: TaskConfig<{
         depth: 0,
       });
 
-      // 2. Fetch all announcement channels from Payload CMS
-      const channelsResult = await payload.find({
-        collection: 'announcement-channels',
-        limit: 1000,
-        depth: 0,
-      });
-
-      const channels = channelsResult.docs;
+      // 2. Fetch the chats of all channels from Payload CMS
+      const channels = await findChannelChats(payload);
 
       // 3. Split the channels into the ones this user belongs to and the rest
-      const context = await loadAudienceContext(payload, channels, req);
-      const matchingChannels = channels.filter((channel) =>
-        isInChannelAudience(user, channel, context),
+      const context = await loadAudienceContext(
+        payload,
+        channels.map((channel) => channel.audience),
+        req,
       );
-      const otherChatUuids = channels
-        .filter((channel) => !matchingChannels.includes(channel))
-        .map((channel) => channel.chatUuid)
-        .filter((chatUuid): chatUuid is string => typeof chatUuid === 'string' && chatUuid !== '');
+      const matchingChannels = channels.filter((channel) =>
+        isInChannelAudience(user, channel.audience, context),
+      );
+      const otherChannels = channels.filter((channel) => !matchingChannels.includes(channel));
 
       const formattedName = formatUserFullName(user.fullName, user.nickname) || 'Unknown User';
 
@@ -76,53 +96,48 @@ export const syncNewUserAnnouncementChatsTask: TaskConfig<{
       });
 
       // 5. Upsert ChatMembership records in Prisma
-      for (const channel of matchingChannels) {
-        const chatUuid = channel.chatUuid;
-        if (typeof chatUuid === 'string' && chatUuid !== '') {
-          await prisma.chatMembership.upsert({
-            where: {
-              userId_chatId: {
-                userId,
-                chatId: chatUuid,
-              },
-            },
-            create: {
+      for (const { chatUuid, memberPermission } of matchingChannels) {
+        await prisma.chatMembership.upsert({
+          where: {
+            userId_chatId: {
               userId,
               chatId: chatUuid,
-              chatPermission: ChatMembershipPermission.GUEST,
             },
-            update: {},
-          });
-        }
+          },
+          create: {
+            userId,
+            chatId: chatUuid,
+            chatPermission: memberPermission,
+          },
+          update: {},
+        });
       }
 
       // 6. Leave the channels the user no longer belongs to, e.g. an AVP who lost the role.
-      // Owners and admins stay, as the channel's own sync keeps them too.
-      const staleMemberships = await prisma.chatMembership.findMany({
-        where: {
-          userId,
-          chatId: { in: otherChatUuids },
-          chatPermission: ChatMembershipPermission.GUEST,
-        },
-        select: { chatId: true },
-      });
-      if (staleMemberships.length > 0) {
-        await prisma.chatMembership.deleteMany({
-          where: {
-            userId,
-            chatId: { in: staleMemberships.map((membership) => membership.chatId) },
-            chatPermission: ChatMembershipPermission.GUEST,
-          },
+      // Owners and admins stay, as the channel's own sync keeps them too; so does anyone the
+      // channel's chat holds with another permission than its audience gets.
+      const staleChatUuids: string[] = [];
+      for (const permission of new Set(otherChannels.map((channel) => channel.memberPermission))) {
+        const chatUuids = otherChannels
+          .filter((channel) => channel.memberPermission === permission)
+          .map((channel) => channel.chatUuid);
+        const staleMemberships = await prisma.chatMembership.findMany({
+          where: { userId, chatId: { in: chatUuids }, chatPermission: permission },
+          select: { chatId: true },
         });
-        await Promise.all(
-          staleMemberships.map((membership) =>
-            publishMembershipRevoked(userId, membership.chatId, userId),
-          ),
-        );
+        if (staleMemberships.length === 0) continue;
+        const stale = staleMemberships.map((membership) => membership.chatId);
+        await prisma.chatMembership.deleteMany({
+          where: { userId, chatId: { in: stale }, chatPermission: permission },
+        });
+        staleChatUuids.push(...stale);
       }
+      await Promise.all(
+        staleChatUuids.map((chatUuid) => publishMembershipRevoked(userId, chatUuid, userId)),
+      );
 
       payload.logger.debug(
-        `Successfully synced ${matchingChannels.length} announcement chats for user ${userId}, left ${staleMemberships.length}`,
+        `Successfully synced ${matchingChannels.length} announcement chats for user ${userId}, left ${staleChatUuids.length}`,
       );
       return { output: { success: true } };
     } catch (error) {
