@@ -275,38 +275,40 @@ export const ForumComposer: React.FC = () => {
   let publishHint = forumText.publishHint;
   if (!isOnline) publishHint = forumText.offlinePublish;
   else if (isPrivate) publishHint = forumText.privateHint;
-  else if (!canPostPublic) publishHint = forumText.publicNeedsTopic;
   else if (topic?.isAdmin === true) publishHint = forumText.publishHintKernteam;
 
   return (
     <div className="bg-page min-h-dvh pb-10">
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-3">
-        <div className="flex flex-col gap-1.5">
-          <div className={segmentedTrackClassName}>
-            {([false, true] as const).map((value) => (
-              <button
-                key={String(value)}
-                type="button"
-                aria-pressed={isPrivate === value}
-                onClick={() => setChoice(value ? 'private' : 'public')}
-                className={cn(
-                  segmentClassName(isPrivate === value),
-                  'flex-1 gap-1.5 text-[14px] font-semibold',
-                )}
-              >
-                {value ? (
-                  <Lock className="h-4 w-4" aria-hidden="true" />
-                ) : (
-                  <Users className="h-4 w-4" aria-hidden="true" />
-                )}
-                {value ? forumText.private[locale] : forumText.public[locale]}
-              </button>
-            ))}
+        {/* public only for someone in a topic; without one the composer is the private report */}
+        {canPostPublic && (
+          <div className="flex flex-col gap-1.5">
+            <div className={segmentedTrackClassName}>
+              {([false, true] as const).map((value) => (
+                <button
+                  key={String(value)}
+                  type="button"
+                  aria-pressed={isPrivate === value}
+                  onClick={() => setChoice(value ? 'private' : 'public')}
+                  className={cn(
+                    segmentClassName(isPrivate === value),
+                    'flex-1 gap-1.5 text-[14px] font-semibold',
+                  )}
+                >
+                  {value ? (
+                    <Lock className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Users className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  {value ? forumText.private[locale] : forumText.public[locale]}
+                </button>
+              ))}
+            </div>
+            <p className="text-[13px] text-green-700">
+              {isPrivate ? forumText.privateExplain[locale] : forumText.publicExplain[locale]}
+            </p>
           </div>
-          <p className="text-[13px] text-green-700">
-            {isPrivate ? forumText.privateExplain[locale] : forumText.publicExplain[locale]}
-          </p>
-        </div>
+        )}
 
         {!isPrivate && (topics.data?.length ?? 0) > 1 && (
           <fieldset className="flex flex-col gap-1.5">
