@@ -1,6 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import {
   hasAdminOrWebAccess,
+  isFullAdmin,
   shouldHideInAdminPanel,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
@@ -89,9 +90,9 @@ export const WristbandsCollection: CollectionConfig = {
     defaultColumns: ['uid', 'participant', 'hof', 'status', 'updatedAt'],
     listSearchableFields: ['uid'],
     description: {
-      en: 'The NFC wristbands, one entry per band. The AVP programs a band in the app and links it to a person of their Hof; here a band is reassigned or blocked without touching the chip.',
-      de: 'Die NFC-Armbänder, ein Eintrag pro Band. Die AVP programmiert ein Band in der App und verknüpft es mit einer Person ihres Hofs; hier wird ein Band neu vergeben oder gesperrt, ohne den Chip anzufassen.',
-      fr: "Les bracelets NFC, une entrée par bracelet. L'AVP programme un bracelet dans l'app et le lie à une personne de son Hof ; ici, un bracelet est réattribué ou bloqué sans toucher à la puce.",
+      en: 'The NFC wristbands, one entry per band. The AVP programs a band in the app and links it to a person of their Hof; here a band is reassigned or blocked without touching the chip. Deleting a band, which only full admins may, resets it: it is unknown again and any Hof programs it anew.',
+      de: 'Die NFC-Armbänder, ein Eintrag pro Band. Die AVP programmiert ein Band in der App und verknüpft es mit einer Person ihres Hofs; hier wird ein Band neu vergeben oder gesperrt, ohne den Chip anzufassen. Ein Band löschen, was nur Full Admins dürfen, setzt es zurück: Es ist wieder unbekannt und jeder Hof programmiert es neu.',
+      fr: "Les bracelets NFC, une entrée par bracelet. L'AVP programme un bracelet dans l'app et le lie à une personne de son Hof ; ici, un bracelet est réattribué ou bloqué sans toucher à la puce. Supprimer un bracelet, ce que seuls les full admins peuvent faire, le réinitialise : il est de nouveau inconnu et n'importe quel Hof le reprogramme.",
     },
   },
   versions: { maxPerDoc: MAX_VERSIONS },
@@ -101,7 +102,9 @@ export const WristbandsCollection: CollectionConfig = {
     read: hasAdminOrWebAccess,
     create: hasAdminOrWebAccess,
     update: hasAdminOrWebAccess,
-    delete: hasAdminOrWebAccess,
+    // a deleted band is unknown again, as it came from the factory, and any Hof programs it
+    // anew; that undoes a block too, so only the full admins do it
+    delete: isFullAdmin,
   },
   fields: [
     {

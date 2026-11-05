@@ -342,6 +342,23 @@ describe('programming a band', () => {
     expect(mockStore['wristbands']).toHaveLength(1);
   });
 
+  it('lets any Hof program a band again once a full admin deleted it, also a blocked one', async () => {
+    const first = await program(usterAvp);
+    block(BAND);
+    // what the admin panel does on delete
+    mockStore['wristbands'] = [];
+
+    await expect(program(zueriAvp, BAND, GOOD_SIGNATURE, 'zueri')).resolves.toEqual(first);
+    expect(mockStore['wristbands']).toEqual([
+      expect.objectContaining({
+        uid: BAND,
+        hof: 'zueri',
+        status: 'active',
+        programmedBy: 'avp-zueri',
+      }),
+    ]);
+  });
+
   it('refuses a chip without a valid NXP signature, before writing anything', async () => {
     await expect(program(usterAvp, BAND, null)).resolves.toEqual({
       ok: false,

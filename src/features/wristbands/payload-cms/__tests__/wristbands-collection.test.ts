@@ -19,6 +19,7 @@ const field = <T>(name: string): T =>
   ) as T;
 
 const ADMIN = 541;
+const WEB_CORE_TEAM = 105;
 const SAFETY_TEAM = 110;
 /** A camp participant: logged in through Cevi.DB, in no group with a role. */
 const PARTICIPANT = 4242;
@@ -26,11 +27,20 @@ const PARTICIPANT = 4242;
 describe('who reaches the wristbands over the REST API', () => {
   const operations = ['read', 'create', 'update', 'delete'] as const;
 
-  it('lets admin and web do everything', () => {
-    for (const operation of operations) {
-      const rule = WristbandsCollection.access?.[operation];
-      expect(rule?.({ req: { user: userIn(ADMIN) } as PayloadRequest } as never)).toBe(true);
+  const may = (groupId: number, operation: (typeof operations)[number]): unknown =>
+    WristbandsCollection.access?.[operation]?.({
+      req: { user: userIn(groupId) } as PayloadRequest,
+    } as never);
+
+  it('lets a full admin do everything, deleting a band to reset it included', () => {
+    for (const operation of operations) expect(may(ADMIN, operation)).toBe(true);
+  });
+
+  it('lets the web core team fix a band but not delete it, which would undo a block', () => {
+    for (const operation of ['read', 'create', 'update'] as const) {
+      expect(may(WEB_CORE_TEAM, operation)).toBe(true);
     }
+    expect(may(WEB_CORE_TEAM, 'delete')).toBe(false);
   });
 
   it('keeps participants and the safety team out, who go through the app instead', () => {

@@ -4907,7 +4907,7 @@ export interface BankImport {
   createdAt: string;
 }
 /**
- * The NFC wristbands, one entry per band. The AVP programs a band in the app and links it to a person of their Hof; here a band is reassigned or blocked without touching the chip.
+ * The NFC wristbands, one entry per band. The AVP programs a band in the app and links it to a person of their Hof; here a band is reassigned or blocked without touching the chip. Deleting a band, which only full admins may, resets it: it is unknown again and any Hof programs it anew.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "wristbands".
