@@ -11,6 +11,7 @@ import { CACHE_NAMES } from '@/features/service-worker/constants';
 const RSC_SHELL_MAPPINGS: Record<string, string> = {
   '/app/schedule': '/app/schedule',
   '/app/chat': '/app/chat',
+  '/app/forum': '/app/forum',
   '/app/helper-portal': '/app/helper-portal',
   '/app/emergency': '/app/emergency',
   '/app/map': '/app/map',
@@ -35,7 +36,11 @@ const UUID_SEGMENT = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/
  * `:uuid` only matches UUID shaped segments so that static siblings such as `/app/chat/new`
  * are never mistaken for a chat id.
  */
-const REPLAYABLE_ROUTE_PATTERNS = ['/app/chat/:uuid', '/app/chat/:uuid/details'] as const;
+const REPLAYABLE_ROUTE_PATTERNS = [
+  '/app/chat/:uuid',
+  '/app/chat/:uuid/details',
+  '/app/forum/:uuid',
+] as const;
 
 function matchesRoutePattern(path: string, pattern: string): boolean {
   const pathSegments = path.split('/');

@@ -156,8 +156,9 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     useChatActions();
   const isHighlighted = highlightedMessageId === message.id;
   const showMeta = isLastInGroup || message.sendFailed === true;
-  const hasAvatarSlot =
-    !isCurrentUser && chatType === 'GROUP' && typeof message.senderId === 'string';
+  // a group and a forum topic name who wrote; a private chat and a channel need not
+  const showsSenders = chatType === 'GROUP' || chatType === 'FORUM';
+  const hasAvatarSlot = !isCurrentUser && showsSenders && typeof message.senderId === 'string';
 
   const [isHovered, setIsHovered] = useState(false);
   const [showReactors, setShowReactors] = useState(false);
@@ -174,7 +175,10 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   const hasEmojiReactionCapability =
     chatDetails?.capabilities.includes(ChatCapability.EMOJI_REACTIONS) ?? false;
   const canReact = hasEmojiReactionCapability;
-  const canThread = chatDetails?.capabilities.includes(ChatCapability.THREADS) ?? false;
+  // a forum post is the thread, so its comments open none of their own
+  const canThread =
+    (chatDetails?.capabilities.includes(ChatCapability.THREADS) ?? false) &&
+    chatDetails?.type !== 'FORUM';
   const canSendMessagesInChat =
     (chatDetails?.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES) ?? true) &&
     chatDetails?.status !== ChatStatus.CLOSED;
@@ -350,17 +354,14 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     );
   }
 
-  const senderNameLine = !isCurrentUser &&
-    isFirstInGroup &&
-    chatType === 'GROUP' &&
-    message.senderName && (
-      <span className="mb-1 max-w-full truncate px-1.5 text-[13px] text-green-700">
-        <span className={cn('font-semibold', avatarTextColorOf(message.senderId ?? ''))}>
-          {splitDisplayName(message.senderName).primary}
-        </span>
-        {senderFunktionen !== '' && ` · ${senderFunktionen}`}
+  const senderNameLine = !isCurrentUser && isFirstInGroup && showsSenders && message.senderName && (
+    <span className="mb-1 max-w-full truncate px-1.5 text-[13px] text-green-700">
+      <span className={cn('font-semibold', avatarTextColorOf(message.senderId ?? ''))}>
+        {splitDisplayName(message.senderName).primary}
       </span>
-    );
+      {senderFunktionen !== '' && ` · ${senderFunktionen}`}
+    </span>
+  );
 
   // the thread hangs on its message, not between it and the next one
   const threadSummary = !hideReplyCount &&
@@ -382,7 +383,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
       <MessageRow
         id={`message-${message.id}`}
         isCurrentUser={isCurrentUser}
-        isGroup={chatType === 'GROUP'}
+        isGroup={showsSenders}
         className={cn(isHighlighted && 'animate-message-highlight rounded-xl')}
         avatar={
           hasAvatarSlot &&
@@ -498,7 +499,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
       <MessageRow
         id={`message-${message.id}`}
         isCurrentUser={isCurrentUser}
-        isGroup={chatType === 'GROUP'}
+        isGroup={showsSenders}
         className={cn('group', isHighlighted && 'animate-message-highlight rounded-xl')}
         onPointerEnter={(event) => {
           if (event.pointerType === 'mouse') setIsHovered(true);
