@@ -40,14 +40,15 @@ export const wristbandProcedure = trpcBaseProcedure.use(wristbandsEnabled).use(a
 export const hofWristbandProcedure = wristbandProcedure.use(({ ctx, next }) => {
   const accessibleHoefe = async (): Promise<WristbandHof[]> =>
     await listWristbandHoefe(ctx.payload, ctx.user);
+  // a reason: a helper the AVP removed still has the station in the list the phone kept
   const assertHofAccess = async (hofId: string): Promise<void> => {
     const hoefe = await accessibleHoefe();
-    if (!hoefe.some((hof) => hof.id === hofId)) throw new TRPCError({ code: 'FORBIDDEN' });
+    if (!hoefe.some((hof) => hof.id === hofId)) throw wristbandError('FORBIDDEN', 'notYourHof');
   };
   const assertHofAvp = async (hofId: string): Promise<void> => {
     const hoefe = await accessibleHoefe();
     const hof = hoefe.find((entry) => entry.id === hofId);
-    if (hof === undefined) throw new TRPCError({ code: 'FORBIDDEN' });
+    if (hof === undefined) throw wristbandError('FORBIDDEN', 'notYourHof');
     // a helper whose page still offers it from a cached list of before
     if (hof.role !== 'avp') throw wristbandError('FORBIDDEN', 'notHofAvp');
   };

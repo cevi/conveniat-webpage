@@ -100,6 +100,8 @@ export const useGiveBand = ({
         // recorded for the Hof but nobody's: the next person can take it
         changeList((current) => withSpareBand(current, uid));
         refresh();
+        // a helper the AVP removed meanwhile sees the page without the station once it reloads
+        void utils.wristband.getMyHofList.invalidate();
         return {
           kind: 'refused',
           title: userErrorMessage(error, locale, wristbandErrorTexts),

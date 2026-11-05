@@ -31,6 +31,7 @@ const matches = (document: Document_, where: Condition | undefined): boolean => 
         if (operator === 'equals') return value === expected;
         if (operator === 'not_equals') return value !== expected;
         if (operator === 'in') return (expected as unknown[]).includes(value);
+        if (operator === 'contains') return Array.isArray(value) && value.includes(expected);
         throw new Error(`the fake does not know ${operator}`);
       }),
     );
@@ -479,13 +480,48 @@ describe('handing out a band', () => {
     ]);
   });
 
-  it('moves a band to someone else of the Hof, and takes it back', async () => {
+  it('takes a band just given back, for the undo right after', async () => {
     await usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-lea' });
-    await usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-tim' });
-    expect(byId('wristbands', 'wristbands-1')).toMatchObject({ participant: 'reg-tim' });
-
     await usterAvp.unassignWristband({ hofId: 'uster', uid: BAND });
     expect(byId('wristbands', 'wristbands-1')).toMatchObject({ participant: null });
+  });
+
+  it('never takes a band from someone of the Hof who wears it, also for a station that did not know', async () => {
+    await usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-lea' });
+    await expect(
+      usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-tim' }),
+    ).rejects.toMatchObject({ code: 'CONFLICT', reason: 'bandWornByOther' });
+    await expect(
+      usterAvp.replaceWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-tim' }),
+    ).rejects.toMatchObject({ code: 'CONFLICT', reason: 'bandWornByOther' });
+    expect(byId('wristbands', 'wristbands-1')).toMatchObject({ participant: 'reg-lea' });
+  });
+
+  it('gives the band of someone whose registration ended to the next person', async () => {
+    await usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-lea' });
+    const lea = byId('bill-participants', 'reg-lea');
+    if (lea !== undefined) lea['status'] = 'removed';
+    await usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-tim' });
+    expect(byId('wristbands', 'wristbands-1')).toMatchObject({ participant: 'reg-tim' });
+  });
+
+  it('unblocks the old band again when the new one cannot be handed out', async () => {
+    await usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-lea' });
+    // the old band is blocked, then writing the new one fails
+    const update = mockPayload.update.getMockImplementation();
+    mockPayload.update
+      .mockImplementationOnce((arguments_) => {
+        if (update === undefined) throw new Error('no update');
+        return update(arguments_);
+      })
+      .mockImplementationOnce(() => Promise.reject(new Error('write failed')));
+    await expect(
+      usterAvp.replaceWristband({ hofId: 'uster', uid: OTHER_BAND, registrationId: 'reg-lea' }),
+    ).rejects.toThrow('write failed');
+    expect(byId('wristbands', 'wristbands-1')).toMatchObject({
+      status: 'active',
+      participant: 'reg-lea',
+    });
   });
 
   it('gives nobody a second active band, also from two phones at the same moment', async () => {
@@ -550,6 +586,17 @@ describe('handing out a band', () => {
   });
 });
 
+describe('the Hauptleitung of a Hof camp', () => {
+  it('hands out the bands of the Hof like its address administrator, and names its helpers', async () => {
+    mockStore['users']?.push({ id: 'lead-uster', groups: [], avpHoefe: ['uster'] });
+    const lead = callerAs('lead-uster');
+    await expect(lead.getMyHofList()).resolves.toEqual([
+      { id: 'uster', name: 'Cevi Uster', role: 'avp' },
+    ]);
+    await expect(program(lead)).resolves.toMatchObject({ ok: true });
+  });
+});
+
 describe('helpers at the stations', () => {
   beforeEach(async () => {
     mockStore['users']?.push({ id: 'user-tim', groups: [], cevi_db_uuid: 5002 });
@@ -599,6 +646,16 @@ describe('helpers at the stations', () => {
       zueriAvp.addWristbandHelper({ hofId: 'uster', registrationId: 'reg-lea' }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
     expect(mockStore['wristband-helpers']).toHaveLength(1);
+  });
+
+  it('ends the rights of a helper whose registration at the Hof ended', async () => {
+    await usterAvp.addWristbandHelper({ hofId: 'uster', registrationId: 'reg-tim' });
+    const timsRegistration = byId('bill-participants', 'reg-tim');
+    if (timsRegistration !== undefined) timsRegistration['status'] = 'removed';
+    await expect(tim.getMyHofList()).resolves.toEqual([]);
+    await expect(
+      tim.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-lea' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN', reason: 'notYourHof' });
   });
 
   it('names only people of the Hof who can log in', async () => {
@@ -841,6 +898,21 @@ describe('the page a tapped band opens', () => {
         avps: [{ userId: 'avp-uster', fullName: 'Andrea Keller', nickname: 'Luchs' }],
       },
     });
+  });
+
+  it('names the Hauptleitung of the Hof camp among its AVP', async () => {
+    mockStore['users']?.push({
+      id: 'lead-uster',
+      fullName: 'Benno Graf',
+      nickname: 'Dachs',
+      groups: [],
+      avpHoefe: ['uster'],
+    });
+    const card = await sanitaet.getWristbandCard({ uid: BAND, signature: GOOD_SIGNATURE });
+    expect(card.safety?.avps?.map((avp) => avp.userId).toSorted()).toEqual([
+      'avp-uster',
+      'lead-uster',
+    ]);
   });
 
   it('finds the AVP of a Hof with many members, whatever their name', async () => {

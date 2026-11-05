@@ -31,6 +31,16 @@ export const wristbandErrorTexts = {
     en: 'This person got a band in the meantime, probably at another station.',
     fr: 'Cette personne a reçu un bracelet entre-temps, sans doute à un autre poste.',
   },
+  bandWornByOther: {
+    de: 'Dieses Band trägt schon jemand anders aus deinem Hof. Nimm ein anderes.',
+    en: 'Someone else of your Hof already wears this band. Take another one.',
+    fr: 'Quelqu’un d’autre de ton Hof porte déjà ce bracelet. Prends-en un autre.',
+  },
+  notYourHof: {
+    de: 'Du vergibst die Bänder dieses Hofs nicht mehr.',
+    en: 'You no longer hand out the bands of this Hof.',
+    fr: 'Tu ne remets plus les bracelets de ce Hof.',
+  },
   helperWithoutLogin: {
     de: 'Diese Person hat kein Cevi.DB-Login und kann darum nicht helfen.',
     en: 'This person has no Cevi.DB login and so cannot help.',

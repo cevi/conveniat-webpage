@@ -262,20 +262,23 @@ const findActiveBandIds = async (payload: Payload, registrationId: string): Prom
   return docs.map((document) => document.id).toSorted();
 };
 
+interface AssignInput {
+  hofId: string;
+  uid: string;
+  registrationId: string;
+  userId: string;
+}
+
 /**
- * Hands a band of the Hof to one of its registrations, or moves it from the person who wore it.
- * Someone who still wears an active band gets no second one: their old band is blocked first.
- *
- * The check before the write cannot see a second phone handing the same person another band at
- * the same moment, so the bands are counted again after it. Of two bands written together the
- * older one stays, by its id, which both requests agree on; the other goes back to whoever wore
- * it before and its request is refused like the check before the write would have.
+ * Whether a band of the Hof can go to one of its registrations: active, and worn by nobody who
+ * is still registered at the Hof. A band whose wearer's registration ended goes to the next
+ * person; one an active person wears is refused, even when a phone's list did not know yet,
+ * like a second station that has not seen the first one hand it out.
  */
-export const assignWristband = async (
+const checkAssignable = async (
   payload: Payload,
-  input: { hofId: string; uid: string; registrationId: string; userId: string },
-): Promise<void> => {
-  const { hofId, uid, registrationId, userId } = input;
+  { hofId, uid, registrationId }: AssignInput,
+): Promise<{ band: Wristband; previousWearer: string | null }> => {
   const band = await findBandOfHof(payload, hofId, uid);
   if (band.status === 'revoked') throw wristbandError('CONFLICT', 'bandRevoked');
 
@@ -285,6 +288,27 @@ export const assignWristband = async (
   }
 
   const previousWearer = idOf(band.participant) ?? null;
+  if (previousWearer !== null && previousWearer !== registrationId) {
+    const [wearer] = await findHofRegistrations(payload, hofId, previousWearer);
+    if (wearer !== undefined) throw wristbandError('CONFLICT', 'bandWornByOther');
+  }
+  return { band, previousWearer };
+};
+
+/**
+ * Writes a band checked by `checkAssignable` to the registration. Someone who still wears an
+ * active band gets no second one.
+ *
+ * The check before the write cannot see a second phone handing the same person another band at
+ * the same moment, so the bands are counted again after it. Of two bands written together the
+ * older one stays, by its id, which both requests agree on; the other goes back to whoever wore
+ * it before and its request is refused like the check before the write would have.
+ */
+const writeAssignment = async (
+  payload: Payload,
+  { hofId, uid, registrationId, userId }: AssignInput,
+  { band, previousWearer }: { band: Wristband; previousWearer: string | null },
+): Promise<void> => {
   const wearsOtherBand = async (): Promise<boolean> => {
     const activeBandIds = await findActiveBandIds(payload, registrationId);
     return activeBandIds.some((id) => id !== band.id);
@@ -323,6 +347,12 @@ export const assignWristband = async (
   logger.info('Handed out a band', { 'wristband.uid': uid, 'wristband.hof': hofId });
 };
 
+/** Hands a band of the Hof to one of its registrations, see `checkAssignable`. */
+export const assignWristband = async (payload: Payload, input: AssignInput): Promise<void> => {
+  const checked = await checkAssignable(payload, input);
+  await writeAssignment(payload, input, checked);
+};
+
 /**
  * Takes a band back from the person who wore it; it stays the Hof's, ready for someone else. A
  * blocked band is refused: it keeps whose it was, see `revokeWristband`.
@@ -345,33 +375,41 @@ export const unassignWristband = async (
 /**
  * Gives a person a new band for one that was lost or broke: their active band is blocked, so a
  * read of it names nobody, and the new one is handed out. The registration stays on the old
- * band, so the admin panel shows whose it was; only admin and web unblock a band again.
+ * band, so the admin panel shows whose it was; only admin and web unblock a band again. If the
+ * new band cannot be written, the old one is unblocked again, so nobody is left without a band.
  */
-export const replaceWristband = async (
-  payload: Payload,
-  input: { hofId: string; uid: string; registrationId: string; userId: string },
-): Promise<void> => {
-  const { hofId, uid, registrationId, userId } = input;
-  const band = await findBandOfHof(payload, hofId, uid);
-  if (band.status === 'revoked') throw wristbandError('CONFLICT', 'bandRevoked');
-  const [registration] = await findHofRegistrations(payload, hofId, registrationId);
-  if (registration === undefined) throw wristbandError('NOT_FOUND', 'registrationNotInHof');
+export const replaceWristband = async (payload: Payload, input: AssignInput): Promise<void> => {
+  const { hofId, registrationId, userId } = input;
+  const checked = await checkAssignable(payload, input);
 
   const activeBandIds = await findActiveBandIds(payload, registrationId);
-  const oldBandIds = activeBandIds.filter((id) => id !== band.id);
-  for (const id of oldBandIds) {
-    await payload.update({
-      collection: 'wristbands',
-      id,
-      data: { status: 'revoked', lastEditedByUser: userId },
-      overrideAccess: true,
+  const oldBandIds = activeBandIds.filter((id) => id !== checked.band.id);
+  const setStatus = async (status: 'active' | 'revoked'): Promise<void> => {
+    for (const id of oldBandIds) {
+      await payload.update({
+        collection: 'wristbands',
+        id,
+        data: { status, lastEditedByUser: userId },
+        overrideAccess: true,
+      });
+    }
+  };
+
+  await setStatus('revoked');
+  try {
+    await writeAssignment(payload, input, checked);
+  } catch (error) {
+    await setStatus('active');
+    logger.warn('Unblocked the old band again: the new one could not be handed out', {
+      'wristband.hof': hofId,
+      'wristband.blocked': oldBandIds.length,
     });
+    throw error;
   }
   logger.info('Blocked the old band of a person for a new one', {
     'wristband.hof': hofId,
     'wristband.blocked': oldBandIds.length,
   });
-  await assignWristband(payload, input);
 };
 
 /** The Cevi.DB id of a registration of the Hof, the one its login shares. */

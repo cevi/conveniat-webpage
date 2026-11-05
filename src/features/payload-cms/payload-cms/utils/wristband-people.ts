@@ -140,24 +140,36 @@ export const findHofAdministrators = async (
     select: { groupId: true },
   });
   const groupId = hof?.groupId;
-  if (groupId === undefined || groupId === '') return [];
+  const byGroup =
+    groupId === undefined || groupId === ''
+      ? []
+      : [
+          {
+            and: [
+              { 'groups.id': { equals: Number(groupId) } },
+              { 'groups.role_class': { equals: HOF_ADMINISTRATOR_ROLE_CLASS } },
+            ],
+          },
+        ];
 
   const { docs } = await payload.find({
     collection: 'users',
-    where: {
-      and: [
-        { 'groups.id': { equals: Number(groupId) } },
-        { 'groups.role_class': { equals: HOF_ADMINISTRATOR_ROLE_CLASS } },
-      ],
-    },
+    // the address administrator of the Hof's group, or the Hauptleitung of its camp
+    where: { or: [...byGroup, { avpHoefe: { contains: hofId } }] },
     depth: 0,
     pagination: false,
     overrideAccess: true,
     sort: 'fullName',
-    select: { fullName: true, nickname: true, groups: true },
+    select: { fullName: true, nickname: true, groups: true, avpHoefe: true },
   });
   return docs
-    .filter((user) => getAdministeredGroupIds(user.groups).includes(groupId))
+    .filter(
+      (user) =>
+        (groupId !== undefined && getAdministeredGroupIds(user.groups).includes(groupId)) ||
+        (user.avpHoefe ?? []).some(
+          (avpHof) => (typeof avpHof === 'string' ? avpHof : avpHof.id) === hofId,
+        ),
+    )
     .map((user) => ({
       userId: user.id,
       fullName: user.fullName,
