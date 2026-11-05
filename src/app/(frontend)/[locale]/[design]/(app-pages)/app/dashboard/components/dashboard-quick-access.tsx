@@ -3,10 +3,7 @@
 import { QuickAccessSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
 import { QuickAccessEditor } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/quick-access-editor';
 import { useChosenQuickAccess } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/hooks/use-chosen-quick-access';
-import type {
-  QuickAccessFlags,
-  QuickAccessTileId,
-} from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/utils/quick-access-tiles';
+import type { QuickAccessFlags } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/utils/quick-access-tiles';
 import {
   isTileAvailable,
   QUICK_ACCESS_TILES,
@@ -15,6 +12,7 @@ import {
 import { Button } from '@/components/ui/buttons/button';
 import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
+import type { QuickAccessTileId } from '@/features/settings/quick-access';
 import { supportMailLink } from '@/features/settings/utils/support-mail';
 import { useAuthStatus } from '@/hooks/use-auth-status';
 import { HitobitoNextAuthUserSchema } from '@/types/hitobito-next-auth-user';
@@ -52,29 +50,33 @@ const TileContent: React.FC<{ icon: LucideIcon; label: string }> = ({ icon, labe
 );
 
 /**
- * "Schnellzugriff" on Home: the few things somebody reaches for during the camp, as tiles. The
- * user chooses which and in what order on this phone, see `useChosenQuickAccess`; a tile whose
- * feature is off, or that needs an account the guest does not have, stays hidden but keeps its
- * place. A guest gets the way to log in first.
+ * "Schnellzugriff" on Home: the few things somebody reaches for during the camp, as tiles. A
+ * signed-in user chooses which and in what order for their account, see `useChosenQuickAccess`;
+ * a tile whose feature is off stays hidden but keeps its place. A guest gets the default and the
+ * way to log in first, and the preview of the landing page the default without the button.
  */
 export const DashboardQuickAccess: React.FC<{
   locale: Locale;
   flags: QuickAccessFlags;
   supportEmail: string;
-}> = ({ locale, flags, supportEmail }) => {
+  /** the CMS preview: shows what everybody starts with, not the editor's own choice */
+  isPreview?: boolean;
+}> = ({ locale, flags, supportEmail, isPreview = false }) => {
   const { data: session } = useSession();
   const status = useAuthStatus();
   const parsedUser = HitobitoNextAuthUserSchema.safeParse(session?.user);
   const user = parsedUser.success ? parsedUser.data : undefined;
   const isGuest = user === undefined;
+  const isCustomizable = !isGuest && !isPreview;
 
-  const { chosen, isCustomized, setChosen, reset } = useChosenQuickAccess();
+  const { chosen, isLoading, isCustomized, saveFailed, setChosen } =
+    useChosenQuickAccess(isCustomizable);
   const [isEditing, setIsEditing] = useState(false);
   const customizeButton = useRef<HTMLButtonElement>(null);
 
-  // until the session is known, the tiles that need an account are unknown too; without them
-  // the other tiles would jump into their cells
-  if (status === 'loading') return <QuickAccessSkeleton />;
+  // until the session and the user's choice are known, the tiles are unknown too; the default
+  // ones would jump into other cells once they arrive
+  if (status === 'loading' || isLoading) return <QuickAccessSkeleton />;
 
   const context = { signedIn: !isGuest, flags };
   const available: QuickAccessTileId[] = QUICK_ACCESS_TILES.filter((tile) =>
@@ -84,18 +86,20 @@ export const DashboardQuickAccess: React.FC<{
 
   return (
     <section className="space-y-2">
-      <div className="flex items-center justify-between">
+      <div className="flex min-h-5 items-center justify-between">
         <SectionLabel>{quickAccessTitle[locale]}</SectionLabel>
-        <Button
-          ref={customizeButton}
-          variant="plain"
-          size="touchIcon"
-          className="-my-3 -mr-3"
-          aria-label={customizeLabel[locale]}
-          onClick={() => setIsEditing(true)}
-        >
-          <SlidersHorizontal aria-hidden="true" />
-        </Button>
+        {isCustomizable && (
+          <Button
+            ref={customizeButton}
+            variant="plain"
+            size="touchIcon"
+            className="-my-3 -mr-3"
+            aria-label={customizeLabel[locale]}
+            onClick={() => setIsEditing(true)}
+          >
+            <SlidersHorizontal aria-hidden="true" />
+          </Button>
+        )}
       </div>
       {(isGuest || shown.length > 0) && (
         <ul className="grid grid-cols-2 gap-2.5">
@@ -112,37 +116,44 @@ export const DashboardQuickAccess: React.FC<{
           )}
           {shown.map((id) => {
             const tile = tileOf(id);
-            const label = tile.label[locale];
-            return (
-              <li key={id}>
-                {tile.href === undefined ? (
+            const content = <TileContent icon={tile.icon} label={tile.label[locale]} />;
+            if (id === 'support') {
+              return (
+                <li key={id}>
                   <a
                     href={supportMailLink(supportEmail, locale, user?.uuid)}
                     className={tileClassName}
                   >
-                    <TileContent icon={tile.icon} label={label} />
+                    {content}
                   </a>
-                ) : (
-                  <Link href={tile.href} className={tileClassName}>
-                    <TileContent icon={tile.icon} label={label} />
-                  </Link>
-                )}
+                </li>
+              );
+            }
+            if (tile.href === undefined) return null;
+            return (
+              <li key={id}>
+                <Link href={tile.href} className={tileClassName}>
+                  {content}
+                </Link>
               </li>
             );
           })}
         </ul>
       )}
-      <QuickAccessEditor
-        locale={locale}
-        open={isEditing}
-        onOpenChange={setIsEditing}
-        anchor={customizeButton}
-        chosen={chosen}
-        available={available}
-        isCustomized={isCustomized}
-        onChange={setChosen}
-        onReset={reset}
-      />
+      {isCustomizable && (
+        <QuickAccessEditor
+          locale={locale}
+          open={isEditing}
+          onOpenChange={setIsEditing}
+          anchor={customizeButton}
+          chosen={chosen}
+          shown={shown}
+          available={available}
+          isCustomized={isCustomized}
+          saveFailed={saveFailed}
+          onChange={setChosen}
+        />
+      )}
     </section>
   );
 };

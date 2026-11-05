@@ -82,12 +82,19 @@ export const DashboardLanding: React.FC<{
   showActionCards: boolean;
   flags: QuickAccessFlags;
   supportEmail: string;
+  /** the CMS preview, which shows the default Schnellzugriff and not the editor's own */
+  isPreview?: boolean;
   children?: React.ReactNode;
-}> = ({ locale, showActionCards, flags, supportEmail, children }) => (
+}> = ({ locale, showActionCards, flags, supportEmail, isPreview = false, children }) => (
   <>
     {children}
     {showActionCards && (
-      <DashboardQuickAccess locale={locale} supportEmail={supportEmail} flags={flags} />
+      <DashboardQuickAccess
+        locale={locale}
+        supportEmail={supportEmail}
+        flags={flags}
+        isPreview={isPreview}
+      />
     )}
   </>
 );

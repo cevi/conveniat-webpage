@@ -29,6 +29,11 @@ model User {
   /// reminder pushes are written in; null falls back to German
   reminderLocale      String?
 
+  /// the tiles of the Schnellzugriff on Home the user chose, as an array of tile ids in their
+  /// order; null is the default tiles, so a release that changes the default reaches everybody
+  /// who never chose. Postgres only, Payload never sees it
+  quickAccessTiles Json?
+
   messages                   Message[]
   chatMemberships            ChatMembership[]
   messagesEvents             MessageEvent[]

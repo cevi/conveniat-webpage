@@ -1,6 +1,5 @@
 'use client';
 
-import type { QuickAccessTileId } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/utils/quick-access-tiles';
 import {
   moveTile,
   tileOf,
@@ -12,6 +11,8 @@ import { Card } from '@/components/ui/card';
 import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Switch } from '@/components/ui/switch';
+import type { QuickAccessTileId } from '@/features/settings/quick-access';
+import { DEFAULT_QUICK_ACCESS } from '@/features/settings/quick-access';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import type React from 'react';
@@ -24,9 +25,9 @@ const texts = {
     fr: "Personnaliser l'accès rapide",
   },
   description: {
-    de: 'Gilt nur auf diesem Gerät.',
-    en: 'Applies to this device only.',
-    fr: "S'applique uniquement à cet appareil.",
+    de: 'Gilt auf allen deinen Geräten.',
+    en: 'Applies on all your devices.',
+    fr: "S'applique sur tous tes appareils.",
   },
   shown: { de: 'Auf Home', en: 'On Home', fr: "Sur l'accueil" },
   more: { de: 'Weitere', en: 'More', fr: 'Autres' },
@@ -39,6 +40,11 @@ const texts = {
   moveDown: { de: 'nach unten', en: 'down', fr: 'vers le bas' },
   reset: { de: 'Standard wiederherstellen', en: 'Restore default', fr: 'Rétablir par défaut' },
   done: { de: 'Fertig', en: 'Done', fr: 'Terminé' },
+  saveFailed: {
+    de: 'Konnte nicht gespeichert werden. Versuche es nochmals.',
+    en: 'Could not be saved. Try again.',
+    fr: "N'a pas pu être enregistré. Réessaie.",
+  },
 } satisfies Record<string, StaticTranslationString>;
 
 const TileRow: React.FC<{
@@ -75,24 +81,26 @@ export const QuickAccessEditor: React.FC<{
   anchor: RefObject<HTMLElement | null>;
   /** the chosen tiles, hidden ones included, so a change keeps them */
   chosen: readonly QuickAccessTileId[];
+  /** the chosen tiles Home shows, in their order */
+  shown: readonly QuickAccessTileId[];
   /** every tile available here, in the catalog's order */
   available: readonly QuickAccessTileId[];
   isCustomized: boolean;
-  onChange: (next: QuickAccessTileId[]) => void;
-  onReset: () => void;
+  saveFailed: boolean;
+  onChange: (next: readonly QuickAccessTileId[]) => void;
 }> = ({
   locale,
   open,
   onOpenChange,
   anchor,
   chosen,
+  shown,
   available,
   isCustomized,
+  saveFailed,
   onChange,
-  onReset,
 }) => {
   const visible = new Set(available);
-  const shown = chosen.filter((id) => visible.has(id));
   const more = available.filter((id) => !chosen.includes(id));
 
   return (
@@ -109,7 +117,7 @@ export const QuickAccessEditor: React.FC<{
             size="touch"
             className="flex-1"
             disabled={!isCustomized}
-            onClick={onReset}
+            onClick={() => onChange(DEFAULT_QUICK_ACCESS)}
           >
             {texts.reset[locale]}
           </Button>
@@ -125,6 +133,11 @@ export const QuickAccessEditor: React.FC<{
       }
     >
       <div className="space-y-4">
+        {saveFailed && (
+          <p role="alert" className="text-danger-text text-[15px]">
+            {texts.saveFailed[locale]}
+          </p>
+        )}
         <section className="space-y-2">
           <SectionLabel as="h3">{texts.shown[locale]}</SectionLabel>
           {shown.length === 0 ? (

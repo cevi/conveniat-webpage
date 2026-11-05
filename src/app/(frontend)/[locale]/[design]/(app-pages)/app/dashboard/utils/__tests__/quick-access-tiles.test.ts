@@ -1,12 +1,12 @@
 import type { QuickAccessFlags } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/utils/quick-access-tiles';
 import {
-  DEFAULT_QUICK_ACCESS,
   isTileAvailable,
   moveTile,
-  parseChosenTiles,
+  QUICK_ACCESS_TILES,
   tileOf,
   toggleTile,
 } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/utils/quick-access-tiles';
+import { QUICK_ACCESS_TILE_IDS } from '@/features/settings/quick-access';
 
 const allOn: QuickAccessFlags = {
   imageUploadEnabled: true,
@@ -15,18 +15,9 @@ const allOn: QuickAccessFlags = {
   photoContestEnabled: true,
 };
 
-describe('parseChosenTiles', () => {
-  it('is the default until the user has chosen', () => {
-    expect(parseChosenTiles(null)).toEqual(DEFAULT_QUICK_ACCESS);
-    expect(parseChosenTiles('{not json')).toEqual(DEFAULT_QUICK_ACCESS);
-  });
-
-  it('keeps an empty choice empty', () => {
-    expect(parseChosenTiles('[]')).toEqual([]);
-  });
-
-  it('drops tiles a later release no longer offers', () => {
-    expect(parseChosenTiles('["map","forum","map","qr"]')).toEqual(['map', 'qr']);
+describe('QUICK_ACCESS_TILES', () => {
+  it('has one tile for every id the server stores', () => {
+    expect(QUICK_ACCESS_TILES.map((tile) => tile.id)).toEqual([...QUICK_ACCESS_TILE_IDS]);
   });
 });
 
@@ -61,10 +52,15 @@ describe('moveTile', () => {
     ]);
   });
 
-  it('steps over a hidden tile, which keeps its place', () => {
+  it('steps over a hidden tile, and every other tile keeps its order', () => {
     expect(moveTile(['qr', 'material', 'map'], 'map', -1, visible)).toEqual([
       'map',
+      'qr',
       'material',
+    ]);
+    expect(moveTile(['qr', 'material', 'map'], 'qr', 1, visible)).toEqual([
+      'material',
+      'map',
       'qr',
     ]);
   });

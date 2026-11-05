@@ -1,3 +1,4 @@
+import type { QuickAccessTileId } from '@/features/settings/quick-access';
 import type { StaticTranslationString } from '@/types/types';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -23,11 +24,11 @@ export interface QuickAccessFlags {
 }
 
 /**
- * A tile the user can put into the Schnellzugriff. `href` undefined is the support tile, whose
- * mail link the component builds from the deployment's address.
+ * A tile the user can put into the Schnellzugriff. The support tile has no `href`: the component
+ * builds its mail link from the deployment's address.
  */
 export interface QuickAccessTile {
-  id: string;
+  id: QuickAccessTileId;
   icon: LucideIcon;
   label: StaticTranslationString;
   href?: string;
@@ -37,7 +38,7 @@ export interface QuickAccessTile {
   flag?: keyof QuickAccessFlags;
 }
 
-/** Every tile the Schnellzugriff offers, in the order they are offered. */
+/** Every tile the Schnellzugriff offers, in the order they are offered, one per id. */
 export const QUICK_ACCESS_TILES = [
   {
     id: 'upload',
@@ -108,43 +109,13 @@ export const QUICK_ACCESS_TILES = [
   },
 ] as const satisfies readonly QuickAccessTile[];
 
-export type QuickAccessTileId = (typeof QUICK_ACCESS_TILES)[number]['id'];
-
-/** What Home shows until the user chooses otherwise. */
-export const DEFAULT_QUICK_ACCESS: readonly QuickAccessTileId[] = [
-  'upload',
-  'qr',
-  'material',
-  'support',
-];
-
 const tileById = new Map<string, QuickAccessTile>(
   QUICK_ACCESS_TILES.map((tile) => [tile.id, tile]),
 );
 
-const isTileId = (value: unknown): value is QuickAccessTileId =>
-  typeof value === 'string' && tileById.has(value);
-
 /** The tile of an id, which `QuickAccessTileId` guarantees exists. */
 export const tileOf = (id: QuickAccessTileId): QuickAccessTile =>
   tileById.get(id) as QuickAccessTile;
-
-/**
- * The tiles the user has chosen, in their order, from what this phone stored. Nothing stored, or
- * nothing readable, is the default; an id a later release no longer offers is dropped.
- *
- * @param stored - the raw value from local storage
- */
-export const parseChosenTiles = (stored: string | null): QuickAccessTileId[] => {
-  if (stored === null) return [...DEFAULT_QUICK_ACCESS];
-  try {
-    const parsed: unknown = JSON.parse(stored);
-    if (!Array.isArray(parsed)) return [...DEFAULT_QUICK_ACCESS];
-    return [...new Set(parsed.filter((value) => isTileId(value)))];
-  } catch {
-    return [...DEFAULT_QUICK_ACCESS];
-  }
-};
 
 /**
  * Whether a tile can be shown here: its feature is switched on and, if it needs one, the user
@@ -170,9 +141,9 @@ export const toggleTile = (
   chosen.includes(id) ? chosen.filter((other) => other !== id) : [...chosen, id];
 
 /**
- * Moves a tile one place up or down among the tiles the user sees. A chosen tile that is hidden
- * here, like the Materialdepot of a guest, keeps its place and is stepped over, so it comes back
- * where it was once it is shown again.
+ * Moves a tile one place up or down among the tiles the user sees: past its next visible
+ * neighbour. A chosen tile hidden here, like the Materialdepot of a guest, is stepped over and
+ * every other tile keeps its order, so the hidden one comes back where it was once it is shown.
  *
  * @param chosen - the chosen tiles in their order, hidden ones included
  * @param id - the tile to move
@@ -187,13 +158,17 @@ export const moveTile = (
 ): QuickAccessTileId[] => {
   const from = chosen.indexOf(id);
   if (from === -1) return [...chosen];
-  let to = from + direction;
-  while (to >= 0 && to < chosen.length && !visible.has(chosen[to] as QuickAccessTileId)) {
-    to += direction;
+  let neighbourIndex = from + direction;
+  while (
+    neighbourIndex >= 0 &&
+    neighbourIndex < chosen.length &&
+    !visible.has(chosen[neighbourIndex] as QuickAccessTileId)
+  ) {
+    neighbourIndex += direction;
   }
-  if (to < 0 || to >= chosen.length) return [...chosen];
-  const next = [...chosen];
-  next[from] = chosen[to] as QuickAccessTileId;
-  next[to] = id;
-  return next;
+  const neighbour = chosen[neighbourIndex];
+  if (neighbour === undefined) return [...chosen];
+  const rest = chosen.filter((other) => other !== id);
+  rest.splice(rest.indexOf(neighbour) + (direction === 1 ? 1 : 0), 0, id);
+  return rest;
 };

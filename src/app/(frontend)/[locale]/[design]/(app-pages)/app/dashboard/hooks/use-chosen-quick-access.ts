@@ -1,63 +1,60 @@
 'use client';
 
-import type { QuickAccessTileId } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/utils/quick-access-tiles';
-import { parseChosenTiles } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/utils/quick-access-tiles';
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import type { QuickAccessTileId } from '@/features/settings/quick-access';
+import {
+  DEFAULT_QUICK_ACCESS,
+  isDefaultQuickAccess,
+  knownQuickAccessTiles,
+} from '@/features/settings/quick-access';
+import { trpc } from '@/trpc/client';
 
 /**
- * Which tiles Home shows is the user's taste on this phone, so it lives in local storage and is
- * never synced. Nothing stored means the default tiles.
+ * The tiles of the user's Schnellzugriff, in their order, and the way to change them. The choice
+ * belongs to the account and is kept on the server: it follows the user to every device and is
+ * back after an expired session, while a logout, which drops the persisted query cache, leaves
+ * nothing of it for the next person on the phone. A guest, and the preview of the landing page,
+ * get the default.
+ *
+ * A change shows at once and is saved behind it. Offline the save waits for the network; a save
+ * that fails puts back what the server has.
+ *
+ * @param enabled - whether this user has a choice of their own, i.e. is signed in
  */
-const STORAGE_KEY = 'dashboard:quick-access';
-const listeners = new Set<() => void>();
-
-const subscribe = (onChange: () => void): (() => void) => {
-  listeners.add(onChange);
-  globalThis.addEventListener('storage', onChange);
-  return (): void => {
-    listeners.delete(onChange);
-    globalThis.removeEventListener('storage', onChange);
-  };
-};
-
-const readStored = (): string | null => {
-  try {
-    return globalThis.localStorage.getItem(STORAGE_KEY);
-  } catch {
-    // storage turned off, e.g. in a private window
-    return null;
-  }
-};
-
-// the server knows of no choice
-const readNothing = (): string | null => null;
-
-const write = (value: string | null): void => {
-  try {
-    if (value === null) globalThis.localStorage.removeItem(STORAGE_KEY);
-    else globalThis.localStorage.setItem(STORAGE_KEY, value);
-  } catch {
-    // not remembered; the default stays
-  }
-  // the storage event only reaches other tabs
-  for (const listener of listeners) listener();
-};
-
-/**
- * The tiles the user has chosen for the Schnellzugriff on this phone, in their order, and the
- * ways to change them and to go back to the default.
- */
-export const useChosenQuickAccess = (): {
-  chosen: QuickAccessTileId[];
+export const useChosenQuickAccess = (
+  enabled: boolean,
+): {
+  chosen: readonly QuickAccessTileId[];
+  /** the choice is not known yet; showing the default would jump once it arrives */
+  isLoading: boolean;
   isCustomized: boolean;
+  saveFailed: boolean;
   setChosen: (next: readonly QuickAccessTileId[]) => void;
-  reset: () => void;
 } => {
-  const stored = useSyncExternalStore(subscribe, readStored, readNothing);
-  const chosen = useMemo(() => parseChosenTiles(stored), [stored]);
-  const setChosen = useCallback((next: readonly QuickAccessTileId[]): void => {
-    write(JSON.stringify(next));
-  }, []);
-  const reset = useCallback((): void => write(null), []);
-  return { chosen, isCustomized: stored !== null, setChosen, reset };
+  const utils = trpc.useUtils();
+  const query = trpc.quickAccess.getQuickAccess.useQuery(undefined, { enabled });
+  const update = trpc.quickAccess.updateQuickAccess.useMutation({
+    // one after the other, so the last change is the one that stays
+    scope: { id: 'quick-access' },
+    onMutate: async ({ tiles }) => {
+      await utils.quickAccess.getQuickAccess.cancel();
+      utils.quickAccess.getQuickAccess.setData(undefined, {
+        tiles: knownQuickAccessTiles(tiles) ?? null,
+      });
+    },
+    onError: () => utils.quickAccess.getQuickAccess.invalidate(),
+  });
+
+  // read defensively: the persisted cache may hold a shape of an older release
+  const chosen = enabled
+    ? (knownQuickAccessTiles(query.data?.tiles) ?? DEFAULT_QUICK_ACCESS)
+    : DEFAULT_QUICK_ACCESS;
+
+  return {
+    chosen,
+    // offline without a cached answer the query waits; the default is better than nothing
+    isLoading: enabled && query.data === undefined && query.fetchStatus === 'fetching',
+    isCustomized: !isDefaultQuickAccess(chosen),
+    saveFailed: update.isError,
+    setChosen: (next) => update.mutate({ tiles: [...next] }),
+  };
 };
