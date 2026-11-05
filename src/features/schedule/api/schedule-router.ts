@@ -17,6 +17,7 @@ import {
   MessageEventType,
   MessageType,
 } from '@/lib/prisma';
+import { MAX_STAR_CHANGES_PER_SYNC } from '@/lib/star-sync';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';
@@ -958,6 +959,11 @@ export const scheduleRouter = createTRPCRouter({
   reminders: remindersRouter,
 
   star: createTRPCRouter({
+    /**
+     * Superseded by `updateStars`. Flips whatever the database holds, so it stores the opposite of what the user
+     * chose whenever the device and the database disagree. The client uses `updateStars`; this
+     * stays for bundles a service worker still serves from before it.
+     */
     toggleStar: trpcBaseProcedure
       .input(
         z.object({
@@ -1022,6 +1028,63 @@ export const scheduleRouter = createTRPCRouter({
       }
     }),
 
+    /**
+     * Applies the star changes a device made since its last sync and returns every star of the
+     * user, which the device then takes over as its own.
+     *
+     * A change says what the star is now, not that it flipped, so replaying one after a lost
+     * response or from a second device stores the same thing twice. Removals are sent like
+     * additions: a device that unstarred offline tells the database so on its next sync, instead
+     * of getting the star back from it.
+     *
+     * A database failure throws instead of answering with the device's own list: the device
+     * replaces its synced stars with the answer, so a made-up one would lose stars.
+     */
+    updateStars: trpcBaseProcedure
+      .input(
+        z.object({
+          changes: z
+            .array(z.object({ courseId: z.string(), starred: z.boolean() }))
+            .max(MAX_STAR_CHANGES_PER_SYNC),
+        }),
+      )
+      .use(ensureUserExistsMiddleware)
+      .mutation(async ({ input, ctx }) => {
+        const { user, prisma } = ctx;
+        const added = input.changes.filter((change) => change.starred).map((c) => c.courseId);
+        const removed = input.changes.filter((change) => !change.starred).map((c) => c.courseId);
+
+        if (added.length > 0) {
+          await prisma.star.createMany({
+            data: added.map((courseId) => ({
+              courseId,
+              userId: user.uuid,
+              courseType: CourseType.PROGRAM,
+            })),
+            skipDuplicates: true,
+          });
+        }
+        if (removed.length > 0) {
+          await prisma.star.deleteMany({
+            where: { userId: user.uuid, courseId: { in: removed } },
+          });
+        }
+
+        // organisers get their own blocks starred for them, see `ensureOrganiserStars`
+        await ensureOrganiserStars(prisma, user.uuid);
+
+        const allStars = await prisma.star.findMany({
+          where: { userId: user.uuid },
+          select: { courseId: true },
+        });
+        return allStars.map((star) => star.courseId);
+      }),
+
+    /**
+     * Superseded by `updateStars`. Only ever adds, so a star removed on another device or offline came back on
+     * the next sync. The client uses `updateStars`; this stays for bundles a service worker
+     * still serves from before it.
+     */
     syncStars: trpcBaseProcedure
       .input(z.object({ courseIds: z.array(z.string()) }))
       .use(ensureUserExistsMiddleware)

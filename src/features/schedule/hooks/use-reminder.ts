@@ -1,7 +1,8 @@
 'use client';
 
 import { useAuthStatus } from '@/hooks/use-auth-status';
-import { starsCollection } from '@/lib/tanstack-db';
+import { isStarredRow } from '@/lib/star-sync';
+import { setLocalStar, starsCollection } from '@/lib/tanstack-db';
 import { trpc } from '@/trpc/client';
 import { useCallback } from 'react';
 
@@ -77,12 +78,13 @@ export const useReminder = (entryId: string, entryKind: ReminderEntryKind): UseR
         },
       ]);
       // the server stars the block too; the local copy follows at once instead of on the next sync
+      const star = starsCollection.get(input.entryId);
       if (
         input.enabled &&
         input.entryKind === 'program' &&
-        starsCollection.get(input.entryId) === undefined
+        (star === undefined || !isStarredRow(star))
       ) {
-        starsCollection.insert({ id: input.entryId, starredAt: Date.now() });
+        setLocalStar(input.entryId, true);
       }
       return { previous };
     },
