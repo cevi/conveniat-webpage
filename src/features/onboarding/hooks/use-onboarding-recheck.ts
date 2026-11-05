@@ -2,13 +2,12 @@
 
 import { isNativePushActive } from '@/features/onboarding/hooks/use-native-push-subscription-status';
 import { SESSION_EXPIRED_ENTRYPOINT } from '@/features/onboarding/onboarding-constants';
-import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import { forgetOnboardingComplete, ONBOARDING_COMPLETE_KEY } from '@/lib/onboarding-complete';
 import { readPreference } from '@/lib/preferences';
 import type { Locale } from '@/types/types';
-import { Cookie, i18nConfig } from '@/types/types';
+import { Cookie } from '@/types/types';
 import { replaceLocation } from '@/utils/assign-location';
 import { isCookieTrue } from '@/utils/cookie-utils';
 import { restoreLostPushSubscription } from '@/utils/push-notifications/push-subscription';
@@ -55,9 +54,8 @@ const fetchSessionVerdict = async (): Promise<'valid' | 'expired' | undefined> =
  *   subscribed again right away, unless the user turned push off (`web-push-opted-out`): the
  *   push step would not show, since the permission is there.
  */
-export const useOnboardingRecheck = (): void => {
+export const useOnboardingRecheck = (locale: Locale): void => {
   const isOnline = useOnlineStatus();
-  const locale = useCurrentLocale(i18nConfig) as Locale;
   const hasCheckedSession = useRef(false);
   const hasCheckedPushSubscription = useRef(false);
 

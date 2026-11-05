@@ -15,7 +15,6 @@ jest.mock('@/utils/assign-location', () => ({ replaceLocation: jest.fn() }));
 jest.mock('@/utils/push-notifications/push-subscription', () => ({
   restoreLostPushSubscription: jest.fn(() => Promise.resolve(false)),
 }));
-jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'fr' }));
 /** The preferences stored on this device, by key. */
 const mockStoredPreferences = new Map<string, { key: string; value: unknown }>();
 // jsdom has no IndexedDB for the collections the logout clears
@@ -62,7 +61,7 @@ describe('the background session check of an app started past the onboarding', (
 
   it('sends a user whose session expired back to the login', async () => {
     globalThis.fetch = jest.fn(() => Promise.resolve(sessionAnswer(NOBODY)));
-    renderHook(() => useOnboardingRecheck());
+    renderHook(() => useOnboardingRecheck('fr'));
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/entrypoint?session=expired'));
     // the next start runs the onboarding instead of skipping it
@@ -71,7 +70,7 @@ describe('the background session check of an app started past the onboarding', (
 
   it('keeps a user with a valid session where they are', async () => {
     globalThis.fetch = jest.fn(() => Promise.resolve(sessionAnswer(lenaMuster)));
-    renderHook(() => useOnboardingRecheck());
+    renderHook(() => useOnboardingRecheck('fr'));
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -82,7 +81,7 @@ describe('the background session check of an app started past the onboarding', (
   it('never logs anybody out on what the service worker answered from its cache', async () => {
     // on wifi without an uplink the worker answers in place of the server
     globalThis.fetch = jest.fn(() => Promise.resolve(sessionAnswer(NOBODY, true)));
-    renderHook(() => useOnboardingRecheck());
+    renderHook(() => useOnboardingRecheck('fr'));
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -93,7 +92,7 @@ describe('the background session check of an app started past the onboarding', (
   it('does not ask while there is no connection', () => {
     globalThis.fetch = jest.fn();
     Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
-    renderHook(() => useOnboardingRecheck());
+    renderHook(() => useOnboardingRecheck('fr'));
     expect(globalThis.fetch).not.toHaveBeenCalled();
     Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
   });
@@ -118,25 +117,25 @@ describe('the background push check of an installed web app started past the onb
   });
 
   it('restores a lost subscription in the locale of the page', () => {
-    renderHook(() => useOnboardingRecheck());
+    renderHook(() => useOnboardingRecheck('fr'));
     expect(restore).toHaveBeenCalledWith('fr');
   });
 
   it('respects a user who turned push off on this device', () => {
     mockStoredPreferences.set('web-push-opted-out', { key: 'web-push-opted-out', value: true });
-    renderHook(() => useOnboardingRecheck());
+    renderHook(() => useOnboardingRecheck('fr'));
     expect(restore).not.toHaveBeenCalled();
   });
 
   it('respects a user who skipped the push step', () => {
     Cookies.set(Cookie.SKIP_PUSH_NOTIFICATION, 'true');
-    renderHook(() => useOnboardingRecheck());
+    renderHook(() => useOnboardingRecheck('fr'));
     expect(restore).not.toHaveBeenCalled();
   });
 
   it('waits for the onboarding, whose push step asks for itself', () => {
     localStorage.removeItem(ONBOARDING_COMPLETE_KEY);
-    renderHook(() => useOnboardingRecheck());
+    renderHook(() => useOnboardingRecheck('fr'));
     expect(restore).not.toHaveBeenCalled();
   });
 });
