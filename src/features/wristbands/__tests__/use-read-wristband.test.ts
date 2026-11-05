@@ -108,7 +108,7 @@ describe('reading a band while the server does not answer', () => {
     });
     expect(result.current.state).toEqual({
       step: 'read',
-      result: { identity: { state: 'unknown', uid: LEA }, fromRoster: null },
+      result: { identity: { state: 'unknown', uid: LEA }, fromRoster: null, signature: null },
     });
   });
 });

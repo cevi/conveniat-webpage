@@ -106,6 +106,8 @@ export interface HofContact {
 export type WristbandWearerCard =
   /** unknown, blocked or not handed out yet: nobody to name */
   | { state: 'none' }
+  /** the signature does not match the UID: a copy, which names nobody */
+  | { state: 'not-genuine' }
   | { state: 'own' }
   | {
       state: 'worn';
@@ -117,11 +119,17 @@ export type WristbandWearerCard =
 
 /** What the page of a tapped band shows the user. The server decides what by role. */
 export interface WristbandCard {
+  /**
+   * Whether NXP's signature was checked, so the band was really held to a phone. Without it a
+   * UID could be guessed: no chat, and for security and first aid no Hof, Quartier or AVP.
+   */
+  verified: boolean;
   wearer: WristbandWearerCard;
   /** for security and first aid only */
   safety: {
+    /** without Hof and Quartier while the band is not verified */
     identity: WristbandIdentity;
-    /** the AVP of the band's Hof with the app, or null for a band without a Hof */
+    /** the AVP of the band's Hof with the app; null for a band without a Hof or not verified */
     avps: HofContact[] | null;
   } | null;
 }

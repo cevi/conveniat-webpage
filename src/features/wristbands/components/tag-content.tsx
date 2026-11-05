@@ -37,5 +37,6 @@ export const TagContent: React.FC<{
       />
     );
   }
-  return <TagView uid={bandUid} />;
+  // another band opened from this one starts its own check, see `useCheckBand`
+  return <TagView key={bandUid} uid={bandUid} />;
 };

@@ -22,20 +22,21 @@ const Notice: React.FC<{
   icon: LucideIcon;
   title: string;
   description: string;
-  children?: React.ReactNode;
-}> = ({ icon, title, description, children }) => (
+}> = ({ icon, title, description }) => (
   <div className="bg-quiet flex items-start gap-3 rounded-[14px] p-4">
     <IconTile icon={icon} />
     <div className="min-w-0 flex-1">
       <h3 className="text-[15px] font-semibold text-green-900">{title}</h3>
       <p className="mt-0.5 text-[13px] leading-normal text-green-700">{description}</p>
-      {children}
     </div>
   </div>
 );
 
 /** A band that names nobody because something is wrong with it: in the danger tokens. */
-const Refusal: React.FC<{ title: string; description: string }> = ({ title, description }) => (
+export const BandRefusal: React.FC<{ title: string; description: string }> = ({
+  title,
+  description,
+}) => (
   <section
     role="alert"
     className="border-danger-line bg-danger-soft flex items-start gap-3 rounded-[14px] border p-4"
@@ -101,9 +102,7 @@ export const BandIdentityCard: React.FC<{
   fromRoster?: { updatedAt: number } | null;
   /** a tap from the home screen, which reads the UID alone */
   coldTap?: boolean;
-  /** under the note that the band was not checked, like the way to check it in the app */
-  checkAction?: React.ReactNode;
-}> = ({ identity, locale, fromRoster = null, coldTap = false, checkAction }) => {
+}> = ({ identity, locale, fromRoster = null, coldTap = false }) => {
   let body: React.ReactNode;
   switch (identity.state) {
     case 'assigned': {
@@ -112,7 +111,7 @@ export const BandIdentityCard: React.FC<{
     }
     case 'not-genuine': {
       body = (
-        <Refusal
+        <BandRefusal
           title={readerText('notGenuineTitle', locale)}
           description={readerText('notGenuineDescription', locale)}
         />
@@ -121,7 +120,7 @@ export const BandIdentityCard: React.FC<{
     }
     case 'revoked': {
       body = (
-        <Refusal
+        <BandRefusal
           title={readerText('revokedTitle', locale)}
           description={readerText('revokedDescription', locale)}
         />
@@ -133,7 +132,12 @@ export const BandIdentityCard: React.FC<{
         <Notice
           icon={Nfc}
           title={readerText('unassignedTitle', locale)}
-          description={readerText('unassignedDescription', locale, { hof: identity.hof })}
+          description={
+            // a band not verified yet keeps its Hof to itself, see `getWristbandCard`
+            identity.hof === ''
+              ? readerText('unassignedNoHofDescription', locale)
+              : readerText('unassignedDescription', locale, { hof: identity.hof })
+          }
         />
       );
       break;
@@ -161,9 +165,7 @@ export const BandIdentityCard: React.FC<{
           icon={ShieldQuestion}
           title={readerText('notCheckedTitle', locale)}
           description={readerText(coldTap ? 'notCheckedColdTap' : 'notCheckedNoSignature', locale)}
-        >
-          {checkAction}
-        </Notice>
+        />
       )}
       {fromRoster !== null && (
         <Notice

@@ -11,6 +11,7 @@ import {
   findBandWearer,
   findHofAdministrators,
 } from '@/features/payload-cms/payload-cms/utils/wristband-people';
+import { isGenuineBand } from '@/lib/nfc/genuine-band';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { rateLimit } from '@/trpc/middleware/rate-limit';
@@ -29,12 +30,16 @@ export type StartChatFromWristbandResult =
   /** The person never logged into the app, so there is nobody to chat with. */
   | { status: 'noAccount' }
   /** Unknown, blocked or not handed out, or the person is not the AVP of the band's Hof. */
-  | { status: 'unknownBand' };
+  | { status: 'unknownBand' }
+  /** Without NXP's signature over the UID the band was not shown to be on the phone. */
+  | { status: 'notVerified' };
 
 /**
  * Opens the private chat with the wearer of a tapped band, or for the safety team with an AVP
  * of the band's Hof, and puts the two into each other's address book, the way a scanned chat
- * QR code does. Holding out the band is the consent, like showing the code.
+ * QR code does. Holding out the band is the consent, like showing the code, and NXP's signature
+ * over the UID is the proof it was held out, like the secret in the code: a UID alone can be
+ * guessed, the bands of one batch differ in a byte. Without a valid signature nothing starts.
  *
  * Which person a band leads to is decided here again from the band, never taken from the
  * client: `avpUserId` only picks one of the Hof's AVPs.
@@ -46,6 +51,12 @@ export const startChatFromWristband = trpcBaseProcedure
         .string()
         .regex(/^[0-9A-Fa-f]{14}$/)
         .transform((value) => value.toUpperCase()),
+      /** NXP's signature from the tap or a scan; null only passes the test switch */
+      signature: z
+        .string()
+        .regex(/^[0-9A-Fa-f]{64}$/)
+        .transform((value) => value.toUpperCase())
+        .nullable(),
       avpUserId: z.string().min(1).max(64).optional(),
     }),
   )
@@ -65,6 +76,13 @@ export const startChatFromWristband = trpcBaseProcedure
       throw new TRPCError({ code: 'NOT_FOUND' });
     }
     const { user, prisma, locale } = ctx;
+    if (!isGenuineBand(input.uid, input.signature)) {
+      logger.warn('Refused a chat from a band without a valid NXP signature', {
+        'wristband.uid': input.uid,
+        'wristband.signature': input.signature === null ? 'missing' : 'invalid',
+      });
+      return { status: 'notVerified' };
+    }
     const payload = await getPayload({ config });
     const wearer = await findBandWearer(payload, input.uid);
 

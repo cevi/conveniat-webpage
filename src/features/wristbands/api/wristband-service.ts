@@ -26,7 +26,7 @@ import type {
   WristbandIdentity,
   WristbandRoster,
 } from '@/features/wristbands/types';
-import { verifyNtagSignature } from '@/lib/nfc/ntag-signature';
+import { isGenuineBand } from '@/lib/nfc/genuine-band';
 import { createErrorThrower } from '@/trpc/error-formatter';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
@@ -45,11 +45,6 @@ const MAX_REGISTRATIONS = 2000;
 
 const idOf = (value: string | { id: string } | null | undefined): string | undefined =>
   typeof value === 'string' ? value : value?.id;
-
-/** Whether the chip carries NXP's signature over its UID, or copies are let in for testing. */
-const isGenuine = (uid: string, signature: string | null): boolean =>
-  environmentVariables.NFC_ALLOW_UNSIGNED_TAGS ||
-  (signature !== null && verifyNtagSignature(uid, signature));
 
 const tagSecret = (): string => {
   const secret = environmentVariables.NFC_TAG_SECRET;
@@ -165,7 +160,7 @@ const findRefusal = async (
   input: { hofId: string; uid: string; signature: string | null },
 ): Promise<{ refusal: ProgramRefusal | undefined; band: Wristband | undefined }> => {
   const { hofId, uid, signature } = input;
-  if (!isGenuine(uid, signature)) {
+  if (!isGenuineBand(uid, signature)) {
     logger.warn('Refused to program a band without a valid NXP signature', {
       'wristband.uid': uid,
       'wristband.signature': signature === null ? 'missing' : 'invalid',
@@ -423,7 +418,7 @@ export const identifyWristband = async (
 ): Promise<WristbandIdentity> => {
   const { uid, signature, readerId } = input;
   const verified = signature !== null;
-  if (verified && !isGenuine(uid, signature)) {
+  if (verified && !isGenuineBand(uid, signature)) {
     logger.warn('A band read with an invalid NXP signature', {
       'wristband.uid': uid,
       'wristband.reader': readerId,
@@ -473,16 +468,44 @@ export const getWristbandRoster = async (
 };
 
 /**
- * What the page of a tapped band shows the user, decided here by role so nothing more leaves
- * the server: for everybody the wearer's Ceviname or first name and whether a chat is
- * possible; for security and first aid also the full name, Hof and Quartier, unchecked since
- * a cold tap carries no signature, and the Hof's AVP to reach. Every read is logged at debug.
+ * What security and first aid learn from a band whose signature was not checked: whose it is,
+ * but not where to find them. A UID can be guessed, so Hof and Quartier wait for the check.
+ */
+const withoutHof = (identity: WristbandIdentity): WristbandIdentity => {
+  if (identity.state === 'assigned') return { ...identity, hof: '', quartier: null };
+  if (identity.state === 'unassigned') return { ...identity, hof: '' };
+  return identity;
+};
+
+/**
+ * What the page of a tapped band shows the user, decided here by role and by whether the band
+ * was really held to the phone, so nothing more leaves the server. A UID alone can be guessed:
+ * it only names the wearer, by the Ceviname or first name, and for security and first aid also
+ * by the full name. With NXP's signature, read by the tap or by a scan on the page, the band
+ * leads to a chat with the wearer, and for security and first aid to its Hof and Quartier and
+ * the Hof's AVP. A signature that does not match makes it a copy, which names nobody.
+ *
+ * `signature` is undefined when the page has none; null when a scan read none, which only the
+ * test switch lets through, see `isGenuineBand`. Every read is logged at debug.
  */
 export const getWristbandCard = async (
   payload: Payload,
-  input: { uid: string; userId: string; reader: boolean },
+  input: { uid: string; signature?: string | null | undefined; userId: string; reader: boolean },
 ): Promise<WristbandCard> => {
-  const { uid, userId, reader } = input;
+  const { uid, signature, userId, reader } = input;
+  if (typeof signature === 'string' && !isGenuineBand(uid, signature)) {
+    logger.warn('Opened the page of a band with an invalid NXP signature', {
+      'wristband.uid': uid,
+      'user.id': userId,
+    });
+    return {
+      verified: false,
+      wearer: { state: 'not-genuine' },
+      safety: reader ? { identity: { state: 'not-genuine', uid }, avps: null } : null,
+    };
+  }
+  const verified = signature !== undefined && isGenuineBand(uid, signature);
+
   const [populated] = await findPopulatedBands(
     payload,
     { uid: { equals: uid } },
@@ -493,12 +516,13 @@ export const getWristbandCard = async (
   const { registration } = band;
   const [wearerUserId, administrators] = await Promise.all([
     registration === null ? undefined : findAppUserOfPerson(payload, registration.ceviPersonId),
-    reader && band.hofId !== null ? findHofAdministrators(payload, band.hofId) : null,
+    reader && verified && band.hofId !== null ? findHofAdministrators(payload, band.hofId) : null,
   ]);
   logger.debug('Opened the page of a band', {
     'wristband.uid': uid,
     'user.id': userId,
     'wristband.reader': reader,
+    'wristband.verified': verified,
     'wristband.known': band.band !== 'unknown',
   });
 
@@ -512,8 +536,10 @@ export const getWristbandCard = async (
       canChat: wearerUserId !== undefined,
     };
 
-  if (!reader) return { wearer, safety: null };
-  const identity = identityOf(uid, populated, false);
+  if (!reader) return { verified, wearer, safety: null };
+  const identity = identityOf(uid, populated, verified);
+  if (!verified)
+    return { verified, wearer, safety: { identity: withoutHof(identity), avps: null } };
   const avps = administrators?.filter((avp) => avp.userId !== userId) ?? null;
-  return { wearer, safety: { identity, avps } };
+  return { verified, wearer, safety: { identity, avps } };
 };

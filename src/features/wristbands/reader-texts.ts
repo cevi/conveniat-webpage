@@ -69,6 +69,11 @@ export const readerTexts = {
     en: 'The Hof {hof} programmed this band but has not handed it to anyone yet.',
     fr: 'Le Hof {hof} a programmé ce bracelet, mais ne l’a encore remis à personne.',
   },
+  unassignedNoHofDescription: {
+    de: 'Ein Hof hat das Band programmiert, aber noch niemandem gegeben.',
+    en: 'A Hof programmed this band but has not handed it to anyone yet.',
+    fr: 'Un Hof a programmé ce bracelet, mais ne l’a encore remis à personne.',
+  },
   unknownTitle: { de: 'Unbekanntes Band', en: 'Unknown band', fr: 'Bracelet inconnu' },
   unknownDescription: {
     de: 'Dieses Band ist nicht programmiert.',
@@ -95,7 +100,6 @@ export const readerTexts = {
     en: 'This band gives out no signature, so its authenticity cannot be checked.',
     fr: 'Ce bracelet ne livre pas de signature, son authenticité ne peut pas être vérifiée.',
   },
-  checkInApp: { de: 'In der App prüfen', en: 'Check in the app', fr: 'Vérifier dans l’app' },
   fromRosterTitle: {
     de: 'Aus der Liste auf dem Handy, Stand {time}',
     en: 'From the list on the phone, as of {time}',

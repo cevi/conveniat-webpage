@@ -112,12 +112,13 @@ export const wristbandRouter = createTRPCRouter({
     ),
 
   /**
-   * The page a tapped band opens, for everybody signed in; what it holds depends on who asks.
+   * The page a tapped band opens, for everybody signed in; what it holds depends on who asks
+   * and on the band's signature, from the tap or a scan on the page, see `getWristbandCard`.
    * UIDs are not secret and bands of one bag differ in a byte or two, so this is rate limited
    * against walking through them.
    */
   getWristbandCard: wristbandProcedure
-    .input(z.object({ uid }))
+    .input(z.object({ uid, signature: signature.optional() }))
     .use(
       rateLimit({
         name: 'wristband.getWristbandCard',
@@ -130,6 +131,7 @@ export const wristbandRouter = createTRPCRouter({
       async ({ ctx, input }) =>
         await getWristbandCard(ctx.payload, {
           uid: input.uid,
+          signature: input.signature,
           userId: ctx.user.uuid,
           reader: isWristbandReader(ctx.user),
         }),

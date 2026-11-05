@@ -19,6 +19,8 @@ export interface ReadResult {
   identity: WristbandIdentity;
   /** when the list on the phone answered: how old it is */
   fromRoster: { updatedAt: number } | null;
+  /** NXP's signature as read, which lets the band's card start a chat, see `BandContacts` */
+  signature: string | null;
 }
 
 /**
@@ -72,6 +74,7 @@ export const useReadWristband = (
             result: {
               identity: identifyFromRoster(roster.data, band),
               fromRoster: { updatedAt: roster.updatedAt },
+              signature: band.signature,
             },
           };
 
@@ -92,7 +95,7 @@ export const useReadWristband = (
             { uid, signature },
             { signal: request.signal },
           );
-          return { step: 'read', result: { identity, fromRoster: null } };
+          return { step: 'read', result: { identity, fromRoster: null, signature } };
         } catch (error) {
           if (isTransportError(error)) return fromRoster({ uid, signature });
           throw error;

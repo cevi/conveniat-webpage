@@ -5,8 +5,13 @@ import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
-import { BandIdentityCard } from '@/features/wristbands/components/band-identity-card';
+import { BandIdentityCard, BandRefusal } from '@/features/wristbands/components/band-identity-card';
 import { personName } from '@/features/wristbands/components/band-labels';
+import { ReadBandCard } from '@/features/wristbands/components/read-band-card';
+import type { BandCheck } from '@/features/wristbands/hooks/use-check-band';
+import { useCheckBand } from '@/features/wristbands/hooks/use-check-band';
+import { useNativeNfcAvailable } from '@/features/wristbands/hooks/use-native-nfc-available';
+import type { ReadState } from '@/features/wristbands/hooks/use-read-wristband';
 import { readerText } from '@/features/wristbands/reader-texts';
 import { tagText, tagTexts } from '@/features/wristbands/tag-texts';
 import { translate } from '@/features/wristbands/texts';
@@ -14,9 +19,13 @@ import type { WristbandCard } from '@/features/wristbands/types';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { trpc } from '@/trpc/client';
+import type { AppRouter } from '@/trpc/routers/_app';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { userErrorMessage } from '@/utils/user-error-message';
+import { keepPreviousData } from '@tanstack/react-query';
+import type { TRPCClientErrorLike } from '@trpc/client';
+import type { UseTRPCQueryResult } from '@trpc/react-query/shared';
 import { Loader2, MessageSquare, Nfc, ScanLine, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -29,6 +38,7 @@ import { toast } from 'sonner';
  */
 const useStartChat = (
   uid: string,
+  signature: string | null | undefined,
   locale: Locale,
 ): { start: (avpUserId?: string) => void; pending: boolean } => {
   const router = useRouter();
@@ -53,6 +63,10 @@ const useStartChat = (
           toast(tagText('bandGone', locale));
           break;
         }
+        case 'notVerified': {
+          toast(tagText('notVerified', locale));
+          break;
+        }
       }
     },
     onError: (error) => {
@@ -60,19 +74,26 @@ const useStartChat = (
     },
   });
   return {
-    start: (avpUserId?: string): void =>
-      mutation.mutate(avpUserId === undefined ? { uid } : { uid, avpUserId }),
+    start: (avpUserId?: string): void => {
+      // only offered for a verified card, which a signature led to; the server checks it again
+      const input = { uid, signature: signature ?? null };
+      mutation.mutate(avpUserId === undefined ? input : { ...input, avpUserId });
+    },
     pending: mutation.isPending,
   };
 };
 
-/** The wearer as everybody signed in sees them: the Ceviname or the first name, nothing else. */
+/**
+ * The wearer as everybody signed in sees them: the Ceviname or the first name, nothing else,
+ * and the chat once the band is verified.
+ */
 const Wearer: React.FC<{
   wearer: Extract<WristbandCard['wearer'], { state: 'worn' }>;
+  verified: boolean;
   locale: Locale;
   onStartChat: () => void;
   pending: boolean;
-}> = ({ wearer, locale, onStartChat, pending }) => (
+}> = ({ wearer, verified, locale, onStartChat, pending }) => (
   <Card as="section" className="space-y-4 p-4">
     <div className="flex items-center gap-3">
       <IconTile icon={UserRound} size="lg" />
@@ -83,7 +104,7 @@ const Wearer: React.FC<{
         <p className="text-[15px] text-green-700">{tagText('wornBy', locale)}</p>
       </div>
     </div>
-    {wearer.canChat && (
+    {verified && wearer.canChat && (
       <Button
         variant="primary"
         size="touch"
@@ -139,18 +160,168 @@ const HofAvps: React.FC<{
 );
 
 /**
+ * The way from a band known by its UID alone to the verified card: a scan on the page, in the
+ * native app only. Another band on the phone is offered as that band's own page.
+ */
+const CheckBand: React.FC<{
+  check: BandCheck;
+  /** the card is asked again with the signature just read */
+  checking: boolean;
+  /** a scan read the band, but it gave out no signature */
+  withoutSignature: boolean;
+  locale: Locale;
+}> = ({ check, checking, withoutSignature, locale }) => {
+  const nfcAvailable = useNativeNfcAvailable();
+  const { state } = check;
+  if (nfcAvailable === undefined) return <></>;
+
+  if (state.step === 'other-band') {
+    return (
+      <Card as="section" className="space-y-4 p-4" aria-live="polite">
+        <div className="flex items-start gap-3">
+          <IconTile icon={Nfc} />
+          <div className="min-w-0">
+            <h2 className="font-heading text-heading text-[17px] leading-snug font-bold">
+              {tagText('otherBandTitle', locale)}
+            </h2>
+            <p className="mt-1 text-[15px] text-green-700">
+              {tagText('otherBandDescription', locale)}
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-[minmax(0,1fr)_auto]">
+          <Button variant="primary" size="touch" asChild>
+            <Link href={`/tag/${state.uid}`} replace>
+              {tagText('showOtherBand', locale)}
+            </Link>
+          </Button>
+          <Button variant="quiet" size="touch" onClick={check.start}>
+            {readerText('retry', locale)}
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  let readState: ReadState = { step: 'idle' };
+  if (checking) readState = { step: 'checking' };
+  else if (state.step === 'waiting') readState = { step: 'waiting' };
+  else if (state.step === 'failed') readState = { step: 'failed', code: state.code };
+
+  if (readState.step !== 'idle') {
+    return (
+      <ReadBandCard
+        state={readState}
+        locale={locale}
+        onStart={check.start}
+        onCancel={check.cancel}
+      />
+    );
+  }
+
+  let description = tagText('rescanDescription', locale);
+  if (!nfcAvailable) description = tagText('rescanInApp', locale);
+  else if (withoutSignature) description = readerText('notCheckedNoSignature', locale);
+  return (
+    <Card as="section" className="space-y-4 p-4">
+      <div className="flex items-start gap-3">
+        <IconTile icon={ScanLine} />
+        <div className="min-w-0">
+          <h2 className="font-heading text-heading text-[17px] leading-snug font-bold">
+            {tagText('rescanTitle', locale)}
+          </h2>
+          <p className="mt-1 text-[15px] text-green-700">{description}</p>
+        </div>
+      </div>
+      {nfcAvailable && (
+        <ReadBandCard
+          state={readState}
+          locale={locale}
+          onStart={check.start}
+          onCancel={check.cancel}
+          label={tagText('checkBand', locale)}
+        />
+      )}
+    </Card>
+  );
+};
+
+/** What a verified band leads the safety team to: a chat with the wearer and the Hof's AVP. */
+const SafetyContacts: React.FC<{
+  card: WristbandCard;
+  chat: { start: (avpUserId?: string) => void; pending: boolean };
+  locale: Locale;
+}> = ({ card, chat, locale }) => {
+  const { wearer, safety } = card;
+  if (!card.verified || safety === null) return <></>;
+  return (
+    <>
+      {wearer.state === 'worn' && wearer.canChat && (
+        <Button
+          variant="primary"
+          size="touch"
+          className="w-full"
+          disabled={chat.pending}
+          onClick={() => chat.start()}
+        >
+          <MessageSquare aria-hidden />
+          {tagText('startChat', locale)}
+        </Button>
+      )}
+      {safety.avps !== null && (
+        <HofAvps
+          avps={safety.avps}
+          locale={locale}
+          onStartChat={(userId) => chat.start(userId)}
+          pending={chat.pending}
+        />
+      )}
+    </>
+  );
+};
+
+/** The page's card of a band, read anew on every tap rather than kept on the phone. */
+const useWristbandCard = (
+  uid: string,
+  signature: string | null | undefined,
+  enabled: boolean,
+): UseTRPCQueryResult<WristbandCard, TRPCClientErrorLike<AppRouter>> =>
+  trpc.wristband.getWristbandCard.useQuery(signature === undefined ? { uid } : { uid, signature }, {
+    enabled,
+    meta: { persist: false },
+    retry: false,
+    // the card read by the UID alone stays while the signature is checked
+    placeholderData: keepPreviousData,
+  });
+
+/**
+ * The chats a band read by security and first aid leads to, under the reader's answer: the
+ * reader has the signature, so one more tap starts the chat. Nothing for a band the server
+ * did not verify.
+ */
+export const BandContacts: React.FC<{ uid: string; signature: string | null }> = ({
+  uid,
+  signature,
+}) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+  const cardQuery = useWristbandCard(uid, signature, true);
+  const chat = useStartChat(uid, signature, locale);
+  if (cardQuery.data === undefined) return <></>;
+  return <SafetyContacts card={cardQuery.data} chat={chat} locale={locale} />;
+};
+
+/**
  * The page a tapped band opens, for anyone signed in. What it shows comes from the server,
- * which decides by role: the wearer's Ceviname or first name and a chat with them for
- * everybody, the full name, Hof and Quartier and the Hof's AVP for the safety team.
+ * which decides by role and by NXP's signature, see `getWristbandCard`: by the UID alone the
+ * wearer's name, and the way to check the band; once checked a chat with the wearer, and for
+ * the safety team the Hof, the Quartier and the Hof's AVP. The signature comes with the tap
+ * from the native app on Android, or from a scan on the page.
  */
 export const TagView: React.FC<{ uid: string }> = ({ uid }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const cardQuery = trpc.wristband.getWristbandCard.useQuery(
-    { uid },
-    // personal data, read anew on every tap rather than kept on the phone
-    { meta: { persist: false }, retry: false },
-  );
-  const chat = useStartChat(uid, locale);
+  const check = useCheckBand(uid);
+  const cardQuery = useWristbandCard(uid, check.signature, check.ready);
+  const chat = useStartChat(uid, check.signature, locale);
   const card = cardQuery.data;
 
   let content: React.ReactNode;
@@ -173,7 +344,17 @@ export const TagView: React.FC<{ uid: string }> = ({ uid }) => {
       </div>
     );
   } else {
-    const { wearer, safety } = card;
+    const { wearer, safety, verified } = card;
+    const checking = check.signature !== undefined && cardQuery.isPlaceholderData;
+    // for the safety team the band's card already says when a scan read no signature
+    const checkBand = (
+      <CheckBand
+        check={check}
+        checking={checking}
+        withoutSignature={safety === null && check.signature === null}
+        locale={locale}
+      />
+    );
     content = (
       <div className="space-y-6">
         {wearer.state === 'own' && (
@@ -181,6 +362,12 @@ export const TagView: React.FC<{ uid: string }> = ({ uid }) => {
             icon={Nfc}
             title={tagText('ownTitle', locale)}
             description={tagText('ownDescription', locale)}
+          />
+        )}
+        {wearer.state === 'not-genuine' && safety === null && (
+          <BandRefusal
+            title={readerText('notGenuineTitle', locale)}
+            description={readerText('notGenuineDescription', locale)}
           />
         )}
         {wearer.state === 'none' && safety === null && (
@@ -191,48 +378,29 @@ export const TagView: React.FC<{ uid: string }> = ({ uid }) => {
           />
         )}
         {safety === null && wearer.state === 'worn' && (
-          <Wearer
-            wearer={wearer}
-            locale={locale}
-            onStartChat={() => chat.start()}
-            pending={chat.pending}
-          />
+          <>
+            <Wearer
+              wearer={wearer}
+              verified={verified}
+              locale={locale}
+              onStartChat={() => chat.start()}
+              pending={chat.pending}
+            />
+            {/* checking leads to the chat, so it is offered where there is one */}
+            {!verified && wearer.canChat && checkBand}
+          </>
         )}
         {safety !== null && (
           <>
             <BandIdentityCard
               identity={safety.identity}
               locale={locale}
-              coldTap
-              checkAction={
-                <Button variant="outlined" size="touch" className="mt-3 w-full" asChild>
-                  <Link href="/app/wristbands/lesen">
-                    <ScanLine aria-hidden />
-                    {readerText('checkInApp', locale)}
-                  </Link>
-                </Button>
-              }
+              coldTap={check.signature === undefined}
             />
-            {wearer.state === 'worn' && wearer.canChat && (
-              <Button
-                variant="primary"
-                size="touch"
-                className="w-full"
-                disabled={chat.pending}
-                onClick={() => chat.start()}
-              >
-                <MessageSquare aria-hidden />
-                {tagText('startChat', locale)}
-              </Button>
-            )}
-            {safety.avps !== null && (
-              <HofAvps
-                avps={safety.avps}
-                locale={locale}
-                onStartChat={(userId) => chat.start(userId)}
-                pending={chat.pending}
-              />
-            )}
+            {!verified &&
+              (safety.identity.state === 'assigned' || safety.identity.state === 'unassigned') &&
+              checkBand}
+            <SafetyContacts card={card} chat={chat} locale={locale} />
           </>
         )}
       </div>

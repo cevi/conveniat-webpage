@@ -20,12 +20,14 @@ export const ReadBandCard: React.FC<{
   locale: Locale;
   onStart: () => void;
   onCancel: () => void;
-}> = ({ state, locale, onStart, onCancel }) => {
+  /** the main action, "Armband lesen" unless the page reads the band for something else */
+  label?: string;
+}> = ({ state, locale, onStart, onCancel, label }) => {
   if (state.step === 'idle' || state.step === 'read') {
     return (
       <Button variant="primary" size="touch" className="w-full" onClick={onStart}>
         <ScanLine aria-hidden />
-        {readerText('read', locale)}
+        {label ?? readerText('read', locale)}
       </Button>
     );
   }

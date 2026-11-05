@@ -608,17 +608,58 @@ describe('the page a tapped band opens', () => {
     await usterAvp.assignWristband({ hofId: 'uster', uid: OTHER_BAND, registrationId: 'reg-tim' });
   });
 
-  it('shows a participant the Ceviname and a chat, and nothing more', async () => {
+  it('shows a participant only the Ceviname of a band known by its UID alone', async () => {
     await expect(participant.getWristbandCard({ uid: BAND })).resolves.toEqual({
+      verified: false,
+      wearer: { state: 'worn', name: 'Fuchs', canChat: true },
+      safety: null,
+    });
+  });
+
+  it('verifies the card of a participant who holds the band with its signature', async () => {
+    await expect(
+      participant.getWristbandCard({ uid: BAND, signature: GOOD_SIGNATURE }),
+    ).resolves.toEqual({
+      verified: true,
       wearer: { state: 'worn', name: 'Fuchs', canChat: true },
       safety: null,
     });
   });
 
   it('shows the first name of someone without a Ceviname, without a chat if they have no app', async () => {
-    await expect(participant.getWristbandCard({ uid: OTHER_BAND })).resolves.toEqual({
+    await expect(
+      participant.getWristbandCard({ uid: OTHER_BAND, signature: GOOD_SIGNATURE }),
+    ).resolves.toEqual({
+      verified: true,
       wearer: { state: 'worn', name: 'Tim', canChat: false },
       safety: null,
+    });
+  });
+
+  it('names nobody, for anyone, on a band whose signature does not match', async () => {
+    await expect(
+      participant.getWristbandCard({ uid: BAND, signature: FORGED_SIGNATURE }),
+    ).resolves.toEqual({ verified: false, wearer: { state: 'not-genuine' }, safety: null });
+    await expect(
+      sanitaet.getWristbandCard({ uid: BAND, signature: FORGED_SIGNATURE }),
+    ).resolves.toEqual({
+      verified: false,
+      wearer: { state: 'not-genuine' },
+      safety: { identity: { state: 'not-genuine', uid: BAND }, avps: null },
+    });
+  });
+
+  it('leaves a scan that read no signature unverified, unless test stickers are let in', async () => {
+    await expect(
+      participant.getWristbandCard({ uid: BAND, signature: null }),
+    ).resolves.toMatchObject({ verified: false });
+    environmentVariables.NFC_ALLOW_UNSIGNED_TAGS = true;
+    await expect(
+      participant.getWristbandCard({ uid: BAND, signature: null }),
+    ).resolves.toMatchObject({ verified: true });
+    // a cold tap is no scan, also on a deployment that lets test stickers in
+    await expect(participant.getWristbandCard({ uid: BAND })).resolves.toMatchObject({
+      verified: false,
     });
   });
 
@@ -632,15 +673,51 @@ describe('the page a tapped band opens', () => {
     await program(usterAvp, SPARE_BAND);
     await usterAvp.revokeWristband({ hofId: 'uster', uid: BAND });
     for (const uid of [BAND, SPARE_BAND, '04FFFFFFFFFFFF']) {
-      await expect(participant.getWristbandCard({ uid })).resolves.toEqual({
-        wearer: { state: 'none' },
-        safety: null,
-      });
+      await expect(
+        participant.getWristbandCard({ uid, signature: GOOD_SIGNATURE }),
+      ).resolves.toEqual({ verified: true, wearer: { state: 'none' }, safety: null });
     }
   });
 
-  it('shows the safety team the full name, Hof and Quartier, unchecked, and the Hof’s AVP', async () => {
+  it('shows the safety team the full name of a band known by its UID, but not where to find them', async () => {
     await expect(sanitaet.getWristbandCard({ uid: BAND })).resolves.toEqual({
+      verified: false,
+      wearer: { state: 'worn', name: 'Fuchs', canChat: true },
+      safety: {
+        identity: {
+          state: 'assigned',
+          uid: BAND,
+          fullName: 'Lea Meier',
+          nickname: 'Fuchs',
+          hof: '',
+          quartier: null,
+          verified: false,
+        },
+        avps: null,
+      },
+    });
+  });
+
+  it('keeps the Hof of a spare band from the safety team until it is verified', async () => {
+    await program(usterAvp, SPARE_BAND);
+    await expect(sanitaet.getWristbandCard({ uid: SPARE_BAND })).resolves.toMatchObject({
+      safety: { identity: { state: 'unassigned', hof: '' }, avps: null },
+    });
+    await expect(
+      sanitaet.getWristbandCard({ uid: SPARE_BAND, signature: GOOD_SIGNATURE }),
+    ).resolves.toMatchObject({
+      safety: {
+        identity: { state: 'unassigned', hof: 'Cevi Uster' },
+        avps: [{ userId: 'avp-uster' }],
+      },
+    });
+  });
+
+  it('shows the safety team the Hof, the Quartier and the Hof’s AVP of a verified band', async () => {
+    await expect(
+      sanitaet.getWristbandCard({ uid: BAND, signature: GOOD_SIGNATURE }),
+    ).resolves.toEqual({
+      verified: true,
       wearer: { state: 'worn', name: 'Fuchs', canChat: true },
       safety: {
         identity: {
@@ -650,7 +727,7 @@ describe('the page a tapped band opens', () => {
           nickname: 'Fuchs',
           hof: 'Cevi Uster',
           quartier: 'Quartier 5 - Greif',
-          verified: false,
+          verified: true,
         },
         avps: [{ userId: 'avp-uster', fullName: 'Andrea Keller', nickname: 'Luchs' }],
       },
@@ -665,7 +742,9 @@ describe('the page a tapped band opens', () => {
         groups: [{ id: 990_001, role_class: 'Group::MitgliederorganisationExterne::Externer' }],
       });
     }
-    await expect(sanitaet.getWristbandCard({ uid: BAND })).resolves.toMatchObject({
+    await expect(
+      sanitaet.getWristbandCard({ uid: BAND, signature: GOOD_SIGNATURE }),
+    ).resolves.toMatchObject({
       safety: { avps: [{ userId: 'avp-uster' }] },
     });
   });

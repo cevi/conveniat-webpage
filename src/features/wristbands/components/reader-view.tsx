@@ -7,6 +7,7 @@ import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
 import { BandIdentityCard } from '@/features/wristbands/components/band-identity-card';
 import { ReadBandCard } from '@/features/wristbands/components/read-band-card';
+import { BandContacts } from '@/features/wristbands/components/tag-view';
 import { useNativeNfcAvailable } from '@/features/wristbands/hooks/use-native-nfc-available';
 import { useReadWristband } from '@/features/wristbands/hooks/use-read-wristband';
 import type { RosterOnPhone } from '@/features/wristbands/hooks/use-wristband-roster';
@@ -97,6 +98,14 @@ const Reader: React.FC<{ roster: RosterOnPhone; locale: Locale }> = ({ roster, l
           identity={read.state.result.identity}
           fromRoster={read.state.result.fromRoster}
           locale={locale}
+        />
+      )}
+      {/* the chats need the server, which the list on the phone answered without */}
+      {read.state.step === 'read' && read.state.result.fromRoster === null && (
+        <BandContacts
+          key={read.state.result.identity.uid}
+          uid={read.state.result.identity.uid}
+          signature={read.state.result.signature}
         />
       )}
 

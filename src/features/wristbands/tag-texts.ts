@@ -59,6 +59,42 @@ export const tagTexts = {
     en: 'Nobody of this Hof’s AVP has the app.',
     fr: 'Personne de l’AVP de ce Hof n’a l’app.',
   },
+  checkBand: { de: 'Band prüfen', en: 'Check the wristband', fr: 'Vérifier le bracelet' },
+  rescanTitle: {
+    de: 'Erneut scannen, um Details zu sehen oder einen Chat zu starten',
+    en: 'Scan again to see details or start a chat',
+    fr: 'Scanne à nouveau pour voir les détails ou démarrer un chat',
+  },
+  rescanDescription: {
+    de: 'Halte das Band nochmals ans Handy. Die Nummer allein könnte auch erraten sein.',
+    en: 'Hold the wristband to the phone once more. The number alone could also be guessed.',
+    fr: 'Tiens encore une fois le bracelet contre le téléphone. Le numéro seul pourrait aussi être deviné.',
+  },
+  rescanInApp: {
+    de: 'Öffne das Band dazu in der conveniat27-App auf einem Handy mit NFC.',
+    en: 'To do so, open the wristband in the conveniat27 app on a phone with NFC.',
+    fr: 'Pour cela, ouvre le bracelet dans l’app conveniat27 sur un téléphone avec NFC.',
+  },
+  otherBandTitle: {
+    de: 'Das ist ein anderes Band',
+    en: 'This is another wristband',
+    fr: 'C’est un autre bracelet',
+  },
+  otherBandDescription: {
+    de: 'Das Band am Handy ist nicht das, dessen Seite offen ist.',
+    en: 'The wristband on the phone is not the one whose page is open.',
+    fr: 'Le bracelet contre le téléphone n’est pas celui dont la page est ouverte.',
+  },
+  showOtherBand: {
+    de: 'Dieses Band zeigen',
+    en: 'Show that wristband',
+    fr: 'Afficher ce bracelet',
+  },
+  notVerified: {
+    de: 'Prüfe das Band zuerst, dann kannst du einen Chat starten.',
+    en: 'Check the wristband first, then you can start a chat.',
+    fr: 'Vérifie d’abord le bracelet, ensuite tu pourras démarrer un chat.',
+  },
   loadFailed: {
     de: 'Das Armband konnte nicht geladen werden.',
     en: 'The wristband could not be loaded.',

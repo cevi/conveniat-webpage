@@ -24,6 +24,10 @@ jest.mock('superjson', () => ({
     deserialize: (value: { json: unknown }): unknown => value.json,
   },
 }));
+// the signature check has tests of its own; here a band is genuine when its signature says so
+jest.mock('@/lib/nfc/ntag-signature', () => ({
+  verifyNtagSignature: (_uid: string, signature: string): boolean => signature === GOOD_SIGNATURE,
+}));
 // the safety team is Cevi.DB group 110 here
 jest.mock('@/features/payload-cms/payload-cms/access-rules/roles', () => ({
   ...jest.requireActual<object>('@/features/payload-cms/payload-cms/access-rules/roles'),
@@ -31,6 +35,8 @@ jest.mock('@/features/payload-cms/payload-cms/access-rules/roles', () => ({
     user.group_ids.includes(110),
 }));
 
+const GOOD_SIGNATURE = 'AB'.repeat(32);
+const FORGED_SIGNATURE = 'CD'.repeat(32);
 const LEA_BAND = '04A1B2C3D4E5F6';
 const TIM_BAND = '04112233445566';
 const SPARE_BAND = '04AABBCCDDEEFF';
@@ -109,8 +115,30 @@ beforeEach(() => {
 });
 
 describe('starting a chat from a tapped band', () => {
+  it.each([
+    ['without a signature', null],
+    ['with a signature that does not match', FORGED_SIGNATURE],
+  ])('starts nothing for a band %s, which a guessed UID would be', async (_what, signature) => {
+    await expect(flurin.startChatFromWristband({ uid: LEA_BAND, signature })).resolves.toEqual({
+      status: 'notVerified',
+    });
+    await expect(
+      sani.startChatFromWristband({ uid: LEA_BAND, signature, avpUserId: 'avp-uster' }),
+    ).resolves.toEqual({ status: 'notVerified' });
+    expect(findOrCreatePrivateChat).not.toHaveBeenCalled();
+    expect(addressBook).toEqual([]);
+  });
+
+  it('refuses a signature that is no signature at all', async () => {
+    await expect(
+      flurin.startChatFromWristband({ uid: LEA_BAND, signature: 'AB' }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+  });
+
   it('opens the chat with the wearer and puts both into each other’s address book', async () => {
-    await expect(flurin.startChatFromWristband({ uid: LEA_BAND })).resolves.toEqual({
+    await expect(
+      flurin.startChatFromWristband({ uid: LEA_BAND, signature: GOOD_SIGNATURE }),
+    ).resolves.toEqual({
       status: 'started',
       chatId: 'chat-1',
     });
@@ -124,14 +152,18 @@ describe('starting a chat from a tapped band', () => {
   });
 
   it('says so for the own band', async () => {
-    await expect(callerAs('lea').startChatFromWristband({ uid: LEA_BAND })).resolves.toEqual({
+    await expect(
+      callerAs('lea').startChatFromWristband({ uid: LEA_BAND, signature: GOOD_SIGNATURE }),
+    ).resolves.toEqual({
       status: 'ownBand',
     });
     expect(findOrCreatePrivateChat).not.toHaveBeenCalled();
   });
 
   it('starts nothing with a wearer who never logged into the app', async () => {
-    await expect(flurin.startChatFromWristband({ uid: TIM_BAND })).resolves.toEqual({
+    await expect(
+      flurin.startChatFromWristband({ uid: TIM_BAND, signature: GOOD_SIGNATURE }),
+    ).resolves.toEqual({
       status: 'noAccount',
     });
     expect(addressBook).toEqual([]);
@@ -141,7 +173,9 @@ describe('starting a chat from a tapped band', () => {
     ['nobody knows', '04FFFFFFFFFFFF'],
     ['nobody wears', SPARE_BAND],
   ])('names nobody for a band %s', async (_what, uid) => {
-    await expect(flurin.startChatFromWristband({ uid })).resolves.toEqual({
+    await expect(
+      flurin.startChatFromWristband({ uid, signature: GOOD_SIGNATURE }),
+    ).resolves.toEqual({
       status: 'unknownBand',
     });
     expect(findOrCreatePrivateChat).not.toHaveBeenCalled();
@@ -149,14 +183,20 @@ describe('starting a chat from a tapped band', () => {
 
   it('names nobody for a blocked band', async () => {
     bands['04000000000000'] = { band: 'revoked', hofId: null, registration: null };
-    await expect(flurin.startChatFromWristband({ uid: '04000000000000' })).resolves.toEqual({
+    await expect(
+      flurin.startChatFromWristband({ uid: '04000000000000', signature: GOOD_SIGNATURE }),
+    ).resolves.toEqual({
       status: 'unknownBand',
     });
   });
 
   it('lets the safety team reach the AVP of the band’s Hof, also of a spare band', async () => {
     await expect(
-      sani.startChatFromWristband({ uid: SPARE_BAND, avpUserId: 'avp-uster' }),
+      sani.startChatFromWristband({
+        uid: SPARE_BAND,
+        signature: GOOD_SIGNATURE,
+        avpUserId: 'avp-uster',
+      }),
     ).resolves.toEqual({ status: 'started', chatId: 'chat-1' });
     expect(findOrCreatePrivateChat).toHaveBeenCalledWith(
       expect.objectContaining({ otherUserId: 'avp-uster' }),
@@ -165,21 +205,31 @@ describe('starting a chat from a tapped band', () => {
 
   it('reaches nobody through a band who is not the AVP of its Hof', async () => {
     await expect(
-      sani.startChatFromWristband({ uid: LEA_BAND, avpUserId: 'flurin' }),
+      sani.startChatFromWristband({
+        uid: LEA_BAND,
+        signature: GOOD_SIGNATURE,
+        avpUserId: 'flurin',
+      }),
     ).resolves.toEqual({ status: 'unknownBand' });
     expect(findOrCreatePrivateChat).not.toHaveBeenCalled();
   });
 
   it('starts nothing for someone who is not signed in', async () => {
     const guest = createCaller({ prisma, locale: 'de' } as unknown as Context);
-    await expect(guest.startChatFromWristband({ uid: LEA_BAND })).rejects.toMatchObject({
+    await expect(
+      guest.startChatFromWristband({ uid: LEA_BAND, signature: GOOD_SIGNATURE }),
+    ).rejects.toMatchObject({
       code: 'UNAUTHORIZED',
     });
   });
 
   it('keeps the AVP of a Hof away from everybody but the safety team', async () => {
     await expect(
-      flurin.startChatFromWristband({ uid: LEA_BAND, avpUserId: 'avp-uster' }),
+      flurin.startChatFromWristband({
+        uid: LEA_BAND,
+        signature: GOOD_SIGNATURE,
+        avpUserId: 'avp-uster',
+      }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 });
