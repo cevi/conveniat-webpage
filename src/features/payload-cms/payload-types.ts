@@ -620,11 +620,11 @@ export interface User {
    */
   description?: string | null;
   /**
-   * Hide this user from the chat creation selection.
+   * Others do not see this person in their contact list and cannot start a new chat with them. The person still sees their own contacts. As the organiser of a programme entry or a Schichteinsatz, they stay reachable there.
    */
   hidden?: boolean | null;
   /**
-   * For an account that only tries the app, e.g. for the App Store review. Its contact list shows only people of its own Hof and those it exchanged a chat QR code with, not every function holder and AVP.
+   * This person sees only their own Hof and the people they exchanged a chat QR code with, not every function holder and AVP. Others still find them; for the App Store review, also tick «Not findable in the chat».
    */
   testAccount?: boolean | null;
   /**
