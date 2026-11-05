@@ -9,6 +9,7 @@ import type {
   ProgramWristbandResult,
   RegisterWristbandResult,
   RosterEntry,
+  SpareRosterBand,
   WristbandIdentity,
   WristbandRoster,
 } from '@/features/wristbands/types';
@@ -166,6 +167,9 @@ export const programWristband = async (
  * Records a band for the Hof once the phone reports it written, so a cancelled scan or a failed
  * write leaves no band behind that was never programmed. Checks again what `programWristband`
  * checked: another Hof may have recorded the same band in between.
+ *
+ * Two phones may report the same band at once, a retry after a lost answer among them. The UID
+ * is unique, so the later create fails; the band is then read again and judged as it stands.
  */
 export const registerWristband = async (
   payload: Payload,
@@ -174,14 +178,24 @@ export const registerWristband = async (
   const { hofId, uid, userId } = input;
   const { refusal, band } = await findRefusal(payload, input);
   if (refusal !== undefined) return { ok: false, reason: refusal };
-  if (band === undefined) {
+  if (band !== undefined) return { ok: true };
+
+  try {
     await payload.create({
       collection: 'wristbands',
       data: { uid, hof: hofId, status: 'active', programmedBy: userId, lastEditedByUser: userId },
       overrideAccess: true,
     });
-    logger.info('Programmed a new band', { 'wristband.uid': uid, 'wristband.hof': hofId });
+  } catch (error) {
+    const recorded = await findRefusal(payload, input);
+    if (recorded.band === undefined) throw error;
+    logger.debug('Another request recorded the same band first', {
+      'wristband.uid': uid,
+      'wristband.hof': hofId,
+    });
+    return recorded.refusal === undefined ? { ok: true } : { ok: false, reason: recorded.refusal };
   }
+  logger.info('Programmed a new band', { 'wristband.uid': uid, 'wristband.hof': hofId });
   return { ok: true };
 };
 
@@ -194,9 +208,28 @@ const findBandOfHof = async (payload: Payload, hofId: string, uid: string): Prom
   return band;
 };
 
+/** The active bands of a registration, oldest first. */
+const findActiveBandIds = async (payload: Payload, registrationId: string): Promise<string[]> => {
+  const { docs } = await payload.find({
+    collection: 'wristbands',
+    where: { and: [{ participant: { equals: registrationId } }, { status: { equals: 'active' } }] },
+    depth: 0,
+    limit: MAX_BANDS,
+    pagination: false,
+    overrideAccess: true,
+    select: { status: true },
+  });
+  return docs.map((document) => document.id).toSorted();
+};
+
 /**
  * Hands a band of the Hof to one of its registrations, or moves it from the person who wore it.
  * Someone who still wears an active band gets no second one: their old band is blocked first.
+ *
+ * The check before the write cannot see a second phone handing the same person another band at
+ * the same moment, so the bands are counted again after it. Of two bands written together the
+ * older one stays, by its id, which both requests agree on; the other goes back to whoever wore
+ * it before and its request is refused like the check before the write would have.
  */
 export const assignWristband = async (
   payload: Payload,
@@ -211,34 +244,55 @@ export const assignWristband = async (
     throw new TRPCError({ code: 'NOT_FOUND', message: 'registration_not_in_hof' });
   }
 
-  const { totalDocs } = await payload.count({
-    collection: 'wristbands',
-    where: {
-      and: [
-        { participant: { equals: registrationId } },
-        { status: { equals: 'active' } },
-        { id: { not_equals: band.id } },
-      ],
-    },
-    overrideAccess: true,
-  });
-  if (totalDocs > 0) throw new TRPCError({ code: 'CONFLICT', message: 'person_has_band' });
+  const previousWearer = idOf(band.participant) ?? null;
+  const wearsOtherBand = async (): Promise<boolean> => {
+    const activeBandIds = await findActiveBandIds(payload, registrationId);
+    return activeBandIds.some((id) => id !== band.id);
+  };
+  if (await wearsOtherBand()) throw new TRPCError({ code: 'CONFLICT', message: 'person_has_band' });
 
-  await payload.update({
-    collection: 'wristbands',
-    id: band.id,
-    data: { participant: registrationId, lastEditedByUser: userId },
-    overrideAccess: true,
-  });
+  try {
+    await payload.update({
+      collection: 'wristbands',
+      id: band.id,
+      data: { participant: registrationId, lastEditedByUser: userId },
+      overrideAccess: true,
+    });
+  } catch (error) {
+    // the collection checks the same, and refuses a band written in between like the check above
+    if (await wearsOtherBand()) {
+      throw new TRPCError({ code: 'CONFLICT', message: 'person_has_band' });
+    }
+    throw error;
+  }
+
+  const [kept] = await findActiveBandIds(payload, registrationId);
+  if (kept !== undefined && kept !== band.id) {
+    await payload.update({
+      collection: 'wristbands',
+      id: band.id,
+      data: { participant: previousWearer, lastEditedByUser: userId },
+      overrideAccess: true,
+    });
+    logger.warn('Undid a band handed out at the same time as another one to the same person', {
+      'wristband.uid': uid,
+      'wristband.hof': hofId,
+    });
+    throw new TRPCError({ code: 'CONFLICT', message: 'person_has_band' });
+  }
   logger.info('Handed out a band', { 'wristband.uid': uid, 'wristband.hof': hofId });
 };
 
-/** Takes a band back from the person who wore it; it stays the Hof's, ready for someone else. */
+/**
+ * Takes a band back from the person who wore it; it stays the Hof's, ready for someone else. A
+ * blocked band is refused: it keeps whose it was, see `revokeWristband`.
+ */
 export const unassignWristband = async (
   payload: Payload,
   input: { hofId: string; uid: string; userId: string },
 ): Promise<void> => {
   const band = await findBandOfHof(payload, input.hofId, input.uid);
+  if (band.status === 'revoked') throw new TRPCError({ code: 'CONFLICT', message: 'band_revoked' });
   await payload.update({
     collection: 'wristbands',
     id: band.id,
@@ -315,7 +369,7 @@ const toRosterEntry = (band: PopulatedBand): RosterEntry | null => {
 /**
  * Whose a band is, for security and first aid. With the signature from a tap in the app it is
  * checked against NXP's key; a cold tap opens `/tag/{uid}` with the UID alone, and the answer
- * says it was not checked. Every read is logged with who read it.
+ * says it was not checked. Every read is logged at debug, with who read it.
  */
 export const identifyWristband = async (
   payload: Payload,
@@ -332,7 +386,7 @@ export const identifyWristband = async (
   }
 
   const [band] = await findPopulatedBands(payload, { uid: { equals: uid } }, 1);
-  logger.info('Read a band', {
+  logger.debug('Read a band', {
     'wristband.uid': uid,
     'wristband.reader': readerId,
     'wristband.verified': verified,
@@ -346,24 +400,33 @@ export const identifyWristband = async (
   return { state: 'assigned', ...wearer, verified };
 };
 
-/** Every worn band and every blocked one, kept offline by the phones of security and first aid. */
+/**
+ * Every band, kept offline by the phones of security and first aid: the worn ones with their
+ * wearer, the spare ones with their Hof and the blocked ones, so a phone offline answers what
+ * `identifyWristband` would.
+ */
 export const getWristbandRoster = async (
   payload: Payload,
   readerId: string,
 ): Promise<WristbandRoster> => {
   const bands = await findPopulatedBands(payload, {}, MAX_BANDS);
-  const roster: WristbandRoster = { bands: [], revokedUids: [] };
+  const worn: RosterEntry[] = [];
+  const spareBands: SpareRosterBand[] = [];
+  const revokedUids: string[] = [];
   for (const band of bands) {
     if (band.status === 'revoked') {
-      roster.revokedUids.push(band.uid);
+      revokedUids.push(band.uid);
       continue;
     }
     const entry = toRosterEntry(band);
-    if (entry !== null) roster.bands.push(entry);
+    if (entry === null) spareBands.push({ uid: band.uid, hof: hofNames(band.hof).hof });
+    else worn.push(entry);
   }
-  logger.info('Loaded the wristband roster', {
+  const roster: WristbandRoster = { bands: worn, spareBands, revokedUids };
+  logger.debug('Loaded the wristband roster', {
     'wristband.reader': readerId,
-    'wristband.bands': roster.bands.length,
+    'wristband.bands': worn.length,
+    'wristband.spare_bands': spareBands.length,
   });
   return roster;
 };

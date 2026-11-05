@@ -59,6 +59,13 @@ const mockPayload = {
     }),
   ),
   create: jest.fn(({ collection, data }: { collection: string; data: Record<string, unknown> }) => {
+    // the UID of a band is unique, as in the collection
+    if (
+      collection === 'wristbands' &&
+      mockStore[collection]?.some((d) => d['uid'] === data['uid'])
+    ) {
+      return Promise.reject(new Error('E11000 duplicate key error'));
+    }
     const document = { id: `${collection}-${++mockNextId}`, ...data };
     (mockStore[collection] ??= []).push(document);
     return Promise.resolve(document);
@@ -103,7 +110,7 @@ jest.mock('@/config/environment-variables', () => ({
     NFC_ALLOW_UNSIGNED_TAGS: false,
     CEVIDB_GROUP_FULL_ADMIN: [541],
     CEVIDB_GROUP_WEB_CORE_TEAM: [542],
-    CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS: [],
+    CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS: [4087],
     CEVIDB_GROUP_SAFETY_TEAM: [110],
   },
 }));
@@ -149,6 +156,10 @@ const usterAvp = callerAs('avp-uster');
 const zueriAvp = callerAs('avp-zueri');
 const sanitaet = callerAs('sani-1', [110]);
 const participant = callerAs('kid-1');
+/** A member of the Ressort Infrastruktur, who reviews every Hof's dashboard. */
+const reviewer = callerAs('ressort-1', [4087]);
+const webCoreTeam = callerAs('web-1', [542]);
+const fullAdmin = callerAs('admin-1', [541]);
 
 beforeEach(() => {
   mockNextId = 0;
@@ -297,6 +308,48 @@ describe('programming a band', () => {
     });
   });
 
+  it("keeps the Hof dashboard reviewers and the web core team away from every Hof's bands", async () => {
+    for (const caller of [reviewer, webCoreTeam]) {
+      await expect(caller.getMyHofList()).resolves.toEqual([]);
+      await expect(program(caller)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      await expect(caller.getHofWristbandList({ hofId: 'uster' })).rejects.toMatchObject({
+        code: 'FORBIDDEN',
+      });
+    }
+  });
+
+  it('lets the AVP at the bands of their own Hof and a full admin at those of every Hof', async () => {
+    await expect(usterAvp.getMyHofList()).resolves.toEqual([{ id: 'uster', name: 'Cevi Uster' }]);
+    await expect(fullAdmin.getMyHofList()).resolves.toEqual([
+      { id: 'uster', name: 'Cevi Uster' },
+      { id: 'zueri', name: 'Züri 11' },
+    ]);
+    await expect(program(fullAdmin, OTHER_BAND, GOOD_SIGNATURE, 'zueri')).resolves.toMatchObject({
+      ok: true,
+    });
+  });
+
+  it('records a band reported by two phones at once a single time, for both', async () => {
+    await usterAvp.programWristband({ hofId: 'uster', uid: BAND, signature: GOOD_SIGNATURE });
+    const register = (): Promise<unknown> =>
+      usterAvp.registerWristband({ hofId: 'uster', uid: BAND, signature: GOOD_SIGNATURE });
+    await expect(Promise.all([register(), register()])).resolves.toEqual([
+      { ok: true },
+      { ok: true },
+    ]);
+    expect(mockStore['wristbands']).toHaveLength(1);
+  });
+
+  it('refuses a band another Hof recorded at the same moment', async () => {
+    const [uster, zueri] = await Promise.all([
+      usterAvp.registerWristband({ hofId: 'uster', uid: BAND, signature: GOOD_SIGNATURE }),
+      zueriAvp.registerWristband({ hofId: 'zueri', uid: BAND, signature: GOOD_SIGNATURE }),
+    ]);
+    expect([uster, zueri]).toContainEqual({ ok: false, reason: 'assigned-to-other' });
+    expect([uster, zueri]).toContainEqual({ ok: true });
+    expect(mockStore['wristbands']).toHaveLength(1);
+  });
+
   it('is not there while the wristbands are off', async () => {
     environmentVariables.FEATURE_ENABLE_NFC_WRISTBANDS = false;
     await expect(program(usterAvp)).rejects.toMatchObject({ code: 'NOT_FOUND' });
@@ -332,6 +385,30 @@ describe('handing out a band', () => {
 
     await usterAvp.unassignWristband({ hofId: 'uster', uid: BAND });
     expect(byId('wristbands', 'wristbands-1')).toMatchObject({ participant: null });
+  });
+
+  it('gives nobody a second active band, also from two phones at the same moment', async () => {
+    const results = await Promise.allSettled([
+      usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-lea' }),
+      usterAvp.assignWristband({ hofId: 'uster', uid: OTHER_BAND, registrationId: 'reg-lea' }),
+    ]);
+    expect(results.map((result) => result.status).toSorted()).toEqual(['fulfilled', 'rejected']);
+    expect(results.find((result) => result.status === 'rejected')).toMatchObject({
+      reason: { code: 'CONFLICT', message: 'person_has_band' },
+    });
+    expect(
+      mockStore['wristbands']?.filter((band) => band['participant'] === 'reg-lea'),
+    ).toHaveLength(1);
+  });
+
+  it('does not take a blocked band back, so it keeps whose it was', async () => {
+    await usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-lea' });
+    await usterAvp.revokeWristband({ hofId: 'uster', uid: BAND });
+    await expect(usterAvp.unassignWristband({ hofId: 'uster', uid: BAND })).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'band_revoked',
+    });
+    expect(byId('wristbands', 'wristbands-1')).toMatchObject({ participant: 'reg-lea' });
   });
 
   it('gives nobody a second active band', async () => {
@@ -400,9 +477,11 @@ describe('reading a band', () => {
     ).resolves.toEqual({ state: 'revoked', uid: BAND });
   });
 
-  it('keeps every worn band and every blocked one in the offline list', async () => {
+  it('keeps every band in the offline list: worn, spare and blocked', async () => {
+    const SPARE_BAND = '04998877665544';
     await program(usterAvp, OTHER_BAND);
     await usterAvp.revokeWristband({ hofId: 'uster', uid: OTHER_BAND });
+    await program(usterAvp, SPARE_BAND);
     await expect(sanitaet.getWristbandRoster()).resolves.toEqual({
       bands: [
         {
@@ -413,6 +492,7 @@ describe('reading a band', () => {
           quartier: 'Quartier 5 - Greif',
         },
       ],
+      spareBands: [{ uid: SPARE_BAND, hof: 'Cevi Uster' }],
       revokedUids: [OTHER_BAND],
     });
   });

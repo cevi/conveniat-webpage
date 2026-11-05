@@ -12,6 +12,7 @@ import {
   HOF_DASHBOARD_REVIEWER_ROLES,
   listRoleGroups,
   MATERIAL_DEPOT_ROLES,
+  WRISTBAND_ADMIN_ROLES,
   WRISTBAND_READER_ROLES,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type {
@@ -36,6 +37,7 @@ export const CAPABILITIES = {
   materialDepot: MATERIAL_DEPOT_ROLES,
   hofDashboard: HOF_DASHBOARD_REVIEWER_ROLES,
   wristbandReader: WRISTBAND_READER_ROLES,
+  wristbandAdmin: WRISTBAND_ADMIN_ROLES,
 } as const satisfies Record<string, Roles[]>;
 
 export type Capability = keyof typeof CAPABILITIES;
@@ -45,7 +47,9 @@ export const listCapabilities = (): Capability[] => {
   const capabilities: Capability[] = ['adminPanel', 'editor'];
   if (environmentVariables.FEATURE_ENABLE_MATERIAL_MANAGEMENT) capabilities.push('materialDepot');
   if (environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD) capabilities.push('hofDashboard');
-  if (environmentVariables.FEATURE_ENABLE_NFC_WRISTBANDS) capabilities.push('wristbandReader');
+  if (environmentVariables.FEATURE_ENABLE_NFC_WRISTBANDS) {
+    capabilities.push('wristbandReader', 'wristbandAdmin');
+  }
   return capabilities;
 };
 

@@ -61,8 +61,19 @@ export interface RosterEntry {
   quartier: string | null;
 }
 
+/** A band handed out to nobody yet, in the list security and first aid keep on the phone. */
+export interface SpareRosterBand {
+  uid: string;
+  hof: string;
+}
+
 export interface WristbandRoster {
   bands: RosterEntry[];
+  /**
+   * Programmed and active, handed out to nobody. Missing in a list a phone kept from before
+   * spare bands were part of it.
+   */
+  spareBands?: SpareRosterBand[];
   /** Blocked bands, so a phone offline does not take one for a band it has not heard of. */
   revokedUids: string[];
 }

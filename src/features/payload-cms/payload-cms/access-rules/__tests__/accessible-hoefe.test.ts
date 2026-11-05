@@ -24,6 +24,7 @@ jest.mock('@/utils/server-logger', () => ({
 import {
   isHofDashboardReviewer,
   listAccessibleHoefe,
+  listWristbandHoefe,
 } from '@/features/payload-cms/payload-cms/access-rules/accessible-hoefe';
 import { canReviewHofDashboard } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
@@ -85,6 +86,24 @@ describe('listAccessibleHoefe', () => {
     for (const ressort of [4087, 4105]) {
       const hoefe = await listAccessibleHoefe(payloadWith([]), sessionUser([ressort]));
       expect(hoefe).toHaveLength(3);
+    }
+  });
+});
+
+describe('listWristbandHoefe', () => {
+  it('gives the address administrator the bands of their own Höfe', async () => {
+    const payload = payloadWith([{ id: 990_001, role_class: HOF_ADMINISTRATOR_ROLE_CLASS }]);
+    const hoefe = await listWristbandHoefe(payload, sessionUser([990_001]));
+    expect(hoefe.map((hof) => hof.name)).toEqual(['Hof Nord']);
+  });
+
+  it('gives a full admin the bands of every Hof', async () => {
+    await expect(listWristbandHoefe(payloadWith([]), sessionUser([541]))).resolves.toHaveLength(3);
+  });
+
+  it('gives the Hof dashboard reviewers and the web core team no Hof of their own', async () => {
+    for (const group of [105, 4087, 4105]) {
+      await expect(listWristbandHoefe(payloadWith([]), sessionUser([group]))).resolves.toEqual([]);
     }
   });
 });

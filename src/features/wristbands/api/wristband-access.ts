@@ -1,5 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { listAccessibleHoefe } from '@/features/payload-cms/payload-cms/access-rules/accessible-hoefe';
+import { listWristbandHoefe } from '@/features/payload-cms/payload-cms/access-rules/accessible-hoefe';
 import type { HofName } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import {
   hasAccessToThisUser,
@@ -28,12 +28,12 @@ const wristbandProcedure = trpcBaseProcedure.use(wristbandsEnabled).use(async ({
 });
 
 /**
- * The people who program and hand out the bands of a Hof: its AVP, by the rule that opens the
- * Hof dashboard. `ctx.assertHofAccess(hofId)` throws unless the user may.
+ * The people who program and hand out the bands of a Hof: its AVP, and the full admins, see
+ * `listWristbandHoefe`. `ctx.assertHofAccess(hofId)` throws unless the user may.
  */
 export const hofWristbandProcedure = wristbandProcedure.use(({ ctx, next }) => {
   const accessibleHoefe = async (): Promise<HofName[]> =>
-    await listAccessibleHoefe(ctx.payload, ctx.user);
+    await listWristbandHoefe(ctx.payload, ctx.user);
   const assertHofAccess = async (hofId: string): Promise<void> => {
     const hoefe = await accessibleHoefe();
     if (!hoefe.some((hof) => hof.id === hofId)) throw new TRPCError({ code: 'FORBIDDEN' });

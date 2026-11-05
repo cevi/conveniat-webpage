@@ -188,9 +188,18 @@ export const HOF_DASHBOARD_REVIEWER_ROLES: Roles[] = [
  * Who reads an NFC wristband in the app and sees whose it is, and keeps the list of every
  * band offline on the phone: security and first aid, and the full admins. Checked on the tRPC
  * side with the session user. Programming a band is not a role: the AVP of a Hof programs the
- * bands of that Hof, by the same rule that opens its Hof dashboard.
+ * bands of that Hof, see `WRISTBAND_ADMIN_ROLES`.
  */
 export const WRISTBAND_READER_ROLES: Roles[] = [Roles.FullAdmin, Roles.SafetyTeam];
+
+/**
+ * Who programs, hands out and blocks the NFC wristbands of every Hof: the full admins alone.
+ * Everyone else reaches the bands of a Hof only as address administrator (AVP) of its Cevi.DB
+ * group, read off the Payload user's stored roles, see `listWristbandHoefe`. The Hof dashboard
+ * reviewers are left out on purpose: reviewing what a Hof hands in does not make anyone hand
+ * its bands to children and read their names.
+ */
+export const WRISTBAND_ADMIN_ROLES: Roles[] = [Roles.FullAdmin];
 
 /**
  * Who runs the support desk in the admin panel: the full admins and the web core team. They
