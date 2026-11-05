@@ -5,24 +5,31 @@ import type { ChatImageUploadInput } from '@/lib/chat-images';
 import { CHAT_IMAGE_MAX_BYTES, isChatImageContentType } from '@/lib/chat-images';
 import { MessageType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
+import { errorReasonOf } from '@/utils/user-error-message';
 import { useCallback, useState } from 'react';
 
 interface UseImageUploadOptions {
   chatId: string;
   onSuccess?: () => void;
+  /** The upload failed; the image was not sent. */
   onError?: (error: Error) => void;
+  /** The upload went through, but the server refused the message that shows it. */
+  onSendError?: (error: unknown) => void;
   uploadUrlMutation?: {
     mutateAsync: (args: ChatImageUploadInput) => Promise<{ url: string; key: string }>;
   };
   sendMessageMutation?: {
-    mutate: (args: {
-      chatId: string;
-      content: string;
-      type: MessageType;
-      parentId?: string | undefined;
-      timestamp?: Date;
-      messageId?: string;
-    }) => void;
+    mutate: (
+      args: {
+        chatId: string;
+        content: string;
+        type: MessageType;
+        parentId?: string | undefined;
+        timestamp?: Date;
+        messageId?: string;
+      },
+      options?: { onError?: (error: unknown) => void },
+    ) => void;
     isPending: boolean;
   };
 }
@@ -31,6 +38,7 @@ export const useImageUpload = ({
   chatId,
   onSuccess,
   onError,
+  onSendError,
   uploadUrlMutation: customUploadUrlMutation,
   sendMessageMutation: customSendMessageMutation,
 }: UseImageUploadOptions): {
@@ -40,6 +48,7 @@ export const useImageUpload = ({
   isPending: boolean;
 } => {
   const [isUploading, setIsUploading] = useState(false);
+  const trpcUtils = trpc.useUtils();
   const defaultUploadUrlMutation = trpc.chat.getUploadUrl.useMutation();
   const defaultSendMessageMutation = useMessageSend();
 
@@ -84,27 +93,34 @@ export const useImageUpload = ({
         }
 
         // 3. Send message with the S3 key
-        sendMessageMutation.mutate({
-          chatId,
-          content: key,
-          timestamp: new Date(),
-          type: MessageType.IMAGE_MSG,
-          parentId,
-          messageId: generateMessageId(),
-        });
+        sendMessageMutation.mutate(
+          {
+            chatId,
+            content: key,
+            timestamp: new Date(),
+            type: MessageType.IMAGE_MSG,
+            parentId,
+            messageId: generateMessageId(),
+          },
+          { onError: (error: unknown) => onSendError?.(error) },
+        );
 
         onSuccess?.();
         return true;
       } catch (error) {
         const error_ = error instanceof Error ? error : new Error('Unknown upload error');
         console.error('Failed to upload image:', error_);
+        // the chat details on the phone said images were allowed; the attach button follows
+        if (errorReasonOf(error)?.reason === 'imagesDisabled') {
+          trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
+        }
         onError?.(error_);
         return false;
       } finally {
         setIsUploading(false);
       }
     },
-    [chatId, getUploadUrlMutation, sendMessageMutation, onSuccess, onError],
+    [chatId, getUploadUrlMutation, sendMessageMutation, onSuccess, onError, onSendError, trpcUtils],
   );
 
   return {

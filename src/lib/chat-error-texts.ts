@@ -12,6 +12,11 @@ export const chatErrorTexts = {
     en: 'Messaging is switched off right now. Please try again later.',
     fr: 'Les messages sont désactivés pour le moment. Réessaie plus tard.',
   },
+  imagesDisabled: {
+    de: 'In diesem Chat können keine Bilder gesendet werden.',
+    en: 'Images cannot be sent in this chat.',
+    fr: 'Impossible d’envoyer des images dans ce chat.',
+  },
   chatNameTooShort: {
     de: 'Der Chat-Name braucht mindestens {min} Zeichen.',
     en: 'The chat name needs at least {min} characters.',

@@ -1,17 +1,17 @@
 'use client';
 
 import { usePreference } from '@/hooks/use-preference';
+import { usePushNavigation } from '@/hooks/use-push-navigation';
 import type { NotificationType } from '@/lib/notification-type';
 import { readPreference, writePreference } from '@/lib/preferences';
 import { trpc, useOptionalTrpcUtils } from '@/trpc/client';
 import { Cookie } from '@/types/types';
-import { assignLocation } from '@/utils/assign-location';
 import { notifyForegroundMessage } from '@/utils/foreground-notifications';
 import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
+import { chatIdOfTarget, resolvePushTarget } from '@/utils/push-target';
 import { reloadPage } from '@/utils/reload-page';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import Cookies from 'js-cookie';
-import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 export type NativePushStatus = 'granted' | 'denied' | 'prompt' | 'unknown';
@@ -164,186 +164,6 @@ export function extractTargetUrl(payload: Record<string, unknown>): string | und
   }
 
   return undefined;
-}
-
-/**
- * Reads a navigation target as a browser would: a path when it is on this origin, the full URL
- * when it is on another one, nothing when it is not http(s).
- *
- * Every value is parsed, also one that starts with a slash: a browser reads `/\host` and
- * `//host` as another origin, so the leading slash alone says nothing.
- */
-function parseHttpTarget(rawUrl: string): string | undefined {
-  try {
-    const parsedUrl = new URL(rawUrl, globalThis.location.origin);
-    if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') return undefined;
-    if (parsedUrl.origin !== globalThis.location.origin) return parsedUrl.href;
-    // `https://this-host//other-host` is on this origin, but its path alone names another one,
-    // and the path is all that is handed on.
-    if (parsedUrl.pathname.startsWith('//')) return undefined;
-    return parsedUrl.pathname + parsedUrl.search + parsedUrl.hash;
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * Whether the page is at a same-origin target. Query and fragment count, because they select
- * what the page shows.
- */
-const isAtTarget = (target: string): boolean => {
-  const { pathname, search, hash } = globalThis.location;
-  return pathname + search + hash === target;
-};
-
-/**
- * Turns the URL a push carries into where the page goes: a path when the target is on this
- * origin, the full URL when it is on another one. The short domain con27.ch is another origin
- * that redirects back here through `/go`, and cutting it down to its path sent `/agbs` to a
- * 404. Anything that is not http(s) falls back to the dashboard.
- */
-export function resolvePushTarget(rawUrl: string | undefined): string {
-  const fallback = '/app/dashboard';
-  if (rawUrl === undefined || rawUrl === '') return fallback;
-  return parseHttpTarget(rawUrl) ?? fallback;
-}
-
-/** Whether a target from {@link resolvePushTarget} is on another origin. */
-const isOtherOriginTarget = (target: string): boolean => !target.startsWith('/');
-
-/**
- * The path a link asks for, when that path is on this origin. A query parameter is written by
- * whoever built the link, so unlike a push it may not send the page to another origin.
- */
-export function resolveSameOriginPath(rawUrl: string | null | undefined): string | undefined {
-  if (rawUrl === null || rawUrl === undefined || rawUrl.trim() === '') return undefined;
-  const target = parseHttpTarget(rawUrl.trim());
-  return target === undefined || isOtherOriginTarget(target) ? undefined : target;
-}
-
-export function performReliablePushNavigation(
-  router: { push: (url: string) => void },
-  targetPath: string,
-): void {
-  if (typeof targetPath !== 'string' || targetPath.trim() === '') return;
-
-  // Resolved here, in front of the navigation itself, so that no caller can hand it a
-  // `javascript:` URL: `location.assign()` would run it in this origin.
-  const cleanPath = resolvePushTarget(targetPath.trim());
-
-  // The router only moves within this origin, and a remembered target would be replayed on
-  // every resume, so another origin gets a single full navigation.
-  if (isOtherOriginTarget(cleanPath)) {
-    console.log('[NativePush:PWA] Navigating to another origin:', cleanPath);
-    assignLocation(cleanPath);
-    return;
-  }
-
-  try {
-    sessionStorage.setItem('pending_push_redirect', cleanPath);
-    localStorage.setItem('pending_push_redirect', cleanPath);
-  } catch {
-    // ignore storage errors
-  }
-
-  console.log('[NativePush:PWA] Performing reliable navigation to:', cleanPath);
-
-  try {
-    router.push(cleanPath);
-  } catch (error: unknown) {
-    console.warn('[NativePush:PWA] Soft router.push failed:', error);
-  }
-
-  // Backup check: perform hard location redirect if router hasn't updated pathname after 250ms
-  setTimeout(() => {
-    const currentPathname = globalThis.location.pathname;
-    let targetChatId: string | undefined;
-    if (cleanPath.includes('/app/chat/')) {
-      const parts = cleanPath.split('/app/chat/');
-      const firstPart = parts[1];
-      if (typeof firstPart === 'string' && firstPart !== '') {
-        targetChatId = firstPart.split(/[?#]/)[0];
-      }
-    }
-
-    const isAlreadyOnChat =
-      typeof targetChatId === 'string' &&
-      targetChatId !== '' &&
-      currentPathname.includes(`/app/chat/${targetChatId}`);
-
-    const isAlreadyOnExactPath = isAtTarget(cleanPath);
-
-    if (!isAlreadyOnChat && !isAlreadyOnExactPath) {
-      console.log(
-        '[NativePush:PWA] Soft navigation pending, executing location fallback to:',
-        cleanPath,
-      );
-      globalThis.location.href = cleanPath;
-    }
-  }, 250);
-}
-
-export function checkAndExecutePendingPushNavigation(router: {
-  push: (url: string) => void;
-}): void {
-  try {
-    const pendingPath =
-      sessionStorage.getItem('pending_push_redirect') ??
-      localStorage.getItem('pending_push_redirect');
-
-    if (typeof pendingPath !== 'string' || pendingPath.trim() === '') return;
-
-    const cleanPath = resolvePushTarget(pendingPath.trim());
-    const currentPathname = globalThis.location.pathname;
-
-    let targetChatId: string | undefined;
-    if (cleanPath.includes('/app/chat/')) {
-      const parts = cleanPath.split('/app/chat/');
-      const firstPart = parts[1];
-      if (typeof firstPart === 'string' && firstPart !== '') {
-        targetChatId = firstPart.split(/[?#]/)[0];
-      }
-    }
-
-    const isAlreadyOnChat =
-      typeof targetChatId === 'string' &&
-      targetChatId !== '' &&
-      currentPathname.includes(`/app/chat/${targetChatId}`);
-
-    const isAlreadyOnExactPath = isAtTarget(cleanPath);
-
-    if (isAlreadyOnChat || isAlreadyOnExactPath) {
-      sessionStorage.removeItem('pending_push_redirect');
-      localStorage.removeItem('pending_push_redirect');
-      return;
-    }
-
-    console.log('[NativePush:PWA] Executing pending push navigation to:', cleanPath);
-    try {
-      router.push(cleanPath);
-    } catch {
-      // ignore soft error
-    }
-
-    setTimeout(() => {
-      const nowPathname = globalThis.location.pathname;
-      const nowOnChat =
-        typeof targetChatId === 'string' &&
-        targetChatId !== '' &&
-        nowPathname.includes(`/app/chat/${targetChatId}`);
-      const nowOnExact = isAtTarget(cleanPath);
-
-      if (!nowOnChat && !nowOnExact) {
-        console.log('[NativePush:PWA] Fallback location redirect to:', cleanPath);
-        globalThis.location.href = cleanPath;
-      } else {
-        sessionStorage.removeItem('pending_push_redirect');
-        localStorage.removeItem('pending_push_redirect');
-      }
-    }, 250);
-  } catch {
-    // ignore storage errors
-  }
 }
 
 export function extractNotificationTitleAndBody(payload: Record<string, unknown>): {
@@ -525,7 +345,7 @@ export function useNativePush(): {
   logs: NativePushLogEntry[];
   lastError: string | undefined;
 } {
-  const router = useRouter();
+  const { navigateToPushTarget, resumePendingPushNavigation } = usePushNavigation();
   const trpcUtils = useOptionalTrpcUtils();
   const [isNativeApp, setIsNativeApp] = useState(false);
   const [status, setStatus] = useState<NativePushStatus>('unknown');
@@ -788,14 +608,7 @@ export function useNativePush(): {
         case 'native-push-open': {
           const targetPath = resolvePushTarget(extractTargetUrl(payload));
 
-          let targetChatId: string | undefined;
-          if (targetPath.includes('/app/chat/')) {
-            const parts = targetPath.split('/app/chat/');
-            const firstPart = parts[1];
-            if (typeof firstPart === 'string' && firstPart !== '') {
-              targetChatId = firstPart.split(/[?#]/)[0];
-            }
-          }
+          const targetChatId = chatIdOfTarget(targetPath);
           refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
 
           // Native pushes never reach the service worker, whose click handler tracks
@@ -811,7 +624,7 @@ export function useNativePush(): {
           });
 
           console.log('[NativePush:PWA] notification opened, navigating to:', targetPath);
-          performReliablePushNavigation(router, targetPath);
+          navigateToPushTarget(targetPath);
           break;
         }
         case 'native-push-received':
@@ -819,15 +632,7 @@ export function useNativePush(): {
         case 'push-received':
         case 'notification': {
           const rawUrl = extractTargetUrl(payload);
-          let targetChatId: string | undefined;
-
-          if (typeof rawUrl === 'string' && rawUrl.includes('/app/chat/')) {
-            const parts = rawUrl.split('/app/chat/');
-            const firstPart = parts[1];
-            if (typeof firstPart === 'string' && firstPart !== '') {
-              targetChatId = firstPart.split(/[?#]/)[0];
-            }
-          }
+          const targetChatId = rawUrl === undefined ? undefined : chatIdOfTarget(rawUrl);
 
           console.log(
             `[Chat][FCM] Foreground push message received (chat: ${targetChatId ?? 'unknown'}).`,
@@ -890,7 +695,7 @@ export function useNativePush(): {
 
     const handleAppResume = (): void => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        checkAndExecutePendingPushNavigation(router);
+        resumePendingPushNavigation();
         if (nativePushBridge.isSupported()) {
           console.log('[NativePush:PWA] app resumed, requesting updated status');
           nativePushBridge.getStatus();
@@ -898,7 +703,7 @@ export function useNativePush(): {
       }
     };
 
-    checkAndExecutePendingPushNavigation(router);
+    resumePendingPushNavigation();
 
     globalThis.addEventListener('app-webview-native-push-event', handleNativeEvent);
     if (typeof document !== 'undefined') {
@@ -969,7 +774,15 @@ export function useNativePush(): {
       globalThis.removeEventListener('focus', handleAppResume);
       globalThis.removeEventListener('pageshow', handleAppResume);
     };
-  }, [router, registerDevice, unregisterDevice, markInteracted, markDelivered, trpcUtils]);
+  }, [
+    navigateToPushTarget,
+    resumePendingPushNavigation,
+    registerDevice,
+    unregisterDevice,
+    markInteracted,
+    markDelivered,
+    trpcUtils,
+  ]);
 
   const requestPermission = (): void => {
     Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);

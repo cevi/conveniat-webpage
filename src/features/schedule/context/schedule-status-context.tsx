@@ -67,6 +67,9 @@ interface ScheduleStatusProviderProperties {
 
 const CHUNK_SIZE = 40;
 
+/** How long the enrolment counts on screen may be old while the screen stays open. */
+const STATUS_REFRESH_INTERVAL = 5 * 60 * 1000;
+
 const chunkArray = <T,>(array: T[], size: number): T[][] => {
   return Array.from({ length: Math.ceil(array.length / size) }, (_, index) =>
     array.slice(index * size, index * size + size),
@@ -89,8 +92,17 @@ export const ScheduleStatusProvider: React.FC<ScheduleStatusProviderProperties> 
       t.schedule.getCourseStatuses(
         { courseIds: chunk },
         {
-          staleTime: 5 * 60 * 1000, // 5 minutes
+          staleTime: STATUS_REFRESH_INTERVAL,
           gcTime: 24 * 60 * 60 * 1000, // 24 hours - keep in cache for offline
+          // Other people's enrolments reach no mutation of this client, so the counts only
+          // change when we ask. The Programm stays mounted in a hidden Activity for as long as
+          // the app lives, and the cache is restored from IndexedDB with its old timestamp, so
+          // without these a count could stay hours old. Ask whenever the screen opens or the
+          // app comes back, and every five minutes while it is in front; `networkMode:
+          // 'online'` keeps the cached counts offline.
+          refetchOnMount: 'always',
+          refetchOnWindowFocus: true,
+          refetchInterval: STATUS_REFRESH_INTERVAL,
         },
       ),
     ),

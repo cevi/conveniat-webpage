@@ -4,6 +4,7 @@ import { getChatDraftKey, useChatDraft } from '@/features/chat/hooks/use-chat-dr
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import { useTypingSignal } from '@/features/chat/hooks/use-typing';
 import { generateMessageId } from '@/features/chat/utils';
+import { isRateLimitError } from '@/features/chat/utils/send-errors';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
@@ -31,6 +32,7 @@ interface UseMessageInputLogicResult {
   messageLength: number;
   isGlobalMessagingDisabled: boolean;
   sendError: string | undefined;
+  reportSendRefusal: (error: unknown) => void;
 }
 
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
@@ -84,6 +86,28 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
 
   const isGlobalMessagingEnabled = isGlobalMessagingEnabledIn(featureFlags);
 
+  /**
+   * Shows why the server refused a send, text or image, above the composer. Offline sends are
+   * queued by useMessageSend, and any other failed bubble stays in the list with its own retry,
+   * so only what retrying cannot help with is worth a banner, plus the rate limit, whose send
+   * waits in the outbox.
+   */
+  const reportSendRefusal = useCallback(
+    (error: unknown): void => {
+      const reason = errorReasonOf(error)?.reason;
+      // the server knew before the cached flags or capabilities did: update the composer
+      if (reason === 'messagingDisabled') {
+        trpcUtils.chat.getFeatureFlags.invalidate().catch(console.error);
+      } else if (reason === 'imagesDisabled') {
+        trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
+      } else if (reason !== 'threadGone' && !isRateLimitError(error)) {
+        return;
+      }
+      setSendError(userErrorMessage(error, locale, chatErrorTexts));
+    },
+    [chatId, locale, trpcUtils],
+  );
+
   /** Sends `text` as a message, without touching the composer. */
   const sendText = useCallback(
     (text: string): void => {
@@ -124,36 +148,18 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
               }
             }
           },
-          onError: (error) => {
-            // the send waits in the outbox; the refusal says why
-            if (error.data?.code === 'TOO_MANY_REQUESTS') {
-              setSendError(userErrorMessage(error, locale, chatErrorTexts));
-              return;
-            }
-            // offline sends are queued by useMessageSend. Any other failed bubble stays in the
-            // list with its own retry, so the text is not put back into the composer. Only a
-            // disabled chat and a deleted thread are worth a banner, because retrying cannot
-            // help there.
-            const reason = errorReasonOf(error)?.reason;
-            if (reason !== 'messagingDisabled' && reason !== 'threadGone') return;
-            // the server knew before the flags did: disable the composer now
-            if (reason === 'messagingDisabled') {
-              trpcUtils.chat.getFeatureFlags.invalidate().catch(console.error);
-            }
-            setSendError(userErrorMessage(error, locale, chatErrorTexts));
-          },
+          onError: reportSendRefusal,
         },
       );
     },
     [
       chatId,
-      locale,
       sendMessageMutation,
       isGlobalMessagingEnabled,
       activeThreadId,
       quotedMessageId,
       cancelQuote,
-      trpcUtils,
+      reportSendRefusal,
     ],
   );
 
@@ -222,5 +228,6 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
     messageLength: newMessage.length,
     isGlobalMessagingDisabled: !isGlobalMessagingEnabled,
     sendError,
+    reportSendRefusal,
   };
 };

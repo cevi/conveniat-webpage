@@ -186,10 +186,63 @@ function broadcastToClients(clients: readonly Client[], data: NotificationPayloa
 const CLIENT_URL_RESPONSE_TIMEOUT_MS = 400;
 
 /**
+ * How long the service worker waits for a page it controls to take over a tap. The page was
+ * just focused, and a cheap phone thawing a frozen tab takes a while before its listeners run;
+ * navigating it before they do reloads the app under its own soft navigation.
+ */
+const PUSH_NAVIGATE_RESPONSE_TIMEOUT_MS = 2500;
+
+/**
+ * The same for a page this worker does not control. navigate() rejects for it, so the fallback
+ * is a new window, and that has to open while the click still allows one.
+ */
+const UNCONTROLLED_PUSH_NAVIGATE_RESPONSE_TIMEOUT_MS = 500;
+
+/** Whether a page can take a tap over. The admin panel has no `ServiceWorkerManager`. */
+const mayRouteTap = (client: WindowClient): boolean => {
+  try {
+    return !new URL(client.url).pathname.startsWith('/admin');
+  } catch {
+    return true;
+  }
+};
+
+/**
  * Strips an optional locale prefix so `/de/app/chat/x` compares equal to `/app/chat/x`.
  */
 const normalizePathname = (pathname: string): string =>
   pathname.replace(/^\/(?:de|fr|en)(?=\/|$)/, '');
+
+/**
+ * Posts a message with a reply port and resolves with the answer, or with `undefined` when the
+ * page does not answer in time, which is how a page without the listener says nothing.
+ */
+async function requestFromClient(
+  client: WindowClient,
+  message: Record<string, unknown>,
+  timeoutMs: number,
+): Promise<unknown> {
+  return new Promise((resolve: (answer?: unknown) => void) => {
+    try {
+      const channel = new MessageChannel();
+      const fallback = setTimeout(() => {
+        channel.port1.close();
+        resolve();
+      }, timeoutMs);
+
+      channel.port1.addEventListener('message', (messageEvent: MessageEvent): void => {
+        clearTimeout(fallback);
+        channel.port1.close();
+        resolve(messageEvent.data);
+      });
+      channel.port1.start();
+
+      client.postMessage(message, [channel.port2]);
+    } catch {
+      resolve();
+    }
+  });
+}
 
 /**
  * Resolves the client's *current* URL via a MessageChannel round-trip.
@@ -203,32 +256,15 @@ const normalizePathname = (pathname: string): string =>
 async function getLiveClientUrl(
   client: WindowClient,
 ): Promise<{ url: string; source: 'live' | 'creation-url-fallback' }> {
-  return new Promise((resolve) => {
-    let channel: MessageChannel;
-    try {
-      channel = new MessageChannel();
-      const fallback = setTimeout(() => {
-        channel.port1.close();
-        resolve({ url: client.url, source: 'creation-url-fallback' });
-      }, CLIENT_URL_RESPONSE_TIMEOUT_MS);
-
-      channel.port1.addEventListener('message', (messageEvent: MessageEvent): void => {
-        clearTimeout(fallback);
-        channel.port1.close();
-        const reportedUrl = (messageEvent.data as { url?: unknown } | undefined)?.url;
-        resolve(
-          typeof reportedUrl === 'string' && reportedUrl !== ''
-            ? { url: reportedUrl, source: 'live' }
-            : { url: client.url, source: 'creation-url-fallback' },
-        );
-      });
-      channel.port1.start();
-
-      client.postMessage({ type: ServiceWorkerMessages.GET_CLIENT_URL }, [channel.port2]);
-    } catch {
-      resolve({ url: client.url, source: 'creation-url-fallback' });
-    }
-  });
+  const answer = await requestFromClient(
+    client,
+    { type: ServiceWorkerMessages.GET_CLIENT_URL },
+    CLIENT_URL_RESPONSE_TIMEOUT_MS,
+  );
+  const reportedUrl = (answer as { url?: unknown } | undefined)?.url;
+  return typeof reportedUrl === 'string' && reportedUrl !== ''
+    ? { url: reportedUrl, source: 'live' }
+    : { url: client.url, source: 'creation-url-fallback' };
 }
 
 /**
@@ -509,26 +545,32 @@ export const notificationClickHandler =
         payload: { event: 'push_notification_opened', properties: { channel: 'web' } },
       });
 
-      if (!isSameOrigin) {
-        // navigate() rejects for a client this worker does not control, and then only a new
-        // window still gets the reader there.
-        try {
-          await existingClient.navigate(targetUrlString);
-        } catch {
-          await serviceWorkerScope.clients.openWindow(targetUrlString);
-        }
-        return;
+      // The open app routes a target on this origin itself, a soft navigation that keeps the
+      // app loaded. Only a page that does not take the tap over, like the admin panel, or a link
+      // to another origin is loaded anew. A page created by the admin panel's URL stays there,
+      // because leaving it is a full page load, so its creation URL is enough to skip the wait.
+      if (isSameOrigin && mayRouteTap(existingClient)) {
+        const controlledClients = await serviceWorkerScope.clients.matchAll({ type: 'window' });
+        const isControlled = controlledClients.some((client) => client.id === existingClient.id);
+        const answer = await requestFromClient(
+          existingClient,
+          { type: ServiceWorkerMessages.PUSH_NAVIGATE, payload: { url: targetUrlString } },
+          isControlled
+            ? PUSH_NAVIGATE_RESPONSE_TIMEOUT_MS
+            : UNCONTROLLED_PUSH_NAVIGATE_RESPONSE_TIMEOUT_MS,
+        );
+        if ((answer as { handled?: unknown } | undefined)?.handled === true) return;
       }
 
-      existingClient.postMessage({
-        type: ServiceWorkerMessages.PUSH_NAVIGATE,
-        payload: { url: targetUrlString },
-      });
-      if ('navigate' in existingClient && typeof existingClient.navigate === 'function') {
+      // navigate() rejects for a client this worker does not control, and then only a new
+      // window still gets the reader there.
+      try {
+        await existingClient.navigate(targetUrlString);
+      } catch {
         try {
-          await existingClient.navigate(targetUrlString);
-        } catch {
-          // navigation handled by PUSH_NAVIGATE postMessage
+          await serviceWorkerScope.clients.openWindow(targetUrlString);
+        } catch (error: unknown) {
+          console.warn('[SW Push] Could not open the notification target:', error);
         }
       }
     })();
