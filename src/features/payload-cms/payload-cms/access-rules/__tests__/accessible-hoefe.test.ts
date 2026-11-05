@@ -24,7 +24,7 @@ jest.mock('@/utils/server-logger', () => ({
 import {
   isHofDashboardReviewer,
   listAccessibleHoefe,
-} from '@/features/hof-dashboard/api/accessible-hoefe';
+} from '@/features/payload-cms/payload-cms/access-rules/accessible-hoefe';
 import { canReviewHofDashboard } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';

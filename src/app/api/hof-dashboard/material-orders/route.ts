@@ -1,9 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
 import {
-  isHofDashboardReviewer,
-  listAccessibleHoefe,
-} from '@/features/hof-dashboard/api/accessible-hoefe';
-import {
   getMaterialOrders,
   recordMaterialOrderExport,
 } from '@/features/hof-dashboard/api/material-orders';
@@ -13,6 +9,10 @@ import {
   type MaterialExportSheet,
 } from '@/features/hof-dashboard/api/material-orders-export';
 import { translate } from '@/features/hof-dashboard/texts';
+import {
+  isHofDashboardReviewer,
+  listAccessibleHoefe,
+} from '@/features/payload-cms/payload-cms/access-rules/accessible-hoefe';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';

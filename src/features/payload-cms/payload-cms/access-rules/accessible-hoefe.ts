@@ -19,7 +19,8 @@ export const isHofDashboardReviewer = (user: HitobitoNextAuthUser): boolean =>
 
 /**
  * The Höfe whose dashboard the user may open, sorted by name: every Hof for a reviewer, else
- * the Höfe of the Cevi.DB groups the user is address administrator of.
+ * the Höfe of the Cevi.DB groups the user is address administrator of. The same people program
+ * and hand out the NFC wristbands of these Höfe, so an AVP sees one set of Höfe in both places.
  *
  * The session carries only group ids, so the roles are read off the Payload user, where the
  * login copies them from the Cevi.DB profile.

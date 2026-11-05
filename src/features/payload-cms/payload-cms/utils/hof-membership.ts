@@ -42,9 +42,9 @@ export const findMyHofIds = (
 
 /**
  * A registration counts while it is active and not removed. The same rule decides who gets a
- * bill, so the address book and the billing agree on who is at a Hof's camp.
+ * bill, so the address book, the billing and the wristbands agree on who is at a Hof's camp.
  */
-const ACTIVE_REGISTRATION: Where = {
+export const ACTIVE_REGISTRATION: Where = {
   and: [{ active: { not_equals: false } }, { status: { not_equals: 'removed' } }],
 };
 
