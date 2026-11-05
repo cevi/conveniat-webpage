@@ -137,10 +137,14 @@ export const ForumComposer: React.FC = () => {
   const [images, setImages] = useState<PickedImage[]>([]);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const [wantsPrivate, setWantsPrivate] = useState(parameters.get('private') === '1');
+  // what the user chose on the toggle; until then the map's private link, or, for someone in no
+  // topic, private, since a public post needs a topic
+  const [choice, setChoice] = useState<'public' | 'private' | undefined>(
+    parameters.get('private') === '1' ? 'private' : undefined,
+  );
   // without a topic of their own, a report can only go privately to the Zentrale
   const canPostPublic = topics.data === undefined || topics.data.length > 0;
-  const isPrivate = wantsPrivate || !canPostPublic;
+  const isPrivate = choice === undefined ? !canPostPublic : choice === 'private';
   const deferredTitle = useDeferredValue(title);
 
   const suggestions = trpc.forum.getForumPostSuggestionList.useQuery(
@@ -268,43 +272,38 @@ export const ForumComposer: React.FC = () => {
   let publishHint = forumText.publishHint;
   if (!isOnline) publishHint = forumText.offlinePublish;
   else if (isPrivate) publishHint = forumText.privateHint;
+  else if (!canPostPublic) publishHint = forumText.publicNeedsTopic;
   else if (topic?.isAdmin === true) publishHint = forumText.publishHintKernteam;
 
   return (
     <div className="bg-page min-h-dvh pb-10">
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-3">
-        {canPostPublic ? (
-          <div className="flex flex-col gap-1.5">
-            <div className={segmentedTrackClassName}>
-              {([false, true] as const).map((value) => (
-                <button
-                  key={String(value)}
-                  type="button"
-                  aria-pressed={isPrivate === value}
-                  onClick={() => setWantsPrivate(value)}
-                  className={cn(
-                    segmentClassName(isPrivate === value),
-                    'flex-1 gap-1.5 text-[14px] font-semibold',
-                  )}
-                >
-                  {value ? (
-                    <Lock className="h-4 w-4" aria-hidden="true" />
-                  ) : (
-                    <Users className="h-4 w-4" aria-hidden="true" />
-                  )}
-                  {value ? forumText.private[locale] : forumText.public[locale]}
-                </button>
-              ))}
-            </div>
-            <p className="text-[13px] text-green-700">
-              {isPrivate ? forumText.privateExplain[locale] : forumText.publicExplain[locale]}
-            </p>
+        <div className="flex flex-col gap-1.5">
+          <div className={segmentedTrackClassName}>
+            {([false, true] as const).map((value) => (
+              <button
+                key={String(value)}
+                type="button"
+                aria-pressed={isPrivate === value}
+                onClick={() => setChoice(value ? 'private' : 'public')}
+                className={cn(
+                  segmentClassName(isPrivate === value),
+                  'flex-1 gap-1.5 text-[14px] font-semibold',
+                )}
+              >
+                {value ? (
+                  <Lock className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Users className="h-4 w-4" aria-hidden="true" />
+                )}
+                {value ? forumText.private[locale] : forumText.public[locale]}
+              </button>
+            ))}
           </div>
-        ) : (
-          <p className="bg-quiet rounded-xl px-3 py-2 text-[13px] text-green-800">
-            {forumText.onlyPrivate[locale]}
+          <p className="text-[13px] text-green-700">
+            {isPrivate ? forumText.privateExplain[locale] : forumText.publicExplain[locale]}
           </p>
-        )}
+        </div>
 
         {!isPrivate && (topics.data?.length ?? 0) > 1 && (
           <fieldset className="flex flex-col gap-1.5">

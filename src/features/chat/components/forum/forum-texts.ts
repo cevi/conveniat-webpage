@@ -203,10 +203,10 @@ export const forumText = {
     en: 'Only to the Zentrale, in a chat with the person on duty. For anything that should not be public.',
     fr: 'Seulement à la Zentrale, dans un chat avec le piquet. Pour tout ce qui ne doit pas être public.',
   },
-  onlyPrivate: {
-    de: 'Du bist in keinem Forum-Thema. Deine Meldung geht privat an die Zentrale.',
-    en: 'You are not in any forum topic. Your report goes privately to the Zentrale.',
-    fr: 'Tu ne fais partie d’aucun thème du forum. Ton signalement va en privé à la Zentrale.',
+  publicNeedsTopic: {
+    de: 'Öffentlich posten kannst du, sobald du zu einem Forum-Thema gehörst. Privat an die Zentrale geht immer.',
+    en: 'You can post publicly once you belong to a forum topic. Reporting privately to the Zentrale always works.',
+    fr: 'Tu pourras publier dès que tu feras partie d’un thème du forum. Le signalement privé à la Zentrale fonctionne toujours.',
   },
   privateHint: {
     de: 'Nur du und das Piket der Zentrale sehen die Meldung.',
