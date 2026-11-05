@@ -3,10 +3,18 @@ import { z } from 'zod';
 
 /**
  * Define the schema for a starred event.
+ *
+ * A row is what this device knows about one star, see `@/lib/star-sync`. `starred: false` is a
+ * removal the database has not heard of yet, kept so the next sync can tell it. `synced` marks a
+ * row the database confirmed; rows stored before either field existed have neither, and read as
+ * a star that still has to be sent.
  */
 const starSchema = z.object({
   id: z.string(),
+  /** When the star was last changed on this device, also how a sync recognises its own rows. */
   starredAt: z.number(),
+  starred: z.boolean().optional(),
+  synced: z.boolean().optional(),
 });
 
 /**
@@ -24,6 +32,26 @@ export const starsCollection = createCollection(
 
 // Type helper for the stars table
 export type StarRecord = z.infer<typeof starSchema>;
+
+/**
+ * Stars or unstars an entry on this device and marks the row for the next sync, which tells the
+ * database. An unstarred row stays as a removal until then, so it cannot come back from there.
+ *
+ * @param id - The id of the starred entry.
+ * @param starred - Whether the entry is starred now.
+ */
+export const setLocalStar = (id: string, starred: boolean): void => {
+  const starredAt = Date.now();
+  if (starsCollection.has(id)) {
+    starsCollection.update(id, (draft) => {
+      draft.starred = starred;
+      draft.starredAt = starredAt;
+      draft.synced = false;
+    });
+    return;
+  }
+  starsCollection.insert({ id, starredAt, starred, synced: false });
+};
 
 /**
  * Schema for schedule entry timeslot

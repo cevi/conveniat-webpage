@@ -401,3 +401,57 @@ describe('scheduleRouter course statuses', () => {
     });
   });
 });
+
+describe('scheduleRouter star.updateStars', () => {
+  const star = {
+    createMany: jest.fn(),
+    deleteMany: jest.fn(),
+    findMany: jest.fn(),
+  };
+  const prisma = { user: { upsert: jest.fn().mockResolvedValue({}) }, star };
+
+  const caller = (): ReturnType<typeof createCaller> =>
+    createCaller({
+      user: { uuid: 'leiter-1', name: 'Anna Muster' },
+      locale: 'de',
+      prisma,
+    } as unknown as Context);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    star.findMany.mockResolvedValue([{ courseId: 'theater' }]);
+  });
+
+  it('stores the stars a device added and drops the ones it removed', async () => {
+    const result = await caller().star.updateStars({
+      changes: [
+        { courseId: 'theater', starred: true },
+        { courseId: 'seilbruecke', starred: false },
+      ],
+    });
+
+    expect(star.createMany).toHaveBeenCalledWith({
+      data: [{ courseId: 'theater', userId: 'leiter-1', courseType: CourseType.PROGRAM }],
+      skipDuplicates: true,
+    });
+    expect(star.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'leiter-1', courseId: { in: ['seilbruecke'] } },
+    });
+    expect(result).toEqual(['theater']);
+  });
+
+  it('answers a device without changes with every star of the user', async () => {
+    const result = await caller().star.updateStars({ changes: [] });
+
+    expect(star.createMany).not.toHaveBeenCalled();
+    expect(star.deleteMany).not.toHaveBeenCalled();
+    expect(result).toEqual(['theater']);
+  });
+
+  // The device replaces its confirmed stars with the answer, so a made-up one would lose stars.
+  it('fails instead of answering when the database does', async () => {
+    star.findMany.mockRejectedValue(new Error('connection lost'));
+
+    await expect(caller().star.updateStars({ changes: [] })).rejects.toThrow();
+  });
+});
