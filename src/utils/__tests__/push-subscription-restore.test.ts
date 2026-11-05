@@ -84,7 +84,7 @@ describe('restoreLostPushSubscription', () => {
       restoredSubscription.toJSON(),
       'fr',
       'jest',
-      undefined,
+      'restored',
       'device-1',
     );
   });

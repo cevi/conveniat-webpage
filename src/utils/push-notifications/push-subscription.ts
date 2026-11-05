@@ -36,7 +36,7 @@ const retry = async <T>(
 
 export const subscribeToPushNotifications = async (
   locale: 'de' | 'fr' | 'en',
-  registrationSource?: '/entrypoint' | '/app/settings',
+  registrationSource?: '/entrypoint' | '/app/settings' | 'restored',
 ): Promise<PushSubscription> => {
   if (Notification.permission === 'denied') {
     throw new Error('Notifications are blocked. Please enable them in your browser settings.');
@@ -164,7 +164,7 @@ export const restoreLostPushSubscription = async (locale: 'de' | 'fr' | 'en'): P
   if (!registration) return false;
   if ((await registration.pushManager.getSubscription()) !== null) return false;
 
-  await subscribeToPushNotifications(locale);
+  await subscribeToPushNotifications(locale, 'restored');
   return true;
 };
 

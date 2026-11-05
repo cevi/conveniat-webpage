@@ -157,10 +157,23 @@ export const PushNotificationSubscriptions: CollectionConfig = {
       options: [
         { label: '/entrypoint', value: '/entrypoint' },
         { label: '/app/settings', value: '/app/settings' },
+        {
+          label: {
+            en: 'Restored on app start',
+            de: 'Beim App-Start wiederhergestellt',
+            fr: "Restauré au démarrage de l'app",
+          },
+          value: 'restored',
+        },
       ],
       admin: {
         position: 'sidebar',
         readOnly: true,
+        description: {
+          en: 'Where the web subscription was last stored. Restored: the browser had lost its subscription with the permission still granted, and the app subscribed it again on start.',
+          de: 'Wo das Web-Abonnement zuletzt gespeichert wurde. Wiederhergestellt: Der Browser hatte sein Abonnement bei erteilter Berechtigung verloren, und die App hat es beim Start neu abgeschlossen.',
+          fr: "Où l'abonnement web a été enregistré en dernier. Restauré : le navigateur avait perdu son abonnement alors que l'autorisation était accordée, et l'app l'a renouvelé au démarrage.",
+        },
       },
     },
     {
