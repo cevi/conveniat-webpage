@@ -424,14 +424,9 @@ export const createMessage = trpcBaseProcedure
               chatName: chat.name,
               // the image line already names the sender
               ...(isImage ? {} : { senderName: user.name }),
-              // Every message in an emergency chat is part of a running alert, so the
-              // follow-ups reach the piket members on the siren channel too - a reply that
-              // only lands in the notification shade is exactly the failure mode the
-              // emergency channel exists to prevent. Support chats stay on the regular
-              // channel; they are not time critical in the same way.
-              ...(chat.type === ChatType.EMERGENCY
-                ? { notificationType: 'emergency' as const }
-                : {}),
+              // No notificationType: only the alert that opens an emergency chat sirens (see
+              // the emergency router). A siren on every reply drowned out a busy case, so the
+              // follow-ups ring like any chat message (#1654).
             },
           );
         })

@@ -616,10 +616,6 @@ export interface User {
    */
   description?: string | null;
   /**
-   * Hide this user from the chat creation selection.
-   */
-  hidden?: boolean | null;
-  /**
    * Whether the user is currently present on the campsite.
    */
   presentAtCamp?: boolean | null;
@@ -636,7 +632,11 @@ export interface User {
    */
   profilePictureVersion?: string | null;
   /**
-   * For an account that only tries the app, e.g. for the App Store review. Its contact list shows only people of its own Hof and those it exchanged a chat QR code with, not every function holder and AVP.
+   * Others do not see this person in their contact list and cannot start a new chat with them. The person still sees their own contacts. As the organiser of a programme entry or a Schichteinsatz, they stay reachable there.
+   */
+  hidden?: boolean | null;
+  /**
+   * This person sees only their own Hof and the people they exchanged a chat QR code with, not every function holder and AVP. Others still find them; for the App Store review, also tick «Not findable in the chat».
    */
   testAccount?: boolean | null;
   lastEditedByUser?: (string | null) | User;
@@ -4427,7 +4427,10 @@ export interface PushNotificationSubscription {
   user?: (string | null) | User;
   platform: 'web' | 'ios' | 'android';
   lastUsedAt?: string | null;
-  registrationSource?: ('/entrypoint' | '/app/settings') | null;
+  /**
+   * Where the web subscription was last stored. Restored: the browser had lost its subscription with the permission still granted, and the app subscribed it again on start.
+   */
+  registrationSource?: ('/entrypoint' | '/app/settings' | 'restored') | null;
   deviceId?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -7230,10 +7233,10 @@ export interface UsersSelect<T extends boolean = true> {
   avpHoefe?: T;
   funktionen?: T;
   description?: T;
-  hidden?: T;
   presentAtCamp?: T;
   presenceLogs?: T;
   profilePictureVersion?: T;
+  hidden?: T;
   testAccount?: T;
   lastEditedByUser?: T;
   updatedAt?: T;

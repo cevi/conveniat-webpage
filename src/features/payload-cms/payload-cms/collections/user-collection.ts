@@ -521,19 +521,6 @@ export const UserCollection: CollectionConfig = {
               },
             },
             {
-              name: 'hidden',
-              label: {
-                en: 'Hidden from Chat Selection',
-                de: 'Aus Chat-Auswahl ausblenden',
-                fr: 'Masquer de la sélection de chat',
-              },
-              type: 'checkbox',
-              defaultValue: false,
-              admin: {
-                description: 'Hide this user from the chat creation selection.',
-              },
-            },
-            {
               name: 'presentAtCamp',
               label: {
                 en: 'Present at Campsite',
@@ -610,18 +597,44 @@ export const UserCollection: CollectionConfig = {
       },
     },
     {
-      name: 'testAccount',
-      label: { en: 'Test account', de: 'Testkonto', fr: 'Compte de test' },
-      type: 'checkbox',
-      defaultValue: false,
-      admin: {
-        position: 'sidebar',
-        description: {
-          en: 'For an account that only tries the app, e.g. for the App Store review. Its contact list shows only people of its own Hof and those it exchanged a chat QR code with, not every function holder and AVP.',
-          de: 'Für ein Konto, das die App nur ausprobiert, z.B. für die Prüfung im App Store. Seine Kontaktliste zeigt nur Personen aus dem eigenen Hof und die, mit denen es einen Chat-QR-Code ausgetauscht hat, nicht alle mit einer Funktion und alle AVPs.',
-          fr: "Pour un compte qui ne fait qu'essayer l'application, par ex. pour la vérification dans l'App Store. Sa liste de contacts ne montre que les personnes de son propre Hof et celles avec qui il a échangé un code QR de chat, pas toutes les personnes avec une fonction ni tous les AVP.",
+      // Both checkboxes shape the chat contact list, in opposite directions: `hidden` decides who
+      // finds this person, `testAccount` whom this person finds. Side by side, the descriptions
+      // can say so. A collapsible only changes the layout; the fields stay top level.
+      type: 'collapsible',
+      label: { en: 'Chat', de: 'Chat', fr: 'Chat' },
+      admin: { position: 'sidebar' },
+      fields: [
+        {
+          name: 'hidden',
+          label: {
+            en: 'Not findable in the chat',
+            de: 'Im Chat nicht auffindbar',
+            fr: 'Introuvable dans le chat',
+          },
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description: {
+              en: 'Others do not see this person in their contact list and cannot start a new chat with them. The person still sees their own contacts. As the organiser of a programme entry or a Schichteinsatz, they stay reachable there.',
+              de: 'Andere sehen diese Person nicht in ihrer Kontaktliste und können keinen neuen Chat mit ihr starten. Sie selbst sieht ihre Kontakte weiterhin. Leitet sie einen Programmpunkt oder einen Schichteinsatz, ist sie dort weiterhin erreichbar.',
+              fr: 'Les autres ne voient pas cette personne dans leur liste de contacts et ne peuvent pas démarrer de nouveau chat avec elle. Elle-même voit toujours ses contacts. Si elle organise un point du programme ou un Schichteinsatz, elle reste joignable depuis celui-ci.',
+            },
+          },
         },
-      },
+        {
+          name: 'testAccount',
+          label: { en: 'Test account', de: 'Testkonto', fr: 'Compte de test' },
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description: {
+              en: 'This person sees only their own Hof and the people they exchanged a chat QR code with, not every function holder and AVP. Others still find them; for the App Store review, also tick «Not findable in the chat».',
+              de: 'Diese Person sieht nur ihren eigenen Hof und die Personen, mit denen sie einen Chat-QR-Code ausgetauscht hat, nicht alle mit einer Funktion und alle AVPs. Andere finden sie weiterhin; für die Prüfung im App Store zusätzlich «Im Chat nicht auffindbar» ankreuzen.',
+              fr: "Cette personne ne voit que son propre Hof et les personnes avec qui elle a échangé un code QR de chat, pas toutes les personnes avec une fonction ni tous les AVP. Les autres la trouvent toujours ; pour la vérification dans l'App Store, coche aussi «Introuvable dans le chat».",
+            },
+          },
+        },
+      ],
     },
     LastEditedByUserField,
   ],

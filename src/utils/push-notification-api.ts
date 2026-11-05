@@ -32,7 +32,7 @@ export async function subscribeUser(
   sub: WebPushSubscription,
   locale: 'de' | 'fr' | 'en',
   userAgent?: string,
-  registrationSource?: '/entrypoint' | '/app/settings',
+  registrationSource?: '/entrypoint' | '/app/settings' | 'restored',
   deviceId?: string,
 ): Promise<{ success: boolean }> {
   const payload = await getPayload({ config });

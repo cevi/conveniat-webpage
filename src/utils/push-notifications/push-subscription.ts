@@ -1,6 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { subscribeUser, unsubscribeUser } from '@/utils/push-notification-api';
-import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
+import {
+  getPushSubscription,
+  isPushSupported,
+} from '@/utils/push-notifications/push-manager-utils';
 import { reportRenewedPushSubscription } from '@/utils/push-notifications/report-renewed-push-subscription';
 import { registerServiceWorker } from '@/utils/service-worker-utils';
 import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
@@ -33,7 +36,7 @@ const retry = async <T>(
 
 export const subscribeToPushNotifications = async (
   locale: 'de' | 'fr' | 'en',
-  registrationSource?: '/entrypoint' | '/app/settings',
+  registrationSource?: '/entrypoint' | '/app/settings' | 'restored',
 ): Promise<PushSubscription> => {
   if (Notification.permission === 'denied') {
     throw new Error('Notifications are blocked. Please enable them in your browser settings.');
@@ -140,6 +143,29 @@ export const renewPushSubscriptionOnStaleKey = async (): Promise<void> => {
     3,
     1000,
   );
+};
+
+/**
+ * Subscribes this browser again when it has the permission but no subscription. The browser
+ * drops a subscription on its own when its push service expires it, without firing
+ * `pushsubscriptionchange`, and an unregistered service worker takes its subscription along;
+ * until something subscribes again, the phone stays silent. The caller decides that the user
+ * did not turn push off, see the `web-push-opted-out` preference.
+ *
+ * @returns whether it subscribed.
+ */
+export const restoreLostPushSubscription = async (locale: 'de' | 'fr' | 'en'): Promise<boolean> => {
+  if (vapidPublicKey === '' || !isPushSupported()) return false;
+  if (!navigator.onLine || Notification.permission !== 'granted') return false;
+
+  // Registering the worker is the service worker manager's job. With Serwist disabled,
+  // `registerServiceWorker` would unregister every worker and reload the page instead.
+  const registration = await navigator.serviceWorker.getRegistration();
+  if (!registration) return false;
+  if ((await registration.pushManager.getSubscription()) !== null) return false;
+
+  await subscribeToPushNotifications(locale, 'restored');
+  return true;
 };
 
 export const unsubscribeFromPushNotifications = async (): Promise<void> => {
