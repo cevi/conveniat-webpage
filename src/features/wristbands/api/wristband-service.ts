@@ -5,7 +5,9 @@ import { deriveTagCredentials } from '@/features/wristbands/api/tag-password';
 import type {
   HofBand,
   HofWristbandList,
+  ProgramRefusal,
   ProgramWristbandResult,
+  RegisterWristbandResult,
   RosterEntry,
   WristbandIdentity,
   WristbandRoster,
@@ -126,30 +128,52 @@ export const getHofWristbandList = async (
   };
 };
 
-/**
- * The write password of a band, for the AVP programming it, and the band's entry. Refused for
- * a chip without NXP's signature, a blocked band and one another Hof programmed. Asked while
- * the band lies on the phone, so it reads and writes as little as it can.
- */
-export const programWristband = async (
+/** Why the Hof may not program this band, or undefined if it may. */
+const findRefusal = async (
   payload: Payload,
-  input: { hofId: string; uid: string; signature: string | null; userId: string },
-): Promise<ProgramWristbandResult> => {
-  const { hofId, uid, signature, userId } = input;
+  input: { hofId: string; uid: string; signature: string | null },
+): Promise<{ refusal: ProgramRefusal | undefined; band: Wristband | undefined }> => {
+  const { hofId, uid, signature } = input;
   if (!isGenuine(uid, signature)) {
     logger.warn('Refused to program a band without a valid NXP signature', {
       'wristband.uid': uid,
       'wristband.signature': signature === null ? 'missing' : 'invalid',
     });
-    return { ok: false, reason: 'not-genuine' };
+    return { refusal: 'not-genuine', band: undefined };
   }
-
   const band = await findBand(payload, uid);
-  if (band?.status === 'revoked') return { ok: false, reason: 'revoked' };
-  if (band !== undefined && idOf(band.hof) !== hofId) {
-    return { ok: false, reason: 'assigned-to-other' };
-  }
+  if (band?.status === 'revoked') return { refusal: 'revoked', band };
+  if (band !== undefined && idOf(band.hof) !== hofId) return { refusal: 'assigned-to-other', band };
+  return { refusal: undefined, band };
+};
 
+/**
+ * The write password of a band, for the AVP programming it. Refused for a chip without NXP's
+ * signature, a blocked band and one another Hof programmed. Asked while the band lies on the
+ * phone, so it only reads; the band is recorded once the phone says it is written, see
+ * `registerWristband`.
+ */
+export const programWristband = async (
+  payload: Payload,
+  input: { hofId: string; uid: string; signature: string | null },
+): Promise<ProgramWristbandResult> => {
+  const { refusal } = await findRefusal(payload, input);
+  if (refusal !== undefined) return { ok: false, reason: refusal };
+  return { ok: true, ...deriveTagCredentials(input.uid, tagSecret()) };
+};
+
+/**
+ * Records a band for the Hof once the phone reports it written, so a cancelled scan or a failed
+ * write leaves no band behind that was never programmed. Checks again what `programWristband`
+ * checked: another Hof may have recorded the same band in between.
+ */
+export const registerWristband = async (
+  payload: Payload,
+  input: { hofId: string; uid: string; signature: string | null; userId: string },
+): Promise<RegisterWristbandResult> => {
+  const { hofId, uid, userId } = input;
+  const { refusal, band } = await findRefusal(payload, input);
+  if (refusal !== undefined) return { ok: false, reason: refusal };
   if (band === undefined) {
     await payload.create({
       collection: 'wristbands',
@@ -158,8 +182,7 @@ export const programWristband = async (
     });
     logger.info('Programmed a new band', { 'wristband.uid': uid, 'wristband.hof': hofId });
   }
-
-  return { ok: true, ...deriveTagCredentials(uid, tagSecret()) };
+  return { ok: true };
 };
 
 /** A band of the Hof, or an error the AVP can act on. */
