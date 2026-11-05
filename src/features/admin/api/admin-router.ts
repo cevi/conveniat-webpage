@@ -652,11 +652,9 @@ export const adminRouter = createTRPCRouter({
             : PushNotificationKind.CHAT,
         chatName: chat.name,
         ...(isImage ? {} : { senderName: user.name }),
-        // This is the reply path of the CMS Alert Management view, so it posts into
-        // emergency chats as well and has to reach the same verdict as the in-app
-        // send in `create-message`: same message, same channel, whichever way it
-        // was typed.
-        ...(chat.type === ChatType.EMERGENCY ? { notificationType: 'emergency' as const } : {}),
+        // No notificationType, like the in-app send in `create-message`: a reply from the
+        // CMS Alert Management view rings like any chat message. Only the alert that
+        // opens an emergency chat sirens (#1654).
       }).catch((error: unknown) => {
         logger.error('Failed to send the admin push notification', {
           error,
