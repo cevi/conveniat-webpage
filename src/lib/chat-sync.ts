@@ -1,15 +1,9 @@
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { CHAT_PAGE_SIZE } from '@/lib/chat-shared';
+import { scheduleEntryFingerprint } from '@/lib/schedule-entry-fingerprint';
 import type { trpc } from '@/trpc/client';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import { onlineManager } from '@tanstack/react-query';
-
-/**
- * Serialises a schedule entry ignoring `_syncedAt`, which changes on every sync by definition
- * and would otherwise mark every entry as modified.
- */
-const contentFingerprint = (record: object): string =>
-  JSON.stringify({ ...record, _syncedAt: undefined });
 
 /**
  * Prefetches all chats, chat details, and recent messages (first page) for the current user.
@@ -215,8 +209,9 @@ export const syncAllOfflineData = async (
             // Only rewrite entries whose content actually changed. Previously the update
             // callback cleared and reassigned every key, so each entry counted as modified on
             // every sync and the full write storm ran even when nothing had changed.
-            // `_syncedAt` is excluded because it changes on every sync by definition.
-            if (contentFingerprint(current) === contentFingerprint(recordToSave)) continue;
+            // `scheduleEntryFingerprint` says what does not count as a change.
+            if (scheduleEntryFingerprint(current) === scheduleEntryFingerprint(recordToSave))
+              continue;
 
             updateKeys.push(entry.id);
             updateById.set(entry.id, recordToSave);
