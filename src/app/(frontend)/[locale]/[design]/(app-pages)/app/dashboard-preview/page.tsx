@@ -56,6 +56,8 @@ const DashboardPreview: React.FC<{
           showActionCards={landingPage.showActionCards ?? false}
           flags={{
             imageUploadEnabled: featureFlags.imageUploadEnabled !== false,
+            helperShiftsEnabled: featureFlags.helperShiftsEnabled !== false,
+            photoContestEnabled: featureFlags.photoContestEnabled !== false,
             materialEnabled: environmentVariables.FEATURE_ENABLE_MATERIAL_MANAGEMENT,
           }}
           supportEmail={environmentVariables.APP_SUPPORT_EMAIL}
