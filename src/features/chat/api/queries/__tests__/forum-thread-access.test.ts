@@ -30,6 +30,22 @@ jest.mock('@/features/chat/api/utils/piket-service', () => ({
   getActivePiketMembers: (): Promise<unknown[]> => Promise.resolve([{ id: 'lea', name: 'Lea' }]),
 }));
 
+// Mira holds "Ressortleitung Infrastruktur", one of the topic's Kernteam functions
+jest.mock('@/features/chat/api/forum/forum-kernteam-labels', () => ({
+  findKernteamLabelsOfTopic: (
+    _prisma: unknown,
+    _chatId: string,
+    userIds: Iterable<string>,
+  ): Promise<Map<string, string>> =>
+    Promise.resolve(
+      new Map(
+        [...userIds]
+          .filter((id) => id === 'mira')
+          .map((id) => [id, 'Ressortleitung Infrastruktur'] as const),
+      ),
+    ),
+}));
+
 import { getChatMessages } from '@/features/chat/api/queries/get-chat-messages';
 import { getMessage } from '@/features/chat/api/queries/get-message';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
@@ -157,9 +173,11 @@ describe('the comments of a forum thread', () => {
   it("mark what the topic's Kernteam wrote, and nothing else", async () => {
     const { items } = await as('noah').getChatMessages({ chatId: TOPIC, parentId: REPORT });
 
-    expect(items.map((item) => [item.senderId, item.byTopicAdmin === true])).toEqual([
-      ['mira', true],
-      ['lea', false],
+    expect(
+      items.map((item) => [item.senderId, item.byTopicAdmin === true, item.kernteamLabel]),
+    ).toEqual([
+      ['mira', true, 'Ressortleitung Infrastruktur'],
+      ['lea', false, undefined],
     ]);
   });
 });

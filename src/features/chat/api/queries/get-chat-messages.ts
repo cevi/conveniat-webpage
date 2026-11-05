@@ -139,6 +139,15 @@ export const getChatMessages = trpcBaseProcedure
         ),
       ]);
 
+      // the function behind each of their badges; loaded only then, as it reads Payload
+      const kernteamLabels =
+        topicAdminIds.size === 0
+          ? undefined
+          : await import('@/features/chat/api/forum/forum-kernteam-labels').then(
+              ({ findKernteamLabelsOfTopic }) =>
+                findKernteamLabelsOfTopic(prisma, chat.uuid, topicAdminIds, ctx.locale),
+            );
+
       const mappedMessages = messages.map((message) => {
         const isReadByAdmin = chat.adminReadAt !== null && message.createdAt <= chat.adminReadAt;
         return toChatMessage(message, {
@@ -148,6 +157,7 @@ export const getChatMessages = trpcBaseProcedure
           deletedQuotedIds,
           threads,
           topicAdminIds,
+          ...(kernteamLabels === undefined ? {} : { kernteamLabels }),
         });
       });
 

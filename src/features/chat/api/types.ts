@@ -40,6 +40,8 @@ export interface ChatMessage {
    * Set in forum topics only; missing elsewhere and in caches from before.
    */
   byTopicAdmin?: boolean | undefined;
+  /** The function that makes the sender Kernteam of the topic, the badge's text; see `byTopicAdmin`. */
+  kernteamLabel?: string | undefined;
   reactions?: {
     emoji: string;
     userId: string;
