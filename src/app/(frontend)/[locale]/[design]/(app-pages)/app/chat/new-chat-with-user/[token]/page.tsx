@@ -4,7 +4,7 @@ import { trpc } from '@/trpc/server';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { getRouteLocale } from '@/utils/get-route-locale';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import type { LucideIcon } from 'lucide-react';
@@ -83,7 +83,7 @@ const NewChatWithUserPage: React.FC<{
     token: string;
   }>;
 }> = async ({ params }) => {
-  const locale = await getLocaleFromCookies();
+  const locale = await getRouteLocale();
   let result:
     | 'notLoggedIn'
     | 'cannotCreateChat'

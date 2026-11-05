@@ -11,7 +11,7 @@ import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
 import { getCachedSession } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { getRouteLocale } from '@/utils/get-route-locale';
 import { LogIn } from 'lucide-react';
 import React from 'react';
 
@@ -168,7 +168,7 @@ export const LogoutSection: React.FC = async () => {
  * log in instead.
  */
 export const ProfileDetails: React.FC = async () => {
-  const locale = await getLocaleFromCookies();
+  const locale = await getRouteLocale();
   const user = await sessionUser();
 
   if (user === undefined) {

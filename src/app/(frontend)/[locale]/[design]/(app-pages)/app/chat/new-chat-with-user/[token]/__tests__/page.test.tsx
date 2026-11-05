@@ -17,8 +17,8 @@ jest.mock('@/utils/auth', () => ({
   auth: (): Promise<unknown> => Promise.resolve({ user: { uuid: 'flurin' } }),
 }));
 jest.mock('@/utils/auth-helpers', () => ({ isValidNextAuthUser: (): boolean => true }));
-jest.mock('@/utils/get-locale-from-cookies', () => ({
-  getLocaleFromCookies: (): Promise<string> => Promise.resolve('de'),
+jest.mock('@/utils/get-route-locale', () => ({
+  getRouteLocale: (): Promise<string> => Promise.resolve('de'),
 }));
 jest.mock('@/utils/server-logger', () => ({
   createLogger: (): Record<string, jest.Mock> => ({ error: jest.fn(), debug: jest.fn() }),
