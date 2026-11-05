@@ -6,7 +6,10 @@ import { useOnboardingRecheck } from '@/features/onboarding/hooks/use-onboarding
 import { ONBOARDING_COMPLETE_KEY } from '@/lib/onboarding-complete';
 import { Cookie } from '@/types/types';
 import { replaceLocation } from '@/utils/assign-location';
-import { restoreLostPushSubscription } from '@/utils/push-notifications/push-subscription';
+import {
+  restoreLostPushSubscription,
+  unsubscribeFromPushNotifications,
+} from '@/utils/push-notifications/push-subscription';
 import { ANSWERED_BY_SERVICE_WORKER_HEADER } from '@/utils/service-worker-messages';
 import { renderHook, waitFor } from '@testing-library/react';
 import Cookies from 'js-cookie';
@@ -14,6 +17,7 @@ import Cookies from 'js-cookie';
 jest.mock('@/utils/assign-location', () => ({ replaceLocation: jest.fn() }));
 jest.mock('@/utils/push-notifications/push-subscription', () => ({
   restoreLostPushSubscription: jest.fn(() => Promise.resolve(false)),
+  unsubscribeFromPushNotifications: jest.fn(() => Promise.resolve()),
 }));
 /** The preferences stored on this device, by key. */
 const mockStoredPreferences = new Map<string, { key: string; value: unknown }>();
@@ -131,6 +135,17 @@ describe('the background push check of an installed web app started past the onb
     Cookies.set(Cookie.SKIP_PUSH_NOTIFICATION, 'true');
     renderHook(() => useOnboardingRecheck('fr'));
     expect(restore).not.toHaveBeenCalled();
+  });
+
+  it('takes a restore back when the user turned push off while it ran', async () => {
+    restore.mockImplementationOnce(() => {
+      // the user taps "off" in the settings while the subscribe is still on its way
+      mockStoredPreferences.set('web-push-opted-out', { key: 'web-push-opted-out', value: true });
+      return Promise.resolve(true);
+    });
+    renderHook(() => useOnboardingRecheck('fr'));
+
+    await waitFor(() => expect(unsubscribeFromPushNotifications).toHaveBeenCalled());
   });
 
   it('waits for the onboarding, whose push step asks for itself', () => {

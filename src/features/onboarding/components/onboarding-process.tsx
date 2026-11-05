@@ -16,6 +16,7 @@ import {
 import { useOnboarding } from '@/features/onboarding/hooks/use-onboarding';
 import { OnboardingStep } from '@/features/onboarding/types';
 
+import { writePreference } from '@/lib/preferences';
 import { Cookie } from '@/types/types';
 import { motion } from 'framer-motion';
 import Cookies from 'js-cookie';
@@ -50,6 +51,10 @@ export const OnboardingProcessContent: React.FC = () => {
         className="text-green-500"
         onClick={() => {
           Cookies.set(Cookie.SKIP_PUSH_NOTIFICATION, 'true', { expires: 7 });
+          // The cookie only keeps the step away for a week. The choice itself outlives it, or
+          // the start-up restore would subscribe a browser that still holds the permission of
+          // an earlier user. Turning push on in the settings clears it.
+          writePreference('web-push-opted-out', true);
           handlePushNotification();
         }}
       >

@@ -10,7 +10,10 @@ import type { Locale } from '@/types/types';
 import { Cookie } from '@/types/types';
 import { replaceLocation } from '@/utils/assign-location';
 import { isCookieTrue } from '@/utils/cookie-utils';
-import { restoreLostPushSubscription } from '@/utils/push-notifications/push-subscription';
+import {
+  restoreLostPushSubscription,
+  unsubscribeFromPushNotifications,
+} from '@/utils/push-notifications/push-subscription';
 import { ANSWERED_BY_SERVICE_WORKER_HEADER } from '@/utils/service-worker-messages';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import { useEffect, useRef } from 'react';
@@ -85,7 +88,13 @@ export const useOnboardingRecheck = (locale: Locale): void => {
       return;
 
     hasCheckedPushSubscription.current = true;
-    restoreLostPushSubscription(locale).catch((error: unknown) => {
+    const restore = async (): Promise<void> => {
+      if (!(await restoreLostPushSubscription(locale))) return;
+      // Subscribing can take seconds on a bad connection. A user who turned push off in the
+      // meantime found nothing to unsubscribe, so the restore takes itself back.
+      if (readPreference('web-push-opted-out')) await unsubscribeFromPushNotifications();
+    };
+    restore().catch((error: unknown) => {
       console.warn('Failed to restore the lost push subscription', error);
     });
   }, [isOnline, locale]);
