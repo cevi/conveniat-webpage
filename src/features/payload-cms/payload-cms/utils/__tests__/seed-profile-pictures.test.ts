@@ -2,7 +2,7 @@ jest.mock('@/features/payload-cms/payload-cms/utils/funktionen', () => ({
   refreshUserFunktionen: jest.fn(),
 }));
 jest.mock('@/features/payload-cms/payload-cms/utils/profile-pictures', () => ({
-  toAvatar: jest.fn((photo: Buffer) => Promise.resolve(photo)),
+  toProfilePicture: jest.fn((photo: Buffer) => Promise.resolve({ avatar: photo, large: photo })),
   setProfilePicture: jest.fn(() => Promise.resolve('version')),
 }));
 jest.mock('@/utils/server-logger', () => ({
@@ -80,7 +80,7 @@ describe('seedProfilePicturesOfFunktionen', () => {
     expect(setProfilePicture).toHaveBeenCalledWith(
       payload,
       'user-11',
-      expect.any(Buffer),
+      { avatar: expect.any(Buffer) as unknown, large: expect.any(Buffer) as unknown },
       undefined,
     );
     expect(fetchMock).toHaveBeenCalledWith(new URL(pictureOf('11')), expect.anything());

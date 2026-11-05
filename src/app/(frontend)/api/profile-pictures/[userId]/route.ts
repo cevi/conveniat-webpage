@@ -2,9 +2,9 @@ import prisma from '@/lib/db/prisma';
 import { S3_BUCKET_NAME, s3Client } from '@/lib/s3';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
-import { profilePictureKey } from '@/utils/profile-picture-url';
+import { LARGE_PROFILE_PICTURE_EDGE, profilePictureKey } from '@/utils/profile-picture-url';
 import { createLogger } from '@/utils/server-logger';
-import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { GetObjectCommand, type GetObjectCommandOutput } from '@aws-sdk/client-s3';
 import type { NextRequest } from 'next/server';
 
 const logger = createLogger('api:profile-pictures');
@@ -13,8 +13,8 @@ const logger = createLogger('api:profile-pictures');
 const CACHE_OF_CURRENT_VERSION = 'private, max-age=31536000, immutable';
 
 /**
- * Streams a user's profile picture, copied from Cevi.DB at their login. Like the address book,
- * only for logged-in users. A URL with an outdated version gets the current picture, but is
+ * Streams a user's profile picture, the avatar or with `size=640` the full-screen one. Like the
+ * address book, only for logged-in users. A URL with an outdated version gets the current picture, but is
  * not cached, so the next list refresh brings the new URL.
  */
 export async function GET(
@@ -37,9 +37,22 @@ export async function GET(
       return new Response('Not Found', { status: 404 });
     }
 
-    const object = await s3Client.send(
-      new GetObjectCommand({ Bucket: S3_BUCKET_NAME, Key: profilePictureKey(userId, version) }),
-    );
+    const wantsLarge =
+      request.nextUrl.searchParams.get('size') === String(LARGE_PROFILE_PICTURE_EDGE);
+    const read = (size: 'avatar' | 'large'): Promise<GetObjectCommandOutput> =>
+      s3Client.send(
+        new GetObjectCommand({
+          Bucket: S3_BUCKET_NAME,
+          Key: profilePictureKey(userId, version, size),
+        }),
+      );
+    // a picture stored before the large size existed has only its avatar
+    const object = wantsLarge
+      ? await read('large').catch((error: unknown) => {
+          if (error instanceof Error && error.name === 'NoSuchKey') return read('avatar');
+          throw error;
+        })
+      : await read('avatar');
     const body = object.Body?.transformToWebStream();
     if (body === undefined) return new Response('Not Found', { status: 404 });
 

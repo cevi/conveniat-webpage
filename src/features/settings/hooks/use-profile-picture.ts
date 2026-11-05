@@ -3,7 +3,7 @@
 import { trpc } from '@/trpc/client';
 import { useState } from 'react';
 
-/** The longest edge sent over the camp wifi; the server crops it to a 192px square. */
+/** The longest edge sent over the camp wifi; the server crops it to its 192 and 640px squares. */
 const UPLOAD_EDGE = 768;
 
 /**
