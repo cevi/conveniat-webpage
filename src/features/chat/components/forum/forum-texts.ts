@@ -164,6 +164,8 @@ export const forumText = {
   addLocation: { de: 'Standort hinzufügen', en: 'Add a location', fr: 'Ajouter un emplacement' },
   changeLocation: { de: 'Ändern', en: 'Change', fr: 'Modifier' },
   removeLocation: { de: 'Standort entfernen', en: 'Remove location', fr: 'Retirer l’emplacement' },
+  locationRemoved: { de: 'Standort entfernt', en: 'Location removed', fr: 'Emplacement retiré' },
+  undo: { de: 'Rückgängig', en: 'Undo', fr: 'Annuler' },
   pickedSpot: { de: 'Gewählter Ort', en: 'Chosen spot', fr: 'Lieu choisi' },
   alreadyReported: {
     de: 'Gibt es schon. Betrifft es dich auch?',

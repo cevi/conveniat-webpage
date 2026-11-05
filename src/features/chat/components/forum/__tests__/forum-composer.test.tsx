@@ -10,9 +10,10 @@ const mutation = (): object => ({ mutate: jest.fn(), mutateAsync: jest.fn(), isP
 
 jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
 jest.mock('@/hooks/use-online-status', () => ({ useOnlineStatus: (): boolean => true }));
+let address = '';
 jest.mock('next/navigation', () => ({
   useRouter: (): object => ({ replace: jest.fn() }),
-  useSearchParams: (): URLSearchParams => new URLSearchParams(),
+  useSearchParams: (): URLSearchParams => new URLSearchParams(address),
 }));
 jest.mock('@/trpc/client', () => ({
   trpc: {
@@ -38,6 +39,10 @@ const writeTitle = (): void => {
     target: { value: 'Toitoi in der Mitte ist voll' },
   });
 };
+
+beforeEach(() => {
+  address = '';
+});
 
 describe('the composer', () => {
   it('shows the toggle without a topic, starts on Privat and sends to the Zentrale', () => {
@@ -72,5 +77,18 @@ describe('the composer', () => {
     expect(
       screen.getByRole<HTMLButtonElement>('button', { name: 'Veröffentlichen' }).disabled,
     ).toBe(false);
+  });
+
+  it('brings a removed spot back with Rückgängig', () => {
+    topics = [{ id: 'topic', name: 'Platz & Infrastruktur', isAdmin: false }];
+    address = 'lng=8.301851&lat=46.504806&annotation=q1&label=Quartier+1';
+    render(<ForumComposer />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Standort entfernen' }));
+    expect(screen.queryByText('Quartier 1')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Rückgängig' }));
+
+    expect(screen.getByText('Quartier 1')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Rückgängig' })).toBeNull();
   });
 });
