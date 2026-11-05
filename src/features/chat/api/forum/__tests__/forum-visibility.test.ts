@@ -1,3 +1,11 @@
+jest.mock('@/config/environment-variables', () => ({
+  environmentVariables: {
+    // the groups the forum's rights read, none of them held here
+    CEVIDB_GROUP_FULL_ADMIN: [],
+    CEVIDB_GROUP_WEB_CORE_TEAM: [],
+    CEVIDB_GROUP_FORUM_ZENTRALE: [],
+  },
+}));
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('payload', () => ({ getPayload: jest.fn() }));
 jest.mock('@prisma/client', () =>
@@ -52,8 +60,14 @@ const prisma = {
   chat: {
     findUnique: (): Promise<unknown> => Promise.resolve({ type: ChatType.FORUM }),
   },
-  forumPostAssignment: { findFirst: (): Promise<null> => Promise.resolve(null) },
+  forumPostAssignment: {
+    findFirst: (): Promise<null> => Promise.resolve(null),
+    findMany: (): Promise<unknown[]> => Promise.resolve([]),
+  },
 } as unknown as PrismaClientOrTransaction;
+
+/** a participant as the session knows them, in no group that holds a role */
+const person = (uuid: string): { uuid: string; group_ids: number[] } => ({ uuid, group_ids: [] });
 
 const post = (overrides: Partial<ForumPostVisibility>): ForumPostVisibility => ({
   messageId: '0193f1a0-0000-7000-8000-0000000000aa',
@@ -87,20 +101,22 @@ beforeEach(() => {
 
 describe('who sees a forum post', () => {
   it('shows a public post to every member of the topic', async () => {
-    await expect(canSeeForumPost(prisma, 'sina', post({}))).resolves.toBe(true);
+    await expect(canSeeForumPost(prisma, person('sina'), post({}))).resolves.toBe(true);
   });
 
   it('shows a private report to its author, the Kernteam and the piket, and to nobody else', async () => {
     const report = post({ private: true });
 
-    await expect(canSeeForumPost(prisma, 'noah', report)).resolves.toBe(true);
-    await expect(canSeeForumPost(prisma, 'mira', report)).resolves.toBe(true);
-    await expect(canSeeForumPost(prisma, 'lea', report)).resolves.toBe(true);
-    await expect(canSeeForumPost(prisma, 'sina', report)).resolves.toBe(false);
+    await expect(canSeeForumPost(prisma, person('noah'), report)).resolves.toBe(true);
+    await expect(canSeeForumPost(prisma, person('mira'), report)).resolves.toBe(true);
+    await expect(canSeeForumPost(prisma, person('lea'), report)).resolves.toBe(true);
+    await expect(canSeeForumPost(prisma, person('sina'), report)).resolves.toBe(false);
   });
 
   it('hides a post waiting for approval the same way', async () => {
-    await expect(canSeeForumPost(prisma, 'sina', post({ approvedAt: null }))).resolves.toBe(false);
+    await expect(canSeeForumPost(prisma, person('sina'), post({ approvedAt: null }))).resolves.toBe(
+      false,
+    );
   });
 });
 

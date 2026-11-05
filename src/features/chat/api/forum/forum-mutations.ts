@@ -2,11 +2,12 @@ import { assertWriteAbilities } from '@/features/chat/api/checks/assert-can-writ
 import { forumError } from '@/features/chat/api/forum/forum-errors';
 import {
   type ForumModerator,
+  type ForumUser,
   isFullModerator,
   recordForumAuditEvent,
   resolveForumModerator,
 } from '@/features/chat/api/forum/forum-moderator';
-import { readForumPostContent } from '@/features/chat/api/forum/forum-posts';
+import { markForumPostReacted, readForumPostContent } from '@/features/chat/api/forum/forum-posts';
 import {
   pushForumModerators,
   pushForumPerson,
@@ -14,6 +15,7 @@ import {
   pushNewForumPost,
 } from '@/features/chat/api/forum/forum-push';
 import { findPrivateReportTopicId } from '@/features/chat/api/forum/forum-visibility';
+import { getFunktionDirectory } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import { isImageKeyOfChat } from '@/lib/chat-images';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { getFeatureFlag } from '@/lib/db/redis';
@@ -40,6 +42,8 @@ import { databaseTransactionWrapper } from '@/trpc/middleware/database-transacti
 import { rateLimit } from '@/trpc/middleware/rate-limit';
 import type { Locale, PrismaClientOrTransaction, StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
+import config from '@payload-config';
+import { getPayload } from 'payload';
 import { z } from 'zod';
 
 const logger = createLogger('forum:mutations');
@@ -66,6 +70,12 @@ const privateReportText = (title: string): StaticTranslationString => ({
   de: `Neue private Meldung: ${title}`,
   en: `New private report: ${title}`,
   fr: `Nouveau signalement privé : ${title}`,
+});
+
+const movedText = (from: string, to: string): StaticTranslationString => ({
+  de: `Von «${from}» nach «${to}» verschoben.`,
+  en: `Moved from "${from}" to "${to}".`,
+  fr: `Déplacé de « ${from} » vers « ${to} ».`,
 });
 
 const mergedText = (title: string): StaticTranslationString => ({
@@ -151,11 +161,11 @@ const loadPost = async (prisma: PrismaClientOrTransaction, postId: string): Prom
 /** Refuses anyone who may not moderate the post, in a way their client can explain. */
 const requireModerator = async (
   prisma: PrismaClientOrTransaction,
-  userId: string,
+  user: ForumUser,
   post: LoadedPost,
   full: boolean,
 ): Promise<ForumModerator> => {
-  const moderator = await resolveForumModerator(prisma, userId, post.chatId, post.messageId);
+  const moderator = await resolveForumModerator(prisma, user, post.chatId, post.messageId);
   if (moderator === undefined || (full && !isFullModerator(moderator))) {
     throw forumError('FORBIDDEN', 'notAllowed');
   }
@@ -474,7 +484,7 @@ export const updateForumPostStatus = trpcBaseProcedure
       throw forumError('CONFLICT', 'postAlreadyDone');
     }
 
-    const moderator = await resolveForumModerator(prisma, user.uuid, post.chatId, post.messageId);
+    const moderator = await resolveForumModerator(prisma, user, post.chatId, post.messageId);
     if (moderator === undefined) {
       const hadAssignment = await prisma.forumPostAssignment.count({
         where: { messageId: post.messageId, assigneeId: user.uuid },
@@ -486,6 +496,7 @@ export const updateForumPostStatus = trpcBaseProcedure
       where: { messageId: post.messageId },
       data: { status: input.status, statusChangedAt: new Date(), statusChangedById: user.uuid },
     });
+    await markForumPostReacted(prisma, post.messageId);
     await recordForumAuditEvent(prisma, {
       action: 'STATUS_CHANGED',
       post: { messageId: post.messageId, chatId: post.chatId, title: post.title },
@@ -528,7 +539,7 @@ export const setForumPostPinned = trpcBaseProcedure
   .mutation(async ({ ctx, input }): Promise<{ pinned: boolean }> => {
     const { prisma, user } = ctx;
     const post = await loadPost(prisma, input.postId);
-    const moderator = await requireModerator(prisma, user.uuid, post, true);
+    const moderator = await requireModerator(prisma, user, post, true);
     if ((post.pinnedAt !== null) === input.pinned) return { pinned: input.pinned };
 
     await prisma.forumPost.update({
@@ -553,7 +564,7 @@ export const setForumPostAnswer = trpcBaseProcedure
   .mutation(async ({ ctx, input }): Promise<{ answerCommentId: string | null }> => {
     const { prisma, user } = ctx;
     const post = await loadPost(prisma, input.postId);
-    const moderator = await requireModerator(prisma, user.uuid, post, true);
+    const moderator = await requireModerator(prisma, user, post, true);
     if (post.answerMessageId === input.commentId) return { answerCommentId: input.commentId };
 
     if (input.commentId !== null) {
@@ -593,7 +604,7 @@ export const mergeForumPost = trpcBaseProcedure
     const { prisma, user } = ctx;
     const post = await loadPost(prisma, input.postId);
     const into = await loadPost(prisma, input.intoPostId);
-    const moderator = await requireModerator(prisma, user.uuid, post, true);
+    const moderator = await requireModerator(prisma, user, post, true);
     if (post.mergedIntoId === into.messageId) return { mergedIntoId: into.messageId };
     if (
       post.messageId === into.messageId ||
@@ -650,7 +661,7 @@ export const unmergeForumPost = trpcBaseProcedure
   .mutation(async ({ ctx, input }): Promise<{ mergedIntoId: null }> => {
     const { prisma, user } = ctx;
     const post = await loadPost(prisma, input.postId);
-    const moderator = await requireModerator(prisma, user.uuid, post, true);
+    const moderator = await requireModerator(prisma, user, post, true);
     if (post.mergedIntoId === null) return { mergedIntoId: null };
 
     await prisma.forumPost.update({
@@ -699,7 +710,7 @@ export const deleteForumMessage = trpcBaseProcedure
     if (post.chatId !== message.chatId) {
       throw invariantError('BAD_REQUEST', 'The message is not part of a forum post.');
     }
-    const moderator = await requireModerator(prisma, user.uuid, post, true);
+    const moderator = await requireModerator(prisma, user, post, true);
 
     const deletedAt = new Date();
     await prisma.message.update({
@@ -766,63 +777,132 @@ export const deleteForumMessage = trpcBaseProcedure
   });
 
 /**
- * Hands a post to a helper, anyone who has logged in once. While the assignment is open they
- * belong to the topic and may change the status of this one post. An open post goes to "in
- * progress" with it, since someone is on the way.
+ * Adds one person to a forward: they join the topic for as long as it is open, and the post's
+ * thread. Returns the assignment, an open one of theirs for the post if there is one already.
+ */
+const forwardToPerson = async (
+  prisma: PrismaClientOrTransaction,
+  post: LoadedPost,
+  assigneeId: string,
+  by: { uuid: string },
+  details: { note: string | undefined; funktionId: string | undefined },
+): Promise<{ id: string; isNew: boolean }> => {
+  const open = await prisma.forumPostAssignment.findFirst({
+    where: { messageId: post.messageId, assigneeId, endedAt: null, kind: 'HELPER' },
+    select: { id: true },
+  });
+  if (open !== null) return { id: open.id, isNew: false };
+
+  const membership = await prisma.chatMembership.findUnique({
+    where: { userId_chatId: { userId: assigneeId, chatId: post.chatId } },
+    select: { userId: true },
+  });
+  if (membership === null) {
+    await prisma.chatMembership.create({
+      data: {
+        userId: assigneeId,
+        chatId: post.chatId,
+        chatPermission: ChatMembershipPermission.MEMBER,
+      },
+    });
+  }
+  const assignment = await prisma.forumPostAssignment.create({
+    data: {
+      messageId: post.messageId,
+      assigneeId,
+      assignedById: by.uuid,
+      note: details.note ?? null,
+      funktionId: details.funktionId ?? null,
+      addedMembership: membership === null,
+    },
+    select: { id: true },
+  });
+  await prisma.threadSubscription.createMany({
+    data: [
+      { userId: assigneeId, messageId: post.messageId },
+      { userId: by.uuid, messageId: post.messageId },
+    ],
+    skipDuplicates: true,
+  });
+  return { id: assignment.id, isNew: true };
+};
+
+/** The holders of a function and its label, for a forward to a Ressort. */
+const findRessort = async (
+  prisma: PrismaClientOrTransaction,
+  funktionId: string,
+  locale: Locale,
+): Promise<{ label: string; holders: { uuid: string; name: string }[] }> => {
+  const payload = await getPayload({ config });
+  const [directory, holders] = await Promise.all([
+    getFunktionDirectory(payload, locale),
+    prisma.user.findMany({
+      where: { funktionIds: { has: funktionId } },
+      select: { uuid: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
+  ]);
+  const funktion = directory.get(funktionId);
+  // a function the nightly sync removed while the sheet was open
+  if (funktion === undefined) throw forumError('NOT_FOUND', 'ressortGone');
+  if (holders.length === 0) throw forumError('CONFLICT', 'ressortEmpty');
+  return { label: funktion.label, holders };
+};
+
+/**
+ * Forwards a post: to one person, a helper sent out or someone asked to answer, or to a Ressort,
+ * every holder of a function from Funktionen und Adressbuch. Until it is done or handed back,
+ * they may see the post, a private report included, reply and change its status, and each gets
+ * a push. Forwarding is no reaction to the post: it waits in the Zentrale until someone answers.
  */
 export const createForumPostAssignment = trpcBaseProcedure
-  .input(z.object({ postId: z.uuid(), assigneeId: z.string().min(1).max(64), note: optionalNote }))
+  .input(
+    z
+      .object({
+        postId: z.uuid(),
+        assigneeId: z.string().min(1).max(64).optional(),
+        funktionId: z.string().min(1).max(64).optional(),
+        note: optionalNote,
+      })
+      .refine((input) => (input.assigneeId === undefined) !== (input.funktionId === undefined), {
+        message: 'Forward to a person or to a Ressort.',
+      }),
+  )
   .use(moderationLimit)
   .use(databaseTransactionWrapper)
-  .mutation(async ({ ctx, input }): Promise<{ id: string }> => {
+  .mutation(async ({ ctx, input }): Promise<{ ids: string[] }> => {
     const { prisma, user } = ctx;
     const post = await loadPost(prisma, input.postId);
     if (post.mergedIntoId !== null) throw forumError('CONFLICT', 'postMerged');
     if (post.status === 'DONE') throw forumError('CONFLICT', 'postAlreadyDone');
-    const moderator = await requireModerator(prisma, user.uuid, post, true);
+    const moderator = await requireModerator(prisma, user, post, true);
 
-    const assignee = await prisma.user.findUnique({
-      where: { uuid: input.assigneeId },
-      select: { uuid: true, name: true },
-    });
-    if (assignee === null) throw forumError('NOT_FOUND', 'assigneeUnknown');
-
-    const open = await prisma.forumPostAssignment.findFirst({
-      where: { messageId: post.messageId, assigneeId: assignee.uuid, endedAt: null },
-      select: { id: true },
-    });
-    if (open !== null) return { id: open.id };
-
-    const membership = await prisma.chatMembership.findUnique({
-      where: { userId_chatId: { userId: assignee.uuid, chatId: post.chatId } },
-      select: { userId: true },
-    });
-    if (membership === null) {
-      await prisma.chatMembership.create({
-        data: {
-          userId: assignee.uuid,
-          chatId: post.chatId,
-          chatPermission: ChatMembershipPermission.MEMBER,
-        },
+    let ressort: { id: string; label: string } | undefined;
+    let assignees: { uuid: string; name: string }[];
+    if (input.funktionId === undefined) {
+      const assignee = await prisma.user.findUnique({
+        where: { uuid: input.assigneeId ?? '' },
+        select: { uuid: true, name: true },
       });
+      if (assignee === null) throw forumError('NOT_FOUND', 'assigneeUnknown');
+      assignees = [assignee];
+    } else {
+      const found = await findRessort(prisma, input.funktionId, ctx.locale);
+      ressort = { id: input.funktionId, label: found.label };
+      assignees = found.holders;
     }
-    const assignment = await prisma.forumPostAssignment.create({
-      data: {
-        messageId: post.messageId,
-        assigneeId: assignee.uuid,
-        assignedById: user.uuid,
-        note: input.note ?? null,
-        addedMembership: membership === null,
-      },
-      select: { id: true },
-    });
-    await prisma.threadSubscription.createMany({
-      data: [
-        { userId: assignee.uuid, messageId: post.messageId },
-        { userId: user.uuid, messageId: post.messageId },
-      ],
-      skipDuplicates: true,
-    });
+
+    const forwarded: { id: string; assignee: { uuid: string; name: string } }[] = [];
+    for (const assignee of assignees) {
+      const { id, isNew } = await forwardToPerson(prisma, post, assignee.uuid, user, {
+        note: input.note,
+        funktionId: ressort?.id,
+      });
+      if (isNew) forwarded.push({ id, assignee });
+    }
+    // a replay of the same forward: everyone has it already
+    if (forwarded.length === 0) return { ids: [] };
+
     await recordForumAuditEvent(prisma, {
       action: 'ASSIGNED',
       post: { messageId: post.messageId, chatId: post.chatId, title: post.title },
@@ -830,48 +910,42 @@ export const createForumPostAssignment = trpcBaseProcedure
       actor: { id: user.uuid, name: user.name },
       moderator,
       after: {
-        assignmentId: assignment.id,
-        assigneeId: assignee.uuid,
-        assigneeName: assignee.name,
+        assignmentIds: forwarded.map((entry) => entry.id),
+        assigneeIds: forwarded.map((entry) => entry.assignee.uuid),
+        assigneeName: ressort?.label ?? forwarded.map((entry) => entry.assignee.name).join(', '),
+        ...(ressort === undefined ? {} : { funktionId: ressort.id }),
       },
       note: input.note,
     });
-    if (post.status === 'OPEN') {
-      await prisma.forumPost.update({
-        where: { messageId: post.messageId },
-        data: { status: 'IN_PROGRESS', statusChangedAt: new Date(), statusChangedById: user.uuid },
-      });
-      await recordForumAuditEvent(prisma, {
-        action: 'STATUS_CHANGED',
-        post: { messageId: post.messageId, chatId: post.chatId, title: post.title },
-        topicName: post.topicName,
-        actor: { id: user.uuid, name: user.name },
-        moderator,
-        before: { status: post.status },
-        after: { status: 'IN_PROGRESS' },
-      });
-    }
 
     ctx.afterTransactionCommit(() => {
-      logger.info('Forum post assigned', {
+      logger.info('Forum post forwarded', {
         'chat.id': post.chatId,
         'forum.post.id': post.messageId,
         'forum.capacity': moderator.capacity,
+        'forum.forward.ressort': ressort !== undefined,
+        'forum.forward.count': forwarded.length,
       });
       const capacity = forumCapacityLabel[moderator.capacity][ctx.locale];
       const headline = assignedText(user.name, capacity)[ctx.locale];
-      pushForumPerson({
-        chatId: post.chatId,
-        postId: post.messageId,
-        postTitle: post.title,
-        text: input.note === undefined ? headline : `${headline}: ${input.note}`,
-        recipientId: assignee.uuid,
-      });
+      for (const { assignee } of forwarded) {
+        pushForumPerson({
+          chatId: post.chatId,
+          postId: post.messageId,
+          postTitle: post.title,
+          text: input.note === undefined ? headline : `${headline}: ${input.note}`,
+          recipientId: assignee.uuid,
+        });
+      }
     });
-    return { id: assignment.id };
+    return { ids: forwarded.map((entry) => entry.id) };
   });
 
-/** Withdraws an assignment, so nobody goes out to fix what was fixed already. */
+/**
+ * Ends an assignment: a moderator withdraws a forward, or its assignee hands it back, or
+ * someone gives back a post they took. Handing back a forward to a Ressort hands it back for
+ * all its holders, since the Ressort had it, not one of them.
+ */
 export const endForumPostAssignment = trpcBaseProcedure
   .input(z.object({ assignmentId: z.uuid() }))
   .use(moderationLimit)
@@ -883,6 +957,8 @@ export const endForumPostAssignment = trpcBaseProcedure
       select: {
         messageId: true,
         endedAt: true,
+        kind: true,
+        funktionId: true,
         assigneeId: true,
         assignee: { select: { name: true } },
       },
@@ -891,8 +967,33 @@ export const endForumPostAssignment = trpcBaseProcedure
     if (assignment.endedAt !== null) return { ended: true };
 
     const post = await loadPost(prisma, assignment.messageId);
-    const moderator = await requireModerator(prisma, user.uuid, post, true);
-    await endAssignments(prisma, { messageId: post.messageId, id: input.assignmentId }, user.uuid);
+    const ownOne = assignment.assigneeId === user.uuid;
+    const moderator = await requireModerator(prisma, user, post, !ownOne);
+
+    if (assignment.kind === 'CLAIM') {
+      await endAssignments(
+        prisma,
+        { messageId: post.messageId, id: input.assignmentId },
+        user.uuid,
+      );
+      return { ended: true };
+    }
+
+    const siblings =
+      assignment.funktionId === null
+        ? [{ id: input.assignmentId, assigneeId: assignment.assigneeId }]
+        : await prisma.forumPostAssignment.findMany({
+            where: {
+              messageId: post.messageId,
+              funktionId: assignment.funktionId,
+              kind: 'HELPER',
+              endedAt: null,
+            },
+            select: { id: true, assigneeId: true },
+          });
+    for (const sibling of siblings) {
+      await endAssignments(prisma, { messageId: post.messageId, id: sibling.id }, user.uuid);
+    }
     await recordForumAuditEvent(prisma, {
       action: 'ASSIGNMENT_ENDED',
       post: { messageId: post.messageId, chatId: post.chatId, title: post.title },
@@ -900,22 +1001,155 @@ export const endForumPostAssignment = trpcBaseProcedure
       actor: { id: user.uuid, name: user.name },
       moderator,
       before: {
-        assignmentId: input.assignmentId,
-        assigneeId: assignment.assigneeId,
+        assignmentIds: siblings.map((sibling) => sibling.id),
         assigneeName: assignment.assignee.name,
+        ...(assignment.funktionId === null ? {} : { funktionId: assignment.funktionId }),
       },
     });
 
     ctx.afterTransactionCommit(() => {
-      pushForumPerson({
-        chatId: post.chatId,
-        postId: post.messageId,
-        postTitle: post.title,
-        text: assignmentEndedText(user.name)[ctx.locale],
-        recipientId: assignment.assigneeId,
-      });
+      for (const sibling of siblings) {
+        if (sibling.assigneeId === user.uuid) continue;
+        pushForumPerson({
+          chatId: post.chatId,
+          postId: post.messageId,
+          postTitle: post.title,
+          text: assignmentEndedText(user.name)[ctx.locale],
+          recipientId: sibling.assigneeId,
+        });
+      }
     });
     return { ended: true };
+  });
+
+/**
+ * "Ich übernehme": the caller handles the post, which everyone at the Zentrale sees, so nobody
+ * answers it a second time. Others may still step in; taking it from someone ends their claim.
+ * Changes nothing about the post itself, its status included.
+ */
+export const claimForumPost = trpcBaseProcedure
+  .input(z.object({ postId: z.uuid() }))
+  .use(moderationLimit)
+  .use(databaseTransactionWrapper)
+  .mutation(async ({ ctx, input }): Promise<{ id: string }> => {
+    const { prisma, user } = ctx;
+    await prisma.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${input.postId}, 2))`;
+    const post = await loadPost(prisma, input.postId);
+    if (post.status === 'DONE') throw forumError('CONFLICT', 'postAlreadyDone');
+    // whoever it was forwarded to may take it too
+    await requireModerator(prisma, user, post, false);
+
+    const claims = await prisma.forumPostAssignment.findMany({
+      where: { messageId: post.messageId, kind: 'CLAIM', endedAt: null },
+      select: { id: true, assigneeId: true },
+    });
+    const own = claims.find((claim) => claim.assigneeId === user.uuid);
+    if (own !== undefined) return { id: own.id };
+    if (claims.length > 0) {
+      await prisma.forumPostAssignment.updateMany({
+        where: { id: { in: claims.map((claim) => claim.id) } },
+        data: { endedAt: new Date(), endedById: user.uuid },
+      });
+    }
+    const claim = await prisma.forumPostAssignment.create({
+      data: {
+        messageId: post.messageId,
+        kind: 'CLAIM',
+        assigneeId: user.uuid,
+        assignedById: user.uuid,
+      },
+      select: { id: true },
+    });
+    await prisma.threadSubscription.createMany({
+      data: [{ userId: user.uuid, messageId: post.messageId }],
+      skipDuplicates: true,
+    });
+    return { id: claim.id };
+  });
+
+/**
+ * Moves a post to another topic, with its comments, likes, status and history, for one that was
+ * written in the wrong place. Its author has to be in the new topic, or they would lose their
+ * own post; a private report stays where private reports go.
+ */
+export const moveForumPost = trpcBaseProcedure
+  .input(z.object({ postId: z.uuid(), topicId: z.uuid() }))
+  .use(moderationLimit)
+  .use(databaseTransactionWrapper)
+  .mutation(async ({ ctx, input }): Promise<{ topicId: string }> => {
+    const { prisma, user } = ctx;
+    const post = await loadPost(prisma, input.postId);
+    if (post.chatId === input.topicId) return { topicId: post.chatId };
+    if (post.mergedIntoId !== null) throw forumError('CONFLICT', 'postMerged');
+    const moderator = await requireModerator(prisma, user, post, true);
+    const stored = await prisma.forumPost.findUniqueOrThrow({
+      where: { messageId: post.messageId },
+      select: { private: true },
+    });
+    if (stored.private) throw forumError('CONFLICT', 'privateStays');
+
+    const target = await prisma.chat.findUnique({
+      where: { uuid: input.topicId },
+      select: { uuid: true, name: true, type: true, archivedAt: true },
+    });
+    if (target?.type !== ChatType.FORUM || target.archivedAt !== null) {
+      throw forumError('NOT_FOUND', 'topicGone');
+    }
+    // the move is the moderator's in both topics
+    if (!isFullModerator(await resolveForumModerator(prisma, user, target.uuid))) {
+      throw forumError('FORBIDDEN', 'notAllowed');
+    }
+    if (post.senderId !== null) {
+      const authorIn = await prisma.chatMembership.count({
+        where: { chatId: target.uuid, userId: post.senderId },
+      });
+      if (authorIn === 0) throw forumError('CONFLICT', 'authorNotInTopic');
+    }
+
+    await prisma.message.updateMany({
+      where: { OR: [{ uuid: post.messageId }, { parentId: post.messageId }] },
+      data: { chatId: target.uuid },
+    });
+    await prisma.forumPost.update({
+      where: { messageId: post.messageId },
+      data: { chatId: target.uuid },
+    });
+    // the posts merged into it follow, so their likes still count for it
+    await prisma.forumPost.updateMany({
+      where: { mergedIntoId: post.messageId },
+      data: { chatId: target.uuid },
+    });
+    await prisma.message.updateMany({
+      where: { forumPost: { mergedIntoId: post.messageId } },
+      data: { chatId: target.uuid },
+    });
+    await recordForumAuditEvent(prisma, {
+      action: 'MOVED',
+      post: { messageId: post.messageId, chatId: target.uuid, title: post.title },
+      topicName: target.name,
+      actor: { id: user.uuid, name: user.name },
+      moderator,
+      before: { topicId: post.chatId, topicName: post.topicName },
+      after: { topicId: target.uuid, topicName: target.name },
+    });
+
+    ctx.afterTransactionCommit(() => {
+      logger.info('Forum post moved', {
+        'chat.id': target.uuid,
+        'forum.post.id': post.messageId,
+        'forum.capacity': moderator.capacity,
+      });
+      if (post.senderId !== null && post.senderId !== user.uuid) {
+        pushForumPerson({
+          chatId: target.uuid,
+          postId: post.messageId,
+          postTitle: post.title,
+          text: movedText(post.topicName, target.name)[ctx.locale],
+          recipientId: post.senderId,
+        });
+      }
+    });
+    return { topicId: target.uuid };
   });
 
 /** Subscribes to every new post of a topic, or stops. Comments follow the post's subscription. */
@@ -966,7 +1200,7 @@ export const approveForumPost = trpcBaseProcedure
   .mutation(async ({ ctx, input }): Promise<{ approved: boolean }> => {
     const { prisma, user } = ctx;
     const post = await loadPost(prisma, input.postId);
-    const moderator = await requireModerator(prisma, user.uuid, post, true);
+    const moderator = await requireModerator(prisma, user, post, true);
     const row = await prisma.forumPost.findUniqueOrThrow({
       where: { messageId: post.messageId },
       select: {

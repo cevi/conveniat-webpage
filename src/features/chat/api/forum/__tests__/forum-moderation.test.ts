@@ -4,7 +4,14 @@ import { createCallerFactory, createTRPCRouter } from '@/trpc/init';
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('payload', () => ({ getPayload: jest.fn() }));
-jest.mock('@/config/environment-variables', () => ({ environmentVariables: {} }));
+jest.mock('@/config/environment-variables', () => ({
+  environmentVariables: {
+    // the groups the forum's rights read, none of them held here
+    CEVIDB_GROUP_FULL_ADMIN: [],
+    CEVIDB_GROUP_WEB_CORE_TEAM: [],
+    CEVIDB_GROUP_FORUM_ZENTRALE: [],
+  },
+}));
 jest.mock('@/utils/get-locale-from-cookies', () => ({
   getLocaleFromCookies: jest.fn().mockResolvedValue('de'),
 }));

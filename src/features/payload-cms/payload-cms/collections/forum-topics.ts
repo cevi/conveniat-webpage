@@ -96,6 +96,13 @@ export const ForumTopicsCollection: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     group: AdminPanelDashboardGroups.AppContent.label,
+    components: {
+      edit: {
+        beforeDocumentControls: [
+          '@/features/payload-cms/payload-cms/components/forum/open-topic-in-app',
+        ],
+      },
+    },
     defaultColumns: ['name', 'targetType', 'chatUuid'],
     description: {
       en: 'The topics of the forum in the app. Every change someone makes to a post they did not write is in the forum protocol.',

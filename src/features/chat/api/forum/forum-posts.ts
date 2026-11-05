@@ -175,10 +175,26 @@ export const visibleForumPostsWhere = (
             { approvedAt: { not: null }, private: false },
             { message: { senderId: userId } },
             { chatId: { in: moderatedTopics } },
+            // forwarded to them, a private report included
+            { assignments: { some: { assigneeId: userId, kind: 'HELPER', endedAt: null } } },
           ],
         },
   ],
 });
+
+/**
+ * Records the first reaction of whoever handles posts, a comment or a status change, which
+ * takes the post out of the Zentrale's queue. Later reactions leave the first one.
+ */
+export const markForumPostReacted = async (
+  prisma: PrismaClientOrTransaction,
+  postId: string,
+): Promise<void> => {
+  await prisma.forumPost.updateMany({
+    where: { messageId: postId, reactedAt: null },
+    data: { reactedAt: new Date() },
+  });
+};
 
 /** The topics someone moderates: every topic while on forum piket duty, else their Kernteam's. */
 export type ModeratedTopics = 'all' | string[];

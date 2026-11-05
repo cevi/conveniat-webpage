@@ -12,6 +12,16 @@ import type { Payload, PayloadRequest } from 'payload';
  * who created it, is left alone.
  */
 
+/**
+ * What someone holds who becomes Kernteam of a topic: ADMIN, and a subscription to every new
+ * post of it, as the piket has during a shift. Set when they become Kernteam, so one who mutes
+ * the topic afterwards stays muted.
+ */
+const KERNTEAM_MEMBERSHIP = (): {
+  chatPermission: ChatMembershipPermission;
+  subscribedAt: Date;
+} => ({ chatPermission: ChatMembershipPermission.ADMIN, subscribedAt: new Date() });
+
 /** Most topics the forum will have; far more than it will ever have. */
 const MAX_TOPICS = 1000;
 
@@ -49,8 +59,8 @@ export const syncForumKernteam = async (
   for (const userId of promoted) {
     await prisma.chatMembership.upsert({
       where: { userId_chatId: { userId, chatId: chatUuid } },
-      create: { userId, chatId: chatUuid, chatPermission: ChatMembershipPermission.ADMIN },
-      update: { chatPermission: ChatMembershipPermission.ADMIN },
+      create: { userId, chatId: chatUuid, ...KERNTEAM_MEMBERSHIP() },
+      update: KERNTEAM_MEMBERSHIP(),
     });
   }
 
@@ -99,8 +109,8 @@ export const syncForumKernteamOfUser = async (
     if (isKernteam && permission !== ChatMembershipPermission.ADMIN) {
       await prisma.chatMembership.upsert({
         where: { userId_chatId: { userId, chatId: topic.chatUuid } },
-        create: { userId, chatId: topic.chatUuid, chatPermission: ChatMembershipPermission.ADMIN },
-        update: { chatPermission: ChatMembershipPermission.ADMIN },
+        create: { userId, chatId: topic.chatUuid, ...KERNTEAM_MEMBERSHIP() },
+        update: KERNTEAM_MEMBERSHIP(),
       });
     } else if (!isKernteam && permission === ChatMembershipPermission.ADMIN) {
       await prisma.chatMembership.update({

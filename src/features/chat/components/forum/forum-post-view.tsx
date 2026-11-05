@@ -38,6 +38,8 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Clock,
+  Forward,
+  Hand,
   Loader2,
   Lock,
   MapPin,
@@ -46,7 +48,7 @@ import {
   ThumbsUp,
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { useState } from 'react';
 
 /** `…/app/forum/<postId>`; the composer's `new` is a page of its own. */
@@ -56,6 +58,12 @@ const POST_ID_FROM_PATHNAME = /\/app\/forum\/([\da-f-]{36})\/?$/i;
  * The post the URL names. Read in the browser, like a chat: the service worker replays one
  * shell for every post, so the page must not depend on its params.
  */
+/** Where the post's back button leads: the forum, or the Zentrale's queue the post came from. */
+const BackHrefContext = React.createContext('/app/forum');
+
+/** The path of the Zentrale, which sends `?from=zentrale` along to the posts it opens. */
+export const ZENTRALE_PATH = '/app/forum/zentrale';
+
 const usePostIdFromPath = (): string | undefined => {
   const pathname = usePathname();
   return POST_ID_FROM_PATHNAME.exec(pathname)?.[1];
@@ -70,11 +78,12 @@ const ScreenHeader: React.FC<{
   actions?: React.ReactNode;
 }> = ({ title, locale, actions }) => {
   const router = useRouter();
+  const backHref = React.useContext(BackHrefContext);
   return (
     <div className="border-line flex h-[60px] shrink-0 items-center gap-1 border-b bg-white pr-2 pl-1">
       <button
         type="button"
-        onClick={() => router.push('/app/forum')}
+        onClick={() => router.push(backHref)}
         className="focus-visible:focus-surface hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900"
         aria-label={forumText.back[locale]}
       >
@@ -215,12 +224,109 @@ const MarkedAnswer: React.FC<{ commentId: string; locale: Locale }> = ({ comment
   );
 };
 
+const buttonClassName =
+  'focus-visible:focus-surface flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl text-[15px] font-semibold disabled:opacity-50';
+const primaryClassName = cn(
+  buttonClassName,
+  'bg-conveniat-green focus-visible:focus-surface-filled text-white hover:bg-green-700',
+);
+const outlinedClassName = cn(
+  buttonClassName,
+  'border-line hover:bg-quiet border bg-white text-green-900',
+);
+
+/**
+ * What the Zentrale does with a post: take it ("Ich übernehme"), so nobody answers it twice, and
+ * forward it to a Ressort, a person or another topic. Shows who handles it, for everyone who
+ * handles posts; a participant sees none of it.
+ */
+const ZentraleActions: React.FC<{
+  post: ForumPostDetail;
+  locale: Locale;
+  currentUserId: string | undefined;
+  onForward: () => void;
+}> = ({ post, locale, currentUserId, onForward }) => {
+  const utils = trpc.useUtils();
+  const [error, setError] = useState<string | undefined>();
+  const refresh = (): void => void utils.forum.invalidate();
+  const fail = (caught: unknown): void =>
+    setError(userErrorMessage(caught, locale, forumErrorTexts, forumText.changeFailed));
+  const claim = trpc.forum.claimForumPost.useMutation({ onSuccess: refresh, onError: fail });
+  const giveBack = trpc.forum.endForumPostAssignment.useMutation({
+    onSuccess: refresh,
+    onError: fail,
+  });
+
+  // absent in a persisted cache from before the Zentrale
+  const current = post.claim ?? null;
+  const isMine = current !== null && current.by.id === currentUserId;
+  const canClaim = post.viewer.canClaim === true;
+  if (!canClaim && !post.viewer.canModerate) return <></>;
+  const since = current === null ? '' : campTimeText(new Date(current.since), locale);
+
+  return (
+    <div className="flex flex-col gap-2">
+      {current !== null && isMine && (
+        <div className="border-tint-line bg-tint flex items-center gap-2 rounded-xl border py-1 pr-1 pl-3 text-[14px] text-green-900">
+          <Hand className="text-conveniat-green h-5 w-5 shrink-0" aria-hidden="true" />
+          <span className="min-w-0 flex-1">
+            {forumText.claimMine[locale].replace('{time}', since)}
+          </span>
+          <button
+            type="button"
+            disabled={giveBack.isPending}
+            onClick={() => giveBack.mutate({ assignmentId: current.id })}
+            className="focus-visible:focus-surface hover:bg-tint-line h-11 shrink-0 cursor-pointer rounded-lg px-3 font-semibold text-green-900"
+          >
+            {forumText.giveBack[locale]}
+          </button>
+        </div>
+      )}
+      {current !== null && !isMine && (
+        <p className="bg-quiet flex items-center gap-2 rounded-xl px-3 py-2.5 text-[14px] text-green-900">
+          <Hand className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
+          {forumText.claimOther[locale].replace('{name}', current.by.name).replace('{time}', since)}
+        </p>
+      )}
+      <div className="flex gap-2">
+        {canClaim && !isMine && (
+          <button
+            type="button"
+            disabled={claim.isPending}
+            onClick={() => claim.mutate({ postId: post.id })}
+            // one primary action: a receiver's is reporting it done, further down
+            className={post.myForward == undefined ? primaryClassName : outlinedClassName}
+          >
+            <Hand className="h-5 w-5" aria-hidden="true" />
+            {forumText.claim[locale]}
+          </button>
+        )}
+        {post.viewer.canModerate && post.mergedInto === null && post.status !== 'DONE' && (
+          <button type="button" onClick={onForward} className={outlinedClassName}>
+            <Forward className="h-5 w-5" aria-hidden="true" />
+            {forumText.forward[locale]}
+          </button>
+        )}
+      </div>
+      {error !== undefined && (
+        <p
+          role="alert"
+          className="bg-danger-soft text-danger-text rounded-xl px-3 py-2 text-[13px] font-medium"
+        >
+          {error}
+        </p>
+      )}
+    </div>
+  );
+};
+
 const PostHeader: React.FC<{
   post: ForumPostDetail;
   locale: Locale;
   onReportDone: () => void;
+  onForward: () => void;
   currentUserId: string | undefined;
-}> = ({ post, locale, onReportDone, currentUserId }) => {
+}> = ({ post, locale, onReportDone, onForward, currentUserId }) => {
   const utils = trpc.useUtils();
   const [now] = useState(() => new Date());
   const statusFailure = useForumStatusFailure(post.id);
@@ -249,9 +355,8 @@ const PostHeader: React.FC<{
     onSettled: () => void utils.forum.getForumPost.invalidate({ postId: post.id }),
   });
 
-  const myAssignment = post.assignments.find(
-    (assignment) => assignment.assignee.id === currentUserId,
-  );
+  // absent in a persisted cache from before the Zentrale
+  const myForward = post.myForward ?? null;
   const SubscribeIcon = post.subscribed ? Bell : BellOff;
   const subscribeLabel = post.subscribed
     ? forumText.unsubscribePost[locale]
@@ -367,6 +472,13 @@ const PostHeader: React.FC<{
         </button>
       </div>
 
+      <ZentraleActions
+        post={post}
+        locale={locale}
+        currentUserId={currentUserId}
+        onForward={onForward}
+      />
+
       {statusFailure !== undefined && (
         <p
           role="alert"
@@ -376,35 +488,43 @@ const PostHeader: React.FC<{
         </p>
       )}
 
-      {myAssignment !== undefined && (
+      {myForward !== null && (
         <div className="border-tint-line bg-tint flex flex-col gap-2 rounded-xl border p-3">
           <p className="flex items-start gap-2 text-[14px] text-green-900">
-            <ClipboardCheck
-              className="text-conveniat-green mt-0.5 h-5 w-5 shrink-0"
-              aria-hidden="true"
-            />
-            <span>
-              <span className="font-semibold">{forumText.yourAssignment[locale]}</span>{' '}
-              {forumText.from[locale]} {myAssignment.assignedByName}
-              {myAssignment.note !== null && (
-                <span className="mt-0.5 block text-green-800">«{myAssignment.note}»</span>
+            <Forward className="text-conveniat-green mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+            <span className="text-balance">
+              <span className="font-semibold">
+                {myForward.ressort === null
+                  ? forumText.forwardedToMe[locale].replace('{by}', myForward.byName)
+                  : forumText.forwardedToRessort[locale]
+                      .replace('{ressort}', myForward.ressort)
+                      .replace('{by}', myForward.byName)}
+              </span>
+              {myForward.note !== null && (
+                <span className="mt-0.5 block text-green-800">«{myForward.note}»</span>
               )}
             </span>
           </p>
-          {post.status !== 'DONE' && (
+          <div className="flex gap-2">
+            {post.status !== 'DONE' && (
+              <button type="button" onClick={onReportDone} className={primaryClassName}>
+                <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+                {forumText.reportDone[locale]}
+              </button>
+            )}
             <button
               type="button"
-              onClick={onReportDone}
-              className="bg-conveniat-green focus-visible:focus-surface-filled flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl text-[15px] font-semibold text-white hover:bg-green-700"
+              disabled={withdraw.isPending}
+              onClick={() => withdraw.mutate({ assignmentId: myForward.id })}
+              className={outlinedClassName}
             >
-              <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-              {forumText.reportDone[locale]}
+              {forumText.giveBack[locale]}
             </button>
-          )}
+          </div>
         </div>
       )}
 
-      {post.assignments.length > 0 && myAssignment === undefined && (
+      {post.assignments.length > 0 && myForward === null && (
         <ul className="flex flex-col gap-1.5">
           {post.assignments.map((assignment) => (
             <li
@@ -414,7 +534,8 @@ const PostHeader: React.FC<{
               <ClipboardCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span className="min-w-0 flex-1">
                 {forumText.assignedTo[locale]}:{' '}
-                <span className="font-semibold text-green-900">{assignment.assignee.name}</span> (
+                <span className="font-semibold text-green-900">{assignment.assignee.name}</span>
+                {assignment.holders !== undefined && ` · ${assignment.holders.join(', ')}`} (
                 {forumText.from[locale]} {assignment.assignedByName})
               </span>
               {post.viewer.canModerate && (
@@ -477,7 +598,7 @@ const PostHeader: React.FC<{
 };
 
 const ForumPostScreen: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ post, locale }) => {
-  const [sheet, setSheet] = useState<'moderate' | 'done' | undefined>();
+  const [sheet, setSheet] = useState<'moderate' | 'forward' | 'done' | undefined>();
   const { data: currentUserId } = trpc.chat.user.useQuery({});
   useChatSSE([post.topicId]);
 
@@ -514,6 +635,7 @@ const ForumPostScreen: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ 
               locale={locale}
               currentUserId={currentUserId}
               onReportDone={() => setSheet('done')}
+              onForward={() => setSheet('forward')}
             />
           }
         />
@@ -524,10 +646,13 @@ const ForumPostScreen: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ 
         </ChatComposerBar>
       )}
       <ForumModerationSheet
+        // a fresh sheet for each way in, so "Weiterleiten" opens on the forward
+        key={sheet === 'forward' ? 'forward' : 'moderate'}
         post={post}
         locale={locale}
-        open={sheet === 'moderate'}
-        onOpenChange={(open) => setSheet(open ? 'moderate' : undefined)}
+        startOnForward={sheet === 'forward'}
+        open={sheet === 'moderate' || sheet === 'forward'}
+        onOpenChange={(open) => setSheet(open ? (sheet ?? 'moderate') : undefined)}
       />
       <ForumDoneSheet
         post={post}
@@ -544,9 +669,23 @@ const ForumPostScreen: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ 
  * chat's own message list and composer, so sending offline, quoting, reactions and deleting
  * one's own comment work as in any thread.
  */
-export const ForumPostView: React.FC = () => {
+export const ForumPostView: React.FC<{
+  /** the post, for the Zentrale's pane on a desktop; else the one the URL names */
+  postId?: string | undefined;
+}> = ({ postId: chosenPostId }) => {
+  const pathPostId = usePostIdFromPath();
+  const fromZentrale = useSearchParams().get('from') === 'zentrale';
+  return (
+    <BackHrefContext.Provider
+      value={chosenPostId !== undefined || fromZentrale ? ZENTRALE_PATH : '/app/forum'}
+    >
+      <ForumPostContent postId={chosenPostId ?? pathPostId} />
+    </BackHrefContext.Provider>
+  );
+};
+
+const ForumPostContent: React.FC<{ postId: string | undefined }> = ({ postId }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const postId = usePostIdFromPath();
   const query = trpc.forum.getForumPost.useQuery(
     { postId: postId ?? '' },
     { enabled: postId !== undefined },

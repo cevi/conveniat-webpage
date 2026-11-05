@@ -300,13 +300,14 @@ open it after you change one and check the column you meant to change, and no ot
 Inside the app, chat membership is the other source of rights: what someone may do in a chat
 comes from their membership of it, not from a role. The forum adds two more of the same kind,
 deliberately: the piket schedule, whose entries for forum chats let whoever is on duty change
-posts for the length of the shift, and an assignment, which lets one helper change the status of
-one post until it is done or withdrawn. All three are decided in `resolveForumModerator`, every
-change they allow is written to the forum protocol, and `/admin/access-overview` lists them as
-their own rows. The Kernteam of a forum topic is its admins, and editors do not name them: they
-pick functions from "Funktionen und Adressbuch" on the topic, and whoever holds one is made
-admin by `forum-kernteam.ts`, so the Kernteam follows Cevi.DB. A new right outside the app is
-still a role in `roles.ts`.
+posts for the length of the shift, and a forward, which lets whoever a post was forwarded to, a
+person or the holders of a function, see it, reply and change its status until it is done or
+handed back. All three are decided in `resolveForumModerator`, next to the one role among them,
+the Forum-Zentrale in `roles.ts`; every change they allow is written to the forum protocol, and
+`/admin/access-overview` lists them as their own rows. The Kernteam of a forum topic is its
+admins, and editors do not name them: they pick functions from "Funktionen und Adressbuch" on
+the topic, and whoever holds one is made admin by `forum-kernteam.ts`, so the Kernteam follows
+Cevi.DB. A new right outside the app is still a role in `roles.ts`.
 
 `admin.hidden` is not access control. It keeps an entry out of the sidebar and nothing more, so give
 the entry a real rule as well and keep the two saying the same thing.

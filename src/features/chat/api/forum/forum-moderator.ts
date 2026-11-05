@@ -1,5 +1,9 @@
 import { findActivePiketShift, type PiketShift } from '@/features/chat/api/utils/piket-service';
 import {
+  FORUM_ZENTRALE_ROLES,
+  hasAccessToThisUser,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
   ChatMembershipPermission,
   ChatType,
   type ForumAuditAction,
@@ -7,15 +11,23 @@ import {
 } from '@/lib/prisma/client';
 import type { PrismaClientOrTransaction } from '@/types/types';
 
+/** Who acts in the forum: the session user, whose groups hold the Forum-Zentrale role. */
+export interface ForumUser {
+  uuid: string;
+  group_ids: number[];
+}
+
 /**
- * Why someone may change a post they did not write. The forum's rights come from three places,
- * none of them a role: the topic's chat membership (its Kernteam are owners and admins), the
- * piket schedule, and an open assignment of the post. AGENTS.md records this as the deliberate
- * exception to "every right comes from a role", next to chat membership.
+ * Why someone may change a post they did not write. Besides the Forum-Zentrale role, the
+ * forum's rights come from three places that are no role: the topic's chat membership (its
+ * Kernteam are owners and admins), the piket schedule, and an open forward of the post.
+ * AGENTS.md records this as the deliberate exception to "every right comes from a role", next
+ * to chat membership.
  */
 export type ForumModerator =
   | { capacity: 'TOPIC_ADMIN' }
   | { capacity: 'PIKET'; shift: PiketShift }
+  | { capacity: 'ZENTRALE' }
   | {
       capacity: 'DELEGATE';
       assignment: { id: string; assignedById: string; assignedByName: string };
@@ -27,19 +39,24 @@ export const isFullModerator = (
 ): moderator is Exclude<ForumModerator, { capacity: 'DELEGATE' }> =>
   moderator !== undefined && moderator.capacity !== 'DELEGATE';
 
+/** Whether someone staffs the Zentrale all year, see `FORUM_ZENTRALE_ROLES`. */
+export const isForumZentrale = (user: ForumUser): boolean =>
+  hasAccessToThisUser({ user, requiredRoles: FORUM_ZENTRALE_ROLES });
+
 /**
- * Decides whether `userId` may moderate `postId` in topic `chatId`, and in which capacity. The
+ * Decides whether `user` may moderate `postId` in topic `chatId`, and in which capacity. The
  * strongest one wins, so a Kernteam member on piket duty acts as Kernteam.
  *
  * @param postId - the post, for an assignment; without it only the topic-wide rights count
  */
 export const resolveForumModerator = async (
   prisma: PrismaClientOrTransaction,
-  userId: string,
+  user: ForumUser,
   chatId: string,
   postId?: string,
   now: Date = new Date(),
 ): Promise<ForumModerator | undefined> => {
+  const userId = user.uuid;
   const membership = await prisma.chatMembership.findUnique({
     where: { userId_chatId: { userId, chatId } },
     select: { chatPermission: true, chat: { select: { type: true } } },
@@ -60,10 +77,12 @@ export const resolveForumModerator = async (
 
   const shift = await findActivePiketShift(userId, ChatType.FORUM, now);
   if (shift !== undefined) return { capacity: 'PIKET', shift };
+  if (isForumZentrale(user)) return { capacity: 'ZENTRALE' };
 
   if (postId === undefined) return undefined;
+  // a claim of one's own grants nothing; only a forward does
   const assignment = await prisma.forumPostAssignment.findFirst({
-    where: { messageId: postId, assigneeId: userId, endedAt: null },
+    where: { messageId: postId, assigneeId: userId, endedAt: null, kind: 'HELPER' },
     orderBy: { createdAt: 'desc' },
     select: { id: true, assignedById: true, assignedBy: { select: { name: true } } },
   });
@@ -79,14 +98,16 @@ export const resolveForumModerator = async (
 };
 
 /**
- * The topics `userId` moderates, for who sees posts that wait for approval: all of them on
- * forum piket duty, else the topics whose Kernteam they are.
+ * The topics `user` moderates, for who sees posts that wait for approval: all of them on forum
+ * piket duty and for the Forum-Zentrale, else the topics whose Kernteam they are.
  */
 export const findModeratedTopicIds = async (
   prisma: PrismaClientOrTransaction,
-  userId: string,
+  user: ForumUser,
   now: Date = new Date(),
 ): Promise<'all' | string[]> => {
+  const userId = user.uuid;
+  if (isForumZentrale(user)) return 'all';
   if ((await findActivePiketShift(userId, ChatType.FORUM, now)) !== undefined) return 'all';
   const memberships = await prisma.chatMembership.findMany({
     where: {

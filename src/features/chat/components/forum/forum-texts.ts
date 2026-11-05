@@ -119,7 +119,82 @@ export const forumText = {
     fr: 'Cette publication a été fusionnée avec',
   },
   yourAssignment: { de: 'Dein Auftrag', en: 'Your assignment', fr: 'Ta mission' },
-  assignedTo: { de: 'Beauftragt', en: 'Assigned', fr: 'Mandaté' },
+  assignedTo: { de: 'Weitergeleitet an', en: 'Forwarded to', fr: 'Transféré à' },
+  zentrale: { de: 'Zentrale', en: 'Zentrale', fr: 'Zentrale' },
+  openZentrale: { de: 'Zentrale öffnen', en: 'Open the Zentrale', fr: 'Ouvrir la Zentrale' },
+  tabWaiting: { de: 'Wartet', en: 'Waiting', fr: 'En attente' },
+  tabClaimed: { de: 'Übernommen', en: 'Taken', fr: 'Pris en charge' },
+  tabMine: { de: 'An mich', en: 'To me', fr: 'Pour moi' },
+  tabOpen: { de: 'Alle offenen', en: 'All open', fr: 'Tous ouverts' },
+  emptyWaiting: {
+    de: 'Nichts wartet. Jeder offene Beitrag hat eine Reaktion.',
+    en: 'Nothing is waiting. Every open post has had a reaction.',
+    fr: 'Rien n’attend. Chaque publication ouverte a eu une réaction.',
+  },
+  emptyClaimed: {
+    de: 'Gerade bearbeitet niemand einen Beitrag.',
+    en: 'Nobody is handling a post right now.',
+    fr: 'Personne ne traite de publication en ce moment.',
+  },
+  emptyMine: {
+    de: 'Nichts ist an dich weitergeleitet.',
+    en: 'Nothing is forwarded to you.',
+    fr: 'Rien ne t’a été transféré.',
+  },
+  emptyOpen: {
+    de: 'Keine offenen Beiträge.',
+    en: 'No open posts.',
+    fr: 'Aucune publication ouverte.',
+  },
+  pickPost: {
+    de: 'Wähle links einen Beitrag.',
+    en: 'Pick a post on the left.',
+    fr: 'Choisis une publication à gauche.',
+  },
+  claim: { de: 'Ich übernehme', en: 'I’ll take it', fr: 'Je m’en charge' },
+  giveBack: { de: 'Zurückgeben', en: 'Hand back', fr: 'Rendre' },
+  claimedChip: { de: '{name} bearbeitet', en: '{name} is on it', fr: '{name} s’en charge' },
+  claimMine: {
+    de: 'Du bearbeitest das seit {time}.',
+    en: 'You are on it since {time}.',
+    fr: 'Tu t’en charges depuis {time}.',
+  },
+  claimOther: {
+    de: '{name} bearbeitet das seit {time}.',
+    en: '{name} is on it since {time}.',
+    fr: '{name} s’en charge depuis {time}.',
+  },
+  forward: { de: 'Weiterleiten', en: 'Forward', fr: 'Transférer' },
+  forwardedToMe: {
+    de: 'An dich weitergeleitet von {by}.',
+    en: 'Forwarded to you by {by}.',
+    fr: 'Transféré à toi par {by}.',
+  },
+  forwardedToRessort: {
+    de: 'An {ressort} weitergeleitet von {by}.',
+    en: 'Forwarded to {ressort} by {by}.',
+    fr: 'Transféré à {ressort} par {by}.',
+  },
+  forwardRessort: { de: 'Ressort', en: 'Ressort', fr: 'Ressort' },
+  forwardPerson: { de: 'Person', en: 'Person', fr: 'Personne' },
+  forwardTopic: { de: 'Thema', en: 'Topic', fr: 'Thème' },
+  forwardTo: { de: 'An {name} weiterleiten', en: 'Forward to {name}', fr: 'Transférer à {name}' },
+  moveTo: {
+    de: 'Nach «{name}» verschieben',
+    en: 'Move to "{name}"',
+    fr: 'Déplacer vers « {name} »',
+  },
+  moveHint: {
+    de: 'Der Beitrag zieht mit Kommentaren, Likes und Verlauf um. Wer ihn geschrieben hat, erfährt es.',
+    en: 'The post moves with its comments, likes and history. Its author is told.',
+    fr: 'La publication déménage avec ses commentaires, likes et historique. Son auteur en est informé.',
+  },
+  noRessorts: {
+    de: 'Keine Funktion hat gerade jemand inne.',
+    en: 'Nobody holds a function right now.',
+    fr: 'Personne n’occupe de fonction pour le moment.',
+  },
+  waitingFor: { de: 'wartet {duration}', en: 'waiting {duration}', fr: 'attend depuis {duration}' },
   from: { de: 'von', en: 'from', fr: 'de' },
   reportDone: { de: 'Erledigt melden', en: 'Report as done', fr: 'Signaler comme réglé' },
   moderate: { de: 'Beitrag verwalten', en: 'Manage post', fr: 'Gérer la publication' },
@@ -156,15 +231,15 @@ export const forumText = {
   },
   unmerge: { de: 'Zusammenführung aufheben', en: 'Undo the merge', fr: 'Annuler la fusion' },
   searchPost: { de: 'Beitrag suchen', en: 'Search a post', fr: 'Chercher une publication' },
-  assign: { de: 'Jemanden beauftragen', en: 'Assign someone', fr: 'Mandater quelqu’un' },
+  assign: { de: 'Weiterleiten', en: 'Forward', fr: 'Transférer' },
   assignSearch: { de: 'Name suchen', en: 'Search a name', fr: 'Chercher un nom' },
   assignNote: {
     de: 'Hinweis für die Person (optional)',
     en: 'Note for the person (optional)',
     fr: 'Remarque pour la personne (facultatif)',
   },
-  assignAction: { de: 'Beauftragen', en: 'Assign', fr: 'Mandater' },
-  withdraw: { de: 'Auftrag zurückziehen', en: 'Withdraw', fr: 'Retirer la mission' },
+  assignAction: { de: 'Weiterleiten', en: 'Forward', fr: 'Transférer' },
+  withdraw: { de: 'Zurückziehen', en: 'Withdraw', fr: 'Retirer' },
   deletePost: {
     de: 'Beitrag für alle löschen',
     en: 'Delete the post for everyone',
@@ -282,6 +357,18 @@ export const relativeTimeText = (date: Date, locale: Locale, now: Date = new Dat
     month: 'short',
     timeZone: 'Europe/Zurich',
   });
+};
+
+/** How long something has waited, e.g. "3 Std", for the Zentrale's queue. */
+export const durationText = (since: Date, locale: Locale, now: Date = new Date()): string => {
+  const minutes = Math.max(Math.round((now.getTime() - since.getTime()) / 60_000), 0);
+  const unit = (value: number, kind: 'minute' | 'hour' | 'day'): string =>
+    new Intl.NumberFormat(locale, { style: 'unit', unit: kind, unitDisplay: 'short' }).format(
+      value,
+    );
+  if (minutes < 60) return unit(minutes, 'minute');
+  if (minutes < 24 * 60) return unit(Math.round(minutes / 60), 'hour');
+  return unit(Math.round(minutes / (24 * 60)), 'day');
 };
 
 /** The time of day at the camp, Europe/Zurich, never the phone's zone. */

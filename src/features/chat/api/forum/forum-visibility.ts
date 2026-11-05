@@ -1,4 +1,4 @@
-import { isFullModerator, resolveForumModerator } from '@/features/chat/api/forum/forum-moderator';
+import { type ForumUser, resolveForumModerator } from '@/features/chat/api/forum/forum-moderator';
 import { getActivePiketMembers } from '@/features/chat/api/utils/piket-service';
 import { type ChatRealtimeEvent, chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/client';
@@ -58,22 +58,30 @@ export const findForumPostVisibility = async (
   };
 };
 
-/** Whether `userId` may read the post and its comments. */
+/**
+ * Whether `user` may read the post and its comments: anyone in the topic for a public post; for
+ * a restricted one its author, its moderators, and whoever it was forwarded to.
+ */
 export const canSeeForumPost = async (
   prisma: PrismaClientOrTransaction,
-  userId: string,
+  user: ForumUser,
   post: ForumPostVisibility,
 ): Promise<boolean> => {
-  if (!isRestrictedForumPost(post) || post.authorId === userId) return true;
-  return isFullModerator(await resolveForumModerator(prisma, userId, post.chatId, post.messageId));
+  if (!isRestrictedForumPost(post) || post.authorId === user.uuid) return true;
+  // a forward grants seeing the post, the DELEGATE capacity
+  return (await resolveForumModerator(prisma, user, post.chatId, post.messageId)) !== undefined;
 };
 
-/** Everyone who sees a restricted post: its author, the topic's Kernteam, the piket on duty. */
+/**
+ * Everyone who sees a restricted post: its author, the topic's Kernteam, the piket on duty, and
+ * whoever it was forwarded to. The Forum-Zentrale sees it too, but holds no membership to find
+ * it by; it reads the post again when it opens it.
+ */
 export const findRestrictedPostAudience = async (
   prisma: PrismaClientOrTransaction,
-  post: Pick<ForumPostVisibility, 'chatId' | 'authorId'>,
+  post: Pick<ForumPostVisibility, 'messageId' | 'chatId' | 'authorId'>,
 ): Promise<string[]> => {
-  const [admins, piket] = await Promise.all([
+  const [admins, piket, forwards] = await Promise.all([
     prisma.chatMembership.findMany({
       where: {
         chatId: post.chatId,
@@ -85,12 +93,17 @@ export const findRestrictedPostAudience = async (
       logger.error('Failed to read the forum piket on duty', { error });
       return [];
     }),
+    prisma.forumPostAssignment.findMany({
+      where: { messageId: post.messageId, kind: 'HELPER', endedAt: null },
+      select: { assigneeId: true },
+    }),
   ]);
   return [
     ...new Set([
       ...(post.authorId === null ? [] : [post.authorId]),
       ...admins.map((membership) => membership.userId),
       ...piket.map((member) => member.id),
+      ...forwards.map((forward) => forward.assigneeId),
     ]),
   ];
 };

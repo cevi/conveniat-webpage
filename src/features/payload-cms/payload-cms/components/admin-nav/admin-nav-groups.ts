@@ -1,5 +1,6 @@
 import {
   ADMIN_OR_WEB_ROLES,
+  FORUM_ZENTRALE_ROLES,
   getUserGroups,
   hasAccessToThisUser,
   MATERIAL_DEPOT_ROLES,
@@ -20,6 +21,8 @@ export interface AdminNavLink {
   id: string;
   href: string;
   label: string;
+  /** a page of the app, which opens in a new tab and leaves the admin panel as it is */
+  external?: boolean;
 }
 
 export interface AdminNavGroup {
@@ -30,6 +33,8 @@ export interface AdminNavGroup {
 interface AdminViewLink {
   /** Path below the admin route, as the view is registered in `admin.components.views`. */
   path: string;
+  /** `path` is a page of the app instead, opened in a new tab */
+  inApp?: boolean;
   label: StaticTranslationString;
   group: AdminPanelDashboardGroupKey;
   /** Who gets the link. The view checks the same roles again before it renders. */
@@ -66,6 +71,14 @@ const ADMIN_VIEW_LINKS: AdminViewLink[] = [
     label: { de: 'Forum-Protokoll', en: 'Forum protocol', fr: 'Protocole du forum' },
     group: 'AppOperations',
     requiredRoles: ADMIN_OR_WEB_ROLES,
+  },
+  {
+    // the desk works in the app, which the Kernteam uses on its phone too; see AGENTS.md
+    path: '/app/forum/zentrale',
+    inApp: true,
+    label: { de: 'Forum-Zentrale', en: 'Forum Zentrale', fr: 'Zentrale du forum' },
+    group: 'AppOperations',
+    requiredRoles: FORUM_ZENTRALE_ROLES,
   },
   {
     // Listed whether or not the app has the feature on yet, so the depot can be set up before it
@@ -122,9 +135,10 @@ export const buildAdminNavGroups = ({
       groups.push(group);
     }
     group.links.push({
-      id: `nav-view-${view.path.slice(1)}`,
-      href: `${adminRoute}${view.path}`,
+      id: `nav-view-${view.path.slice(1).replaceAll('/', '-')}`,
+      href: view.inApp === true ? view.path : `${adminRoute}${view.path}`,
       label: view.label[locale],
+      ...(view.inApp === true ? { external: true } : {}),
     });
   }
 

@@ -18,4 +18,5 @@ export const ROLE_LABELS: Record<Roles, StaticTranslationString> = {
     en: 'Hof dashboard reviewers',
     fr: 'Vérification du tableau de bord des Hofs',
   },
+  [Roles.ForumZentrale]: { de: 'Forum-Zentrale', en: 'Forum Zentrale', fr: 'Zentrale du forum' },
 };

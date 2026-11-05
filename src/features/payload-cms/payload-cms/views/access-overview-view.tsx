@@ -229,6 +229,11 @@ const capabilityLabels: Record<Capability, StaticTranslationString> = {
     en: 'Run the material depot in the app',
     fr: "Gérer le dépôt de matériel dans l'app",
   },
+  forumZentrale: {
+    de: 'Forum-Zentrale: jedes Thema moderieren',
+    en: 'Forum Zentrale: moderate every topic',
+    fr: 'Zentrale du forum : modérer chaque thème',
+  },
   hofDashboard: {
     de: 'Hof-Dashboard prüfen',
     en: 'Review the Hof dashboard',

@@ -8,7 +8,14 @@ jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
 jest.mock('@prisma/client', () =>
   jest.requireActual<typeof import('@/lib/prisma')>('@/lib/prisma'),
 );
-jest.mock('@/config/environment-variables', () => ({ environmentVariables: {} }));
+jest.mock('@/config/environment-variables', () => ({
+  environmentVariables: {
+    // the groups the forum's rights read, none of them held here
+    CEVIDB_GROUP_FULL_ADMIN: [],
+    CEVIDB_GROUP_WEB_CORE_TEAM: [],
+    CEVIDB_GROUP_FORUM_ZENTRALE: [],
+  },
+}));
 jest.mock('@/utils/get-locale-from-cookies', () => ({
   getLocaleFromCookies: jest.fn().mockResolvedValue('de'),
 }));

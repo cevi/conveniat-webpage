@@ -40,6 +40,7 @@ const actionLabel: Record<ForumAuditAction, StaticTranslationString> = {
     en: 'Assignment withdrawn',
     fr: 'Mission retirée',
   },
+  MOVED: { de: 'Verschoben', en: 'Moved', fr: 'Déplacé' },
 };
 
 const labels = {
@@ -105,6 +106,9 @@ const describeChange = (
     }
     case 'ASSIGNMENT_ENDED': {
       return textOf(before['assigneeName']);
+    }
+    case 'MOVED': {
+      return `«${textOf(before['topicName'])}» → «${textOf(after['topicName'])}»`;
     }
     default: {
       return '';

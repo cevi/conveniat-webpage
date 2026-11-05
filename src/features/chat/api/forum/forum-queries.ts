@@ -21,6 +21,8 @@ import {
   findPrivateReportTopicId,
   isRestrictedForumPost,
 } from '@/features/chat/api/forum/forum-visibility';
+import { countZentrale, ensureZentraleMemberships } from '@/features/chat/api/forum/forum-zentrale';
+import { getFunktionDirectory } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_FORUM_MODERATION } from '@/lib/feature-flags';
 import {
@@ -33,6 +35,9 @@ import {
 } from '@/lib/forum-shared';
 import { ChatMembershipPermission, ChatType, type Prisma } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
+import type { Locale } from '@/types/types';
+import config from '@payload-config';
+import { getPayload } from 'payload';
 import { z } from 'zod';
 
 const pointSchema = z.object({
@@ -127,7 +132,7 @@ export const getForumPostList = trpcBaseProcedure
     async ({ ctx, input }): Promise<{ items: ForumPostSummary[]; nextCursor: number | null }> => {
       const userId = ctx.user.uuid;
       const offset = input.cursor ?? 0;
-      const moderated = await findModeratedTopicIds(ctx.prisma, userId);
+      const moderated = await findModeratedTopicIds(ctx.prisma, ctx.user);
       const where: Prisma.ForumPostWhereInput = {
         AND: [
           visibleForumPostsWhere(userId, moderated),
@@ -207,7 +212,7 @@ export const getForumPostList = trpcBaseProcedure
 export const getForumPinnedPostList = trpcBaseProcedure
   .input(z.object({ topicId: z.uuid().optional() }))
   .query(async ({ ctx, input }): Promise<ForumPostSummary[]> => {
-    const moderated = await findModeratedTopicIds(ctx.prisma, ctx.user.uuid);
+    const moderated = await findModeratedTopicIds(ctx.prisma, ctx.user);
     const rows = await ctx.prisma.forumPost.findMany({
       where: {
         AND: [visibleForumPostsWhere(ctx.user.uuid, moderated)],
@@ -241,7 +246,7 @@ export const getForumPostSuggestionList = trpcBaseProcedure
 
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
     const [moderated, scores] = await Promise.all([
-      findModeratedTopicIds(ctx.prisma, ctx.user.uuid),
+      findModeratedTopicIds(ctx.prisma, ctx.user),
       findForumPostsMatching(ctx.prisma, ctx.user.uuid, words, input.topicId),
     ]);
     const near = input.near;
@@ -286,7 +291,7 @@ export const getForumPostSuggestionList = trpcBaseProcedure
 export const getForumPostMapList = trpcBaseProcedure
   .input(z.object({}))
   .query(async ({ ctx }): Promise<ForumPostSummary[]> => {
-    const moderated = await findModeratedTopicIds(ctx.prisma, ctx.user.uuid);
+    const moderated = await findModeratedTopicIds(ctx.prisma, ctx.user);
     const rows = await ctx.prisma.forumPost.findMany({
       where: {
         AND: [visibleForumPostsWhere(ctx.user.uuid, moderated)],
@@ -312,10 +317,20 @@ export interface ForumStatusChange {
 
 export interface ForumAssignment {
   id: string;
+  /** a person, or for a forward to a Ressort the Ressort, with its holders under `holders` */
   assignee: { id: string; name: string };
+  /** the holders of a Ressort it was forwarded to; missing for a person, and in older caches */
+  holders?: string[];
   assignedByName: string;
   note: string | null;
   createdAt: Date;
+}
+
+/** Who said "Ich übernehme" for the post. */
+export interface ForumClaim {
+  id: string;
+  by: { id: string; name: string };
+  since: Date;
 }
 
 export interface ForumPostDetail extends ForumPostSummary {
@@ -328,6 +343,16 @@ export interface ForumPostDetail extends ForumPostSummary {
   topicSubscribed: boolean;
   statusHistory: ForumStatusChange[];
   assignments: ForumAssignment[];
+  /** absent in a persisted cache from before the Zentrale */
+  claim?: ForumClaim | null;
+  /** the caller's own open forward of the post, which they can hand back */
+  myForward?: {
+    id: string;
+    byName: string;
+    note: string | null;
+    /** the Ressort it went to, for a forward to a Ressort */
+    ressort: string | null;
+  } | null;
   /** what the caller may do with the post */
   viewer: {
     capacity: ForumCapacityValue | null;
@@ -338,12 +363,69 @@ export interface ForumPostDetail extends ForumPostSummary {
     /** the post waits for approval, and the caller may give it */
     canApprove: boolean;
     isAuthor: boolean;
+    /** "Ich übernehme": whoever handles posts here, someone it was forwarded to included */
+    canClaim?: boolean;
+    /** into another topic: a moderator, for a post that is no private report */
+    canMove?: boolean;
   };
 }
 
 const statusOf = (value: unknown): ForumPostStatusValue | undefined => {
   const status = (value as { status?: unknown } | null)?.status;
   return FORUM_POST_STATUSES.find((candidate) => candidate === status);
+};
+
+/**
+ * The open forwards of a post as its page lists them: a person, or a Ressort once, under its
+ * function's label, with its holders.
+ */
+const describeForwards = async (
+  forwards: {
+    id: string;
+    funktionId: string | null;
+    note: string | null;
+    createdAt: Date;
+    assignee: { uuid: string; name: string };
+    assignedBy: { name: string };
+  }[],
+  locale: Locale,
+): Promise<ForumAssignment[]> => {
+  const labels = forwards.some((forward) => forward.funktionId !== null)
+    ? await getFunktionDirectory(await getPayload({ config }), locale)
+    : new Map<string, { label: string }>();
+  const byRessort = new Map<string, ForumAssignment>();
+  const described: ForumAssignment[] = [];
+  for (const forward of forwards) {
+    if (forward.funktionId === null) {
+      described.push({
+        id: forward.id,
+        assignee: { id: forward.assignee.uuid, name: forward.assignee.name },
+        assignedByName: forward.assignedBy.name,
+        note: forward.note,
+        createdAt: forward.createdAt,
+      });
+      continue;
+    }
+    const known = byRessort.get(forward.funktionId);
+    if (known !== undefined) {
+      known.holders?.push(forward.assignee.name);
+      continue;
+    }
+    const entry: ForumAssignment = {
+      id: forward.id,
+      assignee: {
+        id: forward.funktionId,
+        name: labels.get(forward.funktionId)?.label ?? forward.assignee.name,
+      },
+      holders: [forward.assignee.name],
+      assignedByName: forward.assignedBy.name,
+      note: forward.note,
+      createdAt: forward.createdAt,
+    };
+    byRessort.set(forward.funktionId, entry);
+    described.push(entry);
+  }
+  return described;
 };
 
 /**
@@ -408,13 +490,15 @@ export const getForumPost = trpcBaseProcedure
           orderBy: { createdAt: 'asc' },
           select: {
             id: true,
+            kind: true,
+            funktionId: true,
             note: true,
             createdAt: true,
             assignee: { select: { uuid: true, name: true } },
             assignedBy: { select: { name: true } },
           },
         }),
-        resolveForumModerator(ctx.prisma, userId, row.chatId, row.messageId),
+        resolveForumModerator(ctx.prisma, ctx.user, row.chatId, row.messageId),
       ]);
 
     // a private report or a post waiting for approval answers like one that does not exist, but
@@ -428,6 +512,10 @@ export const getForumPost = trpcBaseProcedure
     }
 
     const content = readForumPostContent(row.message.contentVersions[0]?.payload);
+    const claim = assignments.find((assignment) => assignment.kind === 'CLAIM');
+    const helpers = assignments.filter((assignment) => assignment.kind === 'HELPER');
+    const forwards = await describeForwards(helpers, ctx.locale);
+    const myForward = helpers.find((assignment) => assignment.assignee.uuid === userId);
     return {
       ...summary,
       text: content.text,
@@ -453,19 +541,36 @@ export const getForumPost = trpcBaseProcedure
               },
             ];
       }),
-      assignments: assignments.map((assignment) => ({
-        id: assignment.id,
-        assignee: { id: assignment.assignee.uuid, name: assignment.assignee.name },
-        assignedByName: assignment.assignedBy.name,
-        note: assignment.note,
-        createdAt: assignment.createdAt,
-      })),
+      assignments: forwards,
+      claim:
+        claim === undefined
+          ? null
+          : {
+              id: claim.id,
+              by: { id: claim.assignee.uuid, name: claim.assignee.name },
+              since: claim.createdAt,
+            },
+      myForward:
+        myForward === undefined
+          ? null
+          : {
+              id: myForward.id,
+              byName: myForward.assignedBy.name,
+              note: myForward.note,
+              ressort:
+                myForward.funktionId === null
+                  ? null
+                  : (forwards.find((forward) => forward.assignee.id === myForward.funktionId)
+                      ?.assignee.name ?? null),
+            },
       viewer: {
         capacity: moderator?.capacity ?? null,
         canSetStatus: moderator !== undefined && row.mergedIntoId === null,
         canModerate: isFullModerator(moderator),
         canApprove: row.approvedAt === null && isFullModerator(moderator),
         isAuthor: summary.author?.id === userId,
+        canClaim: moderator !== undefined && row.mergedIntoId === null && row.status !== 'DONE',
+        canMove: isFullModerator(moderator) && row.mergedIntoId === null && row.private !== true,
       },
     };
   });
@@ -478,7 +583,7 @@ export const getForumPost = trpcBaseProcedure
 export const getForumAssigneeList = trpcBaseProcedure
   .input(z.object({ topicId: z.uuid(), query: z.string().trim().min(2).max(60) }))
   .query(async ({ ctx, input }): Promise<{ id: string; name: string }[]> => {
-    const moderator = await resolveForumModerator(ctx.prisma, ctx.user.uuid, input.topicId);
+    const moderator = await resolveForumModerator(ctx.prisma, ctx.user, input.topicId);
     if (!isFullModerator(moderator)) throw forumError('FORBIDDEN', 'notAllowed');
     const users = await ctx.prisma.user.findMany({
       where: { name: { contains: input.query, mode: 'insensitive' }, hidden: false },
@@ -498,6 +603,8 @@ export interface ForumSettings {
   hasOpenAssignments: boolean;
   /** editors chose a topic for private reports, so the composer offers "Privat" */
   privateReportsAvailable: boolean;
+  /** the Zentrale's counts, for whoever handles posts or has one forwarded; null for others */
+  zentrale?: { waiting: number; mine: number } | null;
 }
 
 /**
@@ -507,12 +614,15 @@ export interface ForumSettings {
 export const getForumSettings = trpcBaseProcedure
   .input(z.object({}))
   .query(async ({ ctx }): Promise<ForumSettings> => {
+    // every page of the forum asks for these first, so the Zentrale's memberships are there
+    // before it reads a topic
+    await ensureZentraleMemberships(ctx.prisma, ctx.user);
     const [moderationRequired, moderated, openAssignments, privateReportTopicId] =
       await Promise.all([
         getFeatureFlag(FEATURE_FLAG_FORUM_MODERATION),
-        findModeratedTopicIds(ctx.prisma, ctx.user.uuid),
+        findModeratedTopicIds(ctx.prisma, ctx.user),
         ctx.prisma.forumPostAssignment.count({
-          where: { assigneeId: ctx.user.uuid, endedAt: null },
+          where: { assigneeId: ctx.user.uuid, endedAt: null, kind: 'HELPER' },
         }),
         findPrivateReportTopicId(),
       ]);
@@ -521,5 +631,6 @@ export const getForumSettings = trpcBaseProcedure
       canModerate: moderated === 'all' || moderated.length > 0,
       hasOpenAssignments: openAssignments > 0,
       privateReportsAvailable: privateReportTopicId !== undefined,
+      zentrale: await countZentrale(ctx.prisma, ctx.user, moderated),
     };
   });

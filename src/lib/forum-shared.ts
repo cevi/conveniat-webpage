@@ -57,11 +57,12 @@ export interface ForumPostSummary {
   imageCount: number;
 }
 
-export type ForumCapacityValue = 'TOPIC_ADMIN' | 'PIKET' | 'DELEGATE';
+export type ForumCapacityValue = 'TOPIC_ADMIN' | 'PIKET' | 'ZENTRALE' | 'DELEGATE';
 
 export const forumCapacityLabel: Record<ForumCapacityValue, StaticTranslationString> = {
   TOPIC_ADMIN: { de: 'Kernteam', en: 'Core team', fr: 'Équipe centrale' },
   PIKET: { de: 'Piket', en: 'On duty', fr: 'Piquet' },
+  ZENTRALE: { de: 'Zentrale', en: 'Zentrale', fr: 'Zentrale' },
   DELEGATE: { de: 'Beauftragt', en: 'Assigned', fr: 'Mandaté' },
 };
 

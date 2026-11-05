@@ -1,11 +1,13 @@
 import {
   approveForumPost,
+  claimForumPost,
   createForumPost,
   createForumPostAssignment,
   deleteForumMessage,
   endForumPostAssignment,
   getForumPrivateReportTopic,
   mergeForumPost,
+  moveForumPost,
   setForumPostAnswer,
   setForumPostPinned,
   unmergeForumPost,
@@ -23,6 +25,10 @@ import {
   getForumSettings,
   getForumTopicList,
 } from '@/features/chat/api/forum/forum-queries';
+import {
+  getForumRessortList,
+  getForumZentraleList,
+} from '@/features/chat/api/forum/forum-zentrale';
 import { createTRPCRouter } from '@/trpc/init';
 
 /**
@@ -39,6 +45,10 @@ export const forumRouter = createTRPCRouter({
   getForumPost,
   getForumAssigneeList,
   getForumSettings,
+  getForumZentraleList,
+  getForumRessortList,
+  claimForumPost,
+  moveForumPost,
   getForumPrivateReportTopic,
   createForumPost,
   approveForumPost,

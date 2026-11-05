@@ -27,6 +27,10 @@ model ForumPost {
 
   status            ForumPostStatus @default(OPEN)
   statusChangedAt   DateTime?
+  /// the first reaction of whoever handles posts: a comment or a status change by the Kernteam,
+  /// the piket, the Zentrale or someone it was forwarded to. Until then the post waits in the
+  /// Zentrale's queue
+  reactedAt         DateTime?
   statusChangedById String?
 
   /// the place the post is about, picked by the author on the map; never the phone's position
@@ -66,15 +70,30 @@ model ForumPost {
   @@index([mergedIntoId])
   @@index([chatId, approvedAt])
   @@index([chatId, private])
+  @@index([chatId, reactedAt])
   @@index([search], type: Gin)
   // typos and spellings the stemmer does not join, e.g. "Toitoi" and "Toi Toi"
   @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
-/// A post handed to one person, a helper sent out to fix what it reports. While it is open, the
-/// helper may change the status of this one post and nothing else.
+/// What an assignment of a post is.
+enum ForumAssignmentKind {
+  /// forwarded to someone, a helper or a Ressort, who may see the post, reply and set its status
+  HELPER
+  /// "Ich übernehme": the one who handles it, so nobody else at the desk does too; grants nothing
+  CLAIM
+}
+
+/// A post handed to one person: forwarded to them, a helper sent out to fix what it reports, or
+/// taken by someone at the Zentrale. While a forward is open, its assignee may see the post, a
+/// private report included, reply and change its status, and nothing else.
 model ForumPostAssignment {
   id String @id @default(uuid(7))
+
+  kind ForumAssignmentKind @default(HELPER)
+  /// the function from Funktionen und Adressbuch the post was forwarded to, e.g. "Ressortleitung
+  /// Infrastruktur": one assignment for each of its holders then, all with this id
+  funktionId String?
 
   messageId String
   post      ForumPost @relation(fields: [messageId], references: [messageId], onDelete: Cascade)
@@ -126,6 +145,8 @@ enum ForumAuditAction {
   DELETED
   ASSIGNED
   ASSIGNMENT_ENDED
+  /// moved to another topic, with its comments, likes and history
+  MOVED
   /// a post written while posts need approval, made public
   APPROVED
 }
@@ -138,6 +159,8 @@ enum ForumActorCapacity {
   PIKET
   /// a helper with an open assignment for this post
   DELEGATE
+  /// the Forum-Zentrale role, which moderates every topic all year
+  ZENTRALE
 }
 
 /// Every change someone made to a post they did not write: who, in which capacity, what before

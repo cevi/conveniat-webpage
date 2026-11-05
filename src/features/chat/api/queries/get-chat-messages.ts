@@ -52,7 +52,7 @@ export const getChatMessages = trpcBaseProcedure
         const { canSeeForumPost, findForumPostVisibility } =
           await import('@/features/chat/api/forum/forum-visibility');
         const post = await findForumPostVisibility(prisma, parentId);
-        if (post !== undefined && !(await canSeeForumPost(prisma, ctx.user.uuid, post))) {
+        if (post !== undefined && !(await canSeeForumPost(prisma, ctx.user, post))) {
           throw new TRPCError({
             code: 'NOT_FOUND',
             message: `Chat with ID ${chatId} not found or access denied`,

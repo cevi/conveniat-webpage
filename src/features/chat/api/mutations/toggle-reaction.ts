@@ -97,7 +97,7 @@ export const toggleReaction = trpcBaseProcedure
     if (
       forumVisibility !== undefined &&
       forumThread !== undefined &&
-      !(await forumVisibility.canSeeForumPost(prisma, user.uuid, forumThread))
+      !(await forumVisibility.canSeeForumPost(prisma, user, forumThread))
     ) {
       // answers like a message that does not exist
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Message not found.' });

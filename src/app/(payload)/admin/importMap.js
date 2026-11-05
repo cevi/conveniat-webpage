@@ -48,6 +48,7 @@ import { CeviGroupPicker as CeviGroupPicker_284df5311270166d7e64a0e780f6a244 } f
 import { CeviGroupRowLabel as CeviGroupRowLabel_33b19abb2f046c4eafe465547a5eff27 } from '@/features/payload-cms/payload-cms/components/chat-channel/cevi-group-row-label'
 import { AudiencePreview as AudiencePreview_9314fea594b35516aba8d382181f2172 } from '@/features/payload-cms/payload-cms/components/chat-channel/audience-preview'
 import { ChannelMembersField as ChannelMembersField_c78b486620e7ec961b30b14fcca8dd41 } from '@/features/payload-cms/payload-cms/components/chat-channel/channel-members'
+import { default as default_379fbdd236b0270dfb0ea39792c526a1 } from '@/features/payload-cms/payload-cms/components/forum/open-topic-in-app'
 import { AnnouncementPushSummaryField as AnnouncementPushSummaryField_52ba1255fb8c04822ec73339cebef801 } from '@/features/payload-cms/payload-cms/components/announcement-push-summary'
 import { AnnouncementTranslateMissingLanguages as AnnouncementTranslateMissingLanguages_1519d81df2f98fe32884c13868eadfc1 } from '@/features/payload-cms/payload-cms/components/announcement-translate-missing-languages'
 import { default as default_5e6e3bcc43a18e826de12d19a3b1de10 } from '@/features/payload-cms/payload-cms/components/fields/icon-select-field'
@@ -199,6 +200,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/chat-channel/cevi-group-row-label#CeviGroupRowLabel": CeviGroupRowLabel_33b19abb2f046c4eafe465547a5eff27,
   "@/features/payload-cms/payload-cms/components/chat-channel/audience-preview#AudiencePreview": AudiencePreview_9314fea594b35516aba8d382181f2172,
   "@/features/payload-cms/payload-cms/components/chat-channel/channel-members#ChannelMembersField": ChannelMembersField_c78b486620e7ec961b30b14fcca8dd41,
+  "@/features/payload-cms/payload-cms/components/forum/open-topic-in-app#default": default_379fbdd236b0270dfb0ea39792c526a1,
   "@/features/payload-cms/payload-cms/components/announcement-push-summary#AnnouncementPushSummaryField": AnnouncementPushSummaryField_52ba1255fb8c04822ec73339cebef801,
   "@/features/payload-cms/payload-cms/components/announcement-translate-missing-languages#AnnouncementTranslateMissingLanguages": AnnouncementTranslateMissingLanguages_1519d81df2f98fe32884c13868eadfc1,
   "@/features/payload-cms/payload-cms/components/fields/icon-select-field#default": default_5e6e3bcc43a18e826de12d19a3b1de10,

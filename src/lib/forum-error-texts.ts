@@ -26,6 +26,31 @@ export const forumErrorTexts = {
     en: 'This post no longer exists.',
     fr: "Cette publication n'existe plus.",
   },
+  ressortGone: {
+    de: 'Diese Funktion gibt es nicht mehr. Wähle einen anderen Ressort.',
+    en: 'This function no longer exists. Choose another Ressort.',
+    fr: 'Cette fonction n’existe plus. Choisis un autre ressort.',
+  },
+  ressortEmpty: {
+    de: 'Diese Funktion hat gerade niemand inne. Leite den Beitrag an eine Person weiter.',
+    en: 'Nobody holds this function right now. Forward the post to a person.',
+    fr: 'Personne n’occupe cette fonction pour le moment. Transfère la publication à une personne.',
+  },
+  privateStays: {
+    de: 'Eine private Meldung bleibt im Thema für private Meldungen.',
+    en: 'A private report stays in the topic for private reports.',
+    fr: 'Un signalement privé reste dans le thème des signalements privés.',
+  },
+  topicGone: {
+    de: 'Dieses Thema gibt es nicht mehr.',
+    en: 'This topic no longer exists.',
+    fr: 'Ce thème n’existe plus.',
+  },
+  authorNotInTopic: {
+    de: 'Wer den Beitrag geschrieben hat, ist nicht in diesem Thema und sähe ihn nicht mehr.',
+    en: 'Whoever wrote the post is not in this topic and would no longer see it.',
+    fr: 'L’auteur de la publication n’est pas dans ce thème et ne la verrait plus.',
+  },
   postMerged: {
     de: 'Dieser Beitrag wurde mit einem anderen zusammengeführt.',
     en: 'This post was merged into another one.',

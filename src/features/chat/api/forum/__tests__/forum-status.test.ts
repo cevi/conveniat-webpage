@@ -4,7 +4,14 @@ import { createCallerFactory, createTRPCRouter } from '@/trpc/init';
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('payload', () => ({ getPayload: jest.fn() }));
-jest.mock('@/config/environment-variables', () => ({ environmentVariables: {} }));
+jest.mock('@/config/environment-variables', () => ({
+  environmentVariables: {
+    // the groups the forum's rights read, none of them held here
+    CEVIDB_GROUP_FULL_ADMIN: [],
+    CEVIDB_GROUP_WEB_CORE_TEAM: [],
+    CEVIDB_GROUP_FORUM_ZENTRALE: [],
+  },
+}));
 jest.mock('@/utils/get-locale-from-cookies', () => ({
   getLocaleFromCookies: jest.fn().mockResolvedValue('de'),
 }));
@@ -66,12 +73,18 @@ let memberships: { userId: string; chatId: string; chatPermission: ChatMembershi
 let assignments: Assignment[];
 let audit: Record<string, unknown>[];
 let subscriptions: { userId: string; messageId: string }[];
+let reactedAt: Date | undefined;
 
 const prisma = {
   $transaction: <T>(callback: (tx: unknown) => Promise<T>): Promise<T> => callback(prisma),
   $executeRaw: (): Promise<number> => Promise.resolve(0),
   chat: { findUnique: (): Promise<unknown> => Promise.resolve({ type: ChatType.FORUM }) },
   forumPost: {
+    // the first reaction, which takes the post out of the Zentrale's queue
+    updateMany: ({ data }: { data: { reactedAt: Date } }): Promise<void> => {
+      reactedAt ??= data.reactedAt;
+      return Promise.resolve();
+    },
     findUnique: (): Promise<unknown> =>
       Promise.resolve({
         messageId: POST,
@@ -195,6 +208,7 @@ beforeEach(() => {
   ];
   audit = [];
   subscriptions = [{ userId: 'noah', messageId: POST }];
+  reactedAt = undefined;
   shifts.clear();
   shifts.set('lea', {
     scheduleId: 'shift-27-07',
@@ -205,6 +219,12 @@ beforeEach(() => {
 });
 
 describe('updateForumPostStatus', () => {
+  it("takes the post out of the Zentrale's queue with its first status change", async () => {
+    await as('lea').updateForumPostStatus({ postId: POST, status: 'DONE' });
+
+    expect(reactedAt).toBeInstanceOf(Date);
+  });
+
   it('lets a helper report their post as done, recorded with who sent them', async () => {
     await as('tim').updateForumPostStatus({
       postId: POST,

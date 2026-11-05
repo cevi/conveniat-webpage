@@ -24,17 +24,19 @@ import {
   CheckCircle2,
   ChevronRight,
   Combine,
+  Forward,
   Loader2,
   Pin,
   PinOff,
   Trash2,
   Undo2,
-  UserPlus,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
 type View = 'main' | 'assign' | 'merge' | 'answer' | 'delete';
+/** Where the forward view sends the post: a Ressort, a person, or another topic. */
+type ForwardTarget = 'ressort' | 'person' | 'topic';
 
 const rowClassName =
   'focus-visible:focus-surface hover:bg-quiet flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50';
@@ -46,18 +48,25 @@ const textOf = (payload: unknown): string => {
 
 /**
  * What the Kernteam and the piket on duty can do with a post, and a helper with theirs: set the
- * status with a note, pin, mark the answer, merge a duplicate, hand it to someone, delete it.
- * Every one of them lands in the forum protocol. The author alone may delete their own post.
+ * status with a note, pin, mark the answer, merge a duplicate, forward it to a Ressort, a person
+ * or another topic, delete it. Every one of them lands in the forum protocol. The author alone
+ * may delete their own post.
  */
 export const ForumModerationSheet: React.FC<{
   post: ForumPostDetail;
   locale: Locale;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}> = ({ post, locale, open, onOpenChange }) => {
+  /** opened from "Weiterleiten", straight on the forward */
+  startOnForward?: boolean;
+}> = ({ post, locale, open, onOpenChange, startOnForward = false }) => {
   const router = useRouter();
   const utils = trpc.useUtils();
-  const [view, setView] = useState<View>('main');
+  const [view, setView] = useState<View>(startOnForward ? 'assign' : 'main');
+  const [target, setTarget] = useState<ForwardTarget>('ressort');
+  const [ressortId, setRessortId] = useState<string | undefined>();
+  const [topicId, setTopicId] = useState<string | undefined>();
+  const [assigneeName, setAssigneeName] = useState<string | undefined>();
   const [status, setStatus] = useState<ForumPostStatusValue>(post.status);
   const [note, setNote] = useState('');
   const [query, setQuery] = useState('');
@@ -78,6 +87,9 @@ export const ForumModerationSheet: React.FC<{
     setError(undefined);
     setNotice(undefined);
     setAssigneeId(undefined);
+    setAssigneeName(undefined);
+    setRessortId(undefined);
+    setTopicId(undefined);
     onOpenChange(false);
   };
 
@@ -104,6 +116,13 @@ export const ForumModerationSheet: React.FC<{
     },
     onError: fail,
   });
+  const move = trpc.forum.moveForumPost.useMutation({
+    onSuccess: () => {
+      refresh();
+      close();
+    },
+    onError: fail,
+  });
   const moderatorDelete = trpc.forum.deleteForumMessage.useMutation({
     onSuccess: () => {
       refresh();
@@ -121,8 +140,26 @@ export const ForumModerationSheet: React.FC<{
 
   const assignees = trpc.forum.getForumAssigneeList.useQuery(
     { topicId: post.topicId, query: query.trim() },
-    { enabled: view === 'assign' && query.trim().length >= 2 },
+    { enabled: view === 'assign' && target === 'person' && query.trim().length >= 2 },
   );
+  const ressorts = trpc.forum.getForumRessortList.useQuery(
+    {},
+    { enabled: view === 'assign' && target === 'ressort' },
+  );
+  const topics = trpc.forum.getForumTopicList.useQuery(
+    {},
+    { enabled: view === 'assign' && target === 'topic' },
+  );
+  const otherTopics = (topics.data ?? []).filter((topic) => topic.id !== post.topicId);
+  const ressort = ressorts.data?.find((candidate) => candidate.id === ressortId);
+  const topic = otherTopics.find((candidate) => candidate.id === topicId);
+  const forwardTargets: readonly ForwardTarget[] =
+    post.viewer.canMove === true ? ['ressort', 'person', 'topic'] : ['ressort', 'person'];
+  const forwardTargetText: Record<ForwardTarget, string> = {
+    ressort: forumText.forwardRessort[locale],
+    person: forumText.forwardPerson[locale],
+    topic: forumText.forwardTopic[locale],
+  };
   const mergeTargets = trpc.forum.getForumPostSuggestionList.useQuery(
     { topicId: post.topicId, title: query },
     { enabled: view === 'merge' && query.trim().length >= 3 },
@@ -150,6 +187,28 @@ export const ForumModerationSheet: React.FC<{
     }
   };
 
+  const withNote = note.trim() === '' ? {} : { note: note.trim() };
+  const forwardDisabled =
+    (target === 'ressort' && ressort === undefined) ||
+    (target === 'person' && assigneeId === undefined) ||
+    (target === 'topic' && topic === undefined);
+  const forwardLabel = (): string => {
+    if (target === 'topic') return forumText.moveTo[locale].replace('{name}', topic?.name ?? '…');
+    const name = target === 'ressort' ? ressort?.label : assigneeName;
+    return name === undefined
+      ? forumText.assignAction[locale]
+      : forumText.forwardTo[locale].replace('{name}', name);
+  };
+  const forwardNow = (): void => {
+    if (target === 'topic' && topic !== undefined) {
+      move.mutate({ postId: post.id, topicId: topic.id });
+    } else if (target === 'ressort' && ressort !== undefined) {
+      assign.mutate({ postId: post.id, funktionId: ressort.id, ...withNote });
+    } else if (target === 'person' && assigneeId !== undefined) {
+      assign.mutate({ postId: post.id, assigneeId, ...withNote });
+    }
+  };
+
   const titleOf: Record<View, string> = {
     main: forumText.moderate[locale],
     assign: forumText.assign[locale],
@@ -161,47 +220,120 @@ export const ForumModerationSheet: React.FC<{
   let content: React.ReactNode;
   switch (view) {
     case 'assign': {
+      const choice = (
+        selected: boolean,
+        onSelect: () => void,
+        label: string,
+        detail?: string,
+      ): React.ReactNode => (
+        <button
+          type="button"
+          aria-pressed={selected}
+          onClick={onSelect}
+          className={cn(rowClassName, selected && 'bg-tint')}
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[15px] font-semibold text-green-900">{label}</span>
+            {detail !== undefined && (
+              <span className="block truncate text-[13px] text-green-700">{detail}</span>
+            )}
+          </span>
+          {selected && <CheckCircle2 className="text-conveniat-green h-5 w-5" aria-hidden="true" />}
+        </button>
+      );
       content = (
         <div className="flex flex-col gap-3 pb-2">
-          <AppSearchBar
-            placeholder={forumText.assignSearch[locale]}
-            label={forumText.assignSearch[locale]}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onClear={() => setQuery('')}
-            autoFocus
-          />
-          <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
-            {assignees.data?.map((person) => (
-              <li key={person.id}>
-                <button
-                  type="button"
-                  aria-pressed={assigneeId === person.id}
-                  onClick={() => setAssigneeId(person.id)}
-                  className={cn(rowClassName, assigneeId === person.id && 'bg-tint')}
-                >
-                  <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-green-900">
-                    {person.name}
-                  </span>
-                  {assigneeId === person.id && (
-                    <CheckCircle2 className="text-conveniat-green h-5 w-5" aria-hidden="true" />
-                  )}
-                </button>
-              </li>
+          <div className={segmentedTrackClassName}>
+            {forwardTargets.map((option) => (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={target === option}
+                onClick={() => setTarget(option)}
+                className={cn(
+                  segmentClassName(target === option),
+                  'flex-1 text-[14px] font-semibold',
+                )}
+              >
+                {forwardTargetText[option]}
+              </button>
             ))}
-          </ul>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-semibold text-green-800">
-              {forumText.assignNote[locale]}
-            </span>
-            <textarea
-              value={note}
-              rows={2}
-              maxLength={FORUM_NOTE_MAX_LENGTH}
-              onChange={(event) => setNote(event.target.value)}
-              className={textInputClassName}
-            />
-          </label>
+          </div>
+          {target === 'ressort' && (
+            <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
+              {ressorts.data?.length === 0 && (
+                <li className="px-4 py-3 text-[14px] text-green-700">
+                  {forumText.noRessorts[locale]}
+                </li>
+              )}
+              {ressorts.data?.map((candidate) => (
+                <li key={candidate.id}>
+                  {choice(
+                    ressortId === candidate.id,
+                    () => setRessortId(candidate.id),
+                    candidate.label,
+                    candidate.holders.join(', '),
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {target === 'person' && (
+            <>
+              <AppSearchBar
+                placeholder={forumText.assignSearch[locale]}
+                label={forumText.assignSearch[locale]}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onClear={() => setQuery('')}
+                autoFocus
+              />
+              <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
+                {assignees.data?.map((person) => (
+                  <li key={person.id}>
+                    {choice(
+                      assigneeId === person.id,
+                      () => {
+                        setAssigneeId(person.id);
+                        setAssigneeName(person.name);
+                      },
+                      person.name,
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {target === 'topic' && (
+            <>
+              <p className="text-[13px] text-green-700">{forumText.moveHint[locale]}</p>
+              <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
+                {otherTopics.map((candidate) => (
+                  <li key={candidate.id}>
+                    {choice(
+                      topicId === candidate.id,
+                      () => setTopicId(candidate.id),
+                      candidate.name,
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {target !== 'topic' && (
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[13px] font-semibold text-green-800">
+                {forumText.assignNote[locale]}
+              </span>
+              <textarea
+                value={note}
+                rows={2}
+                maxLength={FORUM_NOTE_MAX_LENGTH}
+                onChange={(event) => setNote(event.target.value)}
+                className={textInputClassName}
+              />
+            </label>
+          )}
         </div>
       );
       break;
@@ -398,7 +530,7 @@ export const ForumModerationSheet: React.FC<{
                   onClick={() => setView('assign')}
                   className={rowClassName}
                 >
-                  <IconTile icon={UserPlus} />
+                  <IconTile icon={Forward} />
                   <span className="flex-1 text-[15px] font-semibold text-green-900">
                     {forumText.assign[locale]}
                   </span>
@@ -456,21 +588,11 @@ export const ForumModerationSheet: React.FC<{
       fullHeight={view === 'assign' || view === 'merge'}
       footer={
         view === 'assign' ? (
-          <button
-            type="button"
-            disabled={assigneeId === undefined || assign.isPending}
-            onClick={() =>
-              assigneeId !== undefined &&
-              assign.mutate({
-                postId: post.id,
-                assigneeId,
-                ...(note.trim() === '' ? {} : { note: note.trim() }),
-              })
-            }
-            className="bg-conveniat-green focus-visible:focus-surface-filled flex h-11 w-full cursor-pointer items-center justify-center rounded-xl text-[15px] font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-          >
-            {forumText.assignAction[locale]}
-          </button>
+          <ForwardButton
+            label={forwardLabel()}
+            disabled={forwardDisabled || assign.isPending || move.isPending}
+            onClick={forwardNow}
+          />
         ) : undefined
       }
     >
@@ -491,3 +613,19 @@ export const ForumModerationSheet: React.FC<{
     </BottomSheet>
   );
 };
+
+/** The sheet's one primary action on the forward view: where the post goes, in its words. */
+const ForwardButton: React.FC<{ label: string; disabled: boolean; onClick: () => void }> = ({
+  label,
+  disabled,
+  onClick,
+}) => (
+  <button
+    type="button"
+    disabled={disabled}
+    onClick={onClick}
+    className="bg-conveniat-green focus-visible:focus-surface-filled flex h-11 w-full cursor-pointer items-center justify-center rounded-xl px-3 text-[15px] font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+  >
+    <span className="truncate">{label}</span>
+  </button>
+);

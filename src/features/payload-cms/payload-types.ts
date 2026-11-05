@@ -4111,6 +4111,7 @@ export interface AnnouncementChannel {
         | 'billing-team'
         | 'material-team'
         | 'hof-dashboard-reviewer'
+        | 'forum-zentrale'
       )[]
     | null;
   /**
@@ -4158,6 +4159,7 @@ export interface ForumTopic {
         | 'billing-team'
         | 'material-team'
         | 'hof-dashboard-reviewer'
+        | 'forum-zentrale'
       )[]
     | null;
   /**

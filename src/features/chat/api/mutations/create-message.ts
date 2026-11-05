@@ -225,7 +225,7 @@ export const createMessage = trpcBaseProcedure
     if (
       forumVisibility !== undefined &&
       forumThread !== undefined &&
-      !(await forumVisibility.canSeeForumPost(prisma, user.uuid, forumThread))
+      !(await forumVisibility.canSeeForumPost(prisma, user, forumThread))
     ) {
       throw chatError('NOT_FOUND', 'threadGone');
     }
@@ -394,6 +394,12 @@ export const createMessage = trpcBaseProcedure
         create: { userId: user.uuid, messageId: forumPost.messageId },
         update: {},
       });
+    }
+    // a comment by whoever handles posts is the post's reaction, which takes it out of the
+    // Zentrale's queue; loaded only for a forum thread, as it reads the piket schedule
+    if (forumThread !== undefined) {
+      const { recordForumReaction } = await import('@/features/chat/api/forum/forum-zentrale');
+      await recordForumReaction(prisma, user, forumThread);
     }
 
     logger.debug('Message created', {

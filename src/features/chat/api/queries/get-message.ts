@@ -68,7 +68,7 @@ export const getMessage = trpcBaseProcedure
       const { canSeeForumPost, findForumPostVisibility } =
         await import('@/features/chat/api/forum/forum-visibility');
       const post = await findForumPostVisibility(prisma, message.parentId ?? message.uuid);
-      if (post !== undefined && !(await canSeeForumPost(prisma, ctx.user.uuid, post))) return;
+      if (post !== undefined && !(await canSeeForumPost(prisma, ctx.user, post))) return;
     }
 
     const [deletedQuotedIds, threads, topicAdminIds] = await Promise.all([
