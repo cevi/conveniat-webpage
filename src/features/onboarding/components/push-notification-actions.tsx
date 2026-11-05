@@ -32,6 +32,8 @@ interface PushNotificationActionsProperties {
   isSubscribed: boolean;
   isLoading: boolean;
   errorMessage: string | undefined;
+  /** a denied permission; any other error leaves the button on for a retry */
+  isBlocked: boolean;
 
   onToggle: () => Promise<boolean>;
   onContinue: () => void;
@@ -42,6 +44,7 @@ export const PushNotificationActions: React.FC<PushNotificationActionsProperties
   isSubscribed,
   isLoading,
   errorMessage,
+  isBlocked,
   onToggle,
   onContinue,
 }) => {
@@ -67,7 +70,7 @@ export const PushNotificationActions: React.FC<PushNotificationActionsProperties
             if (success) onContinue();
           });
         }}
-        disabled={isLoading || !!errorMessage}
+        disabled={isLoading || isBlocked}
       >
         {isLoading && (
           <div className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent" />
