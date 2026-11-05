@@ -76,6 +76,17 @@ export const ForumComposer: React.FC = () => {
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [location, setLocation] = useState(() => locationFromParameters(parameters));
+  // The composer stays mounted while the map is open to pick a spot, so the spot the picker
+  // hands back in the address arrives as a change, not as a new page: take it then.
+  const spotParameters = ['lng', 'lat', 'annotation', 'label']
+    .map((name) => parameters.get(name) ?? '')
+    .join('|');
+  const [handledSpot, setHandledSpot] = useState(spotParameters);
+  if (handledSpot !== spotParameters) {
+    setHandledSpot(spotParameters);
+    const handedBack = locationFromParameters(parameters);
+    if (handedBack !== undefined) setLocation(handedBack);
+  }
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | undefined>();
