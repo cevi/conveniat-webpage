@@ -4,6 +4,7 @@ import { textInputClassName } from '@/components/ui/field';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { forumText } from '@/features/chat/components/forum/forum-texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { CHAT_IMAGE_MAX_BYTES, isChatImageContentType } from '@/lib/chat-images';
 import { forumErrorTexts } from '@/lib/forum-error-texts';
@@ -19,10 +20,11 @@ import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
+import { keepPreviousData } from '@tanstack/react-query';
 import { Camera, Loader2, Lock, MapPin, Search, ThumbsUp, Users, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useDeferredValue, useState } from 'react';
+import React, { useState } from 'react';
 
 interface PickedLocation {
   longitude: number;
@@ -92,6 +94,9 @@ const clearDraft = (): void => {
   }
 };
 
+/** How long the typing pauses before the composer looks for posts that say the same. */
+const SUGGESTION_DEBOUNCE_MS = 300;
+
 /** A photo picked for the post, uploaded on publishing, into the topic the post goes to. */
 interface PickedImage {
   file: File;
@@ -152,16 +157,21 @@ export const ForumComposer: React.FC = () => {
   const canPostPrivate = settings.data?.privateReportsAvailable !== false;
   const isPrivate =
     canPostPrivate && (choice === undefined ? !canPostPublic : choice === 'private');
-  const deferredTitle = useDeferredValue(title);
+  // asked once the typing pauses, and the last answer stays up while the next one loads, so the
+  // posts already reported do not vanish and come back with every key
+  const searchedTitle = useDebouncedValue(title, SUGGESTION_DEBOUNCE_MS);
 
   const suggestions = trpc.forum.getForumPostSuggestionList.useQuery(
     {
-      title: deferredTitle,
+      title: searchedTitle,
       ...(location === undefined
         ? {}
         : { near: { longitude: location.longitude, latitude: location.latitude } }),
     },
-    { enabled: deferredTitle.trim().length >= 3 || location !== undefined },
+    {
+      enabled: searchedTitle.trim().length >= 3 || location !== undefined,
+      placeholderData: keepPreviousData,
+    },
   );
   const like = trpc.chat.toggleReaction.useMutation({
     onSettled: () => void utils.forum.getForumPostSuggestionList.invalidate(),
