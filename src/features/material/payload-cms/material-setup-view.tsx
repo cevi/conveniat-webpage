@@ -93,14 +93,19 @@ export default async function MaterialSetupView({
   }
   const locale = getAdminLocale(i18n);
 
-  const [categories, itemCount, hoefe] = await Promise.all([
+  // One grouped count gives the items of every category and, summed, of the depot: a
+  // `_count` of the relation would count the whole table once more beside `count()`.
+  const [categories, itemsByCategory, hoefe] = await Promise.all([
     prisma.materialCategory.findMany({
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-      include: { _count: { select: { items: true } } },
     }),
-    prisma.materialItem.count(),
+    prisma.materialItem.groupBy({ by: ['categoryId'], _count: { _all: true } }),
     payload.count({ collection: 'hoefe', overrideAccess: true }),
   ]);
+  const itemCountByCategory = new Map(
+    itemsByCategory.map((row) => [row.categoryId, row._count._all]),
+  );
+  const itemCount = itemsByCategory.reduce((sum, row) => sum + row._count._all, 0);
   const teamGroups = getRoleGroupIds(Roles.MaterialTeam);
 
   return (
@@ -146,7 +151,7 @@ export default async function MaterialSetupView({
             id: category.id,
             name: category.name,
             sortOrder: category.sortOrder,
-            itemCount: category._count.items,
+            itemCount: itemCountByCategory.get(category.id) ?? 0,
           }))}
         />
       </Gutter>
