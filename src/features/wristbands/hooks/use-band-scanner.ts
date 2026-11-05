@@ -62,7 +62,9 @@ const vibrate = (): void => {
  * the native app makes seamless by keeping Android's reader mode for 30 s after a session. A
  * band that slipped asks to be held again, a refused one says why; both keep the scanner going.
  * After a minute without a band, the scanner stops to save the battery and waits for `resume`.
- * Unmounting, `active` turning false or the app going to the background cancels the session.
+ * Unmounting, `active` turning false or the app going to the background cancels the session;
+ * a band already written is still recorded then, and a failure to do so is shown once the page
+ * is back.
  *
  * The password goes through the plain tRPC client, not a mutation hook, so it never enters the
  * query client, whose caches the app persists to IndexedDB, and lives no longer than the call.
@@ -112,8 +114,14 @@ export const useBandScanner = ({
       restartTimer = setTimeout(() => setRun((count) => count + 1), delay);
     };
     const fail = (problem: ScanNotice): void => {
-      setPhase('waiting');
       handlersReference.current.onFailed?.(band?.uid, problem.kind);
+      // the session ended while the band was saved: the notice waits for the page to be seen
+      // again, and the next session starts once it is
+      if (stopped()) {
+        setNotice(problem);
+        return;
+      }
+      setPhase('waiting');
       failuresInARow.current += 1;
       if (problem.kind === 'stop' || failuresInARow.current >= MAX_FAILURES_IN_A_ROW) {
         setPaused(true);
@@ -179,12 +187,12 @@ export const useBandScanner = ({
         // recorded even when the page stopped meanwhile: the band on the phone is written
         setPhase('saving');
         const problem = await record(uid);
-        if (problem === null) vibrate();
-        if (stopped()) return;
         if (problem !== null) {
           fail(problem);
           return;
         }
+        vibrate();
+        if (stopped()) return;
         failuresInARow.current = 0;
         setNotice(undefined);
         setPhase('waiting');
@@ -207,6 +215,8 @@ export const useBandScanner = ({
     return (): void => {
       session.abort();
       if (restartTimer !== undefined) clearTimeout(restartTimer);
+      // a band still being checked, written or saved is no longer this scanner's to show
+      setPhase('waiting');
     };
   }, [armed, run, hofId, utils]);
 

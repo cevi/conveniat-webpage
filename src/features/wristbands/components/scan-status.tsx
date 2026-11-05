@@ -60,7 +60,8 @@ export const ScanStatus: React.FC<{
   locale: Locale;
   onResume: () => void;
 }> = ({ phase, notice, locale, onResume }) => {
-  if (phase === 'off') return <></>;
+  // a band saved after the scanning stopped may still have something to say
+  if (phase === 'off') return notice === undefined ? <></> : <Notice notice={notice} />;
   if (phase === 'paused') {
     return (
       <div className="space-y-3">
