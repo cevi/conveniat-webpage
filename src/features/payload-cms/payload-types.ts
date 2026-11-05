@@ -612,21 +612,9 @@ export interface User {
    */
   funktionen?: (string | Funktion)[] | null;
   /**
-   * Version of the profile picture the person uploaded in the app; empty without one. Empty the field to remove an inappropriate picture.
-   */
-  profilePictureVersion?: string | null;
-  /**
    * An additional description of the user shown in the chat.
    */
   description?: string | null;
-  /**
-   * Others do not see this person in their contact list and cannot start a new chat with them. The person still sees their own contacts. As the organiser of a programme entry or a Schichteinsatz, they stay reachable there.
-   */
-  hidden?: boolean | null;
-  /**
-   * This person sees only their own Hof and the people they exchanged a chat QR code with, not every function holder and AVP. Others still find them; for the App Store review, also tick «Not findable in the chat».
-   */
-  testAccount?: boolean | null;
   /**
    * Whether the user is currently present on the campsite.
    */
@@ -639,6 +627,18 @@ export interface User {
     hasNextPage?: boolean;
     totalDocs?: number;
   };
+  /**
+   * Version of the profile picture the person uploaded in the app; empty without one. Empty the field to remove an inappropriate picture.
+   */
+  profilePictureVersion?: string | null;
+  /**
+   * Others do not see this person in their contact list and cannot start a new chat with them. The person still sees their own contacts. As the organiser of a programme entry or a Schichteinsatz, they stay reachable there.
+   */
+  hidden?: boolean | null;
+  /**
+   * This person sees only their own Hof and the people they exchanged a chat QR code with, not every function holder and AVP. Others still find them; for the App Store review, also tick «Not findable in the chat».
+   */
+  testAccount?: boolean | null;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -7232,12 +7232,12 @@ export interface UsersSelect<T extends boolean = true> {
   hoefe?: T;
   avpHoefe?: T;
   funktionen?: T;
-  profilePictureVersion?: T;
   description?: T;
-  hidden?: T;
-  testAccount?: T;
   presentAtCamp?: T;
   presenceLogs?: T;
+  profilePictureVersion?: T;
+  hidden?: T;
+  testAccount?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;

@@ -61,6 +61,8 @@ import { HelperShiftOrganiserExport as HelperShiftOrganiserExport_706abe738905a3
 import { ExportListMenuItem as ExportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { ImportListMenuItem as ImportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_de57a7a0310123dd259a53c03db574b9 } from '@/features/payload-cms/components/push-notification/push-notification-panel'
+import { default as default_f3319b28b44963828cb0e92d009cddff } from '@/features/payload-cms/components/push-notification/user-push-devices'
+import { default as default_301b920e3d3378f3646c9c911fe5324a } from '@/features/payload-cms/components/push-notification/user-push-devices-cell'
 import { FunktionenListHeader as FunktionenListHeader_b4889cf2925bee9fd8708afb34e7214c } from '@/features/payload-cms/payload-cms/components/funktionen-list-header'
 import { default as default_720f56d8cf9ba0434ee963ba588968d8 } from '@/features/billing/components/billing-status-cell'
 import { default as default_06b30d36d4fec532358cb0f29e42cc3e } from '@/features/billing/components/billing-actions-cell'
@@ -212,6 +214,8 @@ export const importMap = {
   "@payloadcms/plugin-import-export/rsc#ExportListMenuItem": ExportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@payloadcms/plugin-import-export/rsc#ImportListMenuItem": ImportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/components/push-notification/push-notification-panel#default": default_de57a7a0310123dd259a53c03db574b9,
+  "@/features/payload-cms/components/push-notification/user-push-devices#default": default_f3319b28b44963828cb0e92d009cddff,
+  "@/features/payload-cms/components/push-notification/user-push-devices-cell#default": default_301b920e3d3378f3646c9c911fe5324a,
   "@/features/payload-cms/payload-cms/components/funktionen-list-header#FunktionenListHeader": FunktionenListHeader_b4889cf2925bee9fd8708afb34e7214c,
   "@/features/billing/components/billing-status-cell#default": default_720f56d8cf9ba0434ee963ba588968d8,
   "@/features/billing/components/billing-actions-cell#default": default_06b30d36d4fec532358cb0f29e42cc3e,
