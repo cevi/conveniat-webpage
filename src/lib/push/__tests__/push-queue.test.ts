@@ -44,6 +44,8 @@ const claimBatches: unknown[][] = [];
 const mockNotificationCreate = jest.fn().mockResolvedValue({ id: 'notification-1' });
 const mockLogCreateMany = jest.fn().mockResolvedValue({ count: 0 });
 const mockNotificationFindMany = jest.fn();
+/** The chat of the push that completes, `null` for a push outside a chat. */
+const mockCompletedChatId = jest.fn((): string | null => 'chat-1');
 const mockNotificationUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
 const mockLogUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
 const mockPendingGroups = jest.fn().mockResolvedValue([]);
@@ -68,7 +70,7 @@ jest.mock('@/lib/db/prisma', () => ({
         Promise.resolve({
           kind: 'EMERGENCY',
           createdAt: new Date(Date.now() - 4000),
-          chatId: 'chat-1',
+          chatId: mockCompletedChatId(),
           messageId: undefined,
         }),
     },
@@ -385,6 +387,33 @@ describe('drainPushQueue', () => {
     givenSubscriptions(['sub-b']);
     await drainPushQueue('urgent');
     expect(mockLogger.info).not.toHaveBeenCalledWith('Push completed', expect.anything());
+  });
+
+  it('forgets the text of a chat push once its last delivery settled', async () => {
+    mockNotificationFindMany.mockResolvedValue([notification({ kind: 'CHAT' })]);
+    claimBatches.push([claimed('a')]);
+    givenSubscriptions(['sub-a']);
+
+    await drainPushQueue('all');
+
+    // the message lives in the chat; the push kept it only for a retry
+    expect(mockNotificationUpdateMany).toHaveBeenCalledWith({
+      where: { id: 'notification-1' },
+      data: { title: '', body: '' },
+    });
+  });
+
+  it('keeps the text of a push outside a chat, like an announcement', async () => {
+    mockCompletedChatId.mockReturnValueOnce(null);
+    mockNotificationFindMany.mockResolvedValue([notification({ chatId: null })]);
+    claimBatches.push([claimed('a')]);
+    givenSubscriptions(['sub-a']);
+
+    await drainPushQueue('all');
+
+    expect(mockNotificationUpdateMany).not.toHaveBeenCalledWith(
+      expect.objectContaining({ data: { title: '', body: '' } }),
+    );
   });
 
   it('does not report a push as complete while deliveries are still waiting', async () => {

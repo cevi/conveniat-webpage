@@ -46,7 +46,8 @@ model PushNotificationLog {
 model PushNotification {
   id                 String               @id @default(uuid(7))
   kind               PushNotificationKind
-  /// Already stripped of markdown and cut to what the push services accept.
+  /// Already stripped of markdown and cut to what the push services accept. Emptied once the
+  /// push of a chat is complete: it is the message itself, and the chat keeps that.
   title              String
   body               String
   url                String?
