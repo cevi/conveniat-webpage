@@ -2,6 +2,7 @@ import { chatError } from '@/features/chat/api/chat-errors';
 import { getActivePiketMembers } from '@/features/chat/api/utils/piket-service';
 import { ChatCapability, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
+import { FORUM_TEXT_MAX_LENGTH, FORUM_TITLE_MAX_LENGTH } from '@/lib/forum-shared';
 import { ChatType, MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma';
 import { sendNotification } from '@/lib/push/send-notification';
 import { trpcBaseProcedure } from '@/trpc/init';
@@ -24,6 +25,10 @@ export const reportProblem = trpcBaseProcedure
     z
       .object({
         location: z.tuple([z.number(), z.number()]).optional(), // [lng, lat]
+        // written in the forum's composer, which sends a private report here; the map's old
+        // button sent neither
+        title: z.string().trim().min(1).max(FORUM_TITLE_MAX_LENGTH).optional(),
+        text: z.string().trim().max(FORUM_TEXT_MAX_LENGTH).optional(),
       })
       .optional(),
   )
@@ -40,7 +45,11 @@ export const reportProblem = trpcBaseProcedure
   .mutation(async ({ ctx, input }) => {
     const { user, prisma } = ctx;
 
-    const chatName = `Problem Report - ${new Date().toLocaleDateString()} - ${user.name}`;
+    const title = input?.title;
+    const reportText = [title, input?.text]
+      .filter((part) => part !== undefined && part !== '')
+      .join('\n\n');
+    const chatName = title ?? `Problem Report - ${new Date().toLocaleDateString()} - ${user.name}`;
 
     // Fetch active support piket members
     const activePiketMembers = await getActivePiketMembers(
@@ -122,6 +131,8 @@ export const reportProblem = trpcBaseProcedure
         localizedAlertMessage = `Nouveau rapport de problème de ${user.name}!`;
       }
 
+      if (title !== undefined) localizedAlertMessage = `${localizedAlertMessage} ${title}`;
+
       ctx.afterTransactionCommit(() => {
         sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid, undefined, {
           kind: PushNotificationKind.SUPPORT,
@@ -190,6 +201,48 @@ export const reportProblem = trpcBaseProcedure
           });
         });
     });
+
+    // What the reporter wrote in the composer, as their own first message after the prompt
+    if (reportText !== '') {
+      const reportMessage = await prisma.message.create({
+        data: {
+          chatId: chat.uuid,
+          senderId: user.uuid,
+          type: MessageType.TEXT_MSG,
+          contentVersions: { create: { payload: { text: reportText } } },
+          messageEvents: {
+            create: [
+              { type: MessageEventType.CREATED, user: { connect: { uuid: user.uuid } } },
+              { type: MessageEventType.STORED },
+            ],
+          },
+        },
+      });
+      ctx.afterTransactionCommit(() => {
+        chatPubSub
+          .publish({
+            type: 'new_message',
+            chatId: chat.uuid,
+            senderId: user.uuid,
+            message: {
+              id: reportMessage.uuid,
+              createdAt: reportMessage.createdAt,
+              messagePayload: { text: reportText },
+              senderId: user.uuid,
+              senderName: user.name,
+              status: MessageEventType.STORED,
+              type: MessageType.TEXT_MSG,
+            },
+          })
+          .catch((error: unknown) => {
+            logger.error('Failed to publish the text of a problem report', {
+              error,
+              'chat.id': chat.uuid,
+              'message.id': reportMessage.uuid,
+            });
+          });
+      });
+    }
 
     return chat;
   });

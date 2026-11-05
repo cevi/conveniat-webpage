@@ -88,12 +88,15 @@ describe('reporting a problem from the map', () => {
     expect(screen.getByRole('button', { name: /Ich auch/ })).toBeTruthy();
   });
 
-  it('keeps the private report to the Zentrale', () => {
+  it('opens the same composer, switched to private, for a report to the Zentrale', () => {
     openAs('authenticated');
 
-    fireEvent.click(screen.getByRole('button', { name: /Privat an die Zentrale melden/ }));
-
-    expect(reportProblem).toHaveBeenCalledWith({ location: [8.301, 46.502] });
+    const link = screen.getByRole('link', { name: /Privat an die Zentrale melden/ });
+    const href = new URL(link.getAttribute('href') ?? '', 'http://localhost');
+    expect(href.pathname).toBe('/app/forum/new');
+    expect(href.searchParams.get('private')).toBe('1');
+    expect(href.searchParams.get('annotation')).toBe('wc-nord');
+    expect(reportProblem).not.toHaveBeenCalled();
   });
 
   it('sends the private report directly where the forum is off', () => {

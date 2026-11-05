@@ -141,8 +141,8 @@ const OpenPostsHere: React.FC<{ annotationId: string; locale: Locale }> = ({
 
 /**
  * Reporting a problem at a place of the map. Where the forum is on, what is already reported
- * here comes first, then a new post with the place filled in; the private support chat of
- * before stays as a quiet link, for what does not belong in public. Without the forum, the
+ * here comes first, then a new post with the place filled in; the private report to the
+ * Zentrale is the same composer switched to "Privat", for what does not belong in public. Without the forum, the
  * report opens the support chat, as it always did.
  */
 export const AnnotationForumAndReportSection: React.FC<{
@@ -212,20 +212,13 @@ export const AnnotationForumAndReportSection: React.FC<{
             description={forumMapText.newPostHere[locale]}
           />
         </Link>
-        <button
-          type="button"
-          onClick={sendPrivateReport}
-          disabled={isBusy}
-          aria-busy={isBusy}
-          className="focus-visible:focus-surface hover:bg-quiet flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl text-[13px] font-semibold text-green-800 disabled:opacity-60"
+        <Link
+          href={composerHrefFor(coordinates, annotation, undefined, { private: true })}
+          className="focus-visible:focus-surface hover:bg-quiet flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl text-[13px] font-semibold text-green-800"
         >
-          {isBusy ? (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-          ) : (
-            <Lock className="h-4 w-4" aria-hidden="true" />
-          )}
+          <Lock className="h-4 w-4" aria-hidden="true" />
           {privateReportText[locale]}
-        </button>
+        </Link>
       </>
     );
   } else {
