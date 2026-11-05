@@ -53,7 +53,7 @@ export const AppShell: React.FC<AppShellProperties> = ({
       <TRPCProvider>
         <ClientProviders>
           <OfflineQueueSync />
-          <OnboardingRecheck />
+          <OnboardingRecheck locale={locale} />
           <NativePushProvider>
             <HideHeaderProvider>
               <HeaderActionsProvider>

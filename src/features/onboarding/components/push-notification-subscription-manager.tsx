@@ -7,6 +7,7 @@ import { usePushNotificationState } from '@/hooks/use-push-notification-state';
 import { Cookie } from '@/types/types';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 
+import { writePreference } from '@/lib/preferences';
 import Cookies from 'js-cookie';
 import React, { useSyncExternalStore } from 'react';
 
@@ -41,6 +42,7 @@ export const PushNotificationSubscriptionManager: React.FC<{
         locale={locale}
         onSkip={() => {
           Cookies.set(Cookie.SKIP_PUSH_NOTIFICATION, 'true', { expires: 7 });
+          writePreference('web-push-opted-out', true);
           callback();
         }}
       />

@@ -1,6 +1,7 @@
 'use client';
 
 import { useServiceWorkerStatus } from '@/hooks/use-service-worker-status';
+import { writePreference } from '@/lib/preferences';
 import type { Locale } from '@/types/types';
 import {
   getPushSubscription,
@@ -175,6 +176,7 @@ export function usePushNotificationState(
 
   const subscribeToPush = useCallback(async (): Promise<boolean> => {
     updateState({ isLoading: true, isSubscribed: true, errorMessage: undefined });
+    writePreference('web-push-opted-out', false);
     try {
       await subscribeToPushNotifications(locale, registrationSource);
       updateState({ isLoading: false, isSubscribed: true });
@@ -192,6 +194,9 @@ export function usePushNotificationState(
 
   const unsubscribeFromPush = useCallback(async (): Promise<boolean> => {
     updateState({ isLoading: true, isSubscribed: false }); // Optimistic update
+    // Recorded before the unsubscribe: if it fails halfway, the start-up restore must not
+    // subscribe the browser again against the user's choice.
+    writePreference('web-push-opted-out', true);
     try {
       await unsubscribeFromPushNotifications();
       updateState({ isLoading: false });

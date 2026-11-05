@@ -4427,7 +4427,10 @@ export interface PushNotificationSubscription {
   user?: (string | null) | User;
   platform: 'web' | 'ios' | 'android';
   lastUsedAt?: string | null;
-  registrationSource?: ('/entrypoint' | '/app/settings') | null;
+  /**
+   * Where the web subscription was last stored. Restored: the browser had lost its subscription with the permission still granted, and the app subscribed it again on start.
+   */
+  registrationSource?: ('/entrypoint' | '/app/settings' | 'restored') | null;
   deviceId?: string | null;
   updatedAt: string;
   createdAt: string;
