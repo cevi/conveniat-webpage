@@ -18,6 +18,12 @@ model ForumPost {
   chat   Chat   @relation(fields: [chatId], references: [uuid], onDelete: Cascade)
 
   title String
+  /// the description, a copy of the text of the post's message for the search; written with the
+  /// post, since a post's text is never edited
+  body  String @default("")
+  /// the title and the description as Postgres searches them, generated from both: German stems
+  /// without accents, the title weighted above the description. See `forum-search.ts`
+  search Unsupported("tsvector")? @default(dbgenerated())
 
   status            ForumPostStatus @default(OPEN)
   statusChangedAt   DateTime?
@@ -60,6 +66,9 @@ model ForumPost {
   @@index([mergedIntoId])
   @@index([chatId, approvedAt])
   @@index([chatId, private])
+  @@index([search], type: Gin)
+  // typos and spellings the stemmer does not join, e.g. "Toitoi" and "Toi Toi"
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 /// A post handed to one person, a helper sent out to fix what it reports. While it is open, the

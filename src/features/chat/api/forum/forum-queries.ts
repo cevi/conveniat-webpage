@@ -12,6 +12,12 @@ import {
   visibleForumPostsWhere,
 } from '@/features/chat/api/forum/forum-posts';
 import {
+  findForumPostsMatching,
+  type ForumSuggestion,
+  rankForumSuggestions,
+  searchWordsOf,
+} from '@/features/chat/api/forum/forum-search';
+import {
   findPrivateReportTopicId,
   isRestrictedForumPost,
 } from '@/features/chat/api/forum/forum-visibility';
@@ -212,8 +218,9 @@ export const getForumPinnedPostList = trpcBaseProcedure
 
 /**
  * Posts that may already report what the composer is about to: open ones near the chosen place,
- * and open ones whose title shares a word with the title typed so far. Recently done posts stay
- * in for two days, so a fix that just happened is seen before it is reported again.
+ * and open ones whose title or description matches the title typed so far, see `forum-search`.
+ * Recently done posts stay in for two days, so a fix that just happened is seen before it is
+ * reported again.
  */
 export const getForumPostSuggestionList = trpcBaseProcedure
   .input(
@@ -223,16 +230,17 @@ export const getForumPostSuggestionList = trpcBaseProcedure
       near: pointSchema.optional(),
     }),
   )
-  .query(async ({ ctx, input }): Promise<(ForumPostSummary & { distanceMetres?: number })[]> => {
-    const words = (input.title ?? '')
-      .toLowerCase()
-      .split(/[^\p{L}\p{N}]+/u)
-      .filter((word) => word.length >= 3)
-      .slice(0, 6);
+  .query(async ({ ctx, input }): Promise<ForumSuggestion[]> => {
+    const words = searchWordsOf(input.title ?? '');
     if (words.length === 0 && input.near === undefined) return [];
 
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
-    const moderated = await findModeratedTopicIds(ctx.prisma, ctx.user.uuid);
+    const [moderated, scores] = await Promise.all([
+      findModeratedTopicIds(ctx.prisma, ctx.user.uuid),
+      findForumPostsMatching(ctx.prisma, ctx.user.uuid, words, input.topicId),
+    ]);
+    const near = input.near;
+    if (scores.size === 0 && near === undefined) return [];
     const rows = await ctx.prisma.forumPost.findMany({
       where: {
         ...(input.topicId === undefined ? {} : { chatId: input.topicId }),
@@ -241,41 +249,32 @@ export const getForumPostSuggestionList = trpcBaseProcedure
           visibleForumPostsWhere(ctx.user.uuid, moderated),
           {
             OR: [
-              ...words.map((word) => ({ title: { contains: word, mode: 'insensitive' as const } })),
-              ...(input.near === undefined
-                ? []
-                : [boxAround(input.near, FORUM_NEARBY_RADIUS_METRES)]),
+              ...(scores.size === 0 ? [] : [{ messageId: { in: [...scores.keys()] } }]),
+              ...(near === undefined ? [] : [boxAround(near, FORUM_NEARBY_RADIUS_METRES)]),
             ],
           },
         ],
       },
       select: FORUM_POST_SUMMARY_SELECT,
       orderBy: { createdAt: 'desc' },
-      take: 20,
+      take: 40,
     });
     const summaries = await toForumPostSummaries(ctx.prisma, ctx.user.uuid, rows);
-    const near = input.near;
-    return summaries
-      .map((summary) => ({
+    const suggestions = summaries
+      .map((summary): ForumSuggestion => ({
         ...summary,
         ...(near !== undefined && summary.location !== null
           ? { distanceMetres: Math.round(distanceInMetres(near, summary.location)) }
           : {}),
       }))
+      // the box is wider than the circle around the place
       .filter(
         (summary) =>
-          summary.distanceMetres === undefined ||
-          summary.distanceMetres <= FORUM_NEARBY_RADIUS_METRES ||
-          words.some((word) => summary.title.toLowerCase().includes(word)),
-      )
-      .toSorted((a, b) => {
-        // open before done, then the nearest, then the most liked
-        const byStatus = (a.status === 'DONE' ? 1 : 0) - (b.status === 'DONE' ? 1 : 0);
-        if (byStatus !== 0) return byStatus;
-        const byDistance = (a.distanceMetres ?? Infinity) - (b.distanceMetres ?? Infinity);
-        return byDistance === 0 ? b.likeCount - a.likeCount : byDistance;
-      })
-      .slice(0, 5);
+          scores.has(summary.id) ||
+          (summary.distanceMetres !== undefined &&
+            summary.distanceMetres <= FORUM_NEARBY_RADIUS_METRES),
+      );
+    return rankForumSuggestions(suggestions, scores).slice(0, 5);
   });
 
 /** The open posts with a place, for the forum layer of the map. */
