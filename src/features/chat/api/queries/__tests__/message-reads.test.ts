@@ -98,7 +98,6 @@ const withIncludes = (message: StoredMessage, readerId: string): Row => ({
   messageEvents: [],
   contentVersions: [{ payload: message.payload }],
   sender: message.senderId === null ? null : { name: users[message.senderId]?.name },
-  _count: { replies: messages.filter((m) => m.parentId === message.uuid).length },
   reactions: reactions
     .filter((reaction) => reaction.messageId === message.uuid)
     .map((reaction) => ({ ...reaction, user: { name: users[reaction.userId]?.name } })),
@@ -156,13 +155,18 @@ const prisma = {
         const key = `${message.parentId ?? ''}|${message.senderId ?? ''}`;
         const group = groups.get(key);
         const latest = group?.['_max'] as { createdAt: Date } | undefined;
-        if (latest === undefined || message.createdAt > latest.createdAt) {
-          groups.set(key, {
-            parentId: message.parentId,
-            senderId: message.senderId,
-            _max: { createdAt: message.createdAt },
-          });
-        }
+        const count = (group?.['_count'] as { _all: number } | undefined)?._all ?? 0;
+        groups.set(key, {
+          parentId: message.parentId,
+          senderId: message.senderId,
+          _max: {
+            createdAt:
+              latest === undefined || message.createdAt > latest.createdAt
+                ? message.createdAt
+                : latest.createdAt,
+          },
+          _count: { _all: count + 1 },
+        });
       }
       return Promise.resolve([...groups.values()]);
     },
@@ -330,5 +334,19 @@ describe('thread summaries', () => {
     const { items } = await as(ANNA).getChatMessages({ chatId: CHAT_ID });
 
     expect(items[0]?.threadSummary).toBeUndefined();
+    expect(items[0]?.replyCount).toBe(0);
+  });
+
+  it('counts every reply, a second one of the same person and a deleted one too', async () => {
+    const root = seed(ANNA, { text: 'Wer bringt einen Gaskocher?' });
+    seed(BEN, { text: 'Ich' }, { parentId: root });
+    seed(BEN, { text: 'Doch nicht' }, { parentId: root, deletedAt: new Date() });
+    seed(CLARA, { text: 'Ich habe zwei' }, { parentId: root });
+
+    const { items } = await as(ANNA).getChatMessages({ chatId: CHAT_ID });
+    const message = await as(ANNA).getMessage({ messageId: root });
+
+    expect(items.find((item) => item.id === root)?.replyCount).toBe(3);
+    expect(message?.replyCount).toBe(3);
   });
 });

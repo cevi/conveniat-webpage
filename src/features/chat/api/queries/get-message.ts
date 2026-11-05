@@ -33,9 +33,6 @@ export const getMessage = trpcBaseProcedure
           take: 1,
         },
         sender: { select: { name: true } },
-        _count: {
-          select: { replies: true },
-        },
         reactions: {
           include: {
             user: {
@@ -62,14 +59,14 @@ export const getMessage = trpcBaseProcedure
 
     if (!message) return;
 
-    const [deletedQuotedIds, threadSummaries] = await Promise.all([
+    const [deletedQuotedIds, threads] = await Promise.all([
       findDeletedQuotedMessageIds(prisma, [message.contentVersions[0]?.payload]),
-      findThreadSummaries(prisma, message._count.replies > 0 ? [message.uuid] : []),
+      findThreadSummaries(prisma, [message.uuid]),
     ]);
 
     return toChatMessage(message, {
       status: getStatusFromMessageEvents(message.messageEvents),
       deletedQuotedIds,
-      threadSummaries,
+      threads,
     });
   });

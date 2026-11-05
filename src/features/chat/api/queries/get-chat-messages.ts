@@ -68,12 +68,6 @@ export const getChatMessages = trpcBaseProcedure
             orderBy: { revision: 'desc' },
           },
           sender: { select: { name: true } },
-          _count: {
-            select: {
-              replies: true,
-              // We want to know if there are replies that the current user hasn't read yet
-            },
-          },
           reactions: {
             include: {
               user: {
@@ -111,14 +105,14 @@ export const getChatMessages = trpcBaseProcedure
         'chat.next_cursor': nextCursor,
       });
 
-      const [deletedQuotedIds, threadSummaries] = await Promise.all([
+      const [deletedQuotedIds, threads] = await Promise.all([
         findDeletedQuotedMessageIds(
           prisma,
           messages.map((message) => message.contentVersions[0]?.payload),
         ),
         findThreadSummaries(
           prisma,
-          messages.filter((message) => message._count.replies > 0).map((message) => message.uuid),
+          messages.map((message) => message.uuid),
         ),
       ]);
 
@@ -129,7 +123,7 @@ export const getChatMessages = trpcBaseProcedure
             ? MessageEventType.READ
             : getStatusFromMessageEvents(message.messageEvents),
           deletedQuotedIds,
-          threadSummaries,
+          threads,
         });
       });
 

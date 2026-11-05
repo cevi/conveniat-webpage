@@ -169,7 +169,6 @@ export const adminRouter = createTRPCRouter({
                 user: { select: { name: true, uuid: true } },
               },
             },
-            _count: { select: { messages: true } },
           },
           orderBy: { lastUpdate: 'desc' },
           skip,
@@ -177,6 +176,15 @@ export const adminRouter = createTRPCRouter({
         }),
         prisma.chat.count({ where: whereClause }),
       ]);
+      // Grouped over this page rather than a `_count` of the relation: Prisma 7 joins a
+      // relation count against a count over the whole `Message` table, see
+      // https://github.com/prisma/orm/issues/23669.
+      const messageCounts = await prisma.message.groupBy({
+        by: ['chatId'],
+        where: { chatId: { in: chats.map((chat) => chat.uuid) } },
+        _count: { _all: true },
+      });
+      const messageCountByChat = new Map(messageCounts.map((row) => [row.chatId, row._count._all]));
 
       return {
         chats: chats.map((chat) => ({
@@ -188,7 +196,7 @@ export const adminRouter = createTRPCRouter({
           caseNumber: formatCaseNumber(chat.caseNumber),
           capabilities: chat.capabilities,
           lastUpdate: chat.lastUpdate,
-          messageCount: chat._count.messages,
+          messageCount: messageCountByChat.get(chat.uuid) ?? 0,
           members: chat.chatMemberships.map((m) => ({
             name: m.user.name,
             uuid: m.userId,
@@ -309,7 +317,6 @@ export const adminRouter = createTRPCRouter({
               },
             },
           },
-          _count: { select: { messages: true } },
         },
         orderBy: { lastUpdate: 'desc' },
       });
@@ -343,7 +350,7 @@ export const adminRouter = createTRPCRouter({
             caseNumber: formatCaseNumber(chat.caseNumber),
             lastUpdate: chat.lastUpdate,
             unreadCount: 0,
-            messageCount: chat._count.messages,
+            messageCount: chat.messages.length,
             lastMessage: {
               id: 'unknown',
               createdAt: chat.lastUpdate,
@@ -381,7 +388,7 @@ export const adminRouter = createTRPCRouter({
           chatType: chat.type,
           caseNumber: formatCaseNumber(chat.caseNumber),
           id: chat.uuid,
-          messageCount: chat._count.messages,
+          messageCount: chat.messages.length,
           lastMessage: {
             id: lastMessage.uuid,
             createdAt: lastMessage.createdAt,
