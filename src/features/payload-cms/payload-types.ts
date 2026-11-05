@@ -9265,6 +9265,10 @@ export interface AppFeatureFlag {
    * Toggles visibility of the conveniat27 Forum menu item in the app.
    */
   forumEnabled?: boolean | null;
+  /**
+   * Against spam. While on, a new forum post is seen only by its author and the moderators (the Kernteam of its topic and the piket on duty) until one of them approves it. Posts by the Kernteam need no approval, comments are never held back.
+   */
+  forumModerationRequired?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -10053,6 +10057,7 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   photoContestEnabled?: T;
   reservationsEnabled?: T;
   forumEnabled?: T;
+  forumModerationRequired?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

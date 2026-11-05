@@ -36,6 +36,7 @@ import {
   BellOff,
   CheckCircle2,
   ClipboardCheck,
+  Clock,
   Loader2,
   MapPin,
   MessageSquareOff,
@@ -96,6 +97,94 @@ const failureText = (reason: string, locale: Locale): string =>
   reason in forumErrorTexts
     ? forumErrorTexts[reason as keyof typeof forumErrorTexts][locale]
     : forumText.changeFailed[locale];
+
+/**
+ * A post waiting for approval: its author reads who will approve it, a moderator approves it
+ * or rejects it, which deletes it. Rejecting asks first, as every deletion does.
+ */
+const PendingBanner: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ post, locale }) => {
+  const router = useRouter();
+  const utils = trpc.useUtils();
+  const [confirmReject, setConfirmReject] = useState(false);
+  const [error, setError] = useState<string | undefined>();
+  const fail = (caught: unknown): void =>
+    setError(userErrorMessage(caught, locale, forumErrorTexts, forumText.changeFailed));
+  const approve = trpc.forum.approveForumPost.useMutation({
+    onSuccess: () => void utils.forum.invalidate(),
+    onError: fail,
+  });
+  const reject = trpc.forum.deleteForumMessage.useMutation({
+    onSuccess: () => {
+      void utils.forum.invalidate();
+      router.push('/app/forum');
+    },
+    onError: fail,
+  });
+
+  return (
+    <div className="bg-quiet flex flex-col gap-2.5 rounded-xl p-3">
+      <p className="flex items-start gap-2 text-[14px] text-green-900">
+        <Clock className="mt-0.5 h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
+        {post.viewer.canApprove
+          ? forumText.pendingModerator[locale]
+          : forumText.pendingAuthor[locale]}
+      </p>
+      {post.viewer.canApprove && confirmReject && (
+        <p className="text-[13px] text-green-800">{forumText.rejectConfirm[locale]}</p>
+      )}
+      {post.viewer.canApprove && (
+        <div className="flex gap-2">
+          {confirmReject ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setConfirmReject(false)}
+                className="bg-chip focus-visible:focus-surface h-11 flex-1 cursor-pointer rounded-xl text-[15px] font-semibold text-green-900"
+              >
+                {forumText.cancel[locale]}
+              </button>
+              <button
+                type="button"
+                disabled={reject.isPending}
+                onClick={() => reject.mutate({ messageId: post.id })}
+                className="border-danger-line text-danger-text hover:bg-danger-soft focus-visible:focus-surface-danger h-11 flex-1 cursor-pointer rounded-xl border bg-white text-[15px] font-semibold"
+              >
+                {forumText.reject[locale]}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setConfirmReject(true)}
+                className="border-danger-line text-danger-text hover:bg-danger-soft focus-visible:focus-surface-danger h-11 flex-1 cursor-pointer rounded-xl border bg-white text-[15px] font-semibold"
+              >
+                {forumText.reject[locale]}
+              </button>
+              <button
+                type="button"
+                disabled={approve.isPending}
+                onClick={() => approve.mutate({ postId: post.id })}
+                className="bg-conveniat-green focus-visible:focus-surface-filled flex h-11 flex-[2] cursor-pointer items-center justify-center gap-2 rounded-xl text-[15px] font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+              >
+                <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+                {forumText.approve[locale]}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      {error !== undefined && (
+        <p
+          role="alert"
+          className="bg-danger-soft text-danger-text rounded-lg px-3 py-2 text-[13px]"
+        >
+          {error}
+        </p>
+      )}
+    </div>
+  );
+};
 
 /** The answer the Kernteam marked, above the other comments. */
 const MarkedAnswer: React.FC<{ commentId: string; locale: Locale }> = ({ commentId, locale }) => {
@@ -195,6 +284,8 @@ const PostHeader: React.FC<{
           </Link>
         )}
       </div>
+
+      {post.pending === true && <PendingBanner post={post} locale={locale} />}
 
       {post.mergedInto !== null && (
         <Link

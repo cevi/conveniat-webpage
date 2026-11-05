@@ -132,6 +132,44 @@ export const pushNewForumPost = (post: {
 };
 
 /**
+ * A post that waits for approval: only to those who may approve it, the topic's Kernteam and
+ * the piket on duty. Its other pushes wait for the approval, see `approveForumPost`.
+ */
+export const pushPendingForumPost = (post: {
+  chatId: string;
+  postId: string;
+  title: string;
+  /** in the author's language, like every push */
+  pendingText: string;
+  topicName: string;
+  senderId: string;
+  senderName: string;
+}): void => {
+  const run = async (): Promise<void> => {
+    const [admins, piketIds] = await Promise.all([
+      prisma.chatMembership.findMany({
+        where: { chatId: post.chatId, chatPermission: { in: ['OWNER', 'ADMIN'] } },
+        select: { userId: true },
+      }),
+      activePiketIds(),
+    ]);
+    await send({
+      chatId: post.chatId,
+      postId: post.postId,
+      title: post.topicName,
+      text: post.pendingText,
+      senderName: post.senderName,
+      kind: PushNotificationKind.SUPPORT,
+      recipientIds: without(
+        [...admins.map((membership) => membership.userId), ...piketIds],
+        post.senderId,
+      ),
+    });
+  };
+  settle(run(), { 'chat.id': post.chatId, 'forum.post.id': post.postId });
+};
+
+/**
  * Something happened in a post's thread: a comment, a status change, an assignment. Goes to the
  * post's subscribers, and for a comment to the piket on duty as well.
  */

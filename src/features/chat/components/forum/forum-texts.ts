@@ -40,6 +40,30 @@ export const forumText = {
     en: 'The forum could not be loaded',
     fr: 'Le forum n’a pas pu être chargé',
   },
+  pendingPill: { de: 'Wartet auf Freigabe', en: 'Awaiting approval', fr: 'En attente' },
+  filterPending: { de: 'Zur Freigabe', en: 'To approve', fr: 'À approuver' },
+  pendingAuthor: {
+    de: 'Wartet auf Freigabe. Bis das Kernteam oder das Piket den Beitrag freigibt, sehen ihn nur du und sie.',
+    en: 'Awaiting approval. Until the core team or the person on duty approves it, only you and they see this post.',
+    fr: 'En attente d’approbation. Tant que l’équipe centrale ou le piquet ne l’a pas approuvée, seuls toi et eux voient cette publication.',
+  },
+  pendingModerator: {
+    de: 'Wartet auf Freigabe. Erst danach sehen ihn alle und die Abonnierten werden benachrichtigt.',
+    en: 'Awaiting approval. Only then does everyone see it and subscribers are notified.',
+    fr: 'En attente d’approbation. Ce n’est qu’ensuite que tout le monde la voit et que les abonnés sont notifiés.',
+  },
+  approve: { de: 'Freigeben', en: 'Approve', fr: 'Approuver' },
+  reject: { de: 'Ablehnen', en: 'Reject', fr: 'Refuser' },
+  rejectConfirm: {
+    de: 'Ablehnen löscht den Beitrag. Der Text bleibt im Protokoll.',
+    en: 'Rejecting deletes the post. Its text stays in the protocol.',
+    fr: 'Refuser supprime la publication. Son texte reste dans le protocole.',
+  },
+  moderationHint: {
+    de: 'Der Beitrag erscheint, sobald das Kernteam oder das Piket ihn freigegeben hat.',
+    en: 'The post appears once the core team or the person on duty has approved it.',
+    fr: 'La publication paraît dès que l’équipe centrale ou le piquet l’a approuvée.',
+  },
   loadMore: { de: 'Mehr anzeigen', en: 'Show more', fr: 'Afficher plus' },
   kernteam: { de: 'Kernteam', en: 'Core team', fr: 'Équipe centrale' },
   subscribeTopic: {

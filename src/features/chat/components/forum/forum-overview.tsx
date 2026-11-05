@@ -20,7 +20,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useState } from 'react';
 
 type StatusFilter = 'active' | 'done';
-type ListFilter = 'all' | 'mine' | 'assignedToMe' | 'subscribed';
+type ListFilter = 'all' | 'mine' | 'assignedToMe' | 'subscribed' | 'pending';
 
 const chipClassName = (isChosen: boolean): string =>
   cn(
@@ -88,6 +88,7 @@ export const ForumOverview: React.FC = () => {
   const [now] = useState(() => new Date());
 
   const topics = trpc.forum.getForumTopicList.useQuery({});
+  const settings = trpc.forum.getForumSettings.useQuery({});
   const pinned = trpc.forum.getForumPinnedPostList.useQuery(
     topicId === undefined ? {} : { topicId },
   );
@@ -208,6 +209,10 @@ export const ForumOverview: React.FC = () => {
                   ['mine', forumText.filterMine],
                   ['assignedToMe', forumText.filterAssigned],
                   ['subscribed', forumText.filterSubscribed],
+                  // while posts need approval: the moderators' queue, everyone else's own
+                  ...(settings.data?.moderationRequired === true
+                    ? [['pending', forumText.filterPending] as const]
+                    : []),
                 ] as const
               ).map(([value, text]) => (
                 <Chip key={value} chosen={filter === value} onClick={() => setFilter(value)}>

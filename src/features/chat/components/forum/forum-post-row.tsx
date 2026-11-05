@@ -3,7 +3,7 @@ import { forumText, relativeTimeText } from '@/features/chat/components/forum/fo
 import type { ForumPostSummary } from '@/lib/forum-shared';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Image as ImageIcon, MapPin, MessageCircle, ThumbsUp } from 'lucide-react';
+import { Clock, Image as ImageIcon, MapPin, MessageCircle, ThumbsUp } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
 
@@ -24,7 +24,14 @@ export const ForumPostRow: React.FC<{
       className="focus-visible:focus-surface hover:bg-quiet/60 flex flex-col gap-1.5 px-4 py-3 transition-colors"
     >
       <span className="flex flex-wrap items-center gap-1.5 text-[12px] text-green-700">
-        <ForumStatusPill status={post.status} locale={locale} />
+        {post.pending === true ? (
+          <span className="border-line inline-flex h-[22px] items-center gap-1 rounded-full border border-dashed bg-white px-2 text-[12px] font-semibold text-green-700">
+            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+            {forumText.pendingPill[locale]}
+          </span>
+        ) : (
+          <ForumStatusPill status={post.status} locale={locale} />
+        )}
         {post.byTopicAdmin && (
           <span className="bg-conveniat-green rounded-[5px] px-1.5 py-px text-[11px] font-bold text-white">
             {forumText.kernteam[locale]}

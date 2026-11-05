@@ -1,4 +1,5 @@
 import {
+  approveForumPost,
   createForumPost,
   createForumPostAssignment,
   deleteForumMessage,
@@ -18,6 +19,7 @@ import {
   getForumPostList,
   getForumPostMapList,
   getForumPostSuggestionList,
+  getForumSettings,
   getForumTopicList,
 } from '@/features/chat/api/forum/forum-queries';
 import { createTRPCRouter } from '@/trpc/init';
@@ -35,7 +37,9 @@ export const forumRouter = createTRPCRouter({
   getForumPostMapList,
   getForumPost,
   getForumAssigneeList,
+  getForumSettings,
   createForumPost,
+  approveForumPost,
   updateForumPostStatus,
   setForumPostPinned,
   setForumPostAnswer,

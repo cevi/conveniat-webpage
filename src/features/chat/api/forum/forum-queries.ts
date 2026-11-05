@@ -1,5 +1,9 @@
 import { forumError } from '@/features/chat/api/forum/forum-errors';
-import { isFullModerator, resolveForumModerator } from '@/features/chat/api/forum/forum-moderator';
+import {
+  findModeratedTopicIds,
+  isFullModerator,
+  resolveForumModerator,
+} from '@/features/chat/api/forum/forum-moderator';
 import {
   FORUM_POST_SUMMARY_SELECT,
   type ForumPostSummary,
@@ -7,6 +11,8 @@ import {
   toForumPostSummaries,
   visibleForumPostsWhere,
 } from '@/features/chat/api/forum/forum-posts';
+import { getFeatureFlag } from '@/lib/db/redis';
+import { FEATURE_FLAG_FORUM_MODERATION } from '@/lib/feature-flags';
 import {
   distanceInMetres,
   FORUM_LIKE_EMOJI,
@@ -98,7 +104,7 @@ export const getForumPostList = trpcBaseProcedure
     z.object({
       topicId: z.uuid().optional(),
       status: z.enum(['active', 'done', 'all']).default('active'),
-      filter: z.enum(['all', 'mine', 'assignedToMe', 'subscribed']).default('all'),
+      filter: z.enum(['all', 'mine', 'assignedToMe', 'subscribed', 'pending']).default('all'),
       sort: z.enum(['new', 'popular']).default('new'),
       annotationId: z.string().max(64).optional(),
       cursor: z.number().int().min(0).nullish(),
@@ -109,8 +115,12 @@ export const getForumPostList = trpcBaseProcedure
     async ({ ctx, input }): Promise<{ items: ForumPostSummary[]; nextCursor: number | null }> => {
       const userId = ctx.user.uuid;
       const offset = input.cursor ?? 0;
+      const moderated = await findModeratedTopicIds(ctx.prisma, userId);
       const where: Prisma.ForumPostWhereInput = {
-        ...visibleForumPostsWhere(userId),
+        AND: [
+          visibleForumPostsWhere(userId, moderated),
+          input.filter === 'pending' ? { approvedAt: null } : {},
+        ],
         ...(input.topicId === undefined ? {} : { chatId: input.topicId }),
         ...(input.annotationId === undefined ? {} : { annotationId: input.annotationId }),
         ...(input.status === 'active' ? { status: { not: 'DONE' } } : {}),
@@ -179,9 +189,10 @@ export const getForumPostList = trpcBaseProcedure
 export const getForumPinnedPostList = trpcBaseProcedure
   .input(z.object({ topicId: z.uuid().optional() }))
   .query(async ({ ctx, input }): Promise<ForumPostSummary[]> => {
+    const moderated = await findModeratedTopicIds(ctx.prisma, ctx.user.uuid);
     const rows = await ctx.prisma.forumPost.findMany({
       where: {
-        ...visibleForumPostsWhere(ctx.user.uuid),
+        AND: [visibleForumPostsWhere(ctx.user.uuid, moderated)],
         ...(input.topicId === undefined ? {} : { chatId: input.topicId }),
         pinnedAt: { not: null },
       },
@@ -214,12 +225,13 @@ export const getForumPostSuggestionList = trpcBaseProcedure
     if (words.length === 0 && input.near === undefined) return [];
 
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    const moderated = await findModeratedTopicIds(ctx.prisma, ctx.user.uuid);
     const rows = await ctx.prisma.forumPost.findMany({
       where: {
-        ...visibleForumPostsWhere(ctx.user.uuid),
         ...(input.topicId === undefined ? {} : { chatId: input.topicId }),
         OR: [{ status: { not: 'DONE' } }, { statusChangedAt: { gte: twoDaysAgo } }],
         AND: [
+          visibleForumPostsWhere(ctx.user.uuid, moderated),
           {
             OR: [
               ...words.map((word) => ({ title: { contains: word, mode: 'insensitive' as const } })),
@@ -263,9 +275,10 @@ export const getForumPostSuggestionList = trpcBaseProcedure
 export const getForumPostMapList = trpcBaseProcedure
   .input(z.object({}))
   .query(async ({ ctx }): Promise<ForumPostSummary[]> => {
+    const moderated = await findModeratedTopicIds(ctx.prisma, ctx.user.uuid);
     const rows = await ctx.prisma.forumPost.findMany({
       where: {
-        ...visibleForumPostsWhere(ctx.user.uuid),
+        AND: [visibleForumPostsWhere(ctx.user.uuid, moderated)],
         status: { not: 'DONE' },
         latitude: { not: null },
         longitude: { not: null },
@@ -311,6 +324,8 @@ export interface ForumPostDetail extends ForumPostSummary {
     canSetStatus: boolean;
     /** pin, answer, merge, delete, assign */
     canModerate: boolean;
+    /** the post waits for approval, and the caller may give it */
+    canApprove: boolean;
     isAuthor: boolean;
   };
 }
@@ -391,6 +406,12 @@ export const getForumPost = trpcBaseProcedure
         resolveForumModerator(ctx.prisma, userId, row.chatId, row.messageId),
       ]);
 
+    // a post waiting for approval answers like one that does not exist, but to its author and
+    // its moderators
+    if (row.approvedAt === null && row.message.senderId !== userId && !isFullModerator(moderator)) {
+      throw forumError('NOT_FOUND', 'postGone');
+    }
+
     const content = readForumPostContent(row.message.contentVersions[0]?.payload);
     return {
       ...summary,
@@ -428,6 +449,7 @@ export const getForumPost = trpcBaseProcedure
         capacity: moderator?.capacity ?? null,
         canSetStatus: moderator !== undefined && row.mergedIntoId === null,
         canModerate: isFullModerator(moderator),
+        canApprove: row.approvedAt === null && isFullModerator(moderator),
         isAuthor: summary.author?.id === userId,
       },
     };
@@ -451,3 +473,10 @@ export const getForumAssigneeList = trpcBaseProcedure
     });
     return users.map((user) => ({ id: user.uuid, name: user.name }));
   });
+
+/** What the forum's pages need to know of the admin panel's switches. */
+export const getForumSettings = trpcBaseProcedure
+  .input(z.object({}))
+  .query(async (): Promise<{ moderationRequired: boolean }> => ({
+    moderationRequired: await getFeatureFlag(FEATURE_FLAG_FORUM_MODERATION),
+  }));
