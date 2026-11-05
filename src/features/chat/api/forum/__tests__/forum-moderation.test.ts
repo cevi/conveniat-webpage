@@ -52,6 +52,7 @@ jest.mock('@/lib/push/send-notification', () => ({
 
 import { approveForumPost, createForumPost } from '@/features/chat/api/forum/forum-mutations';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
+import { getPayload } from 'payload';
 
 const TOPIC = '0193f1a0-0000-7000-8000-000000000001';
 const POST = '0193f1a0-0000-7000-8000-0000000000aa';
@@ -61,7 +62,9 @@ let memberships: {
   chatPermission: ChatMembershipPermission;
   subscribed: boolean;
 }[];
-let posts: Map<string, { approvedAt: Date | null; approvedById?: string }>;
+let posts: Map<string, { approvedAt: Date | null; approvedById?: string; private?: boolean }>;
+/** the topic editors marked "Erhält private Meldungen", if any */
+let privateReportTopic: string | undefined;
 let audit: Record<string, unknown>[];
 
 const membershipOf = (userId: string): (typeof memberships)[number] | undefined =>
@@ -93,6 +96,16 @@ const prisma = {
     update: (): Promise<void> => Promise.resolve(),
   },
   chatMembership: {
+    upsert: ({
+      create,
+    }: {
+      create: { userId: string; chatPermission: ChatMembershipPermission };
+    }): Promise<void> => {
+      if (membershipOf(create.userId) === undefined) {
+        memberships.push({ ...create, subscribed: false });
+      }
+      return Promise.resolve();
+    },
     findUnique: ({ where }: { where: { userId_chatId: { userId: string } } }): Promise<unknown> => {
       const membership = membershipOf(where.userId_chatId.userId);
       return Promise.resolve(
@@ -123,8 +136,12 @@ const prisma = {
       Promise.resolve({ uuid: data.uuid, createdAt: new Date() }),
   },
   forumPost: {
-    create: ({ data }: { data: { messageId: string; approvedAt: Date | null } }): Promise<void> => {
-      posts.set(data.messageId, { approvedAt: data.approvedAt });
+    create: ({
+      data,
+    }: {
+      data: { messageId: string; approvedAt: Date | null; private: boolean };
+    }): Promise<void> => {
+      posts.set(data.messageId, { approvedAt: data.approvedAt, private: data.private });
       return Promise.resolve();
     },
     findUnique: ({ where }: { where: { messageId: string } }): Promise<unknown> =>
@@ -204,6 +221,13 @@ beforeEach(() => {
   ];
   posts = new Map();
   audit = [];
+  privateReportTopic = TOPIC;
+  jest.mocked(getPayload).mockResolvedValue({
+    find: () =>
+      Promise.resolve({
+        docs: privateReportTopic === undefined ? [] : [{ chatUuid: privateReportTopic }],
+      }),
+  } as never);
   shifts.clear();
   shifts.set('lea', { scheduleId: 'shift', start: new Date(0), end: new Date(8.64e15) });
   sendNotification.mockClear();
@@ -273,5 +297,34 @@ describe('forum moderation', () => {
       reason: 'notAllowed',
     });
     expect(posts.get(POST)?.approvedAt).toBeNull();
+  });
+
+  it('sends a private report to the topic editors chose, past the approval, to the Zentrale only', async () => {
+    moderationRequired = true;
+    const { pending } = await as('tim').createForumPost({
+      // whatever topic a client names, a private report goes where editors decided
+      topicId: '0193f1a0-0000-7000-8000-0000000000ff',
+      postId: POST,
+      title: 'Jemand hat mich bedrängt',
+      private: true,
+    });
+    await settle();
+
+    expect(pending).toBe(false);
+    expect(posts.get(POST)).toEqual(expect.objectContaining({ private: true }));
+    // the reporter belongs to the topic now, so they can follow their report
+    expect(membershipOf('tim')?.chatPermission).toBe(ChatMembershipPermission.MEMBER);
+    // the Kernteam of the topic and the piket on duty; no subscriber, no live event
+    expect(pushedTo()).toEqual({ SUPPORT: ['mira', 'lea'] });
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it('refuses a private report while no topic receives them', async () => {
+    privateReportTopic = undefined;
+
+    await expect(
+      as('tim').createForumPost({ topicId: TOPIC, postId: POST, title: 'Etwas', private: true }),
+    ).rejects.toMatchObject({ reason: 'privateReportsUnavailable' });
+    expect(posts.size).toBe(0);
   });
 });

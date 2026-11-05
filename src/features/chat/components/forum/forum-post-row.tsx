@@ -3,7 +3,7 @@ import { forumText, relativeTimeText } from '@/features/chat/components/forum/fo
 import type { ForumPostSummary } from '@/lib/forum-shared';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Clock, Image as ImageIcon, MapPin, MessageCircle, ThumbsUp } from 'lucide-react';
+import { Clock, Image as ImageIcon, Lock, MapPin, MessageCircle, ThumbsUp } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
 
@@ -31,6 +31,12 @@ export const ForumPostRow: React.FC<{
           </span>
         ) : (
           <ForumStatusPill status={post.status} locale={locale} />
+        )}
+        {post.private === true && (
+          <span className="bg-chip inline-flex h-[22px] items-center gap-1 rounded-md px-1.5 text-[12px] font-semibold text-green-800">
+            <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+            {forumText.privatePill[locale]}
+          </span>
         )}
         {post.byTopicAdmin && (
           <span className="bg-conveniat-green rounded-[5px] px-1.5 py-px text-[11px] font-bold text-white">

@@ -4,6 +4,7 @@ import { findDeletedQuotedMessageIds } from '@/features/chat/api/utils/deleted-m
 import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
 import { findThreadSummaries } from '@/features/chat/api/utils/thread-summaries';
 import { toChatMessage } from '@/features/chat/api/utils/to-chat-message';
+import { ChatType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { MessageEventType } from '@prisma/client';
 import { z } from 'zod';
@@ -24,6 +25,7 @@ export const getMessage = trpcBaseProcedure
         chat: { chatMemberships: { some: { userId: ctx.user.uuid } } },
       },
       include: {
+        chat: { select: { type: true } },
         messageEvents: {
           where: { type: { in: USER_RELEVANT_MESSAGE_EVENTS } },
           orderBy: { uuid: 'desc' },
@@ -61,6 +63,15 @@ export const getMessage = trpcBaseProcedure
     });
 
     if (!message) return;
+
+    // a private report or a post waiting for approval, or one of its comments: only to whom
+    // sees the post, see `getChatMessages`
+    if (message.chat.type === ChatType.FORUM) {
+      const { canSeeForumPost, findForumPostVisibility } =
+        await import('@/features/chat/api/forum/forum-visibility');
+      const post = await findForumPostVisibility(prisma, message.parentId ?? message.uuid);
+      if (post !== undefined && !(await canSeeForumPost(prisma, ctx.user.uuid, post))) return;
+    }
 
     const [deletedQuotedIds, threadSummaries] = await Promise.all([
       findDeletedQuotedMessageIds(prisma, [message.contentVersions[0]?.payload]),

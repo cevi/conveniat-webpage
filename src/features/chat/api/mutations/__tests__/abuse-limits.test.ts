@@ -74,7 +74,6 @@ import { createChat } from '@/features/chat/api/mutations/create-chat';
 import { createChatInvite } from '@/features/chat/api/mutations/create-chat-invite';
 import { createMessage } from '@/features/chat/api/mutations/create-message';
 import { renameChat } from '@/features/chat/api/mutations/rename-chat';
-import { reportProblem } from '@/features/chat/api/mutations/report-problem';
 import { toggleReaction } from '@/features/chat/api/mutations/toggle-reaction';
 import { ChatCapability } from '@/lib/chat-shared';
 import { ChatMembershipPermission, ChatType, MessageType } from '@/lib/prisma';
@@ -218,7 +217,6 @@ const prisma = {
 const createCaller = createCallerFactory(
   createTRPCRouter({
     sendMessage: createMessage,
-    reportProblem,
     createChatInvite,
     createChat,
     addParticipants,
@@ -294,7 +292,6 @@ describe('rate limits', () => {
       (caller): Promise<unknown> =>
         caller.sendMessage({ chatId: CHAT_ID, content: 'Hoi zäme', timestamp: new Date() }),
     ],
-    ['chat.reportProblem', 3, (caller): Promise<unknown> => caller.reportProblem()],
     ['chat.createChatInvite', 30, (caller): Promise<unknown> => caller.createChatInvite({})],
     [
       'chat.createChat',

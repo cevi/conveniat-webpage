@@ -6,15 +6,14 @@ import { handleLogin } from '@/utils/login-handler';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 
-const reportProblem = jest.fn();
 let forumEnabled = true;
+let privateReportsAvailable = true;
 let openPosts: unknown[] = [];
 
 jest.mock('next-auth/react', () => ({ useSession: jest.fn() }));
 jest.mock('@/utils/login-handler', () => ({ handleLogin: jest.fn() }));
 jest.mock('@/hooks/use-online-status', () => ({ useOnlineStatus: (): boolean => true }));
 jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
-jest.mock('next/navigation', () => ({ useRouter: (): object => ({ push: jest.fn() }) }));
 jest.mock('@/trpc/client', () => ({
   trpc: {
     useUtils: (): object => ({ forum: { getForumPostList: { invalidate: jest.fn() } } }),
@@ -25,12 +24,12 @@ jest.mock('@/trpc/client', () => ({
     },
     forum: {
       getForumPostList: { useQuery: (): object => ({ data: { items: openPosts } }) },
+      getForumSettings: {
+        useQuery: (): object => ({ data: { privateReportsAvailable } }),
+      },
     },
     chat: {
       toggleReaction: { useMutation: (): object => ({ mutate: jest.fn(), isPending: false }) },
-      reportProblem: {
-        useMutation: (): object => ({ mutate: reportProblem, isPending: false, error: undefined }),
-      },
     },
   },
 }));
@@ -49,6 +48,7 @@ describe('reporting a problem from the map', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     forumEnabled = true;
+    privateReportsAvailable = true;
     openPosts = [];
   });
 
@@ -58,7 +58,6 @@ describe('reporting a problem from the map', () => {
     fireEvent.click(screen.getByRole('button', { name: /Anmelden, um ein Problem zu melden/ }));
 
     expect(handleLogin).toHaveBeenCalled();
-    expect(reportProblem).not.toHaveBeenCalled();
   });
 
   it('opens a new forum post with the place filled in', () => {
@@ -69,7 +68,6 @@ describe('reporting a problem from the map', () => {
     expect(href.pathname).toBe('/app/forum/new');
     expect(href.searchParams.get('annotation')).toBe('wc-nord');
     expect(href.searchParams.get('label')).toBe('WC-Anlage Nord');
-    expect(reportProblem).not.toHaveBeenCalled();
   });
 
   it('lists what is already reported here first', () => {
@@ -96,15 +94,20 @@ describe('reporting a problem from the map', () => {
     expect(href.pathname).toBe('/app/forum/new');
     expect(href.searchParams.get('private')).toBe('1');
     expect(href.searchParams.get('annotation')).toBe('wc-nord');
-    expect(reportProblem).not.toHaveBeenCalled();
   });
 
-  it('sends the private report directly where the forum is off', () => {
+  it('offers no private report while editors chose no topic for it', () => {
+    privateReportsAvailable = false;
+    openAs('authenticated');
+
+    expect(screen.getByRole('link', { name: /Problem melden/ })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /Privat an die Zentrale melden/ })).toBeNull();
+  });
+
+  it('offers no report while the forum is off, since every report goes there', () => {
     forumEnabled = false;
     openAs('authenticated');
 
-    fireEvent.click(screen.getByRole('button', { name: /Problem melden/ }));
-
-    expect(reportProblem).toHaveBeenCalledWith({ location: [8.301, 46.502] });
+    expect(screen.queryByText(/Problem melden/)).toBeNull();
   });
 });

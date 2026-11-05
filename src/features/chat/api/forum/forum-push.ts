@@ -18,6 +18,7 @@ const logger = createLogger('forum:push');
  * | post by the topic's admins | the topic's whole audience                   |
  * | comment                    | subscribers of the post, piket on duty       |
  * | status change, assignment  | subscribers of the post                      |
+ * | private report             | the topic's admins, piket on duty            |
  */
 
 const activePiketIds = async (): Promise<string[]> => {
@@ -132,15 +133,15 @@ export const pushNewForumPost = (post: {
 };
 
 /**
- * A post that waits for approval: only to those who may approve it, the topic's Kernteam and
- * the piket on duty. Its other pushes wait for the approval, see `approveForumPost`.
+ * A post only its moderators see, the topic's Kernteam and the piket on duty: one waiting for
+ * approval, whose other pushes wait for it (see `approveForumPost`), or a private report.
  */
-export const pushPendingForumPost = (post: {
+export const pushForumModerators = (post: {
   chatId: string;
   postId: string;
   title: string;
   /** in the author's language, like every push */
-  pendingText: string;
+  text: string;
   topicName: string;
   senderId: string;
   senderName: string;
@@ -157,7 +158,7 @@ export const pushPendingForumPost = (post: {
       chatId: post.chatId,
       postId: post.postId,
       title: post.topicName,
-      text: post.pendingText,
+      text: post.text,
       senderName: post.senderName,
       kind: PushNotificationKind.SUPPORT,
       recipientIds: without(

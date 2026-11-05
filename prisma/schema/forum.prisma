@@ -41,6 +41,10 @@ model ForumPost {
   approvedAt      DateTime?
   approvedById    String?
 
+  /// a private report to the Zentrale: only its author, the topic's Kernteam and the piket on
+  /// duty see it and its comments; it lives in the topic editors marked to receive them
+  private Boolean @default(false)
+
   /// the post this duplicate was merged into; a merged post leaves the lists, and its likes count
   /// for the post it was merged into
   mergedIntoId String?
@@ -55,6 +59,7 @@ model ForumPost {
   @@index([latitude, longitude])
   @@index([mergedIntoId])
   @@index([chatId, approvedAt])
+  @@index([chatId, private])
 }
 
 /// A post handed to one person, a helper sent out to fix what it reports. While it is open, the

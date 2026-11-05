@@ -38,6 +38,7 @@ import {
   ClipboardCheck,
   Clock,
   Loader2,
+  Lock,
   MapPin,
   MessageSquareOff,
   MoreVertical,
@@ -285,6 +286,12 @@ const PostHeader: React.FC<{
         )}
       </div>
 
+      {post.private === true && (
+        <p className="bg-quiet flex items-start gap-2 rounded-xl p-3 text-[14px] text-green-900">
+          <Lock className="mt-0.5 h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
+          {forumText.privateBanner[locale]}
+        </p>
+      )}
       {post.pending === true && <PendingBanner post={post} locale={locale} />}
 
       {post.mergedInto !== null && (

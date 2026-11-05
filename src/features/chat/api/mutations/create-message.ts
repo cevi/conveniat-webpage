@@ -8,7 +8,7 @@ import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { imageSentText, isImageKeyOfChat } from '@/lib/chat-images';
 import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
-import { chatPubSub } from '@/lib/db/chat-pubsub';
+import { type ChatRealtimeEvent, chatPubSub } from '@/lib/db/chat-pubsub';
 import poolPrisma from '@/lib/db/prisma';
 import { ChatType, MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma/client';
 import { sendNotification } from '@/lib/push/send-notification';
@@ -211,6 +211,24 @@ export const createMessage = trpcBaseProcedure
     // topic only takes comments. Our client never sends a post this way.
     if (chat.type === ChatType.FORUM && validatedMessage.parentId === undefined) {
       throw invariantError('BAD_REQUEST', 'A forum post is written with forum.createForumPost.');
+    }
+    // A private report or a post waiting for approval takes comments only from those who see
+    // it; to anyone else its thread does not exist. Loaded here, so a chat send does not pull
+    // in the piket schedule the check reads.
+    const forumVisibility =
+      chat.type === ChatType.FORUM
+        ? await import('@/features/chat/api/forum/forum-visibility')
+        : undefined;
+    const forumThread =
+      forumVisibility !== undefined && validatedMessage.parentId !== undefined
+        ? await forumVisibility.findForumPostVisibility(prisma, validatedMessage.parentId)
+        : undefined;
+    if (
+      forumVisibility !== undefined &&
+      forumThread !== undefined &&
+      !(await forumVisibility.canSeeForumPost(prisma, user.uuid, forumThread))
+    ) {
+      throw chatError('NOT_FOUND', 'threadGone');
     }
 
     // 3. Idempotency: adopt the client-generated id as the message id when it is a UUID.
@@ -479,36 +497,39 @@ export const createMessage = trpcBaseProcedure
             });
           });
 
-      chatPubSub
-        .publish({
-          type: 'new_message',
-          chatId: validatedMessage.chatId,
+      const newMessageEvent: ChatRealtimeEvent = {
+        type: 'new_message',
+        chatId: validatedMessage.chatId,
+        senderId: user.uuid,
+        message: {
+          id: createdMessage.uuid,
+          createdAt: createdMessage.createdAt,
+          messagePayload:
+            validatedMessage.type === MessageType.IMAGE_MSG
+              ? { url: validatedMessage.content }
+              : {
+                  text: validatedMessage.content,
+                  quotedMessageId,
+                  quotedSnippet,
+                },
           senderId: user.uuid,
-          message: {
-            id: createdMessage.uuid,
-            createdAt: createdMessage.createdAt,
-            messagePayload:
-              validatedMessage.type === MessageType.IMAGE_MSG
-                ? { url: validatedMessage.content }
-                : {
-                    text: validatedMessage.content,
-                    quotedMessageId,
-                    quotedSnippet,
-                  },
-            senderId: user.uuid,
-            senderName: user.name,
-            status: MessageEventType.STORED,
-            type: validatedMessage.type,
-            parentId: validatedMessage.parentId ?? undefined,
-          },
-        })
-        .catch((error: unknown) => {
-          logger.error('Failed to publish the new_message real-time event', {
-            error,
-            'chat.id': validatedMessage.chatId,
-            'message.id': createdMessage.uuid,
-          });
+          senderName: user.name,
+          status: MessageEventType.STORED,
+          type: validatedMessage.type,
+          parentId: validatedMessage.parentId ?? undefined,
+        },
+      };
+      // a comment of a restricted forum post goes only to those who see the post
+      (forumVisibility !== undefined && forumThread !== undefined
+        ? forumVisibility.publishForumThreadEvent(poolPrisma, forumThread, newMessageEvent)
+        : chatPubSub.publish(newMessageEvent)
+      ).catch((error: unknown) => {
+        logger.error('Failed to publish the new_message real-time event', {
+          error,
+          'chat.id': validatedMessage.chatId,
+          'message.id': createdMessage.uuid,
         });
+      });
     });
 
     return {

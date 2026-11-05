@@ -7,7 +7,8 @@ import { membersTab } from '@/features/payload-cms/payload-cms/chat-channels/mem
 import type { ForumTopic } from '@/features/payload-cms/payload-types';
 import { ChatCapability } from '@/lib/chat-shared';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/client';
-import type { CollectionConfig } from 'payload';
+import type { StaticTranslationString } from '@/types/types';
+import type { CheckboxFieldValidation, CollectionConfig } from 'payload';
 
 /**
  * Everything a forum needs, always: posts and comments are messages and threads, a like is a
@@ -33,6 +34,34 @@ const chatHooks = createChannelChatHooks<ForumTopic>({
     fr: 'Thème du forum créé',
   },
 });
+
+const alreadyReceivingText: StaticTranslationString = {
+  en: 'The topic "{name}" already receives the private reports. Untick it there first.',
+  de: 'Das Thema «{name}» empfängt bereits die privaten Meldungen. Entferne dort zuerst das Häkchen.',
+  fr: 'Le thème « {name} » reçoit déjà les signalements privés. Décoche-le d’abord là-bas.',
+};
+
+/** Private reports go to one topic, so a second one cannot be ticked. */
+const onlyOneTopicReceivesPrivateReports: CheckboxFieldValidation = async (value, { req, id }) => {
+  if (value !== true) return true;
+  const others = await req.payload.find({
+    collection: 'forum-topics',
+    where: {
+      and: [
+        { receivesPrivateReports: { equals: true } },
+        ...(id === undefined ? [] : [{ id: { not_equals: id } }]),
+      ],
+    },
+    limit: 1,
+    depth: 0,
+    req,
+  });
+  const other = others.docs[0];
+  if (other === undefined) return true;
+  const language =
+    req.i18n.language === 'fr' || req.i18n.language === 'en' ? req.i18n.language : 'de';
+  return alreadyReceivingText[language].replace('{name}', other.name);
+};
 
 /**
  * A topic of the conveniat27 forum, like "Platz & Infrastruktur" or "Feedback ans OK". Its
@@ -104,6 +133,24 @@ export const ForumTopicsCollection: CollectionConfig = {
               name: 'description',
               label: { en: 'Description', de: 'Beschreibung', fr: 'Description' },
               type: 'text',
+            },
+            {
+              name: 'receivesPrivateReports',
+              label: {
+                en: 'Receives private reports',
+                de: 'Empfängt private Meldungen',
+                fr: 'Reçoit les signalements privés',
+              },
+              type: 'checkbox',
+              defaultValue: false,
+              admin: {
+                description: {
+                  en: 'A report sent "privately to the Zentrale" becomes a post in this topic that only its author, the Kernteam of this topic and the piket on duty see. One topic at most; whoever reports joins it for their own reports.',
+                  de: 'Eine Meldung «privat an die Zentrale» wird ein Beitrag in diesem Thema, den nur die meldende Person, das Kernteam dieses Themas und das Piket im Dienst sehen. Höchstens ein Thema; wer meldet, wird für die eigenen Meldungen Mitglied.',
+                  fr: 'Un signalement « en privé à la Zentrale » devient une publication de ce thème que seuls son auteur, l’équipe centrale de ce thème et le piquet de service voient. Un seul thème au plus ; qui signale en devient membre pour ses propres signalements.',
+                },
+              },
+              validate: onlyOneTopicReceivesPrivateReports,
             },
           ],
         },

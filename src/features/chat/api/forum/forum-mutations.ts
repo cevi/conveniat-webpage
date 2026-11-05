@@ -8,11 +8,12 @@ import {
 } from '@/features/chat/api/forum/forum-moderator';
 import { readForumPostContent } from '@/features/chat/api/forum/forum-posts';
 import {
+  pushForumModerators,
   pushForumPerson,
   pushForumThread,
   pushNewForumPost,
-  pushPendingForumPost,
 } from '@/features/chat/api/forum/forum-push';
+import { findPrivateReportTopicId } from '@/features/chat/api/forum/forum-visibility';
 import { isImageKeyOfChat } from '@/lib/chat-images';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { getFeatureFlag } from '@/lib/db/redis';
@@ -59,6 +60,12 @@ const pendingText = (title: string): StaticTranslationString => ({
   de: `Wartet auf Freigabe: ${title}`,
   en: `Waiting for approval: ${title}`,
   fr: `En attente d’approbation : ${title}`,
+});
+
+const privateReportText = (title: string): StaticTranslationString => ({
+  de: `Neue private Meldung: ${title}`,
+  en: `New private report: ${title}`,
+  fr: `Nouveau signalement privé : ${title}`,
 });
 
 const mergedText = (title: string): StaticTranslationString => ({
@@ -241,15 +248,48 @@ const announceForumPost = (post: {
 };
 
 /**
+ * Makes sure the caller can write to the topic editors chose for private reports, which most
+ * participants are not in, and names it, so the composer can upload the photos of a private
+ * report there before it posts. The membership stays while the caller has a private report in
+ * the topic, see `findKeptMemberIds`.
+ */
+const joinPrivateReportTopic = async (
+  prisma: PrismaClientOrTransaction,
+  userId: string,
+): Promise<string> => {
+  const topicId = await findPrivateReportTopicId();
+  if (topicId === undefined) throw forumError('FORBIDDEN', 'privateReportsUnavailable');
+  await prisma.chatMembership.upsert({
+    where: { userId_chatId: { userId, chatId: topicId } },
+    create: { userId, chatId: topicId, chatPermission: ChatMembershipPermission.MEMBER },
+    update: {},
+  });
+  return topicId;
+};
+
+/** The topic a private report goes to, joined, see `joinPrivateReportTopic`. */
+export const getForumPrivateReportTopic = trpcBaseProcedure
+  .input(z.object({}))
+  .use(databaseTransactionWrapper)
+  .mutation(async ({ ctx }): Promise<{ topicId: string }> => {
+    if (!(await getFeatureFlag(FEATURE_FLAG_FORUM_ENABLED))) {
+      throw forumError('FORBIDDEN', 'forumDisabled');
+    }
+    return { topicId: await joinPrivateReportTopic(ctx.prisma, ctx.user.uuid) };
+  });
+
+/**
  * Writes a post: a top-level message in the topic's chat, its `ForumPost` row, and the author's
  * subscription to it. Idempotent on `postId`, which the client picks, so the offline outbox and
- * a lost response cannot post twice.
+ * a lost response cannot post twice. A private report goes to the topic editors chose for it,
+ * whatever topic the client names, and only its author and the Zentrale ever see it.
  */
 export const createForumPost = trpcBaseProcedure
   .input(
     z.object({
       topicId: z.uuid(),
       postId: z.uuid(),
+      private: z.boolean().default(false),
       title: z.string().trim().min(1).max(FORUM_TITLE_MAX_LENGTH),
       text: z.string().trim().max(FORUM_TEXT_MAX_LENGTH).default(''),
       images: z.array(z.string().max(300)).max(FORUM_POST_MAX_IMAGES).default([]),
@@ -277,8 +317,9 @@ export const createForumPost = trpcBaseProcedure
       throw forumError('FORBIDDEN', 'forumDisabled');
     }
 
+    const topicId = input.private ? await joinPrivateReportTopic(prisma, user.uuid) : input.topicId;
     const chat = await prisma.chat.findUnique({
-      where: { uuid: input.topicId },
+      where: { uuid: topicId },
       select: {
         uuid: true,
         name: true,
@@ -341,14 +382,16 @@ export const createForumPost = trpcBaseProcedure
       membership.chatPermission === ChatMembershipPermission.OWNER ||
       membership.chatPermission === ChatMembershipPermission.ADMIN;
     // against spam, the admin panel can hold new posts back until a moderator approves them;
-    // the Kernteam's own posts need no approval
-    const pending = !byTopicAdmin && (await getFeatureFlag(FEATURE_FLAG_FORUM_MODERATION));
+    // the Kernteam's own posts need no approval, and a private report reaches only them anyway
+    const pending =
+      !input.private && !byTopicAdmin && (await getFeatureFlag(FEATURE_FLAG_FORUM_MODERATION));
 
     await prisma.forumPost.create({
       data: {
         messageId: message.uuid,
         chatId: chat.uuid,
         title: input.title,
+        private: input.private,
         approvedAt: pending ? null : new Date(),
         ...(input.location === undefined
           ? {}
@@ -370,6 +413,7 @@ export const createForumPost = trpcBaseProcedure
         'forum.post.id': message.uuid,
         'forum.by_topic_admin': byTopicAdmin,
         'forum.pending': pending,
+        'forum.private': input.private,
         'forum.has_location': input.location !== undefined,
       });
       const post = {
@@ -381,8 +425,12 @@ export const createForumPost = trpcBaseProcedure
         senderId: user.uuid,
         senderName: user.name,
       };
+      if (input.private) {
+        pushForumModerators({ ...post, text: privateReportText(input.title)[ctx.locale] });
+        return;
+      }
       if (pending) {
-        pushPendingForumPost({ ...post, pendingText: pendingText(input.title)[ctx.locale] });
+        pushForumModerators({ ...post, text: pendingText(input.title)[ctx.locale] });
         return;
       }
       announceForumPost({

@@ -2,9 +2,14 @@
  * @jest-environment jsdom
  */
 import { ForumComposer } from '@/features/chat/components/forum/forum-composer';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 let topics: unknown[] | undefined;
+let privateReportsAvailable = true;
+const createPost = jest.fn<Promise<{ id: string; pending: boolean }>, [unknown]>(() =>
+  Promise.resolve({ id: 'post', pending: false }),
+);
+const joinReportTopic = jest.fn(() => Promise.resolve({ topicId: 'zentrale' }));
 const query = (data: unknown): object => ({ data, isLoading: false });
 const mutation = (): object => ({ mutate: jest.fn(), mutateAsync: jest.fn(), isPending: false });
 
@@ -17,18 +22,21 @@ jest.mock('next/navigation', () => ({
 }));
 jest.mock('@/trpc/client', () => ({
   trpc: {
-    useUtils: (): object => ({}),
+    useUtils: (): object => ({ forum: { invalidate: jest.fn() } }),
     forum: {
       getForumTopicList: { useQuery: (): object => query(topics) },
-      getForumSettings: { useQuery: (): object => query({ moderationRequired: false }) },
+      getForumSettings: {
+        useQuery: (): object => query({ moderationRequired: false, privateReportsAvailable }),
+      },
       getForumPostSuggestionList: { useQuery: (): object => query([]) },
-      createForumPost: { useMutation: (): object => mutation() },
+      createForumPost: { useMutation: (): object => ({ ...mutation(), mutateAsync: createPost }) },
+      getForumPrivateReportTopic: {
+        useMutation: (): object => ({ ...mutation(), mutateAsync: joinReportTopic }),
+      },
     },
     chat: {
       toggleReaction: { useMutation: (): object => mutation() },
       getUploadUrl: { useMutation: (): object => mutation() },
-      reportProblem: { useMutation: (): object => mutation() },
-      sendMessage: { useMutation: (): object => mutation() },
     },
   },
 }));
@@ -42,6 +50,9 @@ const writeTitle = (): void => {
 
 beforeEach(() => {
   address = '';
+  privateReportsAvailable = true;
+  createPost.mockClear();
+  joinReportTopic.mockClear();
 });
 
 describe('the composer', () => {
@@ -65,6 +76,32 @@ describe('the composer', () => {
 
     expect(segment('Privat').getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByRole('button', { name: 'An die Zentrale senden' })).toBeTruthy();
+  });
+
+  it('sends a private report as a private post to the topic for private reports', async () => {
+    topics = [{ id: 'topic', name: 'Platz & Infrastruktur', isAdmin: false }];
+    render(<ForumComposer />);
+    writeTitle();
+    fireEvent.click(segment('Privat'));
+    fireEvent.click(screen.getByRole('button', { name: 'An die Zentrale senden' }));
+
+    await waitFor(() => expect(createPost).toHaveBeenCalled());
+    expect(createPost.mock.calls[0]?.[0]).toMatchObject({
+      topicId: 'zentrale',
+      private: true,
+      title: 'Toitoi in der Mitte ist voll',
+    });
+  });
+
+  it('offers no Privat while editors chose no topic for private reports', () => {
+    topics = [{ id: 'topic', name: 'Platz & Infrastruktur', isAdmin: false }];
+    privateReportsAvailable = false;
+    address = 'private=1';
+    render(<ForumComposer />);
+    writeTitle();
+
+    expect(screen.queryByRole('button', { name: 'Privat' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Veröffentlichen' })).toBeTruthy();
   });
 
   it('starts on Öffentlich for someone in a topic', () => {

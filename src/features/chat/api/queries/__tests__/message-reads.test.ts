@@ -95,6 +95,7 @@ const users: Record<string, { uuid: string; name: string; profilePictureVersion:
 /** A message row as the read queries include it. */
 const withIncludes = (message: StoredMessage, readerId: string): Row => ({
   ...message,
+  chat: { type: 'GROUP' },
   messageEvents: [],
   contentVersions: [{ payload: message.payload }],
   sender: message.senderId === null ? null : { name: users[message.senderId]?.name },

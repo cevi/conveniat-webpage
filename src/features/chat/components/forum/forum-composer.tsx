@@ -5,7 +5,6 @@ import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segme
 import { forumText } from '@/features/chat/components/forum/forum-texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { CHAT_IMAGE_MAX_BYTES, isChatImageContentType } from '@/lib/chat-images';
 import { forumErrorTexts } from '@/lib/forum-error-texts';
 import {
@@ -93,7 +92,7 @@ const clearDraft = (): void => {
   }
 };
 
-/** A photo picked for the post, uploaded on publishing: a private report's chat exists only then. */
+/** A photo picked for the post, uploaded on publishing, into the topic the post goes to. */
 interface PickedImage {
   file: File;
   preview: string;
@@ -146,9 +145,13 @@ export const ForumComposer: React.FC = () => {
   const [choice, setChoice] = useState<'public' | 'private' | undefined>(
     parameters.get('private') === '1' ? 'private' : undefined,
   );
-  // without a topic of their own, a report can only go privately to the Zentrale
+  // without a topic of their own, a report can only go privately to the Zentrale, and that only
+  // while editors chose a topic for it; assumed until the settings say otherwise, and in a
+  // persisted cache from before private reports the server's refusal says it
   const canPostPublic = topics.data === undefined || topics.data.length > 0;
-  const isPrivate = choice === undefined ? !canPostPublic : choice === 'private';
+  const canPostPrivate = settings.data?.privateReportsAvailable !== false;
+  const isPrivate =
+    canPostPrivate && (choice === undefined ? !canPostPublic : choice === 'private');
   const deferredTitle = useDeferredValue(title);
 
   const suggestions = trpc.forum.getForumPostSuggestionList.useQuery(
@@ -165,8 +168,7 @@ export const ForumComposer: React.FC = () => {
   });
   const uploadUrl = trpc.chat.getUploadUrl.useMutation();
   const create = trpc.forum.createForumPost.useMutation();
-  const report = trpc.chat.reportProblem.useMutation();
-  const sendMessage = trpc.chat.sendMessage.useMutation();
+  const privateReportTopic = trpc.forum.getForumPrivateReportTopic.useMutation();
 
   const addImage = (file: File | undefined): void => {
     if (file === undefined) return;
@@ -177,7 +179,7 @@ export const ForumComposer: React.FC = () => {
     setImages((previous) => [...previous, { file, preview: URL.createObjectURL(file) }]);
   };
 
-  /** Uploads the picked photos into a chat, the topic or the private report, by their keys. */
+  /** Uploads the picked photos into the topic of the post, by their keys. */
   const uploadImagesTo = async (chatId: string): Promise<string[]> => {
     const keys: string[] = [];
     for (const { file } of images) {
@@ -198,38 +200,22 @@ export const ForumComposer: React.FC = () => {
   };
 
   /**
-   * A public post goes into its topic. A private report opens a support chat with the piket on
-   * duty, as the map's report always did: what the reporter wrote is its first message, the
-   * photos follow it, and the reporter lands in that chat.
+   * A public post goes into its topic. A private report is a post too, in the topic editors
+   * chose for private reports, which the server joins the reporter to, and only the reporter
+   * and the Zentrale see it.
    */
   const publish = async (): Promise<void> => {
     setError(undefined);
     setIsBusy(true);
     try {
-      if (isPrivate) {
-        const chat = await report.mutateAsync({
-          title: title.trim(),
-          ...(text.trim() === '' ? {} : { text: text.trim() }),
-          ...(location === undefined ? {} : { location: [location.longitude, location.latitude] }),
-        });
-        for (const key of await uploadImagesTo(chat.uuid)) {
-          await sendMessage.mutateAsync({
-            chatId: chat.uuid,
-            content: key,
-            type: 'IMAGE_MSG',
-            timestamp: new Date(),
-            messageId: crypto.randomUUID(),
-          });
-        }
-        clearDraft();
-        router.replace(`/app/chat/${chat.uuid}`);
-        return;
-      }
-      if (topicId === undefined) return;
-      const keys = await uploadImagesTo(topicId);
+      const reportTopic = isPrivate ? await privateReportTopic.mutateAsync({}) : undefined;
+      const targetTopicId = reportTopic?.topicId ?? topicId;
+      if (targetTopicId === undefined) return;
+      const keys = await uploadImagesTo(targetTopicId);
       const { id } = await create.mutateAsync({
-        topicId,
+        topicId: targetTopicId,
         postId,
+        private: isPrivate,
         title: title.trim(),
         text: text.trim(),
         images: keys,
@@ -249,11 +235,7 @@ export const ForumComposer: React.FC = () => {
       void utils.forum.invalidate();
       router.replace(`/app/forum/${id}`);
     } catch (error_) {
-      setError(
-        isPrivate
-          ? userErrorMessage(error_, locale, chatErrorTexts, forumText.changeFailed)
-          : userErrorMessage(error_, locale, forumErrorTexts, forumText.changeFailed),
-      );
+      setError(userErrorMessage(error_, locale, forumErrorTexts, forumText.changeFailed));
     } finally {
       setIsBusy(false);
     }
@@ -282,8 +264,8 @@ export const ForumComposer: React.FC = () => {
   return (
     <div className="bg-page min-h-dvh pb-10">
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-3">
-        {/* public only for someone in a topic; without one the composer is the private report */}
-        {canPostPublic && (
+        {/* a choice only where both are possible; otherwise the composer is the one that is */}
+        {canPostPublic && canPostPrivate && (
           <div className="flex flex-col gap-1.5">
             <div className={segmentedTrackClassName}>
               {([false, true] as const).map((value) => (
@@ -502,6 +484,7 @@ export const ForumComposer: React.FC = () => {
             <input
               type="file"
               accept="image/*"
+              aria-describedby="forum-photo-hint"
               className="sr-only"
               onChange={(event) => {
                 addImage(event.target.files?.[0]);
@@ -520,6 +503,12 @@ export const ForumComposer: React.FC = () => {
             </Link>
           )}
         </div>
+        {/* what the Zentrale needs to judge a problem without going there */}
+        {images.length < 2 && (
+          <p id="forum-photo-hint" className="-mt-2 text-[13px] text-green-700">
+            {forumText.photoHint[locale]}
+          </p>
+        )}
 
         {error !== undefined && (
           <p

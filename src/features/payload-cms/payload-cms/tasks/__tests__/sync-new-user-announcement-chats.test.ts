@@ -5,6 +5,7 @@ jest.mock('@/lib/db/prisma', () => ({
     user: { upsert: jest.fn() },
     chatMembership: { upsert: jest.fn(), findMany: jest.fn(), deleteMany: jest.fn() },
     forumPostAssignment: { findMany: jest.fn(() => Promise.resolve([])) },
+    forumPost: { findMany: jest.fn(() => Promise.resolve([])) },
   },
 }));
 jest.mock('@/lib/db/publish-membership-revoked', () => ({

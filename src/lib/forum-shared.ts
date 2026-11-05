@@ -47,6 +47,8 @@ export interface ForumPostSummary {
   pinned: boolean;
   /** waits for a moderator's approval; absent in a persisted cache from before approvals */
   pending?: boolean;
+  /** a private report, seen only by its author and the Zentrale; absent in an older cache */
+  private?: boolean;
   imageCount: number;
 }
 

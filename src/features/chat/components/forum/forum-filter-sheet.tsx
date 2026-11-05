@@ -10,7 +10,8 @@ import { CheckCircle2 } from 'lucide-react';
 import type React from 'react';
 
 export type ForumStatusFilter = 'active' | 'done';
-export type ForumListFilter = 'all' | 'mine' | 'assignedToMe' | 'subscribed' | 'pending';
+export type ForumListFilter =
+  'all' | 'mine' | 'assignedToMe' | 'subscribed' | 'pending' | 'private';
 export type ForumSort = 'new' | 'popular';
 
 export interface ForumFilters {
@@ -33,6 +34,7 @@ const listFilterText: Record<ForumListFilter, StaticTranslationString> = {
   subscribed: forumText.filterSubscribed,
   assignedToMe: forumText.filterAssigned,
   pending: forumText.filterPending,
+  private: forumText.filterPrivate,
 };
 
 /** The label above the list: what it shows, in a few words, e.g. "Meine · Erledigt · Beliebt". */
@@ -71,7 +73,8 @@ const Segmented = <T extends string>({
 
 /**
  * The feed's filters in the shared sheet, so the feed itself is the search, the topics and the
- * posts. "Meine Aufträge" and "Zur Freigabe" are offered only to whom they can show something.
+ * posts. "Meine Aufträge", "Zur Freigabe" and "Private Meldungen" are offered only to whom they
+ * can show something.
  */
 export const ForumFilterSheet: React.FC<{
   open: boolean;
