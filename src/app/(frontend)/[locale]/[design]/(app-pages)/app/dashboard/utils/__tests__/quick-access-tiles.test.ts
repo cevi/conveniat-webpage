@@ -13,6 +13,7 @@ const allOn: QuickAccessFlags = {
   materialEnabled: true,
   helperShiftsEnabled: true,
   photoContestEnabled: true,
+  wristbandsEnabled: true,
 };
 
 describe('QUICK_ACCESS_TILES', () => {

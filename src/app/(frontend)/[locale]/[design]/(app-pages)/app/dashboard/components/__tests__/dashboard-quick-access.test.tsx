@@ -20,6 +20,23 @@ jest.mock('@/hooks/use-auth-status', () => ({ useAuthStatus: (): string => 'auth
 jest.mock('@/features/settings/utils/support-mail', () => ({
   supportMailLink: (): string => 'mailto:support@example.test',
 }));
+// the user has not chosen, so Home shows the default tiles; the editor is not opened here
+jest.mock(
+  '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/hooks/use-chosen-quick-access',
+  () => ({
+    useChosenQuickAccess: (): unknown => ({
+      chosen: ['upload', 'qr', 'material', 'wristbands', 'support'],
+      isLoading: false,
+      isCustomized: false,
+      saveFailed: false,
+      setChosen: jest.fn(),
+    }),
+  }),
+);
+jest.mock(
+  '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/quick-access-editor',
+  () => ({ QuickAccessEditor: (): null => null }),
+);
 jest.mock('@/trpc/client', () => ({
   trpc: {
     wristband: {
@@ -37,7 +54,13 @@ const renderTiles = (wristbandsEnabled = true): void => {
     <DashboardQuickAccess
       locale="de"
       supportEmail="support@example.test"
-      flags={{ imageUploadEnabled: false, materialEnabled: false, wristbandsEnabled }}
+      flags={{
+        imageUploadEnabled: false,
+        materialEnabled: false,
+        helperShiftsEnabled: false,
+        photoContestEnabled: false,
+        wristbandsEnabled,
+      }}
     />,
   );
 };

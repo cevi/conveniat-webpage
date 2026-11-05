@@ -79,7 +79,7 @@ describe('quickAccessRouter', () => {
 
   it('stores the default as no choice, so a new default reaches the user', async () => {
     const result = await callerAs('anna').updateQuickAccess({
-      tiles: ['upload', 'qr', 'material', 'support'],
+      tiles: ['upload', 'qr', 'material', 'wristbands', 'support'],
     });
 
     expect(result).toEqual({ tiles: null });
