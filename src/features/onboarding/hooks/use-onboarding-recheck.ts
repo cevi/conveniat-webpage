@@ -108,7 +108,8 @@ export const useOnboardingRecheck = (locale: Locale): void => {
         const { confirmed } = await confirmPushSubscription(
           subscription.toJSON() as Parameters<typeof confirmPushSubscription>[0],
         );
-        if (!confirmed) {
+        // the user may have turned push off while the check-in was on its way
+        if (!confirmed && !readPreference('web-push-opted-out')) {
           // The server has no row for it: a send found the endpoint expired, or an admin
           // removed the device. A browser that is in use subscribes afresh, with an endpoint
           // that works, instead of staying silent while its switch still shows push as on.

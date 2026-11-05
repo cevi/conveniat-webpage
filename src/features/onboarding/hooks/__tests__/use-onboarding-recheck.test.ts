@@ -242,6 +242,23 @@ describe('the daily push check-in of an installed web app', () => {
     await waitFor(() => expect(restore).toHaveBeenCalledTimes(2));
   });
 
+  it('does not subscribe afresh for a user who turned push off meanwhile', async () => {
+    const unsubscribe = jest.fn(() => Promise.resolve(true));
+    currentSubscription.mockResolvedValue({
+      toJSON: () => lenasPhone,
+      unsubscribe,
+    } as unknown as PushSubscription);
+    mockConfirmPushSubscription.mockImplementationOnce(() => {
+      mockStoredPreferences.set('web-push-opted-out', { key: 'web-push-opted-out', value: true });
+      return Promise.resolve({ confirmed: false });
+    });
+    renderHook(() => useOnboardingRecheck('de'));
+
+    await waitFor(() => expect(checkedInAt()).toEqual(expect.any(Number)));
+    expect(unsubscribe).not.toHaveBeenCalled();
+    expect(restore).toHaveBeenCalledTimes(1);
+  });
+
   it('counts a restored subscription as a check-in', async () => {
     restore.mockResolvedValue(true);
     renderHook(() => useOnboardingRecheck('de'));
