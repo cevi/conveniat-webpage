@@ -322,11 +322,13 @@ export const useOnboarding = (): UseOnboardingReturn => {
   }, [onboardingStep]);
 
   // Redirect to target destination or dashboard when finished
-  // The effect runs again whenever one of its dependencies changes; a second
-  // `location.replace` would abort the page load the first one started.
-  const hasLeftForDashboard = useRef(false);
+  // The effect runs again whenever one of its dependencies changes. Leaving the entrypoint is
+  // always a full page load, and a second one would abort the load the first one started.
+  const hasLeft = useRef(false);
   useEffect(() => {
     if (onboardingStep === OnboardingStep.Loading) {
+      if (hasLeft.current) return;
+      hasLeft.current = true;
       // the next start skips the entrypoint; see ONBOARDING_COMPLETE_KEY
       rememberOnboardingComplete();
       try {
@@ -347,8 +349,6 @@ export const useOnboarding = (): UseOnboardingReturn => {
       // trip online and a whole network timeout on wifi without an uplink. Replacing the entry
       // also keeps the back gesture on the dashboard from returning here.
       if (targetRedirectPath === '/app/dashboard') {
-        if (hasLeftForDashboard.current) return;
-        hasLeftForDashboard.current = true;
         globalThis.location.replace('/app/dashboard');
       } else {
         navigateToPushTarget(targetRedirectPath);

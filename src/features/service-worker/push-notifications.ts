@@ -193,6 +193,21 @@ const CLIENT_URL_RESPONSE_TIMEOUT_MS = 400;
 const PUSH_NAVIGATE_RESPONSE_TIMEOUT_MS = 2500;
 
 /**
+ * The same for a page this worker does not control. navigate() rejects for it, so the fallback
+ * is a new window, and that has to open while the click still allows one.
+ */
+const UNCONTROLLED_PUSH_NAVIGATE_RESPONSE_TIMEOUT_MS = 500;
+
+/** Whether a page can take a tap over. The admin panel has no `ServiceWorkerManager`. */
+const mayRouteTap = (client: WindowClient): boolean => {
+  try {
+    return !new URL(client.url).pathname.startsWith('/admin');
+  } catch {
+    return true;
+  }
+};
+
+/**
  * Strips an optional locale prefix so `/de/app/chat/x` compares equal to `/app/chat/x`.
  */
 const normalizePathname = (pathname: string): string =>
@@ -508,10 +523,10 @@ export const notificationClickHandler =
       : Promise.resolve();
 
     const openOrFocusPromise = (async (): Promise<void> => {
-      const [clientList, controlledClients] = await Promise.all([
-        serviceWorkerScope.clients.matchAll({ type: 'window', includeUncontrolled: true }),
-        serviceWorkerScope.clients.matchAll({ type: 'window' }),
-      ]);
+      const clientList = await serviceWorkerScope.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      });
 
       const existingClient =
         clientList.find((client) => client.visibilityState === 'visible') ?? clientList[0];
@@ -532,14 +547,17 @@ export const notificationClickHandler =
 
       // The open app routes a target on this origin itself, a soft navigation that keeps the
       // app loaded. Only a page that does not take the tap over, like the admin panel, or a link
-      // to another origin is loaded anew. An uncontrolled page is not asked: navigate() rejects
-      // for it, and the window opened instead must open while the click still allows it.
-      const isControlled = controlledClients.some((client) => client.id === existingClient.id);
-      if (isSameOrigin && isControlled) {
+      // to another origin is loaded anew. A page created by the admin panel's URL stays there,
+      // because leaving it is a full page load, so its creation URL is enough to skip the wait.
+      if (isSameOrigin && mayRouteTap(existingClient)) {
+        const controlledClients = await serviceWorkerScope.clients.matchAll({ type: 'window' });
+        const isControlled = controlledClients.some((client) => client.id === existingClient.id);
         const answer = await requestFromClient(
           existingClient,
           { type: ServiceWorkerMessages.PUSH_NAVIGATE, payload: { url: targetUrlString } },
-          PUSH_NAVIGATE_RESPONSE_TIMEOUT_MS,
+          isControlled
+            ? PUSH_NAVIGATE_RESPONSE_TIMEOUT_MS
+            : UNCONTROLLED_PUSH_NAVIGATE_RESPONSE_TIMEOUT_MS,
         );
         if ((answer as { handled?: unknown } | undefined)?.handled === true) return;
       }
