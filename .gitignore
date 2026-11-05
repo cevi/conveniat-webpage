@@ -67,6 +67,7 @@ firebase-service-account.json
 public/sw.js
 public/sw.js.map
 public/maplibre-gl-worker*.js
+public/heic-to-*.js
 seeding.lock
 
 # playwright
