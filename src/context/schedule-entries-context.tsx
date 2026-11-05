@@ -2,6 +2,7 @@
 
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { useStoredRows } from '@/hooks/use-stored-rows';
+import { toStoredScheduleEntry } from '@/lib/stored-schedule-entry';
 import { scheduleEntriesCollection, type ScheduleEntryRecord } from '@/lib/tanstack-db';
 import type React from 'react';
 import {
@@ -137,7 +138,7 @@ const applyServerEntries = (serverEntries: CampScheduleEntryFrontendType[]): voi
   const updateById = new Map<string, ScheduleEntryRecord>();
 
   for (const entry of serverEntries) {
-    const record = { ...entry, _syncedAt: syncedAt } as unknown as ScheduleEntryRecord;
+    const record = toStoredScheduleEntry(entry, syncedAt);
     const current = currentById.get(entry.id);
 
     if (current === undefined) {

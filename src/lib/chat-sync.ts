@@ -186,6 +186,7 @@ export const syncAllOfflineData = async (
         }
         try {
           const { scheduleEntriesCollection } = await import('@/lib/tanstack-db');
+          const { toStoredScheduleEntry } = await import('@/lib/stored-schedule-entry');
           type ScheduleEntryRecord = import('@/lib/tanstack-db').ScheduleEntryRecord;
 
           // The localStorage collection re-serialises and rewrites the *whole* collection on
@@ -201,10 +202,7 @@ export const syncAllOfflineData = async (
           for (const entry of scheduleEntries) {
             if (typeof entry.id !== 'string' || entry.id.length === 0) continue;
 
-            const recordToSave = {
-              ...entry,
-              _syncedAt: syncedAt,
-            } as unknown as ScheduleEntryRecord;
+            const recordToSave = toStoredScheduleEntry(entry, syncedAt);
             const current = scheduleEntriesCollection.get(entry.id);
 
             if (current === undefined) {
