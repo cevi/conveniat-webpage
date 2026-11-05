@@ -84,6 +84,9 @@ const NewChatWithUserPage: React.FC<{
   }>;
 }> = async ({ params }) => {
   const locale = await getRouteLocale();
+  // Outside the try: while prerendering, `params` of a token unknown at build time rejects once
+  // the prerender is complete, and the catch below would log that as a fatal error.
+  const { token } = await params;
   let result:
     | 'notLoggedIn'
     | 'cannotCreateChat'
@@ -94,8 +97,6 @@ const NewChatWithUserPage: React.FC<{
     | 'error';
 
   try {
-    const { token } = await params;
-
     const session = await auth();
     const user = isValidNextAuthUser(session?.user) ? session.user : undefined;
 
