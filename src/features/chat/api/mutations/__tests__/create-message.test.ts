@@ -94,6 +94,8 @@ const pushedTexts: { message: string; senderName: string | undefined }[] = [];
 const pushedRecipients: string[][] = [];
 /** The members each send recorded a DISTRIBUTED event for. */
 const distributedTo: string[][] = [];
+/** The channel each push asks for, undefined being the regular chat channel. */
+const pushedChannels: (string | undefined)[] = [];
 
 jest.mock('@/lib/db/chat-pubsub', () => ({
   chatPubSub: {
@@ -109,11 +111,12 @@ jest.mock('@/lib/push/send-notification', () => ({
     recipients: string[],
     _chatId: string,
     _messageId: string,
-    options: { senderName?: string },
+    options: { senderName?: string; notificationType?: string },
   ): Promise<{ success: boolean }> => {
     pushedAt.push(committed);
     pushedRecipients.push(recipients);
     pushedTexts.push({ message, senderName: options.senderName });
+    pushedChannels.push(options.notificationType);
     return Promise.resolve({ success: true });
   },
 }));
@@ -320,6 +323,7 @@ beforeEach(() => {
   pushedAt.length = 0;
   pushedTexts.length = 0;
   pushedRecipients.length = 0;
+  pushedChannels.length = 0;
   distributedTo.length = 0;
   mockPoolReadsCommitted.length = 0;
   mockMembershipRowsLoaded = 0;
@@ -610,5 +614,18 @@ describe('who a message reaches', () => {
     expect(publishedAt).toEqual([true]);
     expect(pushedRecipients).toEqual([]);
     expect(mockLoggedErrors).toEqual(['Reading the push recipients failed']);
+  });
+});
+
+describe('the channel of the push', () => {
+  // Only the alert that opens an emergency chat sirens; the emergency router sends it.
+  // A siren on every reply made a busy case sound like a new emergency each time (#1654).
+  it('is the regular one for a reply in an emergency chat', async () => {
+    chatType = ChatType.EMERGENCY;
+
+    await send(MessageType.TEXT_MSG);
+    await afterCommitSettled();
+
+    expect(pushedChannels).toEqual([undefined]);
   });
 });

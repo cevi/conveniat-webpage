@@ -54,29 +54,13 @@ describe('notifyRealtimeChatMessage', () => {
   });
 
   /**
-   * SSE and push race for the same message and the loser is dropped by the shared
-   * de-duplication window. If only the push path knew about the emergency channel,
-   * whether an alert sirens would come down to which channel happened to arrive first.
+   * Only the alert that opens an emergency chat sirens, and it arrives by push. A reply
+   * in a busy emergency chat must not sound like a new emergency (#1654).
    */
-  it('renders a message from an emergency chat on the emergency channel', () => {
+  it('rings an emergency chat reply on the regular channel', () => {
     notifyRealtimeChatMessage({
       chatId: 'chat-1',
       chatName: 'Notfall 42',
-      chatType: 'EMERGENCY',
-      message: buildMessage(),
-      currentUserId: 'user-alice',
-    });
-
-    expect(showNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ notificationType: 'emergency' }),
-    );
-  });
-
-  it('leaves every other chat type on the regular channel', () => {
-    notifyRealtimeChatMessage({
-      chatId: 'chat-1',
-      chatName: 'Support',
-      chatType: 'SUPPORT_GROUP',
       message: buildMessage(),
       currentUserId: 'user-alice',
     });
