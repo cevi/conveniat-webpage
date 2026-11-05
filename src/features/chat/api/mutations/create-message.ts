@@ -3,8 +3,8 @@ import {
   assertMembershipCanWrite,
   assertWriteAbilities,
 } from '@/features/chat/api/checks/assert-can-write-in-chat';
-import { chatMessageContentSchema } from '@/features/chat/limits';
 import { isTopicAdminPermission } from '@/features/chat/api/utils/topic-admins';
+import { chatMessageContentSchema } from '@/features/chat/limits';
 import { quotedSnippetOf } from '@/features/chat/utils/quoted-snippet';
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';

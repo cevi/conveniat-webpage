@@ -142,6 +142,8 @@ const prisma = {
   message: {
     findMany: (): Promise<unknown[]> => Promise.resolve([kernteamComment, comment]),
     findFirst: (): Promise<unknown> => Promise.resolve(comment),
+    // the thread summaries of the comments, which have no replies of their own
+    groupBy: (): Promise<unknown[]> => Promise.resolve([]),
   },
 };
 
@@ -170,7 +172,7 @@ describe('the thread of a private report', () => {
 });
 
 describe('the comments of a forum thread', () => {
-  it("mark what the topic's Kernteam wrote, and nothing else", async () => {
+  it("mark what the topic's Kernteam wrote, with the function behind it", async () => {
     const { items } = await as('noah').getChatMessages({ chatId: TOPIC, parentId: REPORT });
 
     expect(
