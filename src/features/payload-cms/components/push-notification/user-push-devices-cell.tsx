@@ -1,3 +1,4 @@
+import { isFullAdminUser } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { getAdminLocale } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import { isPushDeviceStale } from '@/lib/push/push-device-staleness';
 import type { StaticTranslationString } from '@/types/types';
@@ -20,8 +21,8 @@ const viewerOf = cache(async (payload: Payload) => {
 /**
  * The list column of a person's push devices. Payload renders a cell only for a column that is
  * shown, and the column is not among the defaults, so the query per row runs only for an admin
- * who turned it on. The read goes through the viewer's own access, so the collection's rule
- * decides who sees the devices, and everybody else gets an empty cell.
+ * who turned it on. Other viewers get an empty cell, and the read itself still goes through the
+ * viewer's own access.
  */
 const UserPushDevicesCell = async ({
   payload,
@@ -30,7 +31,8 @@ const UserPushDevicesCell = async ({
 }: DefaultServerCellComponentProps): Promise<React.JSX.Element> => {
   const locale = getAdminLocale(i18n);
   const viewer = await viewerOf(payload);
-  if (viewer === null) return <></>;
+  // the same rule as the subscriptions' `read`, so other viewers cost no query per row
+  if (!isFullAdminUser(viewer)) return <></>;
 
   let devices: { platform: string; lastUsedAt?: string | null }[];
   try {
@@ -43,8 +45,8 @@ const UserPushDevicesCell = async ({
       overrideAccess: false,
       user: viewer,
     }));
-  } catch {
-    // Forbidden: the viewer may read users but not their devices
+  } catch (error: unknown) {
+    payload.logger.warn({ err: error, msg: 'Reading the push devices for the user list failed' });
     return <></>;
   }
 

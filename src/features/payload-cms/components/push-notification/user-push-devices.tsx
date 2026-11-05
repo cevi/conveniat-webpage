@@ -74,9 +74,9 @@ const removeHeading = (name: string): StaticTranslationString => ({
   en: `Remove “${name}”?`,
 });
 const removeBody: StaticTranslationString = {
-  de: 'Die Person erhält auf diesem Gerät keine Push-Benachrichtigungen mehr, bis sie sie in den Einstellungen der App wieder einschaltet. Ihre anderen Geräte bleiben angemeldet.',
-  fr: "La personne ne reçoit plus de notifications push sur cet appareil jusqu'à ce qu'elle les réactive dans les paramètres de l'app. Ses autres appareils restent inscrits.",
-  en: 'The person gets no more push notifications on this device until they turn them on again in the app settings. Their other devices stay subscribed.',
+  de: 'Das Gerät erhält keine Push-Benachrichtigungen mehr. Gedacht für Geräte, die nicht mehr verwendet werden: Öffnet die Person die App darauf wieder, meldet es sich von selbst wieder an. Ihre anderen Geräte bleiben angemeldet.',
+  fr: "L'appareil ne reçoit plus de notifications push. Prévu pour les appareils qui ne sont plus utilisés : si la personne y rouvre l'app, il se réinscrit de lui-même. Ses autres appareils restent inscrits.",
+  en: 'The device gets no more push notifications. Meant for devices that are no longer used: if the person opens the app on it again, it signs up again by itself. Their other devices stay subscribed.',
 };
 const removedLabel: StaticTranslationString = {
   de: 'Gerät abgemeldet.',

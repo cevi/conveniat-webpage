@@ -147,7 +147,8 @@ export const NotificationHistory: React.FC<{ userId: string; locale: Locale }> =
 }) => {
   const { data, isLoading, refetch, isRefetching } = trpc.pushTracking.getRecentLogs.useQuery(
     { userId },
-    { refetchInterval: 15_000 },
+    // someone else's pushes stay out of the cache the browser keeps across visits
+    { refetchInterval: 15_000, meta: { persist: false } },
   );
   const { data: devices } = trpc.pushTracking.getPushDeviceList.useQuery(
     { userId },
