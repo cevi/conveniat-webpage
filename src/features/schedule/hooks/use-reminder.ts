@@ -35,7 +35,8 @@ interface UseReminderResult {
   isAutomatic: boolean;
   /** `false` once it is known that no device of the user receives pushes */
   hasPushDevice: boolean | undefined;
-  setReminder: (enabled: boolean) => void;
+  /** `onError` runs when saving fails, after the reminder has fallen back */
+  setReminder: (enabled: boolean, options?: { onError?: () => void }) => void;
   isSaving: boolean;
   isError: boolean;
 }
@@ -96,7 +97,8 @@ export const useReminder = (entryId: string, entryKind: ReminderEntryKind): UseR
 
   const { mutate } = mutation;
   const setReminder = useCallback(
-    (enabled: boolean) => mutate({ entryId, entryKind, enabled }),
+    (enabled: boolean, options?: { onError?: () => void }) =>
+      mutate({ entryId, entryKind, enabled }, { onError: () => options?.onError?.() }),
     [entryId, entryKind, mutate],
   );
 

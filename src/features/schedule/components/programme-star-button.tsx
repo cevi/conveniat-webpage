@@ -3,6 +3,7 @@
 import { StarButton } from '@/components/star/star';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/buttons/button';
+import { toast } from '@/components/ui/toast';
 import { reminderLabels } from '@/features/schedule/constants/reminder-labels';
 import { useReminder } from '@/features/schedule/hooks/use-reminder';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
@@ -16,7 +17,8 @@ import { useState } from 'react';
  *
  * Taking the star off a block with a reminder asks whether the reminder goes too: the two are
  * separate, but setting a reminder stars the block, so leaving the reminder behind unasked would
- * keep pushing about a block the user just dropped.
+ * keep pushing about a block the user just dropped. For the same reason a failed removal says so:
+ * the star is gone, and on a card in the Programm nothing else would show the reminder stayed.
  */
 export const ProgrammeStarButton: React.FC<{
   /** the slot the star stands for, whose reminder is asked about */
@@ -40,9 +42,17 @@ export const ProgrammeStarButton: React.FC<{
     onToggle();
   };
 
-  const unstar = (removeReminder: boolean): void => {
+  const removeReminder = (): void =>
+    reminder.setReminder(false, {
+      onError: () =>
+        toast.error(reminderLabels.removeFailed[locale], {
+          action: { label: reminderLabels.tryAgain[locale], onClick: removeReminder },
+        }),
+    });
+
+  const unstar = (alsoRemoveReminder: boolean): void => {
     onToggle();
-    if (removeReminder) reminder.setReminder(false);
+    if (alsoRemoveReminder) removeReminder();
     setIsAsking(false);
   };
 

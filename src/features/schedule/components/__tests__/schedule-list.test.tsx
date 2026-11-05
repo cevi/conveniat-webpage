@@ -224,7 +224,7 @@ describe('ScheduleList', () => {
     expect(onToggleStar).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Ja, entfernen' }));
     expect(onToggleStar).toHaveBeenCalledWith('Ballspiele');
-    expect(setReminder).toHaveBeenCalledWith(false);
+    expect(setReminder).toHaveBeenCalledWith(false, expect.anything());
     isReminderOn = false;
   });
 
