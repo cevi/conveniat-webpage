@@ -656,8 +656,8 @@ const countByStatus = (
 ): number => groups.find((group) => group.status === status)?._count._all ?? 0;
 
 /**
- * Marks every push of the batch whose last delivery just settled as complete, and reports how it
- * went. Both replicas can settle the last rows of one push at the same moment, so the conditional
+ * Marks every push of the batch whose last delivery just settled as complete, empties the text
+ * of a push in a chat, and reports how it went. Both replicas can settle the last rows of one push at the same moment, so the conditional
  * update decides which of them reports.
  */
 async function completeFinishedNotifications(notificationIds: string[], now: Date): Promise<void> {
@@ -669,10 +669,21 @@ async function completeFinishedNotifications(notificationIds: string[], now: Dat
 
   for (const notificationId of notificationIds) {
     if (pendingIds.has(notificationId)) continue;
-    const { count } = await prisma.pushNotification.updateMany({
-      where: { id: notificationId, completedAt: null },
-      data: { completedAt: now },
+    // The text of a push in a chat, a message, an announcement or an emergency, is the message
+    // itself, and the chat keeps it. The queue kept a copy so that a retry sends what the first
+    // attempt did; once no delivery is pending nothing sends it again, so the same update that
+    // completes the push empties it.
+    const asChatPush = await prisma.pushNotification.updateMany({
+      where: { id: notificationId, completedAt: null, chatId: { not: null } },
+      data: { completedAt: now, title: '', body: '' },
     });
+    const { count } =
+      asChatPush.count > 0
+        ? asChatPush
+        : await prisma.pushNotification.updateMany({
+            where: { id: notificationId, completedAt: null },
+            data: { completedAt: now },
+          });
     if (count === 0) continue;
 
     const [notification, outcomes] = await Promise.all([

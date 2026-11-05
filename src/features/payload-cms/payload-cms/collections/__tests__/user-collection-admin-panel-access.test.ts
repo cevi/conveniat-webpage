@@ -13,9 +13,15 @@ jest.mock('@/utils/auth-helpers', () => ({ getAuthenticateUsingCeviDB: jest.fn()
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
 
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
-import type { FieldHook } from 'payload';
+import type { Field, FieldHook } from 'payload';
 
-const field = UserCollection.fields.find(
+/** The fields of the user, with those inside its tabs. */
+const fieldsOf = (fields: Field[]): Field[] =>
+  fields.flatMap((candidate) =>
+    candidate.type === 'tabs' ? candidate.tabs.flatMap((tab) => fieldsOf(tab.fields)) : [candidate],
+  );
+
+const field = fieldsOf(UserCollection.fields).find(
   (candidate) => 'name' in candidate && candidate.name === 'adminPanelAccess',
 );
 const [computeAccess] = ((field && 'hooks' in field ? field.hooks.beforeChange : undefined) ??

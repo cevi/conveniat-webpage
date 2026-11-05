@@ -298,6 +298,140 @@ async function showAndCloseSuppressedNotification(
 }
 
 /**
+ * Reads a push's payload without throwing, so that a push the server sent malformed still reaches
+ * the WebKit fallback in {@link handlePush}.
+ *
+ * @returns the payload, or `undefined` when the push carries none or nothing readable
+ */
+function readPushPayload(message: PushMessageData | null): NotificationPayload | undefined {
+  if (message === null) return undefined;
+  let parsed: unknown;
+  try {
+    parsed = message.json();
+  } catch {
+    return undefined;
+  }
+  if (typeof parsed !== 'object' || parsed === null) return undefined;
+  const { title, body, data } = parsed as Partial<Record<keyof NotificationPayload, unknown>>;
+  return {
+    title: typeof title === 'string' ? title : '',
+    body: typeof body === 'string' ? body : '',
+    data: typeof data === 'object' && data !== null ? data : {},
+  };
+}
+
+/**
+ * Shows a push unless a visible page makes it redundant, and tells the open pages about it.
+ *
+ * @returns whether a notification is now showing for this push
+ */
+async function showUnlessSuppressed(
+  serviceWorkerScope: ServiceWorkerGlobalScope,
+  payload: NotificationPayload,
+): Promise<boolean> {
+  const { isFocused, clients } = await isAppFocused(serviceWorkerScope);
+
+  // Keep open pages up to date no matter whether a system notification is
+  // shown: the pages decide themselves which queries to refresh.
+  if (clients.length > 0) {
+    broadcastToClients(clients, payload);
+  }
+
+  let shouldShowNotification = !isFocused;
+
+  if (isFocused) {
+    console.log('[SW Push][WebPush] App is in focus.');
+
+    const ignoreIfAppOpen =
+      payload.data.ignoreIfAppOpen === true || payload.data.ignoreIfAppOpen === 'true';
+    const ignoreIfUrlMatches =
+      payload.data.ignoreIfUrlMatches === true || payload.data.ignoreIfUrlMatches === 'true';
+    const targetUrlString = payload.data.url;
+
+    if (ignoreIfAppOpen) {
+      shouldShowNotification = false;
+      console.log('[SW Push][WebPush] Notification ignored because ignoreIfAppOpen is enabled.');
+    } else if (ignoreIfUrlMatches && targetUrlString) {
+      const targetUrl = new URL(targetUrlString, serviceWorkerScope.location.origin);
+      const visibleClients = clients.filter((client) => client.visibilityState === 'visible');
+      const liveClientUrls = await Promise.all(
+        visibleClients.map((client) => getLiveClientUrl(client)),
+      );
+
+      const hasMatchingActiveClient = liveClientUrls.some(({ url, source }) => {
+        let matches = false;
+        try {
+          matches = clientUrlMatchesTarget(url, targetUrl);
+        } catch {
+          matches = false;
+        }
+        console.log(
+          `[SW Push][WebPush] URL check: expected="${targetUrl.href}" actual="${url}" (${
+            source === 'live' ? 'reported by page' : 'stale creation URL, page did not answer'
+          }) -> ${matches ? 'MATCH' : 'no match'}`,
+        );
+        return matches;
+      });
+
+      if (hasMatchingActiveClient) {
+        shouldShowNotification = false;
+        console.log(
+          `[SW Push][WebPush] Notification ignored: user has the target page "${targetUrl.pathname}" open.`,
+        );
+      } else {
+        shouldShowNotification = true;
+        console.log(
+          `[SW Push][WebPush] Notification shown: no visible client is on the target page "${targetUrl.pathname}".`,
+        );
+      }
+    } else {
+      shouldShowNotification = true;
+      console.log('[SW Push][WebPush] Notification shown by default when app is in focus.');
+    }
+  }
+
+  if (!shouldShowNotification) return false;
+  return presentNotification(serviceWorkerScope, payload);
+}
+
+/** What WebKit gets shown and closed for a push whose payload could not be read. */
+const UNREADABLE_PUSH: NotificationPayload = { title: '', body: '', data: {} };
+
+/**
+ * Handles one push. Every path ends with a notification on WebKit, also a push without a
+ * readable payload and one whose handling threw, because each push that shows nothing costs a
+ * strike there, see {@link revokesSubscriptionOnSilentPush}.
+ */
+async function handlePush(
+  serviceWorkerScope: ServiceWorkerGlobalScope,
+  message: PushMessageData | null,
+): Promise<void> {
+  const payload = readPushPayload(message);
+  if (payload === undefined) console.error('[SW Push][WebPush] Push without a readable payload.');
+
+  let isShown = false;
+  try {
+    if (payload !== undefined) isShown = await showUnlessSuppressed(serviceWorkerScope, payload);
+  } catch (error) {
+    console.error('[SW Push][WebPush] Failed to handle push.', error);
+  }
+
+  if (!isShown && revokesSubscriptionOnSilentPush(serviceWorkerScope)) {
+    await showAndCloseSuppressedNotification(serviceWorkerScope, payload ?? UNREADABLE_PUSH);
+  }
+  // A suppressed push still reached the device, so it is reported as delivered too.
+  // Before, it left no trace at all, and a chat the user was reading looked like a
+  // push that never arrived.
+  const notificationId = payload?.data.notificationId;
+  if (notificationId) {
+    await trackPushEvent(notificationId, {
+      type: 'DELIVERED',
+      presentation: isShown ? 'SHOWN' : 'SUPPRESSED',
+    });
+  }
+}
+
+/**
  * Handles incoming push notifications (Web Push transport — native FCM pushes
  * never reach this service worker handler).
  * Displays notifications by default (including test notifications sent from admin panel
@@ -310,93 +444,7 @@ export const pushNotificationHandler =
   (serviceWorkerScope: ServiceWorkerGlobalScope) =>
   (event: PushEvent): void => {
     console.log('[SW Push][WebPush] Push notification received.');
-    if (!event.data) return;
-
-    const data = event.data.json() as NotificationPayload;
-
-    event.waitUntil(
-      (async (): Promise<void> => {
-        const { isFocused, clients } = await isAppFocused(serviceWorkerScope);
-
-        // Keep open pages up to date no matter whether a system notification is
-        // shown: the pages decide themselves which queries to refresh.
-        if (clients.length > 0) {
-          broadcastToClients(clients, data);
-        }
-
-        let shouldShowNotification = !isFocused;
-
-        if (isFocused) {
-          console.log('[SW Push][WebPush] App is in focus.');
-
-          const ignoreIfAppOpen =
-            data.data.ignoreIfAppOpen === true || data.data.ignoreIfAppOpen === 'true';
-          const ignoreIfUrlMatches =
-            data.data.ignoreIfUrlMatches === true || data.data.ignoreIfUrlMatches === 'true';
-          const targetUrlString = data.data.url;
-
-          if (ignoreIfAppOpen) {
-            shouldShowNotification = false;
-            console.log(
-              '[SW Push][WebPush] Notification ignored because ignoreIfAppOpen is enabled.',
-            );
-          } else if (ignoreIfUrlMatches && targetUrlString) {
-            const targetUrl = new URL(targetUrlString, serviceWorkerScope.location.origin);
-            const visibleClients = clients.filter((client) => client.visibilityState === 'visible');
-            const liveClientUrls = await Promise.all(
-              visibleClients.map((client) => getLiveClientUrl(client)),
-            );
-
-            const hasMatchingActiveClient = liveClientUrls.some(({ url, source }) => {
-              let matches = false;
-              try {
-                matches = clientUrlMatchesTarget(url, targetUrl);
-              } catch {
-                matches = false;
-              }
-              console.log(
-                `[SW Push][WebPush] URL check: expected="${targetUrl.href}" actual="${url}" (${
-                  source === 'live' ? 'reported by page' : 'stale creation URL, page did not answer'
-                }) -> ${matches ? 'MATCH' : 'no match'}`,
-              );
-              return matches;
-            });
-
-            if (hasMatchingActiveClient) {
-              shouldShowNotification = false;
-              console.log(
-                `[SW Push][WebPush] Notification ignored: user has the target page "${targetUrl.pathname}" open.`,
-              );
-            } else {
-              shouldShowNotification = true;
-              console.log(
-                `[SW Push][WebPush] Notification shown: no visible client is on the target page "${targetUrl.pathname}".`,
-              );
-            }
-          } else {
-            shouldShowNotification = true;
-            console.log('[SW Push][WebPush] Notification shown by default when app is in focus.');
-          }
-        }
-
-        let isShown = false;
-        if (shouldShowNotification) {
-          isShown = await presentNotification(serviceWorkerScope, data);
-        }
-        if (!isShown && revokesSubscriptionOnSilentPush(serviceWorkerScope)) {
-          await showAndCloseSuppressedNotification(serviceWorkerScope, data);
-        }
-        // A suppressed push still reached the device, so it is reported as delivered too.
-        // Before, it left no trace at all, and a chat the user was reading looked like a
-        // push that never arrived.
-        if (data.data.notificationId) {
-          await trackPushEvent(data.data.notificationId, {
-            type: 'DELIVERED',
-            presentation: isShown ? 'SHOWN' : 'SUPPRESSED',
-          });
-        }
-      })(),
-    );
+    event.waitUntil(handlePush(serviceWorkerScope, event.data));
   };
 
 export const notificationClickHandler =

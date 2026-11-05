@@ -43,6 +43,27 @@ const preferences = {
     fallback: false,
     keepOnLogout: true,
   }),
+  /**
+   * The user turned web push off on this device. A missing subscription says nothing about
+   * that: the browser can drop one on its own, and an unregistered service worker takes its
+   * subscription with it, both with the permission still granted. While this is unset, the
+   * app subscribes such a browser again on start (`useOnboardingRecheck`).
+   */
+  'web-push-opted-out': definePreference({
+    schema: z.boolean(),
+    fallback: false,
+    keepOnLogout: true,
+  }),
+  /**
+   * When this browser last told the server its push subscription is still in use, in
+   * milliseconds since the epoch. The check-in runs at most once a day, see
+   * `useOnboardingRecheck`. Personal, so the next person to log in on the device checks in at once.
+   */
+  'web-push-checked-in-at': definePreference({
+    schema: z.number(),
+    fallback: 0,
+    keepOnLogout: false,
+  }),
   /** The last queries of the site search, newest first, offered while its field is empty. */
   'recent-searches': definePreference({
     schema: z.array(z.string()),

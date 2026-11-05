@@ -55,7 +55,7 @@ export const AppShell: React.FC<AppShellProperties> = ({
         <ClientProviders>
           <OfflineQueueSync />
           <ForumStatusOutboxSync />
-          <OnboardingRecheck />
+          <OnboardingRecheck locale={locale} />
           <NativePushProvider>
             <HideHeaderProvider>
               <HeaderActionsProvider>

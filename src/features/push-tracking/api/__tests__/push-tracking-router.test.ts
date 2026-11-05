@@ -5,10 +5,19 @@ jest.mock('@payload-config', () => ({}), { virtual: true });
 
 const mockPayloadFind = jest.fn();
 const mockPayloadUpdate = jest.fn();
+const mockPayloadDelete = jest.fn();
 jest.mock('payload', () => ({
-  getPayload: (): unknown => ({ find: mockPayloadFind, update: mockPayloadUpdate }),
+  getPayload: (): unknown => ({
+    find: mockPayloadFind,
+    update: mockPayloadUpdate,
+    delete: mockPayloadDelete,
+  }),
 }));
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
+jest.mock('@/utils/auth-helpers', () => ({
+  getPayloadUserFromNextAuthUser: (): Promise<{ id: string }> =>
+    Promise.resolve({ id: 'user-lena' }),
+}));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
 jest.mock('@/utils/get-locale-from-cookies', () => ({
   getLocaleFromCookies: jest.fn().mockResolvedValue('de'),
@@ -48,7 +57,10 @@ import { pushTrackingRouter } from '@/features/push-tracking/api/push-tracking-r
 
 const mockFindMany = jest.fn();
 const mockUpdate = jest.fn();
-const prisma = { pushNotificationLog: { findMany: mockFindMany, update: mockUpdate } };
+const mockGroupBy = jest.fn();
+const prisma = {
+  pushNotificationLog: { findMany: mockFindMany, update: mockUpdate, groupBy: mockGroupBy },
+};
 
 const createCaller = createCallerFactory(pushTrackingRouter);
 
@@ -102,11 +114,11 @@ describe('pushTrackingRouter access', () => {
   });
 
   it('shows the notification history to a full admin', async () => {
+    mockGroupBy.mockResolvedValue([]);
     mockFindMany.mockResolvedValue([{ id: 'log-1' }]);
 
     await expect(callerAs(fullAdmin).getRecentLogs({ userId: 'someone' })).resolves.toEqual({
       items: [{ id: 'log-1' }],
-      nextCursor: undefined,
     });
   });
 
@@ -247,5 +259,155 @@ describe('pushTrackingRouter delivery reports', () => {
       success: true,
     });
     expect(updateData()).toEqual(expect.objectContaining({ status: 'DELIVERED' }));
+  });
+});
+
+describe('pushTrackingRouter push devices of a person', () => {
+  const lenasPhone = {
+    id: 'device-1',
+    platform: 'web',
+    userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/141.0.0.0 Mobile Safari/537.36',
+    registrationSource: '/entrypoint',
+    lastUsedAt: '2026-11-05T12:00:00.000Z',
+  };
+
+  beforeEach(() => {
+    mockPayloadFind.mockReset();
+    mockPayloadDelete.mockReset();
+  });
+
+  it('lists them for a full admin', async () => {
+    mockPayloadFind.mockResolvedValue({ docs: [lenasPhone] });
+
+    await expect(callerAs(fullAdmin).getPushDeviceList({ userId: 'user-lena' })).resolves.toEqual([
+      lenasPhone,
+    ]);
+    expect(mockPayloadFind).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { user: { equals: 'user-lena' } } }),
+    );
+  });
+
+  it('refuses the list and the removal to the web core team', async () => {
+    await expect(
+      callerAs(webCoreTeam).getPushDeviceList({ userId: 'user-lena' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(callerAs(webCoreTeam).deletePushDevice({ id: 'device-1' })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    expect(mockPayloadFind).not.toHaveBeenCalled();
+    expect(mockPayloadDelete).not.toHaveBeenCalled();
+  });
+
+  it('removes a device for a full admin', async () => {
+    mockPayloadDelete.mockResolvedValue({ docs: [{ ...lenasPhone, user: 'user-lena' }] });
+
+    await expect(callerAs(fullAdmin).deletePushDevice({ id: 'device-1' })).resolves.toEqual({
+      removed: true,
+    });
+  });
+
+  it('answers a device that is already gone without an error', async () => {
+    // removed in another tab, or pruned by a send that met an expired subscription
+    mockPayloadDelete.mockResolvedValue({ docs: [] });
+
+    await expect(callerAs(fullAdmin).deletePushDevice({ id: 'device-1' })).resolves.toEqual({
+      removed: false,
+    });
+  });
+});
+
+/** A moment the given number of minutes ago. */
+const at = (minutesAgo: number): Date => new Date(Date.now() - minutesAgo * 60_000);
+
+describe('pushTrackingRouter.getRecentLogs', () => {
+  beforeEach(() => {
+    mockGroupBy.mockReset();
+    mockFindMany.mockReset();
+  });
+
+  it('counts a push to several devices as one of the last 20 entries', async () => {
+    mockGroupBy.mockResolvedValue(
+      Array.from({ length: 20 }, (_, index) => ({
+        notificationId: `push-${String(index)}`,
+        _max: { sentAt: at(index + 1) },
+      })),
+    );
+    // a test send older than all 20 pushes, and the rows of the pushes themselves
+    mockFindMany
+      .mockResolvedValueOnce([{ id: 'test-send', sentAt: at(60) }])
+      .mockResolvedValueOnce([{ id: 'row' }]);
+
+    await callerAs(fullAdmin).getRecentLogs({ userId: 'user-lena' });
+
+    expect(mockGroupBy).toHaveBeenCalledWith(expect.objectContaining({ take: 20 }));
+    const [, rowsQuery] = mockFindMany.mock.calls as [unknown, [{ where: unknown }]];
+    expect(rowsQuery[0].where).toEqual({
+      userId: 'user-lena',
+      OR: [
+        {
+          notificationId: {
+            in: Array.from({ length: 20 }, (_, index) => `push-${String(index)}`),
+          },
+        },
+        { id: { in: [] } },
+      ],
+    });
+  });
+
+  it('mixes test sends and pushes by when they were sent', async () => {
+    mockGroupBy.mockResolvedValue([{ notificationId: 'push-chat', _max: { sentAt: at(30) } }]);
+    mockFindMany
+      .mockResolvedValueOnce([{ id: 'test-send', sentAt: at(5) }])
+      .mockResolvedValueOnce([]);
+
+    await callerAs(fullAdmin).getRecentLogs({ userId: 'user-lena' });
+
+    const [, rowsQuery] = mockFindMany.mock.calls as [unknown, [{ where: unknown }]];
+    expect(rowsQuery[0].where).toEqual({
+      userId: 'user-lena',
+      OR: [{ notificationId: { in: ['push-chat'] } }, { id: { in: ['test-send'] } }],
+    });
+  });
+});
+
+describe('pushTrackingRouter.confirmWebPushSubscription', () => {
+  const lenasPhone = {
+    endpoint: 'https://fcm.googleapis.com/fcm/send/lena',
+    keys: { p256dh: 'p256dh-lena', auth: 'auth-lena' },
+  };
+
+  beforeEach(() => mockPayloadUpdate.mockReset());
+
+  it("renews only the signed-in person's own row with that endpoint and auth secret", async () => {
+    mockPayloadUpdate.mockResolvedValue({ docs: [{ id: 'row-1' }] });
+
+    await expect(callerAs(participant).confirmWebPushSubscription(lenasPhone)).resolves.toEqual({
+      confirmed: true,
+    });
+    const [update] = mockPayloadUpdate.mock.calls[0] as [Record<string, unknown>];
+    expect(update['where']).toEqual({
+      and: [
+        { user: { equals: 'user-lena' } },
+        { endpoint: { equals: lenasPhone.endpoint } },
+        { 'keys.auth': { equals: 'auth-lena' } },
+      ],
+    });
+    expect(typeof (update['data'] as { lastUsedAt?: unknown }).lastUsedAt).toBe('string');
+  });
+
+  it('leaves a removed device removed', async () => {
+    // an admin removed the device, or a send found it expired
+    mockPayloadUpdate.mockResolvedValue({ docs: [] });
+
+    await expect(callerAs(participant).confirmWebPushSubscription(lenasPhone)).resolves.toEqual({
+      confirmed: false,
+    });
+  });
+
+  it('refuses a check-in without a session', async () => {
+    await expect(callerAs(signedOut).confirmWebPushSubscription(lenasPhone)).rejects.toMatchObject({
+      code: 'UNAUTHORIZED',
+    });
+    expect(mockPayloadUpdate).not.toHaveBeenCalled();
   });
 });

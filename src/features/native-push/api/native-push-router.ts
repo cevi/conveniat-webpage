@@ -1,3 +1,4 @@
+import { PUSH_DEVICE_STALE_MS } from '@/lib/push/push-device-staleness';
 import { PushSubscriptionSchema } from '@/schemas/push';
 import { createTRPCRouter, trpcAdminProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { getPayloadUserFromNextAuthUser } from '@/utils/auth-helpers';
@@ -8,9 +9,6 @@ import { getPayload } from 'payload';
 import { z } from 'zod';
 
 const logger = createLogger('native-push:router');
-
-/** After a month without renewal Firebase considers a registration token stale. */
-const PHONE_TOKEN_STALE_MS = 30 * 24 * 60 * 60 * 1000;
 
 export const nativePushRouter = createTRPCRouter({
   registerDevice: trpcBaseProcedure
@@ -306,7 +304,7 @@ export const nativePushRouter = createTRPCRouter({
           { user: { equals: payloadUser.id } },
           { platform: { in: ['ios', 'android'] } },
           {
-            lastUsedAt: { greater_than: new Date(Date.now() - PHONE_TOKEN_STALE_MS).toISOString() },
+            lastUsedAt: { greater_than: new Date(Date.now() - PUSH_DEVICE_STALE_MS).toISOString() },
           },
         ],
       },

@@ -7,6 +7,7 @@ import { usePushNotificationState } from '@/hooks/use-push-notification-state';
 import { Cookie } from '@/types/types';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 
+import { writePreference } from '@/lib/preferences';
 import Cookies from 'js-cookie';
 import React, { useSyncExternalStore } from 'react';
 
@@ -27,7 +28,7 @@ export const PushNotificationSubscriptionManager: React.FC<{
 
   // Always call the web push hook so hook call order is stable across renders.
   // The result is intentionally unused in native mode.
-  const { isSupported, isSubscribed, isLoading, errorMessage, toggleSubscription } =
+  const { isSupported, isSubscribed, isLoading, errorMessage, isBlocked, toggleSubscription } =
     usePushNotificationState({ registrationSource: '/entrypoint', locale });
 
   if (isNative) {
@@ -41,6 +42,7 @@ export const PushNotificationSubscriptionManager: React.FC<{
         locale={locale}
         onSkip={() => {
           Cookies.set(Cookie.SKIP_PUSH_NOTIFICATION, 'true', { expires: 7 });
+          writePreference('web-push-opted-out', true);
           callback();
         }}
       />
@@ -53,6 +55,7 @@ export const PushNotificationSubscriptionManager: React.FC<{
       isSubscribed={isSubscribed}
       isLoading={isLoading}
       errorMessage={errorMessage}
+      isBlocked={isBlocked}
       onToggle={toggleSubscription}
       onContinue={callback}
     />
