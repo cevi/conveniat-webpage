@@ -24,6 +24,7 @@ import { ChatMembershipPermission, ChatType } from '@prisma/client';
 import type { LucideIcon } from 'lucide-react';
 import {
   Archive,
+  Image as ImageIcon,
   Lock,
   Megaphone,
   MessageSquareOff,
@@ -236,6 +237,8 @@ export const ChatTextAreaInput: React.FC = () => {
   const { uploadImage, isUploading } = useImageUpload({ chatId });
   const { stagedImage, stageImage, clearStagedImage } = useStagedImage();
   const [hasUploadFailed, setHasUploadFailed] = React.useState(false);
+  // a HEIC outside Safari has no preview until it is converted on send
+  const [brokenPreviewUrl, setBrokenPreviewUrl] = React.useState<string>();
 
   // Picking an image only stages it above the text; it is sent together with the text.
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>): void => {
@@ -421,15 +424,28 @@ export const ChatTextAreaInput: React.FC = () => {
           {stagedImage !== undefined && (
             <div className="flex items-end gap-3 px-3 pt-3">
               <div className="relative">
-                <img
-                  src={stagedImage.previewUrl}
-                  alt=""
-                  className={cn(
-                    'ring-line h-20 w-20 rounded-xl object-cover ring-1',
-                    isUploading && 'opacity-60',
-                    hasUploadFailed && 'ring-danger ring-2',
-                  )}
-                />
+                {brokenPreviewUrl === stagedImage.previewUrl ? (
+                  <div
+                    className={cn(
+                      'ring-line bg-quiet flex h-20 w-20 items-center justify-center rounded-xl text-green-700 ring-1',
+                      isUploading && 'opacity-60',
+                      hasUploadFailed && 'ring-danger ring-2',
+                    )}
+                  >
+                    <ImageIcon className="h-7 w-7" aria-hidden="true" />
+                  </div>
+                ) : (
+                  <img
+                    src={stagedImage.previewUrl}
+                    alt=""
+                    onError={() => setBrokenPreviewUrl(stagedImage.previewUrl)}
+                    className={cn(
+                      'ring-line h-20 w-20 rounded-xl object-cover ring-1',
+                      isUploading && 'opacity-60',
+                      hasUploadFailed && 'ring-danger ring-2',
+                    )}
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() => {

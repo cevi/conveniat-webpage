@@ -40,7 +40,11 @@ export const imageSentText = (senderName: string): StaticTranslationString => {
   };
 };
 
-/** Photos are uploaded as picked, without resizing, so this has to fit a full-size phone photo. */
+/**
+ * The composer sends a photo as a JPEG of a few hundred kilobytes, see `prepareChatImage`. A GIF
+ * goes as picked, and so does every image from a browser on an older release, so this still has
+ * to fit a full-size phone photo.
+ */
 export const CHAT_IMAGE_MAX_BYTES = 20 * 1024 * 1024;
 
 /** What an image sent in a chat may be. */

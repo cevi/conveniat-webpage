@@ -1,5 +1,6 @@
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import { generateMessageId } from '@/features/chat/utils';
+import { prepareChatImage } from '@/features/chat/utils/prepare-chat-image';
 import type { ChatImageUploadInput } from '@/lib/chat-images';
 import { CHAT_IMAGE_MAX_BYTES, isChatImageContentType } from '@/lib/chat-images';
 import { MessageType } from '@/lib/prisma/client';
@@ -50,12 +51,15 @@ export const useImageUpload = ({
       try {
         setIsUploading(true);
 
+        // shrunk to a JPEG of at most 1600 pixels; HEIC becomes JPEG, a GIF goes as picked
+        const image = await prepareChatImage(file);
+
         // The server refuses these too; checking here saves the round trip.
-        const contentType = file.type;
+        const contentType = image.type;
         if (!isChatImageContentType(contentType)) {
           throw new Error(`Unsupported image type: ${contentType}`);
         }
-        if (file.size > CHAT_IMAGE_MAX_BYTES) {
+        if (image.size > CHAT_IMAGE_MAX_BYTES) {
           throw new Error('Image is too large');
         }
 
@@ -63,13 +67,13 @@ export const useImageUpload = ({
         const { url, key } = await getUploadUrlMutation.mutateAsync({
           chatId,
           contentType,
-          contentLength: file.size,
+          contentLength: image.size,
         });
 
         // 2. Upload directly to S3
         const uploadResponse = await fetch(url, {
           method: 'PUT',
-          body: file,
+          body: image,
           headers: {
             'Content-Type': contentType,
           },
