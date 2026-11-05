@@ -48,6 +48,9 @@ model User {
   scheduleReminderDeliveries ScheduleReminderDelivery[]
   issuedChatInvites          ChatInvite[]               @relation("ChatInviteIssuer")
   redeemedChatInvites        ChatInvite[]               @relation("ChatInviteRedeemer")
+  threadSubscriptions        ThreadSubscription[]
+  forumAssignments           ForumPostAssignment[]      @relation("ForumPostAssignee")
+  handedOutForumAssignments  ForumPostAssignment[]      @relation("ForumPostAssigner")
 
   @@index([name])
 }

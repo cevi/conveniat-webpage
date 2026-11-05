@@ -744,6 +744,11 @@ export const adminRouter = createTRPCRouter({
           de: 'Dieser Ankündigungskanal wurde geschlossen.',
           fr: "Ce canal d'annonces a été fermé.",
         },
+        [ChatType.FORUM]: {
+          en: 'This forum topic has been closed.',
+          de: 'Dieses Forum-Thema wurde geschlossen.',
+          fr: 'Ce thème du forum a été fermé.',
+        },
       };
 
       // Add system message
@@ -865,6 +870,11 @@ export const adminRouter = createTRPCRouter({
           en: 'This announcement channel has been reopened.',
           de: 'Dieser Ankündigungskanal wurde wieder geöffnet.',
           fr: "Ce canal d'annonces a été rouvert.",
+        },
+        [ChatType.FORUM]: {
+          en: 'This forum topic has been reopened.',
+          de: 'Dieses Forum-Thema wurde wieder geöffnet.',
+          fr: 'Ce thème du forum a été rouvert.',
         },
       };
 

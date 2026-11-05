@@ -64,7 +64,12 @@ export const getChatList = trpcBaseProcedure
     }
 
     const memberships = await prisma.chatMembership.findMany({
-      where: { userId: prismaUser.uuid, hasDeleted: false },
+      // a forum topic has its own pages; as a chat, every post would read as a message
+      where: {
+        userId: prismaUser.uuid,
+        hasDeleted: false,
+        chat: { type: { not: ChatType.FORUM } },
+      },
       select: {
         lastReadSeq: true,
         chatPermission: true,

@@ -4,6 +4,7 @@ import {
   loadAudienceContext,
 } from '@/features/payload-cms/payload-cms/chat-channels/channel-audience';
 import { CHANNEL_COLLECTIONS } from '@/features/payload-cms/payload-cms/chat-channels/channel-collections';
+import { findKeptMemberIds } from '@/features/payload-cms/payload-cms/chat-channels/channel-memberships';
 import prisma from '@/lib/db/prisma';
 import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
 import type { ChatMembershipPermission } from '@/lib/prisma/client';
@@ -117,6 +118,7 @@ export const syncNewUserAnnouncementChatsTask: TaskConfig<{
       // Owners and admins stay, as the channel's own sync keeps them too; so does anyone the
       // channel's chat holds with another permission than its audience gets.
       const staleChatUuids: string[] = [];
+      const kept = await findKeptMemberIds(otherChannels.map((channel) => channel.chatUuid));
       for (const permission of new Set(otherChannels.map((channel) => channel.memberPermission))) {
         const chatUuids = otherChannels
           .filter((channel) => channel.memberPermission === permission)
@@ -126,7 +128,10 @@ export const syncNewUserAnnouncementChatsTask: TaskConfig<{
           select: { chatId: true },
         });
         if (staleMemberships.length === 0) continue;
-        const stale = staleMemberships.map((membership) => membership.chatId);
+        const stale = staleMemberships
+          .map((membership) => membership.chatId)
+          .filter((chatUuid) => !kept.has(`${chatUuid}:${userId}`));
+        if (stale.length === 0) continue;
         await prisma.chatMembership.deleteMany({
           where: { userId, chatId: { in: stale }, chatPermission: permission },
         });
