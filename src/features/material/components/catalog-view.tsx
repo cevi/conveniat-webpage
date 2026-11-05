@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from '@/components/ui/toast';
 import {
   FilterChip,
   SearchField,
@@ -34,7 +35,6 @@ import { ArrowLeft, Plus, Send } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { Activity, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
 
 type CatalogItem = RouterOutputs['material']['getCatalog'][number];
 

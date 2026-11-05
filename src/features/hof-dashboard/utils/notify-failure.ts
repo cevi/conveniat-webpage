@@ -1,6 +1,6 @@
+import { toast } from '@/components/ui/toast';
 import { translate, type TextKey } from '@/features/hof-dashboard/texts';
 import type { Locale } from '@/types/types';
-import { toast } from 'sonner';
 
 /**
  * Tells the user an action failed, and says so plainly when the phone has no signal: on camp

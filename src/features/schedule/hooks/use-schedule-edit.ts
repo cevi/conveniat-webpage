@@ -1,11 +1,11 @@
 'use client';
 
+import { toast } from '@/components/ui/toast';
 import { scheduleErrorTexts } from '@/features/schedule/error-texts';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { useCallback, useState } from 'react';
-import { toast } from 'sonner';
 
 const labels = {
   saveSuccess: {

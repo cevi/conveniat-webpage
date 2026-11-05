@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from '@/components/ui/toast';
 import { labels } from '@/features/material/components/material-labels';
 import { MaterialButton } from '@/features/material/components/material-ui';
 import type { useIncidentPhotoUpload } from '@/features/material/hooks/use-incident-photo-upload';
@@ -8,7 +9,6 @@ import { INCIDENT_PHOTO_UPLOAD } from '@/features/material/utils/incident-photo'
 import type { StaticTranslationString } from '@/types/types';
 import { Camera, Loader2, X } from 'lucide-react';
 import type React from 'react';
-import { toast } from 'sonner';
 
 const text = {
   addPhoto: { de: 'Foto hinzufügen', en: 'Add photo', fr: 'Ajouter une photo' },

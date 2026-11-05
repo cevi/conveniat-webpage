@@ -3,6 +3,7 @@ import { toastMaterialError } from '@/features/material/components/material-erro
 
 import { Card } from '@/components/ui/card';
 import { ListRow } from '@/components/ui/list-row';
+import { toast } from '@/components/ui/toast';
 import {
   holderInitials,
   SearchField,
@@ -43,7 +44,6 @@ import { cn } from '@/utils/tailwindcss-override';
 import { ChevronLeft, PackageOpen, Trash2, X } from 'lucide-react';
 import type React from 'react';
 import { useMemo, useState } from 'react';
-import { toast } from 'sonner';
 
 const text = {
   to: { de: 'An wen', en: 'To whom', fr: 'À qui' },

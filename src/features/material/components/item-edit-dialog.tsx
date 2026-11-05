@@ -1,6 +1,7 @@
 'use client';
 import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
+import { toast } from '@/components/ui/toast';
 import { labels } from '@/features/material/components/material-labels';
 import {
   Field,
@@ -27,7 +28,6 @@ import { cn } from '@/utils/tailwindcss-override';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 const text = {
   titleNew: { de: 'Neuer Artikel', en: 'New item', fr: 'Nouvel article' },

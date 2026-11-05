@@ -1,6 +1,7 @@
 'use client';
 
 import { avatarTextColorOf } from '@/components/ui/person-avatar';
+import { toast } from '@/components/ui/toast';
 import type { ChatMessage } from '@/features/chat/api/types';
 import { AlertQuestionMessage } from '@/features/chat/components/chat-view/message/alert-question-message';
 import { AlertResponseMessage } from '@/features/chat/components/chat-view/message/alert-response-message';
@@ -38,7 +39,6 @@ import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { AlertCircle, Ban, Check, Clock, Ellipsis } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import { toast } from 'sonner';
 
 const replyToMessageText: StaticTranslationString = {
   de: 'Antwort auf eine Nachricht',

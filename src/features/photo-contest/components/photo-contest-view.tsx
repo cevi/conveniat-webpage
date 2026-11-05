@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
+import { toast } from '@/components/ui/toast';
 import { photoContestErrorTexts } from '@/features/photo-contest/error-texts';
 import { useAuthStatus } from '@/hooks/use-auth-status';
 import { trpc } from '@/trpc/client';
@@ -27,7 +28,6 @@ import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
 
 type ContestStatus = 'HIDDEN' | 'ACTIVE' | 'CLOSED_HIDDEN' | 'CLOSED';
 

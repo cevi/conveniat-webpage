@@ -2,6 +2,7 @@
 import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
 import { Card } from '@/components/ui/card';
+import { toast } from '@/components/ui/toast';
 import { labels } from '@/features/material/components/material-labels';
 import {
   EmptyState,
@@ -21,7 +22,6 @@ import type { StaticTranslationString } from '@/types/types';
 import { Pencil, Plus } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 type MaterialCategory = RouterOutputs['material']['getCategoryList'][number];
 

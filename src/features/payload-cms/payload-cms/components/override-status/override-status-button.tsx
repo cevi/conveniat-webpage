@@ -2,10 +2,9 @@
 
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import type { Config } from '@/features/payload-cms/payload-types';
-import { useAuth, useDocumentInfo, useLocale } from '@payloadcms/ui';
+import { toast, useAuth, useDocumentInfo, useLocale } from '@payloadcms/ui';
 import { CheckCircle, XCircle } from 'lucide-react';
 import React, { useState } from 'react';
-import { toast } from 'sonner';
 
 type LocaleCode = Config['locale'];
 

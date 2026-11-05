@@ -1,6 +1,7 @@
 'use client';
 import { toastMaterialError } from '@/features/material/components/material-error-toast';
 
+import { toast } from '@/components/ui/toast';
 import {
   HolderAvatar,
   SectionTitle,
@@ -44,7 +45,6 @@ import { cn } from '@/utils/tailwindcss-override';
 import { ChevronLeft, PackageCheck, QrCode } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 const text = {
   hasOut: { de: 'Hat draussen', en: 'Has out', fr: 'A dehors' },
