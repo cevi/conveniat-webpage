@@ -126,9 +126,11 @@ const PendingBanner: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ po
     <div className="bg-quiet flex flex-col gap-2.5 rounded-xl p-3">
       <p className="flex items-start gap-2 text-[14px] text-green-900">
         <Clock className="mt-0.5 h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
-        {post.viewer.canApprove
-          ? forumText.pendingModerator[locale]
-          : forumText.pendingAuthor[locale]}
+        <span className="text-balance">
+          {post.viewer.canApprove
+            ? forumText.pendingModerator[locale]
+            : forumText.pendingAuthor[locale]}
+        </span>
       </p>
       {post.viewer.canApprove && confirmReject && (
         <p className="text-[13px] text-green-800">{forumText.rejectConfirm[locale]}</p>
@@ -289,7 +291,7 @@ const PostHeader: React.FC<{
       {post.private === true && (
         <p className="bg-quiet flex items-start gap-2 rounded-xl p-3 text-[14px] text-green-900">
           <Lock className="mt-0.5 h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
-          {forumText.privateBanner[locale]}
+          <span className="text-balance">{forumText.privateBanner[locale]}</span>
         </p>
       )}
       {post.pending === true && <PendingBanner post={post} locale={locale} />}
