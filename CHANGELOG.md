@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.51.1](https://github.com/cevi/conveniat-webpage/compare/v1.51.0...v1.51.1) (2026-11-05)
+
+
+### Bug Fixes
+
+* **chat:** a reason over several lines keeps the staged image's thumbnail square ([01fd3af](https://github.com/cevi/conveniat-webpage/commit/01fd3afa24afab65e00637a9ad981e09d1805f09))
+* **chat:** a refused or offline image send says why ([15a6e15](https://github.com/cevi/conveniat-webpage/commit/15a6e15ce164117f64fe80e05c7a1f38106ab60f))
+* **chat:** a refused or offline image send says why ([764f812](https://github.com/cevi/conveniat-webpage/commit/764f8123e6608cc52e24ea47357861a194ed1c7b)), closes [#712](https://github.com/cevi/conveniat-webpage/issues/712)
+* **push:** address review of the soft notification navigation ([71491c1](https://github.com/cevi/conveniat-webpage/commit/71491c163d282189689a1e12bdee73d926283a71))
+* **push:** ask uncontrolled pages briefly, skip the admin panel ([bbd534f](https://github.com/cevi/conveniat-webpage/commit/bbd534f60cd916320f77ea7026f002c376ead47a))
+* **push:** ignore receipts for push log entries that no longer exist ([1dc8b5b](https://github.com/cevi/conveniat-webpage/commit/1dc8b5b39c1e4b0e2337c52bceabad73b4323f78))
+* **push:** ignore receipts for push log entries that no longer exist ([daa16d8](https://github.com/cevi/conveniat-webpage/commit/daa16d82ee5c66c9b6bc0d7a4f0bfbc14ebbd32c))
+* **push:** tapping a notification with the app open no longer reloads it ([cf1073a](https://github.com/cevi/conveniat-webpage/commit/cf1073a1b926a7071475bbc5de5366746b812b55))
+* **push:** tapping a notification with the app open no longer reloads it ([dd3c960](https://github.com/cevi/conveniat-webpage/commit/dd3c96076df93ee4fef101e66c68d25e12f9e8a1)), closes [#2189](https://github.com/cevi/conveniat-webpage/issues/2189)
+* **schedule:** workshop counts refresh when a screen opens and every five minutes ([baf1553](https://github.com/cevi/conveniat-webpage/commit/baf155317878e9631aaf41bef426501ebbceb495))
+* **schedule:** workshop counts refresh when a screen opens and every five minutes ([fe4e614](https://github.com/cevi/conveniat-webpage/commit/fe4e614896d65fa87207b23211fb0044904b909a)), closes [#1640](https://github.com/cevi/conveniat-webpage/issues/1640)
+
+
+### Performance
+
+* **cms:** stop the publishing status from scanning joined collections ([31d9135](https://github.com/cevi/conveniat-webpage/commit/31d91352d8b7fd6d20d34b866e4aae23b25f72d2))
+* **cms:** stop the publishing status from scanning joined collections ([7da9c39](https://github.com/cevi/conveniat-webpage/commit/7da9c39fbfc30f96ae740405882cfa257e0be8c3)), closes [#2146](https://github.com/cevi/conveniat-webpage/issues/2146)
+
 ## [1.51.0](https://github.com/cevi/conveniat-webpage/compare/v1.50.0...v1.51.0) (2026-11-05)
 
 
