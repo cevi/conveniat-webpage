@@ -6,6 +6,7 @@ import { useOnboardingRecheck } from '@/features/onboarding/hooks/use-onboarding
 import { ONBOARDING_COMPLETE_KEY } from '@/lib/onboarding-complete';
 import { Cookie } from '@/types/types';
 import { replaceLocation } from '@/utils/assign-location';
+import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
 import {
   restoreLostPushSubscription,
   unsubscribeFromPushNotifications,
@@ -19,6 +20,21 @@ jest.mock('@/utils/push-notifications/push-subscription', () => ({
   restoreLostPushSubscription: jest.fn(() => Promise.resolve(false)),
   unsubscribeFromPushNotifications: jest.fn(() => Promise.resolve()),
 }));
+jest.mock('@/utils/push-notifications/push-manager-utils', () => ({
+  getPushSubscription: jest.fn(() => Promise.resolve()),
+}));
+const mockConfirmPushSubscription = jest.fn(() => Promise.resolve({ confirmed: true }));
+jest.mock('@/trpc/client', () => ({
+  trpc: {
+    pushTracking: {
+      confirmWebPushSubscription: {
+        useMutation: (): { mutateAsync: typeof mockConfirmPushSubscription } => ({
+          mutateAsync: mockConfirmPushSubscription,
+        }),
+      },
+    },
+  },
+}));
 /** The preferences stored on this device, by key. */
 const mockStoredPreferences = new Map<string, { key: string; value: unknown }>();
 // jsdom has no IndexedDB for the collections the logout clears
@@ -29,6 +45,14 @@ jest.mock('@/lib/tanstack-db', () => ({
       return mockStoredPreferences;
     },
     get: (key: string): unknown => mockStoredPreferences.get(key),
+    has: (key: string): boolean => mockStoredPreferences.has(key),
+    insert: (row: { key: string; value: unknown }): unknown =>
+      mockStoredPreferences.set(row.key, row),
+    update: (key: string, change: (draft: { key: string; value: unknown }) => void): void => {
+      const draft = { key, value: undefined as unknown, ...mockStoredPreferences.get(key) };
+      change(draft);
+      mockStoredPreferences.set(key, draft);
+    },
     delete: jest.fn(),
   },
 }));
@@ -152,5 +176,94 @@ describe('the background push check of an installed web app started past the onb
     localStorage.removeItem(ONBOARDING_COMPLETE_KEY);
     renderHook(() => useOnboardingRecheck('fr'));
     expect(restore).not.toHaveBeenCalled();
+  });
+});
+
+/** When this device last checked in its push subscription, as stored. */
+const checkedInAt = (): unknown => mockStoredPreferences.get('web-push-checked-in-at')?.value;
+
+describe('the daily push check-in of an installed web app', () => {
+  const restore = jest.mocked(restoreLostPushSubscription);
+  const currentSubscription = jest.mocked(getPushSubscription);
+  const originalFetch = globalThis.fetch;
+  const lenasPhone = {
+    endpoint: 'https://fcm.googleapis.com/fcm/send/lena',
+    keys: { p256dh: 'p256dh', auth: 'auth' },
+  };
+
+  beforeEach(() => {
+    localStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+    restore.mockClear().mockResolvedValue(false);
+    mockConfirmPushSubscription.mockClear();
+    currentSubscription.mockResolvedValue({
+      toJSON: () => lenasPhone,
+    } as unknown as PushSubscription);
+    globalThis.fetch = jest.fn(() => Promise.resolve(sessionAnswer(lenaMuster)));
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    mockStoredPreferences.clear();
+    globalThis.fetch = originalFetch;
+  });
+
+  it('tells the server that a kept subscription is still in use', async () => {
+    renderHook(() => useOnboardingRecheck('de'));
+
+    await waitFor(() => expect(mockConfirmPushSubscription).toHaveBeenCalledWith(lenasPhone));
+    await waitFor(() => expect(checkedInAt()).toEqual(expect.any(Number)));
+  });
+
+  it('checks in at most once a day', async () => {
+    const anHourAgo = Date.now() - 60 * 60 * 1000;
+    mockStoredPreferences.set('web-push-checked-in-at', {
+      key: 'web-push-checked-in-at',
+      value: anHourAgo,
+    });
+    renderHook(() => useOnboardingRecheck('de'));
+
+    await waitFor(() => expect(restore).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockConfirmPushSubscription).not.toHaveBeenCalled();
+    expect(checkedInAt()).toBe(anHourAgo);
+  });
+
+  it('subscribes afresh when the server no longer has the subscription', async () => {
+    // a send found the endpoint expired and the server dropped the row
+    const unsubscribe = jest.fn(() => Promise.resolve(true));
+    currentSubscription.mockResolvedValue({
+      toJSON: () => lenasPhone,
+      unsubscribe,
+    } as unknown as PushSubscription);
+    mockConfirmPushSubscription.mockResolvedValueOnce({ confirmed: false });
+    renderHook(() => useOnboardingRecheck('de'));
+
+    await waitFor(() => expect(unsubscribe).toHaveBeenCalled());
+    await waitFor(() => expect(restore).toHaveBeenCalledTimes(2));
+  });
+
+  it('does not subscribe afresh for a user who turned push off meanwhile', async () => {
+    const unsubscribe = jest.fn(() => Promise.resolve(true));
+    currentSubscription.mockResolvedValue({
+      toJSON: () => lenasPhone,
+      unsubscribe,
+    } as unknown as PushSubscription);
+    mockConfirmPushSubscription.mockImplementationOnce(() => {
+      mockStoredPreferences.set('web-push-opted-out', { key: 'web-push-opted-out', value: true });
+      return Promise.resolve({ confirmed: false });
+    });
+    renderHook(() => useOnboardingRecheck('de'));
+
+    await waitFor(() => expect(checkedInAt()).toEqual(expect.any(Number)));
+    expect(unsubscribe).not.toHaveBeenCalled();
+    expect(restore).toHaveBeenCalledTimes(1);
+  });
+
+  it('counts a restored subscription as a check-in', async () => {
+    restore.mockResolvedValue(true);
+    renderHook(() => useOnboardingRecheck('de'));
+
+    await waitFor(() => expect(checkedInAt()).toEqual(expect.any(Number)));
+    expect(mockConfirmPushSubscription).not.toHaveBeenCalled();
   });
 });

@@ -9,6 +9,10 @@ jest.mock('payload', () => ({
   getPayload: (): unknown => ({ find: mockPayloadFind, update: mockPayloadUpdate }),
 }));
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
+jest.mock('@/utils/auth-helpers', () => ({
+  getPayloadUserFromNextAuthUser: (): Promise<{ id: string }> =>
+    Promise.resolve({ id: 'user-lena' }),
+}));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
 jest.mock('@/utils/get-locale-from-cookies', () => ({
   getLocaleFromCookies: jest.fn().mockResolvedValue('de'),
@@ -247,5 +251,47 @@ describe('pushTrackingRouter delivery reports', () => {
       success: true,
     });
     expect(updateData()).toEqual(expect.objectContaining({ status: 'DELIVERED' }));
+  });
+});
+
+describe('pushTrackingRouter.confirmWebPushSubscription', () => {
+  const lenasPhone = {
+    endpoint: 'https://fcm.googleapis.com/fcm/send/lena',
+    keys: { p256dh: 'p256dh-lena', auth: 'auth-lena' },
+  };
+
+  beforeEach(() => mockPayloadUpdate.mockReset());
+
+  it("renews only the signed-in person's own row with that endpoint and auth secret", async () => {
+    mockPayloadUpdate.mockResolvedValue({ docs: [{ id: 'row-1' }] });
+
+    await expect(callerAs(participant).confirmWebPushSubscription(lenasPhone)).resolves.toEqual({
+      confirmed: true,
+    });
+    const [update] = mockPayloadUpdate.mock.calls[0] as [Record<string, unknown>];
+    expect(update['where']).toEqual({
+      and: [
+        { user: { equals: 'user-lena' } },
+        { endpoint: { equals: lenasPhone.endpoint } },
+        { 'keys.auth': { equals: 'auth-lena' } },
+      ],
+    });
+    expect(typeof (update['data'] as { lastUsedAt?: unknown }).lastUsedAt).toBe('string');
+  });
+
+  it('leaves a removed device removed', async () => {
+    // an admin removed the device, or a send found it expired
+    mockPayloadUpdate.mockResolvedValue({ docs: [] });
+
+    await expect(callerAs(participant).confirmWebPushSubscription(lenasPhone)).resolves.toEqual({
+      confirmed: false,
+    });
+  });
+
+  it('refuses a check-in without a session', async () => {
+    await expect(callerAs(signedOut).confirmWebPushSubscription(lenasPhone)).rejects.toMatchObject({
+      code: 'UNAUTHORIZED',
+    });
+    expect(mockPayloadUpdate).not.toHaveBeenCalled();
   });
 });
