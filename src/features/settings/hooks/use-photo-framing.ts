@@ -1,12 +1,13 @@
 'use client';
 
+import { LARGE_PROFILE_PICTURE_EDGE } from '@/utils/profile-picture-url';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /** The edge of the square the photo is framed in, in CSS pixels. */
 export const FRAME_EDGE = 256;
-/** The edge of the square that is uploaded; the server shrinks it to its own square. */
-const OUTPUT_EDGE = 512;
+/** The edge of the square that is uploaded, the full-screen size the server keeps. */
+const OUTPUT_EDGE = LARGE_PROFILE_PICTURE_EDGE;
 const MAX_ZOOM = 3;
 /** How far an arrow key moves the photo. */
 const KEY_STEP = 12;
