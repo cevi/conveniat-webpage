@@ -23,6 +23,7 @@ import {
   isOpenToEveryone,
   listAdminEntities,
 } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
+import { AccessOverviewAppRights } from '@/features/payload-cms/payload-cms/views/access-overview-app-rights';
 import type {
   Capability,
   GroupColumn,
@@ -839,6 +840,7 @@ export default async function AccessOverviewView({
         <PersonPanel data={data} apiRoute={payload.config.routes.api} />
         <CapabilityChecklist data={data} />
         <PersonAccessList data={data} />
+        <AccessOverviewAppRights personId={person.id} locale={locale} req={req} />
         <details className="mt-3">
           <summary className="cursor-pointer text-sm font-semibold">
             {allGroupsLabel[locale]}
