@@ -9,23 +9,13 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { IconTile } from '@/components/ui/icon-tile';
 import { ListRow, listRowClassName } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
-import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
-import { filterChipClassName } from '@/features/payload-cms/components/search/search-filter-panel';
-import { AssignBandSheet } from '@/features/wristbands/components/assign-band-sheet';
-import { ChoosePersonSheet } from '@/features/wristbands/components/choose-person-sheet';
-import { PersonRow } from '@/features/wristbands/components/person-row';
-import { ProgramSeriesCard } from '@/features/wristbands/components/program-series-card';
-import { QueueCard } from '@/features/wristbands/components/queue-card';
-import { UNDO_BAR_ROOM, UndoBar } from '@/features/wristbands/components/undo-bar';
-import { useWristbandHandOut } from '@/features/wristbands/hooks/use-wristband-hand-out';
-import type { BandFilter, PeopleFilters } from '@/features/wristbands/queue';
-import {
-  abteilungenOf,
-  bandProgress,
-  filterPeople,
-  NO_FILTERS,
-  readWristbandList,
-} from '@/features/wristbands/queue';
+import type { WristbandHof } from '@/features/payload-cms/payload-cms/access-rules/accessible-hoefe';
+import { personDetails } from '@/features/wristbands/components/band-labels';
+import { GiveBandSheet } from '@/features/wristbands/components/give-band-sheet';
+import { HelpersSheet } from '@/features/wristbands/components/helpers-sheet';
+import type { StationGroup } from '@/features/wristbands/hof-list';
+import { bandProgress, readWristbandList, stationList } from '@/features/wristbands/hof-list';
+import { useNativeNfcAvailable } from '@/features/wristbands/hooks/use-native-nfc-available';
 import { readerText } from '@/features/wristbands/reader-texts';
 import { translate } from '@/features/wristbands/texts';
 import type { HofPerson, HofWristbandList } from '@/features/wristbands/types';
@@ -40,8 +30,10 @@ import {
   ChevronsUpDown,
   Loader2,
   Nfc,
+  PartyPopper,
   ScanLine,
   Tent,
+  UserPlus,
   Users,
 } from 'lucide-react';
 import type React from 'react';
@@ -66,237 +58,6 @@ const LoadFailed: React.FC<{ locale: Locale; onRetry: () => void }> = ({ locale,
   />
 );
 
-/** "34 / 86 mit Band · 3 Ersatzbänder" */
-const progressText = (list: HofWristbandList | undefined, locale: Locale): string => {
-  if (list === undefined) return translate('loading', locale);
-  const { withBand, total } = bandProgress(list.people);
-  const spare = list.spareBands.length;
-  return [
-    translate('withBand', locale, { n: withBand, total }),
-    ...(spare === 0
-      ? []
-      : [
-          spare === 1
-            ? translate('spareCountOne', locale)
-            : translate('spareCount', locale, { n: spare }),
-        ]),
-  ].join(' · ');
-};
-
-/** The Hof and how many of its people wear a band; with several Höfe, the way to the others. */
-const HofSummary: React.FC<{
-  hofName: string;
-  list: HofWristbandList | undefined;
-  locale: Locale;
-  onChoose: (() => void) | undefined;
-}> = ({ hofName, list, locale, onChoose }) => {
-  const body = (
-    <>
-      <IconTile icon={Tent} />
-      <span className="min-w-0 flex-1">
-        <span className="font-heading text-heading block truncate text-[17px] font-bold">
-          {hofName}
-        </span>
-        <span className="block text-[13px] text-green-700 tabular-nums" aria-live="polite">
-          {progressText(list, locale)}
-        </span>
-      </span>
-    </>
-  );
-  return (
-    <Card>
-      {onChoose === undefined ? (
-        <div className="flex min-h-14 items-center gap-3 px-4 py-2.5">{body}</div>
-      ) : (
-        <ListRow aria-label={`${translate('chooseHof', locale)}: ${hofName}`} onClick={onChoose}>
-          {body}
-          <ChevronsUpDown className="size-5 shrink-0 text-green-500" aria-hidden />
-        </ListRow>
-      )}
-    </Card>
-  );
-};
-
-/** A row of chips, one of them chosen. */
-function ChipRow<Value extends string | null>({
-  label,
-  options,
-  chosen,
-  onChoose,
-}: {
-  label: string;
-  options: { value: Value; label: string }[];
-  chosen: Value;
-  onChoose: (value: Value) => void;
-}): React.ReactNode {
-  return (
-    <div
-      role="group"
-      aria-label={label}
-      className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1"
-    >
-      {options.map((option) => (
-        <button
-          key={option.value ?? ''}
-          type="button"
-          aria-pressed={option.value === chosen}
-          className={cn(filterChipClassName(option.value === chosen), 'snap-start')}
-          onClick={() => onChoose(option.value)}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/**
- * Which part of the Hof the queue and the list show: one Abteilung, where the Hof has several,
- * and participants or leaders, where it has both.
- */
-const PeopleFilterBar: React.FC<{
-  people: HofPerson[];
-  filters: PeopleFilters;
-  locale: Locale;
-  onChange: (filters: PeopleFilters) => void;
-}> = ({ people, filters, locale, onChange }) => {
-  const abteilungen = abteilungenOf(people);
-  const hasBothRoles =
-    people.some((person) => person.role === 'leader') &&
-    people.some((person) => person.role === 'participant');
-  if (abteilungen.length < 2 && !hasBothRoles) return <></>;
-  return (
-    <div className="space-y-2" aria-label={translate('filters', locale)} role="group">
-      {abteilungen.length > 1 && (
-        <ChipRow<string | null>
-          label={translate('abteilungFilter', locale)}
-          options={[
-            { value: null, label: translate('allAbteilungen', locale) },
-            ...abteilungen.map((abteilung) => ({ value: abteilung, label: abteilung })),
-          ]}
-          chosen={filters.abteilung}
-          onChoose={(abteilung) => onChange({ ...filters, abteilung })}
-        />
-      )}
-      {hasBothRoles && (
-        <ChipRow<PeopleFilters['role']>
-          label={translate('roleFilter', locale)}
-          options={[
-            { value: 'all', label: translate('allRoles', locale) },
-            { value: 'participant', label: translate('participants', locale) },
-            { value: 'leader', label: translate('leaders', locale) },
-          ]}
-          chosen={filters.role}
-          onChoose={(role) => onChange({ ...filters, role })}
-        />
-      )}
-    </div>
-  );
-};
-
-/** A segmented control of buttons, the chosen segment pressed. */
-function Segments<Value extends string>({
-  label,
-  options,
-  chosen,
-  onChoose,
-}: {
-  label: string;
-  options: { value: Value; label: string }[];
-  chosen: Value;
-  onChoose: (value: Value) => void;
-}): React.ReactNode {
-  return (
-    <div role="group" aria-label={label} className={segmentedTrackClassName}>
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          aria-pressed={option.value === chosen}
-          className={cn(
-            segmentClassName(option.value === chosen),
-            'flex-1 text-[14px] font-semibold',
-          )}
-          onClick={() => onChoose(option.value)}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/** The people of the Hof with their bands, searchable, and what to do with a band they wear. */
-const PeopleList: React.FC<{
-  hofId: string;
-  people: HofPerson[];
-  filters: PeopleFilters;
-  locale: Locale;
-  onReassign: (person: HofPerson) => void;
-}> = ({ hofId, people, filters, locale, onReassign }) => {
-  const [search, setSearch] = useState('');
-  const [band, setBand] = useState<BandFilter>('all');
-  const [expandedId, setExpandedId] = useState<string | undefined>();
-  const shown = filterPeople(people, { ...filters, band, search });
-  const showAbteilung = abteilungenOf(people).length > 1;
-
-  return (
-    <section className="space-y-2">
-      <SectionLabel className="px-1">
-        {translate('people', locale)}
-        <span className="tabular-nums"> · {people.length}</span>
-      </SectionLabel>
-      {people.length === 0 ? (
-        <EmptyState icon={Users} title={translate('noPeople', locale)} />
-      ) : (
-        <>
-          <AppSearchBar
-            onPage
-            placeholder={translate('searchPerson', locale)}
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            onClear={() => setSearch('')}
-          />
-          <Segments<BandFilter>
-            label={translate('bandStatus', locale)}
-            options={[
-              { value: 'all', label: translate('allBands', locale) },
-              { value: 'without', label: translate('withoutBand', locale) },
-              { value: 'with', label: translate('withBandFilter', locale) },
-            ]}
-            chosen={band}
-            onChoose={setBand}
-          />
-          {shown.length === 0 ? (
-            <p className="px-1 py-6 text-center text-[15px] text-green-700">
-              {translate('noMatch', locale)}
-            </p>
-          ) : (
-            <Card as="ul" divided>
-              {shown.map((person) => (
-                <PersonRow
-                  key={person.registrationId}
-                  hofId={hofId}
-                  person={person}
-                  locale={locale}
-                  showAbteilung={showAbteilung}
-                  expanded={expandedId === person.registrationId}
-                  onToggle={() =>
-                    setExpandedId((current) =>
-                      current === person.registrationId ? undefined : person.registrationId,
-                    )
-                  }
-                  onReassign={onReassign}
-                />
-              ))}
-            </Card>
-          )}
-        </>
-      )}
-    </section>
-  );
-};
-
 const NotInApp: React.FC<{ locale: Locale }> = ({ locale }) => (
   <div className="bg-quiet flex items-start gap-3 rounded-[14px] p-4">
     <IconTile icon={Nfc} />
@@ -311,110 +72,228 @@ const NotInApp: React.FC<{ locale: Locale }> = ({ locale }) => (
   </div>
 );
 
+/** A person of the list: a tap opens the band sheet. */
+const StationRow: React.FC<{
+  person: HofPerson;
+  locale: Locale;
+  withAbteilung: boolean;
+  onChoose: () => void;
+}> = ({ person, locale, withAbteilung, onChoose }) => (
+  <li>
+    <ListRow onClick={onChoose}>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[15px] font-semibold text-green-900">
+          {person.fullName}
+        </span>
+        <span className="block truncate text-[13px] text-green-700">
+          {personDetails(person, locale, { withAbteilung })}
+        </span>
+      </span>
+      {person.band === null ? (
+        <ChevronRight className="size-5 shrink-0 text-green-500" aria-hidden />
+      ) : (
+        <span className="border-tint-line flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[12px] font-semibold text-green-700">
+          <Check className="text-conveniat-green size-3.5" aria-hidden />
+          {translate('wearsBand', locale)}
+        </span>
+      )}
+    </ListRow>
+  </li>
+);
+
+/** "Cevi Uster · 12 ohne Band", or for a search how many it found. */
+const groupLabel = (
+  group: StationGroup,
+  { searching, single }: { searching: boolean; single: boolean },
+  locale: Locale,
+): string => {
+  const n = group.people.length;
+  if (searching) return translate('found', locale, { n });
+  if (group.abteilung === null || single) return translate('withoutBandCount', locale, { n });
+  return translate('withoutBandIn', locale, { abteilung: group.abteilung, n });
+};
+
 /**
- * The bands of one Hof once its list is there: the queue or "Nur programmieren" on a phone
- * with NFC, the filters, and the people with their bands.
+ * The station: a search for the person in front of the phone, and without a search who still
+ * needs a band, by Abteilung, the list the AVP calls the people up by.
  */
-const HofPanel: React.FC<{ hofId: string; list: HofWristbandList; locale: Locale }> = ({
-  hofId,
-  list,
-  locale,
-}) => {
-  const [filters, setFilters] = useState<PeopleFilters>(NO_FILTERS);
-  const [choosing, setChoosing] = useState(false);
-  const [reassigning, setReassigning] = useState<HofPerson | undefined>();
-  const handOut = useWristbandHandOut({ hofId, list, filters, locale });
-  const { people } = list;
-  const reassigningUid = reassigning?.band?.uid;
+const StationList: React.FC<{
+  people: HofPerson[];
+  locale: Locale;
+  onChoose: (person: HofPerson) => void;
+}> = ({ people, locale, onChoose }) => {
+  const [search, setSearch] = useState('');
+  const { searching, groups } = stationList(people, search);
+  const withAbteilung = new Set(people.map((person) => person.abteilung)).size > 1;
+  const shownCount = groups.reduce((sum, group) => sum + group.people.length, 0);
+  const choose = (person: HofPerson): void => {
+    setSearch('');
+    onChoose(person);
+  };
+
+  let body: React.ReactNode;
+  if (people.length === 0) {
+    body = <EmptyState icon={Users} title={translate('noPeople', locale)} />;
+  } else if (shownCount === 0 && searching) {
+    body = (
+      <p className="px-1 py-6 text-center text-[15px] text-green-700">
+        {translate('nobodyFound', locale)}
+      </p>
+    );
+  } else if (shownCount === 0) {
+    body = (
+      <Card>
+        <EmptyState
+          icon={PartyPopper}
+          title={translate('everyoneDone', locale, { n: people.length })}
+          description={translate('everyoneDoneHint', locale)}
+        />
+      </Card>
+    );
+  } else {
+    body = groups.map((group) => (
+      <section key={group.abteilung ?? ''} className="space-y-2">
+        <SectionLabel className="px-1 tabular-nums">
+          {groupLabel(group, { searching, single: groups.length === 1 }, locale)}
+        </SectionLabel>
+        <Card as="ul" divided>
+          {group.people.map((person) => (
+            <StationRow
+              key={person.registrationId}
+              person={person}
+              locale={locale}
+              withAbteilung={withAbteilung}
+              onChoose={() => choose(person)}
+            />
+          ))}
+        </Card>
+      </section>
+    ));
+  }
 
   return (
-    // the list's last row stays above the undo bar
-    <div className={cn('space-y-6', handOut.undo !== undefined && UNDO_BAR_ROOM)}>
-      {handOut.nfcAvailable === true && (
-        <Segments<'handOut' | 'program'>
-          label={translate('modes', locale)}
-          options={[
-            { value: 'handOut', label: translate('modeHandOut', locale) },
-            { value: 'program', label: translate('modeProgram', locale) },
-          ]}
-          chosen={handOut.mode}
-          onChoose={handOut.setMode}
-        />
-      )}
-      {handOut.nfcAvailable === false && <NotInApp locale={locale} />}
-
-      {handOut.mode === 'handOut' && (
-        <PeopleFilterBar people={people} filters={filters} locale={locale} onChange={setFilters} />
-      )}
-
-      {handOut.nfcAvailable === true && handOut.mode === 'handOut' && (
-        <QueueCard
-          queue={handOut.queue}
-          locale={locale}
-          emptyText={translate(
-            bandProgress(people).withBand === people.length
-              ? 'everyoneHasBand'
-              : 'everyoneFilteredHasBand',
-            locale,
-          )}
-          phase={handOut.scanner.phase}
-          notice={handOut.scanner.notice}
-          onResume={handOut.scanner.resume}
-          onSkip={handOut.skip}
-          onChoose={() => setChoosing(true)}
-          onBringBack={handOut.putFirst}
-        />
-      )}
-      {handOut.nfcAvailable === true && handOut.mode === 'program' && (
-        <ProgramSeriesCard
-          bands={handOut.series}
-          locale={locale}
-          phase={handOut.scanner.phase}
-          notice={handOut.scanner.notice}
-          onResume={handOut.scanner.resume}
-        />
-      )}
-
-      {handOut.mode === 'handOut' && (
-        <PeopleList
-          hofId={hofId}
-          people={people}
-          filters={filters}
-          locale={locale}
-          onReassign={setReassigning}
-        />
-      )}
-
-      <ChoosePersonSheet
-        open={choosing}
-        people={people}
-        locale={locale}
-        onChoose={(person) => {
-          handOut.putFirst(person);
-          setChoosing(false);
-        }}
-        onClose={() => setChoosing(false)}
+    <div className="space-y-6">
+      <AppSearchBar
+        placeholder={translate('searchStation', locale)}
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        onClear={() => setSearch('')}
       />
-      {reassigning !== undefined && reassigningUid !== undefined && (
-        <AssignBandSheet
-          key={reassigning.registrationId}
-          hofId={hofId}
-          from={reassigning}
-          uid={reassigningUid}
-          people={people}
-          onClose={() => setReassigning(undefined)}
+      {body}
+    </div>
+  );
+};
+
+/** The Hof, how many of its people wear a band, and with several Höfe the way to the others. */
+const HofLine: React.FC<{
+  hof: WristbandHof;
+  list: HofWristbandList | undefined;
+  locale: Locale;
+  onChoose: (() => void) | undefined;
+}> = ({ hof, list, locale, onChoose }) => {
+  const progress = list === undefined ? undefined : bandProgress(list.people);
+  const name = (
+    <span className="font-heading text-heading truncate text-[17px] font-bold">{hof.name}</span>
+  );
+  return (
+    <div className="space-y-2 px-1">
+      <div className="flex min-h-11 items-center gap-2">
+        {onChoose === undefined ? (
+          name
+        ) : (
+          <button
+            type="button"
+            className="focus-visible:focus-text -my-1 flex min-h-11 min-w-0 cursor-pointer items-center gap-1"
+            aria-label={`${translate('chooseHof', locale)}: ${hof.name}`}
+            onClick={onChoose}
+          >
+            {name}
+            <ChevronsUpDown className="size-4 shrink-0 text-green-500" aria-hidden />
+          </button>
+        )}
+        <span
+          className="ml-auto shrink-0 text-[13px] text-green-700 tabular-nums"
+          aria-live="polite"
+        >
+          {progress === undefined
+            ? translate('loading', locale)
+            : translate('withBand', locale, { n: progress.withBand, total: progress.total })}
+        </span>
+      </div>
+      <div className="bg-chip h-1.5 overflow-hidden rounded-full" aria-hidden>
+        <div
+          className="bg-conveniat-green h-full rounded-full transition-[width]"
+          style={{
+            width:
+              progress === undefined || progress.total === 0
+                ? '0%'
+                : `${(progress.withBand / progress.total) * 100}%`,
+          }}
         />
-      )}
-      {handOut.undo !== undefined && (
-        <UndoBar state={handOut.undo.state} locale={locale} onUndo={handOut.undo.run} />
+      </div>
+      {hof.role === 'helper' && (
+        <p className="text-[13px] text-green-700">{translate('youHelp', locale)}</p>
       )}
     </div>
   );
 };
 
+/**
+ * The station of one Hof once its list is there: the people to call up and to search, the
+ * sheet that gives the chosen one a band, and for the AVP the helpers at the other stations.
+ */
+const HofPanel: React.FC<{ hof: WristbandHof; list: HofWristbandList; locale: Locale }> = ({
+  hof,
+  list,
+  locale,
+}) => {
+  // fixed at the tap: the sheet keeps the person while their band changes the list under it
+  const [chosen, setChosen] = useState<HofPerson | undefined>();
+  const [managingHelpers, setManagingHelpers] = useState(false);
+  const helpersButton = useRef<HTMLButtonElement>(null);
+  const nfcAvailable = useNativeNfcAvailable();
+
+  return (
+    <>
+      <SetHeaderActions>
+        {hof.role === 'avp' && (
+          <Button
+            ref={helpersButton}
+            variant="plain"
+            size="touchIcon"
+            aria-label={translate('manageHelpers', locale)}
+            onClick={() => setManagingHelpers(true)}
+          >
+            <UserPlus aria-hidden />
+          </Button>
+        )}
+      </SetHeaderActions>
+      {nfcAvailable === false && <NotInApp locale={locale} />}
+      <StationList people={list.people} locale={locale} onChoose={setChosen} />
+      <GiveBandSheet
+        hofId={hof.id}
+        list={list}
+        person={chosen}
+        locale={locale}
+        onClose={() => setChosen(undefined)}
+      />
+      {hof.role === 'avp' && (
+        <HelpersSheet
+          hofId={hof.id}
+          list={list}
+          open={managingHelpers}
+          onOpenChange={setManagingHelpers}
+          anchor={helpersButton}
+          locale={locale}
+        />
+      )}
+    </>
+  );
+};
+
 /** The page of one Hof, and the way to the others. */
 const HofWristbands: React.FC<{
-  hoefe: { id: string; name: string }[];
+  hoefe: WristbandHof[];
   locale: Locale;
 }> = ({ hoefe, locale }) => {
   const [chosenHofId, setChosenHofId] = useState<string | undefined>();
@@ -435,8 +314,8 @@ const HofWristbands: React.FC<{
   return (
     <div className="space-y-6">
       <div ref={hofChooserReference}>
-        <HofSummary
-          hofName={hof.name}
+        <HofLine
+          hof={hof}
           list={list}
           locale={locale}
           onChoose={hoefe.length > 1 ? (): void => setChoosingHof(true) : undefined}
@@ -447,8 +326,9 @@ const HofWristbands: React.FC<{
         <LoadFailed locale={locale} onRetry={() => void listQuery.refetch()} />
       )}
       {list === undefined && !listQuery.isError && <Loading locale={locale} />}
-      {/* keyed by the Hof: its scanner, queue and filters start anew for another Hof */}
-      {list !== undefined && <HofPanel key={hofId} hofId={hofId} list={list} locale={locale} />}
+      {/* keyed by the Hof: its search and its sheets start anew for another Hof */}
+      {list !== undefined && <HofPanel key={hofId} hof={hof} list={list} locale={locale} />}
+      {list === undefined && <SetHeaderActions />}
 
       <BottomSheet
         open={choosingHof}
@@ -483,12 +363,6 @@ const HofWristbands: React.FC<{
   );
 };
 
-/**
- * The AVP's page for the NFC wristbands of their Hof. On a phone with the native app, the
- * scanner runs on its own: each band held to the phone is programmed and goes to the person
- * "Jetzt dran", then the next comes up. Before the camp, "Nur programmieren" prepares spare
- * bands. Taking a band back, passing it on and blocking it work in any browser.
- */
 /** The way to reading bands, for security and first aid. */
 const ReadBandLink: React.FC<{ locale: Locale }> = ({ locale }) => (
   <Card className="mb-6">
@@ -502,10 +376,28 @@ const ReadBandLink: React.FC<{ locale: Locale }> = ({ locale }) => (
   </Card>
 );
 
+/** A Hof of the list, read defensively: a cached list of before the helpers has no role. */
+const readHoefe = (value: unknown): WristbandHof[] | undefined =>
+  Array.isArray(value)
+    ? value.flatMap((entry: unknown): WristbandHof[] => {
+        if (typeof entry !== 'object' || entry === null) return [];
+        const { id, name, role } = entry as Record<string, unknown>;
+        if (typeof id !== 'string' || typeof name !== 'string') return [];
+        // until the fresh list says so, nobody manages helpers
+        return [{ id, name, role: role === 'avp' ? 'avp' : 'helper' }];
+      })
+    : undefined;
+
+/**
+ * The page of the NFC wristbands, a station. The AVP of a Hof, or a helper the AVP named, finds
+ * the person in front of the phone, by name or Ceviname or in the list of who still needs a
+ * band, and holds a band to the phone, which becomes theirs. A person who lost a band gets a new
+ * one the same way; the old one is blocked.
+ */
 export const WristbandsView: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const hoefeQuery = trpc.wristband.getMyHofList.useQuery();
-  const hoefe = hoefeQuery.data;
+  const hoefe = readHoefe(hoefeQuery.data);
   const reader = trpc.wristband.getWristbandAccess.useQuery().data?.reader === true;
 
   let content: React.ReactNode;
@@ -530,8 +422,8 @@ export const WristbandsView: React.FC = () => {
 
   return (
     <>
-      {/* the title on the left, the way Programm has it */}
-      <SetHeaderActions />
+      {/* the title on the left, the way Programm has it; a Hof's station sets its own buttons */}
+      {(hoefe === undefined || hoefe.length === 0) && <SetHeaderActions />}
       {reader && <ReadBandLink locale={locale} />}
       {content}
     </>

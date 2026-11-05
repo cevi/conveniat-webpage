@@ -33,6 +33,8 @@ export interface HofPerson {
   abteilung: string | null;
   role: HofRole;
   band: HofBand | null;
+  /** whether the AVP named the person a helper, who hands out the Hof's bands at a station */
+  helper: boolean;
 }
 
 export interface HofWristbandList {

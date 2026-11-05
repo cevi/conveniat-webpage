@@ -1,21 +1,13 @@
-import type { QueueOrder } from '@/features/wristbands/queue';
 import {
-  abteilungenOf,
   bandProgress,
-  buildQueue,
-  EMPTY_ORDER,
-  filterPeople,
-  NO_FILTERS,
-  pruneOrder,
-  putFirst,
   readWristbandList,
-  skipPerson,
+  stationList,
   withBandAssigned,
   withBandReturned,
+  withHelper,
   withSpareBand,
-} from '@/features/wristbands/queue';
+} from '@/features/wristbands/hof-list';
 import { scanFailureKind } from '@/features/wristbands/scan-failure';
-import { isSeriesBandDone, recordSeriesBand } from '@/features/wristbands/series';
 import type { HofPerson, HofWristbandList } from '@/features/wristbands/types';
 
 const person = (
@@ -30,6 +22,7 @@ const person = (
   abteilung,
   role: 'participant',
   band: null,
+  helper: false,
   ...extra,
 });
 
@@ -40,116 +33,47 @@ const SPARE = '04112233445566';
 const people: HofPerson[] = [
   person('zoe', 'Zoe Wyss', 'Cevi Uster'),
   person('tim', 'Tim Huber', 'Cevi Wetzikon', { role: 'leader' }),
-  person('lea', 'Lea Meier', 'Cevi Uster', { band: { uid: BAND, status: 'active' } }),
+  person('lea', 'Lea Meier', 'Cevi Uster', {
+    nickname: 'Fuchs',
+    band: { uid: BAND, status: 'active' },
+  }),
   person('anna', 'Anna Keller', 'Cevi Wetzikon'),
   person('ben', 'Ben Frei', 'Cevi Uster'),
   person('nora', 'Nora Graf', null),
 ];
 
-const names = (entries: HofPerson[]): string[] => entries.map((entry) => entry.registrationId);
-const lineOf = (order: QueueOrder = EMPTY_ORDER, filters = NO_FILTERS): string[] => {
-  const queue = buildQueue(people, filters, order);
-  return queue.current === undefined
-    ? []
-    : names([queue.current, ...buildQueue(people, filters, order).next]);
-};
+const groupsOf = (search: string): [string | null, string[]][] =>
+  stationList(people, search).groups.map((group) => [
+    group.abteilung,
+    group.people.map((entry) => entry.registrationId),
+  ]);
 
-describe('the queue', () => {
-  it('lines up the people without a band by Abteilung, then by name, nobody’s Abteilung last', () => {
-    const queue = buildQueue(people, NO_FILTERS, EMPTY_ORDER);
-    expect(queue.current?.registrationId).toBe('ben');
-    expect(names(queue.next)).toEqual(['zoe', 'anna', 'tim']);
-    expect(queue.waiting).toBe(5);
-  });
-
-  it('follows the filters by Abteilung and by role', () => {
-    expect(lineOf(EMPTY_ORDER, { abteilung: 'Cevi Wetzikon', role: 'all' })).toEqual([
-      'anna',
-      'tim',
+describe('the station list', () => {
+  it('lists who still needs a band by Abteilung and name, the way the AVP calls them up', () => {
+    expect(groupsOf('')).toEqual([
+      ['Cevi Uster', ['ben', 'zoe']],
+      ['Cevi Wetzikon', ['anna', 'tim']],
+      // a registration without an Abteilung comes last
+      [null, ['nora']],
     ]);
-    expect(lineOf(EMPTY_ORDER, { abteilung: null, role: 'leader' })).toEqual(['tim']);
-    expect(lineOf(EMPTY_ORDER, { abteilung: 'Cevi Uster', role: 'leader' })).toEqual([]);
   });
 
-  it('moves a skipped person to the end and lists them under "Übersprungen"', () => {
-    const order = skipPerson(EMPTY_ORDER, 'ben');
-    const queue = buildQueue(people, NO_FILTERS, order);
-    expect(queue.current?.registrationId).toBe('zoe');
-    expect(names(queue.skipped)).toEqual(['ben']);
-    // once everybody else has a band, the skipped ones are up, in the order they were skipped
-    const twice = skipPerson(order, 'zoe');
-    const rest = people.map((entry) =>
-      ['ben', 'zoe'].includes(entry.registrationId)
-        ? entry
-        : { ...entry, band: { uid: entry.registrationId, status: 'active' as const } },
-    );
-    const end = buildQueue(rest, NO_FILTERS, twice);
-    expect(end.current?.registrationId).toBe('ben');
-    expect(names(end.skipped)).toEqual(['zoe']);
+  it('finds everyone by name or Ceviname, a person with a band too, those without one first', () => {
+    expect(groupsOf('fuchs')).toEqual([[null, ['lea']]]);
+    expect(groupsOf('e')).toEqual([[null, ['anna', 'ben', 'tim', 'zoe', 'lea']]]);
+    expect(stationList(people, '  ').searching).toBe(false);
   });
 
-  it('brings a skipped person back to the front', () => {
-    const order = putFirst(skipPerson(EMPTY_ORDER, 'anna'), 'anna');
-    expect(order.skipped).toEqual([]);
-    expect(lineOf(order)[0]).toBe('anna');
-  });
-
-  it('puts a person chosen by name first, whatever the filters', () => {
-    const order = putFirst(EMPTY_ORDER, 'nora');
-    expect(lineOf(order, { abteilung: 'Cevi Uster', role: 'all' })).toEqual(['nora', 'ben', 'zoe']);
-  });
-
-  it('puts the person whose band was undone first again, the last undone first', () => {
-    const order = putFirst(putFirst(EMPTY_ORDER, 'tim'), 'anna');
-    expect(lineOf(order).slice(0, 2)).toEqual(['anna', 'tim']);
-  });
-
-  it('never queues somebody who wears a band, even when put first', () => {
-    const order = putFirst(EMPTY_ORDER, 'lea');
-    expect(lineOf(order)).not.toContain('lea');
-    expect(pruneOrder(skipPerson(order, 'lea'), people)).toEqual(EMPTY_ORDER);
-  });
-
-  it('has nobody up once everybody wears a band', () => {
-    const everybody = people.map((entry) => ({
+  it('finds nobody for a name nobody of the Hof has, and lists nobody once all wear a band', () => {
+    expect(groupsOf('xaver')).toEqual([]);
+    const everyone = people.map((entry) => ({
       ...entry,
       band: { uid: entry.registrationId, status: 'active' as const },
     }));
-    expect(buildQueue(everybody, NO_FILTERS, EMPTY_ORDER)).toEqual({
-      current: undefined,
-      next: [],
-      skipped: [],
-      waiting: 0,
-    });
-  });
-});
-
-describe('the list of people', () => {
-  it('filters by band, by search on name and Ceviname, in the order of the queue', () => {
-    const withCeviname = [
-      ...people,
-      person('mia', 'Mia Brunner', 'Cevi Uster', { nickname: 'Wiesel' }),
-    ];
-    expect(names(filterPeople(withCeviname, { ...NO_FILTERS, band: 'with', search: '' }))).toEqual([
-      'lea',
-    ]);
-    expect(
-      names(filterPeople(withCeviname, { ...NO_FILTERS, band: 'all', search: 'wies' })),
-    ).toEqual(['mia']);
-    expect(
-      names(
-        filterPeople(withCeviname, {
-          abteilung: 'Cevi Uster',
-          role: 'all',
-          band: 'without',
-          search: '',
-        }),
-      ),
-    ).toEqual(['ben', 'mia', 'zoe']);
+    expect(stationList(everyone, '').groups).toEqual([]);
   });
 
-  it('names the Abteilungen of the Hof and counts who wears a band', () => {
-    expect(abteilungenOf(people)).toEqual(['Cevi Uster', 'Cevi Wetzikon']);
+  it('counts who wears a band', () => {
     expect(bandProgress(people)).toEqual({ withBand: 1, total: 6 });
   });
 });
@@ -170,10 +94,26 @@ describe('the list in the cache', () => {
     expect(returned.spareBands).toEqual([{ uid: SPARE, status: 'active' }]);
   });
 
-  it('records a newly programmed band as a spare once, and not one somebody wears', () => {
-    const programmed = withSpareBand(withSpareBand(list, '04000000000001'), '04000000000001');
-    expect(programmed.spareBands).toHaveLength(2);
+  it('gives a person a new band in place of their lost one', () => {
+    const replaced = withBandAssigned(list, SPARE, 'lea');
+    expect(replaced.people.find((entry) => entry.registrationId === 'lea')?.band).toEqual({
+      uid: SPARE,
+      status: 'active',
+    });
+  });
+
+  it('keeps a band the phone recorded but nobody got as a spare once, not one somebody wears', () => {
+    const recorded = withSpareBand(withSpareBand(list, '04000000000001'), '04000000000001');
+    expect(recorded.spareBands).toHaveLength(2);
     expect(withSpareBand(list, BAND)).toBe(list);
+  });
+
+  it('names a helper and takes it back', () => {
+    const named = withHelper(list, 'tim', true);
+    expect(
+      named.people.filter((entry) => entry.helper).map((entry) => entry.registrationId),
+    ).toEqual(['tim']);
+    expect(withHelper(named, 'tim', false).people.some((entry) => entry.helper)).toBe(false);
   });
 
   it('reads a list from an older persisted cache without its new fields', () => {
@@ -189,26 +129,12 @@ describe('the list in the cache', () => {
           abteilung: null,
           role: 'participant',
           band: null,
+          helper: false,
         },
       ],
       spareBands: [],
     });
     expect(readWristbandList(null)).toEqual({ people: [], spareBands: [] });
-  });
-});
-
-describe('"Nur programmieren"', () => {
-  it('numbers the bands in the order they were first held, a retried one keeps its number', () => {
-    let run = recordSeriesBand([], 'A', 'done');
-    run = recordSeriesBand(run, 'B', 'again');
-    run = recordSeriesBand(run, 'B', 'done');
-    run = recordSeriesBand(run, 'A', 'refused');
-    expect(run).toEqual([
-      { number: 1, uid: 'A', state: 'done' },
-      { number: 2, uid: 'B', state: 'done' },
-    ]);
-    expect(isSeriesBandDone(run, 'A')).toBe(true);
-    expect(isSeriesBandDone(run, 'C')).toBe(false);
   });
 });
 

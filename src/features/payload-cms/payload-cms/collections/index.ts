@@ -37,6 +37,7 @@ import { PresenceLogCollection } from '@/features/presence/payload-cms/collectio
 import { VisitDayBillEventsCollection } from '@/features/visit-day/billing/visit-day-bill-events';
 import { visitDayBillKind } from '@/features/visit-day/billing/visit-day-bill-kind';
 import { VisitDayBillsCollection } from '@/features/visit-day/billing/visit-day-bills-collection';
+import { WristbandHelpersCollection } from '@/features/wristbands/payload-cms/wristband-helpers-collection';
 import { WristbandsCollection } from '@/features/wristbands/payload-cms/wristbands-collection';
 import type { RoutableCollectionConfigs } from '@/types/types';
 import type { CollectionConfig } from 'payload';
@@ -85,6 +86,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   BillPdfsCollection,
   HoefeCollection,
   WristbandsCollection,
+  WristbandHelpersCollection,
   OutgoingEmails,
   EmailSuppressions,
   PayloadWorkersCollection,

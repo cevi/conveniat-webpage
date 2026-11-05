@@ -27,9 +27,19 @@ export const wristbandErrorTexts = {
     fr: 'Cette personne n’est plus inscrite dans ton Hof.',
   },
   personHasBand: {
-    de: 'Diese Person trägt schon ein Band. Sperre zuerst das alte.',
-    en: 'This person already wears a band. Block the old one first.',
-    fr: 'Cette personne porte déjà un bracelet. Bloque d’abord l’ancien.',
+    de: 'Diese Person hat inzwischen ein Band bekommen, wohl an einer anderen Station.',
+    en: 'This person got a band in the meantime, probably at another station.',
+    fr: 'Cette personne a reçu un bracelet entre-temps, sans doute à un autre poste.',
+  },
+  helperWithoutLogin: {
+    de: 'Diese Person hat kein Cevi.DB-Login und kann darum nicht helfen.',
+    en: 'This person has no Cevi.DB login and so cannot help.',
+    fr: 'Cette personne n’a pas de login Cevi.DB et ne peut donc pas aider.',
+  },
+  notHofAvp: {
+    de: 'Nur die AVP des Hofs bestimmt, wer hilft.',
+    en: 'Only the AVP of the Hof decides who helps.',
+    fr: 'Seule l’AVP du Hof décide qui aide.',
   },
   tooManyReads: {
     de: 'Du hast in kurzer Zeit zu viele Armbänder geöffnet. Versuche es in ein paar Minuten wieder.',

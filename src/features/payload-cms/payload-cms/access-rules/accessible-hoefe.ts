@@ -59,22 +59,92 @@ export const listAccessibleHoefe = async (
   return hoefe;
 };
 
+/** A Hof whose bands the user hands out, and whether as its AVP or as a helper the AVP named. */
+export interface WristbandHof extends HofName {
+  /** the AVP, or a full admin, also names and removes the helpers */
+  role: 'avp' | 'helper';
+}
+
+/** The Höfe whose AVP named the user a helper, by the Cevi.DB id of the Payload user. */
+const findHelperHoefe = async (
+  payload: Pick<Payload, 'find'>,
+  ceviDatabaseId: number | null | undefined,
+): Promise<HofName[]> => {
+  if (typeof ceviDatabaseId !== 'number') return [];
+  const { docs } = await payload.find({
+    collection: 'wristband-helpers',
+    where: { personId: { equals: String(ceviDatabaseId) } },
+    depth: 0,
+    limit: 1000,
+    pagination: false,
+    overrideAccess: true,
+    select: { hof: true },
+  });
+  const hofIds = docs.map((helper) =>
+    typeof helper.hof === 'string' ? helper.hof : helper.hof.id,
+  );
+  if (hofIds.length === 0) return [];
+  const { docs: hoefe } = await payload.find({
+    collection: 'hoefe',
+    where: { id: { in: hofIds } },
+    depth: 0,
+    limit: hofIds.length,
+    pagination: false,
+    overrideAccess: true,
+    select: { name: true },
+  });
+  return hoefe.map((hof) => ({ id: hof.id, name: hof.name }));
+};
+
 /**
  * The Höfe whose NFC wristbands the user programs and hands out, sorted by name: every Hof for
  * a full admin (`WRISTBAND_ADMIN_ROLES`), else the Höfe of the Cevi.DB groups the user is
- * address administrator of, the same Höfe as on the Hof dashboard. Unlike the dashboard, a
- * reviewer gets no other Hof: the bands name the children who wear them.
+ * address administrator of, the same Höfe as on the Hof dashboard, and the Höfe whose AVP named
+ * the user a helper. Unlike the dashboard, a reviewer gets no other Hof: the bands name the
+ * children who wear them.
+ *
+ * A helper is the one right here an AVP grants in the app instead of a Cevi.DB group: it lasts
+ * only for the bands of that Hof and until the AVP takes it back.
  */
 export const listWristbandHoefe = async (
   payload: Pick<Payload, 'find' | 'findByID'>,
   user: HitobitoNextAuthUser,
-): Promise<HofName[]> => {
+): Promise<WristbandHof[]> => {
   const admin = hasAccessToThisUser({ user, requiredRoles: WRISTBAND_ADMIN_ROLES });
-  const hoefe = admin ? await findHoefe(payload) : await findAdministeredHoefe(payload, user);
+  if (admin) {
+    const hoefe = await findHoefe(payload);
+    logger.debug('Resolved the Höfe whose wristbands a user hands out', {
+      'wristband.admin': true,
+      'wristband.hoefe': hoefe.length,
+    });
+    return hoefe.map((hof) => ({ ...hof, role: 'avp' }));
+  }
+
+  const payloadUser = await payload.findByID({
+    collection: 'users',
+    id: user.uuid,
+    depth: 0,
+    overrideAccess: true,
+    disableErrors: true,
+    select: { groups: true, cevi_db_uuid: true },
+  });
+  const groupIds = getAdministeredGroupIds(payloadUser?.groups);
+  const [administered, helping] = await Promise.all([
+    groupIds.length === 0 ? Promise.resolve([]) : findHoefe(payload, groupIds),
+    findHelperHoefe(payload, payloadUser?.cevi_db_uuid),
+  ]);
+  const avpIds = new Set(administered.map((hof) => hof.id));
+  const hoefe: WristbandHof[] = [
+    ...administered.map((hof): WristbandHof => ({ ...hof, role: 'avp' })),
+    ...helping
+      .filter((hof) => !avpIds.has(hof.id))
+      .map((hof): WristbandHof => ({ ...hof, role: 'helper' })),
+  ].toSorted((a, b) => a.name.localeCompare(b.name, 'de'));
 
   logger.debug('Resolved the Höfe whose wristbands a user hands out', {
-    'wristband.admin': admin,
+    'wristband.admin': false,
     'wristband.hoefe': hoefe.length,
+    'wristband.helper_hoefe': hoefe.length - administered.length,
   });
   return hoefe;
 };

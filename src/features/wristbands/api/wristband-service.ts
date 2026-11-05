@@ -69,7 +69,7 @@ const findBand = async (payload: Payload, uid: string): Promise<Wristband | unde
 
 type HofRegistration = Pick<
   BillParticipant,
-  'id' | 'fullName' | 'nickname' | 'eventName' | 'roleType'
+  'id' | 'fullName' | 'nickname' | 'eventName' | 'roleType' | 'userId'
 >;
 
 /** The active registrations of a Hof's camp events: the people its AVP hands bands to. */
@@ -103,9 +103,23 @@ const findHofRegistrations = async (
     pagination: false,
     overrideAccess: true,
     sort: 'fullName',
-    select: { fullName: true, nickname: true, eventName: true, roleType: true },
+    select: { fullName: true, nickname: true, eventName: true, roleType: true, userId: true },
   });
   return docs;
+};
+
+/** The Cevi.DB ids of the helpers the AVP of a Hof named. */
+const findHelperPersonIds = async (payload: Payload, hofId: string): Promise<Set<string>> => {
+  const { docs } = await payload.find({
+    collection: 'wristband-helpers',
+    where: { hof: { equals: hofId } },
+    depth: 0,
+    limit: MAX_REGISTRATIONS,
+    pagination: false,
+    overrideAccess: true,
+    select: { personId: true },
+  });
+  return new Set(docs.map((helper) => helper.personId));
 };
 
 /** Every registration of a Hof with the band the person wears, and the bands not handed out. */
@@ -113,8 +127,9 @@ export const getHofWristbandList = async (
   payload: Payload,
   hofId: string,
 ): Promise<HofWristbandList> => {
-  const [registrations, bands] = await Promise.all([
+  const [registrations, helpers, bands] = await Promise.all([
     findHofRegistrations(payload, hofId),
+    findHelperPersonIds(payload, hofId),
     payload.find({
       collection: 'wristbands',
       where: { and: [{ hof: { equals: hofId } }, { status: { equals: 'active' } }] },
@@ -149,6 +164,7 @@ export const getHofWristbandList = async (
           ? 'leader'
           : 'participant',
       band: bandOfRegistration.get(registration.id) ?? null,
+      helper: helpers.has(registration.userId),
     })),
     spareBands,
   };
@@ -327,21 +343,85 @@ export const unassignWristband = async (
 };
 
 /**
- * Blocks a lost or stolen band, so a read names nobody. The registration stays on it, so the
- * admin panel shows whose it was; only admin and web unblock a band again.
+ * Gives a person a new band for one that was lost or broke: their active band is blocked, so a
+ * read of it names nobody, and the new one is handed out. The registration stays on the old
+ * band, so the admin panel shows whose it was; only admin and web unblock a band again.
  */
-export const revokeWristband = async (
+export const replaceWristband = async (
   payload: Payload,
-  input: { hofId: string; uid: string; userId: string },
+  input: { hofId: string; uid: string; registrationId: string; userId: string },
 ): Promise<void> => {
-  const band = await findBandOfHof(payload, input.hofId, input.uid);
-  await payload.update({
-    collection: 'wristbands',
-    id: band.id,
-    data: { status: 'revoked', lastEditedByUser: input.userId },
+  const { hofId, uid, registrationId, userId } = input;
+  const band = await findBandOfHof(payload, hofId, uid);
+  if (band.status === 'revoked') throw wristbandError('CONFLICT', 'bandRevoked');
+  const [registration] = await findHofRegistrations(payload, hofId, registrationId);
+  if (registration === undefined) throw wristbandError('NOT_FOUND', 'registrationNotInHof');
+
+  const activeBandIds = await findActiveBandIds(payload, registrationId);
+  const oldBandIds = activeBandIds.filter((id) => id !== band.id);
+  for (const id of oldBandIds) {
+    await payload.update({
+      collection: 'wristbands',
+      id,
+      data: { status: 'revoked', lastEditedByUser: userId },
+      overrideAccess: true,
+    });
+  }
+  logger.info('Blocked the old band of a person for a new one', {
+    'wristband.hof': hofId,
+    'wristband.blocked': oldBandIds.length,
+  });
+  await assignWristband(payload, input);
+};
+
+/** The Cevi.DB id of a registration of the Hof, the one its login shares. */
+const personIdOf = async (
+  payload: Payload,
+  hofId: string,
+  registrationId: string,
+): Promise<string> => {
+  const [registration] = await findHofRegistrations(payload, hofId, registrationId);
+  if (registration === undefined) throw wristbandError('NOT_FOUND', 'registrationNotInHof');
+  // a registration comes from Cevi.DB with its person; without one nobody could log in as them
+  const personId: unknown = registration.userId;
+  if (typeof personId !== 'string' || personId === '') {
+    throw wristbandError('CONFLICT', 'helperWithoutLogin');
+  }
+  return personId;
+};
+
+/** Lets a person of the Hof hand out its bands at a station, until the AVP takes it back. */
+export const addWristbandHelper = async (
+  payload: Payload,
+  input: { hofId: string; registrationId: string; userId: string },
+): Promise<void> => {
+  const personId = await personIdOf(payload, input.hofId, input.registrationId);
+  const { totalDocs } = await payload.count({
+    collection: 'wristband-helpers',
+    where: { and: [{ hof: { equals: input.hofId } }, { personId: { equals: personId } }] },
     overrideAccess: true,
   });
-  logger.info('Blocked a band', { 'wristband.uid': input.uid, 'wristband.hof': input.hofId });
+  if (totalDocs > 0) return;
+  await payload.create({
+    collection: 'wristband-helpers',
+    data: { hof: input.hofId, personId, addedBy: input.userId },
+    overrideAccess: true,
+  });
+  logger.info('Named a wristband helper', { 'wristband.hof': input.hofId });
+};
+
+/** Takes the rights of a helper of the Hof back. */
+export const removeWristbandHelper = async (
+  payload: Payload,
+  input: { hofId: string; registrationId: string },
+): Promise<void> => {
+  const personId = await personIdOf(payload, input.hofId, input.registrationId);
+  await payload.delete({
+    collection: 'wristband-helpers',
+    where: { and: [{ hof: { equals: input.hofId } }, { personId: { equals: personId } }] },
+    overrideAccess: true,
+  });
+  logger.info('Removed a wristband helper', { 'wristband.hof': input.hofId });
 };
 
 /** A band with its wearer, Hof and Quartier filled in. */

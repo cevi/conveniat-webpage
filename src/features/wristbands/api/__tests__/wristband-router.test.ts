@@ -102,6 +102,11 @@ const mockPayload = {
     (mockStore[collection] ??= []).push(document);
     return Promise.resolve(document);
   }),
+  delete: jest.fn(({ collection, where }: { collection: string; where?: Condition }) => {
+    const kept = (mockStore[collection] ?? []).filter((document) => !matches(document, where));
+    mockStore[collection] = kept;
+    return Promise.resolve({ docs: [] });
+  }),
   update: jest.fn(
     ({
       collection,
@@ -197,6 +202,15 @@ const participant = callerAs('kid-1');
 const reviewer = callerAs('ressort-1', [4087]);
 const webCoreTeam = callerAs('web-1', [542]);
 const fullAdmin = callerAs('admin-1', [541]);
+/** Tim Huber, a leader of Cevi Uster, logged in; a helper once the AVP names him. */
+const tim = callerAs('user-tim');
+
+/** Blocks a band the way admin and web do in the admin panel. */
+const block = (uid: string): void => {
+  const band = mockStore['wristbands']?.find((document) => document['uid'] === uid);
+  if (band === undefined) throw new Error(`no band ${uid}`);
+  band['status'] = 'revoked';
+};
 
 beforeEach(() => {
   mockNextId = 0;
@@ -350,7 +364,7 @@ describe('programming a band', () => {
     await expect(program(usterAvp)).resolves.toEqual({ ok: false, reason: 'assigned-to-other' });
 
     await program(usterAvp, OTHER_BAND);
-    await usterAvp.revokeWristband({ hofId: 'uster', uid: OTHER_BAND });
+    block(OTHER_BAND);
     await expect(program(usterAvp, OTHER_BAND)).resolves.toEqual({ ok: false, reason: 'revoked' });
   });
 
@@ -374,10 +388,12 @@ describe('programming a band', () => {
   });
 
   it('lets the AVP at the bands of their own Hof and a full admin at those of every Hof', async () => {
-    await expect(usterAvp.getMyHofList()).resolves.toEqual([{ id: 'uster', name: 'Cevi Uster' }]);
+    await expect(usterAvp.getMyHofList()).resolves.toEqual([
+      { id: 'uster', name: 'Cevi Uster', role: 'avp' },
+    ]);
     await expect(fullAdmin.getMyHofList()).resolves.toEqual([
-      { id: 'uster', name: 'Cevi Uster' },
-      { id: 'zueri', name: 'Züri 11' },
+      { id: 'uster', name: 'Cevi Uster', role: 'avp' },
+      { id: 'zueri', name: 'Züri 11', role: 'avp' },
     ]);
     await expect(program(fullAdmin, OTHER_BAND, GOOD_SIGNATURE, 'zueri')).resolves.toMatchObject({
       ok: true,
@@ -471,7 +487,7 @@ describe('handing out a band', () => {
 
   it('does not take a blocked band back, so it keeps whose it was', async () => {
     await usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-lea' });
-    await usterAvp.revokeWristband({ hofId: 'uster', uid: BAND });
+    block(BAND);
     await expect(usterAvp.unassignWristband({ hofId: 'uster', uid: BAND })).rejects.toMatchObject({
       code: 'CONFLICT',
       reason: 'bandRevoked',
@@ -486,11 +502,26 @@ describe('handing out a band', () => {
     ).rejects.toMatchObject({ code: 'CONFLICT', reason: 'personHasBand' });
   });
 
-  it('hands a replacement once the lost band is blocked', async () => {
+  it('gives a new band for a lost one and blocks the lost one, which keeps whose it was', async () => {
     await usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-lea' });
-    await usterAvp.revokeWristband({ hofId: 'uster', uid: BAND });
-    await usterAvp.assignWristband({ hofId: 'uster', uid: OTHER_BAND, registrationId: 'reg-lea' });
-    expect(byId('wristbands', 'wristbands-2')).toMatchObject({ participant: 'reg-lea' });
+    await usterAvp.replaceWristband({ hofId: 'uster', uid: OTHER_BAND, registrationId: 'reg-lea' });
+    expect(byId('wristbands', 'wristbands-1')).toMatchObject({
+      status: 'revoked',
+      participant: 'reg-lea',
+    });
+    expect(byId('wristbands', 'wristbands-2')).toMatchObject({
+      status: 'active',
+      participant: 'reg-lea',
+    });
+  });
+
+  it('does not give a blocked band as the new one', async () => {
+    await usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-lea' });
+    block(OTHER_BAND);
+    await expect(
+      usterAvp.replaceWristband({ hofId: 'uster', uid: OTHER_BAND, registrationId: 'reg-lea' }),
+    ).rejects.toMatchObject({ code: 'CONFLICT', reason: 'bandRevoked' });
+    expect(byId('wristbands', 'wristbands-1')).toMatchObject({ status: 'active' });
   });
 
   it("refuses people who are not registered at the Hof's camp", async () => {
@@ -499,6 +530,67 @@ describe('handing out a band', () => {
         usterAvp.assignWristband({ hofId: 'uster', uid: BAND, registrationId }),
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     }
+  });
+});
+
+describe('helpers at the stations', () => {
+  beforeEach(async () => {
+    mockStore['users']?.push({ id: 'user-tim', groups: [], cevi_db_uuid: 5002 });
+    await program(usterAvp);
+  });
+
+  it('lets a person the AVP named hand out the bands of that Hof, and nothing else', async () => {
+    await expect(tim.getMyHofList()).resolves.toEqual([]);
+    await usterAvp.addWristbandHelper({ hofId: 'uster', registrationId: 'reg-tim' });
+
+    await expect(tim.getMyHofList()).resolves.toEqual([
+      { id: 'uster', name: 'Cevi Uster', role: 'helper' },
+    ]);
+    await expect(tim.getWristbandAccess()).resolves.toEqual({ hoefe: 1, reader: false });
+    await tim.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-lea' });
+    expect(byId('wristbands', 'wristbands-1')).toMatchObject({ participant: 'reg-lea' });
+    await expect(tim.getHofWristbandList({ hofId: 'zueri' })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+  });
+
+  it('shows the AVP who helps, and names a helper only once', async () => {
+    await usterAvp.addWristbandHelper({ hofId: 'uster', registrationId: 'reg-tim' });
+    await usterAvp.addWristbandHelper({ hofId: 'uster', registrationId: 'reg-tim' });
+    expect(mockStore['wristband-helpers']).toHaveLength(1);
+    const { people } = await usterAvp.getHofWristbandList({ hofId: 'uster' });
+    expect(people.filter((person) => person.helper).map((person) => person.registrationId)).toEqual(
+      ['reg-tim'],
+    );
+  });
+
+  it('takes the rights back when the AVP removes the helper', async () => {
+    await usterAvp.addWristbandHelper({ hofId: 'uster', registrationId: 'reg-tim' });
+    await usterAvp.removeWristbandHelper({ hofId: 'uster', registrationId: 'reg-tim' });
+    await expect(tim.getMyHofList()).resolves.toEqual([]);
+    await expect(
+      tim.assignWristband({ hofId: 'uster', uid: BAND, registrationId: 'reg-lea' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
+  it('leaves naming helpers to the AVP of the Hof', async () => {
+    await usterAvp.addWristbandHelper({ hofId: 'uster', registrationId: 'reg-tim' });
+    await expect(
+      tim.addWristbandHelper({ hofId: 'uster', registrationId: 'reg-lea' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN', reason: 'notHofAvp' });
+    await expect(
+      zueriAvp.addWristbandHelper({ hofId: 'uster', registrationId: 'reg-lea' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(mockStore['wristband-helpers']).toHaveLength(1);
+  });
+
+  it('names only people of the Hof who can log in', async () => {
+    await expect(
+      usterAvp.addWristbandHelper({ hofId: 'uster', registrationId: 'reg-zueri' }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND', reason: 'registrationNotInHof' });
+    await expect(
+      usterAvp.addWristbandHelper({ hofId: 'uster', registrationId: 'reg-mia' }),
+    ).rejects.toMatchObject({ code: 'CONFLICT', reason: 'helperWithoutLogin' });
   });
 });
 
@@ -539,7 +631,7 @@ describe('reading a band', () => {
       sanitaet.identifyWristband({ uid: OTHER_BAND, signature: GOOD_SIGNATURE }),
     ).resolves.toEqual({ state: 'unknown', uid: OTHER_BAND });
 
-    await usterAvp.revokeWristband({ hofId: 'uster', uid: BAND });
+    block(BAND);
     await expect(
       sanitaet.identifyWristband({ uid: BAND, signature: GOOD_SIGNATURE }),
     ).resolves.toEqual({ state: 'revoked', uid: BAND });
@@ -547,7 +639,7 @@ describe('reading a band', () => {
 
   it('keeps every band in the offline list: worn, spare and blocked', async () => {
     await program(usterAvp, OTHER_BAND);
-    await usterAvp.revokeWristband({ hofId: 'uster', uid: OTHER_BAND });
+    block(OTHER_BAND);
     await program(usterAvp, SPARE_BAND);
     await expect(sanitaet.getWristbandRoster()).resolves.toEqual({
       bands: [
@@ -671,7 +763,7 @@ describe('the page a tapped band opens', () => {
 
   it('names nobody on a blocked band, a spare one or one nobody knows', async () => {
     await program(usterAvp, SPARE_BAND);
-    await usterAvp.revokeWristband({ hofId: 'uster', uid: BAND });
+    block(BAND);
     for (const uid of [BAND, SPARE_BAND, '04FFFFFFFFFFFF']) {
       await expect(
         participant.getWristbandCard({ uid, signature: GOOD_SIGNATURE }),

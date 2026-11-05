@@ -1,16 +1,20 @@
 import { environmentVariables } from '@/config/environment-variables';
+import type { WristbandHof } from '@/features/payload-cms/payload-cms/access-rules/accessible-hoefe';
 import { listWristbandHoefe } from '@/features/payload-cms/payload-cms/access-rules/accessible-hoefe';
-import type { HofName } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import {
   hasAccessToThisUser,
   WRISTBAND_READER_ROLES,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { wristbandErrorTexts } from '@/features/wristbands/error-texts';
+import { createErrorThrower } from '@/trpc/error-formatter';
 import { middleware, trpcBaseProcedure } from '@/trpc/init';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
 import type { Payload } from 'payload';
 import { getPayload } from 'payload';
+
+const wristbandError = createErrorThrower(wristbandErrorTexts);
 
 const wristbandsEnabled = middleware(({ next }) => {
   if (!environmentVariables.FEATURE_ENABLE_NFC_WRISTBANDS) {
@@ -29,17 +33,25 @@ export const wristbandProcedure = trpcBaseProcedure.use(wristbandsEnabled).use(a
 });
 
 /**
- * The people who program and hand out the bands of a Hof: its AVP, and the full admins, see
- * `listWristbandHoefe`. `ctx.assertHofAccess(hofId)` throws unless the user may.
+ * The people who program and hand out the bands of a Hof: its AVP, the helpers the AVP named
+ * and the full admins, see `listWristbandHoefe`. `ctx.assertHofAccess(hofId)` throws unless the
+ * user may; `ctx.assertHofAvp(hofId)` also refuses a helper, for naming and removing helpers.
  */
 export const hofWristbandProcedure = wristbandProcedure.use(({ ctx, next }) => {
-  const accessibleHoefe = async (): Promise<HofName[]> =>
+  const accessibleHoefe = async (): Promise<WristbandHof[]> =>
     await listWristbandHoefe(ctx.payload, ctx.user);
   const assertHofAccess = async (hofId: string): Promise<void> => {
     const hoefe = await accessibleHoefe();
     if (!hoefe.some((hof) => hof.id === hofId)) throw new TRPCError({ code: 'FORBIDDEN' });
   };
-  return next({ ctx: { accessibleHoefe, assertHofAccess } });
+  const assertHofAvp = async (hofId: string): Promise<void> => {
+    const hoefe = await accessibleHoefe();
+    const hof = hoefe.find((entry) => entry.id === hofId);
+    if (hof === undefined) throw new TRPCError({ code: 'FORBIDDEN' });
+    // a helper whose page still offers it from a cached list of before
+    if (hof.role !== 'avp') throw wristbandError('FORBIDDEN', 'notHofAvp');
+  };
+  return next({ ctx: { accessibleHoefe, assertHofAccess, assertHofAvp } });
 });
 
 /** Whether the user reads bands for security and first aid, see `WRISTBAND_READER_ROLES`. */

@@ -6,6 +6,7 @@ import {
   wristbandReaderProcedure,
 } from '@/features/wristbands/api/wristband-access';
 import {
+  addWristbandHelper,
   assignWristband,
   getHofWristbandList,
   getWristbandCard,
@@ -13,7 +14,8 @@ import {
   identifyWristband,
   programWristband,
   registerWristband,
-  revokeWristband,
+  removeWristbandHelper,
+  replaceWristband,
   unassignWristband,
 } from '@/features/wristbands/api/wristband-service';
 import { wristbandErrorTexts } from '@/features/wristbands/error-texts';
@@ -39,11 +41,12 @@ const signature = z
   .nullable();
 
 const hofId = z.string().min(1).max(64);
+const registrationId = z.string().min(1).max(64);
 const hofBand = z.object({ hofId, uid });
 
 /**
- * The NFC wristbands. The AVP of a Hof programs its bands and hands them to the people of the
- * Hof; security and first aid read them. The password of a band is never stored nor logged:
+ * The NFC wristbands. The AVP of a Hof, and the helpers the AVP names, program its bands and
+ * hand them to the people of the Hof; security and first aid read them. The password of a band is never stored nor logged:
  * it is derived anew on every call.
  */
 export const wristbandRouter = createTRPCRouter({
@@ -87,21 +90,40 @@ export const wristbandRouter = createTRPCRouter({
     }),
 
   assignWristband: hofWristbandProcedure
-    .input(hofBand.extend({ registrationId: z.string().min(1).max(64) }))
+    .input(hofBand.extend({ registrationId }))
     .mutation(async ({ ctx, input }) => {
       await ctx.assertHofAccess(input.hofId);
       await assignWristband(ctx.payload, { ...input, userId: ctx.user.uuid });
     }),
 
+  /** A new band for one that was lost or broke; the old band is blocked. */
+  replaceWristband: hofWristbandProcedure
+    .input(hofBand.extend({ registrationId }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.assertHofAccess(input.hofId);
+      await replaceWristband(ctx.payload, { ...input, userId: ctx.user.uuid });
+    }),
+
+  /** Undoes a band just handed out: it stays the Hof's, for the next person. */
   unassignWristband: hofWristbandProcedure.input(hofBand).mutation(async ({ ctx, input }) => {
     await ctx.assertHofAccess(input.hofId);
     await unassignWristband(ctx.payload, { ...input, userId: ctx.user.uuid });
   }),
 
-  revokeWristband: hofWristbandProcedure.input(hofBand).mutation(async ({ ctx, input }) => {
-    await ctx.assertHofAccess(input.hofId);
-    await revokeWristband(ctx.payload, { ...input, userId: ctx.user.uuid });
-  }),
+  /** Lets a person of the Hof hand out its bands at a station; only for the AVP. */
+  addWristbandHelper: hofWristbandProcedure
+    .input(z.object({ hofId, registrationId }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.assertHofAvp(input.hofId);
+      await addWristbandHelper(ctx.payload, { ...input, userId: ctx.user.uuid });
+    }),
+
+  removeWristbandHelper: hofWristbandProcedure
+    .input(z.object({ hofId, registrationId }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.assertHofAvp(input.hofId);
+      await removeWristbandHelper(ctx.payload, input);
+    }),
 
   /** Whose a band is. A mutation, so a read is never answered from a cache. */
   identifyWristband: wristbandReaderProcedure

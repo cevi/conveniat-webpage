@@ -82,6 +82,7 @@ export interface Config {
     'bill-pdfs': BillPdf;
     hoefe: Hof;
     wristbands: Wristband;
+    'wristband-helpers': WristbandHelper;
     'outgoing-emails': OutgoingEmail;
     'email-suppressions': EmailSuppression;
     'payload-workers': PayloadWorker;
@@ -168,6 +169,7 @@ export interface Config {
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
     hoefe: HoefeSelect<false> | HoefeSelect<true>;
     wristbands: WristbandsSelect<false> | WristbandsSelect<true>;
+    'wristband-helpers': WristbandHelpersSelect<false> | WristbandHelpersSelect<true>;
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
     'email-suppressions': EmailSuppressionsSelect<false> | EmailSuppressionsSelect<true>;
     'payload-workers': PayloadWorkersSelect<false> | PayloadWorkersSelect<true>;
@@ -4938,6 +4940,23 @@ export interface Wristband {
   createdAt: string;
 }
 /**
+ * Who may hand out the wristbands of a Hof besides its AVP. The AVP adds and removes helpers in the app.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wristband-helpers".
+ */
+export interface WristbandHelper {
+  id: string;
+  hof: string | Hof;
+  /**
+   * The Cevi.DB id of the helper, the same as on their registration.
+   */
+  personId: string;
+  addedBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Mail to these addresses came back because the address does not exist, or kept coming back for two weeks or more. Nothing is sent to them until the entry is deleted.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5537,6 +5556,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'wristbands';
         value: string | Wristband;
+      } | null)
+    | ({
+        relationTo: 'wristband-helpers';
+        value: string | WristbandHelper;
       } | null)
     | ({
         relationTo: 'outgoing-emails';
@@ -7564,6 +7587,17 @@ export interface WristbandsSelect<T extends boolean = true> {
   note?: T;
   programmedBy?: T;
   lastEditedByUser?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wristband-helpers_select".
+ */
+export interface WristbandHelpersSelect<T extends boolean = true> {
+  hof?: T;
+  personId?: T;
+  addedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -10570,6 +10604,7 @@ export interface TaskCreateCollectionExport {
       | 'bill-pdfs'
       | 'hoefe'
       | 'wristbands'
+      | 'wristband-helpers'
       | 'outgoing-emails'
       | 'email-suppressions'
       | 'payload-workers'
