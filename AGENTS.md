@@ -171,8 +171,10 @@ Test behaviour someone can observe. A test that restates the implementation earn
 Most defects here are correct on the one path someone tried. Walk this list and say which entries
 applied.
 
-**Locales.** All three, in the same commit. Server components read the locale with
-`getLocaleFromCookies()`, client components with `useCurrentLocale(i18nConfig)` from
+**Locales.** All three, in the same commit. A page or layout that receives `locale` uses it.
+Server components under `[locale]/[design]` otherwise read it from the URL with
+`getRouteLocale()`. tRPC, Route Handlers and the other root layouts, which root params do not
+reach, use `getLocaleFromCookies()`. Client components use `useCurrentLocale(i18nConfig)` from
 `@/hooks/use-current-locale`.
 
 **Both deployments.** konekta serves German and French with its own flags. A change gated on

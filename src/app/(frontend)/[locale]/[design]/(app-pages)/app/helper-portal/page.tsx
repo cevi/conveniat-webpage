@@ -1,11 +1,11 @@
 import HelperPortalLoading from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/helper-portal/loading';
 import { ShiftsPageContent } from '@/features/schedule/components/shifts-page-content';
-import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { getRouteLocale } from '@/utils/get-route-locale';
 import type React from 'react';
 import { Suspense } from 'react';
 
 const HelperPortalPage: React.FC = async () => {
-  const locale = await getLocaleFromCookies();
+  const locale = await getRouteLocale();
 
   return (
     <Suspense fallback={<HelperPortalLoading />}>
