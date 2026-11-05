@@ -449,7 +449,8 @@ export const ChatTextAreaInput: React.FC = () => {
           {/* Staged attachment sits above the text it will be sent with */}
           {stagedImage !== undefined && (
             <div className="flex items-end gap-3 px-3 pt-3">
-              <div className="relative">
+              {/* a reason over several lines must not squeeze the thumbnail */}
+              <div className="relative shrink-0">
                 {brokenPreviewUrl === stagedImage.previewUrl ? (
                   <div
                     className={cn(
