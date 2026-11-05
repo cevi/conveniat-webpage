@@ -35,7 +35,8 @@ export const getDownloadUrl = trpcBaseProcedure
     }
 
     // The object stays in the bucket, but a deleted image is not signed again for anyone who
-    // still holds its key, see `deleteMessage`.
+    // still holds its key, see `deleteMessage`. A key names a single message, see
+    // `createMessage`, so only the image's own sender can take it away.
     const deletedImage = await ctx.prisma.messageContent.findFirst({
       where: {
         payload: { path: ['url'], equals: key },
