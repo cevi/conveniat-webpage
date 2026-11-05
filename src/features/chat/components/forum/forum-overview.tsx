@@ -6,7 +6,13 @@ import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SectionLabel } from '@/components/ui/section-label';
-import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
+import {
+  DEFAULT_FORUM_FILTERS,
+  describeFilters,
+  ForumFilterSheet,
+  isFiltered,
+  type ForumFilters,
+} from '@/features/chat/components/forum/forum-filter-sheet';
 import { ForumPostRow } from '@/features/chat/components/forum/forum-post-row';
 import { forumText } from '@/features/chat/components/forum/forum-texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
@@ -14,13 +20,18 @@ import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Bell, BellOff, Loader2, Megaphone, MessageCircleQuestion, Plus } from 'lucide-react';
+import {
+  Bell,
+  BellOff,
+  Loader2,
+  Megaphone,
+  MessageCircleQuestion,
+  Plus,
+  SlidersHorizontal,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useState } from 'react';
-
-type StatusFilter = 'active' | 'done';
-type ListFilter = 'all' | 'mine' | 'assignedToMe' | 'subscribed' | 'pending';
+import React, { useRef, useState } from 'react';
 
 const chipClassName = (isChosen: boolean): string =>
   cn(
@@ -81,9 +92,10 @@ export const ForumOverview: React.FC = () => {
   const router = useRouter();
   const searchParameters = useSearchParams();
   const topicId = searchParameters.get('topic') ?? undefined;
-  const [status, setStatus] = useState<StatusFilter>('active');
-  const [filter, setFilter] = useState<ListFilter>('all');
-  const [sort, setSort] = useState<'new' | 'popular'>('new');
+  const [filters, setFilters] = useState<ForumFilters>(DEFAULT_FORUM_FILTERS);
+  const { status, filter, sort } = filters;
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filterButton = useRef<HTMLButtonElement>(null);
   const [search, setSearch] = useState('');
   const [now] = useState(() => new Date());
 
@@ -109,9 +121,50 @@ export const ForumOverview: React.FC = () => {
   const posts = list.data?.pages.flatMap((page) => page.items) ?? [];
   const pinnedIds = new Set((pinned.data ?? []).map((post) => post.id));
 
+  // In no topic there is no forum to read: no search, no filters, only the way to the Zentrale.
+  if (topics.data?.length === 0) {
+    return (
+      <div className="bg-page min-h-dvh pb-28">
+        <SetHeaderActions />
+        <OfflineBanner locale={locale} />
+        <div className="mx-auto flex max-w-2xl flex-col px-4 pt-16">
+          <EmptyState
+            icon={MessageCircleQuestion}
+            title={forumText.noTopics[locale]}
+            description={forumText.noTopicsPrivate[locale]}
+            action={
+              <Link
+                href="/app/forum/new"
+                className="bg-conveniat-green focus-visible:focus-surface-filled flex h-11 items-center rounded-xl px-5 text-[15px] font-semibold text-white hover:bg-green-700"
+              >
+                {forumText.reportToZentrale[locale]}
+              </Link>
+            }
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-page min-h-dvh pb-28">
       <SetHeaderActions>
+        <button
+          ref={filterButton}
+          type="button"
+          onClick={() => setFiltersOpen(true)}
+          aria-label={forumText.filterTitle[locale]}
+          aria-pressed={isFiltered(filters)}
+          className={cn(
+            'focus-visible:focus-surface hover:bg-quiet relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full',
+            isFiltered(filters) ? 'text-conveniat-green' : 'text-green-700',
+          )}
+        >
+          <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
+          {isFiltered(filters) && (
+            <span className="bg-conveniat-green absolute top-2.5 right-2.5 h-2 w-2 rounded-full" />
+          )}
+        </button>
         {chosenTopic !== undefined && (
           <TopicSubscriptionButton
             topicId={chosenTopic.id}
@@ -185,54 +238,18 @@ export const ForumOverview: React.FC = () => {
               </section>
             )}
 
-            <div className={segmentedTrackClassName}>
-              {(['active', 'done'] as const).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={status === value}
-                  onClick={() => setStatus(value)}
-                  className={cn(
-                    segmentClassName(status === value),
-                    'flex-1 text-[14px] font-semibold',
-                  )}
-                >
-                  {value === 'active' ? forumText.active[locale] : forumText.done[locale]}
-                </button>
-              ))}
-            </div>
-
-            <div className="-mx-4 flex [scrollbar-width:none] gap-1.5 overflow-x-auto px-4">
-              {(
-                [
-                  ['all', forumText.filterAll],
-                  ['mine', forumText.filterMine],
-                  ['assignedToMe', forumText.filterAssigned],
-                  ['subscribed', forumText.filterSubscribed],
-                  // while posts need approval: the moderators' queue, everyone else's own
-                  ...(settings.data?.moderationRequired === true
-                    ? [['pending', forumText.filterPending] as const]
-                    : []),
-                ] as const
-              ).map(([value, text]) => (
-                <Chip key={value} chosen={filter === value} onClick={() => setFilter(value)}>
-                  {text[locale]}
-                </Chip>
-              ))}
-            </div>
-
             <section className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <SectionLabel>
-                  {sort === 'new' ? forumText.newest[locale] : forumText.popular[locale]}
-                </SectionLabel>
-                <button
-                  type="button"
-                  onClick={() => setSort(sort === 'new' ? 'popular' : 'new')}
-                  className="focus-visible:focus-surface hover:bg-quiet -mr-2 flex h-11 cursor-pointer items-center rounded-xl px-3 text-[13px] font-semibold text-green-800"
-                >
-                  {sort === 'new' ? forumText.popular[locale] : forumText.newest[locale]}
-                </button>
+                <SectionLabel>{describeFilters(filters, locale)}</SectionLabel>
+                {isFiltered(filters) && (
+                  <button
+                    type="button"
+                    onClick={() => setFilters(DEFAULT_FORUM_FILTERS)}
+                    className="focus-visible:focus-surface hover:bg-quiet -mr-2 flex h-11 cursor-pointer items-center rounded-xl px-3 text-[13px] font-semibold text-green-800"
+                  >
+                    {forumText.resetFilters[locale]}
+                  </button>
+                )}
               </div>
 
               {list.isLoading && (
@@ -242,13 +259,6 @@ export const ForumOverview: React.FC = () => {
               )}
               {list.isError && posts.length === 0 && (
                 <EmptyState icon={MessageCircleQuestion} title={forumText.loadFailed[locale]} />
-              )}
-              {topics.data?.length === 0 && (
-                <EmptyState
-                  icon={MessageCircleQuestion}
-                  title={forumText.noTopics[locale]}
-                  description={forumText.noTopicsPrivate[locale]}
-                />
               )}
               {!list.isLoading && posts.length === 0 && (topics.data?.length ?? 0) > 0 && (
                 <EmptyState
@@ -291,8 +301,26 @@ export const ForumOverview: React.FC = () => {
         )}
       </div>
 
-      {/* always there, also before the topics load and without one: the composer then sends
-          the report privately to the Zentrale */}
+      <ForumFilterSheet
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        anchor={filterButton}
+        filters={filters}
+        onChange={setFilters}
+        offered={[
+          'all',
+          'mine',
+          'subscribed',
+          // only the filters that can show something to this person
+          ...(settings.data?.hasOpenAssignments === true ? (['assignedToMe'] as const) : []),
+          ...(settings.data?.moderationRequired === true && settings.data.canModerate
+            ? (['pending'] as const)
+            : []),
+        ]}
+        locale={locale}
+      />
+
+      {/* there before the topics load; without a topic, the page above leads to the Zentrale */}
       <Link
         href={topicId === undefined ? '/app/forum/new' : `/app/forum/new?topic=${topicId}`}
         className="bg-conveniat-green focus-visible:focus-surface-filled fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 flex h-[52px] items-center gap-2 rounded-2xl px-5 text-[15px] font-bold text-white shadow-lg hover:bg-green-700 xl:bottom-8"
