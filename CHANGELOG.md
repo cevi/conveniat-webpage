@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.52.1](https://github.com/cevi/conveniat-webpage/compare/v1.52.0...v1.52.1) (2026-11-06)
+
+
+### Bug Fixes
+
+* **hitobito:** Cevi.DB spans carry the path, not the URL with its query ([5b380d0](https://github.com/cevi/conveniat-webpage/commit/5b380d0e40bc776b4276556ce72351ff11a74b43))
+* **hitobito:** Cevi.DB spans carry the path, not the URL with its query ([91c42f1](https://github.com/cevi/conveniat-webpage/commit/91c42f1e968a09a0fd9143fbfdca9f75758ffae2))
+
 ## [1.52.0](https://github.com/cevi/conveniat-webpage/compare/v1.51.2...v1.52.0) (2026-11-06)
 
 
