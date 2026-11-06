@@ -66,24 +66,30 @@ export const useReadWristband = (
     sessionReference.current = session;
     setState({ step: 'waiting' });
 
-    const fromRoster = (band: { uid: string; signature: string | null }): ReadState =>
-      roster.data === undefined
-        ? { step: 'failed', code: 'no-roster' }
-        : {
-            step: 'read',
-            result: {
-              identity: identifyFromRoster(roster.data, band),
-              fromRoster: { updatedAt: roster.updatedAt },
-              signature: band.signature,
-            },
-          };
+    const fromRoster = async (band: {
+      uid: string;
+      signature: string | null;
+    }): Promise<ReadState> => {
+      if (roster.data === undefined) return { step: 'failed', code: 'no-roster' };
+      const identity = await identifyFromRoster(roster.data, band);
+      // the list names nobody without the band's signature
+      if (identity === undefined) return { step: 'failed', code: 'no-signature' };
+      return {
+        step: 'read',
+        result: {
+          identity,
+          fromRoster: { updatedAt: roster.updatedAt },
+          signature: band.signature,
+        },
+      };
+    };
 
     const identify = async (): Promise<ReadState> => {
       const { uid, signature } = await identifyBand({
         signal: session.signal,
         timeoutMs: NFC_SESSION_TIMEOUT_MS,
       });
-      if (!onlineManager.isOnline()) return fromRoster({ uid, signature });
+      if (!onlineManager.isOnline()) return await fromRoster({ uid, signature });
       setState({ step: 'checking' });
       const request = new AbortController();
       const abortRequest = (): void => request.abort();
@@ -97,15 +103,18 @@ export const useReadWristband = (
           );
           return { step: 'read', result: { identity, fromRoster: null, signature } };
         } catch (error) {
-          if (isTransportError(error)) return fromRoster({ uid, signature });
+          if (isTransportError(error)) return await fromRoster({ uid, signature });
           throw error;
         }
       };
       const listAnswersInstead = new Promise<ReadState>((resolve) => {
         if (roster.data === undefined) return;
         timer = setTimeout(() => {
-          request.abort();
-          resolve(fromRoster({ uid, signature }));
+          // the list answers before the request is aborted, or its abort would settle the race
+          void fromRoster({ uid, signature }).then((answer) => {
+            request.abort();
+            resolve(answer);
+          });
         }, SERVER_ANSWER_TIMEOUT_MS);
       });
       try {

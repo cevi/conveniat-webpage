@@ -31,16 +31,16 @@ jest.mock('@/features/wristbands/native-nfc', () => {
   };
 });
 jest.mock('@tanstack/react-query', () => ({ onlineManager: { isOnline: (): boolean => true } }));
+// opening the sealed list has tests of its own, see offline-lookup.test.ts
+const mockIdentifyFromRoster = jest.fn();
+jest.mock('@/features/wristbands/offline-lookup', () => ({
+  identifyFromRoster: (...arguments_: unknown[]): unknown => mockIdentifyFromRoster(...arguments_),
+}));
 
 const LEA = '04A1B2C3D4E5F6';
 
 const roster: RosterOnPhone = {
-  data: {
-    bands: [
-      { uid: LEA, fullName: 'Lea Meier', nickname: 'Fuchs', hof: 'Cevi Uster', quartier: null },
-    ],
-    revokedUids: [],
-  },
+  data: { entries: [{ index: 'lea', box: 'sealed' }], revokedUids: [] },
   updatedAt: 1_700_000_000_000,
   fetching: false,
 };
@@ -63,9 +63,21 @@ const startRead = async (
   return result;
 };
 
+const leaOnList = {
+  state: 'assigned',
+  uid: LEA,
+  fullName: 'Lea Meier',
+  nickname: 'Fuchs',
+  hof: 'Cevi Uster',
+  quartier: null,
+  verified: false,
+};
+
 beforeEach(() => {
   jest.useFakeTimers();
   mockIdentify.mockReset();
+  mockIdentifyFromRoster.mockReset();
+  mockIdentifyFromRoster.mockResolvedValue(leaOnList);
 });
 
 afterEach(() => {
@@ -88,6 +100,18 @@ describe('reading a band while the server does not answer', () => {
         fromRoster: { updatedAt: roster.updatedAt },
       },
     });
+  });
+
+  it('says the band cannot be read offline when the list cannot open it without a signature', async () => {
+    mockIdentify.mockImplementation(hangingServer);
+    // resolves to nothing: the list names nobody without the signature
+    mockIdentifyFromRoster.mockImplementation(async () => {});
+    const result = await startRead(roster);
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(SERVER_ANSWER_TIMEOUT_MS);
+    });
+    expect(result.current.state).toEqual({ step: 'failed', code: 'no-signature' });
   });
 
   it('keeps waiting for the server without a list on the phone', async () => {

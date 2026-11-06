@@ -158,8 +158,11 @@ export const formatCampTime = (timestamp: number, locale: Locale): string =>
     minute: '2-digit',
   }).format(timestamp);
 
-/** Why a read gave no answer: a failed session, or no connection and no list on the phone. */
-export type ReadFailureCode = NfcFailureCode | 'no-roster';
+/**
+ * Why a read gave no answer: a failed session, no connection and no list on the phone, or no
+ * connection and no signature read, without which the list names nobody.
+ */
+export type ReadFailureCode = NfcFailureCode | 'no-roster' | 'no-signature';
 
 /** A failed read, and whether reading the same band again may work. */
 export interface ReadFailureText extends NfcFailureText {
@@ -170,6 +173,19 @@ const readFailureTexts: Partial<Record<ReadFailureCode, ReadFailureText>> = {
   'no-roster': {
     title: { de: 'Keine Verbindung', en: 'No connection', fr: 'Pas de connexion' },
     description: readerTexts.rosterMissing,
+    retry: true,
+  },
+  'no-signature': {
+    title: {
+      de: 'Ohne Verbindung nicht lesbar',
+      en: 'Cannot be read offline',
+      fr: 'Illisible hors connexion',
+    },
+    description: {
+      de: 'Das Handy hat die Signatur des Bands nicht gelesen, und ohne sie nennt die Liste auf dem Handy niemanden. Halte das Band nochmals ruhig an das Handy.',
+      en: 'The phone did not read the band’s signature, and without it the list on the phone names nobody. Hold the band still to the phone again.',
+      fr: 'Le téléphone n’a pas lu la signature du bracelet, et sans elle la liste sur le téléphone ne nomme personne. Tiens à nouveau le bracelet immobile contre le téléphone.',
+    },
     retry: true,
   },
   timeout: {
@@ -200,6 +216,6 @@ const readFailureTexts: Partial<Record<ReadFailureCode, ReadFailureText>> = {
 export const readFailureText = (code: ReadFailureCode): ReadFailureText =>
   // reading writes nothing, so trying the same band again never hurts
   readFailureTexts[code] ?? {
-    ...nfcFailureText(code === 'no-roster' ? 'unknown' : code),
+    ...nfcFailureText(code === 'no-roster' || code === 'no-signature' ? 'unknown' : code),
     retry: true,
   };

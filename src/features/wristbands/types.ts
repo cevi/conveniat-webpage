@@ -1,3 +1,5 @@
+import type { SealedRosterEntry } from '@/features/wristbands/sealed-roster';
+
 /*
 What the wristband procedures answer, shared by the server and the app. The refusals of
 programming are the reasons the native bridge takes in `abort(requestId, reason)`, so the app
@@ -63,7 +65,7 @@ export type WristbandIdentity =
       verified: boolean;
     };
 
-/** One worn band in the list security and first aid keep on the phone. */
+/** The wearer of a worn band, as security and first aid see it. */
 export interface RosterEntry {
   uid: string;
   fullName: string;
@@ -72,19 +74,12 @@ export interface RosterEntry {
   quartier: string | null;
 }
 
-/** A band handed out to nobody yet, in the list security and first aid keep on the phone. */
-export interface SpareRosterBand {
-  uid: string;
-  hof: string;
-}
-
-export interface WristbandRoster {
-  bands: RosterEntry[];
-  /**
-   * Programmed and active, handed out to nobody. Missing in a list a phone kept from before
-   * spare bands were part of it.
-   */
-  spareBands?: SpareRosterBand[];
+/**
+ * Every band, kept on the phones of security and first aid for reading offline. Worn and spare
+ * bands are sealed one by one under a key only the band gives, see `sealed-roster.ts`.
+ */
+export interface SealedWristbandRoster {
+  entries: SealedRosterEntry[];
   /** Blocked bands, so a phone offline does not take one for a band it has not heard of. */
   revokedUids: string[];
 }
