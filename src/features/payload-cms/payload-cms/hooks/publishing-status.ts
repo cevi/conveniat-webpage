@@ -398,11 +398,11 @@ export const getPublishingStatusGlobal =
 
         return {
           pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
-          published: (
-            originalDocument['_localized_status'] as unknown as {
-              published: boolean;
-            }
-          )['published'],
+          published:
+            (
+              originalDocument['_localized_status'] as unknown as
+                { published?: boolean } | undefined
+            )?.published === true,
         };
       };
 
@@ -480,11 +480,12 @@ export const getPublishingStatus =
       } => {
         return {
           pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
-          published: (
-            originalDocument['_localized_status']?.[locale] as unknown as {
-              published: boolean;
-            }
-          )['published'],
+          // A locale that was never saved has no entry, e.g. `en` on a konekta document.
+          published:
+            (
+              originalDocument['_localized_status']?.[locale] as unknown as
+                { published?: boolean } | undefined
+            )?.published === true,
         };
       };
 
