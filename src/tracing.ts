@@ -3,6 +3,7 @@ import { BackgroundPollSampler } from '@/lib/background-poll-sampler';
 import { registerEventLoopDelayMetrics } from '@/lib/event-loop-metrics';
 import { FetchSpanNameProcessor } from '@/lib/fetch-span-name-processor';
 import { HealthCheckSampler } from '@/lib/health-check-sampler';
+import { createPrismaInstrumentation } from '@/lib/prisma-instrumentation';
 import { replicaAttributes } from '@/lib/replica-attributes';
 import { RequestSpanProcessor } from '@/lib/request-span';
 import { registerRuntimeMemoryMetrics } from '@/lib/runtime-memory-metrics';
@@ -24,7 +25,6 @@ import {
   ParentBasedSampler,
   TraceIdRatioBasedSampler,
 } from '@opentelemetry/sdk-trace-base';
-import { PrismaInstrumentation } from '@prisma/instrumentation';
 
 /**
  * Custom ID generator that uses `crypto.getRandomValues()` instead of `Math.random()`.
@@ -322,7 +322,7 @@ export const sdk = new NodeSDK({
         }
       },
     }),
-    new PrismaInstrumentation({ enabled: true }),
+    createPrismaInstrumentation(),
     // NOTE: no PinoInstrumentation here. It patches the `pino` module via
     // require-in-the-middle, which only sees packages resolved by Node's real
     // `require`; Next.js bundles pino into the standalone output, so the patch
