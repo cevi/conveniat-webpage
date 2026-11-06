@@ -5,7 +5,10 @@ import {
   pruneInactiveAppModeClients,
 } from '@/features/service-worker/app-mode';
 import { CACHE_NAMES } from '@/features/service-worker/constants';
-import { reportBuildStatus } from '@/features/service-worker/offline-support/build-skew-reporting';
+import {
+  reportBuildStatus,
+  reportWorkerBuild,
+} from '@/features/service-worker/offline-support/build-skew-reporting';
 import { serwist } from '@/features/service-worker/offline-support/caching';
 import {
   forgetCachedSession,
@@ -91,6 +94,8 @@ self.addEventListener('activate', (event) => {
       // replace an entry the previous build wrote, and every offline navigation that hit one
       // flashed a blank page. The re-download below and the next online visits refill it.
       await caches.delete(CACHE_NAMES.RSC);
+      // so the open pages of the previous build load their next page from the server
+      await reportWorkerBuild();
 
       // Handle offline cache update if previously enabled
       const offlineEnabled = await isOfflineSupportEnabled();

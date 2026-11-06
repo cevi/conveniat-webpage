@@ -266,6 +266,20 @@ describe('reporting pages of an outdated build to PostHog', () => {
     expect(toldServerBuild()).toEqual([]);
   });
 
+  /**
+   * The release's worker takes over while the outdated page starts. The page asked the worker it
+   * had, which then gave way to one that knew nothing of the late answer.
+   */
+  it('tells the pages its build once a new worker takes over', async () => {
+    const { reportWorkerBuild } =
+      await import('@/features/service-worker/offline-support/build-skew-reporting');
+    const { deploymentId } = await import('@/deployment-id');
+
+    await reportWorkerBuild();
+
+    expect(toldServerBuild()).toEqual([{ clientId: 'open-dashboard', serverBuild: deploymentId }]);
+  });
+
   it('reports a page whose requests the proxy turns away once, and tells the pages', async () => {
     globalThis.caches = cachesWithDashboardOf(OLD_BUILD);
     globalThis.fetch = jest.fn(() =>

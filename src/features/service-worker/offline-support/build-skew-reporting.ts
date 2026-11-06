@@ -1,4 +1,4 @@
-import { SERVER_DEPLOYMENT_ID_HEADER } from '@/deployment-id';
+import { deploymentId, SERVER_DEPLOYMENT_ID_HEADER } from '@/deployment-id';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import type { SerwistPlugin } from 'serwist';
 
@@ -79,6 +79,18 @@ async function noteServerBuild(build: string): Promise<void> {
   if (build === serverBuild) return;
   serverBuild = build;
   await reportBuildStatus();
+}
+
+/**
+ * Tells the pages the build of this worker as the build the server runs, once it has taken over
+ * from the previous one. A worker that activates was just fetched from the server, so every page
+ * open at that moment runs its build or an older one; a page of the previous build that survived
+ * the release learns it here, also when its own worker learned it and was then replaced. At any
+ * other time the worker's build says nothing: a page loaded while the next worker still installs
+ * is newer than its worker.
+ */
+export async function reportWorkerBuild(): Promise<void> {
+  await noteServerBuild(deploymentId);
 }
 
 /**
