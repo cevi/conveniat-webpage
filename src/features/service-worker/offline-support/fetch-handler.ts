@@ -8,6 +8,7 @@ import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
 import {
   reportSkewRefusal,
   reportStaleBuildPage,
+  servedPage,
 } from '@/features/service-worker/offline-support/build-skew-reporting';
 import { normalizeTileUrl } from '@/features/service-worker/offline-support/map-viewer';
 import {
@@ -634,16 +635,11 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
             event.waitUntil(fromNetwork.then(noop, noop));
           } else {
             const cachedCopy = cached.clone();
+            // looked up now, before the page can navigate away from this path
+            const page = servedPage(event.resultingClientId, url.pathname);
             event.waitUntil(
               fromNetwork.then(
-                (late) =>
-                  reportStaleBuildPage(
-                    cachedCopy,
-                    late,
-                    event.resultingClientId,
-                    url.pathname,
-                    startedAt,
-                  ),
+                (late) => reportStaleBuildPage(cachedCopy, late, page, url.pathname, startedAt),
                 noop,
               ),
             );

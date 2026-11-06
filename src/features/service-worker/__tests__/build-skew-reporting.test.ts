@@ -108,6 +108,11 @@ describe('reporting pages of an outdated build to PostHog', () => {
   const originalNavigator = globalThis.navigator;
   let sent: Sent[];
   let reloads: string[];
+  /** The addresses the reloads went to. */
+  let reloadedTo: string[];
+  /** The path the open page shows; a client-side navigation changes it without a new page. */
+  let shownPath: string;
+  let reloadFails: boolean;
   /** The worker's registration: no newer worker installing or waiting, unless a test says so. */
   let registration: { installing: unknown; waiting: unknown };
 
@@ -120,6 +125,9 @@ describe('reporting pages of an outdated build to PostHog', () => {
     jest.useFakeTimers();
     sent = [];
     reloads = [];
+    reloadedTo = [];
+    shownPath = '/app/dashboard';
+    reloadFails = false;
     registration = { installing: null, waiting: null };
     Object.defineProperty(globalThis, 'navigator', { value: { onLine: true }, configurable: true });
     Object.defineProperty(globalThis, 'self', {
@@ -140,11 +148,13 @@ describe('reporting pages of an outdated build to PostHog', () => {
     clientId: string,
   ): Pick<WindowClient, 'id' | 'url' | 'postMessage' | 'navigate'> => ({
     id: clientId,
-    url: `${ORIGIN}/app/dashboard`,
+    url: `${ORIGIN}${shownPath}`,
     postMessage: (message: Sent['message']) => sent.push({ clientId, message }),
-    navigate: (): Promise<null> => {
+    navigate: (url: string | URL): Promise<WindowClient | null> => {
+      if (reloadFails) return Promise.reject(new TypeError('navigation failed'));
       reloads.push(clientId);
-      return Promise.resolve(null);
+      reloadedTo.push(String(url));
+      return Promise.resolve(openPage(clientId) as WindowClient);
     },
   });
 
@@ -205,7 +215,7 @@ describe('reporting pages of an outdated build to PostHog', () => {
               path: '/app/dashboard',
               cached_build: OLD_BUILD,
               server_build: NEW_BUILD,
-              reloaded: false,
+              reloading: false,
             }) as unknown,
           },
         }) as unknown,
@@ -238,7 +248,7 @@ describe('reporting pages of an outdated build to PostHog', () => {
       expect.objectContaining({
         message: expect.objectContaining({
           payload: expect.objectContaining({
-            properties: expect.objectContaining({ reloaded: true }) as unknown,
+            properties: expect.objectContaining({ reloading: true }) as unknown,
           }) as unknown,
         }) as unknown,
       }),
@@ -260,6 +270,43 @@ describe('reporting pages of an outdated build to PostHog', () => {
       expect.objectContaining({ clientId: 'open-dashboard' }),
     ]);
     expect(reloads).toEqual(['open-dashboard']);
+  });
+
+  /**
+   * In WebKit the worker finds the page only by the path it was loaded at. Tapped before the
+   * network answered, the page showed another path by then, and the page was never reloaded.
+   */
+  it('reloads a page that navigated on the client before the network answered', async () => {
+    globalThis.caches = cachesWithDashboardOf(OLD_BUILD);
+    globalThis.fetch = jest.fn(
+      () => new Promise<Response>((resolve) => setTimeout(() => resolve(page(NEW_BUILD)), 5000)),
+    );
+
+    const { lifetime } = send(openDashboard(), { resultingClientId: '' });
+    await jest.advanceTimersByTimeAsync(3000);
+    shownPath = '/app/map';
+    await jest.advanceTimersByTimeAsync(2000);
+    await settle(lifetime);
+
+    expect(reloads).toEqual(['open-dashboard']);
+    // where the page is now, not where it was loaded
+    expect(reloadedTo).toEqual([`${ORIGIN}/app/map`]);
+  });
+
+  it('reports a reload that failed, which would otherwise look like one that worked', async () => {
+    globalThis.caches = cachesWithDashboardOf(OLD_BUILD);
+    globalThis.fetch = jest.fn(
+      () => new Promise<Response>((resolve) => setTimeout(() => resolve(page(NEW_BUILD)), 5000)),
+    );
+    reloadFails = true;
+
+    const { lifetime } = send(openDashboard(), { resultingClientId: 'ipad-page' });
+    await jest.advanceTimersByTimeAsync(5000);
+    await settle(lifetime);
+
+    expect(events('stale_build_page_reload_failed')).toEqual([
+      expect.objectContaining({ clientId: 'ipad-page' }),
+    ]);
   });
 
   /**

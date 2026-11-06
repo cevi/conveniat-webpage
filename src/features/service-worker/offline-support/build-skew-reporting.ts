@@ -139,17 +139,57 @@ async function noteServerBuild(build: string): Promise<void> {
   await reportBuildStatus();
 }
 
-/**
- * The page the worker loaded from its cached copy. WebKit leaves `resultingClientId` empty, so
- * there it is the open page at that path.
- */
-async function servedPage(clientId: string, path: string): Promise<Client | undefined> {
-  if (clientId !== '') {
-    const client = await self.clients.get(clientId);
-    if (client !== undefined) return client;
+/** The path of a page's address; `URL.canParse` is missing in Safari before 17. */
+function pathOf(url: string): string | undefined {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return undefined;
   }
-  const pages = await self.clients.matchAll({ type: 'window' });
-  return pages.find((page) => new URL(page.url).pathname === path);
+}
+
+/** How long the worker looks for the page a cached copy was served to, see `servedPage`. */
+const FIND_PAGE_MS = 5000;
+const FIND_PAGE_INTERVAL_MS = 250;
+
+/**
+ * The page the worker serves a cached copy to, looked up as soon as it exists. Call it when the
+ * copy is served, not when the network answers: by then the page may have navigated on the
+ * client to another path, and WebKit, which leaves `resultingClientId` empty, can only be matched
+ * by the path the page was loaded at.
+ *
+ * @param clientId the page the navigation creates, empty in WebKit
+ * @param path the path the page is loaded at
+ */
+export async function servedPage(clientId: string, path: string): Promise<Client | undefined> {
+  // started when the copy is served and awaited only if the network answers, so it never rejects
+  try {
+    const deadline = Date.now() + FIND_PAGE_MS;
+    for (;;) {
+      const pages = clientId === '' ? await self.clients.matchAll({ type: 'window' }) : [];
+      const client =
+        clientId === ''
+          ? pages.find((page) => pathOf(page.url) === path)
+          : await self.clients.get(clientId);
+      if (client !== undefined || Date.now() >= deadline) return client;
+      await new Promise((resolve) => setTimeout(resolve, FIND_PAGE_INTERVAL_MS));
+    }
+  } catch (error) {
+    console.warn(`[SW] Could not find the page ${path} was served to`, error);
+    return undefined;
+  }
+}
+
+/** Reloads a page at the address it shows now, which the `Client` it was found as may not. */
+async function reload(client: WindowClient): Promise<boolean> {
+  try {
+    const current = await self.clients.get(client.id);
+    const url = current?.url ?? client.url;
+    return (await client.navigate(url)) !== null;
+  } catch (error) {
+    console.warn(`[SW] Could not reload ${client.url}`, error);
+    return false;
+  }
 }
 
 /**
@@ -164,14 +204,14 @@ async function servedPage(clientId: string, path: string): Promise<Client | unde
  *
  * @param cached a clone of the cached page, taken before it was served
  * @param late the network's answer, or undefined when none came
- * @param clientId the page that was loaded from the cached copy, empty in WebKit
+ * @param page the page the copy was served to, see `servedPage`
  * @param path the page's path
  * @param startedAt when the request went out
  */
 export async function reportStaleBuildPage(
   cached: Response,
   late: Response | undefined,
-  clientId: string,
+  page: Promise<Client | undefined>,
   path: string,
   startedAt: number,
 ): Promise<void> {
@@ -184,22 +224,22 @@ export async function reportStaleBuildPage(
   console.warn(`[SW] Served ${path} of build ${cachedBuild} while the server runs ${lateBuild}`);
   const lateMs = Date.now() - startedAt;
   await noteServerBuild(lateBuild);
-  const client = await servedPage(clientId, path);
+  const client = await page;
   const listens = client === undefined || (await asksForBuild(client.id));
   // Not every browser lets a worker navigate its pages; that page keeps the old build.
-  const reload = !listens && 'navigate' in client;
-  await capture(client?.id ?? '', 'stale_build_page_served', {
+  const reloading = !listens && 'navigate' in client;
+  const properties = {
     path,
     cached_build: cachedBuild,
     server_build: lateBuild,
     late_ms: lateMs,
-    reloaded: reload,
-  });
-  if (!reload) return;
-  try {
-    await (client as WindowClient).navigate(client.url);
-  } catch (error) {
-    console.warn(`[SW] Could not reload ${path} of build ${cachedBuild}`, error);
+    reloading,
+  };
+  // sent before the reload, which unloads the page that passes it on to PostHog
+  await capture(client?.id ?? '', 'stale_build_page_served', properties);
+  if (reloading && !(await reload(client as WindowClient))) {
+    // the page is still there to pass this one on
+    await capture(client.id, 'stale_build_page_reload_failed', properties);
   }
 }
 
@@ -215,21 +255,25 @@ export const staleBuildPagePlugin: SerwistPlugin = {
     if (state) state['startedAt'] = Date.now();
     return request;
   },
-  cachedResponseWillBeUsed: ({ cachedResponse, state }) => {
-    if (cachedResponse && state) state['served'] = cachedResponse.clone();
+  cachedResponseWillBeUsed: ({ cachedResponse, request, event, state }) => {
+    if (cachedResponse && state) {
+      state['served'] = cachedResponse.clone();
+      const clientId = 'resultingClientId' in event ? (event as FetchEvent).resultingClientId : '';
+      state['page'] = servedPage(clientId, new URL(request.url).pathname);
+    }
     return cachedResponse;
   },
   fetchDidSucceed: ({ request, response, event, state }) => {
     const served: unknown = state?.['served'];
-    if (served instanceof Response) {
-      const clientId = 'resultingClientId' in event ? (event as FetchEvent).resultingClientId : '';
+    const page = state?.['page'] as Promise<Client | undefined> | undefined;
+    if (served instanceof Response && page !== undefined) {
       const startedAtValue: unknown = state?.['startedAt'];
       const startedAt = typeof startedAtValue === 'number' ? startedAtValue : Date.now();
       event.waitUntil(
         reportStaleBuildPage(
           served,
           response.clone(),
-          clientId,
+          page,
           new URL(request.url).pathname,
           startedAt,
         ),
