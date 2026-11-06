@@ -19,24 +19,42 @@ const cacheInvalidationCounter = meter.createCounter('cache_invalidation_total',
   valueType: ValueType.INT,
 });
 
+/** A connection to the Redis that holds the cache entries and the tag flush times. */
+export const createCacheRedisClient = (): Redis => {
+  const redis = new Redis(REDIS_URL, {
+    lazyConnect: true,
+    connectTimeout: 2000,
+    maxRetriesPerRequest: 1,
+    retryStrategy: (times: number): number | void | null => Math.min(times * 50, 2000),
+  });
+
+  redis.on('error', (error: { code: string }) => {
+    if (error.code !== 'EAI_AGAIN') {
+      logger.error('Connection error', { error });
+    }
+  });
+  return redis;
+};
+
+/**
+ * The time each tag was last flushed by any replica, in milliseconds, in the order of `tags`;
+ * `undefined` for a tag never flushed.
+ */
+export const readFlushedAt = async (
+  redis: Redis,
+  tags: string[],
+): Promise<(number | undefined)[]> => {
+  const values = await redis.mget(tags.map((tag) => `${FLUSHED_AT_PREFIX}${tag}`));
+  return values.map((value) => (value === null ? undefined : Number(value)));
+};
+
 export class RedisCache extends BaseCacheHandler {
   name = 'Redis';
   private redis: Redis;
 
   constructor() {
     super();
-    this.redis = new Redis(REDIS_URL, {
-      lazyConnect: true,
-      connectTimeout: 2000,
-      maxRetriesPerRequest: 1,
-      retryStrategy: (times: number): number | void | null => Math.min(times * 50, 2000),
-    });
-
-    this.redis.on('error', (error: { code: string }) => {
-      if (error.code !== 'EAI_AGAIN') {
-        logger.error('Connection error', { error });
-      }
-    });
+    this.redis = createCacheRedisClient();
   }
 
   async get(key: string): Promise<{ value: Buffer; metadata?: Partial<CacheEntry> } | undefined> {
@@ -123,10 +141,8 @@ export class RedisCache extends BaseCacheHandler {
     const tags = Array.isArray(metadata.tags) ? metadata.tags : [];
     if (tags.length === 0 || typeof metadata.timestamp !== 'number') return false;
 
-    const flushedAt = await this.redis.mget(tags.map((tag) => `${FLUSHED_AT_PREFIX}${tag}`));
-    const isStale = flushedAt.some(
-      (value) => value !== null && Number(value) >= metadata.timestamp,
-    );
+    const flushedAt = await readFlushedAt(this.redis, tags);
+    const isStale = flushedAt.some((value) => value !== undefined && value >= metadata.timestamp);
     if (isStale) {
       logger.debug('Discarding an entry rendered before a flush of its tags', {
         'cache.tags': tags.join(', '),
