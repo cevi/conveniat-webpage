@@ -1,4 +1,4 @@
-import { deploymentId, SERVER_DEPLOYMENT_ID_HEADER } from '@/deployment-id';
+import { deploymentId, SERVER_DEPLOYMENT_ID_HEADER } from '@/config/deployment-id';
 import type { ProxyModule } from '@/proxy/types';
 import { createLogger } from '@/utils/server-logger';
 import type { Counter } from '@opentelemetry/api';

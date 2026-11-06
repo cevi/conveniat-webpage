@@ -10,6 +10,8 @@ export const ServiceWorkerMessages = {
   CLEAR_PERSONAL_CACHES: 'CLEAR_PERSONAL_CACHES',
   /** Worker to page: `{ reachable }`. Page to worker: a request for the current state. */
   NETWORK_STATUS: 'NETWORK_STATUS',
+  /** Worker to page: `{ serverBuild }`. Page to worker: a request for the build it last saw. */
+  BUILD_STATUS: 'BUILD_STATUS',
 } as const;
 
 /**

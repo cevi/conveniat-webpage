@@ -5,6 +5,10 @@ import {
   pruneInactiveAppModeClients,
 } from '@/features/service-worker/app-mode';
 import { CACHE_NAMES } from '@/features/service-worker/constants';
+import {
+  answerBuildStatus,
+  reportBuildStatus,
+} from '@/features/service-worker/offline-support/build-skew-reporting';
 import { serwist } from '@/features/service-worker/offline-support/caching';
 import {
   forgetCachedSession,
@@ -90,6 +94,8 @@ self.addEventListener('activate', (event) => {
       // replace an entry the previous build wrote, and every offline navigation that hit one
       // flashed a blank page. The re-download below and the next online visits refill it.
       await caches.delete(CACHE_NAMES.RSC);
+      // so the open pages of the previous build load their next page from the server
+      await reportBuildStatus();
 
       // Handle offline cache update if previously enabled
       const offlineEnabled = await isOfflineSupportEnabled();
@@ -170,6 +176,11 @@ self.addEventListener('message', (event) => {
 
   if (data?.type === ServiceWorkerMessages.NETWORK_STATUS && event.source instanceof Client) {
     event.waitUntil(reportNetworkStatus(event.source));
+  }
+
+  // a page that started after the worker told the pages asks for it
+  if (data?.type === ServiceWorkerMessages.BUILD_STATUS && event.source instanceof Client) {
+    event.waitUntil(answerBuildStatus(event.source));
   }
 
   if (data?.type === ServiceWorkerMessages.CHECK_OFFLINE_READY && event.source instanceof Client) {
