@@ -34,6 +34,25 @@ const FileSystemCache =
     ? (FileSystemCacheExport as unknown as { default: typeof FileSystemCacheExport }).default
     : FileSystemCacheExport;
 
+/**
+ * How long a shell read waits for the flush times. Redis answers in well under a millisecond; past
+ * this, the replica serves its local shell rather than hold the page for a slow Redis.
+ */
+const FLUSH_TIMES_DEADLINE_MS = 50;
+
+/** Rejects once `ms` passed, and clears its timer when `promise` settles first. */
+const withDeadline = async <T>(promise: Promise<T>, ms: number): Promise<T> => {
+  let timer: NodeJS.Timeout | undefined;
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => reject(new Error(`no answer within ${ms} ms`)), ms);
+  });
+  try {
+    return await Promise.race([promise, deadline]);
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 const isBuild =
   // eslint-disable-next-line n/no-process-env
   process.env['NEXT_PHASE'] === PHASE_PRODUCTION_BUILD || process.argv.includes('build');
@@ -61,7 +80,10 @@ export default class IncrementalCache extends FileSystemCache {
 
     IncrementalCache.redis ??= createCacheRedisClient();
     try {
-      const flushedAt = await readFlushedAt(IncrementalCache.redis, tags);
+      const flushedAt = await withDeadline(
+        readFlushedAt(IncrementalCache.redis, tags),
+        FLUSH_TIMES_DEADLINE_MS,
+      );
       for (const [index, tag] of tags.entries()) {
         const flushed = flushedAt[index];
         if (flushed === undefined) continue;

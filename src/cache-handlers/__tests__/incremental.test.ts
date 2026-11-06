@@ -7,9 +7,10 @@ import {
 
 /**
  * The Redis both replicas share, holding only what this handler reads: the `flushed-at:` times
- * the `'use cache'` handler writes on every `revalidateTag()`. `failing` makes reads reject.
+ * the `'use cache'` handler writes on every `revalidateTag()`. `failing` makes reads reject, `hanging`
+ * makes them never answer.
  */
-const sharedRedis = { values: new Map<string, string>(), failing: false };
+const sharedRedis = { values: new Map<string, string>(), failing: false, hanging: false };
 
 jest.mock('ioredis', () => {
   class FakeRedis {
@@ -19,6 +20,7 @@ jest.mock('ioredis', () => {
 
     mget(keys: string[]): Promise<(string | null)[]> {
       if (sharedRedis.failing) return Promise.reject(new Error('connection refused'));
+      if (sharedRedis.hanging) return new Promise(() => {});
       return Promise.resolve(keys.map((key) => sharedRedis.values.get(key) ?? null));
     }
   }
@@ -65,6 +67,7 @@ describe('IncrementalCache', () => {
   beforeEach(() => {
     sharedRedis.values.clear();
     sharedRedis.failing = false;
+    sharedRedis.hanging = false;
     tagsManifest.clear();
   });
 
@@ -101,6 +104,17 @@ describe('IncrementalCache', () => {
     sharedRedis.failing = true;
 
     const shell = await readShell(handler);
+    expect(isStale(shell)).toBe(false);
+  });
+
+  it('serves the local shell when Redis does not answer', async () => {
+    const handler = createHandler();
+    await storeShell(handler);
+    sharedRedis.hanging = true;
+
+    const started = performance.now();
+    const shell = await readShell(handler);
+    expect(performance.now() - started).toBeLessThan(1000);
     expect(isStale(shell)).toBe(false);
   });
 });
