@@ -5,7 +5,7 @@ import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { dropCachedEntry, generateChatId, generateMessageId } from '@/features/chat/utils';
+import { generateChatId, generateMessageId } from '@/features/chat/utils';
 import { markChatCreation } from '@/features/chat/utils/chat-creation-state';
 import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
 import { isRateLimitError } from '@/features/chat/utils/send-errors';
@@ -19,6 +19,8 @@ import { i18nConfig } from '@/types/types';
 import { isTransportError, userErrorMessage } from '@/utils/user-error-message';
 import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
 import type { InfiniteData } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { getQueryKey } from '@trpc/react-query';
 import type { inferProcedureOutput } from '@trpc/server';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback } from 'react';
@@ -60,6 +62,7 @@ export const useCreateChat = (): {
   createChat: (arguments_: CreateChatArguments) => string;
 } => {
   const trpcUtils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const pathname = usePathname();
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -72,13 +75,15 @@ export const useCreateChat = (): {
   const discardOptimisticChat = useCallback(
     (chatId: string): void => {
       trpcUtils.chat.chats.setData({}, (oldChats) => oldChats?.filter((c) => c.id !== chatId));
-      trpcUtils.chat.chatDetails.setData({ chatId }, dropCachedEntry);
-      trpcUtils.chat.infiniteMessages.setInfiniteData(
-        { chatId, limit: CHAT_PAGE_SIZE, parentId: undefined },
-        dropCachedEntry,
-      );
+      // removed, not set to undefined: `setData` ignores an updater that returns undefined
+      queryClient.removeQueries({
+        queryKey: getQueryKey(trpc.chat.chatDetails, { chatId }, 'query'),
+      });
+      queryClient.removeQueries({
+        queryKey: getQueryKey(trpc.chat.infiniteMessages, { chatId }, 'infinite'),
+      });
     },
-    [trpcUtils],
+    [queryClient, trpcUtils],
   );
 
   const { mutate } = trpc.chat.createChat.useMutation({

@@ -30,8 +30,24 @@ jest.mock('@/trpc/client', () => ({
     chat: {
       sendMessage: { useMutation: jest.fn() },
       createChat: { useMutation: jest.fn() },
+      // read by the `getQueryKey` mock below
+      chatDetails: { path: 'chat.chatDetails' },
+      infiniteMessages: { path: 'chat.infiniteMessages' },
     },
   },
+}));
+
+const mockQueryClient: { current: unknown } = { current: undefined };
+jest.mock('@tanstack/react-query', () => ({
+  ...jest.requireActual<object>('@tanstack/react-query'),
+  useQueryClient: (): unknown => mockQueryClient.current,
+}));
+
+jest.mock('@trpc/react-query', () => ({
+  getQueryKey: (procedure: { path: string }, input: unknown, type: string): unknown[] => [
+    procedure.path.split('.'),
+    { input, type },
+  ],
 }));
 
 jest.mock('@/hooks/use-online-status', () => ({
@@ -68,6 +84,18 @@ const createCacheStub = (): {
     messagePages: new Map(),
   };
 
+  mockQueryClient.current = {
+    removeQueries: ({
+      queryKey,
+    }: {
+      queryKey: [string[], { input: { chatId: string } }];
+    }): void => {
+      const [path, { input }] = queryKey;
+      if (path.join('.') === 'chat.chatDetails') cache.details.delete(input.chatId);
+      if (path.join('.') === 'chat.infiniteMessages') cache.messagePages.delete(input.chatId);
+    },
+  };
+
   const utils = {
     chat: {
       user: { ensureData: jest.fn((): Promise<string> => Promise.resolve(CURRENT_USER)) },
@@ -87,10 +115,9 @@ const createCacheStub = (): {
           { chatId }: { chatId: string },
           updater: ChatDetails | ((old: ChatDetails | undefined) => ChatDetails | undefined),
         ): void => {
-          cache.details.set(
-            chatId,
-            typeof updater === 'function' ? updater(cache.details.get(chatId)) : updater,
-          );
+          const next = typeof updater === 'function' ? updater(cache.details.get(chatId)) : updater;
+          // like TanStack's `setQueryData`, an updater that returns undefined changes nothing
+          if (next !== undefined) cache.details.set(chatId, next);
         },
       },
       infiniteMessages: {
@@ -100,7 +127,8 @@ const createCacheStub = (): {
             old: { pages: { items: ChatMessage[] }[] } | undefined,
           ) => { pages: { items: ChatMessage[] }[] } | undefined,
         ): void => {
-          cache.messagePages.set(chatId, updater(cache.messagePages.get(chatId)));
+          const next = updater(cache.messagePages.get(chatId));
+          if (next !== undefined) cache.messagePages.set(chatId, next);
         },
       },
     },
