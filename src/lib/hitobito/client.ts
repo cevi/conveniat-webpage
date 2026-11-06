@@ -27,6 +27,19 @@ export class FatalError extends Error {
 /** A frontend page redirects to its canonical URL at most a couple of times. */
 const MAX_REDIRECTS = 5;
 
+/**
+ * The route of a Cevi.DB path or URL: its path with every numeric segment replaced by `:id`,
+ * so `/groups/4105/people.json?page=2` names `/groups/:id/people.json`.
+ *
+ * Span names go into the span metrics as a label, one latency histogram per distinct name.
+ * Named after the concrete path, a single Hof sync created a few hundred of them, each used
+ * once. The concrete path stays on the span as `url.path`, which a trace search filters on.
+ */
+export function routeTemplate(pathOrUrl: string): string {
+  const { pathname } = new URL(pathOrUrl, 'https://cevi-db.invalid');
+  return pathname.replaceAll(/\/\d+(?=[./]|$)/g, '/:id');
+}
+
 /** Where Hitobito sends a frontend request that carries no valid session. */
 const SIGN_IN_PATH = '/users/sign_in';
 
@@ -150,12 +163,14 @@ export class HitobitoClient {
       signal?: AbortSignal;
     } = {},
   ): Promise<T> {
-    return withSpan(`HitobitoClient.apiRequest:${method} ${path}`, async (span) => {
+    const route = routeTemplate(path);
+    return withSpan(`HitobitoClient.apiRequest:${method} ${route}`, async (span) => {
       const url = this.resolveUrl(path, options.params);
 
       span.setAttributes({
         'http.method': method,
-        'http.route': path,
+        'http.route': route,
+        'url.path': new URL(url).pathname,
         'http.url': url,
       });
 
@@ -223,11 +238,14 @@ export class HitobitoClient {
     urlOrPath: string,
     options: RequestOptions = {},
   ): Promise<{ response: Response; body: string; finalUrl: string }> {
-    return withSpan(`HitobitoClient.frontendRequest:${method} ${urlOrPath}`, async (span) => {
+    const route = routeTemplate(urlOrPath);
+    return withSpan(`HitobitoClient.frontendRequest:${method} ${route}`, async (span) => {
       const url = this.resolveUrl(urlOrPath, options.params);
 
       span.setAttributes({
         'http.method': method,
+        'http.route': route,
+        'url.path': new URL(url).pathname,
         'http.url': url,
       });
 
@@ -300,7 +318,8 @@ export class HitobitoClient {
     extractExtraFields?: boolean;
     extraHeaders?: Record<string, string>;
   }): Promise<{ response: Response; body: string; finalUrl: string }> {
-    return withSpan(`HitobitoClient.submitRailsForm:${method} ${postUrl}`, async (span) => {
+    const route = routeTemplate(postUrl);
+    return withSpan(`HitobitoClient.submitRailsForm:${method} ${route}`, async (span) => {
       span.setAttributes({
         getFormUrl: getFormUrl,
         postUrl: postUrl,
