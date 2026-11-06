@@ -130,56 +130,50 @@ async function syncParticipation(
   logger: SyncLogger,
 ): Promise<void> {
   // Fetch custom answers for custom questions verification
-  const answers = await withSpan(
-    `syncParticipants:fetchAnswers:${participation.participationId}`,
-    async (span) => {
-      const answersResult = await hitobitoService.fetchParticipationAnswers(
-        participation.eventId,
-        participation.participationId,
-        event.groupId,
-      );
-      span.setAttributes({
-        'participant.id': participation.participantId,
-        'participation.id': participation.participationId,
-        'answers.count': Object.keys(answersResult).length,
-      });
-      return answersResult;
-    },
-  );
+  const answers = await withSpan('syncParticipants:fetchAnswers', async (span) => {
+    const answersResult = await hitobitoService.fetchParticipationAnswers(
+      participation.eventId,
+      participation.participationId,
+      event.groupId,
+    );
+    span.setAttributes({
+      'participant.id': participation.participantId,
+      'participation.id': participation.participationId,
+      'answers.count': Object.keys(answersResult).length,
+    });
+    return answersResult;
+  });
 
   // Validate the participant using the verification service component
-  const validationResult = await withSpan(
-    `syncParticipants:validate:${participation.participationId}`,
-    async (span) => {
-      await Promise.resolve();
-      const input = {
-        person: {
-          firstName: participation.firstName,
-          lastName: participation.lastName,
-          nickname: participation.nickname,
-          street: participation.street,
-          housenumber: participation.housenumber,
-          zipCode: participation.zipCode,
-          town: participation.town,
-          country: participation.country,
-          gender: participation.gender,
-          birthday: participation.birthday,
-        },
-        answers,
-      };
-      const validatedOutput = validateParticipant(input);
-      // Which fields are missing is on the span below and on the participant record
-      // itself; a `console.log` of it on every invalid registration was debug output
-      // that shipped.
-      span.setAttributes({
-        'participant.id': participation.participantId,
-        'participation.id': participation.participationId,
-        'validation.isValid': validatedOutput.isValid,
-        'validation.missingFields': validatedOutput.missingFields,
-      });
-      return validatedOutput;
-    },
-  );
+  const validationResult = await withSpan('syncParticipants:validate', async (span) => {
+    await Promise.resolve();
+    const input = {
+      person: {
+        firstName: participation.firstName,
+        lastName: participation.lastName,
+        nickname: participation.nickname,
+        street: participation.street,
+        housenumber: participation.housenumber,
+        zipCode: participation.zipCode,
+        town: participation.town,
+        country: participation.country,
+        gender: participation.gender,
+        birthday: participation.birthday,
+      },
+      answers,
+    };
+    const validatedOutput = validateParticipant(input);
+    // Which fields are missing is on the span below and on the participant record
+    // itself; a `console.log` of it on every invalid registration was debug output
+    // that shipped.
+    span.setAttributes({
+      'participant.id': participation.participantId,
+      'participation.id': participation.participationId,
+      'validation.isValid': validatedOutput.isValid,
+      'validation.missingFields': validatedOutput.missingFields,
+    });
+    return validatedOutput;
+  });
 
   const invoiceEmail = findInvoiceEmail(answers);
   const anmeldestatus = findAnmeldestatus(answers);
@@ -578,17 +572,13 @@ function describeRemoval(participant: {
 /**
  * Traced version of syncSingleEvent.
  */
-const syncSingleEventTraced = traceFunction(
-  (event) => `syncParticipants:event:${event.eventId}`,
-  syncSingleEvent,
-  {
-    getAttributes: (event) => ({
-      'event.id': event.eventId,
-      'event.name': event.eventName ?? '',
-      'group.id': event.groupId,
-    }),
-  },
-);
+const syncSingleEventTraced = traceFunction('syncParticipants:event', syncSingleEvent, {
+  getAttributes: (event) => ({
+    'event.id': event.eventId,
+    'event.name': event.eventName ?? '',
+    'group.id': event.groupId,
+  }),
+});
 
 function emptySummary(syncDate: string, errors: string[] = []): SyncSummary {
   return {
