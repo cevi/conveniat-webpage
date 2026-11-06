@@ -1,5 +1,43 @@
 # Changelog
 
+## [1.52.0](https://github.com/cevi/conveniat-webpage/compare/v1.51.2...v1.52.0) (2026-11-06)
+
+
+### Features
+
+* **hitobito:** measure every Cevi.DB request by route and outcome ([f890674](https://github.com/cevi/conveniat-webpage/commit/f89067472366eb2e88344101d9f80e30274aea2d))
+* **tracing:** export the event loop delay of every replica ([d1d6943](https://github.com/cevi/conveniat-webpage/commit/d1d694351d5c791296bde6a5b769d0b377d14830))
+* **tracing:** name each replica by its node and Swarm task ([b761c76](https://github.com/cevi/conveniat-webpage/commit/b761c76b1214be2ef2d9414b45b2adb3435cf1e1))
+* **tracing:** name each replica by its node and Swarm task ([f788534](https://github.com/cevi/conveniat-webpage/commit/f788534d4183f7e7409e94d646a54efd6b78c098))
+* **tracing:** one span per Payload query, through Mongoose ([c68e84b](https://github.com/cevi/conveniat-webpage/commit/c68e84b9215ede98eeef0ebaaad08f94dde18499))
+* **tracing:** one span per Payload query, through Mongoose ([1a9b07a](https://github.com/cevi/conveniat-webpage/commit/1a9b07a9750a246087d99dad97422d6ef8f92916))
+* **tracing:** say on a request's span who it was and what it touched ([ca353ff](https://github.com/cevi/conveniat-webpage/commit/ca353ffc38facb8967b7b07d21f7c53b0e6f7edd))
+* **tracing:** say on a request's span who it was and what it touched ([3ac0cce](https://github.com/cevi/conveniat-webpage/commit/3ac0cceb3e2e9783fb3155c68a0743a78802db43))
+
+
+### Bug Fixes
+
+* **cache:** page shells follow a flush on the other replica ([7a354a4](https://github.com/cevi/conveniat-webpage/commit/7a354a47949b033168ae2d3d126b7fc53b2d59ed))
+* **cache:** serve the local shell when Redis is slow to answer ([ff8d56b](https://github.com/cevi/conveniat-webpage/commit/ff8d56be57bb55c6b5caf58cdacc1e21a9198573))
+* **chat:** a chat that never existed under its id leaves the cache ([30a24bf](https://github.com/cevi/conveniat-webpage/commit/30a24bf05a99b8e2156791262b95693c9f8f574d))
+* **chat:** a chat that never existed under its id leaves the cache ([6707a83](https://github.com/cevi/conveniat-webpage/commit/6707a831ba1f2023502b3de717cda08a35e96ac3))
+* **chat:** a push refreshes the chat instead of guessing its message ([a554be5](https://github.com/cevi/conveniat-webpage/commit/a554be52885634e2bcda9ed035554d790f08045d))
+* **chat:** alert chats are prefetched where the chat reads them, a push no longer guesses a message ([bb03ac1](https://github.com/cevi/conveniat-webpage/commit/bb03ac1e844bc6490daeee3ee2b4c9b584f42c5b))
+* **chat:** pushed and alert chat messages land in the cache the chat reads ([6dfe7e7](https://github.com/cevi/conveniat-webpage/commit/6dfe7e7e8684acfbc8755032d35553b7026de5dd))
+* **feature-flags:** every replica reads a changed flag at once ([d58c042](https://github.com/cevi/conveniat-webpage/commit/d58c04284d6874d80bdfd1e113acb430355e4443))
+* **forum:** a failed like puts the post back ([6bb9321](https://github.com/cevi/conveniat-webpage/commit/6bb9321467026c0f5cce51c4a75be2e6cb8b9def))
+* **forum:** a like refreshes the post wherever it was given ([413b0eb](https://github.com/cevi/conveniat-webpage/commit/413b0eb5401e3a190695655fc6d98bd48d14cc63))
+* **forum:** a like refreshes the post wherever it was given ([07e5361](https://github.com/cevi/conveniat-webpage/commit/07e5361e9aa8ab0657a98f537f68c7578597f618))
+* **jobs:** job durations in second buckets, not millisecond ones ([914243f](https://github.com/cevi/conveniat-webpage/commit/914243ff4c358ef877be63bcd15b37445bddbfcc))
+* **menu:** a release no longer opens pages without the main menu ([412151c](https://github.com/cevi/conveniat-webpage/commit/412151c0b5a07d200f5a421e1ceedf788abad2c7))
+* **menu:** a release no longer opens pages without the main menu ([38c96a9](https://github.com/cevi/conveniat-webpage/commit/38c96a992dacb69d02174303eced9db9988cb6fd))
+* **service-worker:** answer an offline prefetch without the cached page ([6fbcbb7](https://github.com/cevi/conveniat-webpage/commit/6fbcbb7037d4a50021bbd2dd1168990bff828ff1))
+* **service-worker:** answer an offline prefetch without the cached page ([2957ca6](https://github.com/cevi/conveniat-webpage/commit/2957ca6e0df0d3a51a43d6806a5551899de3fe43))
+* **tracing:** database instrumentations record into the SDK's provider ([8db2ad9](https://github.com/cevi/conveniat-webpage/commit/8db2ad9712286cd2a329670063a92d858d9ecf0a))
+* **tracing:** database instrumentations record into the SDK's provider ([62d13a0](https://github.com/cevi/conveniat-webpage/commit/62d13a0ed57ec193e02cc99d4a714017b603cb0d))
+* **tracing:** Prisma spans reach the exporter ([6ba5178](https://github.com/cevi/conveniat-webpage/commit/6ba5178df2e94f26fa4e53ac7bee2ce61741c52b))
+* **tracing:** Prisma spans reach the exporter ([9042563](https://github.com/cevi/conveniat-webpage/commit/90425632a65a7fdcc77e6c7abeee3831da2d0a27))
+
 ## [1.51.2](https://github.com/cevi/conveniat-webpage/compare/v1.51.1...v1.51.2) (2026-11-06)
 
 
