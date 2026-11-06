@@ -4,6 +4,7 @@ import { createAuthJsLogger } from '@/features/next-auth/utils/auth-js-logger';
 import { reportSessionTokenKept } from '@/features/next-auth/utils/session-token-change';
 import { shareRefreshAcrossReplicas } from '@/features/next-auth/utils/shared-refresh';
 import type { User } from '@/features/payload-cms/payload-types';
+import { measureCeviDatabaseFetch, routeTemplate } from '@/lib/hitobito/request-metrics';
 import { withCeviDatabaseUserAgent } from '@/lib/hitobito/user-agent';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { createLogger } from '@/utils/server-logger';
@@ -281,7 +282,10 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3): P
       // Undici Agent is handled globally via setGlobalDispatcher,
       // but we can also pass specific dispatcher options if needed.
       // For now, the global agent should suffice.
-      return await fetch(url, { ...withCeviDatabaseUserAgent(options), cache: 'no-store' });
+      return await measureCeviDatabaseFetch(
+        { channel: 'oauth', method: options.method ?? 'GET', route: routeTemplate(url) },
+        () => fetch(url, { ...withCeviDatabaseUserAgent(options), cache: 'no-store' }),
+      );
     } catch (error) {
       attempt++;
       logger.warn('Fetch attempt against Hitobito failed', {
@@ -528,19 +532,23 @@ async function revokeRefreshToken(token: JWT): Promise<void> {
   if (refreshToken === undefined || refreshToken === '') return;
 
   try {
-    const response = await fetch(
-      `${HITOBITO_BASE_URL}/oauth/revoke`,
-      withCeviDatabaseUserAgent({
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          client_id: CEVI_DB_CLIENT_ID,
-          client_secret: CEVI_DB_CLIENT_SECRET,
-          token: refreshToken,
-          token_type_hint: 'refresh_token',
-        }),
-        cache: 'no-store',
-      }),
+    const response = await measureCeviDatabaseFetch(
+      { channel: 'oauth', method: 'POST', route: '/oauth/revoke' },
+      () =>
+        fetch(
+          `${HITOBITO_BASE_URL}/oauth/revoke`,
+          withCeviDatabaseUserAgent({
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              client_id: CEVI_DB_CLIENT_ID,
+              client_secret: CEVI_DB_CLIENT_SECRET,
+              token: refreshToken,
+              token_type_hint: 'refresh_token',
+            }),
+            cache: 'no-store',
+          }),
+        ),
     );
     if (response.ok) {
       logger.info('Revoked the Cevi.DB tokens of a signed out session', {
@@ -608,9 +616,15 @@ export const authOptions: NextAuthConfig = {
       clientSecret: CEVI_DB_CLIENT_SECRET,
 
       // Auth.js exchanges the code for a token itself and would name its own library in
-      // the User-Agent. Every other request to Cevi.DB carries ours.
-      [customFetch]: (input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
-        fetch(input, withCeviDatabaseUserAgent(init)),
+      // the User-Agent. Every other request to Cevi.DB carries ours, and is measured like ours.
+      [customFetch]: (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+        const url = input instanceof Request ? input.url : input.toString();
+        const method = init?.method ?? (input instanceof Request ? input.method : 'GET');
+        return measureCeviDatabaseFetch(
+          { channel: 'oauth', method, route: routeTemplate(url) },
+          () => fetch(input, withCeviDatabaseUserAgent(init)),
+        );
+      },
     },
   ],
   debug: false,
