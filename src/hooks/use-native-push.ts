@@ -1,18 +1,19 @@
 'use client';
-
 import { usePreference } from '@/hooks/use-preference';
 import { usePushNavigation } from '@/hooks/use-push-navigation';
 import type { NotificationType } from '@/lib/notification-type';
 import { readPreference, writePreference } from '@/lib/preferences';
-import { trpc, useOptionalTrpcUtils } from '@/trpc/client';
+import { useOptionalTrpcQueries, useTRPC } from '@/trpc/client';
 import { Cookie } from '@/types/types';
 import { notifyForegroundMessage } from '@/utils/foreground-notifications';
-import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
+import { refreshChatOfPush } from '@/utils/push-query-refresher';
 import { chatIdOfTarget, resolvePushTarget } from '@/utils/push-target';
 import { reloadPage } from '@/utils/reload-page';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import Cookies from 'js-cookie';
 import { useEffect, useRef, useState } from 'react';
+
+import { useMutation } from '@tanstack/react-query';
 
 export type NativePushStatus = 'granted' | 'denied' | 'prompt' | 'unknown';
 
@@ -345,8 +346,9 @@ export function useNativePush(): {
   logs: NativePushLogEntry[];
   lastError: string | undefined;
 } {
+  const trpc = useTRPC();
   const { navigateToPushTarget, resumePendingPushNavigation } = usePushNavigation();
-  const trpcUtils = useOptionalTrpcUtils();
+  const trpcQueries = useOptionalTrpcQueries();
   const [isNativeApp, setIsNativeApp] = useState(false);
   const [status, setStatus] = useState<NativePushStatus>('unknown');
   const [hasToken, setHasToken] = useState(false);
@@ -381,10 +383,16 @@ export function useNativePush(): {
     setLogs((previous) => [...previous.slice(-49), entry]);
   };
 
-  const { mutateAsync: registerDevice } = trpc.nativePush.registerDevice.useMutation();
-  const { mutateAsync: unregisterDevice } = trpc.nativePush.unregisterDevice.useMutation();
-  const { mutate: markInteracted } = trpc.pushTracking.markInteracted.useMutation();
-  const { mutate: markDelivered } = trpc.pushTracking.markDelivered.useMutation();
+  const { mutateAsync: registerDevice } = useMutation(
+    trpc.nativePush.registerDevice.mutationOptions(),
+  );
+  const { mutateAsync: unregisterDevice } = useMutation(
+    trpc.nativePush.unregisterDevice.mutationOptions(),
+  );
+  const { mutate: markInteracted } = useMutation(
+    trpc.pushTracking.markInteracted.mutationOptions(),
+  );
+  const { mutate: markDelivered } = useMutation(trpc.pushTracking.markDelivered.mutationOptions());
 
   useEffect(() => {
     const isNative = isNativeAppWebView();
@@ -609,7 +617,7 @@ export function useNativePush(): {
           const targetPath = resolvePushTarget(extractTargetUrl(payload));
 
           const targetChatId = chatIdOfTarget(targetPath);
-          refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
+          refreshChatOfPush(trpcQueries, targetChatId);
 
           // Native pushes never reach the service worker, whose click handler tracks
           // taps on web pushes, so the tap is recorded here.
@@ -646,7 +654,7 @@ export function useNativePush(): {
           }
 
           // Refresh query cache in background
-          refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
+          refreshChatOfPush(trpcQueries, targetChatId);
 
           const { title: notificationTitle, body: notificationBody } =
             extractNotificationTitleAndBody(payload);
@@ -781,7 +789,7 @@ export function useNativePush(): {
     unregisterDevice,
     markInteracted,
     markDelivered,
-    trpcUtils,
+    trpcQueries,
   ]);
 
   const requestPermission = (): void => {

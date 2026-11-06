@@ -30,7 +30,7 @@ import {
 } from '@/features/material/hooks/use-material';
 import { groupByHolder, holderSearch, isAnnounced } from '@/features/material/utils/holders';
 import { itemPath } from '@/features/material/utils/scan';
-import { trpc, type RouterOutputs } from '@/trpc/client';
+import { useTRPC, type RouterOutputs } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import {
@@ -46,6 +46,8 @@ import {
 import Link from 'next/link';
 import type React from 'react';
 import { useState } from 'react';
+
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 const text = {
   outToday: { de: 'heute raus', en: 'out today', fr: 'sorties' },
@@ -149,9 +151,10 @@ const stockAlertLine = (alert: MaterialStockAlert, locale: Locale): string => {
 
 /** Marks a damage report as dealt with, right from the list. */
 const ResolveButton: React.FC<{ id: string }> = ({ id }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const invalidate = useInvalidateMaterial();
-  const resolve = trpc.material.resolveIncident.useMutation();
+  const resolve = useMutation(trpc.material.resolveIncident.mutationOptions());
   return (
     <MaterialButton
       variant="outlined"
@@ -332,17 +335,20 @@ const DayFigure: React.FC<{
 );
 
 const TeamOverview: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const dayEnd = useDayEnd();
   const [shown, setShown] = useState(ATTENTION_STEP);
-  const dashboard = trpc.material.getDashboard.useQuery(
-    { dayEnd },
-    {
-      ...materialQueryOptions,
-      refetchInterval: MATERIAL_POLL_INTERVAL_MS,
-      // the incident photo links expire after an hour, a restored copy would show broken images
-      meta: { persist: false },
-    },
+  const dashboard = useQuery(
+    trpc.material.getDashboard.queryOptions(
+      { dayEnd },
+      {
+        ...materialQueryOptions,
+        refetchInterval: MATERIAL_POLL_INTERVAL_MS,
+        // the incident photo links expire after an hour, a restored copy would show broken images
+        meta: { persist: false },
+      },
+    ),
   );
 
   if (dashboard.isLoading) return <LoadingState text={labels.loading[locale]} />;
@@ -424,8 +430,9 @@ const TeamOverview: React.FC = () => {
 
 /** The depot's start page: the counter's day for the material team, their own overview for others. */
 export const OverviewView: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
-  const me = trpc.material.getMe.useQuery(undefined, materialQueryOptions);
+  const me = useQuery(trpc.material.getMe.queryOptions(undefined, materialQueryOptions));
   if (me.isLoading) return <LoadingState text={labels.loading[locale]} />;
   if (!me.data) return <MaterialQueryError error={me.error} />;
   return me.data.isMaterialTeam ? <TeamOverview /> : <MyLoansView />;

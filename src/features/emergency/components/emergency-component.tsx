@@ -1,5 +1,4 @@
 'use client';
-
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/accordion';
 import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -13,8 +12,8 @@ import type { EmergencyCard } from '@/features/payload-cms/payload-types';
 import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
-import { trpc } from '@/trpc/client';
+import { CHAT_PAGE_SIZE, ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -25,6 +24,8 @@ import { BriefcaseMedical, Download, FileText, ImageIcon, SearchX } from 'lucide
 import { useRouter } from 'next/navigation';
 import type { ChangeEvent } from 'react';
 import React, { useEffect, useState } from 'react';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const tapForDetailsText: StaticTranslationString = {
   de: 'Tippe für Details',
@@ -117,6 +118,7 @@ const errorStatusText: StaticTranslationString = {
 };
 
 export const EmergencyComponent: React.FC = () => {
+  const trpc = useTRPC();
   const [searchTerm, setSearchTerm] = useState('');
   // set when the alarm could not be sent; offline and logged out are read from their own state,
   // so the screen does not start with the call button and an error it then takes back
@@ -129,8 +131,10 @@ export const EmergencyComponent: React.FC = () => {
   const router = useRouter();
   // An alarm is always tried, even while the network seems not to answer: a paused mutation would
   // leave the button waiting instead of showing the call fallback.
-  const emergencyQuery = trpc.emergency.newAlert.useMutation({ networkMode: 'always' });
-  const trpcUtils = trpc.useUtils();
+  const emergencyQuery = useMutation(
+    trpc.emergency.newAlert.mutationOptions({ networkMode: 'always' }),
+  );
+  const queryClient = useQueryClient();
 
   const status = useAuthStatus();
 
@@ -138,23 +142,29 @@ export const EmergencyComponent: React.FC = () => {
   // `refetchOnMount` keeps the cached value on screen while it is revalidated
   // in the background - without it the persisted cache was rendered instantly
   // but never updated again as long as the browser tab stayed alive.
-  const { data: alertSettings } = trpc.emergency.getAlertSettings.useQuery(undefined, {
-    refetchInterval: isOnline ? 1000 * 60 * 60 * 2 : false, // 2 hours when online
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
-    staleTime: 1000 * 60, // 1 minute
-  });
+  const { data: alertSettings } = useQuery(
+    trpc.emergency.getAlertSettings.queryOptions(undefined, {
+      refetchInterval: isOnline ? 1000 * 60 * 60 * 2 : false, // 2 hours when online
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+      staleTime: 1000 * 60, // 1 minute
+    }),
+  );
 
-  const { data: emergencyCards, isLoading } = trpc.emergency.getEmergencyCards.useQuery(undefined, {
-    // instant render from the persisted cache, refreshed in the background
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
-    refetchInterval: isOnline ? 1000 * 60 * 10 : false, // 10 minutes when online
-    staleTime: 1000 * 60, // 1 minute
-  });
+  const { data: emergencyCards, isLoading } = useQuery(
+    trpc.emergency.getEmergencyCards.queryOptions(undefined, {
+      // instant render from the persisted cache, refreshed in the background
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+      refetchInterval: isOnline ? 1000 * 60 * 10 : false, // 10 minutes when online
+      staleTime: 1000 * 60, // 1 minute
+    }),
+  );
 
-  const directAlertSettings = trpcUtils.emergency.getAlertSettings.getData();
-  const directEmergencyCards = trpcUtils.emergency.getEmergencyCards.getData();
+  const directAlertSettings = queryClient.getQueryData(trpc.emergency.getAlertSettings.queryKey());
+  const directEmergencyCards = queryClient.getQueryData(
+    trpc.emergency.getEmergencyCards.queryKey(),
+  );
 
   // Emergency phone number with robust fallback for offline mode
   const emergencyPhoneNumber =
@@ -265,7 +275,7 @@ export const EmergencyComponent: React.FC = () => {
       const createdChatId = data.chatId;
 
       if (typeof createdChatId === 'string' && createdChatId.length > 0) {
-        trpcUtils.chat.chats.setData({}, (oldChats) => {
+        queryClient.setQueryData(trpc.chat.chats.queryKey({}), (oldChats) => {
           if (!oldChats) return oldChats;
           if (oldChats.some((c) => c.id === createdChatId)) return oldChats;
           const newChatEntry = {
@@ -294,18 +304,24 @@ export const EmergencyComponent: React.FC = () => {
         });
 
         // Prefetch new alert chat details & messages for offline availability
-        void trpcUtils.chat.chatDetails.ensureData({ chatId: createdChatId }).catch(console.warn);
-        void trpcUtils.chat.infiniteMessages
-          .prefetchInfinite({
-            chatId: createdChatId,
-            limit: 50,
-            parentId: undefined,
+        void queryClient
+          .query({
+            ...trpc.chat.chatDetails.queryOptions({ chatId: createdChatId }),
+            staleTime: 'static',
           })
+          .catch(console.warn);
+        void queryClient
+          .infiniteQuery(
+            trpc.chat.infiniteMessages.infiniteQueryOptions(
+              { chatId: createdChatId, limit: CHAT_PAGE_SIZE, parentId: undefined },
+              { getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined },
+            ),
+          )
           .catch(console.warn);
       }
 
       // Refetch full chat list from server in background while online
-      void trpcUtils.chat.chats.refetch().catch(console.warn);
+      void queryClient.refetchQueries(trpc.chat.chats.pathFilter()).catch(console.warn);
       router.push(data.redirectUrl);
     } catch (error) {
       console.error('Failed to trigger emergency alert:', error);

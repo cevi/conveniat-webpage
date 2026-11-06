@@ -9,6 +9,8 @@ import {
 } from '@/features/chat/hooks/use-message-read-status';
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { MessageType } from '@/lib/prisma';
+import type { TestTrpc } from '@/trpc/test-trpc';
+import { createTestTrpc } from '@/trpc/test-trpc';
 import type { RenderHookResult } from '@testing-library/react';
 import { act, renderHook } from '@testing-library/react';
 
@@ -17,20 +19,11 @@ jest.mock('@/lib/prisma', () => ({
   MessageType: { TEXT_MSG: 'TEXT_MSG', SYSTEM_MSG: 'SYSTEM_MSG' },
 }));
 
-const mockMarkChatAsRead = jest.fn();
-const mockMarkChatUnread = jest.fn();
-let mockCachedChats: { id: string; isMarkedUnread?: boolean }[] | undefined;
-
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    useUtils: (): unknown => ({ chat: { chats: { setData: jest.fn(), invalidate: jest.fn() } } }),
-    chat: {
-      markChatAsRead: { useMutation: (): unknown => ({ mutate: mockMarkChatAsRead }) },
-      markChatUnread: { useMutation: (): unknown => ({ mutate: mockMarkChatUnread }) },
-      chats: { useQuery: (): unknown => ({ data: mockCachedChats }) },
-    },
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 
 const CURRENT_USER = 'user-uuid-1';
 
@@ -75,8 +68,22 @@ describe('findLatestMessageToRead', () => {
   });
 });
 
+/** lets the mutations started by the last render reach the server */
+const settle = async (): Promise<void> => {
+  await act(async () => {
+    await Promise.resolve();
+  });
+};
+
 describe('useMessageReadStatus', () => {
   let visibilityState: DocumentVisibilityState = 'visible';
+  let testTrpc: TestTrpc;
+  const markChatAsRead = jest.fn();
+  const markChatUnread = jest.fn();
+
+  const cacheChats = (chats: { id: string; isMarkedUnread?: boolean }[]): void => {
+    testTrpc.queryClient.setQueryData(testTrpc.trpc.chat.chats.queryKey({}), chats as never);
+  };
 
   const setVisibility = (state: DocumentVisibilityState): void => {
     visibilityState = state;
@@ -94,9 +101,12 @@ describe('useMessageReadStatus', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
-    mockMarkChatAsRead.mockClear();
-    mockMarkChatUnread.mockClear();
-    mockCachedChats = undefined;
+    markChatAsRead.mockReset();
+    markChatUnread.mockReset();
+    testTrpc = createTestTrpc({
+      'chat.markChatAsRead': markChatAsRead,
+      'chat.markChatUnread': markChatUnread,
+    });
     visibilityState = 'visible';
   });
 
@@ -113,87 +123,100 @@ describe('useMessageReadStatus', () => {
     renderHook(
       ({ sortedMessages, isAtBottom }) =>
         useMessageReadStatus({ chatId, currentUser: CURRENT_USER, sortedMessages, isAtBottom }),
-      { initialProps: initial },
+      { initialProps: initial, wrapper: testTrpc.wrapper },
     );
 
-  it('marks the newest message read when the chat is opened', () => {
+  it('marks the newest message read when the chat is opened', async () => {
     render('chat-open', { sortedMessages: [message('msg-1')], isAtBottom: true });
 
-    expect(mockMarkChatAsRead).toHaveBeenCalledWith({
+    await settle();
+    expect(markChatAsRead).toHaveBeenCalledWith({
       chatId: 'chat-open',
       lastMessageId: 'msg-1',
     });
   });
 
-  it('waits until the app is back in the foreground', () => {
+  it('waits until the app is back in the foreground', async () => {
     visibilityState = 'hidden';
     render('chat-hidden', { sortedMessages: [message('msg-1')], isAtBottom: true });
-    expect(mockMarkChatAsRead).not.toHaveBeenCalled();
+    await settle();
+    expect(markChatAsRead).not.toHaveBeenCalled();
 
     setVisibility('visible');
 
-    expect(mockMarkChatAsRead).toHaveBeenCalledWith({
+    await settle();
+    expect(markChatAsRead).toHaveBeenCalledWith({
       chatId: 'chat-hidden',
       lastMessageId: 'msg-1',
     });
   });
 
-  it('waits until the reader scrolls back down to the newest message', () => {
+  it('waits until the reader scrolls back down to the newest message', async () => {
     const { rerender } = render('chat-scrolled', {
       sortedMessages: [message('msg-1'), message('msg-2')],
       isAtBottom: false,
     });
-    expect(mockMarkChatAsRead).not.toHaveBeenCalled();
+    await settle();
+    expect(markChatAsRead).not.toHaveBeenCalled();
 
     rerender({ sortedMessages: [message('msg-1'), message('msg-2')], isAtBottom: true });
 
-    expect(mockMarkChatAsRead).toHaveBeenCalledWith({
+    await settle();
+    expect(markChatAsRead).toHaveBeenCalledWith({
       chatId: 'chat-scrolled',
       lastMessageId: 'msg-2',
     });
   });
 
-  it('marks a burst of messages read once', () => {
+  it('marks a burst of messages read once', async () => {
     const { rerender } = render('chat-burst', {
       sortedMessages: [message('msg-1')],
       isAtBottom: true,
     });
-    expect(mockMarkChatAsRead).toHaveBeenCalledTimes(1);
+    await settle();
+    expect(markChatAsRead).toHaveBeenCalledTimes(1);
 
     rerender({ sortedMessages: [message('msg-1'), message('msg-2')], isAtBottom: true });
     rerender({
       sortedMessages: [message('msg-1'), message('msg-2'), message('msg-3')],
       isAtBottom: true,
     });
-    expect(mockMarkChatAsRead).toHaveBeenCalledTimes(1);
+    await settle();
+    expect(markChatAsRead).toHaveBeenCalledTimes(1);
 
-    act(() => {
-      jest.advanceTimersByTime(1000);
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(1000);
     });
 
-    expect(mockMarkChatAsRead).toHaveBeenCalledTimes(2);
-    expect(mockMarkChatAsRead).toHaveBeenLastCalledWith({
+    await settle();
+    expect(markChatAsRead).toHaveBeenCalledTimes(2);
+    expect(markChatAsRead).toHaveBeenLastCalledWith({
       chatId: 'chat-burst',
       lastMessageId: 'msg-3',
     });
   });
 
-  it('takes back "Als ungelesen markieren" when the chat is opened, even with nothing new to read', () => {
-    mockCachedChats = [{ id: 'chat-marked', isMarkedUnread: true }];
+  it('takes back "Als ungelesen markieren" when the chat is opened, even with nothing new to read', async () => {
+    cacheChats([{ id: 'chat-marked', isMarkedUnread: true }]);
     // the reader's own message is the newest: no read receipt goes out
     render('chat-marked', {
       sortedMessages: [message('msg-1', { senderId: CURRENT_USER })],
       isAtBottom: true,
     });
 
-    expect(mockMarkChatAsRead).not.toHaveBeenCalled();
-    expect(mockMarkChatUnread).toHaveBeenCalledWith({ chatId: 'chat-marked', unread: false });
+    await settle();
+    expect(markChatAsRead).not.toHaveBeenCalled();
+    expect(markChatUnread).toHaveBeenCalledWith({ chatId: 'chat-marked', unread: false });
+    expect(testTrpc.queryClient.getQueryData(testTrpc.trpc.chat.chats.queryKey({}))).toEqual([
+      expect.objectContaining({ id: 'chat-marked', isMarkedUnread: false }),
+    ]);
   });
 
-  it('leaves a chat that is not marked unread alone', () => {
-    mockCachedChats = [{ id: 'chat-plain', isMarkedUnread: false }];
+  it('leaves a chat that is not marked unread alone', async () => {
+    cacheChats([{ id: 'chat-plain', isMarkedUnread: false }]);
     render('chat-plain', { sortedMessages: [message('msg-1')], isAtBottom: true });
 
-    expect(mockMarkChatUnread).not.toHaveBeenCalled();
+    await settle();
+    expect(markChatUnread).not.toHaveBeenCalled();
   });
 });

@@ -3,9 +3,11 @@ import { useAutoResizeTextarea } from '@/features/chat/components/chat-view/chat
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
 import { CHAT_MESSAGE_MAX_LENGTH } from '@/features/chat/limits';
 import type { MessageType } from '@/lib/prisma/client';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { Paperclip, Send } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+
+import { useMutation } from '@tanstack/react-query';
 
 interface ChatManagementInputProperties {
   chatId: string;
@@ -40,6 +42,7 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
   disabled,
   locale,
 }) => {
+  const trpc = useTRPC();
   const [newMessage, setNewMessage] = useState('');
   const fileInputReference = useRef<HTMLInputElement>(null);
   const { textareaRef, resize } = useAutoResizeTextarea(newMessage);
@@ -66,7 +69,7 @@ export const ChatManagementInput: React.FC<ChatManagementInputProperties> = ({
     restoreFocus();
   }, [chatId, restoreFocus]);
 
-  const adminGetUploadUrlMutation = trpc.admin.getAdminUploadUrl.useMutation();
+  const adminGetUploadUrlMutation = useMutation(trpc.admin.getAdminUploadUrl.mutationOptions());
 
   const { uploadImage, isPending: isUploading } = useImageUpload({
     chatId,

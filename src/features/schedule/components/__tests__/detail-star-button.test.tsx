@@ -16,12 +16,21 @@ jest.mock('@/hooks/use-star', () => ({
 jest.mock('@/features/schedule/hooks/use-reminder', () => ({
   useReminder: (): unknown => ({ ...reminder, setReminder }),
 }));
-jest.mock('@/trpc/client', () => ({
-  trpc: { schedule: { getMyEnrollments: { useQuery: (): unknown => ({ data: [] }) } } },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 
 import { toast } from '@/components/ui/toast';
 import { DetailStarButton } from '@/features/schedule/components/detail-star-button';
+import { createTestTrpc } from '@/trpc/test-trpc';
+
+/** The star on a block the user is not enrolled in. */
+const renderStar = (): void => {
+  const { wrapper } = createTestTrpc({ 'schedule.getMyEnrollments': () => [] });
+  render(<DetailStarButton entryId="slot-q5" />, { wrapper });
+};
 
 const unstar = (): void => {
   fireEvent.click(screen.getByRole('button', { name: 'Aus Favoriten entfernen' }));
@@ -34,7 +43,7 @@ describe('DetailStarButton and the reminder', () => {
   });
 
   it('asks before taking the star off a block with a reminder, and removes both on "Ja"', () => {
-    render(<DetailStarButton entryId="slot-q5" />);
+    renderStar();
     unstar();
 
     expect(toggleStar).not.toHaveBeenCalled();
@@ -48,7 +57,7 @@ describe('DetailStarButton and the reminder', () => {
     setReminder.mockImplementationOnce((_enabled: boolean, options?: { onError?: () => void }) =>
       options?.onError?.(),
     );
-    render(<DetailStarButton entryId="slot-q5" />);
+    renderStar();
     unstar();
     fireEvent.click(screen.getByRole('button', { name: 'Ja, entfernen' }));
 
@@ -63,7 +72,7 @@ describe('DetailStarButton and the reminder', () => {
   });
 
   it('keeps the reminder on "Behalten" and takes only the star off', () => {
-    render(<DetailStarButton entryId="slot-q5" />);
+    renderStar();
     unstar();
     fireEvent.click(screen.getByRole('button', { name: 'Behalten' }));
 
@@ -73,7 +82,7 @@ describe('DetailStarButton and the reminder', () => {
 
   it('takes the star off at once when there is no reminder to ask about', () => {
     reminder = { isOn: false, isAutomatic: false };
-    render(<DetailStarButton entryId="slot-q5" />);
+    renderStar();
     unstar();
 
     expect(toggleStar).toHaveBeenCalledWith('slot-q5');

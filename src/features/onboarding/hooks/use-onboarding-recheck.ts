@@ -1,12 +1,11 @@
 'use client';
-
 import { isNativePushActive } from '@/features/onboarding/hooks/use-native-push-subscription-status';
 import { SESSION_EXPIRED_ENTRYPOINT } from '@/features/onboarding/onboarding-constants';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import { forgetOnboardingComplete, ONBOARDING_COMPLETE_KEY } from '@/lib/onboarding-complete';
 import { readPreference, writePreference } from '@/lib/preferences';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { Cookie } from '@/types/types';
 import { replaceLocation } from '@/utils/assign-location';
@@ -19,6 +18,8 @@ import {
 import { ANSWERED_BY_SERVICE_WORKER_HEADER } from '@/utils/service-worker-messages';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import { useEffect, useRef } from 'react';
+
+import { useMutation } from '@tanstack/react-query';
 
 /** How often a web app tells the server that its push subscription is still in use. */
 const PUSH_CHECK_IN_INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -65,11 +66,13 @@ const fetchSessionVerdict = async (): Promise<'valid' | 'expired' | undefined> =
  *   from one that is gone.
  */
 export const useOnboardingRecheck = (locale: Locale): void => {
+  const trpc = useTRPC();
   const isOnline = useOnlineStatus();
   const hasCheckedSession = useRef(false);
   const hasCheckedPushSubscription = useRef(false);
-  const { mutateAsync: confirmPushSubscription } =
-    trpc.pushTracking.confirmWebPushSubscription.useMutation();
+  const { mutateAsync: confirmPushSubscription } = useMutation(
+    trpc.pushTracking.confirmWebPushSubscription.mutationOptions(),
+  );
 
   useEffect(() => {
     if (!isOnline || hasCheckedSession.current || !isOnboardingComplete()) return;

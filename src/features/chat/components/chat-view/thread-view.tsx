@@ -1,5 +1,4 @@
 'use client';
-
 import { OfflineBanner } from '@/components/offline-banner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PersonAvatar } from '@/components/ui/person-avatar';
@@ -18,12 +17,14 @@ import { isMessageDeleted } from '@/features/chat/utils/message-deletion';
 import { formatDayLabel } from '@/features/chat/utils/message-grouping';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ArrowLeft, Ban, ChevronRight, MessageSquareOff } from 'lucide-react';
 import React, { useEffect } from 'react';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const threadTitle: StaticTranslationString = {
   de: 'Thread',
@@ -173,57 +174,77 @@ interface ThreadViewProperties {
 }
 
 export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
   const { closeThread, scrollToMessage, threadHistory } = useChatActions();
   const { data: chatDetails } = useChatDetail(chatId);
-  const { data: currentUserId } = trpc.chat.user.useQuery({});
-  const trpcUtils = trpc.useUtils();
+  const { data: currentUserId } = useQuery(trpc.chat.user.queryOptions({}));
+  const queryClient = useQueryClient();
 
   // Fetch parent message directly
-  const { data: parentMessage, isLoading: isLoadingParent } = trpc.chat.getMessage.useQuery({
-    messageId: threadId,
-  });
+  const { data: parentMessage, isLoading: isLoadingParent } = useQuery(
+    trpc.chat.getMessage.queryOptions({
+      messageId: threadId,
+    }),
+  );
   const rootSender = chatDetails?.participants.find((p) => p.id === parentMessage?.senderId);
 
-  const { mutate: markThreadAsRead } = trpc.chat.markThreadAsRead.useMutation({
-    onMutate: () => {
-      // 1. Optimistically update getMessage query for the thread message itself
-      trpcUtils.chat.getMessage.setData({ messageId: threadId }, (oldData) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          hasUnreadReplies: false,
-        };
-      });
+  const { mutate: markThreadAsRead } = useMutation(
+    trpc.chat.markThreadAsRead.mutationOptions({
+      onMutate: () => {
+        // 1. Optimistically update getMessage query for the thread message itself
+        queryClient.setQueryData(
+          trpc.chat.getMessage.queryKey({ messageId: threadId }),
+          (oldData) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              hasUnreadReplies: false,
+            };
+          },
+        );
 
-      // 2. Optimistically update infiniteMessages query for the chat
-      trpcUtils.chat.infiniteMessages.setInfiniteData(
-        { chatId, limit: CHAT_PAGE_SIZE, parentId: undefined },
-        (oldData) => {
-          if (!oldData) return oldData;
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page) => ({
-              ...page,
-              items: page.items.map((item) => {
-                if (item.id === threadId) {
-                  return { ...item, hasUnreadReplies: false };
-                }
-                return item;
-              }),
-            })),
-          };
-        },
-      );
-    },
-    onSettled: () => {
-      trpcUtils.chat.getMessage.invalidate({ messageId: threadId }).catch(console.error);
-      trpcUtils.chat.infiniteMessages
-        .invalidate({ chatId, limit: CHAT_PAGE_SIZE, parentId: undefined })
-        .catch(console.error);
-    },
-  });
+        // 2. Optimistically update infiniteMessages query for the chat
+        queryClient.setQueryData(
+          trpc.chat.infiniteMessages.infiniteQueryKey({
+            chatId,
+            limit: CHAT_PAGE_SIZE,
+            parentId: undefined,
+          }),
+          (oldData) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page) => ({
+                ...page,
+                items: page.items.map((item) => {
+                  if (item.id === threadId) {
+                    return { ...item, hasUnreadReplies: false };
+                  }
+                  return item;
+                }),
+              })),
+            };
+          },
+        );
+      },
+      onSettled: () => {
+        queryClient
+          .invalidateQueries(trpc.chat.getMessage.queryFilter({ messageId: threadId }))
+          .catch(console.error);
+        queryClient
+          .invalidateQueries(
+            trpc.chat.infiniteMessages.infiniteQueryFilter({
+              chatId,
+              limit: CHAT_PAGE_SIZE,
+              parentId: undefined,
+            }),
+          )
+          .catch(console.error);
+      },
+    }),
+  );
 
   useEffect(() => {
     if (chatId !== '' && threadId !== '') {

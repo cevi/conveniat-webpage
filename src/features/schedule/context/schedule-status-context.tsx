@@ -1,6 +1,7 @@
 'use client';
 
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
+import { useQueries } from '@tanstack/react-query';
 import React, { createContext, useContext, useEffect, useSyncExternalStore } from 'react';
 
 /**
@@ -87,9 +88,10 @@ export const ScheduleStatusProvider: React.FC<ScheduleStatusProviderProperties> 
 }) => {
   const chunks = React.useMemo(() => chunkArray(courseIds, CHUNK_SIZE), [courseIds]);
 
-  const queryResults = trpc.useQueries((t) =>
-    chunks.map((chunk) =>
-      t.schedule.getCourseStatuses(
+  const trpc = useTRPC();
+  const queryResults = useQueries({
+    queries: chunks.map((chunk) =>
+      trpc.schedule.getCourseStatuses.queryOptions(
         { courseIds: chunk },
         {
           staleTime: STATUS_REFRESH_INTERVAL,
@@ -106,7 +108,7 @@ export const ScheduleStatusProvider: React.FC<ScheduleStatusProviderProperties> 
         },
       ),
     ),
-  );
+  });
 
   const isLoading = queryResults.some((q) => q.isLoading);
   const data = React.useMemo(() => {

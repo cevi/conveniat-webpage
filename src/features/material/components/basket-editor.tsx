@@ -38,12 +38,14 @@ import {
   toDateInput,
 } from '@/features/material/utils/dates';
 import { parseScan } from '@/features/material/utils/scan';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronLeft, PackageOpen, Trash2, X } from 'lucide-react';
 import type React from 'react';
 import { useMemo, useState } from 'react';
+
+import { useMutation, useQueries, useQuery } from '@tanstack/react-query';
 
 const text = {
   to: { de: 'An wen', en: 'To whom', fr: 'À qui' },
@@ -293,9 +295,10 @@ const usePeriodFree = (
   periodReversed: boolean,
 ): Map<string, number | undefined> => {
   const enabled = startDate !== undefined && endDate !== undefined && !periodReversed;
-  const results = trpc.useQueries((t) =>
-    lines.map((line) =>
-      t.material.getAvailability(
+  const trpc = useTRPC();
+  const results = useQueries({
+    queries: lines.map((line) =>
+      trpc.material.getAvailability.queryOptions(
         {
           itemId: line.itemId,
           startDate: startDate ?? new Date(0),
@@ -307,7 +310,7 @@ const usePeriodFree = (
         { ...materialQueryOptions, enabled },
       ),
     ),
-  );
+  });
   return new Map(lines.map((line, index) => [line.itemId, results[index]?.data?.available]));
 };
 
@@ -398,12 +401,17 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
   start,
   onClose,
 }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const now = useNow();
   const invalidate = useInvalidateMaterial();
-  const inventory = trpc.material.getInventory.useQuery(undefined, materialQueryOptions);
-  const holders = trpc.material.getHolderList.useQuery(undefined, materialQueryOptions);
-  const book = trpc.material.createLoanBasket.useMutation();
+  const inventory = useQuery(
+    trpc.material.getInventory.queryOptions(undefined, materialQueryOptions),
+  );
+  const holders = useQuery(
+    trpc.material.getHolderList.queryOptions(undefined, materialQueryOptions),
+  );
+  const book = useMutation(trpc.material.createLoanBasket.mutationOptions());
 
   const prepared = start.prepared ?? [];
   const adjusting = prepared.length > 0;

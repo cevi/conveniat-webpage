@@ -4,9 +4,11 @@ import { prepareChatImage } from '@/features/chat/utils/prepare-chat-image';
 import type { ChatImageUploadInput } from '@/lib/chat-images';
 import { CHAT_IMAGE_MAX_BYTES, isChatImageContentType } from '@/lib/chat-images';
 import { MessageType } from '@/lib/prisma/client';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { errorReasonOf } from '@/utils/user-error-message';
 import { useCallback, useState } from 'react';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface UseImageUploadOptions {
   chatId: string;
@@ -47,9 +49,10 @@ export const useImageUpload = ({
   isUploading: boolean;
   isPending: boolean;
 } => {
+  const trpc = useTRPC();
   const [isUploading, setIsUploading] = useState(false);
-  const trpcUtils = trpc.useUtils();
-  const defaultUploadUrlMutation = trpc.chat.getUploadUrl.useMutation();
+  const queryClient = useQueryClient();
+  const defaultUploadUrlMutation = useMutation(trpc.chat.getUploadUrl.mutationOptions());
   const defaultSendMessageMutation = useMessageSend();
 
   const getUploadUrlMutation = customUploadUrlMutation ?? defaultUploadUrlMutation;
@@ -112,7 +115,9 @@ export const useImageUpload = ({
         console.error('Failed to upload image:', error_);
         // the chat details on the phone said images were allowed; the attach button follows
         if (errorReasonOf(error)?.reason === 'imagesDisabled') {
-          trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
+          queryClient
+            .invalidateQueries(trpc.chat.chatDetails.queryFilter({ chatId }))
+            .catch(console.error);
         }
         onError?.(error_);
         return false;
@@ -120,7 +125,16 @@ export const useImageUpload = ({
         setIsUploading(false);
       }
     },
-    [chatId, getUploadUrlMutation, sendMessageMutation, onSuccess, onError, onSendError, trpcUtils],
+    [
+      chatId,
+      getUploadUrlMutation,
+      sendMessageMutation,
+      onSuccess,
+      onError,
+      onSendError,
+      queryClient,
+      trpc,
+    ],
   );
 
   return {

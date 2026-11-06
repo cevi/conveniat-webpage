@@ -23,10 +23,6 @@ import {
   withActiveJobTracking,
   withActiveWorkflowTracking,
 } from '@/features/payload-cms/payload-cms/tasks/active-job-tracking';
-import {
-  DEFAULT_QUEUE,
-  MAIL_QUEUE,
-} from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
 import { visitDayPaymentImporter } from '@/features/visit-day/billing/visit-day-payment-import';
 
 import { cleanupTemporaryFormFilesTask } from '@/features/payload-cms/payload-cms/tasks/cleanup-temporary-form-files';
@@ -181,18 +177,6 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
     defaultLayout: widgetDefaultLayout,
   },
 };
-
-/**
- * Payload logs `Running N jobs.` at info on every autorun tick that finds work.
- * With three queues on a 10s cron across two replicas that was ~97% of everything
- * the app shipped to Loki, and nobody reads it — the job's own logs carry the
- * detail. Silenced in production only, so the queue still ticks visibly in dev
- * (enriched with the job slugs by `formatRunningJobsLogMessage`).
- *
- * `silent.info` gates that one line and nothing else; job failures are gated
- * separately by `silent.error` and stay on.
- */
-const autoRunSilent = { info: env.NODE_ENV === 'production' };
 
 const jobsConfig: JobsConfig = {
   /**
@@ -399,28 +383,6 @@ const jobsConfig: JobsConfig = {
     ].map((task) => withActiveJobTracking(task)),
   ),
   workflows: [brevoContactWorkflow].map((workflow) => withActiveWorkflowTracking(workflow)),
-  autoRun: env.FEATURE_ENABLE_WORKFLOWS
-    ? [
-        {
-          cron: '*/10 * * * * *', // Every 10 seconds
-          limit: 10,
-          queue: 'workflows',
-          silent: autoRunSilent,
-        },
-        {
-          cron: '*/10 * * * * *', // Every 10 seconds
-          limit: 10,
-          queue: DEFAULT_QUEUE,
-          silent: autoRunSilent,
-        },
-        {
-          cron: '*/10 * * * * *', // Every 10 seconds
-          limit: 10,
-          queue: MAIL_QUEUE,
-          silent: autoRunSilent,
-        },
-      ]
-    : [],
 };
 
 const customEndpoints: Endpoint[] = [

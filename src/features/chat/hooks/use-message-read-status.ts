@@ -1,12 +1,13 @@
 'use client';
-
 import type { ChatMessage } from '@/features/chat/api/types';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { MessageType } from '@/lib/prisma';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { closeChatNotifications } from '@/utils/close-notifications';
 import { useEffect, useRef, useSyncExternalStore } from 'react';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface MessageReadStatusProperties {
   chatId: string;
@@ -64,7 +65,8 @@ export const useMessageReadStatus = ({
   sortedMessages,
   isAtBottom,
 }: MessageReadStatusProperties): void => {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const isVisible = useIsDocumentVisible();
   const lastMarkedReadIdReference = useRef<string | undefined>(confirmedReadWatermarks.get(chatId));
   const lastMarkedAtReference = useRef(0);
@@ -73,7 +75,9 @@ export const useMessageReadStatus = ({
     lastMarkedReadIdReference.current = confirmedReadWatermarks.get(chatId);
   }, [chatId]);
 
-  const { mutate: markChatAsRead } = trpc.chat.markChatAsRead.useMutation({
+  // the callbacks are handed to useMutation itself, so the compiler sees they run after render
+  const { mutate: markChatAsRead } = useMutation({
+    ...trpc.chat.markChatAsRead.mutationOptions<void>(),
     retry: false,
     onMutate: () => {
       // What the notifications show has now been read, and the next message would add to
@@ -81,20 +85,23 @@ export const useMessageReadStatus = ({
       void closeChatNotifications(chatId);
 
       // Optimistically update the chat overview
-      trpcUtils.chat.chats.setData({}, (oldChats: ChatWithMessagePreview[] | undefined) => {
-        // nothing cached (a chat opened by link): an empty list here would stay until it is stale
-        if (!oldChats) return oldChats;
-        return oldChats.map((chat: ChatWithMessagePreview) => {
-          if (chat.id === chatId) {
-            return {
-              ...chat,
-              unreadCount: 0,
-              isMarkedUnread: false,
-            };
-          }
-          return chat;
-        });
-      });
+      queryClient.setQueryData(
+        trpc.chat.chats.queryKey({}),
+        (oldChats: ChatWithMessagePreview[] | undefined) => {
+          // nothing cached (a chat opened by link): an empty list here would stay until it is stale
+          if (!oldChats) return oldChats;
+          return oldChats.map((chat: ChatWithMessagePreview) => {
+            if (chat.id === chatId) {
+              return {
+                ...chat,
+                unreadCount: 0,
+                isMarkedUnread: false,
+              };
+            }
+            return chat;
+          });
+        },
+      );
     },
     onSuccess: (_data, variables) => {
       confirmedReadWatermarks.set(variables.chatId, variables.lastMessageId);
@@ -103,29 +110,34 @@ export const useMessageReadStatus = ({
     // Only a failure needs the server's count back; on success the optimistic zero is the
     // answer, and refetching here doubled the list queries of every message read live.
     onError: () => {
-      trpcUtils.chat.chats.invalidate().catch(console.error);
+      queryClient.invalidateQueries(trpc.chat.chats.pathFilter()).catch(console.error);
     },
   });
 
   // "Als ungelesen markieren" is undone by opening the chat. The read receipt cannot do it
   // alone: the chat may already be read up to its newest message in this session, or end in
   // the reader's own message, and then no receipt goes out.
-  const { mutate: markChatUnread } = trpc.chat.markChatUnread.useMutation({
-    retry: false,
-    onMutate: () => {
-      trpcUtils.chat.chats.setData({}, (oldChats: ChatWithMessagePreview[] | undefined) =>
-        oldChats?.map((chat) =>
-          chat.id === chatId ? { ...chat, isMarkedUnread: false, unreadCount: 0 } : chat,
-        ),
-      );
-    },
-    onError: () => {
-      trpcUtils.chat.chats.invalidate().catch(console.error);
-    },
-  });
+  const { mutate: markChatUnread } = useMutation(
+    trpc.chat.markChatUnread.mutationOptions({
+      retry: false,
+      onMutate: () => {
+        queryClient.setQueryData(
+          trpc.chat.chats.queryKey({}),
+          (oldChats: ChatWithMessagePreview[] | undefined) =>
+            oldChats?.map((chat) =>
+              chat.id === chatId ? { ...chat, isMarkedUnread: false, unreadCount: 0 } : chat,
+            ),
+        );
+      },
+      onError: () => {
+        queryClient.invalidateQueries(trpc.chat.chats.pathFilter()).catch(console.error);
+      },
+    }),
+  );
   const isMarkedUnread =
-    trpc.chat.chats.useQuery({}, { enabled: false }).data?.find((chat) => chat.id === chatId)
-      ?.isMarkedUnread === true;
+    useQuery(trpc.chat.chats.queryOptions({}, { enabled: false })).data?.find(
+      (chat) => chat.id === chatId,
+    )?.isMarkedUnread === true;
 
   useEffect(() => {
     if (!isVisible || !isAtBottom || !isMarkedUnread) return;

@@ -2,7 +2,8 @@
  * @jest-environment jsdom
  */
 
-import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
+import type { ChatMessage } from '@/features/chat/api/types';
+import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useOfflineQueueProcessor } from '@/features/chat/hooks/use-offline-queue-processor';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { generateChatId } from '@/features/chat/utils';
@@ -13,9 +14,11 @@ import {
   setSendInFlight,
   type OfflineMessage,
 } from '@/features/chat/utils/offline-outbox';
-import { trpc } from '@/trpc/client';
+import type { ProcedureHandler, TestTrpc } from '@/trpc/test-trpc';
+import { createTestTrpc, testTrpcError } from '@/trpc/test-trpc';
 import { renderHook, waitFor } from '@testing-library/react';
 import { TRPCClientError } from '@trpc/client';
+import type { TRPC_ERROR_CODE_KEY } from '@trpc/server';
 
 // the generated prisma client cannot be loaded under jsdom; the drain only needs its enums
 jest.mock('@/lib/prisma/client', () => ({
@@ -24,15 +27,11 @@ jest.mock('@/lib/prisma/client', () => ({
   MessageType: { TEXT_MSG: 'TEXT_MSG', IMAGE_MSG: 'IMAGE_MSG' },
 }));
 
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    useUtils: jest.fn(),
-    chat: {
-      sendMessage: { useMutation: jest.fn() },
-      createChat: { useMutation: jest.fn() },
-    },
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 
 jest.mock('@/hooks/use-online-status', () => ({
   useOnlineStatus: (): boolean => true,
@@ -49,65 +48,31 @@ const navigateTo = (path: string): void => {
   globalThis.history.replaceState({}, '', path);
 };
 
-interface CachedQueries {
-  chats: ChatWithMessagePreview[] | undefined;
-  details: Map<string, ChatDetails | undefined>;
-  messagePages: Map<string, { pages: { items: ChatMessage[] }[] } | undefined>;
-}
-
 const CURRENT_USER = 'user-1';
 
-/** Same stand-in for the tRPC query cache as `use-create-chat.test.ts`. */
-const createCacheStub = (): {
-  cache: CachedQueries;
-  utils: ReturnType<typeof trpc.useUtils>;
-} => {
-  const cache: CachedQueries = {
-    chats: undefined,
-    details: new Map(),
-    messagePages: new Map(),
-  };
+/** What the chat screens read from the query cache for one chat. */
+interface ChatCaches {
+  chats: () => { id: string }[] | undefined;
+  details: (chatId: string) => unknown;
+  messages: (chatId: string) => { pages: { items: ChatMessage[] }[] } | undefined;
+}
 
-  const utils = {
-    chat: {
-      user: { ensureData: jest.fn((): Promise<string> => Promise.resolve(CURRENT_USER)) },
-      chats: {
-        setData: (
-          _input: unknown,
-          updater: (
-            old: ChatWithMessagePreview[] | undefined,
-          ) => ChatWithMessagePreview[] | undefined,
-        ): void => {
-          cache.chats = updater(cache.chats);
-        },
-        invalidate: jest.fn(async (): Promise<void> => {}),
-      },
-      chatDetails: {
-        setData: (
-          { chatId }: { chatId: string },
-          updater: ChatDetails | ((old: ChatDetails | undefined) => ChatDetails | undefined),
-        ): void => {
-          cache.details.set(
-            chatId,
-            typeof updater === 'function' ? updater(cache.details.get(chatId)) : updater,
-          );
-        },
-      },
-      infiniteMessages: {
-        setInfiniteData: (
-          { chatId }: { chatId: string },
-          updater: (
-            old: { pages: { items: ChatMessage[] }[] } | undefined,
-          ) => { pages: { items: ChatMessage[] }[] } | undefined,
-        ): void => {
-          cache.messagePages.set(chatId, updater(cache.messagePages.get(chatId)));
-        },
-      },
-    },
-  };
+const chatCachesOf = ({ trpc, queryClient }: TestTrpc): ChatCaches => ({
+  chats: () => queryClient.getQueryData(trpc.chat.chats.queryKey({})),
+  details: (chatId) => queryClient.getQueryData(trpc.chat.chatDetails.queryKey({ chatId })),
+  messages: (chatId) =>
+    queryClient.getQueryData(
+      trpc.chat.infiniteMessages.infiniteQueryKey({
+        chatId,
+        limit: CHAT_PAGE_SIZE,
+        parentId: undefined,
+      }),
+    ),
+});
 
-  return { cache, utils: utils as unknown as ReturnType<typeof trpc.useUtils> };
-};
+/** A drain signed in as {@link CURRENT_USER}, with the server answering through `handlers`. */
+const createDrainTrpc = (handlers: Record<string, ProcedureHandler>): TestTrpc =>
+  createTestTrpc({ 'chat.user': () => CURRENT_USER, ...handlers });
 
 const chatListEntry = (id: string, name: string): ChatWithMessagePreview =>
   ({ id, name }) as unknown as ChatWithMessagePreview;
@@ -116,21 +81,28 @@ const chatListEntry = (id: string, name: string): ChatWithMessagePreview =>
 const renderProcessor = (
   createdChatId: string,
   initialChats: ChatWithMessagePreview[],
-): { cache: CachedQueries; createChat: jest.Mock; unmount: () => void } => {
-  const { cache, utils } = createCacheStub();
-  cache.chats = initialChats;
-  (trpc.useUtils as unknown as jest.Mock).mockReturnValue(utils);
-  (trpc.chat.sendMessage.useMutation as unknown as jest.Mock).mockReturnValue({
-    mutateAsync: jest.fn(),
-  });
+  optimisticChatId: string,
+): { cache: ChatCaches; createChat: jest.Mock; unmount: () => void } => {
+  const createChat = jest.fn((): string => createdChatId);
+  const testTrpc = createDrainTrpc({ 'chat.createChat': createChat });
+  const { trpc, queryClient, wrapper } = testTrpc;
+  queryClient.setQueryData(trpc.chat.chats.queryKey({}), initialChats);
+  // what `useCreateChat` seeded when the chat was created offline
+  queryClient.setQueryData(trpc.chat.chatDetails.queryKey({ chatId: optimisticChatId }), {
+    id: optimisticChatId,
+    messages: [],
+  } as never);
+  queryClient.setQueryData(
+    trpc.chat.infiniteMessages.infiniteQueryKey({
+      chatId: optimisticChatId,
+      limit: CHAT_PAGE_SIZE,
+      parentId: undefined,
+    }),
+    { pages: [{ items: [], nextCursor: undefined }], pageParams: [null] },
+  );
 
-  const createChat = jest.fn((): Promise<string> => Promise.resolve(createdChatId));
-  (trpc.chat.createChat.useMutation as unknown as jest.Mock).mockReturnValue({
-    mutateAsync: createChat,
-  });
-
-  const { unmount } = renderHook(() => useOfflineQueueProcessor());
-  return { cache, createChat, unmount };
+  const { unmount } = renderHook(() => useOfflineQueueProcessor(), { wrapper });
+  return { cache: chatCachesOf(testTrpc), createChat, unmount };
 };
 
 describe('useOfflineQueueProcessor - replaying a queued chat creation', () => {
@@ -153,17 +125,21 @@ describe('useOfflineQueueProcessor - replaying a queued chat creation', () => {
 
   test('follows the existing chat when the server dedupes the one-to-one creation', async () => {
     navigateTo(`/app/chat/${optimisticChatId}`);
-    const { cache, unmount } = renderProcessor('existing-chat-id', [
-      chatListEntry(optimisticChatId, 'Anna Muster'),
-      chatListEntry('existing-chat-id', 'Anna Muster'),
-    ]);
+    const { cache, unmount } = renderProcessor(
+      'existing-chat-id',
+      [
+        chatListEntry(optimisticChatId, 'Anna Muster'),
+        chatListEntry('existing-chat-id', 'Anna Muster'),
+      ],
+      optimisticChatId,
+    );
 
     await waitFor(() => expect(getOfflineOutbox()).toEqual([]));
 
     // the placeholder is gone rather than renamed onto the id the real chat already holds
-    expect(cache.chats?.map((chat) => chat.id)).toEqual(['existing-chat-id']);
-    expect(cache.details.get(optimisticChatId)).toBeUndefined();
-    expect(cache.messagePages.get(optimisticChatId)).toBeUndefined();
+    expect(cache.chats()?.map((chat) => chat.id)).toEqual(['existing-chat-id']);
+    expect(cache.details(optimisticChatId)).toBeUndefined();
+    expect(cache.messages(optimisticChatId)).toBeUndefined();
 
     // the user was sitting on a route the server will never answer for
     expect(mockRouterReplace).toHaveBeenCalledWith('/app/chat/existing-chat-id');
@@ -172,29 +148,33 @@ describe('useOfflineQueueProcessor - replaying a queued chat creation', () => {
 
   test('leaves the user alone when they are not looking at the discarded chat', async () => {
     navigateTo('/app/chat');
-    const { cache, unmount } = renderProcessor('existing-chat-id', [
-      chatListEntry(optimisticChatId, 'Anna Muster'),
-    ]);
+    const { cache, unmount } = renderProcessor(
+      'existing-chat-id',
+      [chatListEntry(optimisticChatId, 'Anna Muster')],
+      optimisticChatId,
+    );
 
     await waitFor(() => expect(getOfflineOutbox()).toEqual([]));
 
     // no real chat in the list yet, so the placeholder is carried over to the real id
-    expect(cache.chats?.map((chat) => chat.id)).toEqual(['existing-chat-id']);
+    expect(cache.chats()?.map((chat) => chat.id)).toEqual(['existing-chat-id']);
     expect(mockRouterReplace).not.toHaveBeenCalled();
     unmount();
   });
 
   test('keeps the opened chat when the server stored it under the queued id', async () => {
     navigateTo(`/app/chat/${optimisticChatId}`);
-    const { cache, createChat, unmount } = renderProcessor(optimisticChatId, [
-      chatListEntry(optimisticChatId, 'Anna Muster'),
-    ]);
+    const { cache, createChat, unmount } = renderProcessor(
+      optimisticChatId,
+      [chatListEntry(optimisticChatId, 'Anna Muster')],
+      optimisticChatId,
+    );
 
     await waitFor(() => expect(getOfflineOutbox()).toEqual([]));
 
     // the queued uuid is handed to the server so the open route stays valid
     expect(createChat).toHaveBeenCalledWith(expect.objectContaining({ chatId: optimisticChatId }));
-    expect(cache.chats?.map((chat) => chat.id)).toEqual([optimisticChatId]);
+    expect(cache.chats()?.map((chat) => chat.id)).toEqual([optimisticChatId]);
     expect(mockRouterReplace).not.toHaveBeenCalled();
     unmount();
   });
@@ -211,28 +191,22 @@ const queuedMessage = (overrides: Partial<OfflineMessage>): OfflineMessage => ({
 });
 
 /** Drains the outbox once, answering every send with the stored message. */
-const renderDrain = (): { sendMessage: jest.Mock; unmount: () => void } => {
-  const { utils } = createCacheStub();
-  (trpc.useUtils as unknown as jest.Mock).mockReturnValue(utils);
-  const sendMessage = jest.fn(
-    (input: { messageId: string; chatId: string }): Promise<ChatMessage> =>
-      Promise.resolve({
-        id: input.messageId,
-        createdAt: new Date(),
-        messagePayload: {},
-        senderId: CURRENT_USER,
-        status: 'STORED',
-        type: 'TEXT_MSG',
-      }),
-  );
-  (trpc.chat.sendMessage.useMutation as unknown as jest.Mock).mockReturnValue({
-    mutateAsync: sendMessage,
-  });
-  (trpc.chat.createChat.useMutation as unknown as jest.Mock).mockReturnValue({
-    mutateAsync: jest.fn(),
-  });
-  const { unmount } = renderHook(() => useOfflineQueueProcessor());
-  return { sendMessage, unmount };
+const renderDrain = (): {
+  sendMessage: jest.Mock;
+  calls: TestTrpc['calls'];
+  unmount: () => void;
+} => {
+  const sendMessage = jest.fn((input: unknown): ChatMessage => ({
+    id: (input as { messageId: string }).messageId,
+    createdAt: new Date(),
+    messagePayload: {},
+    senderId: CURRENT_USER,
+    status: 'STORED',
+    type: 'TEXT_MSG',
+  }));
+  const { wrapper, calls } = createDrainTrpc({ 'chat.sendMessage': sendMessage });
+  const { unmount } = renderHook(() => useOfflineQueueProcessor(), { wrapper });
+  return { sendMessage, calls, unmount };
 };
 
 describe('useOfflineQueueProcessor - replaying queued messages', () => {
@@ -285,8 +259,10 @@ describe('useOfflineQueueProcessor - replaying queued messages', () => {
   test('a send whose request is still open is not posted a second time', async () => {
     saveOfflineOutbox([queuedMessage({})]);
     setSendInFlight('msg-1', true);
-    const { sendMessage, unmount } = renderDrain();
+    const { sendMessage, calls, unmount } = renderDrain();
 
+    // the drain has asked who is signed in and gone through the queue
+    await waitFor(() => expect(calls.map((call) => call.path)).toContain('chat.user'));
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(sendMessage).not.toHaveBeenCalled();
     expect(getOfflineOutbox()).toHaveLength(1);
@@ -297,10 +273,8 @@ describe('useOfflineQueueProcessor - replaying queued messages', () => {
 });
 
 /** The error tRPC raises for an answer the server sent with the given code. */
-const serverError = (code: string, httpStatus: number): TRPCClientError<never> =>
-  TRPCClientError.from({
-    error: { code: -32_000, message: code, data: { code, httpStatus, path: 'chat.sendMessage' } },
-  });
+const serverError = (code: TRPC_ERROR_CODE_KEY, httpStatus: number): Error =>
+  testTrpcError(code, { httpStatus, path: 'chat.sendMessage' });
 
 describe('useOfflineQueueProcessor - a queued message the server did not take', () => {
   const chatId = 'chat-uster';
@@ -308,36 +282,41 @@ describe('useOfflineQueueProcessor - a queued message the server did not take', 
 
   const drainAgainst = (
     failure: Error,
-  ): { cache: CachedQueries; sendMessage: jest.Mock; unmount: () => void } => {
-    const { cache, utils } = createCacheStub();
-    cache.messagePages.set(chatId, {
-      pages: [
-        {
-          items: [
-            {
-              id: messageId,
-              messagePayload: { text: 'Wir sind beim Feuer' },
-              createdAt: new Date('2027-07-26T18:00:00Z'),
-              senderId: CURRENT_USER,
-              status: 'CREATED',
-              type: 'TEXT_MSG',
-              isPendingOffline: true,
-            } as unknown as ChatMessage,
-          ],
-        },
-      ],
+  ): { cache: ChatCaches; sendMessage: jest.Mock; unmount: () => void } => {
+    const sendMessage = jest.fn((): never => {
+      throw failure;
     });
-    (trpc.useUtils as unknown as jest.Mock).mockReturnValue(utils);
-    const sendMessage = jest.fn((): Promise<never> => Promise.reject(failure));
-    (trpc.chat.sendMessage.useMutation as unknown as jest.Mock).mockReturnValue({
-      mutateAsync: sendMessage,
-    });
-    (trpc.chat.createChat.useMutation as unknown as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(),
-    });
+    const testTrpc = createDrainTrpc({ 'chat.sendMessage': sendMessage });
+    const { trpc, queryClient, wrapper } = testTrpc;
+    queryClient.setQueryData(
+      trpc.chat.infiniteMessages.infiniteQueryKey({
+        chatId,
+        limit: CHAT_PAGE_SIZE,
+        parentId: undefined,
+      }),
+      {
+        pages: [
+          {
+            items: [
+              {
+                id: messageId,
+                messagePayload: { text: 'Wir sind beim Feuer' },
+                createdAt: new Date('2027-07-26T18:00:00Z'),
+                senderId: CURRENT_USER,
+                status: 'CREATED',
+                type: 'TEXT_MSG',
+                isPendingOffline: true,
+              } as unknown as ChatMessage,
+            ],
+            nextCursor: undefined,
+          },
+        ],
+        pageParams: [null],
+      },
+    );
 
-    const { unmount } = renderHook(() => useOfflineQueueProcessor());
-    return { cache, sendMessage, unmount };
+    const { unmount } = renderHook(() => useOfflineQueueProcessor(), { wrapper });
+    return { cache: chatCachesOf(testTrpc), sendMessage, unmount };
   };
 
   beforeEach(() => {
@@ -392,7 +371,7 @@ describe('useOfflineQueueProcessor - a queued message the server did not take', 
       messageId,
       timestamp: new Date('2027-07-26T18:00:00.000Z'),
     });
-    expect(cache.messagePages.get(chatId)?.pages[0]?.items[0]).toMatchObject({
+    expect(cache.messages(chatId)?.pages[0]?.items[0]).toMatchObject({
       id: messageId,
       sendFailed: true,
       isPendingOffline: false,

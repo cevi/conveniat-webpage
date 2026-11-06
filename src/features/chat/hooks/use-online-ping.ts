@@ -1,7 +1,9 @@
 import { ONLINE_WINDOW_MS } from '@/features/chat/constants';
 import { useAuthStatus } from '@/hooks/use-auth-status';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { useEffect } from 'react';
+
+import { useMutation } from '@tanstack/react-query';
 
 /**
  * Leaves each ping 5 s to reach the server before the last one drops out of the online
@@ -17,12 +19,15 @@ const ONLINE_PING_INTERVAL_MS = ONLINE_WINDOW_MS - 5000;
  * Coming back to the page pings at once instead of waiting for the next tick.
  */
 export const useOnlinePing = (): void => {
+  const trpc = useTRPC();
   const status = useAuthStatus();
 
-  const { mutate: ping } = trpc.chat.onlinePing.useMutation({
-    networkMode: 'always',
-    retry: false,
-  });
+  const { mutate: ping } = useMutation(
+    trpc.chat.onlinePing.mutationOptions({
+      networkMode: 'always',
+      retry: false,
+    }),
+  );
 
   useEffect(() => {
     if (status !== 'authenticated') {

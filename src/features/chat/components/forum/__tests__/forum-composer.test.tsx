@@ -2,16 +2,15 @@
  * @jest-environment jsdom
  */
 import { ForumComposer } from '@/features/chat/components/forum/forum-composer';
+import { createTestTrpc } from '@/trpc/test-trpc';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-let topics: unknown[] | undefined;
+let topics: unknown[];
 let privateReportsAvailable = true;
 const createPost = jest.fn<Promise<{ id: string; pending: boolean }>, [unknown]>(() =>
   Promise.resolve({ id: 'post', pending: false }),
 );
 const joinReportTopic = jest.fn(() => Promise.resolve({ topicId: 'zentrale' }));
-const query = (data: unknown): object => ({ data, isLoading: false });
-const mutation = (): object => ({ mutate: jest.fn(), mutateAsync: jest.fn(), isPending: false });
 
 jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
 jest.mock('@/hooks/use-online-status', () => ({ useOnlineStatus: (): boolean => true }));
@@ -20,26 +19,26 @@ jest.mock('next/navigation', () => ({
   useRouter: (): object => ({ replace: jest.fn() }),
   useSearchParams: (): URLSearchParams => new URLSearchParams(address),
 }));
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    useUtils: (): object => ({ forum: { invalidate: jest.fn() } }),
-    forum: {
-      getForumTopicList: { useQuery: (): object => query(topics) },
-      getForumSettings: {
-        useQuery: (): object => query({ moderationRequired: false, privateReportsAvailable }),
-      },
-      getForumPostSuggestionList: { useQuery: (): object => query([]) },
-      createForumPost: { useMutation: (): object => ({ ...mutation(), mutateAsync: createPost }) },
-      getForumPrivateReportTopic: {
-        useMutation: (): object => ({ ...mutation(), mutateAsync: joinReportTopic }),
-      },
-    },
-    chat: {
-      toggleReaction: { useMutation: (): object => mutation() },
-      getUploadUrl: { useMutation: (): object => mutation() },
-    },
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
+
+/** renders the composer for someone in `topics`, with the forum already loaded */
+const renderComposer = (): void => {
+  const settings = { moderationRequired: false, privateReportsAvailable };
+  const { trpc, queryClient, wrapper } = createTestTrpc({
+    'forum.getForumTopicList': () => topics,
+    'forum.getForumSettings': () => settings,
+    'forum.getForumPostSuggestionList': () => [],
+    'forum.createForumPost': createPost,
+    'forum.getForumPrivateReportTopic': joinReportTopic,
+  });
+  queryClient.setQueryData(trpc.forum.getForumTopicList.queryKey({}), topics as never);
+  queryClient.setQueryData(trpc.forum.getForumSettings.queryKey({}), settings as never);
+  render(<ForumComposer />, { wrapper });
+};
 
 const segment = (name: string): HTMLElement => screen.getByRole('button', { name });
 const writeTitle = (): void => {
@@ -58,7 +57,7 @@ beforeEach(() => {
 describe('the composer', () => {
   it('is the private report, without a toggle, for someone in no topic', () => {
     topics = [];
-    render(<ForumComposer />);
+    renderComposer();
     writeTitle();
 
     expect(screen.queryByRole('button', { name: 'Öffentlich' })).toBeNull();
@@ -70,7 +69,7 @@ describe('the composer', () => {
 
   it('switches between Öffentlich and Privat for someone in a topic', () => {
     topics = [{ id: 'topic', name: 'Platz & Infrastruktur', isAdmin: false }];
-    render(<ForumComposer />);
+    renderComposer();
     writeTitle();
     fireEvent.click(segment('Privat'));
 
@@ -80,7 +79,7 @@ describe('the composer', () => {
 
   it('sends a private report as a private post to the topic for private reports', async () => {
     topics = [{ id: 'topic', name: 'Platz & Infrastruktur', isAdmin: false }];
-    render(<ForumComposer />);
+    renderComposer();
     writeTitle();
     fireEvent.click(segment('Privat'));
     fireEvent.click(screen.getByRole('button', { name: 'An die Zentrale senden' }));
@@ -97,7 +96,7 @@ describe('the composer', () => {
     topics = [{ id: 'topic', name: 'Platz & Infrastruktur', isAdmin: false }];
     privateReportsAvailable = false;
     address = 'private=1';
-    render(<ForumComposer />);
+    renderComposer();
     writeTitle();
 
     expect(screen.queryByRole('button', { name: 'Privat' })).toBeNull();
@@ -106,7 +105,7 @@ describe('the composer', () => {
 
   it('starts on Öffentlich for someone in a topic', () => {
     topics = [{ id: 'topic', name: 'Platz & Infrastruktur', isAdmin: false }];
-    render(<ForumComposer />);
+    renderComposer();
     writeTitle();
 
     expect(segment('Öffentlich').getAttribute('aria-pressed')).toBe('true');
@@ -118,7 +117,7 @@ describe('the composer', () => {
   it('brings a removed spot back with Rückgängig', () => {
     topics = [{ id: 'topic', name: 'Platz & Infrastruktur', isAdmin: false }];
     address = 'lng=8.301851&lat=46.504806&annotation=q1&label=Quartier+1';
-    render(<ForumComposer />);
+    renderComposer();
 
     fireEvent.click(screen.getByRole('button', { name: 'Standort entfernen' }));
     expect(screen.queryByText('Quartier 1')).toBeNull();

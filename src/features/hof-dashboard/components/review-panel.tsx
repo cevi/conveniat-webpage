@@ -1,5 +1,4 @@
 'use client';
-
 import { textInputClassName } from '@/components/ui/field';
 import type { HofDashboardEntry } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import { SECONDARY_BUTTON_CLASS } from '@/features/hof-dashboard/components/dashboard-ui';
@@ -15,13 +14,15 @@ import {
 import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import { translate, type TextKey } from '@/features/hof-dashboard/texts';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Radio, RadioGroup } from '@headlessui/react';
 import { Check, CloudOff, Send } from 'lucide-react';
 import type React from 'react';
 import { useId, useState } from 'react';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 /**
  * A comment of the Ressort to the Hof, sent with a button rather than saved as it is typed: one
@@ -33,8 +34,11 @@ const CommentComposer: React.FC<{ entry: HofDashboardEntry; hofId: string; local
   hofId,
   locale,
 }) => {
-  const utils = trpc.useUtils();
-  const mutation = trpc.hofDashboard.addSubmissionComment.useMutation({ networkMode: 'always' });
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const mutation = useMutation(
+    trpc.hofDashboard.addSubmissionComment.mutationOptions({ networkMode: 'always' }),
+  );
   const [text, setText] = useState('');
   const commentId = useId();
   const comment = text.trim();
@@ -45,7 +49,7 @@ const CommentComposer: React.FC<{ entry: HofDashboardEntry; hofId: string; local
     try {
       await mutation.mutateAsync({ hofId, submissionId: entry.id, comment });
       setText('');
-      await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
+      await queryClient.invalidateQueries(trpc.hofDashboard.getHofDashboard.queryFilter({ hofId }));
     } catch {
       // the text stays, to send again once there is signal
       notifyFailure(locale, 'commentFailed');

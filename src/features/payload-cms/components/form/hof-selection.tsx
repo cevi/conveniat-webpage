@@ -1,9 +1,8 @@
 'use client';
-
 import { Select } from '@/features/payload-cms/components/form/select';
 import type { HofSelectionBlock } from '@/features/payload-cms/components/form/types';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import type React from 'react';
@@ -15,6 +14,8 @@ import type {
   Merge,
   UseFormRegister,
 } from 'react-hook-form';
+
+import { useQuery } from '@tanstack/react-query';
 
 const placeholderText: StaticTranslationString = {
   de: 'Hof auswählen',
@@ -45,16 +46,19 @@ export const HofSelection: React.FC<
     error?: FieldError | Merge<FieldError, FieldErrorsImpl<FieldValues>>;
   }
 > = ({ name, label, required, control, registerAction, error }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as keyof StaticTranslationString;
   const {
     data: hoefe,
     isLoading,
     isError,
     fetchStatus,
-  } = trpc.hofDashboard.getHofList.useQuery(
-    undefined,
-    // the stored list shows at once offline; with signal a Hof added since then joins it
-    { refetchOnMount: true },
+  } = useQuery(
+    trpc.hofDashboard.getHofList.queryOptions(
+      undefined,
+      // the stored list shows at once offline; with signal a Hof added since then joins it
+      { refetchOnMount: true },
+    ),
   );
   // without signal the query waits paused instead of failing
   const unavailable = hoefe === undefined && (isError || fetchStatus === 'paused');

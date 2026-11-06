@@ -7,22 +7,18 @@ import {
   useReadWristband,
 } from '@/features/wristbands/hooks/use-read-wristband';
 import type { RosterOnPhone } from '@/features/wristbands/hooks/use-wristband-roster';
+import type { TestTrpc } from '@/trpc/test-trpc';
+import { createTestTrpc } from '@/trpc/test-trpc';
 import { act, renderHook } from '@testing-library/react';
 
 const mockIdentify = jest.fn();
+let testTrpc: TestTrpc;
 
-jest.mock('@/trpc/client', () => {
-  const utils = {
-    client: {
-      wristband: {
-        identifyWristband: {
-          mutate: (...arguments_: unknown[]): unknown => mockIdentify(...arguments_),
-        },
-      },
-    },
-  };
-  return { trpc: { useUtils: (): unknown => utils } };
-});
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 jest.mock('@/features/wristbands/native-nfc', () => {
   const actual = jest.requireActual<Record<string, unknown>>('@/features/wristbands/native-nfc');
   return {
@@ -30,7 +26,6 @@ jest.mock('@/features/wristbands/native-nfc', () => {
     identifyBand: (): Promise<unknown> => Promise.resolve({ uid: LEA, signature: null }),
   };
 });
-jest.mock('@tanstack/react-query', () => ({ onlineManager: { isOnline: (): boolean => true } }));
 // opening the sealed list has tests of its own, see offline-lookup.test.ts
 const mockIdentifyFromRoster = jest.fn();
 jest.mock('@/features/wristbands/offline-lookup', () => ({
@@ -45,17 +40,18 @@ const roster: RosterOnPhone = {
   fetching: false,
 };
 
-/** A server that never answers, like wifi without a working uplink, until the call is aborted. */
-const hangingServer = (_input: unknown, options: { signal: AbortSignal }): Promise<never> =>
-  new Promise((_resolve, reject) => {
-    options.signal.addEventListener('abort', () => reject(new Error('aborted')));
-  });
+/**
+ * A server that never answers, like wifi without a working uplink. The client gives the call up
+ * when the read aborts it.
+ */
+const hangingServer = (): Promise<never> => new Promise<never>(() => {});
 
 /** Starts a read and lets the band session and the request get under way. */
 const startRead = async (
   onPhone: RosterOnPhone,
 ): Promise<{ current: ReturnType<typeof useReadWristband> }> => {
-  const { result } = renderHook(() => useReadWristband(onPhone));
+  testTrpc = createTestTrpc({ 'wristband.identifyWristband': mockIdentify });
+  const { result } = renderHook(() => useReadWristband(onPhone), { wrapper: testTrpc.wrapper });
   await act(async () => {
     result.current.start();
     await Promise.resolve();
@@ -89,6 +85,7 @@ describe('reading a band while the server does not answer', () => {
     mockIdentify.mockImplementation(hangingServer);
     const result = await startRead(roster);
     expect(result.current.state).toEqual({ step: 'checking' });
+    expect(mockIdentify).toHaveBeenCalledWith({ uid: LEA, signature: null });
 
     await act(async () => {
       await jest.advanceTimersByTimeAsync(SERVER_ANSWER_TIMEOUT_MS);

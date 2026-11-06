@@ -1,16 +1,17 @@
 'use client';
-
 import { GreetingSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
 import { QuartierDot } from '@/components/quartier/quartier-badge';
 import { useNow } from '@/features/schedule/hooks/use-now';
 import { displayNamesOf } from '@/features/settings/utils/display-names';
 import { useAuthStatus } from '@/hooks/use-auth-status';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { HitobitoNextAuthUserSchema } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type { QuartierLabel } from '@/utils/quartier-names';
 import { useSession } from 'next-auth/react';
 import type React from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const hello: StaticTranslationString = {
   de: 'Hallo {{name}}',
@@ -62,15 +63,18 @@ const TodayLine: React.FC<{ locale: Locale; quartiere: GreetedQuartier[] }> = ({
  * Quartier. A guest is welcomed without a name and without a Quartier.
  */
 export const DashboardGreeting: React.FC<{ locale: Locale }> = ({ locale }) => {
+  const trpc = useTRPC();
   const { data: session } = useSession();
   const status = useAuthStatus();
   const parsedUser = HitobitoNextAuthUserSchema.safeParse(session?.user);
   const user = parsedUser.success ? parsedUser.data : undefined;
 
-  const { data: myQuartiere } = trpc.schedule.getMyQuartiere.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
-    enabled: user !== undefined,
-  });
+  const { data: myQuartiere } = useQuery(
+    trpc.schedule.getMyQuartiere.queryOptions(undefined, {
+      staleTime: 1000 * 60 * 5,
+      enabled: user !== undefined,
+    }),
+  );
   // the persisted query cache may hold anything an older version stored under this key
   const quartiere = (Array.isArray(myQuartiere) ? myQuartiere : []).flatMap(
     (entry): GreetedQuartier[] =>

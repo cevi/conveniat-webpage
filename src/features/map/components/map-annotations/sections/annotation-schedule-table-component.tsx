@@ -1,13 +1,14 @@
 'use client';
-
 import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
-import { trpc, type RouterOutputs } from '@/trpc/client';
+import { useTRPC, type RouterOutputs } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { campClockOf } from '@/utils/camp-clock';
 import { ChevronRight } from 'lucide-react';
 import type React from 'react';
 import { useMemo, useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const scheduleTableTitle: StaticTranslationString = {
   de: 'Programm an diesem Ort',
@@ -94,8 +95,9 @@ export const AnnotationScheduleTableComponent: React.FC<{
   placeId: string;
   locale: Locale;
 }> = ({ placeId, locale }) => {
-  // eslint-disable-next-line unicorn/no-useless-undefined
-  const { data: scheduleEntries } = trpc.schedule.getScheduleEntries.useQuery(undefined);
+  const trpc = useTRPC();
+
+  const { data: scheduleEntries } = useQuery(trpc.schedule.getScheduleEntries.queryOptions());
   const schedule = useMemo(
     () =>
       // the persisted query cache may hold anything an older version stored under this key
@@ -104,9 +106,11 @@ export const AnnotationScheduleTableComponent: React.FC<{
       ),
     [scheduleEntries, placeId],
   );
-  const { data: myQuartiere } = trpc.schedule.getMyQuartiere.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
-  });
+  const { data: myQuartiere } = useQuery(
+    trpc.schedule.getMyQuartiere.queryOptions(undefined, {
+      staleTime: 1000 * 60 * 5,
+    }),
+  );
   // the persisted query cache may hold anything an older version stored under this key
   const myQuartierIds = useMemo(
     () =>

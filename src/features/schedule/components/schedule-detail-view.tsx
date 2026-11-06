@@ -1,5 +1,4 @@
 'use client';
-
 import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
 import { SetHideHeader } from '@/components/header/hide-header-context';
 import { Button } from '@/components/ui/buttons/button';
@@ -21,13 +20,15 @@ import {
   quartiereOf,
 } from '@/features/schedule/utils/programme-utils';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { AlertTriangle, ArrowLeft, CalendarDays, CalendarX } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useMemo, useState } from 'react';
+
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const labels = {
   back: { de: 'Zurück', en: 'Back', fr: 'Retour' },
@@ -89,21 +90,22 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({
   id: initialId,
   isSuggested = false,
 }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const router = useRouter();
   // set once the user opens another slot or block from this page
   const [openedId, setOpenedId] = useState<string>();
   const { myQuartierIds } = useScheduleScope();
 
-  const trpcUtils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   // 1. Try to find the entry in the local TanStack DB cache first (offline support)
   const { entries: localEntries } = useScheduleEntries();
 
   // 2. Also check the schedule list cache from tRPC (direct cache read + query hook)
   // eslint-disable-next-line unicorn/no-useless-undefined
-  const { data: scheduleList } = trpc.schedule.getScheduleEntries.useQuery(undefined);
-  const trpcDirectEntries = trpcUtils.schedule.getScheduleEntries.getData();
+  const { data: scheduleList } = useQuery(trpc.schedule.getScheduleEntries.queryOptions(undefined));
+  const trpcDirectEntries = queryClient.getQueryData(trpc.schedule.getScheduleEntries.queryKey());
   const allEntries = scheduleList ?? trpcDirectEntries ?? localEntries;
 
   // A link to a block, shared from another Quartier or tapped in the whole camp's list, opens
@@ -125,13 +127,13 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({
     trpcDirectEntries?.find((entry) => entry.id === id);
 
   // 3. Check direct tRPC cache for getById or run query
-  const directGetById = trpcUtils.schedule.getById.getData({ id });
+  const directGetById = queryClient.getQueryData(trpc.schedule.getById.queryKey({ id }));
   const {
     data: fetchedEntry,
     isLoading,
     error,
     isFetched,
-  } = trpc.schedule.getById.useQuery({ id });
+  } = useQuery(trpc.schedule.getById.queryOptions({ id }));
 
   // Prefer fetched/cached entry
   const entry =
@@ -141,29 +143,33 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({
     (cachedEntry as unknown as CampScheduleEntry | undefined);
 
   // 4. Get course status for admin check
-  const { data: courseStatus } = trpc.schedule.getCourseStatus.useQuery(
-    { courseId: id },
-    {
-      enabled: !!entry,
-      staleTime: 1000 * 60 * 5,
-      refetchOnWindowFocus: false,
-      /**
-       * The status is persisted to IndexedDB, and the default `refetchOnMount` trusts it for
-       * five minutes. That is fine for the enrolment counts, which every mutation invalidates -
-       * but `isAdmin` is decided by the organiser relationship in the CMS, which changes
-       * without any mutation this client ever makes. Somebody just added as an organiser would
-       * keep their cached `isAdmin: false` and miss the admin actions and the participant list.
-       * Revalidate on every open - it is one small request on a deliberate
-       * navigation, and `networkMode: 'online'` still serves the cached value when offline.
-       */
-      refetchOnMount: 'always',
-    },
+  const { data: courseStatus } = useQuery(
+    trpc.schedule.getCourseStatus.queryOptions(
+      { courseId: id },
+      {
+        enabled: !!entry,
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false,
+        /**
+         * The status is persisted to IndexedDB, and the default `refetchOnMount` trusts it for
+         * five minutes. That is fine for the enrolment counts, which every mutation invalidates -
+         * but `isAdmin` is decided by the organiser relationship in the CMS, which changes
+         * without any mutation this client ever makes. Somebody just added as an organiser would
+         * keep their cached `isAdmin: false` and miss the admin actions and the participant list.
+         * Revalidate on every open - it is one small request on a deliberate
+         * navigation, and `networkMode: 'online'` still serves the cached value when offline.
+         */
+        refetchOnMount: 'always',
+      },
+    ),
   );
 
   // What the block holds for the people running it. `null` for everybody else.
-  const { data: leaderNotes } = trpc.schedule.getLeaderNotes.useQuery(
-    { id },
-    { enabled: !!entry, staleTime: 1000 * 60 * 5, refetchOnWindowFocus: false },
+  const { data: leaderNotes } = useQuery(
+    trpc.schedule.getLeaderNotes.queryOptions(
+      { id },
+      { enabled: !!entry, staleTime: 1000 * 60 * 5, refetchOnWindowFocus: false },
+    ),
   );
 
   // The block in all its slots: the one shown, and the others listed below it

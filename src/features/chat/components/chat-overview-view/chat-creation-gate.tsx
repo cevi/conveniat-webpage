@@ -1,13 +1,14 @@
 'use client';
-
 import { EmptyState } from '@/components/ui/empty-state';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { MessageSquareOff } from 'lucide-react';
 import type React from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const chatCreationPausedText: StaticTranslationString = {
   de: 'Die Chat-Erstellung ist derzeit von Administratoren pausiert.',
@@ -17,17 +18,20 @@ const chatCreationPausedText: StaticTranslationString = {
 
 /** Shows the screens that start a chat only while admins have not paused chat creation. */
 export const ChatCreationGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { data: createChatsEnabled, isLoading } = trpc.chat.checkCapability.useQuery(
-    {
-      action: CapabilityAction.Create,
-      subject: CapabilitySubject.Chat,
-    },
-    {
-      staleTime: 1000 * 60 * 5,
-      refetchOnWindowFocus: false,
-      networkMode: 'offlineFirst',
-    },
+  const { data: createChatsEnabled, isLoading } = useQuery(
+    trpc.chat.checkCapability.queryOptions(
+      {
+        action: CapabilityAction.Create,
+        subject: CapabilitySubject.Chat,
+      },
+      {
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false,
+        networkMode: 'offlineFirst',
+      },
+    ),
   );
 
   if (!isLoading && createChatsEnabled !== true) {

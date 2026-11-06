@@ -17,6 +17,7 @@ import {
 import type { Header } from '@/features/payload-cms/payload-types';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { isBuildPhase } from '@/utils/build-phase';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { isAdminSession } from '@/utils/is-admin-session';
 import { isRoutableURL } from '@/utils/is-routable-url';
@@ -51,7 +52,7 @@ import { AppFeatures } from '@/components/menu/app-features';
  * they expire only the draft variant's own `draftGlobalTag`, at once, so the live preview of the
  * header global shows every save.
  */
-export const getMainMenuFromPayloadCached = async (
+const readMainMenu = async (
   locale: Locale,
   showPreviewForMainMenu: boolean,
 ): Promise<NonNullable<Header['mainMenu']>> => {
@@ -65,6 +66,22 @@ export const getMainMenuFromPayloadCached = async (
   const header = await getHeaderCached(locale, showPreviewForMainMenu);
   const mainMenu = header.mainMenu;
   return Array.isArray(mainMenu) ? mainMenu : [];
+};
+
+/**
+ * The main menu, see `readMainMenu`.
+ *
+ * The build-phase guard sits outside the cached function, as in `cached-globals.ts`. Inside it,
+ * `next build` cached the empty menu of its database-less `getHeaderCached` in the file-system
+ * layer of the `'use cache'` handler, which ships in the image. After a release every key is new
+ * and Redis has none of them, so each replica served that empty menu until a flush expired it.
+ */
+export const getMainMenuFromPayloadCached = async (
+  locale: Locale,
+  showPreviewForMainMenu: boolean,
+): Promise<NonNullable<Header['mainMenu']>> => {
+  if (isBuildPhase()) return [];
+  return await readMainMenu(locale, showPreviewForMainMenu);
 };
 
 const webContentTitle: StaticTranslationString = {

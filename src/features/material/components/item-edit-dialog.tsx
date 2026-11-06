@@ -22,12 +22,14 @@ import { MAX_QUANTITY, MAX_STOCK_QUANTITY } from '@/features/material/limits';
 import { orderStepOf } from '@/features/material/utils/basket';
 import { getItemFormProblems, type ItemFormProblem } from '@/features/material/utils/item-form';
 import { itemPath } from '@/features/material/utils/scan';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
+
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 const text = {
   titleNew: { de: 'Neuer Artikel', en: 'New item', fr: 'Nouvel article' },
@@ -125,13 +127,16 @@ export const ItemEditDialog: React.FC<{
   item?: EditableItem;
   onClose: () => void;
 }> = ({ item, onClose }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const router = useRouter();
   const invalidate = useInvalidateMaterial();
-  const categories = trpc.material.getCategoryList.useQuery(undefined, materialQueryOptions);
+  const categories = useQuery(
+    trpc.material.getCategoryList.queryOptions(undefined, materialQueryOptions),
+  );
   const [form, setForm] = useState<FormState>(() => fromItem(item));
-  const create = trpc.material.createItem.useMutation();
-  const update = trpc.material.updateItem.useMutation();
+  const create = useMutation(trpc.material.createItem.mutationOptions());
+  const update = useMutation(trpc.material.updateItem.mutationOptions());
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]): void =>
     setForm((current) => ({ ...current, [key]: value }));

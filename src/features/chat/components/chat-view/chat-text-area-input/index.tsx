@@ -19,7 +19,7 @@ import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { noConnectionTranslation } from '@/utils/shared-translations';
@@ -39,6 +39,8 @@ import {
   X,
 } from 'lucide-react';
 import React from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const messageToPlaceholder: StaticTranslationString = {
   de: 'Nachricht an {name}',
@@ -186,11 +188,12 @@ const messagingDisabledErrorText: StaticTranslationString = {
 };
 
 export const ChatTextAreaInput: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const fileInputReference = React.useRef<HTMLInputElement>(null);
   const { activeThreadId, quotedMessageId, cancelQuote } = useChatActions();
 
-  const { data: currentUser } = trpc.chat.user.useQuery({});
+  const { data: currentUser } = useQuery(trpc.chat.user.queryOptions({}));
   const chatId = useChatId();
   const { data: chatDetails } = useChatDetail(chatId);
 
@@ -604,9 +607,10 @@ const QuotedMessagePreview: React.FC<{
   messageId: string;
   onCancel: () => void;
 }> = ({ messageId, onCancel }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { data: message, isLoading } = trpc.chat.getMessage.useQuery({ messageId });
-  const { data: currentUser } = trpc.chat.user.useQuery({});
+  const { data: message, isLoading } = useQuery(trpc.chat.getMessage.queryOptions({ messageId }));
+  const { data: currentUser } = useQuery(trpc.chat.user.queryOptions({}));
 
   // the quoted message as the chat list and the bubble name it, an image as "Bild" behind its icon
   const getSnippet = (): { text: string; icon?: MessagePreviewIconName | undefined } => {

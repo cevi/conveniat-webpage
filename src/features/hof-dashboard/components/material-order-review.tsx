@@ -1,5 +1,4 @@
 'use client';
-
 import { textInputClassName } from '@/components/ui/field';
 import { toast } from '@/components/ui/toast';
 import type {
@@ -22,12 +21,14 @@ import { HOF_ENTRY_STATUS_LABELS, type HofReviewChoice } from '@/features/hof-da
 import { formatDate, formatNumber, translate, type TextKey } from '@/features/hof-dashboard/texts';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
 import { reviewSteps, type TimelineStep } from '@/features/hof-dashboard/utils/review-steps';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronLeft, Lock, RotateCcw, Undo2 } from 'lucide-react';
 import type React from 'react';
 import { useId, useState } from 'react';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 /** One line of the order: what the Hof ordered now, and before. */
 interface OrderLine {
@@ -111,8 +112,11 @@ const ReviewActions: React.FC<{
   version: MaterialOrderVersion;
   locale: Locale;
 }> = ({ hofId, version, locale }) => {
-  const utils = trpc.useUtils();
-  const mutation = trpc.hofDashboard.updateSubmissionReview.useMutation({ networkMode: 'always' });
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const mutation = useMutation(
+    trpc.hofDashboard.updateSubmissionReview.mutationOptions({ networkMode: 'always' }),
+  );
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState(version.feedback);
   const reasonId = useId();
@@ -132,9 +136,9 @@ const ReviewActions: React.FC<{
       notifyFailure(locale, 'reviewFailed');
     }
     await Promise.all([
-      utils.hofDashboard.getMaterialOrderList.invalidate(),
-      utils.hofDashboard.getHofOverview.invalidate(),
-      utils.hofDashboard.getHofDashboard.invalidate({ hofId }),
+      queryClient.invalidateQueries(trpc.hofDashboard.getMaterialOrderList.pathFilter()),
+      queryClient.invalidateQueries(trpc.hofDashboard.getHofOverview.pathFilter()),
+      queryClient.invalidateQueries(trpc.hofDashboard.getHofDashboard.queryFilter({ hofId })),
     ]);
   };
 

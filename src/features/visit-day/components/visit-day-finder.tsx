@@ -1,5 +1,4 @@
 'use client';
-
 import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { Card } from '@/components/ui/card';
 import { FactRow } from '@/components/ui/fact-row';
@@ -7,12 +6,14 @@ import { SectionLabel } from '@/components/ui/section-label';
 import { findVisitDayHoefe } from '@/features/visit-day/find-visit-day-hof';
 import { formatVisitDay } from '@/features/visit-day/format-visit-day';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { CalendarDays } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 /** More matches than this mean the search is too short to be an answer. */
 const MAX_MATCHES = 6;
@@ -60,9 +61,12 @@ const moreMatchesText: StaticTranslationString = {
  * Quartier, neither of which they need to know. Reads the same list as the registration form.
  */
 export const VisitDayFinder: React.FC<{ title?: string | null | undefined }> = ({ title }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const [search, setSearch] = useState('');
-  const hoefe = trpc.visitDay.getVisitDayHofList.useQuery(undefined, { refetchOnMount: true });
+  const hoefe = useQuery(
+    trpc.visitDay.getVisitDayHofList.queryOptions(undefined, { refetchOnMount: true }),
+  );
   const matches = findVisitDayHoefe(hoefe.data ?? [], search);
   // without signal the query waits paused instead of failing
   const unavailable = hoefe.data === undefined && (hoefe.isError || hoefe.fetchStatus === 'paused');

@@ -1,5 +1,4 @@
 'use client';
-
 import type { RosterOnPhone } from '@/features/wristbands/hooks/use-wristband-roster';
 import {
   identifyBand,
@@ -9,10 +8,11 @@ import {
 import { identifyFromRoster } from '@/features/wristbands/offline-lookup';
 import type { ReadFailureCode } from '@/features/wristbands/reader-texts';
 import type { WristbandIdentity } from '@/features/wristbands/types';
-import { trpc } from '@/trpc/client';
 import { isTransportError } from '@/utils/user-error-message';
 import { onlineManager } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { useTRPCClient } from '@/trpc/client';
 
 /** Whose the band is, and whether the server said so or the list on the phone. */
 export interface ReadResult {
@@ -54,7 +54,7 @@ export type ReadState =
 export const useReadWristband = (
   roster: RosterOnPhone,
 ): { state: ReadState; start: () => void; cancel: () => void } => {
-  const utils = trpc.useUtils();
+  const trpcClient = useTRPCClient();
   const [state, setState] = useState<ReadState>({ step: 'idle' });
   const sessionReference = useRef<AbortController | undefined>(undefined);
 
@@ -97,7 +97,7 @@ export const useReadWristband = (
       let timer: ReturnType<typeof setTimeout> | undefined;
       const askServer = async (): Promise<ReadState> => {
         try {
-          const identity = await utils.client.wristband.identifyWristband.mutate(
+          const identity = await trpcClient.wristband.identifyWristband.mutate(
             { uid, signature },
             { signal: request.signal },
           );
@@ -135,7 +135,7 @@ export const useReadWristband = (
         // a cancel is the reader's own choice and needs no screen
         setState(code === 'cancelled' ? { step: 'idle' } : { step: 'failed', code });
       });
-  }, [roster.data, roster.updatedAt, utils]);
+  }, [roster.data, roster.updatedAt, trpcClient]);
 
   const cancel = useCallback((): void => {
     sessionReference.current?.abort();

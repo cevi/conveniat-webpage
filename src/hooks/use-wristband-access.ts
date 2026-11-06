@@ -1,7 +1,8 @@
 'use client';
-
 import { useAuthStatus } from '@/hooks/use-auth-status';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
+
+import { useQuery } from '@tanstack/react-query';
 
 /** What the signed-in user does with the NFC wristbands, as the menu and Home offer it. */
 export interface WristbandUse {
@@ -20,10 +21,13 @@ export interface WristbandUse {
  * @param enabled - whether the deployment turned the wristbands on
  */
 export const useWristbandAccess = (enabled: boolean): WristbandUse | undefined => {
+  const trpc = useTRPC();
   const signedIn = useAuthStatus() === 'authenticated';
-  const access: unknown = trpc.wristband.getWristbandAccess.useQuery(undefined, {
-    enabled: enabled && signedIn,
-  }).data;
+  const access: unknown = useQuery(
+    trpc.wristband.getWristbandAccess.queryOptions(undefined, {
+      enabled: enabled && signedIn,
+    }),
+  ).data;
   if (!enabled || !signedIn || typeof access !== 'object' || access === null) return undefined;
 
   const { hoefe, reader } = access as Record<string, unknown>;

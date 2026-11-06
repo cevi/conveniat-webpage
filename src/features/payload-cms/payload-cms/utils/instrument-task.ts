@@ -28,6 +28,14 @@ type TaskOutcome = 'error' | 'success';
  * eagerly would attach it to the no-op provider and drop every series for the life of the
  * process. The first task run happens long after `sdk.start()`.
  */
+/**
+ * Buckets in seconds. Without them the SDK uses its defaults, which are made for milliseconds
+ * (0, 5, 10, 25, …): every run under five seconds, nearly all of them, landed in the first
+ * bucket and every task read a p95 of 4.75 s. A queue drain takes milliseconds, a Hof sync
+ * minutes, so the boundaries span both.
+ */
+const DURATION_BUCKETS_SECONDS = [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300, 600];
+
 let durationHistogram: Histogram | undefined;
 
 const getDurationHistogram = (): Histogram => {
@@ -38,6 +46,7 @@ const getDurationHistogram = (): Histogram => {
     .createHistogram('payload_job_duration_seconds', {
       description: 'How long a Payload job task ran, in seconds, by task slug and outcome',
       valueType: ValueType.DOUBLE,
+      advice: { explicitBucketBoundaries: DURATION_BUCKETS_SECONDS },
     });
   return durationHistogram;
 };

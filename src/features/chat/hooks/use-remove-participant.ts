@@ -1,18 +1,27 @@
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
+
+import type { RouterInputs, RouterOutputs, TrpcError } from '@/trpc/client';
+import type { UseMutationResult } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 export interface RemoveParticipant {
   chatId: string;
   participantId: string;
 }
 
-export const useRemoveParticipants = (): ReturnType<
-  typeof trpc.chat.removeParticipant.useMutation
+export const useRemoveParticipants = (): UseMutationResult<
+  RouterOutputs['chat']['removeParticipant'],
+  TrpcError,
+  RouterInputs['chat']['removeParticipant']
 > => {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
-  return trpc.chat.removeParticipant.useMutation({
-    onSuccess: async (_, { chatId }) => {
-      await trpcUtils.chat.chatDetails.invalidate({ chatId });
-    },
-  });
+  return useMutation(
+    trpc.chat.removeParticipant.mutationOptions({
+      onSuccess: async (_, { chatId }) => {
+        await queryClient.invalidateQueries(trpc.chat.chatDetails.queryFilter({ chatId }));
+      },
+    }),
+  );
 };
