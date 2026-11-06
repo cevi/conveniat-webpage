@@ -19,7 +19,8 @@ declare const self: ServiceWorkerGlobalScope;
  *
  * Neither shows up anywhere else: the cached copy never reaches the server, and a refused request
  * ends in the proxy before a trace is written. A page that learns it is outdated makes its next
- * navigation a full page load, see `useFullLoadAfterRelease`.
+ * navigation a full page load, see `useFullLoadAfterRelease`; a cached page whose bundle predates
+ * that hook is reloaded instead.
  */
 
 /** Clients that already reported a refusal, so a page firing a dozen prefetches reports once. */
@@ -91,6 +92,46 @@ export async function reportBuildStatus(client?: Client): Promise<void> {
   }
 }
 
+/**
+ * Pages whose bundle asked for the server build, so they load their next page fully themselves.
+ * A page of a build from before `useFullLoadAfterRelease` never asks and ignores the message.
+ */
+const listeningPages = new Set<string>();
+const waitingForPage = new Map<string, () => void>();
+
+/**
+ * How long a page the worker served from its cache has to ask before the worker takes it for one
+ * without `useFullLoadAfterRelease`. The page asks once it has hydrated, which on a cheap phone
+ * starting over camp wifi takes a few seconds.
+ */
+const ASK_GRACE_MS = 15_000;
+
+/**
+ * Answers a page that asks for the server build, and notes that it listens.
+ *
+ * @param client the page that asked
+ */
+export async function answerBuildStatus(client: Client): Promise<void> {
+  listeningPages.add(client.id);
+  waitingForPage.get(client.id)?.();
+  await reportBuildStatus(client);
+}
+
+function asksForBuild(clientId: string): Promise<boolean> {
+  if (listeningPages.has(clientId)) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      waitingForPage.delete(clientId);
+      resolve(false);
+    }, ASK_GRACE_MS);
+    waitingForPage.set(clientId, () => {
+      clearTimeout(timer);
+      waitingForPage.delete(clientId);
+      resolve(true);
+    });
+  });
+}
+
 async function noteServerBuild(build: string): Promise<void> {
   // a page firing a dozen prefetches is refused a dozen times
   if (build === serverBuild) return;
@@ -117,7 +158,9 @@ async function servedPage(clientId: string, path: string): Promise<Client | unde
  * the server runs, so the outdated one loads its next page from the server.
  *
  * Not reloaded on the spot: the late answer can come many seconds after the page appeared, while
- * someone is typing.
+ * someone is typing. Only a page that never asks for the build, one whose bundle predates
+ * `useFullLoadAfterRelease`, is reloaded, since nothing else gets it off the old build; the
+ * network has answered, so the reload loads the new one.
  *
  * @param cached a clone of the cached page, taken before it was served
  * @param late the network's answer, or undefined when none came
@@ -139,14 +182,25 @@ export async function reportStaleBuildPage(
   ]);
   if (cachedBuild === undefined || lateBuild === undefined || cachedBuild === lateBuild) return;
   console.warn(`[SW] Served ${path} of build ${cachedBuild} while the server runs ${lateBuild}`);
+  const lateMs = Date.now() - startedAt;
+  await noteServerBuild(lateBuild);
   const client = await servedPage(clientId, path);
+  const listens = client === undefined || (await asksForBuild(client.id));
+  // Not every browser lets a worker navigate its pages; that page keeps the old build.
+  const reload = !listens && 'navigate' in client;
   await capture(client?.id ?? '', 'stale_build_page_served', {
     path,
     cached_build: cachedBuild,
     server_build: lateBuild,
-    late_ms: Date.now() - startedAt,
+    late_ms: lateMs,
+    reloaded: reload,
   });
-  await noteServerBuild(lateBuild);
+  if (!reload) return;
+  try {
+    await (client as WindowClient).navigate(client.url);
+  } catch (error) {
+    console.warn(`[SW] Could not reload ${path} of build ${cachedBuild}`, error);
+  }
 }
 
 /**

@@ -16,14 +16,21 @@ const isBuildStatusMessage = (
   );
 };
 
-/** The URL a navigation leads to, if it leaves this page; a change of the hash stays. */
+/**
+ * The URL a navigation leads to, if it leads to another page. A change of the query or the hash
+ * stays on the page: views keep their steps there, like the naming step of a new group or the
+ * block opened in the programme, with state that only lives in React.
+ */
 const otherPage = (url: string | URL): URL | undefined => {
   const target = new URL(url, globalThis.location.href);
   const current = globalThis.location;
-  if (target.origin !== current.origin) return undefined;
-  if (target.pathname === current.pathname && target.search === current.search) return undefined;
+  if (target.origin !== current.origin || target.pathname === current.pathname) return undefined;
   return target;
 };
+
+/** Whether a history entry is one the router writes for its navigations, not one a view writes. */
+const isRouterEntry = (data: unknown): boolean =>
+  typeof data === 'object' && data !== null && (data as { __NA?: unknown }).__NA === true;
 
 /** The link a click opens in this tab, the way the router itself would take it. */
 const linkOpenedHere = (event: MouseEvent): HTMLAnchorElement | undefined => {
@@ -51,12 +58,14 @@ const loadTappedLinkFully = (event: MouseEvent): void => {
  * next page in this page's build, which the worker no longer has once the new build is cached, so
  * without network the tap did nothing. A full page load gets the cached page of the new build.
  * `router.push` ends in `history.pushState` once the router has committed the next page, which is
- * where the remaining navigations load fully.
+ * where the remaining navigations load fully; Next.js marks those entries with `__NA`, so a view
+ * that writes its own entry keeps it.
  */
 export const loadNextPageFully = (): (() => void) => {
   const routerPushState = globalThis.history.pushState.bind(globalThis.history);
   const pushState: History['pushState'] = (data, unused, url) => {
-    const target = url === undefined || url === null ? undefined : otherPage(url);
+    const target =
+      url === undefined || url === null || !isRouterEntry(data) ? undefined : otherPage(url);
     if (target === undefined) {
       routerPushState(data, unused, url);
       return;

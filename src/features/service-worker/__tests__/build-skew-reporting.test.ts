@@ -57,6 +57,7 @@ interface Sent {
 /** Loaded anew for every test: the worker keeps the server build it saw in memory. */
 let handleFetchEvent: typeof import('@/features/service-worker/offline-support/fetch-handler').handleFetchEvent;
 let staleBuildPagePlugin: typeof import('@/features/service-worker/offline-support/build-skew-reporting').staleBuildPagePlugin;
+let answerBuildStatus: typeof import('@/features/service-worker/offline-support/build-skew-reporting').answerBuildStatus;
 
 /** Runs one request through the worker, as page `clientId` (or a page it loads) sends it. */
 const send = (
@@ -94,11 +95,19 @@ const askForMap = (build: string): Request =>
     headers: { RSC: '1', 'x-deployment-id': build },
   });
 
+/** Waits for the worker's work on a request, past the time a page has to ask for the build. */
+const settle = async (lifetime: Promise<unknown>[]): Promise<void> => {
+  const done = Promise.all(lifetime);
+  await jest.advanceTimersByTimeAsync(15_000);
+  await done;
+};
+
 describe('reporting pages of an outdated build to PostHog', () => {
   const originalFetch = globalThis.fetch;
   const originalCaches = globalThis.caches;
   const originalNavigator = globalThis.navigator;
   let sent: Sent[];
+  let reloads: string[];
   /** The worker's registration: no newer worker installing or waiting, unless a test says so. */
   let registration: { installing: unknown; waiting: unknown };
 
@@ -106,10 +115,11 @@ describe('reporting pages of an outdated build to PostHog', () => {
     jest.resetModules();
     ({ handleFetchEvent } =
       await import('@/features/service-worker/offline-support/fetch-handler'));
-    ({ staleBuildPagePlugin } =
+    ({ staleBuildPagePlugin, answerBuildStatus } =
       await import('@/features/service-worker/offline-support/build-skew-reporting'));
     jest.useFakeTimers();
     sent = [];
+    reloads = [];
     registration = { installing: null, waiting: null };
     Object.defineProperty(globalThis, 'navigator', { value: { onLine: true }, configurable: true });
     Object.defineProperty(globalThis, 'self', {
@@ -126,10 +136,16 @@ describe('reporting pages of an outdated build to PostHog', () => {
     });
   });
 
-  const openPage = (clientId: string): Pick<WindowClient, 'id' | 'url' | 'postMessage'> => ({
+  const openPage = (
+    clientId: string,
+  ): Pick<WindowClient, 'id' | 'url' | 'postMessage' | 'navigate'> => ({
     id: clientId,
     url: `${ORIGIN}/app/dashboard`,
     postMessage: (message: Sent['message']) => sent.push({ clientId, message }),
+    navigate: (): Promise<null> => {
+      reloads.push(clientId);
+      return Promise.resolve(null);
+    },
   });
 
   afterEach(() => {
@@ -173,9 +189,11 @@ describe('reporting pages of an outdated build to PostHog', () => {
     await jest.advanceTimersByTimeAsync(3000);
     const shown = await answer;
     await expect(shown.text()).resolves.toContain(OLD_BUILD);
+    // the page has hydrated and asks, so it loads its next page fully itself
+    await answerBuildStatus(openPage('ipad-page') as unknown as Client);
 
     await jest.advanceTimersByTimeAsync(2000);
-    await Promise.all(lifetime);
+    await settle(lifetime);
 
     expect(events('stale_build_page_served')).toEqual([
       expect.objectContaining({
@@ -187,13 +205,44 @@ describe('reporting pages of an outdated build to PostHog', () => {
               path: '/app/dashboard',
               cached_build: OLD_BUILD,
               server_build: NEW_BUILD,
+              reloaded: false,
             }) as unknown,
           },
         }) as unknown,
       }),
     ]);
     // not reloaded under the user's fingers; the page loads its next page from the server
-    expect(toldServerBuild()).toEqual([{ clientId: 'open-dashboard', serverBuild: NEW_BUILD }]);
+    expect(toldServerBuild()).toContainEqual({
+      clientId: 'open-dashboard',
+      serverBuild: NEW_BUILD,
+    });
+    expect(reloads).toEqual([]);
+  });
+
+  /**
+   * A page cached before this release has a bundle without `useFullLoadAfterRelease`: it never
+   * asks and ignores the message, so it would stay on the old build and stop navigating.
+   */
+  it('reloads a cached page of another build that never asks for the build', async () => {
+    globalThis.caches = cachesWithDashboardOf(OLD_BUILD);
+    globalThis.fetch = jest.fn(
+      () => new Promise<Response>((resolve) => setTimeout(() => resolve(page(NEW_BUILD)), 5000)),
+    );
+
+    const { lifetime } = send(openDashboard(), { resultingClientId: 'ipad-page' });
+    await jest.advanceTimersByTimeAsync(5000);
+    await settle(lifetime);
+
+    expect(reloads).toEqual(['ipad-page']);
+    expect(events('stale_build_page_served')).toEqual([
+      expect.objectContaining({
+        message: expect.objectContaining({
+          payload: expect.objectContaining({
+            properties: expect.objectContaining({ reloaded: true }) as unknown,
+          }) as unknown,
+        }) as unknown,
+      }),
+    ]);
   });
 
   /** WebKit, which the iPad runs, leaves `resultingClientId` empty for a navigation. */
@@ -205,11 +254,12 @@ describe('reporting pages of an outdated build to PostHog', () => {
 
     const { lifetime } = send(openDashboard(), { resultingClientId: '' });
     await jest.advanceTimersByTimeAsync(5000);
-    await Promise.all(lifetime);
+    await settle(lifetime);
 
     expect(events('stale_build_page_served')).toEqual([
       expect.objectContaining({ clientId: 'open-dashboard' }),
     ]);
+    expect(reloads).toEqual(['open-dashboard']);
   });
 
   /**
@@ -235,7 +285,7 @@ describe('reporting pages of an outdated build to PostHog', () => {
       state,
     });
     await hooks.fetchDidSucceed({ request, response: page(NEW_BUILD), event, state });
-    await Promise.all(lifetime);
+    await settle(lifetime);
 
     expect(toldServerBuild()).toEqual([{ clientId: 'open-dashboard', serverBuild: NEW_BUILD }]);
   });

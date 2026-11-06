@@ -5,7 +5,10 @@ import {
   pruneInactiveAppModeClients,
 } from '@/features/service-worker/app-mode';
 import { CACHE_NAMES } from '@/features/service-worker/constants';
-import { reportBuildStatus } from '@/features/service-worker/offline-support/build-skew-reporting';
+import {
+  answerBuildStatus,
+  reportBuildStatus,
+} from '@/features/service-worker/offline-support/build-skew-reporting';
 import { serwist } from '@/features/service-worker/offline-support/caching';
 import {
   forgetCachedSession,
@@ -177,7 +180,7 @@ self.addEventListener('message', (event) => {
 
   // a page that started after the worker told the pages asks for it
   if (data?.type === ServiceWorkerMessages.BUILD_STATUS && event.source instanceof Client) {
-    event.waitUntil(reportBuildStatus(event.source));
+    event.waitUntil(answerBuildStatus(event.source));
   }
 
   if (data?.type === ServiceWorkerMessages.CHECK_OFFLINE_READY && event.source instanceof Client) {

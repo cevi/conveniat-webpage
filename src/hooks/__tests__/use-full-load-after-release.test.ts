@@ -13,6 +13,9 @@ const OLD_BUILD = '1_50_0-746eda89';
 jest.mock('@/config/deployment-id', () => ({ deploymentId: '1_50_0-746eda89' }));
 const NEW_BUILD = '1_51_0-3d6ff016';
 
+/** The state Next.js writes with the entries of its navigations. */
+const routerEntry = { __NA: true };
+
 describe('useFullLoadAfterRelease', () => {
   const worker = new EventTarget();
   const askedWorker = jest.fn();
@@ -49,7 +52,7 @@ describe('useFullLoadAfterRelease', () => {
     workerSays(NEW_BUILD);
 
     // what the router does for a link tap or router.push once it committed the next page
-    globalThis.history.pushState(null, '', '/app/map');
+    globalThis.history.pushState(routerEntry, '', '/app/map');
 
     expect(assignLocation).toHaveBeenCalledWith('http://localhost/app/map');
     expect(globalThis.location.pathname).toBe('/app/dashboard');
@@ -70,22 +73,30 @@ describe('useFullLoadAfterRelease', () => {
     });
     workerSays(OLD_BUILD);
 
-    globalThis.history.pushState(null, '', '/app/map');
+    globalThis.history.pushState(routerEntry, '', '/app/map');
 
     expect(assignLocation).not.toHaveBeenCalled();
     expect(globalThis.location.pathname).toBe('/app/map');
     unmount();
   });
 
-  it('leaves the router state the page writes to its own entry alone', () => {
+  /**
+   * Creating a group moves to its naming step with `history.pushState` and a query, and the
+   * chosen members live only in React state; a full load there returned to the first step empty.
+   */
+  it('keeps a step a view writes to the address on the page', () => {
     const { unmount } = renderHook(() => {
       useFullLoadAfterRelease();
     });
     workerSays(NEW_BUILD);
 
-    globalThis.history.pushState({ scroll: 1 }, '', '/app/dashboard#top');
+    globalThis.history.pushState(undefined, '', '/app/dashboard?step=naming');
+    globalThis.history.pushState(routerEntry, '', '/app/dashboard?id=7#top');
+    // a view's own entry, even for another path, like the block opened over the programme
+    globalThis.history.pushState({ image: 'a' }, '', '/app/chat/3');
 
     expect(assignLocation).not.toHaveBeenCalled();
+    expect(globalThis.location.pathname).toBe('/app/chat/3');
     unmount();
   });
 
@@ -123,7 +134,7 @@ describe('useFullLoadAfterRelease', () => {
     });
     workerSays(NEW_BUILD);
     const link = Object.assign(document.createElement('a'), { href: '/app/map' });
-    const anchor = Object.assign(document.createElement('a'), { href: '#programm' });
+    const anchor = Object.assign(document.createElement('a'), { href: '?id=7' });
     document.body.append(link, anchor);
 
     link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, metaKey: true }));
