@@ -4,6 +4,7 @@ import { registerEventLoopDelayMetrics } from '@/lib/event-loop-metrics';
 import { FetchSpanNameProcessor } from '@/lib/fetch-span-name-processor';
 import { HealthCheckSampler } from '@/lib/health-check-sampler';
 import { replicaAttributes } from '@/lib/replica-attributes';
+import { RequestSpanProcessor } from '@/lib/request-span';
 import { registerRuntimeMemoryMetrics } from '@/lib/runtime-memory-metrics';
 import { diag, DiagConsoleLogger, type DiagLogger, DiagLogLevel } from '@opentelemetry/api';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
@@ -245,6 +246,8 @@ export const sdk = new NodeSDK({
   spanProcessors: [
     // before the exporter, so the span is renamed by the time it is exported
     new FetchSpanNameProcessor(),
+    // remembers each request's server spans, so code further down can annotate them
+    new RequestSpanProcessor(),
     new BatchSpanProcessor(traceExporter, {
       exportTimeoutMillis: 5000,
       maxQueueSize: 2048,
