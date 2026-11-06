@@ -1,5 +1,6 @@
 import build from '@/build';
 import { BackgroundPollSampler } from '@/lib/background-poll-sampler';
+import { registerEventLoopDelayMetrics } from '@/lib/event-loop-metrics';
 import { FetchSpanNameProcessor } from '@/lib/fetch-span-name-processor';
 import { HealthCheckSampler } from '@/lib/health-check-sampler';
 import { registerRuntimeMemoryMetrics } from '@/lib/runtime-memory-metrics';
@@ -323,7 +324,7 @@ export const sdk = new NodeSDK({
 });
 
 /**
- * Starts the process-level instruments: host metrics and the Node memory gauges.
+ * Starts the process-level instruments: host metrics, the Node memory and event loop gauges.
  *
  * Call this after `sdk.start()`, never before. Both sets of instruments take their meter from
  * the global MeterProvider, `metrics.getMeter()` resolves that provider at the moment it is
@@ -342,4 +343,5 @@ export const startRuntimeMetrics = (): void => {
   const hostMetrics = new HostMetrics({ name: 'host-metrics' });
   hostMetrics.start();
   registerRuntimeMemoryMetrics();
+  registerEventLoopDelayMetrics();
 };
