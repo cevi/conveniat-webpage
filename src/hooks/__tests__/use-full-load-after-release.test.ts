@@ -89,17 +89,49 @@ describe('useFullLoadAfterRelease', () => {
     unmount();
   });
 
-  it('keeps navigating from the cache while the network does not answer', () => {
+  /**
+   * Without network the router asks the worker for the next page in this page's build, which it
+   * no longer has after the release, and the tap did nothing; the cached page of the new build
+   * is there.
+   */
+  it('loads a tapped link fully before the router takes it, also without network', () => {
     const { unmount } = renderHook(() => {
       useFullLoadAfterRelease();
     });
     workerSays(NEW_BUILD);
     const onLine = jest.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    const link = Object.assign(document.createElement('a'), { href: '/app/map' });
+    const label = document.createElement('span');
+    link.append(label);
+    document.body.append(link);
+    const router = jest.fn((event: MouseEvent) => event.defaultPrevented);
+    link.addEventListener('click', router);
 
-    globalThis.history.pushState(null, '', '/app/map');
+    label.click();
+
+    expect(assignLocation).toHaveBeenCalledWith('http://localhost/app/map');
+    // what Next.js's Link checks before it navigates on the client
+    expect(router).toHaveReturnedWith(true);
+    onLine.mockRestore();
+    link.remove();
+    unmount();
+  });
+
+  it('leaves a link opened in a new tab, and one to the same page, to the browser', () => {
+    const { unmount } = renderHook(() => {
+      useFullLoadAfterRelease();
+    });
+    workerSays(NEW_BUILD);
+    const link = Object.assign(document.createElement('a'), { href: '/app/map' });
+    const anchor = Object.assign(document.createElement('a'), { href: '#programm' });
+    document.body.append(link, anchor);
+
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, metaKey: true }));
+    anchor.click();
 
     expect(assignLocation).not.toHaveBeenCalled();
-    onLine.mockRestore();
+    link.remove();
+    anchor.remove();
     unmount();
   });
 });

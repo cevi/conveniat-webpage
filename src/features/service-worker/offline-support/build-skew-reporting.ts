@@ -75,6 +75,8 @@ export async function reportBuildStatus(client?: Client): Promise<void> {
 }
 
 async function noteServerBuild(build: string): Promise<void> {
+  // a page firing a dozen prefetches is refused a dozen times
+  if (build === serverBuild) return;
   serverBuild = build;
   await reportBuildStatus();
 }

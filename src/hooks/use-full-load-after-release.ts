@@ -1,6 +1,5 @@
 'use client';
 
-import { onlineStatusStore } from '@/hooks/use-online-status';
 import { assignLocation } from '@/utils/assign-location';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import { useEffect } from 'react';
@@ -16,29 +15,59 @@ const isBuildStatusMessage = (
   );
 };
 
+/** The URL a navigation leads to, if it leaves this page; a change of the hash stays. */
+const otherPage = (url: string | URL): URL | undefined => {
+  const target = new URL(url, globalThis.location.href);
+  const current = globalThis.location;
+  if (target.origin !== current.origin) return undefined;
+  if (target.pathname === current.pathname && target.search === current.search) return undefined;
+  return target;
+};
+
+/** The link a click opens in this tab, the way the router itself would take it. */
+const linkOpenedHere = (event: MouseEvent): HTMLAnchorElement | undefined => {
+  if (event.defaultPrevented || event.button !== 0) return undefined;
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return undefined;
+  const link = event.target instanceof Element ? event.target.closest('a[href]') : null;
+  if (!(link instanceof HTMLAnchorElement) || link.hasAttribute('download')) return undefined;
+  if (link.target !== '' && link.target !== '_self') return undefined;
+  return link;
+};
+
+const loadTappedLinkFully = (event: MouseEvent): void => {
+  const link = linkOpenedHere(event);
+  const target = link ? otherPage(link.href) : undefined;
+  if (target === undefined) return;
+  event.preventDefault();
+  assignLocation(target.href);
+};
+
 /**
- * Makes every navigation of this page that changes its path or query a full page load, until
- * the returned function undoes it.
+ * Makes every navigation of this page to another page a full page load, until the returned
+ * function undoes it.
  *
- * A link tap and `router.push` both end in `history.pushState`, which the router calls once it
- * has committed the next page, so this is the one place that sees them all. Offline the router
- * keeps navigating from its cache; the first navigation once the network answers loads fully.
+ * A tapped link loads before the router sees the tap: the router would ask the worker for the
+ * next page in this page's build, which the worker no longer has once the new build is cached, so
+ * without network the tap did nothing. A full page load gets the cached page of the new build.
+ * `router.push` ends in `history.pushState` once the router has committed the next page, which is
+ * where the remaining navigations load fully.
  */
 export const loadNextPageFully = (): (() => void) => {
   const routerPushState = globalThis.history.pushState.bind(globalThis.history);
   const pushState: History['pushState'] = (data, unused, url) => {
-    if (url !== undefined && url !== null && onlineStatusStore.getSnapshot()) {
-      const target = new URL(url, globalThis.location.href);
-      const current = globalThis.location;
-      if (target.pathname !== current.pathname || target.search !== current.search) {
-        assignLocation(target.href);
-        return;
-      }
+    const target = url === undefined || url === null ? undefined : otherPage(url);
+    if (target === undefined) {
+      routerPushState(data, unused, url);
+      return;
     }
-    routerPushState(data, unused, url);
+    assignLocation(target.href);
   };
+
+  // capture, so the click arrives here before the router's handler on the link
+  document.addEventListener('click', loadTappedLinkFully, true);
   globalThis.history.pushState = pushState;
   return (): void => {
+    document.removeEventListener('click', loadTappedLinkFully, true);
     if (globalThis.history.pushState === pushState) globalThis.history.pushState = routerPushState;
   };
 };

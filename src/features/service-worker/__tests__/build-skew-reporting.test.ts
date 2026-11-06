@@ -1,6 +1,4 @@
 import { CACHE_NAMES } from '@/features/service-worker/constants';
-import { staleBuildPagePlugin } from '@/features/service-worker/offline-support/build-skew-reporting';
-import { handleFetchEvent } from '@/features/service-worker/offline-support/fetch-handler';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import type { Serwist } from 'serwist';
 
@@ -56,6 +54,10 @@ interface Sent {
   message: { type: string; payload: { event: string; properties: Record<string, unknown> } };
 }
 
+/** Loaded anew for every test: the worker keeps the server build it saw in memory. */
+let handleFetchEvent: typeof import('@/features/service-worker/offline-support/fetch-handler').handleFetchEvent;
+let staleBuildPagePlugin: typeof import('@/features/service-worker/offline-support/build-skew-reporting').staleBuildPagePlugin;
+
 /** Runs one request through the worker, as page `clientId` (or a page it loads) sends it. */
 const send = (
   request: Request,
@@ -98,7 +100,12 @@ describe('reporting pages of an outdated build to PostHog', () => {
   const originalNavigator = globalThis.navigator;
   let sent: Sent[];
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    jest.resetModules();
+    ({ handleFetchEvent } =
+      await import('@/features/service-worker/offline-support/fetch-handler'));
+    ({ staleBuildPagePlugin } =
+      await import('@/features/service-worker/offline-support/build-skew-reporting'));
     jest.useFakeTimers();
     sent = [];
     Object.defineProperty(globalThis, 'navigator', { value: { onLine: true }, configurable: true });
@@ -290,9 +297,7 @@ describe('reporting pages of an outdated build to PostHog', () => {
         }) as unknown,
       }),
     ]);
-    expect(toldServerBuild()).toContainEqual({
-      clientId: 'open-dashboard',
-      serverBuild: NEW_BUILD,
-    });
+    // once, though the page was refused three times
+    expect(toldServerBuild()).toEqual([{ clientId: 'open-dashboard', serverBuild: NEW_BUILD }]);
   });
 });
