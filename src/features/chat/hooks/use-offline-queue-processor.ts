@@ -2,7 +2,6 @@ import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { markMessageSendFailed } from '@/features/chat/hooks/use-message-send';
 import {
-  dropCachedEntry,
   isServerCompatibleId,
   mergeStoredMessage,
   mergeStoredMessageAcrossPages,
@@ -24,6 +23,8 @@ import { useOnlineStatus } from '@/hooks/use-online-status';
 import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { InfiniteData } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { getQueryKey } from '@trpc/react-query';
 import type { inferProcedureOutput } from '@trpc/server';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
@@ -55,6 +56,7 @@ const toSendInput = (message: OfflineMessage): SendMessageInput => {
 export const useOfflineQueueProcessor = (): void => {
   const isOnline = useOnlineStatus();
   const trpcUtils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const sendMessageMutation = trpc.chat.sendMessage.useMutation({ networkMode: 'always' });
   const mutateAsyncReference = useRef(sendMessageMutation.mutateAsync);
   const createChatMutation = trpc.chat.createChat.useMutation({ networkMode: 'always' });
@@ -158,11 +160,17 @@ export const useOfflineQueueProcessor = (): void => {
                 // The caches seeded when the chat was created offline are keyed by the
                 // optimistic id and describe a chat that does not exist under that id -
                 // drop them so nothing renders a chat the server will never answer for.
-                trpcUtils.chat.chatDetails.setData({ chatId: message.id }, dropCachedEntry);
-                trpcUtils.chat.infiniteMessages.setInfiniteData(
-                  { chatId: message.id, limit: CHAT_PAGE_SIZE, parentId: undefined },
-                  dropCachedEntry,
-                );
+                // removed, not set to undefined: `setData` ignores an updater that returns undefined
+                queryClient.removeQueries({
+                  queryKey: getQueryKey(trpc.chat.chatDetails, { chatId: message.id }, 'query'),
+                });
+                queryClient.removeQueries({
+                  queryKey: getQueryKey(
+                    trpc.chat.infiniteMessages,
+                    { chatId: message.id },
+                    'infinite',
+                  ),
+                });
 
                 // The user may still be sitting on `/app/chat/<optimisticId>`, a route the
                 // server will never answer for. Without this the view queries the dropped
@@ -294,7 +302,7 @@ export const useOfflineQueueProcessor = (): void => {
       globalThis.removeEventListener('online', handleSyncEvent);
       globalThis.removeEventListener('conveniat:outbox-updated', handleSyncEvent);
     };
-  }, [isOnline, trpcUtils]);
+  }, [isOnline, queryClient, trpcUtils]);
 };
 
 export const OfflineQueueSync = (): null => {
