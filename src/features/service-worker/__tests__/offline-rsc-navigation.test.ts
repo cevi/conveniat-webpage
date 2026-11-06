@@ -129,6 +129,27 @@ describe('offline RSC answers for navigations', () => {
     expect(await response.text()).toBe('navigation payload');
   });
 
+  test('answers an offline prefetch with an empty 503 and still serves the tap that follows', async () => {
+    await storeChatPayloadOf('1_46_2-0ca1769e');
+
+    setOnline(false);
+    // The dashboard shows a link to the chats: the router asks for the route tree.
+    const prefetch = await fetchRsc('/app/chat?_rsc=tree', {
+      'Next-Router-Prefetch': '1',
+      'Next-Router-Segment-Prefetch': '/_tree',
+      'x-deployment-id': '1_46_2-0ca1769e',
+    });
+
+    expect(prefetch.status).toBe(503);
+    expect(await prefetch.text()).toBe('');
+
+    const navigation = await fetchRsc('/app/chat?_rsc=tap', {
+      'x-deployment-id': '1_46_2-0ca1769e',
+    });
+
+    expect(await navigation.text()).toBe('chat of 1_46_2-0ca1769e');
+  });
+
   describe('a payload of another build', () => {
     /**
      * Reading a payload runs the chunks it names before the router compares builds, so a payload

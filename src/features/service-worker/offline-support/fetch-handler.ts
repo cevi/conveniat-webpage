@@ -242,6 +242,16 @@ async function offlineFallback(
 
   // Strategy D: RSC Stream (Flight Payload) Fallback
   if (isRsc) {
+    // A prefetch never gets a cached payload. The cache holds navigation payloads only, and
+    // Next answers a prefetch with another kind of response (its `Vary` names both prefetch
+    // headers). Given a navigation payload, the router accepts its tree as the route tree, so a
+    // parent shell, `/app/schedule` for `/app/schedule/<id>`, stays in its memory as that
+    // route even after the connection returns. The empty 503 below makes it retry the prefetch
+    // after ten seconds; a tap meanwhile is a navigation, which the cache answers.
+    if (request.headers.has('Next-Router-Prefetch')) {
+      return new Response('', { status: 503, statusText: 'Offline' });
+    }
+
     const cachedRsc = await matchCachedRsc(
       url.toString(),
       request.headers.get('x-deployment-id') ?? undefined,
