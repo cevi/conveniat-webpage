@@ -1,7 +1,11 @@
 import build from '@/build';
 import { BackgroundPollSampler } from '@/lib/background-poll-sampler';
+import { registerEventLoopDelayMetrics } from '@/lib/event-loop-metrics';
 import { FetchSpanNameProcessor } from '@/lib/fetch-span-name-processor';
 import { HealthCheckSampler } from '@/lib/health-check-sampler';
+import { createPrismaInstrumentation } from '@/lib/prisma-instrumentation';
+import { replicaAttributes } from '@/lib/replica-attributes';
+import { RequestSpanProcessor } from '@/lib/request-span';
 import { registerRuntimeMemoryMetrics } from '@/lib/runtime-memory-metrics';
 import { diag, DiagConsoleLogger, type DiagLogger, DiagLogLevel } from '@opentelemetry/api';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
@@ -19,7 +23,6 @@ import {
   ParentBasedSampler,
   TraceIdRatioBasedSampler,
 } from '@opentelemetry/sdk-trace-base';
-import { PrismaInstrumentation } from '@prisma/instrumentation';
 
 /**
  * Custom ID generator that uses `crypto.getRandomValues()` instead of `Math.random()`.
@@ -88,6 +91,9 @@ const metricsReader = new PrometheusExporter(
   {
     port: METRICS_PORT,
     host: '0.0.0.0', // Listen on all interfaces
+    // the replica's node and task on every series, not only on `target_info`, so a panel can
+    // name a replica without joining every query against `target_info`; see `replicaAttributes`
+    withResourceConstantLabels: /^(host\.name|service\.instance\.id)$/,
   },
   () => {
     console.log(`Prometheus metrics exporter started on port ${METRICS_PORT}`);
@@ -238,6 +244,8 @@ export const sdk = new NodeSDK({
   spanProcessors: [
     // before the exporter, so the span is renamed by the time it is exported
     new FetchSpanNameProcessor(),
+    // remembers each request's server spans, so code further down can annotate them
+    new RequestSpanProcessor(),
     new BatchSpanProcessor(traceExporter, {
       exportTimeoutMillis: 5000,
       maxQueueSize: 2048,
@@ -271,6 +279,8 @@ export const sdk = new NodeSDK({
     version: build.version,
     commitHash: build.git.hash,
     branch: build.git.branch,
+    // eslint-disable-next-line n/no-process-env
+    ...replicaAttributes(process.env),
   }),
   serviceName: SERVICE_NAME,
   sampler: new BackgroundPollSampler(
@@ -299,7 +309,7 @@ export const sdk = new NodeSDK({
     // instrumented on top; one span per query is enough, and the driver Payload uses is
     // bundled inside `mongoose`.
     new MongooseInstrumentation({ requireParentSpan: true }),
-    new PrismaInstrumentation({ enabled: true }),
+    createPrismaInstrumentation(),
     // NOTE: no PinoInstrumentation here. It patches the `pino` module via
     // require-in-the-middle, which only sees packages resolved by Node's real
     // `require`; Next.js bundles pino into the standalone output, so the patch
@@ -310,7 +320,7 @@ export const sdk = new NodeSDK({
 });
 
 /**
- * Starts the process-level instruments: host metrics and the Node memory gauges.
+ * Starts the process-level instruments: host metrics, the Node memory and event loop gauges.
  *
  * Call this after `sdk.start()`, never before. Both sets of instruments take their meter from
  * the global MeterProvider, `metrics.getMeter()` resolves that provider at the moment it is
@@ -329,4 +339,5 @@ export const startRuntimeMetrics = (): void => {
   const hostMetrics = new HostMetrics({ name: 'host-metrics' });
   hostMetrics.start();
   registerRuntimeMemoryMetrics();
+  registerEventLoopDelayMetrics();
 };

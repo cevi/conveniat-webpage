@@ -6,7 +6,7 @@ import { readPreference, writePreference } from '@/lib/preferences';
 import { useOptionalTrpcQueries, useTRPC } from '@/trpc/client';
 import { Cookie } from '@/types/types';
 import { notifyForegroundMessage } from '@/utils/foreground-notifications';
-import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
+import { refreshChatOfPush } from '@/utils/push-query-refresher';
 import { chatIdOfTarget, resolvePushTarget } from '@/utils/push-target';
 import { reloadPage } from '@/utils/reload-page';
 import { isNativeAppWebView } from '@/utils/standalone-check';
@@ -617,7 +617,7 @@ export function useNativePush(): {
           const targetPath = resolvePushTarget(extractTargetUrl(payload));
 
           const targetChatId = chatIdOfTarget(targetPath);
-          refreshAndOptimisticallyUpdateChat(trpcQueries, targetChatId, payload);
+          refreshChatOfPush(trpcQueries, targetChatId);
 
           // Native pushes never reach the service worker, whose click handler tracks
           // taps on web pushes, so the tap is recorded here.
@@ -654,7 +654,7 @@ export function useNativePush(): {
           }
 
           // Refresh query cache in background
-          refreshAndOptimisticallyUpdateChat(trpcQueries, targetChatId, payload);
+          refreshChatOfPush(trpcQueries, targetChatId);
 
           const { title: notificationTitle, body: notificationBody } =
             extractNotificationTitleAndBody(payload);
