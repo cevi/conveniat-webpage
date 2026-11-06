@@ -1,10 +1,12 @@
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { TRPCClientErrorLike } from '@trpc/client';
-import type { UseTRPCMutationResult } from '@trpc/react-query/shared';
 import type { inferProcedureInput, inferProcedureOutput } from '@trpc/server';
 
-type UseUpdateChatMutation = UseTRPCMutationResult<
+import type { UseMutationResult } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+type UseUpdateChatMutation = UseMutationResult<
   inferProcedureOutput<AppRouter['chat']['renameChat']>,
   TRPCClientErrorLike<AppRouter>,
   inferProcedureInput<AppRouter['chat']['renameChat']>,
@@ -12,15 +14,20 @@ type UseUpdateChatMutation = UseTRPCMutationResult<
 >;
 
 export const useUpdateChatMutation = (): UseUpdateChatMutation => {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
-  return trpc.chat.renameChat.useMutation({
-    onSuccess: (_, { chatUuid }) => {
-      console.log(`Chat ${chatUuid} renamed successfully, invalidating chat detail query.`);
-      trpcUtils.chat.chatDetails.invalidate({ chatId: chatUuid }).catch(console.error);
-    },
-    onError: (error) => {
-      console.error('Failed to rename chat:', error);
-    },
-  });
+  return useMutation(
+    trpc.chat.renameChat.mutationOptions({
+      onSuccess: (_, { chatUuid }) => {
+        console.log(`Chat ${chatUuid} renamed successfully, invalidating chat detail query.`);
+        queryClient
+          .invalidateQueries(trpc.chat.chatDetails.queryFilter({ chatId: chatUuid }))
+          .catch(console.error);
+      },
+      onError: (error) => {
+        console.error('Failed to rename chat:', error);
+      },
+    }),
+  );
 };

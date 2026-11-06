@@ -1,15 +1,16 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
-
 import { ImageViewer } from '@/features/chat/components/chat-view/message/image-viewer';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useImageViewerHistory } from '@/features/chat/hooks/use-image-viewer-history';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Loader2 } from 'lucide-react';
 import type React from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const imageText: StaticTranslationString = {
   de: 'Bild',
@@ -42,16 +43,19 @@ interface ChatImageProperties {
  * the back gesture closes it again.
  */
 export const ChatImage: React.FC<ChatImageProperties> = ({ url, alt, caption }) => {
+  const trpc = useTRPC();
   const chatId = useChatId();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const viewer = useImageViewerHistory(url);
   const isS3Key = url.startsWith(S3_KEY_PREFIX);
 
-  const { data: downloadData, isLoading } = trpc.chat.getDownloadUrl.useQuery(
-    { chatId, key: url },
-    // The URL is signed for an hour. Signing it again sooner changes the URL, and the browser
-    // then downloads the same image a second time.
-    { enabled: isS3Key, staleTime: 1000 * 60 * 50 },
+  const { data: downloadData, isLoading } = useQuery(
+    trpc.chat.getDownloadUrl.queryOptions(
+      { chatId, key: url },
+      // The URL is signed for an hour. Signing it again sooner changes the URL, and the browser
+      // then downloads the same image a second time.
+      { enabled: isS3Key, staleTime: 1000 * 60 * 50 },
+    ),
   );
 
   if (isS3Key && isLoading) {

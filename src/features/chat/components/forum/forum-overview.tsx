@@ -1,5 +1,4 @@
 'use client';
-
 import { SetHeaderActions } from '@/components/header/header-actions';
 import { OfflineBanner } from '@/components/offline-banner';
 import { AppSearchBar } from '@/components/ui/app-search-bar';
@@ -16,7 +15,7 @@ import {
 import { ForumPostRow } from '@/features/chat/components/forum/forum-post-row';
 import { forumText } from '@/features/chat/components/forum/forum-texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -33,6 +32,8 @@ import {
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useRef, useState } from 'react';
+
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const chipClassName = (isChosen: boolean): string =>
   cn(
@@ -60,10 +61,14 @@ const TopicSubscriptionButton: React.FC<{
   subscribed: boolean;
   locale: Locale;
 }> = ({ topicId, subscribed, locale }) => {
-  const utils = trpc.useUtils();
-  const { mutate, isPending } = trpc.forum.updateForumTopicSubscription.useMutation({
-    onSettled: () => void utils.forum.getForumTopicList.invalidate(),
-  });
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const { mutate, isPending } = useMutation(
+    trpc.forum.updateForumTopicSubscription.mutationOptions({
+      onSettled: () =>
+        void queryClient.invalidateQueries(trpc.forum.getForumTopicList.pathFilter()),
+    }),
+  );
   const label = subscribed ? forumText.unsubscribeTopic[locale] : forumText.subscribeTopic[locale];
   const Icon = subscribed ? Bell : BellOff;
   return (
@@ -120,6 +125,7 @@ const ZentraleLink: React.FC<{
  * posts on top. Searching shows what already exists before anyone writes it a second time.
  */
 export const ForumOverview: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const router = useRouter();
   const searchParameters = useSearchParams();
@@ -131,19 +137,23 @@ export const ForumOverview: React.FC = () => {
   const [search, setSearch] = useState('');
   const [now] = useState(() => new Date());
 
-  const topics = trpc.forum.getForumTopicList.useQuery({});
-  const settings = trpc.forum.getForumSettings.useQuery({});
-  const pinned = trpc.forum.getForumPinnedPostList.useQuery(
-    topicId === undefined ? {} : { topicId },
+  const topics = useQuery(trpc.forum.getForumTopicList.queryOptions({}));
+  const settings = useQuery(trpc.forum.getForumSettings.queryOptions({}));
+  const pinned = useQuery(
+    trpc.forum.getForumPinnedPostList.queryOptions(topicId === undefined ? {} : { topicId }),
   );
-  const list = trpc.forum.getForumPostList.useInfiniteQuery(
-    { ...(topicId === undefined ? {} : { topicId }), status, filter, sort },
-    { getNextPageParam: (last) => last.nextCursor },
+  const list = useInfiniteQuery(
+    trpc.forum.getForumPostList.infiniteQueryOptions(
+      { ...(topicId === undefined ? {} : { topicId }), status, filter, sort },
+      { getNextPageParam: (last) => last.nextCursor },
+    ),
   );
   const isSearching = search.trim().length >= 3;
-  const results = trpc.forum.getForumPostSuggestionList.useQuery(
-    { title: search, ...(topicId === undefined ? {} : { topicId }) },
-    { enabled: isSearching },
+  const results = useQuery(
+    trpc.forum.getForumPostSuggestionList.queryOptions(
+      { title: search, ...(topicId === undefined ? {} : { topicId }) },
+      { enabled: isSearching },
+    ),
   );
 
   const chosenTopic = topics.data?.find((topic) => topic.id === topicId);
@@ -152,6 +162,8 @@ export const ForumOverview: React.FC = () => {
   };
   const posts = list.data?.pages.flatMap((page) => page.items) ?? [];
   const pinnedIds = new Set((pinned.data ?? []).map((post) => post.id));
+  // the pinned posts stand on top already, so the feed below leaves them out
+  const feedPosts = posts.filter((post) => !pinnedIds.has(post.id));
 
   // In no topic there is no forum to read: no search, no filters, only the way to the Zentrale,
   // while editors chose a topic for private reports.
@@ -259,26 +271,24 @@ export const ForumOverview: React.FC = () => {
         ) : (
           <>
             {(pinned.data?.length ?? 0) > 0 && (
-              <section className="flex flex-col gap-2">
-                <SectionLabel>{forumText.pinned[locale]}</SectionLabel>
-                <Card as="ul" divided className="border-tint-line bg-tint">
-                  {pinned.data?.map((post) => (
-                    <ForumPostRow
-                      key={post.id}
-                      post={post}
-                      locale={locale}
-                      showTopic={topicId === undefined}
-                      now={now}
-                    />
-                  ))}
-                </Card>
-              </section>
+              <Card as="ul" divided className="border-tint-line bg-tint mb-1">
+                {pinned.data?.map((post) => (
+                  <ForumPostRow
+                    key={post.id}
+                    post={post}
+                    locale={locale}
+                    showTopic={topicId === undefined}
+                    now={now}
+                  />
+                ))}
+              </Card>
             )}
 
             <section className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <SectionLabel>{describeFilters(filters, locale)}</SectionLabel>
-                {isFiltered(filters) && (
+              {/* the unfiltered feed needs no title: the pin marks what stands on top */}
+              {isFiltered(filters) && (
+                <div className="flex items-center justify-between">
+                  <SectionLabel>{describeFilters(filters, locale)}</SectionLabel>
                   <button
                     type="button"
                     onClick={() => setFilters(DEFAULT_FORUM_FILTERS)}
@@ -286,8 +296,8 @@ export const ForumOverview: React.FC = () => {
                   >
                     {forumText.resetFilters[locale]}
                   </button>
-                )}
-              </div>
+                </div>
+              )}
 
               {list.isLoading && (
                 <Card className="flex justify-center p-6">
@@ -297,26 +307,31 @@ export const ForumOverview: React.FC = () => {
               {list.isError && posts.length === 0 && (
                 <EmptyState icon={MessageCircleQuestion} title={forumText.loadFailed[locale]} />
               )}
-              {!list.isLoading && posts.length === 0 && (topics.data?.length ?? 0) > 0 && (
-                <EmptyState
-                  icon={Megaphone}
-                  title={forumText.emptyTitle[locale]}
-                  description={forumText.emptyHint[locale]}
-                />
-              )}
-              {posts.length > 0 && (
+              {!list.isLoading &&
+                !list.hasNextPage &&
+                feedPosts.length === 0 &&
+                (topics.data?.length ?? 0) > 0 && (
+                  <EmptyState
+                    icon={Megaphone}
+                    title={
+                      pinnedIds.size > 0
+                        ? forumText.emptyBesidesPinnedTitle[locale]
+                        : forumText.emptyTitle[locale]
+                    }
+                    description={forumText.emptyHint[locale]}
+                  />
+                )}
+              {feedPosts.length > 0 && (
                 <Card as="ul" divided>
-                  {posts
-                    .filter((post) => !pinnedIds.has(post.id))
-                    .map((post) => (
-                      <ForumPostRow
-                        key={post.id}
-                        post={post}
-                        locale={locale}
-                        showTopic={topicId === undefined}
-                        now={now}
-                      />
-                    ))}
+                  {feedPosts.map((post) => (
+                    <ForumPostRow
+                      key={post.id}
+                      post={post}
+                      locale={locale}
+                      showTopic={topicId === undefined}
+                      now={now}
+                    />
+                  ))}
                 </Card>
               )}
               {list.hasNextPage && (

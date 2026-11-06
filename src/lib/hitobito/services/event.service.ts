@@ -10,10 +10,6 @@ import type { Logger } from '@/lib/hitobito/types';
 import { traceMethod, withRetries, withSpan } from '@/utils/tracing-helpers';
 import type { z } from 'zod';
 
-function listEventParticipationsSpanName(groupId: string, eventId: string): string {
-  return `Hitobito.listEventParticipations:group:${groupId}:event:${eventId}`;
-}
-
 function listEventParticipationsAttributes(
   groupId: string,
   eventId: string,
@@ -22,14 +18,6 @@ function listEventParticipationsAttributes(
     'group.id': groupId,
     'event.id': eventId,
   };
-}
-
-function fetchRestrictedPersonDetailsSpanName(
-  groupId: string,
-  eventId: string,
-  participationId: string,
-): string {
-  return `Hitobito.fetchRestrictedPersonDetails:group:${groupId}:event:${eventId}:participation:${participationId}`;
 }
 
 function fetchRestrictedPersonDetailsAttributes(
@@ -62,7 +50,7 @@ export class EventService {
    * Falls back to legacy JSON API or HTML scraping if the participant profile is restricted.
    */
   listEventParticipations = traceMethod(
-    listEventParticipationsSpanName,
+    'Hitobito.listEventParticipations',
     // eslint-disable-next-line unicorn/consistent-function-scoping
     async function (
       this: EventService,
@@ -233,7 +221,7 @@ export class EventService {
    * Fetches the details of a restricted person profile using fallback methods.
    */
   private fetchRestrictedPersonDetails = traceMethod(
-    fetchRestrictedPersonDetailsSpanName,
+    'Hitobito.fetchRestrictedPersonDetails',
     // eslint-disable-next-line unicorn/consistent-function-scoping
     async function (
       this: EventService,

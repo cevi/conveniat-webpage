@@ -1,5 +1,4 @@
 'use client';
-
 import { AppFooterController } from '@/components/footer/hide-footer-context';
 import { OfflineBanner } from '@/components/offline-banner';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -24,9 +23,10 @@ import { ChatActionsProvider } from '@/features/chat/context/chat-actions-contex
 import { ChatIdProvider } from '@/features/chat/context/chat-id-context';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { useToggleForumLike } from '@/hooks/use-toggle-forum-like';
 import { forumErrorTexts } from '@/lib/forum-error-texts';
 import { FORUM_LIKE_EMOJI, forumCapacityLabel, forumStatusLabel } from '@/lib/forum-shared';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -50,6 +50,8 @@ import {
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { useState } from 'react';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 /** `…/app/forum/<postId>`; the composer's `new` is a page of its own. */
 const POST_ID_FROM_PATHNAME = /\/app\/forum\/([\da-f-]{36})\/?$/i;
@@ -114,23 +116,28 @@ const failureText = (reason: string, locale: Locale): string =>
  * or rejects it, which deletes it. Rejecting asks first, as every deletion does.
  */
 const PendingBanner: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ post, locale }) => {
+  const trpc = useTRPC();
   const router = useRouter();
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const [confirmReject, setConfirmReject] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const fail = (caught: unknown): void =>
     setError(userErrorMessage(caught, locale, forumErrorTexts, forumText.changeFailed));
-  const approve = trpc.forum.approveForumPost.useMutation({
-    onSuccess: () => void utils.forum.invalidate(),
-    onError: fail,
-  });
-  const reject = trpc.forum.deleteForumMessage.useMutation({
-    onSuccess: () => {
-      void utils.forum.invalidate();
-      router.push('/app/forum');
-    },
-    onError: fail,
-  });
+  const approve = useMutation(
+    trpc.forum.approveForumPost.mutationOptions({
+      onSuccess: () => void queryClient.invalidateQueries(trpc.forum.pathFilter()),
+      onError: fail,
+    }),
+  );
+  const reject = useMutation(
+    trpc.forum.deleteForumMessage.mutationOptions({
+      onSuccess: () => {
+        void queryClient.invalidateQueries(trpc.forum.pathFilter());
+        router.push('/app/forum');
+      },
+      onError: fail,
+    }),
+  );
 
   return (
     <div className="bg-quiet flex flex-col gap-2.5 rounded-xl p-3">
@@ -201,7 +208,8 @@ const PendingBanner: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ po
 
 /** The answer the Kernteam marked, above the other comments. */
 const MarkedAnswer: React.FC<{ commentId: string; locale: Locale }> = ({ commentId, locale }) => {
-  const { data } = trpc.chat.getMessage.useQuery({ messageId: commentId });
+  const trpc = useTRPC();
+  const { data } = useQuery(trpc.chat.getMessage.queryOptions({ messageId: commentId }));
   if (data === undefined) return <></>;
   const payload = data.messagePayload as { text?: unknown } | undefined;
   const text = typeof payload?.text === 'string' ? payload.text : '';
@@ -246,16 +254,21 @@ const ZentraleActions: React.FC<{
   currentUserId: string | undefined;
   onForward: () => void;
 }> = ({ post, locale, currentUserId, onForward }) => {
-  const utils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | undefined>();
-  const refresh = (): void => void utils.forum.invalidate();
+  const refresh = (): void => void queryClient.invalidateQueries(trpc.forum.pathFilter());
   const fail = (caught: unknown): void =>
     setError(userErrorMessage(caught, locale, forumErrorTexts, forumText.changeFailed));
-  const claim = trpc.forum.claimForumPost.useMutation({ onSuccess: refresh, onError: fail });
-  const giveBack = trpc.forum.endForumPostAssignment.useMutation({
-    onSuccess: refresh,
-    onError: fail,
-  });
+  const claim = useMutation(
+    trpc.forum.claimForumPost.mutationOptions({ onSuccess: refresh, onError: fail }),
+  );
+  const giveBack = useMutation(
+    trpc.forum.endForumPostAssignment.mutationOptions({
+      onSuccess: refresh,
+      onError: fail,
+    }),
+  );
 
   // absent in a persisted cache from before the Zentrale
   const current = post.claim ?? null;
@@ -327,33 +340,28 @@ const PostHeader: React.FC<{
   onForward: () => void;
   currentUserId: string | undefined;
 }> = ({ post, locale, onReportDone, onForward, currentUserId }) => {
-  const utils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const [now] = useState(() => new Date());
   const statusFailure = useForumStatusFailure(post.id);
 
-  const like = trpc.chat.toggleReaction.useMutation({
-    onMutate: () => {
-      utils.forum.getForumPost.setData({ postId: post.id }, (old) =>
-        old === undefined
-          ? old
-          : {
-              ...old,
-              likedByMe: !old.likedByMe,
-              likeCount: old.likeCount + (old.likedByMe ? -1 : 1),
-            },
-      );
-    },
-    onSettled: () => {
-      void utils.forum.getForumPost.invalidate({ postId: post.id });
-      void utils.forum.getForumPostList.invalidate();
-    },
-  });
-  const subscribe = trpc.forum.updateForumPostSubscription.useMutation({
-    onSettled: () => void utils.forum.getForumPost.invalidate({ postId: post.id }),
-  });
-  const withdraw = trpc.forum.endForumPostAssignment.useMutation({
-    onSettled: () => void utils.forum.getForumPost.invalidate({ postId: post.id }),
-  });
+  const like = useToggleForumLike();
+  const subscribe = useMutation(
+    trpc.forum.updateForumPostSubscription.mutationOptions({
+      onSettled: () =>
+        void queryClient.invalidateQueries(
+          trpc.forum.getForumPost.queryFilter({ postId: post.id }),
+        ),
+    }),
+  );
+  const withdraw = useMutation(
+    trpc.forum.endForumPostAssignment.mutationOptions({
+      onSettled: () =>
+        void queryClient.invalidateQueries(
+          trpc.forum.getForumPost.queryFilter({ postId: post.id }),
+        ),
+    }),
+  );
 
   // absent in a persisted cache from before the Zentrale
   const myForward = post.myForward ?? null;
@@ -598,8 +606,9 @@ const PostHeader: React.FC<{
 };
 
 const ForumPostScreen: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ post, locale }) => {
+  const trpc = useTRPC();
   const [sheet, setSheet] = useState<'moderate' | 'forward' | 'done' | undefined>();
-  const { data: currentUserId } = trpc.chat.user.useQuery({});
+  const { data: currentUserId } = useQuery(trpc.chat.user.queryOptions({}));
   useChatSSE([post.topicId]);
 
   const canOpenSheet = post.viewer.canModerate || post.viewer.canSetStatus || post.viewer.isAuthor;
@@ -685,10 +694,13 @@ export const ForumPostView: React.FC<{
 };
 
 const ForumPostContent: React.FC<{ postId: string | undefined }> = ({ postId }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const query = trpc.forum.getForumPost.useQuery(
-    { postId: postId ?? '' },
-    { enabled: postId !== undefined },
+  const query = useQuery(
+    trpc.forum.getForumPost.queryOptions(
+      { postId: postId ?? '' },
+      { enabled: postId !== undefined },
+    ),
   );
 
   if (postId === undefined || query.isError) {

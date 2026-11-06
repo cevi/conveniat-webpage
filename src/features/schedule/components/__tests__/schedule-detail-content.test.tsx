@@ -4,17 +4,16 @@
 
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
+import { createTestTrpc } from '@/trpc/test-trpc';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type React from 'react';
 
 // The organiser rows carry a chat button that creates the chat through tRPC.
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    chat: {
-      createChat: { useMutation: (): unknown => ({ mutate: jest.fn(), isPending: false }) },
-    },
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 jest.mock('@/hooks/use-current-locale', () => ({
   useCurrentLocale: (): string => 'de',
 }));
@@ -98,6 +97,9 @@ const entryWith = (organiser: CampScheduleEntryFrontendType['organiser']): CampS
   return entry as unknown as CampScheduleEntry;
 };
 
+// no handler: none of these tests presses the chat button, so a call would fail the test
+const wrapper = (): React.FC<{ children: React.ReactNode }> => createTestTrpc().wrapper;
+
 describe('ScheduleDetailContent organisers', () => {
   /**
    * Participants know the organiser of a programme block by their Ceviname, so the contact row
@@ -109,6 +111,7 @@ describe('ScheduleDetailContent organisers', () => {
         entry={entryWith([{ id: 'org-1', fullName: 'Anna Muster', nickname: 'Ameise' }])}
         locale="de"
       />,
+      { wrapper: wrapper() },
     );
 
     expect(screen.getByText('Anna Muster v/o Ameise')).toBeInTheDocument();
@@ -121,7 +124,9 @@ describe('ScheduleDetailContent organisers', () => {
    */
   it('does not show the email of an organiser', () => {
     const staleOrganiser = { id: 'org-1', fullName: 'Anna Muster', email: 'anna@example.org' };
-    render(<ScheduleDetailContent entry={entryWith([staleOrganiser])} locale="de" />);
+    render(<ScheduleDetailContent entry={entryWith([staleOrganiser])} locale="de" />, {
+      wrapper: wrapper(),
+    });
 
     expect(screen.queryByText('anna@example.org')).toBeNull();
   });
@@ -132,6 +137,7 @@ describe('ScheduleDetailContent organisers', () => {
         entry={entryWith([{ id: 'org-1', fullName: 'Anna Muster' }])}
         locale="de"
       />,
+      { wrapper: wrapper() },
     );
 
     expect(screen.getByText('Anna Muster')).toBeInTheDocument();

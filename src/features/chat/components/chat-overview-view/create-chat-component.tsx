@@ -21,12 +21,14 @@ import {
 import { useSearchClearedOnLeave } from '@/features/chat/hooks/use-search-cleared-on-leave';
 import { groupContactsByLetter, matchesContactSearch } from '@/features/chat/utils/contact-search';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Loader2, QrCode, UserPlus, Users } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const text = {
   newGroup: { de: 'Neue Gruppe', en: 'New group', fr: 'Nouveau groupe' },
@@ -58,8 +60,9 @@ const actionRowClassName = 'py-2 text-[15px] font-semibold text-green-900';
  * already there or a new one.
  */
 export const CreateNewChatPage: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { data: allContacts, isLoading } = trpc.chat.contacts.useQuery({});
+  const { data: allContacts, isLoading } = useQuery(trpc.chat.contacts.queryOptions({}));
   // the route stays mounted, hidden, after leaving it; coming back starts from a clean screen
   const [searchQuery, setSearchQuery] = useSearchClearedOnLeave();
   const [isQrOpen, setIsQrOpen] = useState(false);

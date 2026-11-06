@@ -8,7 +8,7 @@ import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { describeContactFunktionen } from '@/features/chat/utils/contact-search';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -62,6 +62,8 @@ import {
 } from '@/features/chat/utils/message-grouping';
 import type { Typist } from '@/features/chat/utils/typing-store';
 
+import { useQuery } from '@tanstack/react-query';
+
 export const MessageList: React.FC<{
   parentId?: string;
   hideReplyCount?: boolean;
@@ -69,13 +71,14 @@ export const MessageList: React.FC<{
   /** Above the replies of a thread: the message they answer, see `ThreadView`. */
   threadHeader?: React.ReactNode;
 }> = ({ parentId, hideReplyCount = false, isThread = false, threadHeader }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
   const { data: chatDetails, isLoading } = useChatDetail(chatId);
-  const { data: currentUser } = trpc.chat.user.useQuery({});
+  const { data: currentUser } = useQuery(trpc.chat.user.queryOptions({}));
   // The messages name their sender only; the functions come with the cached contacts, which
   // the chat sync keeps fresh. Never refetched from here: that is the whole contact list.
-  const { data: contacts } = trpc.chat.contacts.useQuery({}, { staleTime: Infinity });
+  const { data: contacts } = useQuery(trpc.chat.contacts.queryOptions({}, { staleTime: Infinity }));
   const funktionenBySender = React.useMemo(
     () =>
       new Map(
@@ -108,17 +111,19 @@ export const MessageList: React.FC<{
 
   // Where the reader stopped, from the server's read state, asked once when the chat opens and
   // never kept: an answer from the cache would put the line where it was days ago.
-  const unreadMarker = trpc.chat.getUnreadMarker.useQuery(
-    { chatId },
-    {
-      enabled: !isThread && chatId !== '',
-      staleTime: Infinity,
-      gcTime: 0,
-      retry: false,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      meta: { persist: false },
-    },
+  const unreadMarker = useQuery(
+    trpc.chat.getUnreadMarker.queryOptions(
+      { chatId },
+      {
+        enabled: !isThread && chatId !== '',
+        staleTime: Infinity,
+        gcTime: 0,
+        retry: false,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        meta: { persist: false },
+      },
+    ),
   );
   // Decided once, with the first messages and the marker, so the line stays before the same
   // message while new ones come and the reader reads them. Offline the marker fails, and the

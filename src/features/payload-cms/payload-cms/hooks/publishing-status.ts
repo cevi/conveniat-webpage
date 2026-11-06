@@ -398,11 +398,11 @@ export const getPublishingStatusGlobal =
 
         return {
           pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
-          published: (
-            originalDocument['_localized_status'] as unknown as {
-              published: boolean;
-            }
-          )['published'],
+          published:
+            (
+              originalDocument['_localized_status'] as unknown as
+                { published?: boolean } | undefined
+            )?.published === true,
         };
       };
 
@@ -447,6 +447,10 @@ export const getPublishingStatus =
           id,
           // avoid infinite recursion
           select: { publishingStatus: false },
+          // hasDiffs skips a join it does not get, and with locale 'all' Payload looks a join
+          // up on a field that does not exist, scanning the whole joined collection. The cast:
+          // for a slug only known at runtime, Payload types `joins` as never.
+          joins: false as never,
           depth: 0,
           locale: 'all',
           trash: true, // include trashed documents
@@ -457,6 +461,7 @@ export const getPublishingStatus =
           id,
           // avoid infinite recursion
           select: { publishingStatus: false },
+          joins: false as never,
           locale: 'all',
           depth: 0,
           trash: true, // include trashed documents
@@ -475,11 +480,12 @@ export const getPublishingStatus =
       } => {
         return {
           pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
-          published: (
-            originalDocument['_localized_status']?.[locale] as unknown as {
-              published: boolean;
-            }
-          )['published'],
+          // A locale that was never saved has no entry, e.g. `en` on a konekta document.
+          published:
+            (
+              originalDocument['_localized_status']?.[locale] as unknown as
+                { published?: boolean } | undefined
+            )?.published === true,
         };
       };
 

@@ -2,7 +2,6 @@ import { environmentVariables as env } from '@/config/environment-variables';
 import { FEATURE_FLAG_DEFAULTS } from '@/lib/feature-flags';
 import { createLogger } from '@/utils/server-logger';
 import Redis from 'ioredis';
-import { revalidateTag, unstable_cache } from 'next/cache';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 
 const logger = createLogger('redis');
@@ -52,27 +51,21 @@ redis.on('error', (error: { code: string }) => {
 });
 
 export const FEATURE_FLAG_PREFIX = 'feature-flag:';
-const FEATURE_FLAG_CACHE_TAG = 'feature-flags';
-const FEATURE_FLAG_REVALIDATE_SECONDS = 60;
 
-const fetchCachedFeatureFlag = unstable_cache(
-  async (key: string): Promise<boolean> => {
+/**
+ * Reads a feature flag straight from Redis, falling back to its default when the key is unset or
+ * Redis is unreachable.
+ *
+ * Not wrapped in a Next.js cache: `unstable_cache` lives in each replica's own incremental cache,
+ * so a flag set on one replica stayed stale on the other for up to its revalidate time (#2645).
+ */
+export const getFeatureFlag = async (key: string): Promise<boolean> => {
+  try {
     const value = await redis.get(`${FEATURE_FLAG_PREFIX}${key}`);
     if (value === null) return FEATURE_FLAG_DEFAULTS[key] ?? false;
     return value === 'true';
-  },
-  ['feature-flags-cache'],
-  {
-    revalidate: FEATURE_FLAG_REVALIDATE_SECONDS,
-    tags: [FEATURE_FLAG_CACHE_TAG],
-  },
-);
-
-export const getFeatureFlag = async (key: string): Promise<boolean> => {
-  try {
-    return await fetchCachedFeatureFlag(key);
   } catch (error) {
-    logger.warn('Feature flag fetch failed, returning the un-cached default', {
+    logger.warn('Feature flag fetch failed, returning the default', {
       error,
       'feature_flag.key': key,
     });
@@ -80,11 +73,9 @@ export const getFeatureFlag = async (key: string): Promise<boolean> => {
   }
 };
 
+/**
+ * Stores a feature flag in Redis, where every replica reads it on its next call.
+ */
 export const setFeatureFlag = async (key: string, value: boolean): Promise<void> => {
   await redis.set(`${FEATURE_FLAG_PREFIX}${key}`, String(value));
-  try {
-    revalidateTag(FEATURE_FLAG_CACHE_TAG, 'max');
-  } catch {
-    // Ignore when executed outside request context (e.g., seeding scripts)
-  }
 };

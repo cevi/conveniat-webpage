@@ -1,5 +1,4 @@
 'use client';
-
 import { personName } from '@/features/wristbands/components/band-labels';
 import { wristbandErrorTexts } from '@/features/wristbands/error-texts';
 import {
@@ -17,10 +16,12 @@ import type {
 import { useBandScanner } from '@/features/wristbands/hooks/use-band-scanner';
 import { failureNotice, localRefusalTexts } from '@/features/wristbands/texts';
 import type { HofPerson, HofWristbandList } from '@/features/wristbands/types';
-import { trpc } from '@/trpc/client';
+import { useTRPC, useTRPCClient } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { useState } from 'react';
+
+import { useQueryClient } from '@tanstack/react-query';
 
 /** Where giving one person their band stands. */
 export type GiveStep =
@@ -63,21 +64,23 @@ export const useGiveBand = ({
   scanner: { phase: ScanPhase; notice: ScanNotice | undefined; resume: () => void };
   undo: (() => void) | undefined;
 } => {
-  const utils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const trpcClient = useTRPCClient();
   const [step, setStep] = useState<GiveStep>({ step: 'scan' });
 
   /** The freshest list there is: the cache may be ahead of the render. */
   const latestList = (): HofWristbandList => {
-    const cached = utils.wristband.getHofWristbandList.getData({ hofId });
+    const cached = queryClient.getQueryData(trpc.wristband.getHofWristbandList.queryKey({ hofId }));
     return cached === undefined ? list : readWristbandList(cached);
   };
   const changeList = (change: (current: HofWristbandList) => HofWristbandList): void => {
-    utils.wristband.getHofWristbandList.setData({ hofId }, (current) =>
+    queryClient.setQueryData(trpc.wristband.getHofWristbandList.queryKey({ hofId }), (current) =>
       change(readWristbandList(current ?? list)),
     );
   };
   const refresh = (): void => {
-    void utils.wristband.getHofWristbandList.invalidate({ hofId });
+    void queryClient.invalidateQueries(trpc.wristband.getHofWristbandList.queryFilter({ hofId }));
   };
 
   const handlers: BandScannerHandlers = {
@@ -94,14 +97,14 @@ export const useGiveBand = ({
       const input = { hofId, uid, registrationId: person.registrationId };
       try {
         await (replace
-          ? utils.client.wristband.replaceWristband.mutate(input)
-          : utils.client.wristband.assignWristband.mutate(input));
+          ? trpcClient.wristband.replaceWristband.mutate(input)
+          : trpcClient.wristband.assignWristband.mutate(input));
       } catch (error) {
         // recorded for the Hof but nobody's: the next person can take it
         changeList((current) => withSpareBand(current, uid));
         refresh();
         // a helper the AVP removed meanwhile sees the page without the station once it reloads
-        void utils.wristband.getMyHofList.invalidate();
+        void queryClient.invalidateQueries(trpc.wristband.getMyHofList.pathFilter());
         return {
           kind: 'refused',
           title: userErrorMessage(error, locale, wristbandErrorTexts),
@@ -125,7 +128,7 @@ export const useGiveBand = ({
   const undo = async (uid: string): Promise<void> => {
     setStep({ step: 'undoing', uid });
     try {
-      await utils.client.wristband.unassignWristband.mutate({ hofId, uid });
+      await trpcClient.wristband.unassignWristband.mutate({ hofId, uid });
       changeList((current) => withBandReturned(current, uid));
       setStep({ step: 'undone' });
     } catch (error) {

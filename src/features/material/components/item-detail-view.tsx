@@ -38,13 +38,15 @@ import {
 import { orderStepOf } from '@/features/material/utils/basket';
 import { groupByHolder, holderSearch } from '@/features/material/utils/holders';
 import { itemPath } from '@/features/material/utils/scan';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { AlertTriangle, ArrowLeft, ChevronRight, Pencil, QrCode, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
 import { useState } from 'react';
+
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 const text = {
   back: { de: 'Zum Inventar', en: 'To the inventory', fr: 'Vers l’inventaire' },
@@ -108,9 +110,10 @@ const StockActions: React.FC<{ itemId: string; damaged: number; inRepair: number
   damaged,
   inRepair,
 }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const invalidate = useInvalidateMaterial();
-  const adjust = trpc.material.adjustItemStock.useMutation();
+  const adjust = useMutation(trpc.material.adjustItemStock.mutationOptions());
   const [quantity, setQuantity] = useState(1);
 
   // a step with nothing to act on is left out rather than shown switched off
@@ -173,11 +176,12 @@ const ReportDamageForm: React.FC<{
   onDone: () => void;
   locale: Locale;
 }> = ({ itemId, maxQuantity, onDone, locale }) => {
+  const trpc = useTRPC();
   const [condition, setCondition] = useState<ReportCondition>('DAMAGED');
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState('');
   const photo = useIncidentPhotoUpload();
-  const report = trpc.material.reportIncident.useMutation();
+  const report = useMutation(trpc.material.reportIncident.mutationOptions());
 
   return (
     <div className="space-y-4">
@@ -338,8 +342,9 @@ const WhereIsIt: React.FC<{ item: MaterialItemDetail }> = ({ item }) => {
 
 /** One article in full: its numbers, where its pieces are, and what the team can do with it. */
 export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
-  const item = trpc.material.getItem.useQuery({ code }, materialQueryOptions);
+  const item = useQuery(trpc.material.getItem.queryOptions({ code }, materialQueryOptions));
   const invalidate = useInvalidateMaterial();
   const [editing, setEditing] = useState(false);
   const [reporting, setReporting] = useState(false);

@@ -1,12 +1,13 @@
 'use client';
-
 import { toast } from '@/components/ui/toast';
 import type { HofDashboardArea } from '@/features/hof-dashboard/constants';
 import { translate } from '@/features/hof-dashboard/texts';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { useState } from 'react';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 /**
  * Accepts everything that counts of one Hof in the given areas, one area after the other, then
@@ -19,9 +20,12 @@ export const useAcceptHofArea = (
   /** The Hof being accepted right now, if any. */
   pendingHofId: string | undefined;
 } => {
-  const utils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   // fail right away without signal instead of waiting paused for it, so the user hears of it
-  const mutation = trpc.hofDashboard.acceptHofArea.useMutation({ networkMode: 'always' });
+  const mutation = useMutation(
+    trpc.hofDashboard.acceptHofArea.mutationOptions({ networkMode: 'always' }),
+  );
   const [pendingHofId, setPendingHofId] = useState<string>();
 
   const accept = async (hofId: string, areas: readonly HofDashboardArea[]): Promise<void> => {
@@ -36,8 +40,8 @@ export const useAcceptHofArea = (
       setPendingHofId(undefined);
     }
     await Promise.all([
-      utils.hofDashboard.getHofOverview.invalidate(),
-      utils.hofDashboard.getHofDashboard.invalidate({ hofId }),
+      queryClient.invalidateQueries(trpc.hofDashboard.getHofOverview.pathFilter()),
+      queryClient.invalidateQueries(trpc.hofDashboard.getHofDashboard.queryFilter({ hofId })),
     ]);
   };
   return { accept, pendingHofId };

@@ -4,6 +4,13 @@ import {
   extractCsrfMetaToken,
   extractFormFields,
 } from '@/lib/hitobito/html-parser';
+import {
+  measureCeviDatabaseFetch,
+  outcomeOfError,
+  outcomeOfStatus,
+  routeTemplate,
+  startCeviDatabaseRequest,
+} from '@/lib/hitobito/request-metrics';
 import type { Logger, RequestOptions } from '@/lib/hitobito/types';
 import { CEVI_DATABASE_USER_AGENT } from '@/lib/hitobito/user-agent';
 import { createLogger } from '@/utils/server-logger';
@@ -150,33 +157,38 @@ export class HitobitoClient {
       signal?: AbortSignal;
     } = {},
   ): Promise<T> {
-    return withSpan(`HitobitoClient.apiRequest:${method} ${path}`, async (span) => {
+    const route = routeTemplate(path);
+    return withSpan(`HitobitoClient.apiRequest:${method} ${route}`, async (span) => {
       const url = this.resolveUrl(path, options.params);
 
       span.setAttributes({
         'http.method': method,
-        'http.route': path,
-        'http.url': url,
+        'http.route': route,
+        // the path only, never the URL: a person search puts names and email addresses in the
+        // query, as the request log line below already avoids
+        'url.path': new URL(url).pathname,
       });
 
       const startedAt = performance.now();
-      const response = await this.fetchWithTimeout(url, {
-        method,
-        headers: {
-          'X-TOKEN': this.config.apiToken,
-          'User-Agent': CEVI_DATABASE_USER_AGENT,
-          'Content-Type': 'application/vnd.api+json',
-          Accept: 'application/vnd.api+json',
-        },
-        body:
-          options.body !== undefined && options.body !== null
-            ? (JSON.stringify(options.body) as BodyInit)
-            : undefined,
-        signal: options.signal,
-        // the JSON API does not redirect; a redirect is an error here, never followed with the
-        // token to wherever it points
-        redirect: 'manual',
-      } as RequestInit);
+      const response = await measureCeviDatabaseFetch({ channel: 'api', method, route }, () =>
+        this.fetchWithTimeout(url, {
+          method,
+          headers: {
+            'X-TOKEN': this.config.apiToken,
+            'User-Agent': CEVI_DATABASE_USER_AGENT,
+            'Content-Type': 'application/vnd.api+json',
+            Accept: 'application/vnd.api+json',
+          },
+          body:
+            options.body !== undefined && options.body !== null
+              ? (JSON.stringify(options.body) as BodyInit)
+              : undefined,
+          signal: options.signal,
+          // the JSON API does not redirect; a redirect is an error here, never followed with
+          // the token to wherever it points
+          redirect: 'manual',
+        } as RequestInit),
+      );
 
       span.setAttribute('http.status_code', response.status);
       requestLogger.debug('Cevi.DB API request', {
@@ -223,12 +235,16 @@ export class HitobitoClient {
     urlOrPath: string,
     options: RequestOptions = {},
   ): Promise<{ response: Response; body: string; finalUrl: string }> {
-    return withSpan(`HitobitoClient.frontendRequest:${method} ${urlOrPath}`, async (span) => {
+    const route = routeTemplate(urlOrPath);
+    return withSpan(`HitobitoClient.frontendRequest:${method} ${route}`, async (span) => {
       const url = this.resolveUrl(urlOrPath, options.params);
 
       span.setAttributes({
         'http.method': method,
-        'http.url': url,
+        'http.route': route,
+        // the path only, never the URL: a person search puts names and email addresses in the
+        // query, as the request log line below already avoids
+        'url.path': new URL(url).pathname,
       });
 
       const headers = new Headers(options.headers);
@@ -246,11 +262,19 @@ export class HitobitoClient {
       }
 
       const startedAt = performance.now();
-      const { response, finalUrl } = await this.fetchFollowingSameOriginRedirects(url, {
-        ...options,
-        method,
-        headers,
-      });
+      const finish = startCeviDatabaseRequest({ channel: 'frontend', method, route });
+      let fetched: { response: Response; finalUrl: string };
+      try {
+        fetched = await this.fetchFollowingSameOriginRedirects(url, {
+          ...options,
+          method,
+          headers,
+        });
+      } catch (error) {
+        finish(outcomeOfError(error));
+        throw error;
+      }
+      const { response, finalUrl } = fetched;
 
       span.setAttribute('http.status_code', response.status);
       requestLogger.debug('Cevi.DB frontend request', {
@@ -265,9 +289,11 @@ export class HitobitoClient {
       const body = await response.text();
 
       if (isSignInRedirect(url, finalUrl)) {
+        finish('session_expired');
         span.setAttribute('hitobito.session_expired', true);
         throw new SessionExpiredError(url);
       }
+      finish(outcomeOfStatus(response.status));
 
       return { response, body, finalUrl };
     });
@@ -300,7 +326,8 @@ export class HitobitoClient {
     extractExtraFields?: boolean;
     extraHeaders?: Record<string, string>;
   }): Promise<{ response: Response; body: string; finalUrl: string }> {
-    return withSpan(`HitobitoClient.submitRailsForm:${method} ${postUrl}`, async (span) => {
+    const route = routeTemplate(postUrl);
+    return withSpan(`HitobitoClient.submitRailsForm:${method} ${route}`, async (span) => {
       span.setAttributes({
         getFormUrl: getFormUrl,
         postUrl: postUrl,

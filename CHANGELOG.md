@@ -1,5 +1,95 @@
 # Changelog
 
+## [1.52.1](https://github.com/cevi/conveniat-webpage/compare/v1.52.0...v1.52.1) (2026-11-06)
+
+
+### Bug Fixes
+
+* **hitobito:** Cevi.DB spans carry the path, not the URL with its query ([5b380d0](https://github.com/cevi/conveniat-webpage/commit/5b380d0e40bc776b4276556ce72351ff11a74b43))
+* **hitobito:** Cevi.DB spans carry the path, not the URL with its query ([91c42f1](https://github.com/cevi/conveniat-webpage/commit/91c42f1e968a09a0fd9143fbfdca9f75758ffae2))
+
+## [1.52.0](https://github.com/cevi/conveniat-webpage/compare/v1.51.2...v1.52.0) (2026-11-06)
+
+
+### Features
+
+* **hitobito:** measure every Cevi.DB request by route and outcome ([f890674](https://github.com/cevi/conveniat-webpage/commit/f89067472366eb2e88344101d9f80e30274aea2d))
+* **tracing:** export the event loop delay of every replica ([d1d6943](https://github.com/cevi/conveniat-webpage/commit/d1d694351d5c791296bde6a5b769d0b377d14830))
+* **tracing:** name each replica by its node and Swarm task ([b761c76](https://github.com/cevi/conveniat-webpage/commit/b761c76b1214be2ef2d9414b45b2adb3435cf1e1))
+* **tracing:** name each replica by its node and Swarm task ([f788534](https://github.com/cevi/conveniat-webpage/commit/f788534d4183f7e7409e94d646a54efd6b78c098))
+* **tracing:** one span per Payload query, through Mongoose ([c68e84b](https://github.com/cevi/conveniat-webpage/commit/c68e84b9215ede98eeef0ebaaad08f94dde18499))
+* **tracing:** one span per Payload query, through Mongoose ([1a9b07a](https://github.com/cevi/conveniat-webpage/commit/1a9b07a9750a246087d99dad97422d6ef8f92916))
+* **tracing:** say on a request's span who it was and what it touched ([ca353ff](https://github.com/cevi/conveniat-webpage/commit/ca353ffc38facb8967b7b07d21f7c53b0e6f7edd))
+* **tracing:** say on a request's span who it was and what it touched ([3ac0cce](https://github.com/cevi/conveniat-webpage/commit/3ac0cceb3e2e9783fb3155c68a0743a78802db43))
+
+
+### Bug Fixes
+
+* **cache:** page shells follow a flush on the other replica ([7a354a4](https://github.com/cevi/conveniat-webpage/commit/7a354a47949b033168ae2d3d126b7fc53b2d59ed))
+* **cache:** serve the local shell when Redis is slow to answer ([ff8d56b](https://github.com/cevi/conveniat-webpage/commit/ff8d56be57bb55c6b5caf58cdacc1e21a9198573))
+* **chat:** a chat that never existed under its id leaves the cache ([30a24bf](https://github.com/cevi/conveniat-webpage/commit/30a24bf05a99b8e2156791262b95693c9f8f574d))
+* **chat:** a chat that never existed under its id leaves the cache ([6707a83](https://github.com/cevi/conveniat-webpage/commit/6707a831ba1f2023502b3de717cda08a35e96ac3))
+* **chat:** a push refreshes the chat instead of guessing its message ([a554be5](https://github.com/cevi/conveniat-webpage/commit/a554be52885634e2bcda9ed035554d790f08045d))
+* **chat:** alert chats are prefetched where the chat reads them, a push no longer guesses a message ([bb03ac1](https://github.com/cevi/conveniat-webpage/commit/bb03ac1e844bc6490daeee3ee2b4c9b584f42c5b))
+* **chat:** pushed and alert chat messages land in the cache the chat reads ([6dfe7e7](https://github.com/cevi/conveniat-webpage/commit/6dfe7e7e8684acfbc8755032d35553b7026de5dd))
+* **feature-flags:** every replica reads a changed flag at once ([d58c042](https://github.com/cevi/conveniat-webpage/commit/d58c04284d6874d80bdfd1e113acb430355e4443))
+* **forum:** a failed like puts the post back ([6bb9321](https://github.com/cevi/conveniat-webpage/commit/6bb9321467026c0f5cce51c4a75be2e6cb8b9def))
+* **forum:** a like refreshes the post wherever it was given ([413b0eb](https://github.com/cevi/conveniat-webpage/commit/413b0eb5401e3a190695655fc6d98bd48d14cc63))
+* **forum:** a like refreshes the post wherever it was given ([07e5361](https://github.com/cevi/conveniat-webpage/commit/07e5361e9aa8ab0657a98f537f68c7578597f618))
+* **jobs:** job durations in second buckets, not millisecond ones ([914243f](https://github.com/cevi/conveniat-webpage/commit/914243ff4c358ef877be63bcd15b37445bddbfcc))
+* **menu:** a release no longer opens pages without the main menu ([412151c](https://github.com/cevi/conveniat-webpage/commit/412151c0b5a07d200f5a421e1ceedf788abad2c7))
+* **menu:** a release no longer opens pages without the main menu ([38c96a9](https://github.com/cevi/conveniat-webpage/commit/38c96a992dacb69d02174303eced9db9988cb6fd))
+* **service-worker:** answer an offline prefetch without the cached page ([6fbcbb7](https://github.com/cevi/conveniat-webpage/commit/6fbcbb7037d4a50021bbd2dd1168990bff828ff1))
+* **service-worker:** answer an offline prefetch without the cached page ([2957ca6](https://github.com/cevi/conveniat-webpage/commit/2957ca6e0df0d3a51a43d6806a5551899de3fe43))
+* **tracing:** database instrumentations record into the SDK's provider ([8db2ad9](https://github.com/cevi/conveniat-webpage/commit/8db2ad9712286cd2a329670063a92d858d9ecf0a))
+* **tracing:** database instrumentations record into the SDK's provider ([62d13a0](https://github.com/cevi/conveniat-webpage/commit/62d13a0ed57ec193e02cc99d4a714017b603cb0d))
+* **tracing:** Prisma spans reach the exporter ([6ba5178](https://github.com/cevi/conveniat-webpage/commit/6ba5178df2e94f26fa4e53ac7bee2ce61741c52b))
+* **tracing:** Prisma spans reach the exporter ([9042563](https://github.com/cevi/conveniat-webpage/commit/90425632a65a7fdcc77e6c7abeee3831da2d0a27))
+
+## [1.51.2](https://github.com/cevi/conveniat-webpage/compare/v1.51.1...v1.51.2) (2026-11-06)
+
+
+### Bug Fixes
+
+* **cms:** publishing status survives a locale without a saved status ([fdfcc74](https://github.com/cevi/conveniat-webpage/commit/fdfcc744e4662295463d0445593770b9d8a35068))
+* **cms:** publishing status survives a locale without a saved status ([dc94cbc](https://github.com/cevi/conveniat-webpage/commit/dc94cbc35b7ff3fe171ace8b7c64bd9fa726c26d)), closes [#2144](https://github.com/cevi/conveniat-webpage/issues/2144)
+* **dashboard:** wristbands tile shows only its title ([5a0f5c6](https://github.com/cevi/conveniat-webpage/commit/5a0f5c64573a37f2d3b55f07af1f4a976eac6f27))
+* **dashboard:** wristbands tile shows only its title ([a62bf92](https://github.com/cevi/conveniat-webpage/commit/a62bf92ba468a500e08f3b807e0c9a252fef143e))
+* **forum:** mark pinned posts with a pin instead of section titles ([67516f5](https://github.com/cevi/conveniat-webpage/commit/67516f57d4b43d45b1b35f4bf55a44fb4b963fac))
+* **forum:** mark pinned posts with a pin instead of section titles ([8712bd6](https://github.com/cevi/conveniat-webpage/commit/8712bd6c319174673931a4a25219940cbf27fec6))
+* **nginx:** client-side navigations download their RSC payload gzipped ([6084168](https://github.com/cevi/conveniat-webpage/commit/60841685b5b5c77b8eb2f6067735648cc2063dd6))
+* **nginx:** client-side navigations download their RSC payload gzipped ([f38d23f](https://github.com/cevi/conveniat-webpage/commit/f38d23fc6a594d2680b82a6fd7e92db0544f3794)), closes [#2220](https://github.com/cevi/conveniat-webpage/issues/2220)
+* **tracing:** span names carry routes, not Cevi.DB ids ([4862533](https://github.com/cevi/conveniat-webpage/commit/4862533a9395daf67e06701b31c81ea60c6d3015))
+* **tracing:** span names carry routes, not Cevi.DB ids ([c521dca](https://github.com/cevi/conveniat-webpage/commit/c521dca7f27c99fb719a30d9e0d3b89f2923c991)), closes [#2221](https://github.com/cevi/conveniat-webpage/issues/2221)
+* **trpc:** server renders no longer keep every page in memory ([432fee5](https://github.com/cevi/conveniat-webpage/commit/432fee5993e8116eb1a9aca2980dd8383242de24))
+* **trpc:** server renders no longer keep every page in memory ([a694331](https://github.com/cevi/conveniat-webpage/commit/a694331a96a0dcd6beae05ce7a3797f45df42a17))
+* **wristbands:** seal the offline list of bands band by band ([98350ae](https://github.com/cevi/conveniat-webpage/commit/98350ae84fb5dd874a43935f329f61fe9528c27a))
+* **wristbands:** seal the offline list of bands band by band ([5f0fff4](https://github.com/cevi/conveniat-webpage/commit/5f0fff47c523497c106cf683c361d806d09aa380))
+* **wristbands:** shorter text for a band read offline without its signature ([c03546e](https://github.com/cevi/conveniat-webpage/commit/c03546e75f43c0c3f9e5e892abc4409a61867d08))
+
+## [1.51.1](https://github.com/cevi/conveniat-webpage/compare/v1.51.0...v1.51.1) (2026-11-05)
+
+
+### Bug Fixes
+
+* **chat:** a reason over several lines keeps the staged image's thumbnail square ([01fd3af](https://github.com/cevi/conveniat-webpage/commit/01fd3afa24afab65e00637a9ad981e09d1805f09))
+* **chat:** a refused or offline image send says why ([15a6e15](https://github.com/cevi/conveniat-webpage/commit/15a6e15ce164117f64fe80e05c7a1f38106ab60f))
+* **chat:** a refused or offline image send says why ([764f812](https://github.com/cevi/conveniat-webpage/commit/764f8123e6608cc52e24ea47357861a194ed1c7b)), closes [#712](https://github.com/cevi/conveniat-webpage/issues/712)
+* **push:** address review of the soft notification navigation ([71491c1](https://github.com/cevi/conveniat-webpage/commit/71491c163d282189689a1e12bdee73d926283a71))
+* **push:** ask uncontrolled pages briefly, skip the admin panel ([bbd534f](https://github.com/cevi/conveniat-webpage/commit/bbd534f60cd916320f77ea7026f002c376ead47a))
+* **push:** ignore receipts for push log entries that no longer exist ([1dc8b5b](https://github.com/cevi/conveniat-webpage/commit/1dc8b5b39c1e4b0e2337c52bceabad73b4323f78))
+* **push:** ignore receipts for push log entries that no longer exist ([daa16d8](https://github.com/cevi/conveniat-webpage/commit/daa16d82ee5c66c9b6bc0d7a4f0bfbc14ebbd32c))
+* **push:** tapping a notification with the app open no longer reloads it ([cf1073a](https://github.com/cevi/conveniat-webpage/commit/cf1073a1b926a7071475bbc5de5366746b812b55))
+* **push:** tapping a notification with the app open no longer reloads it ([dd3c960](https://github.com/cevi/conveniat-webpage/commit/dd3c96076df93ee4fef101e66c68d25e12f9e8a1)), closes [#2189](https://github.com/cevi/conveniat-webpage/issues/2189)
+* **schedule:** workshop counts refresh when a screen opens and every five minutes ([baf1553](https://github.com/cevi/conveniat-webpage/commit/baf155317878e9631aaf41bef426501ebbceb495))
+* **schedule:** workshop counts refresh when a screen opens and every five minutes ([fe4e614](https://github.com/cevi/conveniat-webpage/commit/fe4e614896d65fa87207b23211fb0044904b909a)), closes [#1640](https://github.com/cevi/conveniat-webpage/issues/1640)
+
+
+### Performance
+
+* **cms:** stop the publishing status from scanning joined collections ([31d9135](https://github.com/cevi/conveniat-webpage/commit/31d91352d8b7fd6d20d34b866e4aae23b25f72d2))
+* **cms:** stop the publishing status from scanning joined collections ([7da9c39](https://github.com/cevi/conveniat-webpage/commit/7da9c39fbfc30f96ae740405882cfa257e0be8c3)), closes [#2146](https://github.com/cevi/conveniat-webpage/issues/2146)
+
 ## [1.51.0](https://github.com/cevi/conveniat-webpage/compare/v1.50.0...v1.51.0) (2026-11-05)
 
 

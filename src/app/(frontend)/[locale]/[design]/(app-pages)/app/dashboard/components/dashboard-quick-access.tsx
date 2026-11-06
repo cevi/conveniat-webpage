@@ -37,34 +37,16 @@ const customizeLabel: StaticTranslationString = {
   fr: "Personnaliser l'accès rapide",
 };
 
-const wristbandsSubLabels = {
-  program: {
-    de: 'Programmieren und vergeben',
-    en: 'Program and hand out',
-    fr: 'Programmer et remettre',
-  },
-  read: { de: 'Armband lesen', en: 'Read a wristband', fr: 'Lire un bracelet' },
-} satisfies Record<string, StaticTranslationString>;
-
 const signInLabel: StaticTranslationString = { de: 'Anmelden', en: 'Log in', fr: 'Connexion' };
 
 const tileClassName =
   'focus-visible:focus-surface border-line hover:bg-quiet flex min-h-[64px] w-full cursor-pointer items-center gap-2.5 rounded-[14px] border bg-white px-3 py-2.5 text-left text-[14px] leading-[18px] font-semibold text-green-900';
 
-const TileContent: React.FC<{ icon: LucideIcon; label: string; sub?: string | undefined }> = ({
-  icon,
-  label,
-  sub,
-}) => (
+const TileContent: React.FC<{ icon: LucideIcon; label: string }> = ({ icon, label }) => (
   <>
     <IconTile icon={icon} />
     {/* balanced, so "Mein QR-Code" breaks before the word and not at its hyphen */}
-    <span className="min-w-0 text-balance">
-      {label}
-      {sub !== undefined && (
-        <span className="block text-[12px] leading-4 font-normal text-green-700">{sub}</span>
-      )}
-    </span>
+    <span className="min-w-0 text-balance">{label}</span>
   </>
 );
 
@@ -93,10 +75,6 @@ export const DashboardQuickAccess: React.FC<{
   const [isEditing, setIsEditing] = useState(false);
   const customizeButton = useRef<HTMLButtonElement>(null);
   const wristbands = useWristbandAccess(flags.wristbandsEnabled);
-  const wristbandsSub = [
-    ...(wristbands?.program === true ? [wristbandsSubLabels.program[locale]] : []),
-    ...(wristbands?.read === true ? [wristbandsSubLabels.read[locale]] : []),
-  ].join(' · ');
 
   // until the session and the user's choice are known, the tiles are unknown too; the default
   // ones would jump into other cells once they arrive
@@ -145,13 +123,7 @@ export const DashboardQuickAccess: React.FC<{
           )}
           {shown.map((id) => {
             const tile = tileOf(id);
-            const content = (
-              <TileContent
-                icon={tile.icon}
-                label={tile.label[locale]}
-                sub={id === 'wristbands' ? wristbandsSub : undefined}
-              />
-            );
+            const content = <TileContent icon={tile.icon} label={tile.label[locale]} />;
             if (id === 'support') {
               return (
                 <li key={id}>

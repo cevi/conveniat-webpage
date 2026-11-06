@@ -1,5 +1,4 @@
 'use client';
-
 import type { RosterOnPhone } from '@/features/wristbands/hooks/use-wristband-roster';
 import {
   identifyBand,
@@ -9,10 +8,11 @@ import {
 import { identifyFromRoster } from '@/features/wristbands/offline-lookup';
 import type { ReadFailureCode } from '@/features/wristbands/reader-texts';
 import type { WristbandIdentity } from '@/features/wristbands/types';
-import { trpc } from '@/trpc/client';
 import { isTransportError } from '@/utils/user-error-message';
 import { onlineManager } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { useTRPCClient } from '@/trpc/client';
 
 /** Whose the band is, and whether the server said so or the list on the phone. */
 export interface ReadResult {
@@ -54,7 +54,7 @@ export type ReadState =
 export const useReadWristband = (
   roster: RosterOnPhone,
 ): { state: ReadState; start: () => void; cancel: () => void } => {
-  const utils = trpc.useUtils();
+  const trpcClient = useTRPCClient();
   const [state, setState] = useState<ReadState>({ step: 'idle' });
   const sessionReference = useRef<AbortController | undefined>(undefined);
 
@@ -66,24 +66,30 @@ export const useReadWristband = (
     sessionReference.current = session;
     setState({ step: 'waiting' });
 
-    const fromRoster = (band: { uid: string; signature: string | null }): ReadState =>
-      roster.data === undefined
-        ? { step: 'failed', code: 'no-roster' }
-        : {
-            step: 'read',
-            result: {
-              identity: identifyFromRoster(roster.data, band),
-              fromRoster: { updatedAt: roster.updatedAt },
-              signature: band.signature,
-            },
-          };
+    const fromRoster = async (band: {
+      uid: string;
+      signature: string | null;
+    }): Promise<ReadState> => {
+      if (roster.data === undefined) return { step: 'failed', code: 'no-roster' };
+      const identity = await identifyFromRoster(roster.data, band);
+      // the list names nobody without the band's signature
+      if (identity === undefined) return { step: 'failed', code: 'no-signature' };
+      return {
+        step: 'read',
+        result: {
+          identity,
+          fromRoster: { updatedAt: roster.updatedAt },
+          signature: band.signature,
+        },
+      };
+    };
 
     const identify = async (): Promise<ReadState> => {
       const { uid, signature } = await identifyBand({
         signal: session.signal,
         timeoutMs: NFC_SESSION_TIMEOUT_MS,
       });
-      if (!onlineManager.isOnline()) return fromRoster({ uid, signature });
+      if (!onlineManager.isOnline()) return await fromRoster({ uid, signature });
       setState({ step: 'checking' });
       const request = new AbortController();
       const abortRequest = (): void => request.abort();
@@ -91,21 +97,24 @@ export const useReadWristband = (
       let timer: ReturnType<typeof setTimeout> | undefined;
       const askServer = async (): Promise<ReadState> => {
         try {
-          const identity = await utils.client.wristband.identifyWristband.mutate(
+          const identity = await trpcClient.wristband.identifyWristband.mutate(
             { uid, signature },
             { signal: request.signal },
           );
           return { step: 'read', result: { identity, fromRoster: null, signature } };
         } catch (error) {
-          if (isTransportError(error)) return fromRoster({ uid, signature });
+          if (isTransportError(error)) return await fromRoster({ uid, signature });
           throw error;
         }
       };
       const listAnswersInstead = new Promise<ReadState>((resolve) => {
         if (roster.data === undefined) return;
         timer = setTimeout(() => {
-          request.abort();
-          resolve(fromRoster({ uid, signature }));
+          // the list answers before the request is aborted, or its abort would settle the race
+          void fromRoster({ uid, signature }).then((answer) => {
+            request.abort();
+            resolve(answer);
+          });
         }, SERVER_ANSWER_TIMEOUT_MS);
       });
       try {
@@ -126,7 +135,7 @@ export const useReadWristband = (
         // a cancel is the reader's own choice and needs no screen
         setState(code === 'cancelled' ? { step: 'idle' } : { step: 'failed', code });
       });
-  }, [roster.data, roster.updatedAt, utils]);
+  }, [roster.data, roster.updatedAt, trpcClient]);
 
   const cancel = useCallback((): void => {
     sessionReference.current?.abort();

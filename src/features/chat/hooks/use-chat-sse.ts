@@ -1,5 +1,4 @@
 'use client';
-
 import type { ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { applyMessageDeletion } from '@/features/chat/hooks/use-delete-message';
@@ -14,9 +13,11 @@ import { notifyRealtimeChatMessage } from '@/features/chat/utils/realtime-messag
 import { addReplyToThreadSummary } from '@/features/chat/utils/thread-summary';
 import { clearTyping, recordTyping } from '@/features/chat/utils/typing-store';
 import type { ChatStatus } from '@/lib/chat-shared';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import superjson from 'superjson';
+
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface ChatRealtimeEvent {
   type:
@@ -173,8 +174,9 @@ export interface ChatRealtimeSync {
 }
 
 export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
-  const trpcUtils = trpc.useUtils();
-  const { data: currentUser } = trpc.chat.user.useQuery({});
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const { data: currentUser } = useQuery(trpc.chat.user.queryOptions({}));
 
   const status = useSyncExternalStore(
     subscribeToStatus,
@@ -198,36 +200,46 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
 
     const listener = (data: ChatRealtimeEvent): void => {
       if (data.type === 'new_chat') {
-        trpcUtils.chat.chats.invalidate().catch(console.error);
+        queryClient.invalidateQueries(trpc.chat.chats.pathFilter()).catch(console.error);
         return;
       }
 
       // The user left or was removed from the chat, possibly on another device: drop it from
       // the overview, and let an open chat view find out through the refetch that fails.
       if (data.type === 'membership_revoked') {
-        trpcUtils.chat.chats.setData({}, (chats) => chats?.filter((c) => c.id !== data.chatId));
-        trpcUtils.chat.chats.invalidate().catch(console.error);
-        trpcUtils.chat.chatDetails.invalidate({ chatId: data.chatId }).catch(console.error);
+        queryClient.setQueryData(trpc.chat.chats.queryKey({}), (chats) =>
+          chats?.filter((c) => c.id !== data.chatId),
+        );
+        queryClient.invalidateQueries(trpc.chat.chats.pathFilter()).catch(console.error);
+        queryClient
+          .invalidateQueries(trpc.chat.chatDetails.queryFilter({ chatId: data.chatId }))
+          .catch(console.error);
         return;
       }
 
       if (data.type === 'chat_read_by_admin') {
-        trpcUtils.chat.infiniteMessages.invalidate({ chatId: data.chatId }).catch(console.error);
-        trpcUtils.chat.chatDetails.invalidate({ chatId: data.chatId }).catch(console.error);
-        trpcUtils.chat.chats.invalidate().catch(console.error);
+        queryClient
+          .invalidateQueries(
+            trpc.chat.infiniteMessages.infiniteQueryFilter({ chatId: data.chatId }),
+          )
+          .catch(console.error);
+        queryClient
+          .invalidateQueries(trpc.chat.chatDetails.queryFilter({ chatId: data.chatId }))
+          .catch(console.error);
+        queryClient.invalidateQueries(trpc.chat.chats.pathFilter()).catch(console.error);
         return;
       }
 
       if (data.type === 'chat_updated' && data.chat) {
         const updatedChatStatus = data.chat.status as ChatStatus;
-        trpcUtils.chat.chatDetails.setData({ chatId: data.chatId }, (old) => {
+        queryClient.setQueryData(trpc.chat.chatDetails.queryKey({ chatId: data.chatId }), (old) => {
           if (!old) return old;
           return {
             ...old,
             status: updatedChatStatus,
           };
         });
-        trpcUtils.chat.chats.invalidate().catch(console.error);
+        queryClient.invalidateQueries(trpc.chat.chats.pathFilter()).catch(console.error);
         return;
       }
 
@@ -253,8 +265,8 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
         // is not currently looking at. Inside the native app Firebase does not
         // render anything while the app is open, so this is the only signal the
         // user gets; de-duplicated against the FCM bridge event by message id.
-        const cachedChat = trpcUtils.chat.chats
-          .getData({})
+        const cachedChat = queryClient
+          .getQueryData(trpc.chat.chats.queryKey({}))
           ?.find((chat) => chat.id === data.chatId);
 
         notifyRealtimeChatMessage({
@@ -265,12 +277,12 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
         });
 
         // Direct TanStack cache injection for infinite messages
-        trpcUtils.chat.infiniteMessages.setInfiniteData(
-          {
+        queryClient.setQueryData(
+          trpc.chat.infiniteMessages.infiniteQueryKey({
             chatId: data.chatId,
             limit: CHAT_PAGE_SIZE,
             parentId: message.parentId ?? undefined,
-          },
+          }),
           (old) => {
             if (!old) return old;
 
@@ -306,7 +318,7 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
 
         // Patched instead of refetched: a refetch per message makes one announcement cost a
         // list query per online member. Only a chat missing from the list needs the server.
-        const cachedChats = trpcUtils.chat.chats.getData({});
+        const cachedChats = queryClient.getQueryData(trpc.chat.chats.queryKey({}));
         if (cachedChats !== undefined) {
           const patchedChats = applyMessageToChatList(
             cachedChats,
@@ -315,35 +327,38 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
             currentUser,
           );
           if (patchedChats === undefined) {
-            trpcUtils.chat.chats.invalidate().catch(console.error);
+            queryClient.invalidateQueries(trpc.chat.chats.pathFilter()).catch(console.error);
           } else {
-            trpcUtils.chat.chats.setData({}, patchedChats);
+            queryClient.setQueryData(trpc.chat.chats.queryKey({}), patchedChats);
           }
         }
 
         if (message.parentId !== undefined && message.parentId !== '') {
           // Update the getMessage query cache for the parent message
-          trpcUtils.chat.getMessage.setData({ messageId: message.parentId }, (old) => {
-            if (!old) return old;
-            const threadSummary = addReplyToThreadSummary(
-              old.threadSummary,
-              old.replyCount ?? 0,
-              message,
-            );
-            return {
-              ...old,
-              replyCount: (old.replyCount ?? 0) + 1,
-              hasUnreadReplies: message.senderId === currentUser ? old.hasUnreadReplies : true,
-              ...(threadSummary === undefined ? {} : { threadSummary }),
-            };
-          });
+          queryClient.setQueryData(
+            trpc.chat.getMessage.queryKey({ messageId: message.parentId }),
+            (old) => {
+              if (!old) return old;
+              const threadSummary = addReplyToThreadSummary(
+                old.threadSummary,
+                old.replyCount ?? 0,
+                message,
+              );
+              return {
+                ...old,
+                replyCount: (old.replyCount ?? 0) + 1,
+                hasUnreadReplies: message.senderId === currentUser ? old.hasUnreadReplies : true,
+                ...(threadSummary === undefined ? {} : { threadSummary }),
+              };
+            },
+          );
 
-          trpcUtils.chat.infiniteMessages.setInfiniteData(
-            {
+          queryClient.setQueryData(
+            trpc.chat.infiniteMessages.infiniteQueryKey({
               chatId: data.chatId,
               limit: CHAT_PAGE_SIZE,
               parentId: undefined,
-            },
+            }),
             (old) => {
               if (!old) return old;
               return {
@@ -372,71 +387,84 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
             },
           );
 
-          trpcUtils.chat.chatDetails.setData({ chatId: data.chatId }, (old) => {
-            if (!old) return old;
-            return {
-              ...old,
-              messages: old.messages.map((item) => {
-                if (item.id === message.parentId) {
-                  return {
-                    ...item,
-                    replyCount: (item.replyCount ?? 0) + 1,
-                    hasUnreadReplies:
-                      message.senderId === currentUser ? item.hasUnreadReplies : true,
-                  };
-                }
-                return item;
-              }),
-            };
-          });
+          queryClient.setQueryData(
+            trpc.chat.chatDetails.queryKey({ chatId: data.chatId }),
+            (old) => {
+              if (!old) return old;
+              return {
+                ...old,
+                messages: old.messages.map((item) => {
+                  if (item.id === message.parentId) {
+                    return {
+                      ...item,
+                      replyCount: (item.replyCount ?? 0) + 1,
+                      hasUnreadReplies:
+                        message.senderId === currentUser ? item.hasUnreadReplies : true,
+                    };
+                  }
+                  return item;
+                }),
+              };
+            },
+          );
         }
 
         // If a system message arrives, invalidate chatDetails to refresh capabilities and status (e.g. closing/locking chat)
         if (message.type === 'SYSTEM_MSG') {
-          trpcUtils.chat.chatDetails.invalidate({ chatId: data.chatId }).catch(console.error);
+          queryClient
+            .invalidateQueries(trpc.chat.chatDetails.queryFilter({ chatId: data.chatId }))
+            .catch(console.error);
         }
 
         // Direct TanStack cache injection for chatDetails instead of hard invalidation
         if (typeof message.parentId !== 'string' || message.parentId === '') {
-          trpcUtils.chat.chatDetails.setData({ chatId: data.chatId }, (old) => {
-            if (!old) return old;
+          queryClient.setQueryData(
+            trpc.chat.chatDetails.queryKey({ chatId: data.chatId }),
+            (old) => {
+              if (!old) return old;
 
-            const existing = old.messages.find((item) => item.id === message.id);
-            if (existing) {
-              if (!isUnconfirmed(existing)) return old;
+              const existing = old.messages.find((item) => item.id === message.id);
+              if (existing) {
+                if (!isUnconfirmed(existing)) return old;
+                return {
+                  ...old,
+                  messages: mergeStoredMessage(old.messages, message, message.id),
+                };
+              }
+
               return {
                 ...old,
-                messages: mergeStoredMessage(old.messages, message, message.id),
+                messages: [...old.messages, message],
               };
-            }
-
-            return {
-              ...old,
-              messages: [...old.messages, message],
-            };
-          });
+            },
+          );
         }
       }
 
       if (data.type === 'message_deleted') {
         const deletedAt = new Date(message.deletedAt ?? Date.now());
-        applyMessageDeletion(trpcUtils, {
-          chatId: data.chatId,
-          messageId: message.id,
-          parentId: message.parentId,
-          deletedAt: Number.isNaN(deletedAt.getTime()) ? new Date() : deletedAt,
-        });
+        applyMessageDeletion(
+          { trpc, queryClient },
+          {
+            chatId: data.chatId,
+            messageId: message.id,
+            parentId: message.parentId,
+            deletedAt: Number.isNaN(deletedAt.getTime()) ? new Date() : deletedAt,
+          },
+        );
         return;
       }
 
       if (data.type === 'message_updated') {
         // Invalidate the message query to get the updated content
-        trpcUtils.chat.infiniteMessages
-          .invalidate({
-            chatId: data.chatId,
-            limit: CHAT_PAGE_SIZE,
-            parentId: message.parentId ?? undefined,
-          })
+        queryClient
+          .invalidateQueries(
+            trpc.chat.infiniteMessages.infiniteQueryFilter({
+              chatId: data.chatId,
+              limit: CHAT_PAGE_SIZE,
+              parentId: message.parentId ?? undefined,
+            }),
+          )
           .catch(console.error);
       }
     };
@@ -452,17 +480,21 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
     }
 
     const reconnectListener = (): void => {
-      trpcUtils.chat.chats.invalidate().catch(console.error);
+      queryClient.invalidateQueries(trpc.chat.chats.pathFilter()).catch(console.error);
       // Without an argument, because the gap could have covered any message: an open
       // thread's parent and the quoted-message preview read from `getMessage`, whose
       // only realtime update is the reply-count patch below. Missing that would leave
       // them stale for the full 5 minute `staleTime`.
-      trpcUtils.chat.getMessage.invalidate().catch(console.error);
+      queryClient.invalidateQueries(trpc.chat.getMessage.pathFilter()).catch(console.error);
       // the composers no longer poll the flags, this is how they notice a change
-      trpcUtils.chat.getFeatureFlags.invalidate().catch(console.error);
+      queryClient.invalidateQueries(trpc.chat.getFeatureFlags.pathFilter()).catch(console.error);
       for (const chatId of ids) {
-        trpcUtils.chat.infiniteMessages.invalidate({ chatId }).catch(console.error);
-        trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
+        queryClient
+          .invalidateQueries(trpc.chat.infiniteMessages.infiniteQueryFilter({ chatId }))
+          .catch(console.error);
+        queryClient
+          .invalidateQueries(trpc.chat.chatDetails.queryFilter({ chatId }))
+          .catch(console.error);
       }
     };
     activeReconnectListeners.add(reconnectListener);
@@ -504,7 +536,7 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
       // Trigger update of global event source after unregistering
       updateGlobalEventSource(currentUser);
     };
-  }, [chatIdsString, currentUser, trpcUtils]);
+  }, [chatIdsString, currentUser, queryClient, trpc]);
 
   return { status, reconnect };
 };

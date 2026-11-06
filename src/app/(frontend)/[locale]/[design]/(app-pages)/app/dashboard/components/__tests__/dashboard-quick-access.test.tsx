@@ -3,9 +3,9 @@
  */
 
 import { DashboardQuickAccess } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-quick-access';
-import { render, screen } from '@testing-library/react';
-
-let mockAccess: unknown;
+import type { TestTrpc } from '@/trpc/test-trpc';
+import { createTestTrpc } from '@/trpc/test-trpc';
+import { render, screen, waitFor } from '@testing-library/react';
 
 jest.mock('next-auth/react', () => ({
   signIn: jest.fn(),
@@ -37,19 +37,15 @@ jest.mock(
   '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/quick-access-editor',
   () => ({ QuickAccessEditor: (): null => null }),
 );
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    wristband: {
-      getWristbandAccess: {
-        useQuery: (_input: unknown, options: { enabled: boolean }): unknown => ({
-          data: options.enabled ? mockAccess : undefined,
-        }),
-      },
-    },
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 
-const renderTiles = (wristbandsEnabled = true): void => {
+/** renders Home's tiles with the server answering `access` for the user's wristbands */
+const renderTiles = (access: unknown, wristbandsEnabled = true): TestTrpc => {
+  const testTrpc = createTestTrpc({ 'wristband.getWristbandAccess': () => access });
   render(
     <DashboardQuickAccess
       locale="de"
@@ -62,41 +58,47 @@ const renderTiles = (wristbandsEnabled = true): void => {
         wristbandsEnabled,
       }}
     />,
+    { wrapper: testTrpc.wrapper },
   );
+  return testTrpc;
 };
 
 const wristbandsTile = (): HTMLElement | null => screen.queryByRole('link', { name: /Armbänder/ });
+const findWristbandsTile = (): Promise<HTMLElement> =>
+  screen.findByRole('link', { name: /Armbänder/ });
+
+/** waits until the answer of the server is in the cache, so the tiles have read it */
+const waitForAnswer = async ({ trpc, queryClient }: TestTrpc): Promise<void> => {
+  await waitFor(() =>
+    expect(queryClient.getQueryData(trpc.wristband.getWristbandAccess.queryKey())).toBeDefined(),
+  );
+};
 
 describe('the wristbands on Home', () => {
-  it('are hidden from a participant who neither programs nor reads bands', () => {
-    mockAccess = { hoefe: 0, reader: false };
-    renderTiles();
+  it('are hidden from a participant who neither programs nor reads bands', async () => {
+    await waitForAnswer(renderTiles({ hoefe: 0, reader: false }));
     expect(wristbandsTile()).not.toBeInTheDocument();
   });
 
-  it('say what an AVP does there', () => {
-    mockAccess = { hoefe: 2, reader: false };
-    renderTiles();
-    expect(wristbandsTile()).toHaveAttribute('href', '/app/wristbands');
-    expect(wristbandsTile()).toHaveTextContent('Programmieren und vergeben');
+  it('lead an AVP to the wristbands', async () => {
+    renderTiles({ hoefe: 2, reader: false });
+    expect(await findWristbandsTile()).toHaveAttribute('href', '/app/wristbands');
   });
 
-  it('say what security and first aid do there', () => {
-    mockAccess = { hoefe: 0, reader: true };
-    renderTiles();
-    expect(wristbandsTile()).toHaveTextContent('Armband lesen');
-    expect(wristbandsTile()).not.toHaveTextContent('Programmieren');
+  it('lead security and first aid to the wristbands', async () => {
+    renderTiles({ hoefe: 0, reader: true });
+    expect(await findWristbandsTile()).toHaveAttribute('href', '/app/wristbands');
   });
 
-  it('show both for someone who does both', () => {
-    mockAccess = { hoefe: 1, reader: true };
-    renderTiles();
-    expect(wristbandsTile()).toHaveTextContent('Programmieren und vergeben · Armband lesen');
+  // the tile is as tall as the others; a line under the title only arrived with the access query
+  it('carry only their title', async () => {
+    renderTiles({ hoefe: 1, reader: true });
+    expect(await findWristbandsTile()).toHaveTextContent(/^Armbänder$/);
   });
 
   it('are not there where the deployment has no wristbands', () => {
-    mockAccess = { hoefe: 1, reader: true };
-    renderTiles(false);
+    const { calls } = renderTiles({ hoefe: 1, reader: true }, false);
+    expect(calls).toEqual([]);
     expect(wristbandsTile()).not.toBeInTheDocument();
   });
 });

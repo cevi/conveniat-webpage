@@ -1,6 +1,6 @@
 import build from '@/build';
 import { initHttpClient } from '@/lib/http-client';
-import { sdk, startRuntimeMetrics } from '@/tracing';
+import { bindDatabaseInstrumentations, sdk, startRuntimeMetrics } from '@/tracing';
 import { installConsoleOtelBridge } from '@/utils/otel-console-bridge';
 
 /**
@@ -22,6 +22,10 @@ export const registerNodeInstrumentation = (): void => {
   );
 
   sdk.start();
+
+  // Must come right after sdk.start(): the Mongoose and Prisma instrumentations otherwise keep
+  // a provider that records nothing, and every database span is lost.
+  bindDatabaseInstrumentations();
 
   // Must come after sdk.start(): the instruments bind to the global MeterProvider at the
   // moment they are created, and the metrics API has no proxy for one that is not registered

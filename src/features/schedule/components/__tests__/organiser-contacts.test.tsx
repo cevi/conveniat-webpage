@@ -4,16 +4,16 @@
 
 import type { HelperShiftOrganiser } from '@/features/schedule/api/get-helper-shifts';
 import { OrganiserContacts } from '@/features/schedule/components/organiser-contacts';
-import { render, screen } from '@testing-library/react';
+import { createTestTrpc } from '@/trpc/test-trpc';
+import { render as renderWithoutTrpc, screen } from '@testing-library/react';
+import type React from 'react';
 
 // The organiser rows carry a chat button that creates the chat through tRPC.
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    chat: {
-      createChat: { useMutation: (): unknown => ({ mutate: jest.fn(), isPending: false }) },
-    },
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 jest.mock('@/hooks/use-current-locale', () => ({
   useCurrentLocale: (): string => 'de',
 }));
@@ -21,6 +21,10 @@ jest.mock('@/hooks/use-current-locale', () => ({
 jest.mock('next/navigation', () => ({
   useRouter: (): { push: jest.Mock } => ({ push: jest.fn() }),
 }));
+
+/** no handler: none of these tests presses the chat button, so a call would fail the test */
+const render = (ui: React.ReactElement): ReturnType<typeof renderWithoutTrpc> =>
+  renderWithoutTrpc(ui, { wrapper: createTestTrpc().wrapper });
 
 const anna: HelperShiftOrganiser = {
   id: 'org-1',

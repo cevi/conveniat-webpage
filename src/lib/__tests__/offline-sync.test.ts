@@ -1,61 +1,68 @@
 import { syncAllOfflineData, syncEmergencyOffline } from '@/lib/chat-sync';
-import type { trpc } from '@/trpc/client';
-import { makeQueryClient } from '@/trpc/query-client';
-import type { AppRouter } from '@/trpc/routers/_app';
+import type { TestTrpc } from '@/trpc/test-trpc';
+import { createTestTrpc } from '@/trpc/test-trpc';
 import { onlineManager } from '@tanstack/react-query';
-import type { OperationLink, TRPCLink } from '@trpc/client';
-import { createTRPCClient } from '@trpc/client';
-import { createTRPCQueryUtils } from '@trpc/react-query';
-import { observable } from '@trpc/server/observable';
 
-interface TrpcUtilsMock {
-  invalidate: jest.Mock;
-  chat: {
-    user: { fetch: jest.Mock };
-    contacts: { fetch: jest.Mock };
-    checkCapability: { fetch: jest.Mock };
-    chats: { fetch: jest.Mock };
-    chatDetails: { fetch: jest.Mock };
-    infiniteMessages: { prefetchInfinite: jest.Mock };
-    getFeatureFlags: { fetch: jest.Mock };
+/**
+ * Stands in for the server: answers every procedure the offline download asks for, and the map
+ * with whatever `mapVersion` currently is, like an annotation an editor has changed since.
+ */
+/** every query client of this file, cleared after each test so no garbage collection timer keeps Jest alive */
+const servers: TestTrpc[] = [];
+afterEach(() => {
+  for (const server of servers.splice(0)) server.queryClient.clear();
+});
+
+const createServer = (): {
+  server: TestTrpc;
+  handlers: Record<string, jest.Mock>;
+  setMapVersion: (version: string) => void;
+} => {
+  let mapVersion = 'v1';
+  const handlers: Record<string, jest.Mock> = {
+    'chat.user': jest.fn().mockResolvedValue({}),
+    'chat.contacts': jest.fn().mockResolvedValue([]),
+    'chat.checkCapability': jest.fn().mockResolvedValue(true),
+    'chat.chats': jest.fn().mockResolvedValue([{ id: 'chat-1' }]),
+    'chat.chatDetails': jest.fn().mockResolvedValue({}),
+    'chat.infiniteMessages': jest.fn().mockResolvedValue({ items: [], nextCursor: undefined }),
+    'chat.getFeatureFlags': jest.fn().mockResolvedValue({}),
+    'emergency.getAlertSettings': jest.fn().mockResolvedValue({}),
+    'emergency.getEmergencyCards': jest.fn().mockResolvedValue([
+      {
+        id: 'card-1',
+        title: 'Erste Hilfe',
+        documents: [{ id: 'doc-1', url: 'https://example.com/doc1.pdf' }],
+        images: [{ id: 'img-1', url: 'https://example.com/img1.jpg' }],
+      },
+    ]),
+    'schedule.getScheduleEntries': jest.fn().mockResolvedValue([]),
+    'schedule.getMyEnrollments': jest.fn().mockResolvedValue([]),
+    'schedule.getMyQuartiere': jest.fn().mockResolvedValue([]),
+    'schedule.getLeaderAccess': jest.fn().mockResolvedValue(false),
+    'schedule.reminders.getReminders': jest.fn().mockResolvedValue([]),
+    'schedule.reminders.getReminderSettings': jest.fn().mockResolvedValue({}),
+    'schedule.getHelperShifts': jest.fn().mockResolvedValue([]),
+    'shifts.getMyShiftEnrollments': jest.fn().mockResolvedValue([]),
+    'shifts.getMyOrganisedShifts': jest.fn().mockResolvedValue([]),
+    'map.getMapAnnotations': jest.fn(() => Promise.resolve({ mapVersion })),
+    'map.getAnnotations': jest.fn().mockResolvedValue([]),
+    'presence.getPresence': jest.fn().mockResolvedValue({}),
+    'photoContest.getContests': jest.fn().mockResolvedValue([]),
   };
-  emergency: {
-    getAlertSettings: { fetch: jest.Mock };
-    getEmergencyCards: { fetch: jest.Mock };
+
+  const server = createTestTrpc(handlers);
+  servers.push(server);
+  return {
+    server,
+    handlers,
+    setMapVersion: (version): void => {
+      mapVersion = version;
+    },
   };
-  schedule: {
-    getScheduleEntries: { fetch: jest.Mock };
-    getById: { fetch: jest.Mock; setData: jest.Mock };
-    getCourseStatus: { fetch: jest.Mock };
-    getMyEnrollments: { fetch: jest.Mock };
-    getMyQuartiere: { fetch: jest.Mock };
-    getLeaderAccess: { fetch: jest.Mock };
-    reminders: {
-      getReminders: { fetch: jest.Mock };
-      getReminderSettings: { fetch: jest.Mock };
-    };
-    getHelperShifts: { fetch: jest.Mock };
-    getCourseStatuses: { fetch: jest.Mock };
-  };
-  map: {
-    getMapAnnotations: { fetch: jest.Mock };
-    getAnnotations: { fetch: jest.Mock };
-  };
-  presence: {
-    getPresence: { fetch: jest.Mock };
-  };
-  photoContest: {
-    getContests: { fetch: jest.Mock };
-  };
-  shifts: {
-    getMyShiftEnrollments: { fetch: jest.Mock };
-    getMyOrganisedShifts: { fetch: jest.Mock };
-    getShiftStatus: { fetch: jest.Mock };
-  };
-}
+};
 
 describe('Offline Sync Helpers', () => {
-  let mockTrpcUtils: TrpcUtilsMock;
   let originalFetch: typeof globalThis.fetch;
   let mockFetch: jest.Mock;
 
@@ -63,72 +70,21 @@ describe('Offline Sync Helpers', () => {
     originalFetch = globalThis.fetch;
     mockFetch = jest.fn().mockResolvedValue(new Response());
     globalThis.fetch = mockFetch;
-
-    mockTrpcUtils = {
-      invalidate: jest.fn(() => Promise.resolve()),
-      chat: {
-        user: { fetch: jest.fn().mockResolvedValue({}) },
-        contacts: { fetch: jest.fn().mockResolvedValue([]) },
-        checkCapability: { fetch: jest.fn().mockResolvedValue(true) },
-        chats: { fetch: jest.fn().mockResolvedValue([{ id: 'chat-1' }]) },
-        chatDetails: { fetch: jest.fn().mockResolvedValue({}) },
-        infiniteMessages: { prefetchInfinite: jest.fn().mockResolvedValue({}) },
-        getFeatureFlags: { fetch: jest.fn().mockResolvedValue({}) },
-      },
-      emergency: {
-        getAlertSettings: { fetch: jest.fn().mockResolvedValue({}) },
-        getEmergencyCards: {
-          fetch: jest.fn().mockResolvedValue([
-            {
-              id: 'card-1',
-              title: 'Erste Hilfe',
-              documents: [{ id: 'doc-1', url: 'https://example.com/doc1.pdf' }],
-              images: [{ id: 'img-1', url: 'https://example.com/img1.jpg' }],
-            },
-          ]),
-        },
-      },
-      schedule: {
-        getScheduleEntries: { fetch: jest.fn().mockResolvedValue([]) },
-        getById: { fetch: jest.fn().mockResolvedValue({}), setData: jest.fn() },
-        getCourseStatus: { fetch: jest.fn().mockResolvedValue({}) },
-        getMyEnrollments: { fetch: jest.fn().mockResolvedValue([]) },
-        getMyQuartiere: { fetch: jest.fn().mockResolvedValue([]) },
-        getLeaderAccess: { fetch: jest.fn().mockResolvedValue(false) },
-        reminders: {
-          getReminders: { fetch: jest.fn().mockResolvedValue([]) },
-          getReminderSettings: { fetch: jest.fn().mockResolvedValue({}) },
-        },
-        getHelperShifts: { fetch: jest.fn().mockResolvedValue([]) },
-        getCourseStatuses: { fetch: jest.fn().mockResolvedValue({}) },
-      },
-      map: {
-        getMapAnnotations: { fetch: jest.fn().mockResolvedValue({}) },
-        getAnnotations: { fetch: jest.fn().mockResolvedValue([]) },
-      },
-      presence: {
-        getPresence: { fetch: jest.fn().mockResolvedValue({}) },
-      },
-      photoContest: {
-        getContests: { fetch: jest.fn().mockResolvedValue([]) },
-      },
-      shifts: {
-        getMyShiftEnrollments: { fetch: jest.fn().mockResolvedValue([]) },
-        getMyOrganisedShifts: { fetch: jest.fn().mockResolvedValue([]) },
-        getShiftStatus: { fetch: jest.fn().mockResolvedValue({}) },
-      },
-    };
+    jest.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    jest.restoreAllMocks();
   });
 
   test('syncEmergencyOffline prefetches alert settings, emergency cards, and media assets', async () => {
-    await syncEmergencyOffline(mockTrpcUtils as unknown as ReturnType<typeof trpc.useUtils>);
+    const { server, handlers } = createServer();
 
-    expect(mockTrpcUtils.emergency.getAlertSettings.fetch).toHaveBeenCalled();
-    expect(mockTrpcUtils.emergency.getEmergencyCards.fetch).toHaveBeenCalled();
+    await syncEmergencyOffline(server);
+
+    expect(handlers['emergency.getAlertSettings']).toHaveBeenCalled();
+    expect(handlers['emergency.getEmergencyCards']).toHaveBeenCalled();
     expect(mockFetch).toHaveBeenCalledWith('https://example.com/doc1.pdf', {
       mode: 'cors',
     });
@@ -138,90 +94,65 @@ describe('Offline Sync Helpers', () => {
   });
 
   test('syncAllOfflineData calls syncChatsOffline, syncEmergencyOffline, schedule, map, presence, and photoContest prefetching', async () => {
-    await syncAllOfflineData(mockTrpcUtils as unknown as ReturnType<typeof trpc.useUtils>);
+    const { server, handlers } = createServer();
 
-    expect(mockTrpcUtils.chat.chats.fetch).toHaveBeenCalled();
-    expect(mockTrpcUtils.emergency.getAlertSettings.fetch).toHaveBeenCalled();
-    expect(mockTrpcUtils.schedule.getScheduleEntries.fetch).toHaveBeenCalled();
-    expect(mockTrpcUtils.map.getMapAnnotations.fetch).toHaveBeenCalledWith({ locale: 'de' });
-    expect(mockTrpcUtils.presence.getPresence.fetch).toHaveBeenCalled();
-    expect(mockTrpcUtils.photoContest.getContests.fetch).toHaveBeenCalled();
+    await syncAllOfflineData(server);
+
+    expect(handlers['chat.chats']).toHaveBeenCalled();
+    expect(handlers['emergency.getAlertSettings']).toHaveBeenCalled();
+    expect(handlers['schedule.getScheduleEntries']).toHaveBeenCalled();
+    expect(handlers['map.getMapAnnotations']).toHaveBeenCalledWith({ locale: 'de' });
+    expect(handlers['presence.getPresence']).toHaveBeenCalled();
+    expect(handlers['photoContest.getContests']).toHaveBeenCalled();
   });
 
   test('downloads what the Programm and a block need offline: own Quartier, leader access, reminders', async () => {
-    await syncAllOfflineData(mockTrpcUtils as unknown as ReturnType<typeof trpc.useUtils>);
+    const { server, handlers } = createServer();
 
-    expect(mockTrpcUtils.schedule.getMyQuartiere.fetch).toHaveBeenCalled();
-    expect(mockTrpcUtils.schedule.getLeaderAccess.fetch).toHaveBeenCalled();
-    expect(mockTrpcUtils.schedule.reminders.getReminders.fetch).toHaveBeenCalled();
-    expect(mockTrpcUtils.schedule.reminders.getReminderSettings.fetch).toHaveBeenCalled();
+    await syncAllOfflineData(server);
+
+    expect(handlers['schedule.getMyQuartiere']).toHaveBeenCalled();
+    expect(handlers['schedule.getLeaderAccess']).toHaveBeenCalled();
+    expect(handlers['schedule.reminders.getReminders']).toHaveBeenCalled();
+    expect(handlers['schedule.reminders.getReminderSettings']).toHaveBeenCalled();
   });
 });
 
-/**
- * Stands in for the server: every list is empty, and the map answers with whatever
- * `mapVersion` currently is, like an annotation an editor has changed since.
- */
-const createUtils = (): {
-  utils: ReturnType<typeof trpc.useUtils>;
-  serverCalls: string[];
-  setMapVersion: (version: string) => void;
-} => {
-  let mapVersion = 'v1';
-  const serverCalls: string[] = [];
-  const answer: OperationLink<AppRouter> = ({ op }) =>
-    observable((observer) => {
-      serverCalls.push(op.path);
-      const data = op.path === 'map.getMapAnnotations' ? { mapVersion } : [];
-      observer.next({ result: { type: 'data', data } });
-      observer.complete();
-    });
-  const fakeServer: TRPCLink<AppRouter> = () => answer;
-
-  const utils = createTRPCQueryUtils<AppRouter>({
-    queryClient: makeQueryClient(),
-    client: createTRPCClient<AppRouter>({ links: [fakeServer] }),
-  });
-
-  return {
-    utils: utils as unknown as ReturnType<typeof trpc.useUtils>,
-    serverCalls,
-    setMapVersion: (version): void => {
-      mapVersion = version;
-    },
-  };
-};
-
-const cachedMap = (utils: ReturnType<typeof trpc.useUtils>): unknown =>
-  utils.map.getMapAnnotations.getData({ locale: 'de' });
+const cachedMap = ({ trpc, queryClient }: TestTrpc): unknown =>
+  queryClient.getQueryData(trpc.map.getMapAnnotations.queryKey({ locale: 'de' }));
 
 describe('syncAllOfflineData against a real query cache', () => {
+  beforeEach(() => {
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
   afterEach(() => {
     onlineManager.setOnline(true);
+    jest.restoreAllMocks();
   });
 
   test('a second download picks up what changed on the server since the first', async () => {
-    const { utils, setMapVersion } = createUtils();
+    const { server, setMapVersion } = createServer();
 
-    await syncAllOfflineData(utils);
-    expect(cachedMap(utils)).toEqual({ mapVersion: 'v1' });
+    await syncAllOfflineData(server);
+    expect(cachedMap(server)).toEqual({ mapVersion: 'v1' });
 
     setMapVersion('v2');
-    await syncAllOfflineData(utils);
+    await syncAllOfflineData(server);
 
-    expect(cachedMap(utils)).toEqual({ mapVersion: 'v2' });
+    expect(cachedMap(server)).toEqual({ mapVersion: 'v2' });
   });
 
   test('offline, finishes at once and keeps what was downloaded before', async () => {
-    const { utils, serverCalls, setMapVersion } = createUtils();
-    await syncAllOfflineData(utils);
-    const callsWhileOnline = serverCalls.length;
+    const { server, setMapVersion } = createServer();
+    await syncAllOfflineData(server);
+    const callsWhileOnline = server.calls.length;
 
     setMapVersion('v2');
     onlineManager.setOnline(false);
-    await syncAllOfflineData(utils);
+    await syncAllOfflineData(server);
 
-    expect(serverCalls).toHaveLength(callsWhileOnline);
-    expect(cachedMap(utils)).toEqual({ mapVersion: 'v1' });
+    expect(server.calls).toHaveLength(callsWhileOnline);
+    expect(cachedMap(server)).toEqual({ mapVersion: 'v1' });
   });
 });

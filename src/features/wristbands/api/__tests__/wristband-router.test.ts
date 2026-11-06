@@ -171,6 +171,7 @@ jest.mock('superjson', () => ({
 
 import { deriveTagCredentials } from '@/features/wristbands/api/tag-password';
 import { wristbandRouter } from '@/features/wristbands/api/wristband-router';
+import { identifyFromRoster } from '@/features/wristbands/offline-lookup';
 
 const GOOD_SIGNATURE = 'AB'.repeat(32);
 const FORGED_SIGNATURE = 'CD'.repeat(32);
@@ -711,23 +712,52 @@ describe('reading a band', () => {
     ).resolves.toEqual({ state: 'revoked', uid: BAND });
   });
 
-  it('keeps every band in the offline list: worn, spare and blocked', async () => {
+  it('keeps every band in the offline list, sealed: worn, spare and blocked', async () => {
     await program(usterAvp, OTHER_BAND);
     block(OTHER_BAND);
     await program(usterAvp, SPARE_BAND);
-    await expect(sanitaet.getWristbandRoster()).resolves.toEqual({
-      bands: [
-        {
-          uid: BAND,
-          fullName: 'Lea Meier',
-          nickname: 'Fuchs',
-          hof: 'Cevi Uster',
-          quartier: 'Quartier 5 - Greif',
-        },
-      ],
-      spareBands: [{ uid: SPARE_BAND, hof: 'Cevi Uster' }],
-      revokedUids: [OTHER_BAND],
-    });
+    const roster = await sanitaet.getSealedWristbandRoster();
+
+    expect(roster.entries).toHaveLength(2);
+    expect(roster.revokedUids).toEqual([OTHER_BAND]);
+    // what a lost phone holds names nobody, and gives away no UID of a band in use
+    for (const text of ['Lea', 'Meier', 'Fuchs', 'Cevi Uster', 'Greif', BAND, SPARE_BAND]) {
+      expect(JSON.stringify(roster)).not.toContain(text);
+    }
+
+    // holding the band to the phone opens its entry, the same answer the server gives
+    await expect(
+      identifyFromRoster(roster, { uid: BAND, signature: GOOD_SIGNATURE }),
+    ).resolves.toEqual(await sanitaet.identifyWristband({ uid: BAND, signature: GOOD_SIGNATURE }));
+    await expect(
+      identifyFromRoster(roster, { uid: SPARE_BAND, signature: GOOD_SIGNATURE }),
+    ).resolves.toEqual({ state: 'unassigned', uid: SPARE_BAND, hof: 'Cevi Uster' });
+    await expect(
+      identifyFromRoster(roster, { uid: BAND, signature: null }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('never stores the signature of a band, only the key derived from it', () => {
+    const [band] = mockStore['wristbands'] ?? [];
+    expect(band?.['rosterKey']).toMatch(/^[0-9A-F]{64}$/);
+    expect(JSON.stringify(mockStore['wristbands'])).not.toContain(GOOD_SIGNATURE);
+  });
+
+  it('puts a band programmed before the list was sealed on it once a read brings its signature', async () => {
+    const [band] = mockStore['wristbands'] ?? [];
+    if (band === undefined) throw new Error('no band');
+    delete band['rosterKey'];
+    await expect(sanitaet.getSealedWristbandRoster()).resolves.toMatchObject({ entries: [] });
+
+    // a cold tap brings no signature and stores nothing
+    await sanitaet.identifyWristband({ uid: BAND, signature: null });
+    await expect(sanitaet.getSealedWristbandRoster()).resolves.toMatchObject({ entries: [] });
+
+    await sanitaet.identifyWristband({ uid: BAND, signature: GOOD_SIGNATURE });
+    const roster = await sanitaet.getSealedWristbandRoster();
+    await expect(
+      identifyFromRoster(roster, { uid: BAND, signature: GOOD_SIGNATURE }),
+    ).resolves.toMatchObject({ state: 'assigned', fullName: 'Lea Meier' });
   });
 
   it('is closed to participants and to the AVP', async () => {
@@ -735,7 +765,7 @@ describe('reading a band', () => {
       await expect(
         caller.identifyWristband({ uid: BAND, signature: GOOD_SIGNATURE }),
       ).rejects.toMatchObject({ code: 'FORBIDDEN' });
-      await expect(caller.getWristbandRoster()).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      await expect(caller.getSealedWristbandRoster()).rejects.toMatchObject({ code: 'FORBIDDEN' });
     }
   });
 });

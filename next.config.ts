@@ -79,6 +79,9 @@ const nextConfig: NextConfig = {
     cacheHandlers: {
       default: require.resolve('./src/cache-handlers/default.cjs'),
     },
+    // Next.js's file system cache for the page shells, which also takes in the tag flushes of the
+    // other replica. See `src/cache-handlers/incremental.ts`.
+    cacheHandler: require.resolve('./src/cache-handlers/incremental.cjs'),
     // Without it, a page of one build decodes Flight responses of the other while a release
     // rolls, and runs their chunks. See `@/deployment-id`.
     deploymentId,

@@ -16,6 +16,7 @@ import {
   announceRunningJobsWith,
   getRunningJobIds,
 } from '@/features/payload-cms/payload-cms/tasks/active-job-tracking';
+import { getJobQueueRuns } from '@/features/payload-cms/payload-cms/tasks/job-queues';
 import prisma from '@/lib/db/prisma';
 import { FORM_FILE_BUCKET_NAME, S3_BUCKET_NAME, s3Client } from '@/lib/s3';
 import { withSpan } from '@/utils/tracing-helpers';
@@ -41,17 +42,7 @@ const startWorkerHeartbeat = (payload: Payload): void => {
 
   const sendHeartbeat = async (): Promise<void> => {
     try {
-      const autoRun = payload.config.jobs.autoRun;
-      let autoRunQueues: { queue?: string }[] = [];
-      if (Array.isArray(autoRun)) {
-        autoRunQueues = autoRun;
-      } else if (typeof autoRun === 'function') {
-        const resolved = await autoRun(payload);
-        if (Array.isArray(resolved)) {
-          autoRunQueues = resolved;
-        }
-      }
-      const queues = autoRunQueues.map((q) => ({ name: q.queue ?? 'default' }));
+      const queues = getJobQueueRuns().map(({ queue }) => ({ name: queue }));
 
       if (workerDocumentId === undefined) {
         // Find if this worker already exists in database

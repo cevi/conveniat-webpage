@@ -1,12 +1,14 @@
 'use client';
-
-import { TRPCProvider, trpc } from '@/trpc/client';
+import { TRPCProvider, useTRPC } from '@/trpc/client';
 import { useLocale } from '@payloadcms/ui';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
 
+import { useQuery } from '@tanstack/react-query';
+
 const OpenPeopleListFieldInner: React.FC = () => {
+  const trpc = useTRPC();
   const { code: locale } = useLocale();
   const currentLocale = locale === 'de' || locale === 'fr' ? locale : 'en';
 
@@ -36,10 +38,12 @@ const OpenPeopleListFieldInner: React.FC = () => {
 
   const t = translations[currentLocale];
 
-  const { data: listData } = trpc.presence.listPresentUsers.useQuery({
-    page: 1,
-    limit: 1,
-  });
+  const { data: listData } = useQuery(
+    trpc.presence.listPresentUsers.queryOptions({
+      page: 1,
+      limit: 1,
+    }),
+  );
 
   const presentCount = listData ? listData.totalCount : 0;
 

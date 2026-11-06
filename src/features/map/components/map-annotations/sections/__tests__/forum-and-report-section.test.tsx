@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import { AnnotationForumAndReportSection } from '@/features/map/components/map-annotations/sections/forum-and-report-section';
+import { createTestTrpc } from '@/trpc/test-trpc';
 import { handleLogin } from '@/utils/login-handler';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
@@ -14,33 +15,38 @@ jest.mock('next-auth/react', () => ({ useSession: jest.fn() }));
 jest.mock('@/utils/login-handler', () => ({ handleLogin: jest.fn() }));
 jest.mock('@/hooks/use-online-status', () => ({ useOnlineStatus: (): boolean => true }));
 jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    useUtils: (): object => ({ forum: { getForumPostList: { invalidate: jest.fn() } } }),
-    appContent: {
-      getDashboardConfig: {
-        useQuery: (): object => ({ data: { featureFlags: { forumEnabled } } }),
-      },
-    },
-    forum: {
-      getForumPostList: { useQuery: (): object => ({ data: { items: openPosts } }) },
-      getForumSettings: {
-        useQuery: (): object => ({ data: { privateReportsAvailable } }),
-      },
-    },
-    chat: {
-      toggleReaction: { useMutation: (): object => ({ mutate: jest.fn(), isPending: false }) },
-    },
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 
+/** opens the place's section, with the dashboard, the forum settings and its posts loaded */
 const openAs = (status: 'authenticated' | 'unauthenticated'): void => {
   jest.mocked(useSession).mockReturnValue({ status } as ReturnType<typeof useSession>);
+  const dashboard = { featureFlags: { forumEnabled } };
+  const settings = { privateReportsAvailable };
+  const postsHere = { items: openPosts };
+  const { trpc, queryClient, wrapper } = createTestTrpc({
+    'appContent.getDashboardConfig': () => dashboard,
+    'forum.getForumSettings': () => settings,
+    'forum.getForumPostList': () => postsHere,
+  });
+  queryClient.setQueryData(
+    trpc.appContent.getDashboardConfig.queryKey({ locale: 'de' }),
+    dashboard as never,
+  );
+  queryClient.setQueryData(trpc.forum.getForumSettings.queryKey({}), settings as never);
+  queryClient.setQueryData(
+    trpc.forum.getForumPostList.queryKey({ annotationId: 'wc-nord', status: 'active', limit: 5 }),
+    postsHere as never,
+  );
   render(
     <AnnotationForumAndReportSection
       coordinates={[8.301, 46.502]}
       annotation={{ id: 'wc-nord', title: 'WC-Anlage Nord' }}
     />,
+    { wrapper },
   );
 };
 

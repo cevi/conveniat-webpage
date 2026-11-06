@@ -1,8 +1,9 @@
 'use client';
-
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { decodeImage, encodeJpeg } from '@/utils/image-file';
 import { useState } from 'react';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 /** The longest edge sent over the camp wifi; the server crops it to its 192 and 640px squares. */
 const UPLOAD_EDGE = 768;
@@ -39,10 +40,13 @@ interface ProfilePicture {
  * and removes it again.
  */
 export const useProfilePicture = (initialPictureUrl: string | undefined): ProfilePicture => {
-  const createUploadUrl = trpc.profilePicture.createProfilePictureUploadUrl.useMutation();
-  const updatePicture = trpc.profilePicture.updateProfilePicture.useMutation();
-  const deletePicture = trpc.profilePicture.deleteProfilePicture.useMutation();
-  const utils = trpc.useUtils();
+  const trpc = useTRPC();
+  const createUploadUrl = useMutation(
+    trpc.profilePicture.createProfilePictureUploadUrl.mutationOptions(),
+  );
+  const updatePicture = useMutation(trpc.profilePicture.updateProfilePicture.mutationOptions());
+  const deletePicture = useMutation(trpc.profilePicture.deleteProfilePicture.mutationOptions());
+  const queryClient = useQueryClient();
   const [pictureUrl, setPictureUrl] = useState(initialPictureUrl);
   const [isBusy, setIsBusy] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
@@ -53,7 +57,7 @@ export const useProfilePicture = (initialPictureUrl: string | undefined): Profil
     try {
       setPictureUrl(await action());
       // the address book and the chats show the new picture on their next refresh
-      await utils.chat.invalidate();
+      await queryClient.invalidateQueries(trpc.chat.pathFilter());
       return true;
     } catch (error: unknown) {
       console.error('Changing the profile picture failed', error);

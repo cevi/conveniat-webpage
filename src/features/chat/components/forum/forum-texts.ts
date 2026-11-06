@@ -24,6 +24,11 @@ export const forumText = {
   filterAssigned: { de: 'Meine Aufträge', en: 'My assignments', fr: 'Mes missions' },
   filterSubscribed: { de: 'Abonniert', en: 'Subscribed', fr: 'Suivies' },
   emptyTitle: { de: 'Noch keine Beiträge', en: 'No posts yet', fr: 'Pas encore de publications' },
+  emptyBesidesPinnedTitle: {
+    de: 'Noch keine weiteren Beiträge',
+    en: 'No other posts yet',
+    fr: 'Pas encore d’autres publications',
+  },
   emptyHint: {
     de: 'Hier erscheinen Fragen, Probleme und Feedback aus dem Lager.',
     en: 'Questions, problems and feedback from the camp appear here.',
