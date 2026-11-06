@@ -182,9 +182,9 @@ const readFailureTexts: Partial<Record<ReadFailureCode, ReadFailureText>> = {
       fr: 'Illisible hors connexion',
     },
     description: {
-      de: 'Das Handy hat die Signatur des Bands nicht gelesen, und ohne sie nennt die Liste auf dem Handy niemanden. Halte das Band nochmals ruhig an das Handy.',
-      en: 'The phone did not read the band’s signature, and without it the list on the phone names nobody. Hold the band still to the phone again.',
-      fr: 'Le téléphone n’a pas lu la signature du bracelet, et sans elle la liste sur le téléphone ne nomme personne. Tiens à nouveau le bracelet immobile contre le téléphone.',
+      de: 'Halte das Band nochmals ruhig ans Handy.',
+      en: 'Hold the band still to the phone again.',
+      fr: 'Tiens à nouveau le bracelet immobile contre le téléphone.',
     },
     retry: true,
   },
