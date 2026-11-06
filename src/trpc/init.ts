@@ -56,7 +56,8 @@ export const createCallerFactory = t.createCallerFactory;
  * otherwise measure as fast.
  */
 const tracing = t.middleware(
-  async ({ path, type, next }) => await traceProcedure({ path, type, next }),
+  async ({ ctx, path, type, next }) =>
+    await traceProcedure({ path, type, next, userId: ctx.user?.uuid }),
 );
 
 export const publicProcedure = t.procedure.use(tracing);
