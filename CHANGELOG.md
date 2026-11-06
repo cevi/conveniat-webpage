@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.51.2](https://github.com/cevi/conveniat-webpage/compare/v1.51.1...v1.51.2) (2026-11-06)
+
+
+### Bug Fixes
+
+* **cms:** publishing status survives a locale without a saved status ([fdfcc74](https://github.com/cevi/conveniat-webpage/commit/fdfcc744e4662295463d0445593770b9d8a35068))
+* **cms:** publishing status survives a locale without a saved status ([dc94cbc](https://github.com/cevi/conveniat-webpage/commit/dc94cbc35b7ff3fe171ace8b7c64bd9fa726c26d)), closes [#2144](https://github.com/cevi/conveniat-webpage/issues/2144)
+* **dashboard:** wristbands tile shows only its title ([5a0f5c6](https://github.com/cevi/conveniat-webpage/commit/5a0f5c64573a37f2d3b55f07af1f4a976eac6f27))
+* **dashboard:** wristbands tile shows only its title ([a62bf92](https://github.com/cevi/conveniat-webpage/commit/a62bf92ba468a500e08f3b807e0c9a252fef143e))
+* **forum:** mark pinned posts with a pin instead of section titles ([67516f5](https://github.com/cevi/conveniat-webpage/commit/67516f57d4b43d45b1b35f4bf55a44fb4b963fac))
+* **forum:** mark pinned posts with a pin instead of section titles ([8712bd6](https://github.com/cevi/conveniat-webpage/commit/8712bd6c319174673931a4a25219940cbf27fec6))
+* **nginx:** client-side navigations download their RSC payload gzipped ([6084168](https://github.com/cevi/conveniat-webpage/commit/60841685b5b5c77b8eb2f6067735648cc2063dd6))
+* **nginx:** client-side navigations download their RSC payload gzipped ([f38d23f](https://github.com/cevi/conveniat-webpage/commit/f38d23fc6a594d2680b82a6fd7e92db0544f3794)), closes [#2220](https://github.com/cevi/conveniat-webpage/issues/2220)
+* **tracing:** span names carry routes, not Cevi.DB ids ([4862533](https://github.com/cevi/conveniat-webpage/commit/4862533a9395daf67e06701b31c81ea60c6d3015))
+* **tracing:** span names carry routes, not Cevi.DB ids ([c521dca](https://github.com/cevi/conveniat-webpage/commit/c521dca7f27c99fb719a30d9e0d3b89f2923c991)), closes [#2221](https://github.com/cevi/conveniat-webpage/issues/2221)
+* **trpc:** server renders no longer keep every page in memory ([432fee5](https://github.com/cevi/conveniat-webpage/commit/432fee5993e8116eb1a9aca2980dd8383242de24))
+* **trpc:** server renders no longer keep every page in memory ([a694331](https://github.com/cevi/conveniat-webpage/commit/a694331a96a0dcd6beae05ce7a3797f45df42a17))
+* **wristbands:** seal the offline list of bands band by band ([98350ae](https://github.com/cevi/conveniat-webpage/commit/98350ae84fb5dd874a43935f329f61fe9528c27a))
+* **wristbands:** seal the offline list of bands band by band ([5f0fff4](https://github.com/cevi/conveniat-webpage/commit/5f0fff47c523497c106cf683c361d806d09aa380))
+* **wristbands:** shorter text for a band read offline without its signature ([c03546e](https://github.com/cevi/conveniat-webpage/commit/c03546e75f43c0c3f9e5e892abc4409a61867d08))
+
 ## [1.51.1](https://github.com/cevi/conveniat-webpage/compare/v1.51.0...v1.51.1) (2026-11-05)
 
 
