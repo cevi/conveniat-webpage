@@ -5,22 +5,31 @@ import type { SerwistPlugin } from 'serwist';
 declare const self: ServiceWorkerGlobalScope;
 
 /**
- * Reports to PostHog when a page of an older build stays in use after a release, the two steps
- * of a page that stops navigating (5 Nov 2026, an iPad on v1.50.0 after v1.51.0 went live):
+ * Notices when a page of an older build stays in use after a release, the two steps of a page
+ * that stops navigating (5 Nov 2026, an iPad on v1.50.0 after v1.51.0 went live), reports them to
+ * PostHog and tells the pages which build the server runs:
  *
  * 1. `stale_build_page_served`: the network was slow, so the worker served its cached copy of a
  *    page, and the network's late answer for the same page came from another build. The page on
- *    screen ran code the server no longer has; the worker reloads it, see `reloadStaleBuildPage`.
+ *    screen runs code the server no longer has.
  * 2. `deployment_skew_refused`: such a page asked for a page and the proxy turned it away with a
  *    409 (`@/proxy/deployment-skew-proxy`). The router should load the page the classic way then,
- *    and a page that keeps reporting this did not.
+ *    but for a route it already knows it commits a client-side navigation first and, on some
+ *    routes, never follows up with the page load.
  *
  * Neither shows up anywhere else: the cached copy never reaches the server, and a refused request
- * ends in the proxy before a trace is written.
+ * ends in the proxy before a trace is written. A page that learns it is outdated makes its next
+ * navigation a full page load, see `useFullLoadAfterRelease`.
  */
 
 /** Clients that already reported a refusal, so a page firing a dozen prefetches reports once. */
 const refusedClients = new Set<string>();
+
+/**
+ * The build the server last answered with, where it differed from a page's. Kept in memory only:
+ * a release installs a new worker, which starts without it.
+ */
+let serverBuild: string | undefined;
 
 /** The build a page was rendered by, from the `data-dpl-id` Next.js puts on `<html>`. */
 async function documentBuild(response: Response): Promise<string | undefined> {
@@ -50,6 +59,27 @@ async function capture(
 }
 
 /**
+ * Tells one page, or every open page, which build the server runs; each compares it with its own.
+ *
+ * @param client the page that asked, or undefined for all of them
+ */
+export async function reportBuildStatus(client?: Client): Promise<void> {
+  if (serverBuild === undefined) return;
+  const message = { type: ServiceWorkerMessages.BUILD_STATUS, payload: { serverBuild } };
+  try {
+    const pages = client ? [client] : await self.clients.matchAll({ type: 'window' });
+    for (const page of pages) page.postMessage(message);
+  } catch (error) {
+    console.warn('[SW] Could not report the server build to the pages', error);
+  }
+}
+
+async function noteServerBuild(build: string): Promise<void> {
+  serverBuild = build;
+  await reportBuildStatus();
+}
+
+/**
  * The page the worker loaded from its cached copy. WebKit leaves `resultingClientId` empty, so
  * there it is the open page at that path.
  */
@@ -64,14 +94,11 @@ async function servedPage(clientId: string, path: string): Promise<Client | unde
 
 /**
  * Compares the cached page the worker served while the network was slow with the network's late
- * answer for it. When they come from different builds, reports it and reloads the page.
+ * answer for it. When they come from different builds, reports it and tells the pages the build
+ * the server runs, so the outdated one loads its next page from the server.
  *
- * Such a page is a page of the previous build that survived a release. Recovering it is left to
- * the router otherwise: the proxy turns its requests away with a 409 and the router should then
- * load the page the classic way, but for a route it already knows it commits a client-side
- * navigation first and, on some routes, never follows up with the page load. The page stays on
- * the old build and stops navigating. Reloading as soon as the network has answered means it
- * never gets that far; the network is back, so the reload loads the new build.
+ * Not reloaded on the spot: the late answer can come many seconds after the page appeared, while
+ * someone is typing.
  *
  * @param cached a clone of the cached page, taken before it was served
  * @param late the network's answer, or undefined when none came
@@ -79,7 +106,7 @@ async function servedPage(clientId: string, path: string): Promise<Client | unde
  * @param path the page's path
  * @param startedAt when the request went out
  */
-export async function reloadStaleBuildPage(
+export async function reportStaleBuildPage(
   cached: Response,
   late: Response | undefined,
   clientId: string,
@@ -87,31 +114,20 @@ export async function reloadStaleBuildPage(
   startedAt: number,
 ): Promise<void> {
   if (!late?.ok) return;
-  const [cachedBuild, serverBuild] = await Promise.all([
+  const [cachedBuild, lateBuild] = await Promise.all([
     documentBuild(cached),
     documentBuild(late.clone()),
   ]);
-  if (cachedBuild === undefined || serverBuild === undefined || cachedBuild === serverBuild) return;
-  console.warn(`[SW] Served ${path} of build ${cachedBuild} while the server runs ${serverBuild}`);
+  if (cachedBuild === undefined || lateBuild === undefined || cachedBuild === lateBuild) return;
+  console.warn(`[SW] Served ${path} of build ${cachedBuild} while the server runs ${lateBuild}`);
   const client = await servedPage(clientId, path);
-  // Not every browser lets a worker navigate its pages; that page keeps the old build.
-  const canReload = client !== undefined && 'navigate' in client;
   await capture(client?.id ?? '', 'stale_build_page_served', {
     path,
     cached_build: cachedBuild,
-    server_build: serverBuild,
+    server_build: lateBuild,
     late_ms: Date.now() - startedAt,
-    reloaded: canReload,
   });
-  if (!canReload) return;
-  try {
-    await (client as WindowClient).navigate(client.url);
-  } catch (error) {
-    console.warn(
-      `[SW] Could not reload ${path} after serving a page of build ${cachedBuild}`,
-      error,
-    );
-  }
+  await noteServerBuild(lateBuild);
 }
 
 /**
@@ -137,7 +153,7 @@ export const staleBuildPagePlugin: SerwistPlugin = {
       const startedAtValue: unknown = state?.['startedAt'];
       const startedAt = typeof startedAtValue === 'number' ? startedAtValue : Date.now();
       event.waitUntil(
-        reloadStaleBuildPage(
+        reportStaleBuildPage(
           served,
           response.clone(),
           clientId,
@@ -152,7 +168,7 @@ export const staleBuildPagePlugin: SerwistPlugin = {
 
 /**
  * Reports a Flight request the proxy turned away because its page runs another build, once per
- * page.
+ * page, and tells the pages the build the server runs.
  *
  * @param request the page's request, carrying its build in `x-deployment-id`
  * @param response the network's answer
@@ -165,14 +181,16 @@ export async function reportSkewRefusal(
   clientId: string,
   path: string,
 ): Promise<void> {
-  if (response.status !== 409 || clientId === '' || refusedClients.has(clientId)) return;
-  const serverBuild = response.headers.get(SERVER_DEPLOYMENT_ID_HEADER);
-  if (serverBuild === null) return;
+  if (response.status !== 409) return;
+  const refusedBy = response.headers.get(SERVER_DEPLOYMENT_ID_HEADER);
+  if (refusedBy === null) return;
+  await noteServerBuild(refusedBy);
+  if (clientId === '' || refusedClients.has(clientId)) return;
   refusedClients.add(clientId);
   await capture(clientId, 'deployment_skew_refused', {
     path,
     client_build: request.headers.get('x-deployment-id') ?? '',
-    server_build: serverBuild,
+    server_build: refusedBy,
     prefetch: request.headers.has('Next-Router-Prefetch'),
   });
 }
