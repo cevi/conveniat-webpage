@@ -1,5 +1,6 @@
 import build from '@/build';
 import { BackgroundPollSampler } from '@/lib/background-poll-sampler';
+import { bindInstrumentationsToProvider } from '@/lib/bind-instrumentations';
 import { registerEventLoopDelayMetrics } from '@/lib/event-loop-metrics';
 import { FetchSpanNameProcessor } from '@/lib/fetch-span-name-processor';
 import { HealthCheckSampler } from '@/lib/health-check-sampler';
@@ -237,6 +238,24 @@ const SAMPLING_RATIO = ((): number => {
   return parsed;
 })();
 
+// One span per Payload query, named `<operation> <collection>` (`find generic-pages`), so a
+// trace shows the queries behind a Payload operation, the populate of `depth` included.
+//
+// It patches `mongoose` when Node loads it, which only happens because `mongoose` is a
+// direct dependency, pinned to the exact version `@payloadcms/db-mongodb` pins: only then
+// can Next.js resolve it from the project root and keep it external, as its built-in list
+// asks. Bundled, as it was below `@payloadcms/db-mongodb` alone, no span was ever produced.
+// Raise both versions together.
+//
+// No `dbStatementSerializer`: without one the span carries no query text, and the
+// conditions of a query hold names and email addresses. The MongoDB driver is not
+// instrumented on top; one span per query is enough, and the driver Payload uses is
+// bundled inside `mongoose`.
+const mongooseInstrumentation = new MongooseInstrumentation({ requireParentSpan: true });
+
+/** Bound to the registered provider after `sdk.start()`, see `bindDatabaseInstrumentations`. */
+const databaseInstrumentations = [mongooseInstrumentation, createPrismaInstrumentation()];
+
 export const sdk = new NodeSDK({
   traceExporter,
   metricReaders: [metricsReader],
@@ -295,21 +314,7 @@ export const sdk = new NodeSDK({
   ),
   autoDetectResources: false,
   instrumentations: [
-    // One span per Payload query, named `<operation> <collection>` (`find generic-pages`), so a
-    // trace shows the queries behind a Payload operation, the populate of `depth` included.
-    //
-    // It patches `mongoose` when Node loads it, which only happens because `mongoose` is a
-    // direct dependency, pinned to the exact version `@payloadcms/db-mongodb` pins: only then
-    // can Next.js resolve it from the project root and keep it external, as its built-in list
-    // asks. Bundled, as it was below `@payloadcms/db-mongodb` alone, no span was ever produced.
-    // Raise both versions together.
-    //
-    // No `dbStatementSerializer`: without one the span carries no query text, and the
-    // conditions of a query hold names and email addresses. The MongoDB driver is not
-    // instrumented on top; one span per query is enough, and the driver Payload uses is
-    // bundled inside `mongoose`.
-    new MongooseInstrumentation({ requireParentSpan: true }),
-    createPrismaInstrumentation(),
+    ...databaseInstrumentations,
     // NOTE: no PinoInstrumentation here. It patches the `pino` module via
     // require-in-the-middle, which only sees packages resolved by Node's real
     // `require`; Next.js bundles pino into the standalone output, so the patch
@@ -340,4 +345,13 @@ export const startRuntimeMetrics = (): void => {
   hostMetrics.start();
   registerRuntimeMemoryMetrics();
   registerEventLoopDelayMetrics();
+};
+
+/**
+ * Hands the database instrumentations the provider `sdk.start()` registered; call right after
+ * it. Without this they record nothing in the Next.js server, see
+ * `bindInstrumentationsToProvider`.
+ */
+export const bindDatabaseInstrumentations = (): void => {
+  bindInstrumentationsToProvider(databaseInstrumentations);
 };
