@@ -90,6 +90,26 @@ describe('persisted query cache', () => {
     expect(client.getQueryData(CACHED_KEY)).toEqual(['a cached chat']);
   });
 
+  it('drops the plain list of bands a reader phone kept before it was sealed', async () => {
+    const previousSession = newClient();
+    previousSession.setQueryData(CACHED_KEY, ['a cached chat']);
+    const plainRosterKey = [['wristband', 'getWristbandRoster'], { type: 'query' }];
+    previousSession.setQueryData(plainRosterKey, {
+      bands: [{ uid: '04A1B2C3D4E5F6', fullName: 'Lea Meier' }],
+      revokedUids: [],
+    });
+    const blob = serializePersistedClient({
+      timestamp: Date.now(),
+      buster: '',
+      clientState: dehydrate(previousSession, { shouldDehydrateQuery: shouldPersistQuery }),
+    });
+
+    const { client } = await restore(blob);
+
+    expect(client.getQueryData(plainRosterKey)).toBeUndefined();
+    expect(client.getQueryData(CACHED_KEY)).toEqual(['a cached chat']);
+  });
+
   it('keeps the cached data of a phone that was not opened for two days', async () => {
     const previousSession = newClient();
     previousSession.setQueryData(CACHED_KEY, ['a cached chat']);

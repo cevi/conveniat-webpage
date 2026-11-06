@@ -14,6 +14,8 @@ import {
 import type { BillParticipant, Wristband } from '@/features/payload-cms/payload-types';
 import { deriveTagCredentials } from '@/features/wristbands/api/tag-password';
 import { wristbandErrorTexts } from '@/features/wristbands/error-texts';
+import type { SealedBand } from '@/features/wristbands/sealed-roster';
+import { deriveBandKey, sealBand } from '@/features/wristbands/sealed-roster';
 import type {
   HofBand,
   HofWristbandList,
@@ -21,10 +23,9 @@ import type {
   ProgramWristbandResult,
   RegisterWristbandResult,
   RosterEntry,
-  SpareRosterBand,
+  SealedWristbandRoster,
   WristbandCard,
   WristbandIdentity,
-  WristbandRoster,
 } from '@/features/wristbands/types';
 import { isGenuineBand } from '@/lib/nfc/genuine-band';
 import { createErrorThrower } from '@/trpc/error-formatter';
@@ -63,8 +64,29 @@ const findBand = async (payload: Payload, uid: string): Promise<Wristband | unde
     depth: 0,
     limit: 1,
     overrideAccess: true,
+    showHiddenFields: true,
   });
   return docs[0];
+};
+
+/**
+ * Stores the key of a band that has none yet, for its entry in the offline list: a band
+ * programmed before the list was sealed, once a read brings its signature. Only for a signature
+ * `isGenuineBand` accepted.
+ */
+const rememberBandKey = async (
+  payload: Payload,
+  band: Pick<Wristband, 'id' | 'rosterKey'>,
+  input: { uid: string; signature: string | null },
+): Promise<void> => {
+  if (typeof band.rosterKey === 'string' && band.rosterKey !== '') return;
+  await payload.update({
+    collection: 'wristbands',
+    id: band.id,
+    data: { rosterKey: await deriveBandKey(input.uid, input.signature) },
+    overrideAccess: true,
+  });
+  logger.debug('Stored the roster key of a band', { 'wristband.uid': input.uid });
 };
 
 type HofRegistration = Pick<
@@ -219,12 +241,22 @@ export const registerWristband = async (
   const { hofId, uid, userId } = input;
   const { refusal, band } = await findRefusal(payload, input);
   if (refusal !== undefined) return { ok: false, reason: refusal };
-  if (band !== undefined) return { ok: true };
+  if (band !== undefined) {
+    await rememberBandKey(payload, band, input);
+    return { ok: true };
+  }
 
   try {
     await payload.create({
       collection: 'wristbands',
-      data: { uid, hof: hofId, status: 'active', programmedBy: userId, lastEditedByUser: userId },
+      data: {
+        uid,
+        hof: hofId,
+        status: 'active',
+        programmedBy: userId,
+        lastEditedByUser: userId,
+        rosterKey: await deriveBandKey(uid, input.signature),
+      },
       overrideAccess: true,
     });
   } catch (error) {
@@ -463,7 +495,7 @@ export const removeWristbandHelper = async (
 };
 
 /** A band with its wearer, Hof and Quartier filled in. */
-type PopulatedBand = Pick<Wristband, 'id' | 'uid' | 'status' | 'participant' | 'hof'>;
+type PopulatedBand = Pick<Wristband, 'id' | 'uid' | 'status' | 'participant' | 'hof' | 'rosterKey'>;
 
 const ROSTER_REGISTRATION_FIELDS = { fullName: true, nickname: true } as const;
 
@@ -481,7 +513,8 @@ const findPopulatedBands = async (
     limit,
     pagination: false,
     overrideAccess: true,
-    select: { uid: true, status: true, participant: true, hof: true },
+    showHiddenFields: true,
+    select: { uid: true, status: true, participant: true, hof: true, rosterKey: true },
     populate: {
       'bill-participants': registrationFields,
       hoefe: { name: true, quartier: true },
@@ -528,7 +561,8 @@ const identityOf = (
 /**
  * Whose a band is, for security and first aid. With the signature from a tap in the app it is
  * checked against NXP's key; a cold tap opens `/tag/{uid}` with the UID alone, and the answer
- * says it was not checked. Every read is logged at debug, with who read it.
+ * says it was not checked. A checked read of a band that has no roster key yet stores it, see
+ * `rememberBandKey`. Every read is logged at debug, with who read it.
  */
 export const identifyWristband = async (
   payload: Payload,
@@ -545,6 +579,7 @@ export const identifyWristband = async (
   }
 
   const [band] = await findPopulatedBands(payload, { uid: { equals: uid } }, 1);
+  if (verified && band !== undefined) await rememberBandKey(payload, band, input);
   logger.debug('Read a band', {
     'wristband.uid': uid,
     'wristband.reader': readerId,
@@ -554,35 +589,48 @@ export const identifyWristband = async (
   return identityOf(uid, band, verified);
 };
 
+/** What the offline list says about a band that is not blocked. */
+const sealedContentOf = (band: PopulatedBand): SealedBand => {
+  const wearer = toRosterEntry(band);
+  if (wearer === null) return { hof: hofNames(band.hof).hof };
+  // the UID stays out: the entry is found by its index, and the UID would name the band
+  return {
+    fullName: wearer.fullName,
+    nickname: wearer.nickname,
+    hof: wearer.hof,
+    quartier: wearer.quartier,
+  };
+};
+
 /**
- * Every band, kept offline by the phones of security and first aid: the worn ones with their
- * wearer, the spare ones with their Hof and the blocked ones, so a phone offline answers what
- * `identifyWristband` would.
+ * Every band, kept offline by the phones of security and first aid, so a phone offline answers
+ * what `identifyWristband` would. The worn and spare bands are sealed under their keys, see
+ * `sealed-roster.ts`: the list names nobody without the band in hand. The blocked ones stay plain
+ * UIDs, which name nobody either. A band without a key yet is left out until a read stores it.
  */
-export const getWristbandRoster = async (
+export const getSealedWristbandRoster = async (
   payload: Payload,
   readerId: string,
-): Promise<WristbandRoster> => {
+): Promise<SealedWristbandRoster> => {
   const bands = await findPopulatedBands(payload, {}, MAX_BANDS);
-  const worn: RosterEntry[] = [];
-  const spareBands: SpareRosterBand[] = [];
   const revokedUids: string[] = [];
+  const sealable: { key: string; band: PopulatedBand }[] = [];
+  let withoutKey = 0;
   for (const band of bands) {
-    if (band.status === 'revoked') {
-      revokedUids.push(band.uid);
-      continue;
-    }
-    const entry = toRosterEntry(band);
-    if (entry === null) spareBands.push({ uid: band.uid, hof: hofNames(band.hof).hof });
-    else worn.push(entry);
+    if (band.status === 'revoked') revokedUids.push(band.uid);
+    else if (typeof band.rosterKey === 'string' && band.rosterKey !== '')
+      sealable.push({ key: band.rosterKey, band });
+    else withoutKey += 1;
   }
-  const roster: WristbandRoster = { bands: worn, spareBands, revokedUids };
+  const entries = await Promise.all(
+    sealable.map(async ({ key, band }) => await sealBand(key, sealedContentOf(band))),
+  );
   logger.debug('Loaded the wristband roster', {
     'wristband.reader': readerId,
-    'wristband.bands': worn.length,
-    'wristband.spare_bands': spareBands.length,
+    'wristband.bands': entries.length,
+    'wristband.without_key': withoutKey,
   });
-  return roster;
+  return { entries, revokedUids };
 };
 
 /**

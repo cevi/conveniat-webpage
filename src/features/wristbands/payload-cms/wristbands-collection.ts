@@ -194,6 +194,14 @@ export const WristbandsCollection: CollectionConfig = {
       access: { update: () => false },
       admin: { readOnly: true, position: 'sidebar' },
     },
+    {
+      // The key the band's entry in the offline list of security and first aid is sealed with,
+      // derived from its UID and NXP signature, see `sealed-roster.ts`. Hidden from every API
+      // and the admin panel: only the wristband service reads it, with `showHiddenFields`.
+      name: 'rosterKey',
+      type: 'text',
+      hidden: true,
+    },
     LastEditedByUserField,
   ],
 };

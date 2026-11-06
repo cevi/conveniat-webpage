@@ -4988,6 +4988,7 @@ export interface Wristband {
    */
   note?: string | null;
   programmedBy?: (string | null) | User;
+  rosterKey?: string | null;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -7665,6 +7666,7 @@ export interface WristbandsSelect<T extends boolean = true> {
   status?: T;
   note?: T;
   programmedBy?: T;
+  rosterKey?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
