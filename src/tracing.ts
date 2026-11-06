@@ -12,8 +12,6 @@ import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { HostMetrics } from '@opentelemetry/host-metrics';
-import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb';
-import type { SerializerPayload } from '@opentelemetry/instrumentation-mongoose';
 import { MongooseInstrumentation } from '@opentelemetry/instrumentation-mongoose';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
@@ -297,31 +295,20 @@ export const sdk = new NodeSDK({
   ),
   autoDetectResources: false,
   instrumentations: [
-    new MongooseInstrumentation({
-      dbStatementSerializer: (operation: string, payload: SerializerPayload): string => {
-        try {
-          const payloadString = JSON.stringify(payload);
-          return payloadString.length > 500
-            ? `${operation} ${payloadString.slice(0, 500)}...`
-            : `${operation} ${payloadString}`;
-        } catch {
-          return 'Statement serialization failed';
-        }
-      },
-    }),
-    new MongoDBInstrumentation({
-      enhancedDatabaseReporting: true,
-      dbStatementSerializer: (command: Record<string, unknown>): string => {
-        try {
-          const commandString = JSON.stringify(command);
-          return commandString.length > 500
-            ? `${commandString.slice(0, 500)}...`
-            : `${commandString}`;
-        } catch {
-          return 'Statement serialization failed';
-        }
-      },
-    }),
+    // One span per Payload query, named `<operation> <collection>` (`find generic-pages`), so a
+    // trace shows the queries behind a Payload operation, the populate of `depth` included.
+    //
+    // It patches `mongoose` when Node loads it, which only happens because `mongoose` is a
+    // direct dependency, pinned to the exact version `@payloadcms/db-mongodb` pins: only then
+    // can Next.js resolve it from the project root and keep it external, as its built-in list
+    // asks. Bundled, as it was below `@payloadcms/db-mongodb` alone, no span was ever produced.
+    // Raise both versions together.
+    //
+    // No `dbStatementSerializer`: without one the span carries no query text, and the
+    // conditions of a query hold names and email addresses. The MongoDB driver is not
+    // instrumented on top; one span per query is enough, and the driver Payload uses is
+    // bundled inside `mongoose`.
+    new MongooseInstrumentation({ requireParentSpan: true }),
     createPrismaInstrumentation(),
     // NOTE: no PinoInstrumentation here. It patches the `pino` module via
     // require-in-the-middle, which only sees packages resolved by Node's real
