@@ -6,32 +6,20 @@ import type { ChatDetails } from '@/features/chat/api/types';
 import { ChatHeader } from '@/features/chat/components/chat-view/chat-header';
 import { ListIsPreviousContext } from '@/features/chat/context/list-is-previous-context';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { fireEvent, render, screen } from '@testing-library/react';
+import type { TestTrpc } from '@/trpc/test-trpc';
+import { createTestTrpc } from '@/trpc/test-trpc';
+import type { RenderResult } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import type React from 'react';
 
 const CHAT_ID = 'chat-1';
 const ME = 'user-me';
 
-const cache: { list: ChatWithMessagePreview[] | undefined; details: ChatDetails | undefined } = {
-  list: undefined,
-  details: undefined,
-};
-
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    chat: {
-      user: { useQuery: (): { data: string } => ({ data: ME }) },
-      chatDetails: { useQuery: (): { data: ChatDetails | undefined } => ({ data: cache.details }) },
-      chats: {
-        useQuery: (
-          _input: unknown,
-          options: { select: (chats: ChatWithMessagePreview[]) => unknown },
-        ): { data: unknown } => ({
-          data: cache.list === undefined ? undefined : options.select(cache.list),
-        }),
-      },
-    },
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 jest.mock('@/lib/prisma/client', () => ({
   ChatType: {
     ONE_TO_ONE: 'ONE_TO_ONE',
@@ -64,38 +52,62 @@ const detailsLink = (): HTMLElement => screen.getByRole('link', { name: /, Chat-
 
 const backLink = (): HTMLElement => screen.getByRole('link', { name: 'Zurück zu den Chats' });
 
+let testTrpc: TestTrpc;
+
+/**
+ * Renders the header for the signed-in user, with the chat list the phone kept, if any, and
+ * the chat's details still on their way from the server.
+ */
+const renderHeader = (
+  list?: ChatWithMessagePreview[],
+  ui: React.ReactElement = <ChatHeader />,
+): RenderResult => {
+  // the details stay pending until a test sets them
+  testTrpc = createTestTrpc({ 'chat.chatDetails': () => new Promise(() => {}) });
+  const { trpc, queryClient, wrapper } = testTrpc;
+  queryClient.setQueryData(trpc.chat.user.queryKey({}), ME);
+  if (list !== undefined) queryClient.setQueryData(trpc.chat.chats.queryKey({}), list);
+  return render(ui, { wrapper });
+};
+
+/** the details of the chat arriving from the server */
+const detailsArrive = async (details: ChatDetails): Promise<void> => {
+  const { trpc, queryClient } = testTrpc;
+  queryClient.setQueryData(trpc.chat.chatDetails.queryKey({ chatId: CHAT_ID }), details);
+  // the query tells the header on the next tick
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+};
+
 beforeEach(() => {
-  cache.list = undefined;
-  cache.details = undefined;
   mockBack.mockClear();
 });
 
 describe('ChatHeader', () => {
   it('names and pictures a private chat from the chat list before its details are loaded', () => {
-    cache.list = [
+    const { container } = renderHeader([
       listEntry({
         name: 'Anna Muster v/o Fuchs',
         partner: { userId: 'user-anna', pictureUrl: '/pictures/anna.webp' },
       }),
-    ];
-    const { container } = render(<ChatHeader />);
+    ]);
 
     expect(detailsLink()).toHaveAccessibleName('Anna Muster v/o Fuchs, Chat-Details öffnen');
     expect(container.querySelector('img')).toHaveAttribute('src', '/pictures/anna.webp');
     expect(container.querySelector('.animate-pulse')).toBeNull();
   });
 
-  it('shows the same name and picture once the details are there', () => {
-    cache.list = [
+  it('shows the same name and picture once the details are there', async () => {
+    const { container } = renderHeader([
       listEntry({
         name: 'Anna Muster v/o Fuchs',
         partner: { userId: 'user-anna', pictureUrl: '/pictures/anna.webp' },
       }),
-    ];
-    const { container, rerender } = render(<ChatHeader />);
+    ]);
     const before = detailsLink().innerHTML;
 
-    cache.details = {
+    await detailsArrive({
       id: CHAT_ID,
       name: 'Anna Muster v/o Fuchs',
       type: 'ONE_TO_ONE',
@@ -103,21 +115,19 @@ describe('ChatHeader', () => {
         participant(ME, 'Max Muster v/o Igel'),
         participant('user-anna', 'Anna Muster v/o Fuchs', '/pictures/anna.webp'),
       ],
-    } as ChatDetails;
-    rerender(<ChatHeader />);
+    } as ChatDetails);
 
     expect(detailsLink().innerHTML).toBe(before);
     expect(container.querySelector('img')).toHaveAttribute('src', '/pictures/anna.webp');
   });
 
-  it('names a group from the chat list and adds its members once the details are there', () => {
-    cache.list = [listEntry({ name: 'Hofleitung Züri 11', chatType: 'GROUP' })];
-    const { rerender } = render(<ChatHeader />);
+  it('names a group from the chat list and adds its members once the details are there', async () => {
+    renderHeader([listEntry({ name: 'Hofleitung Züri 11', chatType: 'GROUP' })]);
 
     expect(detailsLink()).toHaveAccessibleName('Hofleitung Züri 11, Chat-Details öffnen');
     expect(screen.queryByText(/und du$/)).toBeNull();
 
-    cache.details = {
+    await detailsArrive({
       id: CHAT_ID,
       name: 'Hofleitung Züri 11',
       type: 'GROUP',
@@ -126,21 +136,21 @@ describe('ChatHeader', () => {
         participant('user-anna', 'Anna Muster v/o Fuchs'),
         participant('user-ben', 'Ben Beispiel v/o Dachs'),
       ],
-    } as ChatDetails;
-    rerender(<ChatHeader />);
+    } as ChatDetails);
 
     expect(screen.getByText('Fuchs, Dachs und du')).toBeInTheDocument();
   });
 
   it('shows the skeleton for a chat neither the list nor the details know, as from a push', () => {
-    const { container } = render(<ChatHeader />);
+    const { container } = renderHeader();
 
     expect(screen.queryByRole('link', { name: /Chat-Details öffnen$/ })).toBeNull();
     expect(container.querySelector('.animate-pulse')).not.toBeNull();
   });
 
   it('goes back in the history where the list is the previous entry', () => {
-    render(
+    renderHeader(
+      undefined,
       <ListIsPreviousContext value>
         <ChatHeader />
       </ListIsPreviousContext>,
@@ -153,7 +163,7 @@ describe('ChatHeader', () => {
   });
 
   it('opens the list for a chat opened directly, as from a push', () => {
-    render(<ChatHeader />);
+    renderHeader();
 
     const notPrevented = fireEvent.click(backLink());
 

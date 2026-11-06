@@ -1,13 +1,14 @@
 'use client';
-
 import { endOfDay } from '@/features/material/utils/holders';
 import { shouldRetryMaterialQuery } from '@/features/material/utils/query-errors';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { RouterOutputs } from '@/trpc/client';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCallback, useEffect, useState } from 'react';
+
+import { useQueryClient } from '@tanstack/react-query';
 
 export type MaterialItem = RouterOutputs['material']['getInventory'][number];
 export type MaterialItemDetail = RouterOutputs['material']['getItem'];
@@ -31,10 +32,11 @@ export const useMaterialLocale = (): Locale => useCurrentLocale(i18nConfig) as L
  * material router is refetched rather than guessing which queries it touched.
  */
 export const useInvalidateMaterial = (): (() => Promise<void>) => {
-  const utils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   return useCallback(async () => {
-    await utils.material.invalidate();
-  }, [utils]);
+    await queryClient.invalidateQueries(trpc.material.pathFilter());
+  }, [queryClient, trpc]);
 };
 
 const NOW_TICK_MS = 60_000;

@@ -1,8 +1,9 @@
 'use client';
-
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { useState } from 'react';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 const UUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
 
@@ -24,29 +25,30 @@ export interface ChatListActions {
  * once the server has it.
  */
 export const useChatListActions = (): ChatListActions => {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const [hasFailed, setHasFailed] = useState(false);
 
   /** Applies `patch` to the cached chat and returns how to undo it. */
   const applyOptimistically = (chatId: string, patch: ChatPatch): (() => void) => {
-    const previous = trpcUtils.chat.chats.getData({});
-    void trpcUtils.chat.chats.cancel();
-    trpcUtils.chat.chats.setData({}, (chats) =>
+    const previous = queryClient.getQueryData(trpc.chat.chats.queryKey({}));
+    void queryClient.cancelQueries(trpc.chat.chats.pathFilter());
+    queryClient.setQueryData(trpc.chat.chats.queryKey({}), (chats) =>
       chats?.map((chat) => (chat.id === chatId ? patch(chat) : chat)),
     );
-    return () => trpcUtils.chat.chats.setData({}, previous);
+    return () => queryClient.setQueryData(trpc.chat.chats.queryKey({}), previous);
   };
 
   const settle = {
     onSuccess: (): void => {
-      void trpcUtils.chat.chats.invalidate();
+      void queryClient.invalidateQueries(trpc.chat.chats.pathFilter());
     },
   };
 
-  const pinMutation = trpc.chat.pinChat.useMutation(settle);
-  const muteMutation = trpc.chat.muteChat.useMutation(settle);
-  const unreadMutation = trpc.chat.markChatUnread.useMutation(settle);
-  const readMutation = trpc.chat.markChatAsRead.useMutation(settle);
+  const pinMutation = useMutation(trpc.chat.pinChat.mutationOptions(settle));
+  const muteMutation = useMutation(trpc.chat.muteChat.mutationOptions(settle));
+  const unreadMutation = useMutation(trpc.chat.markChatUnread.mutationOptions(settle));
+  const readMutation = useMutation(trpc.chat.markChatAsRead.mutationOptions(settle));
 
   const run = (
     chatId: string,

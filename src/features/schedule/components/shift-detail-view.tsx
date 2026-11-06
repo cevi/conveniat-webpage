@@ -1,5 +1,4 @@
 'use client';
-
 import { AppFooterController } from '@/components/footer/hide-footer-context';
 import { SetHideHeader } from '@/components/header/hide-header-context';
 import { Button } from '@/components/ui/buttons/button';
@@ -28,13 +27,15 @@ import { resolveLocation } from '@/features/schedule/utils/location-utils';
 import { slotOf } from '@/features/schedule/utils/programme-utils';
 import { formatDuration } from '@/features/schedule/utils/time-utils';
 import { formatCampDateTime } from '@/features/schedule/utils/unenrollment-deadline';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
 import { cn } from '@/utils/tailwindcss-override';
 import { ArrowLeft, CalendarX, Clock, Flag, Lock, LockOpen, MapPin, Users } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type React from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const backLabel: StaticTranslationString = {
   en: 'Back',
@@ -98,26 +99,30 @@ export const ShiftDetailView: React.FC<{
   shiftId: string;
   locale: Locale;
 }> = ({ shiftId, locale }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const pathname = usePathname();
   const searchParameters = useSearchParams();
 
-  const { data: shifts, isLoading } = trpc.schedule.getHelperShifts.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
-  });
+  const { data: shifts, isLoading } = useQuery(
+    trpc.schedule.getHelperShifts.queryOptions(undefined, {
+      staleTime: 1000 * 60 * 5,
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+    }),
+  );
 
   const listedShift = shifts?.find((entry) => entry.id === shiftId);
   // The feed hides a full shift from helpers who are not on it, but a link still opens it: asked
   // for on its own, and only once the feed has loaded without it, so a shift scrolled past keeps
   // opening offline from the feed's cache.
   const isMissingFromFeed = shifts !== undefined && listedShift === undefined;
-  const { data: linkedShift, isLoading: isLoadingLinkedShift } =
-    trpc.schedule.getHelperShift.useQuery(
+  const { data: linkedShift, isLoading: isLoadingLinkedShift } = useQuery(
+    trpc.schedule.getHelperShift.queryOptions(
       { id: shiftId },
       { enabled: isMissingFromFeed && /^[\da-f]{24}$/i.test(shiftId), staleTime: 1000 * 60 * 5 },
-    );
+    ),
+  );
   const shift = listedShift ?? linkedShift ?? undefined;
 
   const { status } = useShiftStatus(shiftId);

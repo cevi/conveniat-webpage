@@ -58,12 +58,6 @@ export const generateChatId = (): string => generateMessageId();
 export const isServerCompatibleId = (id: string): boolean => UUID_PATTERN.test(id);
 
 /**
- * Updater that empties a cached query entry: `utils.chat.x.setData(input, dropCachedEntry)`.
- * Used to discard optimistic data for a chat that turned out never to exist under that id.
- */
-export const dropCachedEntry = (): undefined => undefined;
-
-/**
  * Legacy ids looked like `optimistic-<ts>-<rand>` and could never be persisted, so the
  * server assigned a different id which the client had to swap in afterwards. Caches and
  * outboxes written by older app versions still contain them.

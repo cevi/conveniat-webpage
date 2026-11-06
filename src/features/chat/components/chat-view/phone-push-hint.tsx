@@ -3,7 +3,7 @@
 import { useInAppDesign } from '@/features/chat/context/in-app-design-context';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
@@ -23,16 +23,19 @@ const phoneGetsPushText: StaticTranslationString = {
  * whenever it would not be true, in a muted chat, or before both sides are known.
  */
 export const PhonePushHint: React.FC<{ chatId: string }> = ({ chatId }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const inAppDesign = useInAppDesign();
   const isDesktop = useIsDesktop();
   const isRelevant = !inAppDesign && isDesktop;
 
-  const phone = trpc.nativePush.getPhonePushStatus.useQuery(undefined, {
-    enabled: isRelevant,
-    staleTime: 1000 * 60 * 10,
-    refetchOnWindowFocus: false,
-  });
+  const phone = useQuery(
+    trpc.nativePush.getPhonePushStatus.queryOptions(undefined, {
+      enabled: isRelevant,
+      staleTime: 1000 * 60 * 10,
+      refetchOnWindowFocus: false,
+    }),
+  );
   // read locally, no request: a browser that holds a subscription is notified itself
   const browserSubscription = useQuery({
     queryKey: ['browserPushSubscription'],
@@ -41,7 +44,7 @@ export const PhonePushHint: React.FC<{ chatId: string }> = ({ chatId }) => {
     enabled: isRelevant,
   });
   // the list beside the chat keeps it fresh; read here without a request of its own
-  const { data: chats } = trpc.chat.chats.useQuery({}, { enabled: false });
+  const { data: chats } = useQuery(trpc.chat.chats.queryOptions({}, { enabled: false }));
   const isMuted = chats?.find((chat) => chat.id === chatId)?.isMuted === true;
 
   if (

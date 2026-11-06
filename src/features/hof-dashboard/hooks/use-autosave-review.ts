@@ -1,9 +1,10 @@
 'use client';
-
 import type { HofReviewChoice } from '@/features/hof-dashboard/constants';
 import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 /**
  * What a reviewer set: the Ressort's answer, none for "handed in", and whether the version is
@@ -39,8 +40,11 @@ export const useAutosaveReview = (
   state: AutosaveState;
   retry: () => void;
 } => {
-  const utils = trpc.useUtils();
-  const mutation = trpc.hofDashboard.updateSubmissionReview.useMutation({ networkMode: 'always' });
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const mutation = useMutation(
+    trpc.hofDashboard.updateSubmissionReview.mutationOptions({ networkMode: 'always' }),
+  );
   const [values, setValues] = useState(stored);
   const [state, setState] = useState<AutosaveState>('idle');
   const lastSaved = useRef(stored);
@@ -74,8 +78,9 @@ export const useAutosaveReview = (
     // Reloading the dashboard is not part of the write. A change made while it reloaded used to
     // find the write still under way and leave itself to it, after that write had stopped
     // looking: it was never sent, and the pill said saved.
-    if (wrote) await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
-  }, [hofId, submissionId, mutation, utils]);
+    if (wrote)
+      await queryClient.invalidateQueries(trpc.hofDashboard.getHofDashboard.queryFilter({ hofId }));
+  }, [hofId, submissionId, mutation, queryClient, trpc]);
 
   const change = (next: ReviewValues): void => {
     latest.current = next;

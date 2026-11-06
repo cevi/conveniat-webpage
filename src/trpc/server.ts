@@ -1,13 +1,12 @@
 import { createCallerFactory, createTRPCContext } from '@/trpc/init';
-import { makeQueryClient } from '@/trpc/query-client';
 import { appRouter } from '@/trpc/routers/_app';
-import { createHydrationHelpers } from '@trpc/react-query/rsc';
-import { cache } from 'react';
 import 'server-only';
 
-export const getQueryClient = cache(makeQueryClient);
-const caller = createCallerFactory(appRouter)(createTRPCContext);
-export const { trpc, HydrateClient } = createHydrationHelpers<typeof appRouter>(
-  caller,
-  getQueryClient,
-);
+/**
+ * Calls a procedure from a server component, with the context of the current request.
+ *
+ * Detached from any query client: the answer is not cached, and nothing is handed to the
+ * browser. A screen that should start with the data would prefetch through
+ * `createTRPCOptionsProxy` instead, see https://trpc.io/docs/client/tanstack-react-query/server-components.
+ */
+export const caller = createCallerFactory(appRouter)(createTRPCContext);

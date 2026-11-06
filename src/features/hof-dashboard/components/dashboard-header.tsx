@@ -1,5 +1,4 @@
 'use client';
-
 import { PAGE_BAR_ROW_CLASS, SetPageBar } from '@/components/header/page-bar';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import {
@@ -12,12 +11,14 @@ import {
 import type { HofContact } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import { translate } from '@/features/hof-dashboard/texts';
 import { signOutNeedsConnectionText, useSignOut } from '@/hooks/use-sign-out';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { reloadPage } from '@/utils/reload-page';
 import { ChevronRight, LogOut } from 'lucide-react';
 import type React from 'react';
 import { Fragment, useId, useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 /** One step of the path: a way back, or where the user is, which may be a choice of Höfe. */
 export interface Crumb {
@@ -111,10 +112,13 @@ export const AccountButton: React.FC<{ userId: string; name: string; locale: Loc
   name,
   locale,
 }) => {
+  const trpc = useTRPC();
   const signOut = useSignOut();
-  const picture = trpc.profilePicture.getProfilePicture.useQuery(undefined, {
-    staleTime: 5 * 60_000,
-  });
+  const picture = useQuery(
+    trpc.profilePicture.getProfilePicture.queryOptions(undefined, {
+      staleTime: 5 * 60_000,
+    }),
+  );
   const [failed, setFailed] = useState(false);
   const label = `${translate('signedInAs', locale, { name })} · ${translate('signOut', locale)}`;
 

@@ -1,11 +1,11 @@
 'use client';
-
 import { textInputClassName } from '@/components/ui/field';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { forumText } from '@/features/chat/components/forum/forum-texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useOnlineStatus } from '@/hooks/use-online-status';
+import { useToggleForumLike } from '@/hooks/use-toggle-forum-like';
 import { CHAT_IMAGE_MAX_BYTES, isChatImageContentType } from '@/lib/chat-images';
 import { forumErrorTexts } from '@/lib/forum-error-texts';
 import {
@@ -15,7 +15,7 @@ import {
   FORUM_TITLE_MAX_LENGTH,
   forumStatusLabel,
 } from '@/lib/forum-shared';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -25,6 +25,8 @@ import { Camera, Loader2, Lock, MapPin, Search, ThumbsUp, Users, X } from 'lucid
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useState } from 'react';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface PickedLocation {
   longitude: number;
@@ -109,14 +111,15 @@ interface PickedImage {
  * second post the Zentrale has to read.
  */
 export const ForumComposer: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const router = useRouter();
   const parameters = useSearchParams();
   const isOnline = useOnlineStatus();
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
-  const topics = trpc.forum.getForumTopicList.useQuery({});
-  const settings = trpc.forum.getForumSettings.useQuery({});
+  const topics = useQuery(trpc.forum.getForumTopicList.queryOptions({}));
+  const settings = useQuery(trpc.forum.getForumSettings.queryOptions({}));
   const [draft] = useState(readDraft);
   const [chosenTopicId, setChosenTopicId] = useState<string | undefined>(
     parameters.get('topic') ?? draft?.topicId,
@@ -161,24 +164,24 @@ export const ForumComposer: React.FC = () => {
   // posts already reported do not vanish and come back with every key
   const searchedTitle = useDebouncedValue(title, SUGGESTION_DEBOUNCE_MS);
 
-  const suggestions = trpc.forum.getForumPostSuggestionList.useQuery(
-    {
-      title: searchedTitle,
-      ...(location === undefined
-        ? {}
-        : { near: { longitude: location.longitude, latitude: location.latitude } }),
-    },
-    {
-      enabled: searchedTitle.trim().length >= 3 || location !== undefined,
-      placeholderData: keepPreviousData,
-    },
+  const suggestions = useQuery(
+    trpc.forum.getForumPostSuggestionList.queryOptions(
+      {
+        title: searchedTitle,
+        ...(location === undefined
+          ? {}
+          : { near: { longitude: location.longitude, latitude: location.latitude } }),
+      },
+      {
+        enabled: searchedTitle.trim().length >= 3 || location !== undefined,
+        placeholderData: keepPreviousData,
+      },
+    ),
   );
-  const like = trpc.chat.toggleReaction.useMutation({
-    onSettled: () => void utils.forum.getForumPostSuggestionList.invalidate(),
-  });
-  const uploadUrl = trpc.chat.getUploadUrl.useMutation();
-  const create = trpc.forum.createForumPost.useMutation();
-  const privateReportTopic = trpc.forum.getForumPrivateReportTopic.useMutation();
+  const like = useToggleForumLike();
+  const uploadUrl = useMutation(trpc.chat.getUploadUrl.mutationOptions());
+  const create = useMutation(trpc.forum.createForumPost.mutationOptions());
+  const privateReportTopic = useMutation(trpc.forum.getForumPrivateReportTopic.mutationOptions());
 
   const addImage = (file: File | undefined): void => {
     if (file === undefined) return;
@@ -242,7 +245,7 @@ export const ForumComposer: React.FC = () => {
             }),
       });
       clearDraft();
-      void utils.forum.invalidate();
+      void queryClient.invalidateQueries(trpc.forum.pathFilter());
       router.replace(`/app/forum/${id}`);
     } catch (error_) {
       setError(userErrorMessage(error_, locale, forumErrorTexts, forumText.changeFailed));

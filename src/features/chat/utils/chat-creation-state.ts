@@ -1,6 +1,6 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
-import type { trpc } from '@/trpc/client';
+import type { TrpcQueries } from '@/trpc/client';
 
 /**
  * Marks the system message a chat opens with as waiting for the server, stored, or refused for
@@ -8,7 +8,7 @@ import type { trpc } from '@/trpc/client';
  * outbox moves it on once it has replayed the creation.
  */
 export const markChatCreation = (
-  trpcUtils: ReturnType<typeof trpc.useUtils>,
+  { trpc, queryClient }: TrpcQueries,
   chatId: string,
   state: 'pending' | 'stored' | 'failed',
 ): void => {
@@ -18,13 +18,17 @@ export const markChatCreation = (
       ? { ...item, isPendingOffline: state === 'pending', sendFailed: state === 'failed' }
       : item;
 
-  trpcUtils.chat.chatDetails.setData({ chatId }, (oldData) =>
+  queryClient.setQueryData(trpc.chat.chatDetails.queryKey({ chatId }), (oldData) =>
     oldData === undefined
       ? oldData
       : { ...oldData, messages: oldData.messages.map((item) => mark(item)) },
   );
-  trpcUtils.chat.infiniteMessages.setInfiniteData(
-    { chatId, limit: CHAT_PAGE_SIZE, parentId: undefined },
+  queryClient.setQueryData(
+    trpc.chat.infiniteMessages.infiniteQueryKey({
+      chatId,
+      limit: CHAT_PAGE_SIZE,
+      parentId: undefined,
+    }),
     (data) =>
       data === undefined
         ? data

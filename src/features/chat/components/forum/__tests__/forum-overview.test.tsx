@@ -1,8 +1,10 @@
 /**
  * @jest-environment jsdom
  */
+import { DEFAULT_FORUM_FILTERS } from '@/features/chat/components/forum/forum-filter-sheet';
 import { ForumOverview } from '@/features/chat/components/forum/forum-overview';
 import type { ForumPostSummary } from '@/lib/forum-shared';
+import { createTestTrpc } from '@/trpc/test-trpc';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type React from 'react';
 
@@ -10,7 +12,6 @@ let topics: unknown[] | undefined;
 let settings: object;
 let pinnedPosts: ForumPostSummary[];
 let feedPosts: ForumPostSummary[];
-const query = (data: unknown): object => ({ data, isLoading: false, isError: false });
 
 jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
 // the header's buttons render in place, as if the page had a header of its own
@@ -22,26 +23,37 @@ jest.mock('next/navigation', () => ({
   useRouter: (): object => ({ replace: jest.fn() }),
   useSearchParams: (): URLSearchParams => new URLSearchParams(),
 }));
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    useUtils: (): object => ({}),
-    forum: {
-      getForumTopicList: { useQuery: (): object => query(topics) },
-      getForumPinnedPostList: { useQuery: (): object => query(pinnedPosts) },
-      getForumSettings: { useQuery: (): object => query(settings) },
-      getForumPostSuggestionList: { useQuery: (): object => query([]) },
-      getForumPostList: {
-        useInfiniteQuery: (): object => ({
-          data: { pages: [{ items: feedPosts, nextCursor: null }] },
-          isLoading: false,
-          isError: false,
-          hasNextPage: false,
-        }),
-      },
-      updateForumTopicSubscription: { useMutation: (): object => ({ mutate: jest.fn() }) },
-    },
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
+
+/**
+ * Renders the feed with the forum as the phone has it: the topics (still loading while
+ * undefined), the settings, the pinned posts and the first page of the feed.
+ */
+const renderOverview = (): void => {
+  const feedPage = { items: feedPosts, nextCursor: null };
+  const { trpc, queryClient, wrapper } = createTestTrpc({
+    // topics that are not loaded yet stay on their way
+    'forum.getForumTopicList': () => topics ?? new Promise(() => {}),
+    'forum.getForumSettings': () => settings,
+    'forum.getForumPinnedPostList': () => pinnedPosts,
+    'forum.getForumPostList': () => feedPage,
+    'forum.getForumPostSuggestionList': () => [],
+  });
+  if (topics !== undefined) {
+    queryClient.setQueryData(trpc.forum.getForumTopicList.queryKey({}), topics as never);
+  }
+  queryClient.setQueryData(trpc.forum.getForumSettings.queryKey({}), settings as never);
+  queryClient.setQueryData(trpc.forum.getForumPinnedPostList.queryKey({}), pinnedPosts);
+  queryClient.setQueryData(trpc.forum.getForumPostList.infiniteQueryKey(DEFAULT_FORUM_FILTERS), {
+    pages: [feedPage],
+    pageParams: [null],
+  });
+  render(<ForumOverview />, { wrapper });
+};
 
 const newPostLink = (): HTMLElement => screen.getByRole('link', { name: /Neuer Beitrag/ });
 /** The list filters the filter sheet offers; the feed itself shows none. */
@@ -80,21 +92,21 @@ beforeEach(() => {
 describe('the forum feed', () => {
   it('offers a new post in a topic the user belongs to', () => {
     topics = [topic];
-    render(<ForumOverview />);
+    renderOverview();
 
     expect(newPostLink().getAttribute('href')).toBe('/app/forum/new');
   });
 
   it('offers a new post while the topics still load', () => {
     topics = undefined;
-    render(<ForumOverview />);
+    renderOverview();
 
     expect(newPostLink()).toBeTruthy();
   });
 
   it('shows someone in no topic only the way to the Zentrale', () => {
     topics = [];
-    render(<ForumOverview />);
+    renderOverview();
 
     expect(screen.getByRole('link', { name: 'An die Zentrale melden' }).getAttribute('href')).toBe(
       '/app/forum/new',
@@ -107,7 +119,7 @@ describe('the forum feed', () => {
 
   it('keeps the filters in their sheet, and offers a participant only those that apply', () => {
     topics = [topic];
-    render(<ForumOverview />);
+    renderOverview();
 
     expect(screen.queryByRole('button', { name: 'Meine' })).toBeNull();
 
@@ -117,7 +129,7 @@ describe('the forum feed', () => {
   it('adds the assignments of a helper and the queue of a moderator', () => {
     topics = [topic];
     settings = { moderationRequired: true, canModerate: true, hasOpenAssignments: true };
-    render(<ForumOverview />);
+    renderOverview();
 
     expect(filters()).toEqual(['Alle', 'Meine', 'Abonniert', 'Meine Aufträge', 'Zur Freigabe']);
   });
@@ -127,7 +139,7 @@ describe('the forum feed', () => {
     const pinnedPost = post({ id: 'pinned', pinned: true });
     pinnedPosts = [pinnedPost];
     feedPosts = [pinnedPost, post({ id: 'other', title: 'WC beim Quartier 3 verstopft' })];
-    render(<ForumOverview />);
+    renderOverview();
 
     expect(screen.getByRole('link', { name: /Angeheftet.*Zu heisses Wasser/ })).toBeTruthy();
     expect(screen.queryByRole('link', { name: /Angeheftet.*WC beim Quartier 3/ })).toBeNull();
@@ -140,7 +152,7 @@ describe('the forum feed', () => {
     const pinnedPost = post({ id: 'pinned', pinned: true });
     pinnedPosts = [pinnedPost];
     feedPosts = [pinnedPost];
-    render(<ForumOverview />);
+    renderOverview();
 
     expect(screen.getByText('Noch keine weiteren Beiträge')).toBeTruthy();
   });

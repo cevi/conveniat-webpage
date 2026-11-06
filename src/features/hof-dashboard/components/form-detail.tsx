@@ -1,5 +1,4 @@
 'use client';
-
 import { toast } from '@/components/ui/toast';
 import type {
   HofDashboardDocument,
@@ -31,12 +30,14 @@ import { entryHeading } from '@/features/hof-dashboard/utils/entry-heading';
 import type { SubmissionProgress } from '@/features/hof-dashboard/utils/submission-progress';
 import AccordionItem from '@/features/payload-cms/components/accordion/accordion-item';
 import { FormBlock } from '@/features/payload-cms/components/form';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ShoppingCart, Trash2, Upload } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useId, useMemo, useState } from 'react';
+
+import { useQueryClient } from '@tanstack/react-query';
 
 const ENTRY_TONE: Record<HofEntryStatus, 'done' | 'neutral' | 'attention'> = {
   submitted: 'neutral',
@@ -266,8 +267,9 @@ export const FormDetail: React.FC<{
   hidden: boolean;
   locale: Locale;
 }> = ({ form, progress, hofId, isReviewer, documents, hidden, locale }) => {
+  const trpc = useTRPC();
   const [open, setOpen] = useState(false);
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const titleId = useId();
   useWarnBeforeLeaving(open);
   const presetValues = useMemo(() => ({ [form.hofField]: hofId }), [form.hofField, hofId]);
@@ -353,7 +355,9 @@ export const FormDetail: React.FC<{
             onSubmitted={() => {
               setOpen(false);
               toast.success(translate('handedIn', locale));
-              void utils.hofDashboard.getHofDashboard.invalidate({ hofId });
+              void queryClient.invalidateQueries(
+                trpc.hofDashboard.getHofDashboard.queryFilter({ hofId }),
+              );
             }}
           />
           <button type="button" className={SECONDARY_BUTTON_CLASS} onClick={() => setOpen(false)}>

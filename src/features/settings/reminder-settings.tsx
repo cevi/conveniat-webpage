@@ -1,13 +1,14 @@
 'use client';
-
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { Switch } from '@/components/ui/switch';
 import { SettingsRow } from '@/features/settings/components/settings-row';
 import { useAuthStatus } from '@/hooks/use-auth-status';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const labels = {
   title: { de: 'Erinnerungen', en: 'Reminders', fr: 'Rappels' },
@@ -37,27 +38,41 @@ const DEFAULTS = { leadMinutes: 15, atStart: true };
  * logged-in user, who is the only one with reminders.
  */
 export const ReminderSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
+  const trpc = useTRPC();
   const status = useAuthStatus();
   const isAuthenticated = status === 'authenticated';
-  const utils = trpc.useUtils();
-  const { data: settings } = trpc.schedule.reminders.getReminderSettings.useQuery(undefined, {
-    enabled: isAuthenticated,
-    staleTime: 1000 * 60 * 5,
-  });
-  const update = trpc.schedule.reminders.updateReminderSettings.useMutation({
-    onMutate: async (input) => {
-      await utils.schedule.reminders.getReminderSettings.cancel();
-      const previous = utils.schedule.reminders.getReminderSettings.getData();
-      if (previous !== undefined) {
-        utils.schedule.reminders.getReminderSettings.setData(undefined, { ...previous, ...input });
-      }
-      return { previous };
-    },
-    onError: (_error, _input, context) => {
-      utils.schedule.reminders.getReminderSettings.setData(undefined, context?.previous);
-    },
-    onSettled: () => utils.schedule.reminders.getReminderSettings.invalidate(),
-  });
+  const queryClient = useQueryClient();
+  const { data: settings } = useQuery(
+    trpc.schedule.reminders.getReminderSettings.queryOptions(undefined, {
+      enabled: isAuthenticated,
+      staleTime: 1000 * 60 * 5,
+    }),
+  );
+  const update = useMutation(
+    trpc.schedule.reminders.updateReminderSettings.mutationOptions({
+      onMutate: async (input) => {
+        await queryClient.cancelQueries(trpc.schedule.reminders.getReminderSettings.pathFilter());
+        const previous = queryClient.getQueryData(
+          trpc.schedule.reminders.getReminderSettings.queryKey(),
+        );
+        if (previous !== undefined) {
+          queryClient.setQueryData(trpc.schedule.reminders.getReminderSettings.queryKey(), {
+            ...previous,
+            ...input,
+          });
+        }
+        return { previous };
+      },
+      onError: (_error, _input, context) => {
+        queryClient.setQueryData(
+          trpc.schedule.reminders.getReminderSettings.queryKey(),
+          context?.previous,
+        );
+      },
+      onSettled: () =>
+        queryClient.invalidateQueries(trpc.schedule.reminders.getReminderSettings.pathFilter()),
+    }),
+  );
 
   if (!isAuthenticated) return <></>;
 

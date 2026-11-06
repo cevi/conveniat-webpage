@@ -8,9 +8,10 @@ import { useUserCanArchiveChat } from '@/features/chat/hooks/use-user-can-archiv
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { isChatArchived } from '@/lib/chat-shared';
 import { ChatMembershipPermission } from '@/lib/prisma';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { useQuery } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
@@ -56,6 +57,7 @@ const getCannotDeleteExplanation = (role: ChatMembershipPermission, locale: Loca
 };
 
 export const DeleteChat: React.FC = () => {
+  const trpc = useTRPC();
   const router = useRouter();
   const chatId = useChatId();
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -65,7 +67,7 @@ export const DeleteChat: React.FC = () => {
   const canUserArchiveChat = useUserCanArchiveChat(chatId);
 
   // Get user's current role in this chat
-  const { data: currentUser } = trpc.chat.user.useQuery({});
+  const { data: currentUser } = useQuery(trpc.chat.user.queryOptions({}));
   const { data: chatDetails } = useChatDetail(chatId);
   const currentUserMembership = chatDetails?.participants.find((p) => p.id === currentUser);
   const userRole = currentUserMembership?.chatPermission ?? ChatMembershipPermission.GUEST;

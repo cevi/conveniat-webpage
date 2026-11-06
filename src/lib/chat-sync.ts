@@ -1,7 +1,7 @@
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { CHAT_PAGE_SIZE } from '@/lib/chat-shared';
 import { scheduleEntryFingerprint } from '@/lib/schedule-entry-fingerprint';
-import type { trpc } from '@/trpc/client';
+import type { TrpcQueries } from '@/trpc/client';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import { onlineManager } from '@tanstack/react-query';
 
@@ -9,24 +9,24 @@ import { onlineManager } from '@tanstack/react-query';
  * Prefetches all chats, chat details, and recent messages (first page) for the current user.
  * This populates the TanStack Query cache, which is automatically persisted in localStorage.
  */
-export const syncChatsOffline = async (
-  trpcUtils: ReturnType<typeof trpc.useUtils>,
-): Promise<void> => {
+export const syncChatsOffline = async ({ trpc, queryClient }: TrpcQueries): Promise<void> => {
   try {
     console.log('[Offline Sync] Starting offline chat sync...');
 
     // 1. Ensure the user details, contacts, and capabilities are cached
-    await trpcUtils.chat.user.fetch({});
-    await trpcUtils.chat.contacts.fetch({}).catch(console.warn);
-    await trpcUtils.chat.checkCapability
-      .fetch({
-        action: CapabilityAction.Create,
-        subject: CapabilitySubject.Chat,
-      })
+    await queryClient.query(trpc.chat.user.queryOptions({}));
+    await queryClient.query(trpc.chat.contacts.queryOptions({})).catch(console.warn);
+    await queryClient
+      .query(
+        trpc.chat.checkCapability.queryOptions({
+          action: CapabilityAction.Create,
+          subject: CapabilitySubject.Chat,
+        }),
+      )
       .catch(console.warn);
 
     // 2. Fetch the list of chats and cache it
-    const chats = await trpcUtils.chat.chats.fetch({});
+    const chats = await queryClient.query(trpc.chat.chats.queryOptions({}));
     console.log(`[Offline Sync] Found ${chats.length} chats to sync.`);
 
     // 3. Concurrently prefetch details and infinite message history for each chat
@@ -35,14 +35,17 @@ export const syncChatsOffline = async (
       chats.map(async (chat) => {
         try {
           // Prefetch individual chat details
-          await trpcUtils.chat.chatDetails.fetch({ chatId: chat.id });
+          await queryClient.query(trpc.chat.chatDetails.queryOptions({ chatId: chat.id }));
 
           // Prefetch first page of infinite messages matching exact hook query key signature
-          await trpcUtils.chat.infiniteMessages.prefetchInfinite({
-            chatId: chat.id,
-            limit: CHAT_PAGE_SIZE,
-            parentId: undefined,
-          });
+          await queryClient
+            .infiniteQuery(
+              trpc.chat.infiniteMessages.infiniteQueryOptions(
+                { chatId: chat.id, limit: CHAT_PAGE_SIZE, parentId: undefined },
+                { getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined },
+              ),
+            )
+            .catch(() => {});
 
           chatUrlsToCache.push(`/app/chat/${chat.id}`);
 
@@ -78,19 +81,17 @@ export const syncChatsOffline = async (
  * Prefetches emergency alert settings and emergency cards (including linked images and documents)
  * for the current user. This populates the TanStack Query cache and SW asset cache for offline availability.
  */
-export const syncEmergencyOffline = async (
-  trpcUtils: ReturnType<typeof trpc.useUtils>,
-): Promise<void> => {
+export const syncEmergencyOffline = async ({ trpc, queryClient }: TrpcQueries): Promise<void> => {
   try {
     console.log('[Offline Sync] Starting offline emergency cards sync...');
 
     // 1. Fetch and cache emergency alert settings
     // eslint-disable-next-line unicorn/no-useless-undefined
-    await trpcUtils.emergency.getAlertSettings.fetch(undefined);
+    await queryClient.query(trpc.emergency.getAlertSettings.queryOptions(undefined));
 
     // 2. Fetch and cache emergency cards
-    // eslint-disable-next-line unicorn/no-useless-undefined
-    const emergencyCards = await trpcUtils.emergency.getEmergencyCards.fetch(undefined);
+
+    const emergencyCards = await queryClient.query(trpc.emergency.getEmergencyCards.queryOptions());
     console.log(`[Offline Sync] Found ${emergencyCards.length} emergency cards to sync.`);
 
     // 3. Pre-fetch linked images and documents for offline viewing
@@ -152,9 +153,7 @@ const safePrefetch = async <T>(promise: Promise<T>): Promise<T | undefined> => {
 /**
  * Syncs all offline application data (chats, emergency cards, schedule, map, presence, photo contest).
  */
-export const syncAllOfflineData = async (
-  trpcUtils: ReturnType<typeof trpc.useUtils>,
-): Promise<void> => {
+export const syncAllOfflineData = async ({ trpc, queryClient }: TrpcQueries): Promise<void> => {
   // Without a connection every fetch below would wait for one, and the download would spin until
   // the device is back online. What is cached already is all an offline device can have.
   if (!onlineManager.isOnline()) return;
@@ -162,20 +161,20 @@ export const syncAllOfflineData = async (
   // A download is the user asking for the current state, so everything cached counts as stale and
   // each `fetch` below goes to the server. `refetchType: 'none'` leaves the fetching to them
   // instead of also refetching whatever happens to be mounted.
-  await trpcUtils.invalidate(undefined, { refetchType: 'none' });
+  await queryClient.invalidateQueries({ ...trpc.pathFilter(), refetchType: 'none' });
 
   await Promise.all([
-    safePrefetch(syncChatsOffline(trpcUtils)),
-    safePrefetch(syncEmergencyOffline(trpcUtils)),
+    safePrefetch(syncChatsOffline({ trpc, queryClient })),
+    safePrefetch(syncEmergencyOffline({ trpc, queryClient })),
     (async (): Promise<void> => {
       const scheduleEntries = await safePrefetch(
         // eslint-disable-next-line unicorn/no-useless-undefined
-        trpcUtils.schedule.getScheduleEntries.fetch(undefined),
+        queryClient.query(trpc.schedule.getScheduleEntries.queryOptions(undefined)),
       );
       if (Array.isArray(scheduleEntries) && scheduleEntries.length > 0) {
         for (const entry of scheduleEntries) {
           if (typeof entry.id === 'string' && entry.id.length > 0) {
-            trpcUtils.schedule.getById.setData({ id: entry.id }, entry);
+            queryClient.setQueryData(trpc.schedule.getById.queryKey({ id: entry.id }), entry);
           }
         }
         try {
@@ -288,30 +287,33 @@ export const syncAllOfflineData = async (
           );
 
           for (const chunk of chunks) {
-            await safePrefetch(trpcUtils.schedule.getCourseStatuses.fetch({ courseIds: chunk }));
+            await safePrefetch(
+              queryClient.query(trpc.schedule.getCourseStatuses.queryOptions({ courseIds: chunk })),
+            );
           }
         }
       }
     })(),
     // eslint-disable-next-line unicorn/no-useless-undefined
-    safePrefetch(trpcUtils.schedule.getMyEnrollments.fetch(undefined)),
+    safePrefetch(queryClient.query(trpc.schedule.getMyEnrollments.queryOptions(undefined))),
     // what the Programm and a block need to look the same offline: the own Quartier for the
     // view, whether "Für Leitende" is offered, and the reminders with their settings
     // eslint-disable-next-line unicorn/no-useless-undefined
-    safePrefetch(trpcUtils.schedule.getMyQuartiere.fetch(undefined)),
+    safePrefetch(queryClient.query(trpc.schedule.getMyQuartiere.queryOptions(undefined))),
     // eslint-disable-next-line unicorn/no-useless-undefined
-    safePrefetch(trpcUtils.schedule.getLeaderAccess.fetch(undefined)),
+    safePrefetch(queryClient.query(trpc.schedule.getLeaderAccess.queryOptions(undefined))),
+
+    safePrefetch(queryClient.query(trpc.schedule.reminders.getReminders.queryOptions())),
+
+    safePrefetch(queryClient.query(trpc.schedule.reminders.getReminderSettings.queryOptions())),
     // eslint-disable-next-line unicorn/no-useless-undefined
-    safePrefetch(trpcUtils.schedule.reminders.getReminders.fetch(undefined)),
+    safePrefetch(queryClient.query(trpc.shifts.getMyShiftEnrollments.queryOptions(undefined))),
     // eslint-disable-next-line unicorn/no-useless-undefined
-    safePrefetch(trpcUtils.schedule.reminders.getReminderSettings.fetch(undefined)),
-    // eslint-disable-next-line unicorn/no-useless-undefined
-    safePrefetch(trpcUtils.shifts.getMyShiftEnrollments.fetch(undefined)),
-    // eslint-disable-next-line unicorn/no-useless-undefined
-    safePrefetch(trpcUtils.shifts.getMyOrganisedShifts.fetch(undefined)),
+    safePrefetch(queryClient.query(trpc.shifts.getMyOrganisedShifts.queryOptions(undefined))),
     (async (): Promise<void> => {
-      // eslint-disable-next-line unicorn/no-useless-undefined
-      const shifts = await safePrefetch(trpcUtils.schedule.getHelperShifts.fetch(undefined));
+      const shifts = await safePrefetch(
+        queryClient.query(trpc.schedule.getHelperShifts.queryOptions()),
+      );
       const shiftIds = Array.isArray(shifts)
         ? shifts.map((shift) => shift.id).filter((id) => typeof id === 'string' && id.length > 0)
         : [];
@@ -329,23 +331,23 @@ export const syncAllOfflineData = async (
         for (const chunk of chunks) {
           await Promise.all(
             chunk.map((shiftId) =>
-              safePrefetch(trpcUtils.shifts.getShiftStatus.fetch({ shiftId })),
+              safePrefetch(queryClient.query(trpc.shifts.getShiftStatus.queryOptions({ shiftId }))),
             ),
           );
         }
       }
     })(),
-    safePrefetch(trpcUtils.map.getMapAnnotations.fetch({ locale: 'de' })),
-    safePrefetch(trpcUtils.map.getMapAnnotations.fetch({ locale: 'en' })),
-    safePrefetch(trpcUtils.map.getMapAnnotations.fetch({ locale: 'fr' })),
-    safePrefetch(trpcUtils.map.getAnnotations.fetch({ locale: 'de' })),
-    safePrefetch(trpcUtils.map.getAnnotations.fetch({ locale: 'en' })),
-    safePrefetch(trpcUtils.map.getAnnotations.fetch({ locale: 'fr' })),
+    safePrefetch(queryClient.query(trpc.map.getMapAnnotations.queryOptions({ locale: 'de' }))),
+    safePrefetch(queryClient.query(trpc.map.getMapAnnotations.queryOptions({ locale: 'en' }))),
+    safePrefetch(queryClient.query(trpc.map.getMapAnnotations.queryOptions({ locale: 'fr' }))),
+    safePrefetch(queryClient.query(trpc.map.getAnnotations.queryOptions({ locale: 'de' }))),
+    safePrefetch(queryClient.query(trpc.map.getAnnotations.queryOptions({ locale: 'en' }))),
+    safePrefetch(queryClient.query(trpc.map.getAnnotations.queryOptions({ locale: 'fr' }))),
     // eslint-disable-next-line unicorn/no-useless-undefined
-    safePrefetch(trpcUtils.presence.getPresence.fetch(undefined)),
+    safePrefetch(queryClient.query(trpc.presence.getPresence.queryOptions(undefined))),
     // eslint-disable-next-line unicorn/no-useless-undefined
-    safePrefetch(trpcUtils.photoContest.getContests.fetch(undefined)),
+    safePrefetch(queryClient.query(trpc.photoContest.getContests.queryOptions(undefined))),
     // eslint-disable-next-line unicorn/no-useless-undefined
-    safePrefetch(trpcUtils.chat.getFeatureFlags.fetch(undefined)),
+    safePrefetch(queryClient.query(trpc.chat.getFeatureFlags.queryOptions(undefined))),
   ]);
 };

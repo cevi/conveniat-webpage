@@ -1,3 +1,4 @@
+import { annotateRequest, appendToRequest } from '@/lib/request-span';
 import { withSpan } from '@/utils/tracing-helpers';
 import { type Histogram, metrics, SpanStatusCode, ValueType } from '@opentelemetry/api';
 
@@ -68,13 +69,20 @@ export const traceProcedure = async <TOutcome extends ProcedureOutcome>(options:
   path: string;
   type: string;
   next: () => Promise<TOutcome>;
+  /** The Payload id of the signed-in user, if any; never a name or an email address. */
+  userId?: string | undefined;
 }): Promise<TOutcome> => {
-  const { path, type, next } = options;
+  const { path, type, next, userId } = options;
   const startedAt = performance.now();
 
   return await withSpan(
     `trpc.${type} ${path}`,
     async (span) => {
+      if (userId !== undefined) {
+        span.setAttribute('user.id', userId);
+        annotateRequest({ 'user.id': userId });
+      }
+      appendToRequest('trpc.procedures', `${type} ${path}`);
       const result = await next();
       const errorCode = result.ok ? undefined : result.error.code;
 

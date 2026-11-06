@@ -11,6 +11,7 @@ import {
   PUBLISHING_TOOL_NAME,
   rememberKeyAccessSettings,
 } from '@/features/payload-cms/payload-cms/plugins/mcp/mcp-publishing-tool';
+import { recordMcpEvent } from '@/features/payload-cms/payload-cms/plugins/mcp/mcp-telemetry';
 import { mcpWritesDraftsOnly } from '@/features/payload-cms/payload-cms/plugins/mcp/mcp-writes-drafts-only';
 import { mcpPlugin } from '@payloadcms/plugin-mcp';
 import type { CollectionConfig, DefaultValue, Field, Plugin } from 'payload';
@@ -190,6 +191,8 @@ const configuredMcpPlugin = mcpPlugin({
     ),
   mcp: {
     tools: [createPublishingTool(['generic-page', 'forms', 'helper-jobs'])],
+    // which method and tool each request ran, on its span (see `recordMcpEvent`)
+    handlerOptions: { onEvent: recordMcpEvent },
     serverOptions: {
       instructions:
         'This server exposes the content of the conveniat27 website (a Payload CMS). ' +

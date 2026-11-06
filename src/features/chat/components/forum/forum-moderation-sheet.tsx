@@ -1,5 +1,4 @@
 'use client';
-
 import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { textInputClassName } from '@/components/ui/field';
@@ -16,7 +15,7 @@ import {
   forumStatusLabel,
   type ForumPostStatusValue,
 } from '@/lib/forum-shared';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
@@ -33,6 +32,8 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
+
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 type View = 'main' | 'assign' | 'merge' | 'answer' | 'delete';
 /** Where the forward view sends the post: a Ressort, a person, or another topic. */
@@ -60,8 +61,9 @@ export const ForumModerationSheet: React.FC<{
   /** opened from "Weiterleiten", straight on the forward */
   startOnForward?: boolean;
 }> = ({ post, locale, open, onOpenChange, startOnForward = false }) => {
+  const trpc = useTRPC();
   const router = useRouter();
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const [view, setView] = useState<View>(startOnForward ? 'assign' : 'main');
   const [target, setTarget] = useState<ForwardTarget>('ressort');
   const [ressortId, setRessortId] = useState<string | undefined>();
@@ -76,7 +78,7 @@ export const ForumModerationSheet: React.FC<{
   const changeStatus = useForumStatusChange();
 
   const refresh = (): void => {
-    void utils.forum.invalidate();
+    void queryClient.invalidateQueries(trpc.forum.pathFilter());
   };
   const fail = (caught: unknown): void =>
     setError(userErrorMessage(caught, locale, forumErrorTexts, forumText.changeFailed));
@@ -93,62 +95,84 @@ export const ForumModerationSheet: React.FC<{
     onOpenChange(false);
   };
 
-  const pin = trpc.forum.setForumPostPinned.useMutation({ onSuccess: refresh, onError: fail });
-  const answer = trpc.forum.setForumPostAnswer.useMutation({
-    onSuccess: () => {
-      refresh();
-      close();
-    },
-    onError: fail,
-  });
-  const merge = trpc.forum.mergeForumPost.useMutation({
-    onSuccess: () => {
-      refresh();
-      close();
-    },
-    onError: fail,
-  });
-  const unmerge = trpc.forum.unmergeForumPost.useMutation({ onSuccess: refresh, onError: fail });
-  const assign = trpc.forum.createForumPostAssignment.useMutation({
-    onSuccess: () => {
-      refresh();
-      close();
-    },
-    onError: fail,
-  });
-  const move = trpc.forum.moveForumPost.useMutation({
-    onSuccess: () => {
-      refresh();
-      close();
-    },
-    onError: fail,
-  });
-  const moderatorDelete = trpc.forum.deleteForumMessage.useMutation({
-    onSuccess: () => {
-      refresh();
-      router.push('/app/forum');
-    },
-    onError: fail,
-  });
-  const ownDelete = trpc.chat.deleteMessage.useMutation({
-    onSuccess: () => {
-      refresh();
-      router.push('/app/forum');
-    },
-    onError: fail,
-  });
+  const pin = useMutation(
+    trpc.forum.setForumPostPinned.mutationOptions({ onSuccess: refresh, onError: fail }),
+  );
+  const answer = useMutation(
+    trpc.forum.setForumPostAnswer.mutationOptions({
+      onSuccess: () => {
+        refresh();
+        close();
+      },
+      onError: fail,
+    }),
+  );
+  const merge = useMutation(
+    trpc.forum.mergeForumPost.mutationOptions({
+      onSuccess: () => {
+        refresh();
+        close();
+      },
+      onError: fail,
+    }),
+  );
+  const unmerge = useMutation(
+    trpc.forum.unmergeForumPost.mutationOptions({ onSuccess: refresh, onError: fail }),
+  );
+  const assign = useMutation(
+    trpc.forum.createForumPostAssignment.mutationOptions({
+      onSuccess: () => {
+        refresh();
+        close();
+      },
+      onError: fail,
+    }),
+  );
+  const move = useMutation(
+    trpc.forum.moveForumPost.mutationOptions({
+      onSuccess: () => {
+        refresh();
+        close();
+      },
+      onError: fail,
+    }),
+  );
+  const moderatorDelete = useMutation(
+    trpc.forum.deleteForumMessage.mutationOptions({
+      onSuccess: () => {
+        refresh();
+        router.push('/app/forum');
+      },
+      onError: fail,
+    }),
+  );
+  const ownDelete = useMutation(
+    trpc.chat.deleteMessage.mutationOptions({
+      onSuccess: () => {
+        refresh();
+        router.push('/app/forum');
+      },
+      onError: fail,
+    }),
+  );
 
-  const assignees = trpc.forum.getForumAssigneeList.useQuery(
-    { topicId: post.topicId, query: query.trim() },
-    { enabled: view === 'assign' && target === 'person' && query.trim().length >= 2 },
+  const assignees = useQuery(
+    trpc.forum.getForumAssigneeList.queryOptions(
+      { topicId: post.topicId, query: query.trim() },
+      { enabled: view === 'assign' && target === 'person' && query.trim().length >= 2 },
+    ),
   );
-  const ressorts = trpc.forum.getForumRessortList.useQuery(
-    {},
-    { enabled: view === 'assign' && target === 'ressort' },
+  const ressorts = useQuery(
+    trpc.forum.getForumRessortList.queryOptions(
+      {},
+      { enabled: view === 'assign' && target === 'ressort' },
+    ),
   );
-  const topics = trpc.forum.getForumTopicList.useQuery(
-    {},
-    { enabled: view === 'assign' && target === 'topic' },
+  const topics = useQuery(
+    trpc.forum.getForumTopicList.queryOptions(
+      {},
+      { enabled: view === 'assign' && target === 'topic' },
+    ),
   );
   const otherTopics = (topics.data ?? []).filter((topic) => topic.id !== post.topicId);
   const ressort = ressorts.data?.find((candidate) => candidate.id === ressortId);
@@ -160,13 +184,17 @@ export const ForumModerationSheet: React.FC<{
     person: forumText.forwardPerson[locale],
     topic: forumText.forwardTopic[locale],
   };
-  const mergeTargets = trpc.forum.getForumPostSuggestionList.useQuery(
-    { topicId: post.topicId, title: query },
-    { enabled: view === 'merge' && query.trim().length >= 3 },
+  const mergeTargets = useQuery(
+    trpc.forum.getForumPostSuggestionList.queryOptions(
+      { topicId: post.topicId, title: query },
+      { enabled: view === 'merge' && query.trim().length >= 3 },
+    ),
   );
-  const comments = trpc.chat.infiniteMessages.useInfiniteQuery(
-    { chatId: post.topicId, limit: CHAT_PAGE_SIZE, parentId: post.id },
-    { enabled: view === 'answer', getNextPageParam: (last) => last.nextCursor ?? undefined },
+  const comments = useInfiniteQuery(
+    trpc.chat.infiniteMessages.infiniteQueryOptions(
+      { chatId: post.topicId, limit: CHAT_PAGE_SIZE, parentId: post.id },
+      { enabled: view === 'answer', getNextPageParam: (last) => last.nextCursor ?? undefined },
+    ),
   );
 
   const saveStatus = async (): Promise<void> => {

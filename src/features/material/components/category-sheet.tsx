@@ -17,11 +17,13 @@ import {
   useInvalidateMaterial,
   useMaterialLocale,
 } from '@/features/material/hooks/use-material';
-import { trpc, type RouterOutputs } from '@/trpc/client';
+import { useTRPC, type RouterOutputs } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { Pencil, Plus } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
+
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 type MaterialCategory = RouterOutputs['material']['getCategoryList'][number];
 
@@ -38,10 +40,11 @@ const CategoryDialog: React.FC<{
   nextOrder: number;
   onClose: () => void;
 }> = ({ category, nextOrder, onClose }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const invalidate = useInvalidateMaterial();
-  const create = trpc.material.createCategory.useMutation();
-  const update = trpc.material.updateCategory.useMutation();
+  const create = useMutation(trpc.material.createCategory.mutationOptions());
+  const update = useMutation(trpc.material.updateCategory.mutationOptions());
   const [name, setName] = useState(category?.name ?? '');
   const [order, setOrder] = useState(String(category?.sortOrder ?? nextOrder));
 
@@ -106,8 +109,11 @@ const CategoryDialog: React.FC<{
  * panel, by the Cevi.DB sync.
  */
 export const CategoriesSheet: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
-  const categories = trpc.material.getCategoryList.useQuery(undefined, materialQueryOptions);
+  const categories = useQuery(
+    trpc.material.getCategoryList.queryOptions(undefined, materialQueryOptions),
+  );
   const [editing, setEditing] = useState<{ category?: MaterialCategory } | undefined>();
   const categoryList = categories.data ?? [];
 

@@ -1,5 +1,4 @@
 'use client';
-
 import { SetHeaderActions } from '@/components/header/header-actions';
 import { OfflineBanner } from '@/components/offline-banner';
 import { AppSearchBar } from '@/components/ui/app-search-bar';
@@ -16,7 +15,7 @@ import {
 import { ForumPostRow } from '@/features/chat/components/forum/forum-post-row';
 import { forumText } from '@/features/chat/components/forum/forum-texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -33,6 +32,8 @@ import {
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useRef, useState } from 'react';
+
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const chipClassName = (isChosen: boolean): string =>
   cn(
@@ -60,10 +61,14 @@ const TopicSubscriptionButton: React.FC<{
   subscribed: boolean;
   locale: Locale;
 }> = ({ topicId, subscribed, locale }) => {
-  const utils = trpc.useUtils();
-  const { mutate, isPending } = trpc.forum.updateForumTopicSubscription.useMutation({
-    onSettled: () => void utils.forum.getForumTopicList.invalidate(),
-  });
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const { mutate, isPending } = useMutation(
+    trpc.forum.updateForumTopicSubscription.mutationOptions({
+      onSettled: () =>
+        void queryClient.invalidateQueries(trpc.forum.getForumTopicList.pathFilter()),
+    }),
+  );
   const label = subscribed ? forumText.unsubscribeTopic[locale] : forumText.subscribeTopic[locale];
   const Icon = subscribed ? Bell : BellOff;
   return (
@@ -120,6 +125,7 @@ const ZentraleLink: React.FC<{
  * posts on top. Searching shows what already exists before anyone writes it a second time.
  */
 export const ForumOverview: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const router = useRouter();
   const searchParameters = useSearchParams();
@@ -131,19 +137,23 @@ export const ForumOverview: React.FC = () => {
   const [search, setSearch] = useState('');
   const [now] = useState(() => new Date());
 
-  const topics = trpc.forum.getForumTopicList.useQuery({});
-  const settings = trpc.forum.getForumSettings.useQuery({});
-  const pinned = trpc.forum.getForumPinnedPostList.useQuery(
-    topicId === undefined ? {} : { topicId },
+  const topics = useQuery(trpc.forum.getForumTopicList.queryOptions({}));
+  const settings = useQuery(trpc.forum.getForumSettings.queryOptions({}));
+  const pinned = useQuery(
+    trpc.forum.getForumPinnedPostList.queryOptions(topicId === undefined ? {} : { topicId }),
   );
-  const list = trpc.forum.getForumPostList.useInfiniteQuery(
-    { ...(topicId === undefined ? {} : { topicId }), status, filter, sort },
-    { getNextPageParam: (last) => last.nextCursor },
+  const list = useInfiniteQuery(
+    trpc.forum.getForumPostList.infiniteQueryOptions(
+      { ...(topicId === undefined ? {} : { topicId }), status, filter, sort },
+      { getNextPageParam: (last) => last.nextCursor },
+    ),
   );
   const isSearching = search.trim().length >= 3;
-  const results = trpc.forum.getForumPostSuggestionList.useQuery(
-    { title: search, ...(topicId === undefined ? {} : { topicId }) },
-    { enabled: isSearching },
+  const results = useQuery(
+    trpc.forum.getForumPostSuggestionList.queryOptions(
+      { title: search, ...(topicId === undefined ? {} : { topicId }) },
+      { enabled: isSearching },
+    ),
   );
 
   const chosenTopic = topics.data?.find((topic) => topic.id === topicId);

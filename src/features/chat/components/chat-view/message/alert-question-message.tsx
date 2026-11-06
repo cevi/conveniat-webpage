@@ -1,11 +1,12 @@
 'use client';
-
 import type { ChatMessage } from '@/features/chat/api/types';
 import { useChatId } from '@/features/chat/context/chat-id-context';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { cn } from '@/utils/tailwindcss-override';
 import { Check, Circle, Loader2 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface AlertQuestionMessageProperties {
   message: ChatMessage;
@@ -18,6 +19,7 @@ interface OptionItem {
 }
 
 export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({ message }) => {
+  const trpc = useTRPC();
   const chatId = useChatId();
   const rawPayload = message.messagePayload;
 
@@ -57,19 +59,23 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
     });
   }, [rawOptions]);
 
-  const trpcUtils = trpc.useUtils();
-  const updateMessageContext = trpc.chat.updateMessageContent.useMutation({
-    onSuccess: () => {
-      setIsSubmitting(false);
-      void trpcUtils.chat.infiniteMessages.invalidate({ chatId });
-      void trpcUtils.admin.getChatMessages.invalidate({ chatId });
-    },
-    onError: (error) => {
-      setIsSubmitting(false);
-      setOptimisticSelection(undefined);
-      console.error('Failed to update message:', error);
-    },
-  });
+  const queryClient = useQueryClient();
+  const updateMessageContext = useMutation(
+    trpc.chat.updateMessageContent.mutationOptions({
+      onSuccess: () => {
+        setIsSubmitting(false);
+        void queryClient.invalidateQueries(
+          trpc.chat.infiniteMessages.infiniteQueryFilter({ chatId }),
+        );
+        void queryClient.invalidateQueries(trpc.admin.getChatMessages.queryFilter({ chatId }));
+      },
+      onError: (error) => {
+        setIsSubmitting(false);
+        setOptimisticSelection(undefined);
+        console.error('Failed to update message:', error);
+      },
+    }),
+  );
 
   const handleSelectOption = (optItem: OptionItem): void => {
     if (!canAnswer || isSubmitting) return;

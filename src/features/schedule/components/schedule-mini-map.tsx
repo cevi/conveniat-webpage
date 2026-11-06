@@ -1,15 +1,16 @@
 'use client';
-
 // eslint-disable-next-line import/no-restricted-paths -- schedule feature needs to display maps for locations
 import { MiniMapLibreRenderer } from '@/features/map/components/map-renderer-wrapper';
 // eslint-disable-next-line import/no-restricted-paths -- schedule feature needs types from map
 import type { CampMapAnnotationPolygon } from '@/features/map/types/types';
 import type { CampMapAnnotation, Image } from '@/features/payload-cms/payload-types';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import React from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 /** a round white button floating over the map at the top of a block's or a shift's page */
 export const floatingButtonClassName =
@@ -73,16 +74,19 @@ export const mapCenterOf = (location: CampMapAnnotation): [number, number] | und
  * The place's row in the facts leads to the Karte, which does answer.
  */
 export const ScheduleMiniMap: React.FC<{ location: CampMapAnnotation }> = ({ location }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   // Fetch all polygon annotations for context
-  const { data: allAnnotations } = trpc.map.getAnnotations.useQuery(
-    { locale },
-    {
-      staleTime: 1000 * 60 * 5,
+  const { data: allAnnotations } = useQuery(
+    trpc.map.getAnnotations.queryOptions(
+      { locale },
+      {
+        staleTime: 1000 * 60 * 5,
 
-      refetchOnMount: true,
-      refetchOnWindowFocus: true,
-    },
+        refetchOnMount: true,
+        refetchOnWindowFocus: true,
+      },
+    ),
   );
 
   const currentPolygonCoords =

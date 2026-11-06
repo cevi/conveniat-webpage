@@ -1,5 +1,4 @@
 'use client';
-
 import { OfflineBanner } from '@/components/offline-banner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
@@ -13,7 +12,7 @@ import {
 } from '@/features/chat/components/forum/forum-texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -22,6 +21,8 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
+
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 const TABS: readonly ZentraleTab[] = ['waiting', 'claimed', 'mine', 'open'];
 
@@ -123,6 +124,7 @@ const QueueRow: React.FC<{
  * to the queue, so the desk works through it without losing its place.
  */
 export const ForumZentraleView: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const router = useRouter();
   const parameters = useSearchParams();
@@ -133,10 +135,12 @@ export const ForumZentraleView: React.FC = () => {
     : 'waiting';
   const selectedId = parameters.get('post') ?? undefined;
 
-  const settings = trpc.forum.getForumSettings.useQuery({});
-  const list = trpc.forum.getForumZentraleList.useInfiniteQuery(
-    { tab },
-    { getNextPageParam: (last) => last.nextCursor ?? undefined },
+  const settings = useQuery(trpc.forum.getForumSettings.queryOptions({}));
+  const list = useInfiniteQuery(
+    trpc.forum.getForumZentraleList.infiniteQueryOptions(
+      { tab },
+      { getNextPageParam: (last) => last.nextCursor ?? undefined },
+    ),
   );
   const posts = list.data?.pages.flatMap((page) => page.items) ?? [];
   // absent in a persisted cache from before the Zentrale

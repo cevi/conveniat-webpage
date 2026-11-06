@@ -12,7 +12,7 @@ import { formatChatListDate } from '@/features/chat/utils/format-chat-list-date'
 import { previewSenderPrefix } from '@/features/chat/utils/preview-sender-prefix';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
@@ -21,6 +21,8 @@ import Link, { useLinkStatus } from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useCallback } from 'react';
+
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const pinnedText: StaticTranslationString = {
   de: 'Angeheftet',
@@ -126,22 +128,28 @@ export const ChatPreview: React.FC<{
   /** the chat open beside the list, on a desktop */
   isSelected?: boolean;
 }> = ({ chat, onOpenActions, actionsHintId, isSelected = false }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
   const openingChat = useOpeningChat();
-  const trpcUtils = trpc.useUtils();
-  const { data: currentUserId } = trpc.chat.user.useQuery({});
+  const queryClient = useQueryClient();
+  const { data: currentUserId } = useQuery(trpc.chat.user.queryOptions({}));
 
   // On hover, which a phone emulates for a completed tap only. `touchstart` also fired for
   // every chat a finger brushed while scrolling the list, each one a request.
   const handlePrefetch = useCallback(() => {
-    trpcUtils.chat.chatDetails.prefetch({ chatId: chat.id }).catch(() => {});
+    queryClient.query(trpc.chat.chatDetails.queryOptions({ chatId: chat.id })).catch(() => {});
     // Only for a chat with nothing cached, so it opens with messages: the view refetches
     // the list on mount anyway. The key has to match the view's, or nothing reads it.
-    trpcUtils.chat.infiniteMessages
-      .prefetchInfinite({ chatId: chat.id, limit: CHAT_PAGE_SIZE }, { staleTime: Infinity })
+    queryClient
+      .infiniteQuery(
+        trpc.chat.infiniteMessages.infiniteQueryOptions(
+          { chatId: chat.id, limit: CHAT_PAGE_SIZE },
+          { staleTime: Infinity, getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined },
+        ),
+      )
       .catch(() => {});
-  }, [chat.id, trpcUtils]);
+  }, [chat.id, queryClient, trpc]);
 
   let chatDetailLink = `/app/chat/${chat.id}`;
 

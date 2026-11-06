@@ -35,7 +35,7 @@ import { basketLineCap, isOnOrderStep, orderStepOf } from '@/features/material/u
 import { fromDateInput, toDateInput } from '@/features/material/utils/dates';
 import { dayKey } from '@/features/material/utils/holders';
 import { getLoanDisplayStatus } from '@/features/material/utils/stock';
-import { trpc, type RouterOutputs } from '@/trpc/client';
+import { useTRPC, type RouterOutputs } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Building2, CornerDownLeft, Pencil, Plus, User, X } from 'lucide-react';
@@ -43,6 +43,8 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
+
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 type MyLoan = RouterOutputs['material']['getMyHofLoans']['mine'][number];
 
@@ -129,9 +131,10 @@ const quantityOf = (loan: MyLoan): number => loan.issuedQuantity ?? loan.quantit
 
 /** Changes a request while the material team has not answered it: how many, when, a note. */
 const EditRequestSheet: React.FC<{ loan: MyLoan; onClose: () => void }> = ({ loan, onClose }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const invalidate = useInvalidateMaterial();
-  const update = trpc.material.updateLoanRequest.useMutation();
+  const update = useMutation(trpc.material.updateLoanRequest.mutationOptions());
   const [quantity, setQuantity] = useState(loan.quantity);
   const [start, setStart] = useState(toDateInput(loan.startDate));
   const [end, setEnd] = useState(toDateInput(loan.endDate));
@@ -139,14 +142,16 @@ const EditRequestSheet: React.FC<{ loan: MyLoan; onClose: () => void }> = ({ loa
   const startDate = fromDateInput(start, 'start');
   const endDate = fromDateInput(end, 'end');
   const periodValid = startDate !== undefined && endDate !== undefined && endDate >= startDate;
-  const availability = trpc.material.getAvailability.useQuery(
-    {
-      itemId: loan.item.id,
-      startDate: startDate ?? loan.startDate,
-      endDate: endDate ?? loan.endDate,
-      excludeLoanIds: [loan.id],
-    },
-    { ...materialQueryOptions, enabled: periodValid },
+  const availability = useQuery(
+    trpc.material.getAvailability.queryOptions(
+      {
+        itemId: loan.item.id,
+        startDate: startDate ?? loan.startDate,
+        endDate: endDate ?? loan.endDate,
+        excludeLoanIds: [loan.id],
+      },
+      { ...materialQueryOptions, enabled: periodValid },
+    ),
   );
   const cap = basketLineCap({
     available: availability.data?.available ?? loan.quantity,
@@ -235,11 +240,12 @@ const MyLoanRow: React.FC<{ loan: MyLoan; onEdit: (loan: MyLoan) => void }> = ({
   loan,
   onEdit,
 }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const now = useNow();
   const invalidate = useInvalidateMaterial();
-  const cancel = trpc.material.cancelLoanRequest.useMutation();
-  const announce = trpc.material.announceReturn.useMutation();
+  const cancel = useMutation(trpc.material.cancelLoanRequest.mutationOptions());
+  const announce = useMutation(trpc.material.announceReturn.mutationOptions());
   const [asking, setAsking] = useState(false);
   const status = getLoanDisplayStatus(loan, now);
   const announced = announcedAt(loan);
@@ -365,9 +371,10 @@ const OutCard: React.FC<{
   loans: MyLoan[];
   onEdit: (loan: MyLoan) => void;
 }> = ({ title, icon, loans, onEdit }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const invalidate = useInvalidateMaterial();
-  const announce = trpc.material.announceReturn.useMutation();
+  const announce = useMutation(trpc.material.announceReturn.mutationOptions());
   const open = loans.filter((loan) => announcedAt(loan) === undefined).map((loan) => loan.id);
   return (
     <Panel>
@@ -439,11 +446,12 @@ const ScannedLoanSheet: React.FC<{ number: number; onClose: () => void }> = ({
   number,
   onClose,
 }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const now = useNow();
   const invalidate = useInvalidateMaterial();
-  const loan = trpc.material.getLoan.useQuery({ number }, materialQueryOptions);
-  const announce = trpc.material.announceReturn.useMutation();
+  const loan = useQuery(trpc.material.getLoan.queryOptions({ number }, materialQueryOptions));
+  const announce = useMutation(trpc.material.announceReturn.mutationOptions());
   const data = loan.data;
   const canAnnounce = data?.status === 'ISSUED' && announcedAt(data) === undefined;
   return (
@@ -515,15 +523,18 @@ const ScannedLoanSheet: React.FC<{ number: number; onClose: () => void }> = ({
  * cancel, and what their Höfe and they have out, each with "announce return".
  */
 export const MyLoansView: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const history = useSearchHistory();
   const loanParameter = Number(useSearchParams().get('loan') ?? '');
   const scannedNumber =
     Number.isSafeInteger(loanParameter) && loanParameter > 0 ? loanParameter : undefined;
-  const loans = trpc.material.getMyHofLoans.useQuery(undefined, {
-    ...materialQueryOptions,
-    refetchInterval: MATERIAL_POLL_INTERVAL_MS,
-  });
+  const loans = useQuery(
+    trpc.material.getMyHofLoans.queryOptions(undefined, {
+      ...materialQueryOptions,
+      refetchInterval: MATERIAL_POLL_INTERVAL_MS,
+    }),
+  );
   const [editing, setEditing] = useState<MyLoan | undefined>();
 
   if (loans.isLoading) return <LoadingState text={labels.loading[locale]} />;

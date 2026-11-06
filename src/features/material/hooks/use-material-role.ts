@@ -1,10 +1,11 @@
 'use client';
-
 import { materialQueryOptions } from '@/features/material/hooks/use-material';
 import type { MaterialQueryErrorLike } from '@/features/material/utils/query-errors';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 export type MaterialRole = 'team' | 'participant';
 
@@ -14,7 +15,8 @@ export type MaterialRole = 'team' | 'participant';
  * data never disagree.
  */
 export const useMaterialRole = (): MaterialRole | undefined => {
-  const me = trpc.material.getMe.useQuery(undefined, materialQueryOptions);
+  const trpc = useTRPC();
+  const me = useQuery(trpc.material.getMe.queryOptions(undefined, materialQueryOptions));
   return roleOf(me.data);
 };
 
@@ -33,7 +35,8 @@ export const useRoleRoute = (
   role: MaterialRole,
   elsewhere: string,
 ): { allowed: boolean; error: MaterialQueryErrorLike | undefined } => {
-  const me = trpc.material.getMe.useQuery(undefined, materialQueryOptions);
+  const trpc = useTRPC();
+  const me = useQuery(trpc.material.getMe.queryOptions(undefined, materialQueryOptions));
   const current = roleOf(me.data);
   const router = useRouter();
   const mismatch = current !== undefined && current !== role;

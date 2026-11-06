@@ -8,7 +8,7 @@ import { isRateLimitError } from '@/features/chat/utils/send-errors';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { i18nConfig, type Locale } from '@/types/types';
 import { errorReasonOf, userErrorMessage } from '@/utils/user-error-message';
 import type React from 'react';
@@ -39,6 +39,8 @@ import { useChatActions } from '@/features/chat/context/chat-actions-context';
 
 import { useSearchParams } from 'next/navigation';
 
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
 /** How often a composer rechecks whether sending was switched back on. */
 const DISABLED_MESSAGING_POLL_MS = 60_000;
 
@@ -47,6 +49,7 @@ const isGlobalMessagingEnabledIn = (
 ): boolean => featureFlags?.find((f) => f.key === FEATURE_FLAG_SEND_MESSAGES)?.isEnabled ?? true;
 
 export const useMessageInput = (): UseMessageInputLogicResult => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
   const [newMessage, setNewMessage] = useState(() => {
@@ -69,19 +72,18 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
   const [draftKey] = useState(() => getChatDraftKey(chatId, activeThreadId));
   useChatDraft(draftKey, newMessage, setNewMessage);
 
-  const trpcUtils = trpc.useUtils();
+  const queryClient = useQueryClient();
   // Fetched when a composer mounts and refetched by the realtime resync (`useChatSSE`),
   // which also covers the app coming back to the foreground. Polled only while sending is
   // off, the one state nothing else would bring the composer back from.
-  const { data: featureFlags, isLoading: isLoadingFlags } = trpc.chat.getFeatureFlags.useQuery(
-    undefined,
-    {
+  const { data: featureFlags, isLoading: isLoadingFlags } = useQuery(
+    trpc.chat.getFeatureFlags.queryOptions(undefined, {
       staleTime: 30_000,
       refetchOnMount: true,
       refetchOnWindowFocus: false,
       refetchInterval: (query) =>
         isGlobalMessagingEnabledIn(query.state.data) ? false : DISABLED_MESSAGING_POLL_MS,
-    },
+    }),
   );
 
   const isGlobalMessagingEnabled = isGlobalMessagingEnabledIn(featureFlags);
@@ -97,15 +99,17 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
       const reason = errorReasonOf(error)?.reason;
       // the server knew before the cached flags or capabilities did: update the composer
       if (reason === 'messagingDisabled') {
-        trpcUtils.chat.getFeatureFlags.invalidate().catch(console.error);
+        queryClient.invalidateQueries(trpc.chat.getFeatureFlags.pathFilter()).catch(console.error);
       } else if (reason === 'imagesDisabled') {
-        trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
+        queryClient
+          .invalidateQueries(trpc.chat.chatDetails.queryFilter({ chatId }))
+          .catch(console.error);
       } else if (reason !== 'threadGone' && !isRateLimitError(error)) {
         return;
       }
       setSendError(userErrorMessage(error, locale, chatErrorTexts));
     },
-    [chatId, locale, trpcUtils],
+    [chatId, locale, queryClient, trpc],
   );
 
   /** Sends `text` as a message, without touching the composer. */

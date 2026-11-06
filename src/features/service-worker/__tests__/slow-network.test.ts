@@ -45,13 +45,18 @@ const cachesWith = (
   return { storage, writes };
 };
 
-/** Navigates to the schedule inside the installed app, the way the Next.js router asks. */
-const navigateInApp = (): { answer: Promise<Response>; lifetime: Promise<unknown>[] } => {
+/**
+ * Navigates to the schedule inside the installed app, the way the Next.js router asks. With
+ * `headers`, the router sends another kind of request for it, such as a prefetch.
+ */
+const navigateInApp = (
+  headers: Record<string, string> = {},
+): { answer: Promise<Response>; lifetime: Promise<unknown>[] } => {
   let answer: Promise<Response> | undefined;
   const lifetime: Promise<unknown>[] = [];
   const event = {
     request: new Request(`${ORIGIN}/app/schedule?_rsc=abc12&app-mode=true`, {
-      headers: { RSC: '1' },
+      headers: { RSC: '1', ...headers },
     }),
     clientId: '',
     resultingClientId: '',
@@ -148,5 +153,23 @@ describe('app navigation on a slow network', () => {
     expect(answered).toBe(false);
     await jest.advanceTimersByTimeAsync(5000);
     expect(answered).toBe(true);
+  });
+
+  // The give-up answer used to come from the cache, where a prefetch found the navigation
+  // payload it skipped three seconds earlier.
+  it('gives up on a prefetch without answering it from the cache', async () => {
+    const { storage } = cachesWith(new Map([[SCHEDULE_RSC, new Response('yesterday schedule')]]));
+    globalThis.caches = storage;
+    globalThis.fetch = jest.fn(() => new Promise<Response>(() => {}));
+
+    const { answer } = navigateInApp({
+      'Next-Router-Prefetch': '1',
+      'Next-Router-Segment-Prefetch': '/_tree',
+    });
+    await jest.advanceTimersByTimeAsync(15_000);
+    const shown = await answer;
+
+    expect(shown.status).toBe(503);
+    await expect(shown.text()).resolves.toBe('');
   });
 });

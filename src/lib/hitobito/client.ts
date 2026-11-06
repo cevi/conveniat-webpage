@@ -4,6 +4,13 @@ import {
   extractCsrfMetaToken,
   extractFormFields,
 } from '@/lib/hitobito/html-parser';
+import {
+  measureCeviDatabaseFetch,
+  outcomeOfError,
+  outcomeOfStatus,
+  routeTemplate,
+  startCeviDatabaseRequest,
+} from '@/lib/hitobito/request-metrics';
 import type { Logger, RequestOptions } from '@/lib/hitobito/types';
 import { CEVI_DATABASE_USER_AGENT } from '@/lib/hitobito/user-agent';
 import { createLogger } from '@/utils/server-logger';
@@ -26,19 +33,6 @@ export class FatalError extends Error {
 
 /** A frontend page redirects to its canonical URL at most a couple of times. */
 const MAX_REDIRECTS = 5;
-
-/**
- * The route of a Cevi.DB path or URL: its path with every numeric segment replaced by `:id`,
- * so `/groups/4105/people.json?page=2` names `/groups/:id/people.json`.
- *
- * Span names go into the span metrics as a label, one latency histogram per distinct name.
- * Named after the concrete path, a single Hof sync created a few hundred of them, each used
- * once. The concrete path stays on the span as `url.path`, which a trace search filters on.
- */
-export function routeTemplate(pathOrUrl: string): string {
-  const { pathname } = new URL(pathOrUrl, 'https://cevi-db.invalid');
-  return pathname.replaceAll(/\/\d+(?=[./]|$)/g, '/:id');
-}
 
 /** Where Hitobito sends a frontend request that carries no valid session. */
 const SIGN_IN_PATH = '/users/sign_in';
@@ -175,23 +169,25 @@ export class HitobitoClient {
       });
 
       const startedAt = performance.now();
-      const response = await this.fetchWithTimeout(url, {
-        method,
-        headers: {
-          'X-TOKEN': this.config.apiToken,
-          'User-Agent': CEVI_DATABASE_USER_AGENT,
-          'Content-Type': 'application/vnd.api+json',
-          Accept: 'application/vnd.api+json',
-        },
-        body:
-          options.body !== undefined && options.body !== null
-            ? (JSON.stringify(options.body) as BodyInit)
-            : undefined,
-        signal: options.signal,
-        // the JSON API does not redirect; a redirect is an error here, never followed with the
-        // token to wherever it points
-        redirect: 'manual',
-      } as RequestInit);
+      const response = await measureCeviDatabaseFetch({ channel: 'api', method, route }, () =>
+        this.fetchWithTimeout(url, {
+          method,
+          headers: {
+            'X-TOKEN': this.config.apiToken,
+            'User-Agent': CEVI_DATABASE_USER_AGENT,
+            'Content-Type': 'application/vnd.api+json',
+            Accept: 'application/vnd.api+json',
+          },
+          body:
+            options.body !== undefined && options.body !== null
+              ? (JSON.stringify(options.body) as BodyInit)
+              : undefined,
+          signal: options.signal,
+          // the JSON API does not redirect; a redirect is an error here, never followed with
+          // the token to wherever it points
+          redirect: 'manual',
+        } as RequestInit),
+      );
 
       span.setAttribute('http.status_code', response.status);
       requestLogger.debug('Cevi.DB API request', {
@@ -264,11 +260,19 @@ export class HitobitoClient {
       }
 
       const startedAt = performance.now();
-      const { response, finalUrl } = await this.fetchFollowingSameOriginRedirects(url, {
-        ...options,
-        method,
-        headers,
-      });
+      const finish = startCeviDatabaseRequest({ channel: 'frontend', method, route });
+      let fetched: { response: Response; finalUrl: string };
+      try {
+        fetched = await this.fetchFollowingSameOriginRedirects(url, {
+          ...options,
+          method,
+          headers,
+        });
+      } catch (error) {
+        finish(outcomeOfError(error));
+        throw error;
+      }
+      const { response, finalUrl } = fetched;
 
       span.setAttribute('http.status_code', response.status);
       requestLogger.debug('Cevi.DB frontend request', {
@@ -283,9 +287,11 @@ export class HitobitoClient {
       const body = await response.text();
 
       if (isSignInRedirect(url, finalUrl)) {
+        finish('session_expired');
         span.setAttribute('hitobito.session_expired', true);
         throw new SessionExpiredError(url);
       }
+      finish(outcomeOfStatus(response.status));
 
       return { response, body, finalUrl };
     });

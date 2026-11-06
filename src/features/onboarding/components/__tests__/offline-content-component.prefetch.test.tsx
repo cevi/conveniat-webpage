@@ -3,6 +3,7 @@
  */
 
 import { OfflineContentEntrypointComponent } from '@/features/onboarding/components/offline-content-component';
+import { createTestTrpc } from '@/trpc/test-trpc';
 import { render } from '@testing-library/react';
 
 const mockPrefetch = jest.fn();
@@ -21,9 +22,11 @@ jest.mock('next/navigation', () => ({
   useRouter: (): { prefetch: jest.Mock } => ({ prefetch: mockPrefetch }),
 }));
 
-jest.mock('@/trpc/client', () => ({
-  trpc: { useUtils: (): Record<string, never> => ({}) },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 
 jest.mock('@/lib/chat-sync', () => ({
   syncAllOfflineData: jest.fn(),
@@ -47,8 +50,10 @@ describe('OfflineContentEntrypointComponent route prefetching', () => {
   });
 
   it('prefetches each destination exactly once despite a router identity that changes every render', () => {
+    const { wrapper } = createTestTrpc();
     const { rerender } = render(
       <OfflineContentEntrypointComponent callback={jest.fn()} locale="de" />,
+      { wrapper },
     );
 
     for (let index = 0; index < 25; index++) {

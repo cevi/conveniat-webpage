@@ -2,7 +2,6 @@ import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { markMessageSendFailed } from '@/features/chat/hooks/use-message-send';
 import {
-  dropCachedEntry,
   isServerCompatibleId,
   mergeStoredMessage,
   mergeStoredMessageAcrossPages,
@@ -21,12 +20,14 @@ import {
 } from '@/features/chat/utils/offline-outbox';
 import { isRetryableSendError } from '@/features/chat/utils/send-errors';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { inferProcedureOutput } from '@trpc/server';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 type InfiniteMessagesOutput = inferProcedureOutput<AppRouter['chat']['infiniteMessages']>;
 type InfiniteMessagesData = InfiniteData<InfiniteMessagesOutput, string | null>;
@@ -53,11 +54,16 @@ const toSendInput = (message: OfflineMessage): SendMessageInput => {
  * of the offline message outbox queue to the server.
  */
 export const useOfflineQueueProcessor = (): void => {
+  const trpc = useTRPC();
   const isOnline = useOnlineStatus();
-  const trpcUtils = trpc.useUtils();
-  const sendMessageMutation = trpc.chat.sendMessage.useMutation({ networkMode: 'always' });
+  const queryClient = useQueryClient();
+  const sendMessageMutation = useMutation(
+    trpc.chat.sendMessage.mutationOptions({ networkMode: 'always' }),
+  );
   const mutateAsyncReference = useRef(sendMessageMutation.mutateAsync);
-  const createChatMutation = trpc.chat.createChat.useMutation({ networkMode: 'always' });
+  const createChatMutation = useMutation(
+    trpc.chat.createChat.mutationOptions({ networkMode: 'always' }),
+  );
   const createChatMutateAsyncReference = useRef(createChatMutation.mutateAsync);
   const router = useRouter();
   // Read through a ref: the drain lives in a long-running effect that must not be torn
@@ -91,7 +97,10 @@ export const useOfflineQueueProcessor = (): void => {
         // phone, the outbox can still hold what the previous user queued.
         let currentUser: string;
         try {
-          currentUser = await trpcUtils.chat.user.ensureData({});
+          currentUser = await queryClient.query({
+            ...trpc.chat.user.queryOptions({}),
+            staleTime: 'static',
+          });
         } catch {
           return;
         }
@@ -142,10 +151,11 @@ export const useOfflineQueueProcessor = (): void => {
               }
 
               // the same chat now exists on the server: its first line stops waiting
-              if (realChatId === message.id) markChatCreation(trpcUtils, realChatId, 'stored');
+              if (realChatId === message.id)
+                markChatCreation({ trpc, queryClient }, realChatId, 'stored');
 
               if (realChatId !== message.id) {
-                trpcUtils.chat.chats.setData({}, (oldChats) => {
+                queryClient.setQueryData(trpc.chat.chats.queryKey({}), (oldChats) => {
                   if (!oldChats) return oldChats;
                   // A one-to-one creation is answered with the *existing* private chat when
                   // the two already have one, and that chat is already in the list - drop
@@ -158,10 +168,13 @@ export const useOfflineQueueProcessor = (): void => {
                 // The caches seeded when the chat was created offline are keyed by the
                 // optimistic id and describe a chat that does not exist under that id -
                 // drop them so nothing renders a chat the server will never answer for.
-                trpcUtils.chat.chatDetails.setData({ chatId: message.id }, dropCachedEntry);
-                trpcUtils.chat.infiniteMessages.setInfiniteData(
-                  { chatId: message.id, limit: CHAT_PAGE_SIZE, parentId: undefined },
-                  dropCachedEntry,
+                // removed, not set to undefined: `setQueryData` ignores an updater that
+                // returns undefined
+                queryClient.removeQueries(
+                  trpc.chat.chatDetails.queryFilter({ chatId: message.id }),
+                );
+                queryClient.removeQueries(
+                  trpc.chat.infiniteMessages.infiniteQueryFilter({ chatId: message.id }),
                 );
 
                 // The user may still be sitting on `/app/chat/<optimisticId>`, a route the
@@ -194,12 +207,12 @@ export const useOfflineQueueProcessor = (): void => {
               // 1. Replace the queued message with the stored one in infinite messages.
               // The ids normally match (the server persists the client-generated id), so
               // this also collapses a copy the SSE stream may have raced in.
-              trpcUtils.chat.infiniteMessages.setInfiniteData(
-                {
+              queryClient.setQueryData(
+                trpc.chat.infiniteMessages.infiniteQueryKey({
                   chatId: message.chatId,
                   limit: CHAT_PAGE_SIZE,
                   parentId: message.parentId ?? undefined,
-                },
+                }),
                 (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
                   if (!data) return data;
                   const merged = mergeStoredMessageAcrossPages(
@@ -219,8 +232,8 @@ export const useOfflineQueueProcessor = (): void => {
 
               // 2. Same for chat details
               if (!message.parentId) {
-                trpcUtils.chat.chatDetails.setData(
-                  { chatId: message.chatId },
+                queryClient.setQueryData(
+                  trpc.chat.chatDetails.queryKey({ chatId: message.chatId }),
                   (oldData: ChatDetails | undefined): ChatDetails | undefined => {
                     if (!oldData) return oldData;
                     return {
@@ -252,15 +265,18 @@ export const useOfflineQueueProcessor = (): void => {
             // with its own retry and delete, so its text is never dropped without a trace.
             removeMessageFromOutbox(message.id);
             if (message.type === 'MESSAGE') {
-              markMessageSendFailed(trpcUtils, {
-                chatId: message.chatId,
-                parentId: message.parentId,
-                messageId: message.id,
-              });
+              markMessageSendFailed(
+                { trpc, queryClient },
+                {
+                  chatId: message.chatId,
+                  parentId: message.parentId,
+                  messageId: message.id,
+                },
+              );
               rememberFailedSend(toPendingChatMessage(message, currentUser), toSendInput(message));
             } else {
               // the chat will never exist: its first line says so instead of a clock that waits
-              markChatCreation(trpcUtils, message.id, 'failed');
+              markChatCreation({ trpc, queryClient }, message.id, 'failed');
             }
           }
         }
@@ -270,7 +286,7 @@ export const useOfflineQueueProcessor = (): void => {
 
       // Invalidate chats list to refresh sidebars and unread counters ONLY if we succeeded and did not abort
       if (syncedCount > 0 && !abortedDueToNetwork) {
-        void trpcUtils.chat.chats.invalidate();
+        void queryClient.invalidateQueries(trpc.chat.chats.pathFilter());
       }
     };
 
@@ -294,7 +310,7 @@ export const useOfflineQueueProcessor = (): void => {
       globalThis.removeEventListener('online', handleSyncEvent);
       globalThis.removeEventListener('conveniat:outbox-updated', handleSyncEvent);
     };
-  }, [isOnline, trpcUtils]);
+  }, [isOnline, queryClient, trpc]);
 };
 
 export const OfflineQueueSync = (): null => {
