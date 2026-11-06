@@ -15,12 +15,14 @@ import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useLeaveChatMutation } from '@/features/chat/hooks/use-leave-chat-mutation';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { ChatMembershipPermission } from '@/lib/prisma';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Loader2, LogOut } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const localizedLeaveChat: StaticTranslationString = {
   en: 'Leave chat',
@@ -86,11 +88,12 @@ export const LeaveChatDialog: React.FC<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }> = ({ open, onOpenChange }) => {
+  const trpc = useTRPC();
   const chatId = useChatId();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const leaveChatMutation = useLeaveChatMutation();
 
-  const { data: currentUser } = trpc.chat.user.useQuery({});
+  const { data: currentUser } = useQuery(trpc.chat.user.queryOptions({}));
   const { data: chatDetails } = useChatDetail(chatId);
   const participants = chatDetails?.participants ?? [];
   const isOwner = participants.some(

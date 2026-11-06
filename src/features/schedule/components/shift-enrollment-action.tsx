@@ -1,5 +1,4 @@
 'use client';
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,13 +19,15 @@ import { useIsUnenrollmentClosed } from '@/features/schedule/hooks/use-unenrollm
 import { isDeadlinePassed, timeConflictOf } from '@/features/schedule/utils/time-conflict';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { errorReasonOf } from '@/utils/user-error-message';
 import { AlertTriangle, CheckCircle, Loader2, Lock, RefreshCw, WifiOff } from 'lucide-react';
 import React, { useState } from 'react';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 const localizedEnroll: StaticTranslationString = {
   de: 'Einschreiben',
@@ -127,12 +128,13 @@ export const ShiftEnrollmentAction: React.FC<{
   shiftTitle?: string;
   shiftTimeslot?: { date: string; time: string };
 }> = ({ shiftId, enableEnrolment, variant = 'detail', shiftTitle, shiftTimeslot }) => {
+  const trpc = useTRPC();
   const isCard = variant === 'card';
   const authStatus = useAuthStatus();
   const isAuthorized = authStatus === 'authenticated';
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   const isOffline = !useOnlineStatus();
 
@@ -186,51 +188,58 @@ export const ShiftEnrollmentAction: React.FC<{
    */
   const refreshAfterRefusal = (error: unknown, reset: () => void): void => {
     if (errorReasonOf(error) === undefined) return;
-    void utils.shifts.getShiftStatus.invalidate().then(() => {
+    void queryClient.invalidateQueries(trpc.shifts.getShiftStatus.pathFilter()).then(() => {
       if (isFullRefusal(error)) reset();
     });
   };
 
-  const enroll = trpc.shifts.enrollInShift.useMutation({
-    onSuccess: () => {
-      void utils.shifts.getShiftStatus.invalidate();
-      void utils.shifts.getMyShiftEnrollments.invalidate();
-      void utils.schedule.getHelperShifts.invalidate();
-      void utils.shifts.getShifts.invalidate();
-      setConflictDialogOpen(false);
-      setConflictInfo(undefined);
-    },
-    onError: (error) => {
-      const conflict = timeConflictOf(error);
-      if (conflict === undefined) {
-        refreshAfterRefusal(error, () => enroll.reset());
-        return;
-      }
-      setConflictType(conflict.kind);
-      setConflictInfo({ conflictingCourseName: conflict.title, conflictingCourseId: conflict.id });
-      setConflictDialogOpen(true);
-    },
-  });
+  const enroll = useMutation(
+    trpc.shifts.enrollInShift.mutationOptions({
+      onSuccess: () => {
+        void queryClient.invalidateQueries(trpc.shifts.getShiftStatus.pathFilter());
+        void queryClient.invalidateQueries(trpc.shifts.getMyShiftEnrollments.pathFilter());
+        void queryClient.invalidateQueries(trpc.schedule.getHelperShifts.pathFilter());
+        void queryClient.invalidateQueries(trpc.shifts.getShifts.pathFilter());
+        setConflictDialogOpen(false);
+        setConflictInfo(undefined);
+      },
+      onError: (error) => {
+        const conflict = timeConflictOf(error);
+        if (conflict === undefined) {
+          refreshAfterRefusal(error, () => enroll.reset());
+          return;
+        }
+        setConflictType(conflict.kind);
+        setConflictInfo({
+          conflictingCourseName: conflict.title,
+          conflictingCourseId: conflict.id,
+        });
+        setConflictDialogOpen(true);
+      },
+    }),
+  );
 
-  const switchEnrollment = trpc.shifts.switchIntoShift.useMutation({
-    onSuccess: () => {
-      void utils.shifts.getShiftStatus.invalidate();
-      void utils.shifts.getMyShiftEnrollments.invalidate();
-      void utils.schedule.getHelperShifts.invalidate();
-      void utils.shifts.getShifts.invalidate();
-      setConflictDialogOpen(false);
-      setConflictInfo(undefined);
-    },
-    onError: (error) => {
-      // switching away from a shift is a withdrawal from it, so it hits the same deadline
-      if (isDeadlinePassed(error)) {
-        setWasRejectedAsTooLate(true);
-        void utils.shifts.getShiftStatus.invalidate();
-        return;
-      }
-      refreshAfterRefusal(error, () => switchEnrollment.reset());
-    },
-  });
+  const switchEnrollment = useMutation(
+    trpc.shifts.switchIntoShift.mutationOptions({
+      onSuccess: () => {
+        void queryClient.invalidateQueries(trpc.shifts.getShiftStatus.pathFilter());
+        void queryClient.invalidateQueries(trpc.shifts.getMyShiftEnrollments.pathFilter());
+        void queryClient.invalidateQueries(trpc.schedule.getHelperShifts.pathFilter());
+        void queryClient.invalidateQueries(trpc.shifts.getShifts.pathFilter());
+        setConflictDialogOpen(false);
+        setConflictInfo(undefined);
+      },
+      onError: (error) => {
+        // switching away from a shift is a withdrawal from it, so it hits the same deadline
+        if (isDeadlinePassed(error)) {
+          setWasRejectedAsTooLate(true);
+          void queryClient.invalidateQueries(trpc.shifts.getShiftStatus.pathFilter());
+          return;
+        }
+        refreshAfterRefusal(error, () => switchEnrollment.reset());
+      },
+    }),
+  );
 
   // a cancelled conflict leaves nothing behind, so the next failure is reported again
   const handleConflictDialogChange = (open: boolean): void => {
@@ -241,20 +250,22 @@ export const ShiftEnrollmentAction: React.FC<{
     switchEnrollment.reset();
   };
 
-  const unenroll = trpc.shifts.unenrollFromShift.useMutation({
-    onSuccess: () => {
-      void utils.shifts.getShiftStatus.invalidate();
-      void utils.shifts.getMyShiftEnrollments.invalidate();
-      void utils.schedule.getHelperShifts.invalidate();
-      void utils.shifts.getShifts.invalidate();
-    },
-    onError: (error) => {
-      if (isDeadlinePassed(error)) {
-        setWasRejectedAsTooLate(true);
-        void utils.shifts.getShiftStatus.invalidate();
-      }
-    },
-  });
+  const unenroll = useMutation(
+    trpc.shifts.unenrollFromShift.mutationOptions({
+      onSuccess: () => {
+        void queryClient.invalidateQueries(trpc.shifts.getShiftStatus.pathFilter());
+        void queryClient.invalidateQueries(trpc.shifts.getMyShiftEnrollments.pathFilter());
+        void queryClient.invalidateQueries(trpc.schedule.getHelperShifts.pathFilter());
+        void queryClient.invalidateQueries(trpc.shifts.getShifts.pathFilter());
+      },
+      onError: (error) => {
+        if (isDeadlinePassed(error)) {
+          setWasRejectedAsTooLate(true);
+          void queryClient.invalidateQueries(trpc.shifts.getShiftStatus.pathFilter());
+        }
+      },
+    }),
+  );
 
   if (!enableEnrolment) return <></>;
 

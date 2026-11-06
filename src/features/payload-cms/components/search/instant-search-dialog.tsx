@@ -1,5 +1,4 @@
 'use client';
-
 import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { HighlightedText } from '@/features/payload-cms/components/search/highlighted-text';
 import { rememberSearch } from '@/features/payload-cms/components/search/recent-searches';
@@ -41,7 +40,7 @@ import {
 } from '@/features/payload-cms/search/search-types';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react';
@@ -50,6 +49,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useRef, useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const Key: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <kbd className="border-line text-heading rounded-[5px] border bg-white px-1.5 py-0.5 font-sans text-[11px] font-semibold">
@@ -141,6 +142,7 @@ export const InstantSearchDialog: React.FC<{
   /** the search page, with the locale prefix */
   searchPath: string;
 }> = ({ open, onClose, locale, searchPath }) => {
+  const trpc = useTRPC();
   const router = useRouter();
   const isOnline = useOnlineStatus();
   const [query, setQuery] = useState('');
@@ -152,14 +154,16 @@ export const InstantSearchDialog: React.FC<{
   const debouncedQuery = useDebouncedValue(trimmed, QUERY_DELAY_MS);
   const isTyping = trimmed !== debouncedQuery;
   const isSearchable = debouncedQuery.length >= MIN_QUERY_LENGTH;
-  const searchQuery = trpc.search.getSearchResultList.useQuery(
-    { locale, query: debouncedQuery, types },
-    {
-      enabled: open && isSearchable && isOnline,
-      staleTime: 60_000,
-      // a search is asked once and forgotten; it has no place in the cache kept offline
-      meta: { persist: false },
-    },
+  const searchQuery = useQuery(
+    trpc.search.getSearchResultList.queryOptions(
+      { locale, query: debouncedQuery, types },
+      {
+        enabled: open && isSearchable && isOnline,
+        staleTime: 60_000,
+        // a search is asked once and forgotten; it has no place in the cache kept offline
+        meta: { persist: false },
+      },
+    ),
   );
 
   // the answer for exactly what is typed: from the first keystroke on, the rows of the query

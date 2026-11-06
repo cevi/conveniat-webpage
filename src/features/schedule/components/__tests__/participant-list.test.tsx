@@ -3,7 +3,11 @@
  */
 
 import { ParticipantList } from '@/features/schedule/components/participant-list';
-import { render, screen } from '@testing-library/react';
+import type { TestTrpc } from '@/trpc/test-trpc';
+import { createTestTrpc } from '@/trpc/test-trpc';
+import type { RenderResult } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import type React from 'react';
 
 interface CourseStatus {
   enrolledCount: number;
@@ -13,37 +17,15 @@ interface CourseStatus {
   participants: { uuid: string; name: string }[];
 }
 
-let mockQueryResult: { data: CourseStatus | undefined; isLoading: boolean } = {
-  data: undefined,
-  isLoading: false,
-};
-let mockShiftQueryResult: { data: CourseStatus | undefined; isLoading: boolean } = {
-  data: undefined,
-  isLoading: false,
-};
-const mockUseQuery = jest.fn<typeof mockQueryResult, [unknown, unknown]>(() => mockQueryResult);
-const mockShiftUseQuery = jest.fn<typeof mockShiftQueryResult, [unknown, unknown]>(
-  () => mockShiftQueryResult,
-);
-
 jest.mock('@/hooks/use-current-locale', () => ({
   useCurrentLocale: (): string => 'de',
 }));
 
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    schedule: {
-      getCourseStatus: {
-        useQuery: (input: unknown, options: unknown): unknown => mockUseQuery(input, options),
-      },
-    },
-    shifts: {
-      getShiftStatus: {
-        useQuery: (input: unknown, options: unknown): unknown => mockShiftUseQuery(input, options),
-      },
-    },
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 
 const organiserStatus = (overrides: Partial<CourseStatus> = {}): CourseStatus => ({
   enrolledCount: 2,
@@ -57,15 +39,30 @@ const organiserStatus = (overrides: Partial<CourseStatus> = {}): CourseStatus =>
   ...overrides,
 });
 
-describe('ParticipantList', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockQueryResult = { data: undefined, isLoading: false };
-    mockShiftQueryResult = { data: undefined, isLoading: false };
-  });
+/** a status the server never answers, so the query stays loading */
+const pending = (): Promise<never> => new Promise<never>(() => {});
 
+/**
+ * Renders the list against a test client whose `getCourseStatus` and `getShiftStatus` answer
+ * with the given status, and returns the client so a test can see what reached the server.
+ */
+const renderList = (
+  properties: React.ComponentProps<typeof ParticipantList>,
+  answers: { course?: () => unknown; shift?: () => unknown } = {},
+): RenderResult & TestTrpc => {
+  const testTrpc = createTestTrpc({
+    'schedule.getCourseStatus': answers.course ?? ((): unknown => organiserStatus()),
+    'shifts.getShiftStatus': answers.shift ?? ((): unknown => organiserStatus()),
+  });
+  return Object.assign(
+    render(<ParticipantList {...properties} />, { wrapper: testTrpc.wrapper }),
+    testTrpc,
+  );
+};
+
+describe('ParticipantList', () => {
   it('lists the enrolled participants with the enrolled count for an organiser', () => {
-    render(<ParticipantList courseId="course-1" courseStatus={organiserStatus()} />);
+    renderList({ courseId: 'course-1', courseStatus: organiserStatus() });
 
     expect(screen.getByText('Teilnehmende (2)')).toBeInTheDocument();
     expect(screen.getByText('Anna Muster')).toBeInTheDocument();
@@ -78,48 +75,34 @@ describe('ParticipantList', () => {
    * participant-facing surface would silently show an empty "Teilnehmer (12)" heading.
    */
   it('renders nothing for a user who does not organise the workshop', () => {
-    const { container } = render(
-      <ParticipantList
-        courseId="course-1"
-        courseStatus={organiserStatus({ isAdmin: false, participants: [] })}
-      />,
-    );
+    const { container } = renderList({
+      courseId: 'course-1',
+      courseStatus: organiserStatus({ isAdmin: false, participants: [] }),
+    });
 
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('reuses the status it was handed instead of firing its own query', () => {
-    render(<ParticipantList courseId="course-1" courseStatus={organiserStatus()} />);
+  it('reuses the status it was handed instead of firing its own query', async () => {
+    const { calls } = renderList({ courseId: 'course-1', courseStatus: organiserStatus() });
 
-    expect(mockUseQuery).toHaveBeenCalledWith(
-      { courseId: 'course-1' },
-      expect.objectContaining({ enabled: false }),
-    );
-    expect(mockShiftUseQuery).toHaveBeenCalledWith(
-      { shiftId: 'course-1' },
-      expect.objectContaining({ enabled: false }),
-    );
+    // let any query that would have started reach the link
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(calls).toEqual([]);
   });
 
-  it('fetches the status itself when rendered standalone', () => {
-    mockQueryResult = { data: organiserStatus(), isLoading: false };
+  it('fetches the status itself when rendered standalone', async () => {
+    const { calls } = renderList({ courseId: 'course-1' });
 
-    render(<ParticipantList courseId="course-1" />);
-
-    expect(mockUseQuery).toHaveBeenCalledWith(
-      { courseId: 'course-1' },
-      expect.objectContaining({ enabled: true }),
-    );
-    expect(screen.getByText('Anna Muster')).toBeInTheDocument();
+    expect(await screen.findByText('Anna Muster')).toBeInTheDocument();
+    expect(calls).toEqual([{ path: 'schedule.getCourseStatus', input: { courseId: 'course-1' } }]);
   });
 
   it('renders an empty-state hint when nobody has enrolled yet', () => {
-    render(
-      <ParticipantList
-        courseId="course-1"
-        courseStatus={organiserStatus({ enrolledCount: 0, participants: [] })}
-      />,
-    );
+    renderList({
+      courseId: 'course-1',
+      courseStatus: organiserStatus({ enrolledCount: 0, participants: [] }),
+    });
 
     expect(screen.getByText('Noch keine Teilnehmenden')).toBeInTheDocument();
   });
@@ -130,12 +113,10 @@ describe('ParticipantList', () => {
    * panel, whose export never consults the flag.
    */
   it('renders nothing for an organiser once the list is hidden', () => {
-    const { container } = render(
-      <ParticipantList
-        courseId="course-1"
-        courseStatus={organiserStatus({ hideList: true, participants: [] })}
-      />,
-    );
+    const { container } = renderList({
+      courseId: 'course-1',
+      courseStatus: organiserStatus({ hideList: true, participants: [] }),
+    });
 
     expect(container).toBeEmptyDOMElement();
   });
@@ -146,29 +127,24 @@ describe('ParticipantList', () => {
    * withhold the roster from every course predating the field.
    */
   it('treats an unset hide flag as a visible list', () => {
-    render(
-      <ParticipantList courseId="course-1" courseStatus={organiserStatus({ hideList: null })} />,
-    );
+    renderList({ courseId: 'course-1', courseStatus: organiserStatus({ hideList: null }) });
 
     expect(screen.getByText('Anna Muster')).toBeInTheDocument();
   });
 
   it('renders nothing when enrolment is disabled for the course', () => {
-    const { container } = render(
-      <ParticipantList
-        courseId="course-1"
-        courseStatus={organiserStatus({ enableEnrolment: false })}
-      />,
-    );
+    const { container } = renderList({
+      courseId: 'course-1',
+      courseStatus: organiserStatus({ enableEnrolment: false }),
+    });
 
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders nothing while the standalone status is still loading', () => {
-    mockQueryResult = { data: undefined, isLoading: true };
+  it('renders nothing while the standalone status is still loading', async () => {
+    const { container, calls } = renderList({ courseId: 'course-1' }, { course: pending });
 
-    const { container } = render(<ParticipantList courseId="course-1" />);
-
+    await waitFor(() => expect(calls).toHaveLength(1));
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -178,65 +154,60 @@ describe('ParticipantList', () => {
    * which reads as "deleted" and would silently hide the roster from its organiser.
    */
   describe('on a helper shift', () => {
-    it('asks the shifts router for the status and leaves the schedule query disabled', () => {
-      mockShiftQueryResult = { data: organiserStatus(), isLoading: false };
+    it('asks the shifts router for the status and leaves the schedule query disabled', async () => {
+      const { calls } = renderList({ courseId: 'shift-1', courseType: 'shift' });
 
-      render(<ParticipantList courseId="shift-1" courseType="shift" />);
-
-      expect(mockShiftUseQuery).toHaveBeenCalledWith(
-        { shiftId: 'shift-1' },
-        expect.objectContaining({ enabled: true }),
-      );
-      expect(mockUseQuery).toHaveBeenCalledWith(
-        { courseId: 'shift-1' },
-        expect.objectContaining({ enabled: false }),
-      );
+      await screen.findByText('Anna Muster');
+      expect(calls).toEqual([{ path: 'shifts.getShiftStatus', input: { shiftId: 'shift-1' } }]);
     });
 
-    it('lists the enrolled helpers for the organiser of the shift', () => {
-      mockShiftQueryResult = { data: organiserStatus(), isLoading: false };
+    it('lists the enrolled helpers for the organiser of the shift', async () => {
+      renderList({ courseId: 'shift-1', courseType: 'shift' });
 
-      render(<ParticipantList courseId="shift-1" courseType="shift" />);
-
-      expect(screen.getByText('Angemeldete Helfende (2)')).toBeInTheDocument();
+      expect(await screen.findByText('Angemeldete Helfende (2)')).toBeInTheDocument();
       expect(screen.getByText('Anna Muster')).toBeInTheDocument();
       expect(screen.getByText('Beat Beispiel')).toBeInTheDocument();
     });
 
-    it('renders nothing for a helper who does not organise the shift', () => {
-      mockShiftQueryResult = {
-        data: organiserStatus({ isAdmin: false, participants: [] }),
-        isLoading: false,
-      };
+    it('renders nothing for a helper who does not organise the shift', async () => {
+      const { container, queryClient, trpc } = renderList(
+        { courseId: 'shift-1', courseType: 'shift' },
+        { shift: () => organiserStatus({ isAdmin: false, participants: [] }) },
+      );
 
-      const { container } = render(<ParticipantList courseId="shift-1" courseType="shift" />);
-
+      await waitFor(() =>
+        expect(
+          queryClient.getQueryData(trpc.shifts.getShiftStatus.queryKey({ shiftId: 'shift-1' })),
+        ).toBeDefined(),
+      );
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('names the empty state after helpers rather than participants', () => {
-      mockShiftQueryResult = {
-        data: organiserStatus({ enrolledCount: 0, participants: [] }),
-        isLoading: false,
-      };
+    it('names the empty state after helpers rather than participants', async () => {
+      renderList(
+        { courseId: 'shift-1', courseType: 'shift' },
+        { shift: () => organiserStatus({ enrolledCount: 0, participants: [] }) },
+      );
 
-      render(<ParticipantList courseId="shift-1" courseType="shift" />);
-
-      expect(screen.getByText('Noch keine Helfenden angemeldet')).toBeInTheDocument();
+      expect(await screen.findByText('Noch keine Helfenden angemeldet')).toBeInTheDocument();
     });
 
     /**
      * `getShiftStatus` answers `null` for a deleted shift, which is a *successful* response
      * rather than an error, so it arrives as data and must not crash the roster.
      */
-    it('renders nothing for a shift that no longer exists', () => {
-      mockShiftQueryResult = {
-        data: null as unknown as undefined,
-        isLoading: false,
-      };
+    it('renders nothing for a shift that no longer exists', async () => {
+      const { container, queryClient, trpc } = renderList(
+        { courseId: 'gone', courseType: 'shift' },
+        { shift: () => null },
+      );
 
-      const { container } = render(<ParticipantList courseId="gone" courseType="shift" />);
-
+      await waitFor(() =>
+        expect(
+          queryClient.getQueryState(trpc.shifts.getShiftStatus.queryKey({ shiftId: 'gone' }))
+            ?.status,
+        ).toBe('success'),
+      );
       expect(container).toBeEmptyDOMElement();
     });
   });

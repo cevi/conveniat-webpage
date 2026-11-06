@@ -1,9 +1,10 @@
 'use client';
-
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { QuartierLabel } from '@/utils/quartier-names';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 export type ScheduleScope = 'mine' | 'all';
 
@@ -38,13 +39,16 @@ interface ScheduleScopeState {
  * the programme opens without one.
  */
 export const useScheduleScope = (): ScheduleScopeState => {
+  const trpc = useTRPC();
   const router = useRouter();
   const pathname = usePathname();
   const searchParameters = useSearchParams();
 
-  const { data } = trpc.schedule.getMyQuartiere.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
-  });
+  const { data } = useQuery(
+    trpc.schedule.getMyQuartiere.queryOptions(undefined, {
+      staleTime: 1000 * 60 * 5,
+    }),
+  );
 
   // the persisted query cache may hold anything an older version stored under this key
   const myQuartiere = useMemo(

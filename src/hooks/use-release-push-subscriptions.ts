@@ -1,9 +1,10 @@
 'use client';
-
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { getOrCreateDeviceId } from '@/utils/device-id';
 import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
 import { useCallback } from 'react';
+
+import { useMutation } from '@tanstack/react-query';
 
 /**
  * Returns a function that ends this device's push subscriptions for the signed-in user. Await
@@ -25,9 +26,12 @@ import { useCallback } from 'react';
  * carried a device id, points at the endpoint unsubscribed here and is pruned by the next send.
  */
 export function useReleasePushSubscriptions(): () => Promise<void> {
-  const { mutateAsync: releaseDevice } = trpc.nativePush.releaseDevice.useMutation({
-    networkMode: 'always',
-  });
+  const trpc = useTRPC();
+  const { mutateAsync: releaseDevice } = useMutation(
+    trpc.nativePush.releaseDevice.mutationOptions({
+      networkMode: 'always',
+    }),
+  );
 
   return useCallback(async (): Promise<void> => {
     const results = await Promise.allSettled([

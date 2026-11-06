@@ -1,13 +1,14 @@
 'use client';
-
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import type { ChatMessage } from '@/features/chat/api/types';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { formatLastReplyTime } from '@/features/chat/utils/thread-summary';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { ChevronRight } from 'lucide-react';
 import type React from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 export const repliesCountText = (count: number, locale: Locale): string => {
   if (count === 1) {
@@ -38,9 +39,12 @@ export const ThreadSummary: React.FC<{
   locale: Locale;
   onOpen: () => void;
 }> = ({ message, replyCount, hasUnreadReplies, locale, onOpen }) => {
+  const trpc = useTRPC();
   const chatId = useChatId();
   // a picture the live update could not know yet is still in the chat's member list
-  const { data: chatDetails } = trpc.chat.chatDetails.useQuery({ chatId }, { enabled: false });
+  const { data: chatDetails } = useQuery(
+    trpc.chat.chatDetails.queryOptions({ chatId }, { enabled: false }),
+  );
   const summary = message.threadSummary;
   const repliers = Array.isArray(summary?.repliers) ? summary.repliers : [];
   const latestTime =

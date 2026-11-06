@@ -4,6 +4,7 @@
 
 import { InstantSearchDialog } from '@/features/payload-cms/components/search/instant-search-dialog';
 import { useSearchShortcut } from '@/features/payload-cms/components/search/use-search-shortcut';
+import { createTestTrpc } from '@/trpc/test-trpc';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type React from 'react';
 import { useCallback, useState } from 'react';
@@ -25,18 +26,12 @@ jest.mock('@/hooks/use-online-status', () => ({
   useOnlineStatus: (): boolean => true,
 }));
 
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    search: {
-      getSearchResultList: {
-        useQuery: (): { data: undefined; isError: boolean } => ({
-          data: undefined,
-          isError: false,
-        }),
-      },
-    },
-  },
-}));
+// nothing is typed, so the dialog never asks for results
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 
 /** The dialog next to the page-wide shortcut, the way the desktop nav mounts them. */
 const SearchWithShortcut: React.FC = () => {
@@ -74,7 +69,7 @@ const holdCtrlK = (target: Element): boolean[] =>
 
 describe('InstantSearchDialog with the search shortcut', () => {
   it('opens on Ctrl K and closes again on Ctrl K, without the page reopening it', () => {
-    render(<SearchWithShortcut />);
+    render(<SearchWithShortcut />, { wrapper: createTestTrpc().wrapper });
     const state = screen.getByLabelText('Suche offen');
 
     pressCtrlK(globalThis.document.body);
@@ -86,7 +81,7 @@ describe('InstantSearchDialog with the search shortcut', () => {
   });
 
   it('counts a held Ctrl K once, and keeps its repeats from the browser', () => {
-    render(<SearchWithShortcut />);
+    render(<SearchWithShortcut />, { wrapper: createTestTrpc().wrapper });
     const state = screen.getByLabelText('Suche offen');
 
     pressCtrlK(globalThis.document.body);

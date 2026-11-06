@@ -4,7 +4,8 @@
 
 import type { BandScannerHandlers } from '@/features/wristbands/hooks/use-band-scanner';
 import { useBandScanner } from '@/features/wristbands/hooks/use-band-scanner';
-import { act, renderHook } from '@testing-library/react';
+import { createTestTrpc } from '@/trpc/test-trpc';
+import { act, renderHook, waitFor } from '@testing-library/react';
 
 let mockVisible = true;
 const mockRegister = jest.fn();
@@ -13,21 +14,11 @@ const mockProvision = jest.fn();
 jest.mock('@/features/wristbands/hooks/use-page-visible', () => ({
   usePageVisible: (): boolean => mockVisible,
 }));
-jest.mock('@/trpc/client', () => {
-  const utils = {
-    client: {
-      wristband: {
-        programWristband: {
-          mutate: (): Promise<unknown> => Promise.resolve({ ok: true, password: 'p', pack: 'k' }),
-        },
-        registerWristband: {
-          mutate: (...arguments_: unknown[]): unknown => mockRegister(...arguments_),
-        },
-      },
-    },
-  };
-  return { trpc: { useUtils: (): unknown => utils } };
-});
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 jest.mock('@/features/wristbands/native-nfc', () => {
   const actual = jest.requireActual<Record<string, unknown>>('@/features/wristbands/native-nfc');
   return {
@@ -46,7 +37,16 @@ const handlers: BandScannerHandlers = {
 
 const renderScanner = (): ReturnType<
   typeof renderHook<ReturnType<typeof useBandScanner>, unknown>
-> => renderHook(() => useBandScanner({ hofId: 'uster', active: true, locale: 'de', handlers }));
+> => {
+  const { wrapper } = createTestTrpc({
+    'wristband.programWristband': () => ({ ok: true, password: 'p', pack: 'k' }),
+    'wristband.registerWristband': mockRegister,
+  });
+  return renderHook(
+    () => useBandScanner({ hofId: 'uster', active: true, locale: 'de', handlers }),
+    { wrapper },
+  );
+};
 
 beforeEach(() => {
   mockVisible = true;
@@ -78,7 +78,10 @@ describe('the band scanner when the app goes to the background', () => {
       written.resolve({ uid: BAND });
       await written.promise;
     });
-    expect(result.current.phase).toBe('saving');
+    await waitFor(() => expect(result.current.phase).toBe('saving'));
+    await waitFor(() =>
+      expect(mockRegister).toHaveBeenCalledWith({ hofId: 'uster', uid: BAND, signature: null }),
+    );
 
     mockVisible = false;
     rerender();
@@ -86,6 +89,8 @@ describe('the band scanner when the app goes to the background', () => {
       saved.resolve({ ok: false, reason: 'revoked' });
       await saved.promise;
     });
+    // the refusal arrived while the page was hidden
+    await waitFor(() => expect(handlers.onFailed).toHaveBeenCalledWith(BAND, 'refused'));
 
     mockVisible = true;
     rerender();

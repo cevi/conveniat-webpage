@@ -1,5 +1,4 @@
 'use client';
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,7 +17,7 @@ import { useCourseStatus } from '@/features/schedule/context/schedule-status-con
 import { isDeadlinePassed, timeConflictOf } from '@/features/schedule/utils/time-conflict';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useStar } from '@/hooks/use-star';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
@@ -27,6 +26,8 @@ import { errorReasonOf } from '@/utils/user-error-message';
 import { CheckCircle, Loader2, LogIn, MessageSquare, Users, WifiOff } from 'lucide-react';
 import Link from 'next/link';
 import React, { useState } from 'react';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 const localizedEnroll: StaticTranslationString = {
   de: 'Einschreiben',
@@ -162,11 +163,12 @@ interface ConflictInfo {
 export const EnrollmentAction: React.FC<{
   courseId: string;
 }> = ({ courseId }) => {
+  const trpc = useTRPC();
   const authStatus = useAuthStatus();
   const isAuthorized = authStatus === 'authenticated';
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { status, isLoading, isOnline } = useCourseStatus(courseId);
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const { isStarred, toggleStar } = useStar();
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
   const [conflictType, setConflictType] = useState<'workshop' | 'shift'>('workshop');
@@ -183,68 +185,75 @@ export const EnrollmentAction: React.FC<{
   const refreshAfterRefusal = (error: unknown, reset: () => void): void => {
     if (errorReasonOf(error) === undefined) return;
     void Promise.all([
-      utils.schedule.getCourseStatuses.invalidate(),
-      utils.schedule.getCourseStatus.invalidate({ courseId }),
+      queryClient.invalidateQueries(trpc.schedule.getCourseStatuses.pathFilter()),
+      queryClient.invalidateQueries(trpc.schedule.getCourseStatus.queryFilter({ courseId })),
     ]).then(() => {
       if (isFullRefusal(error)) reset();
     });
   };
 
-  const enroll = trpc.schedule.enrollInCourse.useMutation({
-    onSuccess: () => {
-      void utils.schedule.getCourseStatuses.invalidate();
-      // The detail page reads the singular status for the roster and the admin actions; without
-      // this it kept showing the participant list from before this enrolment.
-      void utils.schedule.getCourseStatus.invalidate({ courseId });
-      void utils.schedule.getMyEnrollments.invalidate();
-      void utils.schedule.getHelperShifts.invalidate();
-      void utils.shifts.getShifts.invalidate();
-      setHasJustLeft(false);
-      // Auto-star when enrolling
-      if (!isStarred(courseId)) {
-        toggleStar(courseId);
-      }
-      setConflictDialogOpen(false);
-      setConflictInfo(undefined);
-    },
-    onError: (error) => {
-      const conflict = timeConflictOf(error);
-      if (conflict === undefined) {
-        refreshAfterRefusal(error, () => enroll.reset());
-        return;
-      }
-      setConflictType(conflict.kind);
-      setIsSwitchBlocked(false);
-      setConflictInfo({ conflictingCourseName: conflict.title, conflictingCourseId: conflict.id });
-      setConflictDialogOpen(true);
-    },
-  });
+  const enroll = useMutation(
+    trpc.schedule.enrollInCourse.mutationOptions({
+      onSuccess: () => {
+        void queryClient.invalidateQueries(trpc.schedule.getCourseStatuses.pathFilter());
+        // The detail page reads the singular status for the roster and the admin actions; without
+        // this it kept showing the participant list from before this enrolment.
+        void queryClient.invalidateQueries(trpc.schedule.getCourseStatus.queryFilter({ courseId }));
+        void queryClient.invalidateQueries(trpc.schedule.getMyEnrollments.pathFilter());
+        void queryClient.invalidateQueries(trpc.schedule.getHelperShifts.pathFilter());
+        void queryClient.invalidateQueries(trpc.shifts.getShifts.pathFilter());
+        setHasJustLeft(false);
+        // Auto-star when enrolling
+        if (!isStarred(courseId)) {
+          toggleStar(courseId);
+        }
+        setConflictDialogOpen(false);
+        setConflictInfo(undefined);
+      },
+      onError: (error) => {
+        const conflict = timeConflictOf(error);
+        if (conflict === undefined) {
+          refreshAfterRefusal(error, () => enroll.reset());
+          return;
+        }
+        setConflictType(conflict.kind);
+        setIsSwitchBlocked(false);
+        setConflictInfo({
+          conflictingCourseName: conflict.title,
+          conflictingCourseId: conflict.id,
+        });
+        setConflictDialogOpen(true);
+      },
+    }),
+  );
 
-  const switchEnrollment = trpc.schedule.switchEnrollment.useMutation({
-    onSuccess: () => {
-      void utils.schedule.getCourseStatuses.invalidate();
-      // The detail page reads the singular status for the roster and the admin actions; without
-      // this it kept showing the participant list from before this enrolment.
-      void utils.schedule.getCourseStatus.invalidate({ courseId });
-      void utils.schedule.getMyEnrollments.invalidate();
-      void utils.schedule.getHelperShifts.invalidate();
-      void utils.shifts.getShifts.invalidate();
-      // Auto-star the new course
-      if (!isStarred(courseId)) {
-        toggleStar(courseId);
-      }
-      setConflictDialogOpen(false);
-      setConflictInfo(undefined);
-    },
-    onError: (error) => {
-      // switching away from a shift is a withdrawal from it, so it hits the same deadline
-      if (isDeadlinePassed(error)) {
-        setIsSwitchBlocked(true);
-        return;
-      }
-      refreshAfterRefusal(error, () => switchEnrollment.reset());
-    },
-  });
+  const switchEnrollment = useMutation(
+    trpc.schedule.switchEnrollment.mutationOptions({
+      onSuccess: () => {
+        void queryClient.invalidateQueries(trpc.schedule.getCourseStatuses.pathFilter());
+        // The detail page reads the singular status for the roster and the admin actions; without
+        // this it kept showing the participant list from before this enrolment.
+        void queryClient.invalidateQueries(trpc.schedule.getCourseStatus.queryFilter({ courseId }));
+        void queryClient.invalidateQueries(trpc.schedule.getMyEnrollments.pathFilter());
+        void queryClient.invalidateQueries(trpc.schedule.getHelperShifts.pathFilter());
+        void queryClient.invalidateQueries(trpc.shifts.getShifts.pathFilter());
+        // Auto-star the new course
+        if (!isStarred(courseId)) {
+          toggleStar(courseId);
+        }
+        setConflictDialogOpen(false);
+        setConflictInfo(undefined);
+      },
+      onError: (error) => {
+        // switching away from a shift is a withdrawal from it, so it hits the same deadline
+        if (isDeadlinePassed(error)) {
+          setIsSwitchBlocked(true);
+          return;
+        }
+        refreshAfterRefusal(error, () => switchEnrollment.reset());
+      },
+    }),
+  );
 
   // a cancelled conflict leaves nothing behind, so the next failure is reported again
   const handleConflictDialogChange = (open: boolean): void => {
@@ -255,18 +264,20 @@ export const EnrollmentAction: React.FC<{
     switchEnrollment.reset();
   };
 
-  const unenroll = trpc.schedule.unenrollFromCourse.useMutation({
-    onSuccess: () => {
-      setHasJustLeft(true);
-      void utils.schedule.getCourseStatuses.invalidate();
-      // The detail page reads the singular status for the roster and the admin actions; without
-      // this it kept showing the participant list from before this enrolment.
-      void utils.schedule.getCourseStatus.invalidate({ courseId });
-      void utils.schedule.getMyEnrollments.invalidate();
-      void utils.schedule.getHelperShifts.invalidate();
-      void utils.shifts.getShifts.invalidate();
-    },
-  });
+  const unenroll = useMutation(
+    trpc.schedule.unenrollFromCourse.mutationOptions({
+      onSuccess: () => {
+        setHasJustLeft(true);
+        void queryClient.invalidateQueries(trpc.schedule.getCourseStatuses.pathFilter());
+        // The detail page reads the singular status for the roster and the admin actions; without
+        // this it kept showing the participant list from before this enrolment.
+        void queryClient.invalidateQueries(trpc.schedule.getCourseStatus.queryFilter({ courseId }));
+        void queryClient.invalidateQueries(trpc.schedule.getMyEnrollments.pathFilter());
+        void queryClient.invalidateQueries(trpc.schedule.getHelperShifts.pathFilter());
+        void queryClient.invalidateQueries(trpc.shifts.getShifts.pathFilter());
+      },
+    }),
+  );
 
   // Show offline warning only if we don't have cached data
   if (!isOnline && !status) {

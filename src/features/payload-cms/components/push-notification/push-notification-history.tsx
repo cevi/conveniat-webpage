@@ -7,7 +7,7 @@ import {
 import { describePushDevice } from '@/features/payload-cms/components/push-notification/push-device-label';
 import { MAX_DELIVERY_ATTEMPTS } from '@/lib/push/push-delivery-policy';
 import type { RouterOutputs } from '@/trpc/client';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Button, Pill, ShimmerEffect } from '@payloadcms/ui';
@@ -16,6 +16,8 @@ import { ChevronDown, RefreshCw } from 'lucide-react';
 import type React from 'react';
 import type { JSX } from 'react';
 import { useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 export const historyTitle: StaticTranslationString = {
   de: 'Verlauf',
@@ -145,14 +147,16 @@ export const NotificationHistory: React.FC<{ userId: string; locale: Locale }> =
   userId,
   locale,
 }) => {
-  const { data, isLoading, refetch, isRefetching } = trpc.pushTracking.getRecentLogs.useQuery(
-    { userId },
-    // someone else's pushes stay out of the cache the browser keeps across visits
-    { refetchInterval: 15_000, meta: { persist: false } },
+  const trpc = useTRPC();
+  const { data, isLoading, refetch, isRefetching } = useQuery(
+    trpc.pushTracking.getRecentLogs.queryOptions(
+      { userId },
+      // someone else's pushes stay out of the cache the browser keeps across visits
+      { refetchInterval: 15_000, meta: { persist: false } },
+    ),
   );
-  const { data: devices } = trpc.pushTracking.getPushDeviceList.useQuery(
-    { userId },
-    { meta: { persist: false } },
+  const { data: devices } = useQuery(
+    trpc.pushTracking.getPushDeviceList.queryOptions({ userId }, { meta: { persist: false } }),
   );
   const [expandedKeys, setExpandedKeys] = useState<ReadonlySet<string>>(new Set());
 

@@ -2,11 +2,13 @@ import type { UploadReturnType } from '@/features/payload-cms/components/user-up
 import type { UserImageContentType } from '@/features/payload-cms/constants/user-image-upload';
 import { uploadErrorTexts } from '@/features/payload-cms/upload-error-texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { i18nConfig, type Locale } from '@/types/types';
 import { errorReasonOf, isTransportError, userErrorMessage } from '@/utils/user-error-message';
 import { TRPCClientError } from '@trpc/client';
 import { useCallback, useState } from 'react';
+
+import { useMutation } from '@tanstack/react-query';
 
 /** `isRetryable` marks a failure that says nothing about the image, like the rate limit. */
 export type UserUploadResult = UploadReturnType & { isRetryable: boolean };
@@ -28,11 +30,12 @@ const uploadFailureMessage = (error: unknown, locale: Locale): string => {
 };
 
 export const useUserUpload = (): UseUserUploadResult => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const [activeUploads, setActiveUploads] = useState(0);
   const isUploading = activeUploads > 0;
-  const getPresignedUrlMutation = trpc.upload.createUploadUrl.useMutation();
-  const completeUploadMutation = trpc.upload.completeUserUpload.useMutation();
+  const getPresignedUrlMutation = useMutation(trpc.upload.createUploadUrl.mutationOptions());
+  const completeUploadMutation = useMutation(trpc.upload.completeUserUpload.mutationOptions());
 
   const uploadImage = useCallback(
     async (file: File, description: string): Promise<UserUploadResult> => {

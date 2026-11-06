@@ -1,5 +1,4 @@
 'use client';
-
 import { usePageVisible } from '@/features/wristbands/hooks/use-page-visible';
 import type { NfcCredentialsAnswer } from '@/features/wristbands/native-nfc';
 import {
@@ -10,10 +9,11 @@ import {
 import type { ScanFailureKind } from '@/features/wristbands/scan-failure';
 import { scanFailureKind } from '@/features/wristbands/scan-failure';
 import { failureNotice, nfcFailureText } from '@/features/wristbands/texts';
-import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { isTransportError } from '@/utils/user-error-message';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { useTRPCClient } from '@/trpc/client';
 
 /** Where the scanner stands. */
 export type ScanPhase =
@@ -84,7 +84,7 @@ export const useBandScanner = ({
   notice: ScanNotice | undefined;
   resume: () => void;
 } => {
-  const utils = trpc.useUtils();
+  const trpcClient = useTRPCClient();
   const visible = usePageVisible();
   const [phase, setPhase] = useState<Exclude<ScanPhase, 'off' | 'paused'>>('waiting');
   const [paused, setPaused] = useState(false);
@@ -146,7 +146,7 @@ export const useBandScanner = ({
       refusedHere = handlersReference.current.onBandDetected(detail.uid);
       if (refusedHere !== null) return { abort: 'other' };
       try {
-        const result = await utils.client.wristband.programWristband.mutate({ hofId, ...band });
+        const result = await trpcClient.wristband.programWristband.mutate({ hofId, ...band });
         return result.ok
           ? { password: result.password, pack: result.pack }
           : { abort: result.reason };
@@ -159,7 +159,7 @@ export const useBandScanner = ({
 
     const record = async (uid: string): Promise<ScanNotice | null> => {
       try {
-        const registered = await utils.client.wristband.registerWristband.mutate({
+        const registered = await trpcClient.wristband.registerWristband.mutate({
           hofId,
           uid,
           signature: band?.signature ?? null,
@@ -218,7 +218,7 @@ export const useBandScanner = ({
       // a band still being checked, written or saved is no longer this scanner's to show
       setPhase('waiting');
     };
-  }, [armed, run, hofId, utils]);
+  }, [armed, run, hofId, trpcClient]);
 
   const resume = useCallback((): void => {
     failuresInARow.current = 0;

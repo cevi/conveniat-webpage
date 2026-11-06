@@ -24,7 +24,7 @@ import {
 } from '@/features/chat/limits';
 import { groupContactsByLetter, matchesContactSearch } from '@/features/chat/utils/contact-search';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -32,6 +32,8 @@ import { Users } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useCallback, useEffect, useId, useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 /** The search parameter of the second step, so the back button returns to the first. */
 const STEP_PARAMETER = 'step';
@@ -90,9 +92,10 @@ const footerButtonClassName =
  * entry, so going back, by the arrow or the phone's back, returns to the choice as it was.
  */
 export const CreateNewGroupPage: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { data: allContacts, isLoading } = trpc.chat.contacts.useQuery({});
-  const { data: maxGroupMembers } = trpc.chat.getGroupMemberLimit.useQuery();
+  const { data: allContacts, isLoading } = useQuery(trpc.chat.contacts.queryOptions({}));
+  const { data: maxGroupMembers } = useQuery(trpc.chat.getGroupMemberLimit.queryOptions());
   const [searchQuery, setSearchQuery] = useState('');
   const [selected, setSelected] = useState<Contact[]>([]);
   const [groupName, setGroupName] = useState('');

@@ -1,8 +1,9 @@
 'use client';
-
 import type { SealedWristbandRoster } from '@/features/wristbands/types';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { useEffect } from 'react';
+
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export interface RosterOnPhone {
   /** undefined until the list was loaded once on this phone */
@@ -20,15 +21,19 @@ export interface RosterOnPhone {
  * page opens with a connection. A phone whose user may no longer read drops it.
  */
 export const useWristbandRoster = (reader: boolean | undefined): RosterOnPhone => {
-  const utils = trpc.useUtils();
-  const query = trpc.wristband.getSealedWristbandRoster.useQuery(undefined, {
-    enabled: reader === true,
-    refetchOnMount: 'always',
-  });
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const query = useQuery(
+    trpc.wristband.getSealedWristbandRoster.queryOptions(undefined, {
+      enabled: reader === true,
+      refetchOnMount: 'always',
+    }),
+  );
 
   useEffect(() => {
-    if (reader === false) void utils.wristband.getSealedWristbandRoster.reset();
-  }, [reader, utils]);
+    if (reader === false)
+      void queryClient.resetQueries(trpc.wristband.getSealedWristbandRoster.pathFilter());
+  }, [reader, queryClient, trpc]);
 
   return {
     data: reader === true ? query.data : undefined,

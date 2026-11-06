@@ -30,7 +30,7 @@ import { queryAvailability } from '@/features/chat/utils/query-availability';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -38,6 +38,8 @@ import { CheckCheck, MessageSquare, MessageSquarePlus, Users, X } from 'lucide-r
 import Link from 'next/link';
 import type React from 'react';
 import { useId, useMemo, useState } from 'react';
+
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const searchPlaceholderText: StaticTranslationString = {
   en: 'Search chats',
@@ -227,10 +229,11 @@ const EmptyChatsState: React.FC<{
 export const ChatsOverviewClientComponent: React.FC<{
   qrCodeButton?: React.ReactNode;
 }> = ({ qrCodeButton }) => {
+  const trpc = useTRPC();
   const chatsQuery = useChats();
   const { data: chats } = chatsQuery;
   const availability = queryAvailability(chatsQuery);
-  const trpcUtils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   const chatIds = useMemo(() => {
     if (!chats) return [];
@@ -243,19 +246,21 @@ export const ChatsOverviewClientComponent: React.FC<{
     data: createChatsEnabled,
     isLoading: isLoadingCreateChats,
     refetch: refetchCreateChats,
-  } = trpc.chat.checkCapability.useQuery(
-    {
-      action: CapabilityAction.Create,
-      subject: CapabilitySubject.Chat,
-    },
-    {
-      staleTime: 1000 * 60 * 5,
-      refetchOnWindowFocus: false,
-    },
+  } = useQuery(
+    trpc.chat.checkCapability.queryOptions(
+      {
+        action: CapabilityAction.Create,
+        subject: CapabilitySubject.Chat,
+      },
+      {
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false,
+      },
+    ),
   );
 
   const handleRefresh = async (): Promise<void> => {
-    await trpcUtils.chat.chats.invalidate();
+    await queryClient.invalidateQueries(trpc.chat.chats.pathFilter());
   };
 
   const [searchQuery, setSearchQuery] = useSearchClearedOnLeave();

@@ -1,5 +1,4 @@
 'use client';
-
 import { Card } from '@/components/ui/card';
 import { ListRow } from '@/components/ui/list-row';
 import { HolderAvatar } from '@/features/material/components/counter-ui';
@@ -10,10 +9,12 @@ import {
   type HofRole,
 } from '@/features/payload-cms/payload-cms/utils/hof-directory';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { keepPreviousData } from '@tanstack/react-query';
 import type React from 'react';
 import { useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const SUGGESTIONS = 5;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -62,18 +63,21 @@ export const ResponsibleNameField: React.FC<{
   value: string;
   onChange: (value: string) => void;
 }> = ({ label, value, onChange }) => {
+  const trpc = useTRPC();
   // the text the list was closed for; typing anything else opens it again
   const [dismissed, setDismissed] = useState<string | undefined>();
   const query = value.trim();
   const debounced = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
-  const people = trpc.material.searchPersonList.useQuery(
-    { query: debounced },
-    {
-      ...materialQueryOptions,
-      enabled: debounced !== '' && debounced !== dismissed,
-      // the previous matches stay while the next are asked, so the page below does not jump
-      placeholderData: keepPreviousData,
-    },
+  const people = useQuery(
+    trpc.material.searchPersonList.queryOptions(
+      { query: debounced },
+      {
+        ...materialQueryOptions,
+        enabled: debounced !== '' && debounced !== dismissed,
+        // the previous matches stay while the next are asked, so the page below does not jump
+        placeholderData: keepPreviousData,
+      },
+    ),
   );
   const needle = query.toLowerCase();
   // previous matches only while they still fit what is typed, e.g. not while offline

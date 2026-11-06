@@ -9,7 +9,7 @@ const redeemChatInvite = jest.fn<Promise<unknown>, [unknown]>();
 const redirect = jest.fn<void, [string]>();
 
 jest.mock('@/trpc/server', () => ({
-  trpc: {
+  caller: {
     chat: { redeemChatInvite: (input: unknown): Promise<unknown> => redeemChatInvite(input) },
   },
 }));

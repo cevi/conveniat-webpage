@@ -1,5 +1,4 @@
 'use client';
-
 import { SetHeaderActions } from '@/components/header/header-actions';
 import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
@@ -20,7 +19,7 @@ import { readerText } from '@/features/wristbands/reader-texts';
 import { translate } from '@/features/wristbands/texts';
 import type { HofPerson, HofWristbandList } from '@/features/wristbands/types';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -38,6 +37,8 @@ import {
 } from 'lucide-react';
 import type React from 'react';
 import { useRef, useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const Loading: React.FC<{ locale: Locale }> = ({ locale }) => (
   <div className="flex items-center justify-center gap-2 py-16 text-sm text-green-500">
@@ -296,15 +297,18 @@ const HofWristbands: React.FC<{
   hoefe: WristbandHof[];
   locale: Locale;
 }> = ({ hoefe, locale }) => {
+  const trpc = useTRPC();
   const [chosenHofId, setChosenHofId] = useState<string | undefined>();
   const [choosingHof, setChoosingHof] = useState(false);
   const hofChooserReference = useRef<HTMLDivElement>(null);
   const hof = hoefe.find((entry) => entry.id === chosenHofId) ?? hoefe[0];
   const hofId = hof?.id;
 
-  const listQuery = trpc.wristband.getHofWristbandList.useQuery(
-    { hofId: hofId ?? '' },
-    { enabled: hofId !== undefined },
+  const listQuery = useQuery(
+    trpc.wristband.getHofWristbandList.queryOptions(
+      { hofId: hofId ?? '' },
+      { enabled: hofId !== undefined },
+    ),
   );
 
   if (hof === undefined || hofId === undefined) return <></>;
@@ -395,10 +399,11 @@ const readHoefe = (value: unknown): WristbandHof[] | undefined =>
  * one the same way; the old one is blocked.
  */
 export const WristbandsView: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const hoefeQuery = trpc.wristband.getMyHofList.useQuery();
+  const hoefeQuery = useQuery(trpc.wristband.getMyHofList.queryOptions());
   const hoefe = readHoefe(hoefeQuery.data);
-  const reader = trpc.wristband.getWristbandAccess.useQuery().data?.reader === true;
+  const reader = useQuery(trpc.wristband.getWristbandAccess.queryOptions()).data?.reader === true;
 
   let content: React.ReactNode;
   if (hoefe !== undefined && hoefe.length > 0) {

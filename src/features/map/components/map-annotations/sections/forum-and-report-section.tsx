@@ -1,5 +1,4 @@
 'use client';
-
 import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
 import { forumMapText } from '@/features/map/components/forum/forum-map-texts';
@@ -8,7 +7,7 @@ import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { FORUM_LIKE_EMOJI, forumStatusLabel } from '@/lib/forum-shared';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
@@ -16,6 +15,8 @@ import { cn } from '@/utils/tailwindcss-override';
 import { ChevronRight, Lock, LogIn, Plus, ThumbsUp, WifiOff } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const reportIssueText: StaticTranslationString = {
   en: 'Report an Issue',
@@ -79,15 +80,20 @@ const OpenPostsHere: React.FC<{ annotationId: string; locale: Locale }> = ({
   annotationId,
   locale,
 }) => {
-  const utils = trpc.useUtils();
-  const { data } = trpc.forum.getForumPostList.useQuery({
-    annotationId,
-    status: 'active',
-    limit: 5,
-  });
-  const like = trpc.chat.toggleReaction.useMutation({
-    onSettled: () => void utils.forum.getForumPostList.invalidate(),
-  });
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const { data } = useQuery(
+    trpc.forum.getForumPostList.queryOptions({
+      annotationId,
+      status: 'active',
+      limit: 5,
+    }),
+  );
+  const like = useMutation(
+    trpc.chat.toggleReaction.mutationOptions({
+      onSettled: () => void queryClient.invalidateQueries(trpc.forum.getForumPostList.pathFilter()),
+    }),
+  );
   const posts = data?.items ?? [];
   if (posts.length === 0) return <></>;
   return (
@@ -139,6 +145,7 @@ export const AnnotationForumAndReportSection: React.FC<{
   coordinates: [number, number] | undefined;
   annotation?: { id: string; title: string };
 }> = ({ coordinates, annotation }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const isOnline = useOnlineStatus();
   // A report needs a login. A guest who sent one got a 401, which signs the client out and
@@ -146,14 +153,12 @@ export const AnnotationForumAndReportSection: React.FC<{
   const sessionStatus = useAuthStatus();
   const isGuest = sessionStatus === 'unauthenticated';
   const isSignedIn = sessionStatus === 'authenticated';
-  const { data: dashboard } = trpc.appContent.getDashboardConfig.useQuery(
-    { locale },
-    { enabled: isSignedIn },
+  const { data: dashboard } = useQuery(
+    trpc.appContent.getDashboardConfig.queryOptions({ locale }, { enabled: isSignedIn }),
   );
   const forumEnabled = dashboard?.featureFlags.forumEnabled !== false;
-  const { data: settings } = trpc.forum.getForumSettings.useQuery(
-    {},
-    { enabled: isSignedIn && forumEnabled },
+  const { data: settings } = useQuery(
+    trpc.forum.getForumSettings.queryOptions({}, { enabled: isSignedIn && forumEnabled }),
   );
 
   if (coordinates === undefined || (isSignedIn && !forumEnabled)) return <></>;

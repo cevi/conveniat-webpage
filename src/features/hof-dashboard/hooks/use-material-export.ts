@@ -1,10 +1,11 @@
 'use client';
-
 import type { MaterialExportSheet } from '@/features/hof-dashboard/api/material-orders-export';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { useState } from 'react';
+
+import { useQueryClient } from '@tanstack/react-query';
 
 /** The file name the server gave the download, from its `filename*` or its plain `filename`. */
 const filenameOf = (disposition: string | null): string | undefined => {
@@ -23,7 +24,8 @@ export const useMaterialExport = (
   download: (formIds: readonly string[], sheets: readonly MaterialExportSheet[]) => Promise<void>;
   pending: boolean;
 } => {
-  const utils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const [pending, setPending] = useState(false);
 
   const download = async (
@@ -50,7 +52,7 @@ export const useMaterialExport = (
     } finally {
       setPending(false);
     }
-    await utils.hofDashboard.getMaterialOrderList.invalidate();
+    await queryClient.invalidateQueries(trpc.hofDashboard.getMaterialOrderList.pathFilter());
   };
   return { download, pending };
 };

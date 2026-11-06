@@ -1,5 +1,4 @@
 'use client';
-
 import type { ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import {
@@ -8,10 +7,12 @@ import {
   getFailedChatMessages,
 } from '@/features/chat/utils/failed-sends';
 import { getPendingOutboxChatMessages } from '@/features/chat/utils/offline-outbox';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { InfiniteData } from '@tanstack/react-query';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 
 /** Pages kept of a chat nobody has open, see {@link keepNewestPages}. */
 const RESTING_PAGE_COUNT = 4;
@@ -52,43 +53,46 @@ export const useMessageInfiniteScroll = ({
   isFetchingNextPage: boolean;
   topSentinelReference: React.RefObject<HTMLDivElement | null>;
 } => {
+  const trpc = useTRPC();
   const {
     data: infiniteData,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = trpc.chat.infiniteMessages.useInfiniteQuery(
-    { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined },
-    {
-      getNextPageParam: (lastPage): string | undefined => {
-        return lastPage.nextCursor ?? undefined;
-      },
-      staleTime: 1000 * 60 * 5,
-      gcTime: 1000 * 60 * 60 * 24 * 7,
+  } = useInfiniteQuery(
+    trpc.chat.infiniteMessages.infiniteQueryOptions(
+      { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined },
+      {
+        getNextPageParam: (lastPage): string | undefined => {
+          return lastPage.nextCursor ?? undefined;
+        },
+        staleTime: 1000 * 60 * 5,
+        gcTime: 1000 * 60 * 60 * 24 * 7,
 
-      refetchOnMount: 'always',
-      // Coming back to the app or back online is a gap in the realtime stream, and
-      // `useChatSSE` answers every gap with one resync that refetches this query. Refetching
-      // here as well walked every loaded page a second time.
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      enabled: chatId !== '',
-    },
+        refetchOnMount: 'always',
+        // Coming back to the app or back online is a gap in the realtime stream, and
+        // `useChatSSE` answers every gap with one resync that refetches this query. Refetching
+        // here as well walked every loaded page a second time.
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        enabled: chatId !== '',
+      },
+    ),
   );
 
-  const trpcUtils = trpc.useUtils();
+  const queryClient = useQueryClient();
   useEffect(() => {
     const input = { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined };
     return (): void => {
-      const data = trpcUtils.chat.infiniteMessages.getInfiniteData(input);
+      const data = queryClient.getQueryData(trpc.chat.infiniteMessages.infiniteQueryKey(input));
       if (data === undefined || data.pages.length <= RESTING_PAGE_COUNT) return;
-      trpcUtils.chat.infiniteMessages.setInfiniteData(
-        input,
+      queryClient.setQueryData(
+        trpc.chat.infiniteMessages.infiniteQueryKey(input),
         keepNewestPages(data, RESTING_PAGE_COUNT),
       );
     };
-  }, [chatId, parentId, trpcUtils]);
+  }, [chatId, parentId, queryClient, trpc]);
 
   const topSentinelReference = useRef<HTMLDivElement>(null);
 

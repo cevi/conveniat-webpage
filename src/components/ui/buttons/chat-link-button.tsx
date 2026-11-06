@@ -1,8 +1,7 @@
 'use client';
-
 import { Button } from '@/components/ui/buttons/button';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -10,6 +9,8 @@ import { Loader2, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
+
+import { useMutation } from '@tanstack/react-query';
 
 const chatFailedText: StaticTranslationString = {
   de: 'Chat konnte nicht gestartet werden',
@@ -32,16 +33,19 @@ export const ChatLinkButton: React.FC<ChatLinkButtonProperties> = ({
   label = 'Chat',
   className,
 }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const router = useRouter();
   const [isNavigating, setIsNavigating] = useState(false);
 
-  const createChat = trpc.chat.createChat.useMutation({
-    onSuccess: (chatId) => {
-      setIsNavigating(true);
-      router.push(`/app/chat/${chatId}`);
-    },
-  });
+  const createChat = useMutation(
+    trpc.chat.createChat.mutationOptions({
+      onSuccess: (chatId) => {
+        setIsNavigating(true);
+        router.push(`/app/chat/${chatId}`);
+      },
+    }),
+  );
 
   const isBusy = createChat.isPending || isNavigating;
 
