@@ -5,6 +5,11 @@ import {
   persistAppModeClients,
 } from '@/features/service-worker/app-mode';
 import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
+import {
+  reportSkewRefusal,
+  reportStaleBuildPage,
+  servedPage,
+} from '@/features/service-worker/offline-support/build-skew-reporting';
 import { normalizeTileUrl } from '@/features/service-worker/offline-support/map-viewer';
 import {
   confirmNetworkFailure,
@@ -595,6 +600,11 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
       const fromNetwork = fetch(requestToHandle).then(
         (networkResponse) => {
           event.waitUntil(markNetworkReachable());
+          if (isRsc) {
+            event.waitUntil(
+              reportSkewRefusal(event.request, networkResponse, event.clientId, url.pathname),
+            );
+          }
           if (networkResponse.ok && !isPrefetch) {
             event.waitUntil(storeAppModeResponse(networkResponse.clone(), url, isRsc));
           }
@@ -631,7 +641,19 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
         }
         if (cached) {
           console.log(`[SW] Slow network for ${url.pathname}, serving the cached copy meanwhile`);
-          event.waitUntil(fromNetwork.then(noop, noop));
+          if (isRsc) {
+            event.waitUntil(fromNetwork.then(noop, noop));
+          } else {
+            const cachedCopy = cached.clone();
+            // looked up now, before the page can navigate away from this path
+            const page = servedPage(event.resultingClientId, url.pathname);
+            event.waitUntil(
+              fromNetwork.then(
+                (late) => reportStaleBuildPage(cachedCopy, late, page, url.pathname, startedAt),
+                noop,
+              ),
+            );
+          }
           return cached;
         }
 

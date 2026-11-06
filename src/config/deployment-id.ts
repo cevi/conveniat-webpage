@@ -1,7 +1,7 @@
 // next.config.ts loads this file through its own loader, which resolves `@/` from the project
 // root even here, so `@/build` would look for src/src/build.
 // eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
-import build from './build';
+import build from '../build';
 
 /**
  * Identifies one build to the browser, as Next.js' `deploymentId`.
@@ -21,3 +21,10 @@ export const deploymentId: string = [
 ]
   .join('-')
   .replaceAll(/[^\w-]/g, '_');
+
+/**
+ * Header on the proxy's 409 for a Flight request of another build, naming the build that turned
+ * it away, so the service worker can report both builds to PostHog. See
+ * `@/proxy/deployment-skew-proxy`.
+ */
+export const SERVER_DEPLOYMENT_ID_HEADER = 'x-server-deployment-id';

@@ -2,6 +2,7 @@
 
 import { environmentVariables } from '@/config/environment-variables';
 import { useAppMode } from '@/hooks/use-app-mode';
+import { useFullLoadAfterRelease } from '@/hooks/use-full-load-after-release';
 import { usePushNavigation } from '@/hooks/use-push-navigation';
 import { usePushSubscriptionKeyRenewal } from '@/hooks/use-push-subscription-key-renewal';
 import { useServiceWorkerClientUrlResponder } from '@/hooks/use-service-worker-client-url-responder';
@@ -45,6 +46,7 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
 
   useServiceWorkerClientUrlResponder();
   usePushSubscriptionKeyRenewal();
+  useFullLoadAfterRelease();
 
   useServiceWorkerMessage<{ url?: string }>(
     ServiceWorkerMessages.PUSH_NAVIGATE,
