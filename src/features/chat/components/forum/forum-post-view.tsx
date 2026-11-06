@@ -23,6 +23,7 @@ import { ChatActionsProvider } from '@/features/chat/context/chat-actions-contex
 import { ChatIdProvider } from '@/features/chat/context/chat-id-context';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { useToggleForumLike } from '@/hooks/use-toggle-forum-like';
 import { forumErrorTexts } from '@/lib/forum-error-texts';
 import { FORUM_LIKE_EMOJI, forumCapacityLabel, forumStatusLabel } from '@/lib/forum-shared';
 import { useTRPC } from '@/trpc/client';
@@ -344,27 +345,7 @@ const PostHeader: React.FC<{
   const [now] = useState(() => new Date());
   const statusFailure = useForumStatusFailure(post.id);
 
-  const like = useMutation(
-    trpc.chat.toggleReaction.mutationOptions({
-      onMutate: () => {
-        queryClient.setQueryData(trpc.forum.getForumPost.queryKey({ postId: post.id }), (old) =>
-          old === undefined
-            ? old
-            : {
-                ...old,
-                likedByMe: !old.likedByMe,
-                likeCount: old.likeCount + (old.likedByMe ? -1 : 1),
-              },
-        );
-      },
-      onSettled: () => {
-        void queryClient.invalidateQueries(
-          trpc.forum.getForumPost.queryFilter({ postId: post.id }),
-        );
-        void queryClient.invalidateQueries(trpc.forum.getForumPostList.pathFilter());
-      },
-    }),
-  );
+  const like = useToggleForumLike();
   const subscribe = useMutation(
     trpc.forum.updateForumPostSubscription.mutationOptions({
       onSettled: () =>
