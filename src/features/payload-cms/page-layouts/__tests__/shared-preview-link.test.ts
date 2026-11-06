@@ -12,7 +12,6 @@ jest.mock('@/utils/tracing-helpers', () => ({
   withSpan: <T>(_name: string, run: () => Promise<T>): Promise<T> => run(),
 }));
 jest.mock('@/utils/has-permissions', () => ({ hasPermissions: (): boolean => true }));
-jest.mock('@/utils/twitter-card-image', () => ({}));
 jest.mock('@/features/payload-cms/utils/metadata-helper', () => ({}));
 jest.mock('next/cache', () => ({ cacheLife: (): void => {}, cacheTag: (): void => {} }));
 
