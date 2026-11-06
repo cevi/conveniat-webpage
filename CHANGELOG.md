@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.52.2](https://github.com/cevi/conveniat-webpage/compare/v1.52.1...v1.52.2) (2026-11-06)
+
+
+### Bug Fixes
+
+* **app:** a page of the previous build loads its next page from the server ([4b8b744](https://github.com/cevi/conveniat-webpage/commit/4b8b744af5723993d0828a1b4ac0023497d196cb))
+* **app:** reload the page a stale copy was served to, and report failed reloads ([6ba9c85](https://github.com/cevi/conveniat-webpage/commit/6ba9c853e4baec3b5b305302e90a0f44ff772342))
+* outdated pages after a release show up in PostHog and Tempo ([74820d6](https://github.com/cevi/conveniat-webpage/commit/74820d62926fd249bb7ef1ebb844c6fbe20d6a50))
+
 ## [1.52.1](https://github.com/cevi/conveniat-webpage/compare/v1.52.0...v1.52.1) (2026-11-06)
 
 
