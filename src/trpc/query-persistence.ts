@@ -58,7 +58,20 @@ const emptyPersistedClient = (): PersistedClient => ({
 });
 
 /**
- * Parses the IndexedDB blob and drops queries that were saved while still pending.
+ * The list of every band with its wearer in plain text, which the phones of security and first
+ * aid kept before it was sealed, see `getSealedWristbandRoster`. Nothing asks for it anymore,
+ * and on a lost phone it would name the whole camp, so it is dropped rather than left to expire.
+ */
+const isPlainWristbandRoster = (queryKey: readonly unknown[]): boolean => {
+  const trpcPath: unknown = queryKey[0];
+  return (
+    Array.isArray(trpcPath) && trpcPath[0] === 'wristband' && trpcPath[1] === 'getWristbandRoster'
+  );
+};
+
+/**
+ * Parses the IndexedDB blob and drops queries that were saved while still pending, and the plain
+ * list of bands, see {@link isPlainWristbandRoster}.
  *
  * Blobs written before {@link shouldPersistQuery} stopped persisting them can still hold such a
  * query, and a single one makes the whole restore throw. Dropping them here keeps the rest of
@@ -72,7 +85,7 @@ export const deserializePersistedClient = (data: string): PersistedClient => {
       clientState: {
         ...persistedClient.clientState,
         queries: persistedClient.clientState.queries.filter(
-          (query) => query.state.status !== 'pending',
+          (query) => query.state.status !== 'pending' && !isPlainWristbandRoster(query.queryKey),
         ),
       },
     };

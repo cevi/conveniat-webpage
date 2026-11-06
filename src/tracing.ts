@@ -1,5 +1,6 @@
 import build from '@/build';
 import { BackgroundPollSampler } from '@/lib/background-poll-sampler';
+import { FetchSpanNameProcessor } from '@/lib/fetch-span-name-processor';
 import { HealthCheckSampler } from '@/lib/health-check-sampler';
 import { registerRuntimeMemoryMetrics } from '@/lib/runtime-memory-metrics';
 import { diag, DiagConsoleLogger, type DiagLogger, DiagLogLevel } from '@opentelemetry/api';
@@ -237,6 +238,8 @@ export const sdk = new NodeSDK({
   metricReaders: [metricsReader],
   idGenerator: new CryptoIdGenerator(),
   spanProcessors: [
+    // before the exporter, so the span is renamed by the time it is exported
+    new FetchSpanNameProcessor(),
     new BatchSpanProcessor(traceExporter, {
       exportTimeoutMillis: 5000,
       maxQueueSize: 2048,

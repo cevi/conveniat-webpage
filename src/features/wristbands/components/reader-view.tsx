@@ -34,7 +34,7 @@ const RosterStatus: React.FC<{ roster: RosterOnPhone; locale: Locale }> = ({ ros
   if (roster.data !== undefined) {
     summary = readerText('rosterSummary', locale, {
       // a list an older app left on the phone may lack it
-      n: Array.isArray(roster.data.bands) ? roster.data.bands.length : 0,
+      n: Array.isArray(roster.data.entries) ? roster.data.entries.length : 0,
       time: formatCampTime(roster.updatedAt, locale),
     });
   } else if (roster.fetching) {

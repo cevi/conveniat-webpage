@@ -9,8 +9,8 @@ import {
   addWristbandHelper,
   assignWristband,
   getHofWristbandList,
+  getSealedWristbandRoster,
   getWristbandCard,
-  getWristbandRoster,
   identifyWristband,
   programWristband,
   registerWristband,
@@ -159,8 +159,11 @@ export const wristbandRouter = createTRPCRouter({
         }),
     ),
 
-  /** Every worn band, for reading them offline on the campsite. */
-  getWristbandRoster: wristbandReaderProcedure.query(
-    async ({ ctx }) => await getWristbandRoster(ctx.payload, ctx.user.uuid),
+  /**
+   * Every band, sealed band by band, for reading them offline on the campsite. Named apart from
+   * the plain list it replaced, which phones drop from their cache, see `query-persistence.ts`.
+   */
+  getSealedWristbandRoster: wristbandReaderProcedure.query(
+    async ({ ctx }) => await getSealedWristbandRoster(ctx.payload, ctx.user.uuid),
   ),
 });
