@@ -20,6 +20,8 @@ export interface TestTrpc extends TrpcQueries {
   trpcClient: TRPCClient<AppRouter>;
   /** every call that reached the "server", in order */
   calls: { path: string; input: unknown }[];
+  /** the paths called without a handler; any of them fails the test after it ran */
+  unhandledPaths: string[];
   /** the providers a hook or component needs, for `render` and `renderHook` */
   wrapper: React.FC<{ children: React.ReactNode }>;
 }
@@ -34,7 +36,7 @@ const currentTestTrpc = (): TestTrpc => {
 /** The link that answers every call from `handlers` and logs it in `calls`. */
 const answerFrom = (
   handlers: Record<string, ProcedureHandler>,
-  calls: TestTrpc['calls'],
+  { calls, unhandledPaths }: Pick<TestTrpc, 'calls' | 'unhandledPaths'>,
 ): TRPCLink<AppRouter> => {
   const answer: OperationLink<AppRouter> = ({ op }) =>
     observable((observer) => {
@@ -42,7 +44,12 @@ const answerFrom = (
       const handler = handlers[op.path];
       Promise.resolve()
         .then(() => {
-          if (handler === undefined) throw new Error(`No test handler for ${op.path}`);
+          if (handler === undefined) {
+            // React Query keeps this as an ordinary failed request, which a test checking
+            // something else would never notice: the afterEach below fails the test instead
+            unhandledPaths.push(op.path);
+            throw new Error(`No test handler for ${op.path}`);
+          }
           return handler(op.input);
         })
         .then(
@@ -70,7 +77,8 @@ const answerFrom = (
  */
 export const createTestTrpc = (handlers: Record<string, ProcedureHandler> = {}): TestTrpc => {
   const calls: TestTrpc['calls'] = [];
-  const link = answerFrom(handlers, calls);
+  const unhandledPaths: TestTrpc['unhandledPaths'] = [];
+  const link = answerFrom(handlers, { calls, unhandledPaths });
 
   const trpcClient = createTRPCClient<AppRouter>({ links: [link] });
   const queryClient = makeQueryClient();
@@ -86,9 +94,20 @@ export const createTestTrpc = (handlers: Record<string, ProcedureHandler> = {}):
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 
-  current = { trpc, queryClient, trpcClient, calls, wrapper };
+  current = { trpc, queryClient, trpcClient, calls, unhandledPaths, wrapper };
   return current;
 };
+
+// Registered once per test file that imports this module, which only tests do.
+afterEach(() => {
+  const unhandled = current?.unhandledPaths ?? [];
+  current = undefined;
+  if (unhandled.length > 0) {
+    throw new Error(
+      `The code under test called procedures without a test handler: ${[...new Set(unhandled)].join(', ')}`,
+    );
+  }
+});
 
 /**
  * The error a procedure refuses with, carrying the code and the reason a router throws through
