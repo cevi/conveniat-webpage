@@ -1,5 +1,5 @@
 import { cachingHeaders, optimizedImageMinimumCacheTTL } from '@/cache-control';
-import { deploymentId } from '@/deployment-id';
+import { deploymentId } from '@/config/deployment-id';
 import { logStartupBanner } from '@/utils/startup-banner';
 import bundleAnalyzer from '@next/bundle-analyzer';
 import { withPayload } from '@payloadcms/next/withPayload';

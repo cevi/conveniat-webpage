@@ -273,7 +273,7 @@ describe('reporting pages of an outdated build to PostHog', () => {
   it('tells the pages its build once a new worker takes over', async () => {
     const { reportWorkerBuild } =
       await import('@/features/service-worker/offline-support/build-skew-reporting');
-    const { deploymentId } = await import('@/deployment-id');
+    const { deploymentId } = await import('@/config/deployment-id');
 
     await reportWorkerBuild();
 

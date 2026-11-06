@@ -10,6 +10,7 @@ import { act, renderHook } from '@testing-library/react';
 jest.mock('@/utils/assign-location', () => ({ assignLocation: jest.fn() }));
 
 const OLD_BUILD = '1_50_0-746eda89';
+jest.mock('@/config/deployment-id', () => ({ deploymentId: '1_50_0-746eda89' }));
 const NEW_BUILD = '1_51_0-3d6ff016';
 
 describe('useFullLoadAfterRelease', () => {
@@ -24,7 +25,6 @@ describe('useFullLoadAfterRelease', () => {
   beforeEach(() => {
     jest.mocked(assignLocation).mockClear();
     askedWorker.mockClear();
-    document.documentElement.dataset['dplId'] = OLD_BUILD;
     globalThis.history.replaceState(null, '', '/app/dashboard');
   });
 

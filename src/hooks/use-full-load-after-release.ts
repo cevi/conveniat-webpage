@@ -1,5 +1,6 @@
 'use client';
 
+import { deploymentId } from '@/config/deployment-id';
 import { assignLocation } from '@/utils/assign-location';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import { useEffect } from 'react';
@@ -90,8 +91,8 @@ export const useFullLoadAfterRelease = (): void => {
 
     const handleMessage = (event: MessageEvent): void => {
       if (!isBuildStatusMessage(event.data) || restore !== undefined) return;
-      const pageBuild = document.documentElement.dataset['dplId'];
-      if (pageBuild === undefined || pageBuild === event.data.payload.serverBuild) return;
+      // the build this bundle was made by; Next.js removes `data-dpl-id` from `<html>` on load
+      if (event.data.payload.serverBuild === deploymentId) return;
       restore = loadNextPageFully();
     };
 

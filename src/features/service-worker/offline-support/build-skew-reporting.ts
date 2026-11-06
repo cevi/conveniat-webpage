@@ -1,4 +1,4 @@
-import { deploymentId, SERVER_DEPLOYMENT_ID_HEADER } from '@/deployment-id';
+import { deploymentId, SERVER_DEPLOYMENT_ID_HEADER } from '@/config/deployment-id';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import type { SerwistPlugin } from 'serwist';
 

@@ -2,7 +2,7 @@ import { deploymentSkewProxy } from '@/proxy/deployment-skew-proxy';
 import type { NextFetchEvent } from 'next/server';
 import { NextRequest, NextResponse } from 'next/server';
 
-jest.mock('@/deployment-id', () => ({
+jest.mock('@/config/deployment-id', () => ({
   deploymentId: '1_46_2-0ca1769e',
   SERVER_DEPLOYMENT_ID_HEADER: 'x-server-deployment-id',
 }));
