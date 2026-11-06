@@ -1,7 +1,6 @@
+import { CHAT_PAGE_SIZE } from '@/lib/chat-shared';
 import type { TrpcQueries } from '@/trpc/client';
 import type { QueryKey } from '@tanstack/react-query';
-
-const CHAT_PAGE_SIZE = 50;
 
 interface PushChatMessage {
   id: string;
@@ -63,7 +62,8 @@ export function refreshAndOptimisticallyUpdateChat(
         type: 'TEXT_MSG',
       };
 
-      // Optimistically update infiniteMessages cache
+      // Optimistically update infiniteMessages cache, under the key the chat screen reads: the
+      // limit is part of it
       // Typed loosely on purpose: a push carries only part of a message, and the next refetch
       // replaces it with the real one.
       const infiniteMessagesKey: QueryKey = trpc.chat.infiniteMessages.infiniteQueryKey({

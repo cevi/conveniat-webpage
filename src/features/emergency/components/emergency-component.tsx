@@ -12,7 +12,7 @@ import type { EmergencyCard } from '@/features/payload-cms/payload-types';
 import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import { CHAT_PAGE_SIZE, ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -313,7 +313,7 @@ export const EmergencyComponent: React.FC = () => {
         void queryClient
           .infiniteQuery(
             trpc.chat.infiniteMessages.infiniteQueryOptions(
-              { chatId: createdChatId, limit: 50, parentId: undefined },
+              { chatId: createdChatId, limit: CHAT_PAGE_SIZE, parentId: undefined },
               { getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined },
             ),
           )
