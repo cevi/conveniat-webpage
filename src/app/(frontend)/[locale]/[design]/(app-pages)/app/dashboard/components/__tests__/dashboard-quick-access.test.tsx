@@ -74,24 +74,23 @@ describe('the wristbands on Home', () => {
     expect(wristbandsTile()).not.toBeInTheDocument();
   });
 
-  it('say what an AVP does there', () => {
+  it('lead an AVP to the wristbands', () => {
     mockAccess = { hoefe: 2, reader: false };
     renderTiles();
     expect(wristbandsTile()).toHaveAttribute('href', '/app/wristbands');
-    expect(wristbandsTile()).toHaveTextContent('Programmieren und vergeben');
   });
 
-  it('say what security and first aid do there', () => {
+  it('lead security and first aid to the wristbands', () => {
     mockAccess = { hoefe: 0, reader: true };
     renderTiles();
-    expect(wristbandsTile()).toHaveTextContent('Armband lesen');
-    expect(wristbandsTile()).not.toHaveTextContent('Programmieren');
+    expect(wristbandsTile()).toHaveAttribute('href', '/app/wristbands');
   });
 
-  it('show both for someone who does both', () => {
+  // the tile is as tall as the others; a line under the title only arrived with the access query
+  it('carry only their title', () => {
     mockAccess = { hoefe: 1, reader: true };
     renderTiles();
-    expect(wristbandsTile()).toHaveTextContent('Programmieren und vergeben · Armband lesen');
+    expect(wristbandsTile()).toHaveTextContent(/^Armbänder$/);
   });
 
   it('are not there where the deployment has no wristbands', () => {
