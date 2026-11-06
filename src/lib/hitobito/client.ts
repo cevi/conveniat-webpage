@@ -164,8 +164,9 @@ export class HitobitoClient {
       span.setAttributes({
         'http.method': method,
         'http.route': route,
+        // the path only, never the URL: a person search puts names and email addresses in the
+        // query, as the request log line below already avoids
         'url.path': new URL(url).pathname,
-        'http.url': url,
       });
 
       const startedAt = performance.now();
@@ -241,8 +242,9 @@ export class HitobitoClient {
       span.setAttributes({
         'http.method': method,
         'http.route': route,
+        // the path only, never the URL: a person search puts names and email addresses in the
+        // query, as the request log line below already avoids
         'url.path': new URL(url).pathname,
-        'http.url': url,
       });
 
       const headers = new Headers(options.headers);

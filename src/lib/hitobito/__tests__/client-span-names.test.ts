@@ -80,6 +80,18 @@ describe('HitobitoClient spans', () => {
     });
   });
 
+  it('keeps the query of a search off the span, which names people', async () => {
+    answerWith(200, '{"data":[]}');
+
+    await client().apiRequest('GET', '/api/people', {
+      params: { 'filter[first_name]': 'Anna', 'filter[email]': 'anna@example.org' },
+    });
+
+    const [span] = exporter.getFinishedSpans();
+    expect(span?.attributes['url.path']).toBe('/api/people');
+    expect(JSON.stringify(span?.attributes)).not.toMatch(/Anna|anna@example\.org/);
+  });
+
   it('gives requests for two people the same span name', async () => {
     answerWith(200, '{"data":{}}');
 
