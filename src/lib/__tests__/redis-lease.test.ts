@@ -4,10 +4,16 @@ import { startRedisLease, type RedisLease } from '@/lib/redis-lease';
  * A single Redis key with a TTL, answering the lease script the way Redis does: take it when
  * it is free, extend it for its holder, refuse everyone else.
  */
-const store: { value: string | undefined; expiresAt: number; down: boolean } = {
+const store: {
+  value: string | undefined;
+  expiresAt: number;
+  down: boolean;
+  hanging: boolean;
+} = {
   value: undefined,
   expiresAt: 0,
   down: false,
+  hanging: false,
 };
 
 jest.mock('@/lib/db/redis', () => ({
@@ -20,6 +26,7 @@ jest.mock('@/lib/db/redis', () => ({
       ttlMs: string,
     ): Promise<number> => {
       await Promise.resolve();
+      if (store.hanging) await new Promise<never>(() => {});
       if (store.down) throw new Error('connect ECONNREFUSED');
       if (store.value !== undefined && Date.now() >= store.expiresAt) store.value = undefined;
       if (store.value !== undefined && store.value !== holder) return 0;
@@ -52,6 +59,7 @@ describe('startRedisLease', () => {
     store.value = undefined;
     store.expiresAt = 0;
     store.down = false;
+    store.hanging = false;
   });
 
   afterEach(() => {
@@ -97,6 +105,17 @@ describe('startRedisLease', () => {
       await advance(1000);
       expect(first.isHeld() && second.isHeld()).toBe(false);
     }
+  });
+
+  it('lets go on time when the wall clock is set back while a renewal hangs', async () => {
+    const lease = start('a');
+    await advance(0);
+    store.hanging = true;
+
+    jest.setSystemTime(Date.now() - 3_600_000);
+    await advance(options.ttlMs - options.renewEveryMs);
+
+    expect(lease.isHeld()).toBe(false);
   });
 
   it('is held by nobody while Redis cannot be reached, and taken again once it can', async () => {

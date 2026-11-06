@@ -69,6 +69,22 @@ describe('startJobRunner', () => {
     expect(run).not.toHaveBeenCalled();
   });
 
+  it('claims nothing when the lease lapsed while it was scheduling', async () => {
+    const run = jest.fn().mockResolvedValue({});
+    const { payload, handleSchedules } = payloadWith(run);
+    handleSchedules.mockImplementation(async (): Promise<object> => {
+      await Promise.resolve();
+      leaseHeld = false;
+      return {};
+    });
+    stop = startJobRunner(payload);
+
+    await jest.advanceTimersByTimeAsync(10_000);
+
+    expect(handleSchedules).toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
+  });
+
   it('skips the ticks of a queue whose previous run is still going, and only that queue', async () => {
     const mailRun = Promise.withResolvers<void>();
     const run = jest.fn(async ({ queue }: { queue: string }): Promise<object> => {

@@ -49,6 +49,11 @@ export const startJobRunner = (payload: Payload): (() => void) => {
         if (payload.config.jobs.scheduling === true) {
           await payload.jobs.handleSchedules({ queue });
         }
+        // Scheduling can wait on Mongo for long enough that the lease lapsed meanwhile, and a
+        // claim by a replica that no longer holds it is the race this runner exists to stop.
+        // A claim started while the lease is held completes inside the margin `isHeld` keeps
+        // before Redis can give the lease to anyone else.
+        if (!lease.isHeld()) return;
         await payload.jobs.run({ queue, limit, silent });
       } catch (error: unknown) {
         logger.error('Job queue tick failed', { queue, error });

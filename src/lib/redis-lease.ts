@@ -46,7 +46,9 @@ type LeaseState = 'held' | 'taken' | 'unreachable';
  * The holder counts itself as holding it until one renewal interval before the TTL it last
  * set runs out, measured from when it sent that renewal. Redis started counting the TTL no
  * earlier than that, so the holder always gives the lease up before Redis can hand it to
- * anyone else. When Redis cannot be reached, nobody holds it: callers fail closed.
+ * anyone else. It measures that on the monotonic clock, because the wall clock can be set
+ * back, and a holder reading the wall clock would then keep a lease Redis already gave away.
+ * When Redis cannot be reached, nobody holds it: callers fail closed.
  *
  * Only state changes are logged. The renewal itself fires every few seconds on every replica.
  */
@@ -56,7 +58,7 @@ export const startRedisLease = ({
   ttlMs,
   renewEveryMs,
 }: RedisLeaseOptions): RedisLease => {
-  let heldUntil = 0;
+  let heldUntil = Number.NEGATIVE_INFINITY;
   let state: LeaseState | undefined;
   let renewing = false;
 
@@ -72,18 +74,18 @@ export const startRedisLease = ({
   const renew = async (): Promise<void> => {
     if (renewing) return;
     renewing = true;
-    const sentAt = Date.now();
+    const sentAt = performance.now();
     try {
       const result = await redis.eval(TAKE_OR_EXTEND_SCRIPT, 1, key, holder, String(ttlMs));
       if (result === 1) {
         heldUntil = sentAt + ttlMs - renewEveryMs;
         changeState('held');
       } else {
-        heldUntil = 0;
+        heldUntil = Number.NEGATIVE_INFINITY;
         changeState('taken');
       }
     } catch (error: unknown) {
-      heldUntil = 0;
+      heldUntil = Number.NEGATIVE_INFINITY;
       changeState('unreachable', error);
     } finally {
       renewing = false;
@@ -94,7 +96,7 @@ export const startRedisLease = ({
   const interval = setInterval(() => void renew(), renewEveryMs);
 
   return {
-    isHeld: (): boolean => Date.now() < heldUntil,
+    isHeld: (): boolean => performance.now() < heldUntil,
     stop: (): void => clearInterval(interval),
   };
 };
