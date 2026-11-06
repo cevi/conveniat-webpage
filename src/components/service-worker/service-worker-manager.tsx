@@ -9,7 +9,7 @@ import { useServiceWorkerMessage } from '@/hooks/use-service-worker-message';
 import { useServiceWorkerRegistration } from '@/hooks/use-service-worker-registration';
 import { SerwistProvider, useSerwist } from '@/lib/serwist-client';
 import { useOptionalTrpcQueries } from '@/trpc/client';
-import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
+import { refreshChatOfPush } from '@/utils/push-query-refresher';
 import { chatIdOfTarget, resolvePushTarget } from '@/utils/push-target';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import { SW_REGISTRATION_OPTIONS, SW_URL } from '@/utils/service-worker-utils';
@@ -46,7 +46,7 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
   useServiceWorkerClientUrlResponder();
   usePushSubscriptionKeyRenewal();
 
-  useServiceWorkerMessage<{ url?: string; payload?: Record<string, unknown> }>(
+  useServiceWorkerMessage<{ url?: string }>(
     ServiceWorkerMessages.PUSH_NAVIGATE,
     React.useCallback(
       (payload, event) => {
@@ -56,7 +56,7 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
         event.ports[0]?.postMessage({ handled: true });
 
         const target = resolvePushTarget(payload.url.trim());
-        refreshAndOptimisticallyUpdateChat(trpcQueries, chatIdOfTarget(target), payload.payload);
+        refreshChatOfPush(trpcQueries, chatIdOfTarget(target));
         navigateToPushTarget(target);
       },
       [navigateToPushTarget, trpcQueries],
