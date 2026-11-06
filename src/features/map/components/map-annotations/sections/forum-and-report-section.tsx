@@ -6,6 +6,7 @@ import { composerHrefFor } from '@/features/map/utils/nearest-annotation';
 import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
+import { useToggleForumLike } from '@/hooks/use-toggle-forum-like';
 import { FORUM_LIKE_EMOJI, forumStatusLabel } from '@/lib/forum-shared';
 import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -16,7 +17,7 @@ import { ChevronRight, Lock, LogIn, Plus, ThumbsUp, WifiOff } from 'lucide-react
 import Link from 'next/link';
 import React from 'react';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
 const reportIssueText: StaticTranslationString = {
   en: 'Report an Issue',
@@ -81,7 +82,6 @@ const OpenPostsHere: React.FC<{ annotationId: string; locale: Locale }> = ({
   locale,
 }) => {
   const trpc = useTRPC();
-  const queryClient = useQueryClient();
   const { data } = useQuery(
     trpc.forum.getForumPostList.queryOptions({
       annotationId,
@@ -89,11 +89,7 @@ const OpenPostsHere: React.FC<{ annotationId: string; locale: Locale }> = ({
       limit: 5,
     }),
   );
-  const like = useMutation(
-    trpc.chat.toggleReaction.mutationOptions({
-      onSettled: () => void queryClient.invalidateQueries(trpc.forum.getForumPostList.pathFilter()),
-    }),
-  );
+  const like = useToggleForumLike();
   const posts = data?.items ?? [];
   if (posts.length === 0) return <></>;
   return (

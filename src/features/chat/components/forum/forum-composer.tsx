@@ -5,6 +5,7 @@ import { forumText } from '@/features/chat/components/forum/forum-texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useOnlineStatus } from '@/hooks/use-online-status';
+import { useToggleForumLike } from '@/hooks/use-toggle-forum-like';
 import { CHAT_IMAGE_MAX_BYTES, isChatImageContentType } from '@/lib/chat-images';
 import { forumErrorTexts } from '@/lib/forum-error-texts';
 import {
@@ -177,12 +178,7 @@ export const ForumComposer: React.FC = () => {
       },
     ),
   );
-  const like = useMutation(
-    trpc.chat.toggleReaction.mutationOptions({
-      onSettled: () =>
-        void queryClient.invalidateQueries(trpc.forum.getForumPostSuggestionList.pathFilter()),
-    }),
-  );
+  const like = useToggleForumLike();
   const uploadUrl = useMutation(trpc.chat.getUploadUrl.mutationOptions());
   const create = useMutation(trpc.forum.createForumPost.mutationOptions());
   const privateReportTopic = useMutation(trpc.forum.getForumPrivateReportTopic.mutationOptions());
