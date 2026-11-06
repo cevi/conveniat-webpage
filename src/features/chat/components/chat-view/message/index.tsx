@@ -1,5 +1,4 @@
 'use client';
-
 import { avatarTextColorOf } from '@/components/ui/person-avatar';
 import { toast } from '@/components/ui/toast';
 import type { ChatMessage } from '@/features/chat/api/types';
@@ -34,12 +33,14 @@ import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { MessageEventType, MessageType } from '@/lib/prisma/client';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { AlertCircle, Ban, Check, Clock, Ellipsis } from 'lucide-react';
 import React, { useRef, useState } from 'react';
+
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 const replyToMessageText: StaticTranslationString = {
   de: 'Antwort auf eine Nachricht',
@@ -147,6 +148,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   isLastInGroup = true,
   locale,
 }) => {
+  const trpc = useTRPC();
   const activeLocale = locale;
   const [isPressing, setIsPressing] = useState(false);
   const [swipeX, setSwipeX] = useState(0);
@@ -168,8 +170,8 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   const isTimeRevealedOrHovered = isHovered || isTimeRevealed;
 
   const chatId = useChatId();
-  const { data: chatDetails } = trpc.chat.chatDetails.useQuery({ chatId });
-  const { data: currentUserId } = trpc.chat.user.useQuery({});
+  const { data: chatDetails } = useQuery(trpc.chat.chatDetails.queryOptions({ chatId }));
+  const { data: currentUserId } = useQuery(trpc.chat.user.queryOptions({}));
 
   const currentUserParticipant = chatDetails?.participants.find((p) => p.id === currentUserId);
   const isGuest = currentUserParticipant?.chatPermission === 'GUEST';
@@ -191,12 +193,14 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   const canSendMessages =
     !chatDetails?.archivedAt && canSendMessagesInChat && (!isGuest || isAllowedGuestThreadReplies);
 
-  const toggleReactionMutation = trpc.chat.toggleReaction.useMutation({
-    onError: (error) => {
-      toast.error(userErrorMessage(error, locale, chatErrorTexts, reactionFailedText));
-      console.error('Failed to react to message:', error);
-    },
-  });
+  const toggleReactionMutation = useMutation(
+    trpc.chat.toggleReaction.mutationOptions({
+      onError: (error) => {
+        toast.error(userErrorMessage(error, locale, chatErrorTexts, reactionFailedText));
+        console.error('Failed to react to message:', error);
+      },
+    }),
+  );
 
   const reactedEmojis = new Set(
     (message.reactions ?? []).filter((r) => r.userId === currentUserId).map((r) => r.emoji),
@@ -228,14 +232,16 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   const quotedSnippet =
     typeof payload['quotedSnippet'] === 'string' ? payload['quotedSnippet'] : undefined;
   // a quoted message outside the loaded pages is read on its own, for its author's name
-  const { data: fetchedQuotedMessage } = trpc.chat.getMessage.useQuery(
-    { messageId: quotedMessageId ?? '' },
-    {
-      enabled:
-        quotedMessageId !== undefined &&
-        quotedMessage === undefined &&
-        message.quotedMessageDeleted !== true,
-    },
+  const { data: fetchedQuotedMessage } = useQuery(
+    trpc.chat.getMessage.queryOptions(
+      { messageId: quotedMessageId ?? '' },
+      {
+        enabled:
+          quotedMessageId !== undefined &&
+          quotedMessage === undefined &&
+          message.quotedMessageDeleted !== true,
+      },
+    ),
   );
   const quotedSource = quotedMessage ?? fetchedQuotedMessage;
   const isQuoteDeleted = message.quotedMessageDeleted === true || isMessageDeleted(quotedSource);

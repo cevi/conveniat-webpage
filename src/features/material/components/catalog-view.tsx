@@ -1,5 +1,4 @@
 'use client';
-
 import { toast } from '@/components/ui/toast';
 import {
   FilterChip,
@@ -28,13 +27,15 @@ import { useSearchHistory } from '@/features/material/hooks/use-search-history';
 import { basketTotals, orderStepOf } from '@/features/material/utils/basket';
 import { catalogItemPath, itemPath, parseScan } from '@/features/material/utils/scan';
 import { useKeptScrollPosition } from '@/hooks/use-kept-scroll-position';
-import { trpc, type RouterOutputs } from '@/trpc/client';
+import { useTRPC, type RouterOutputs } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ArrowLeft, Plus, Send } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { Activity, useMemo, useRef, useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 type CatalogItem = RouterOutputs['material']['getCatalog'][number];
 
@@ -168,8 +169,11 @@ const CatalogList: React.FC<{
   onChange: SetQuantity;
   onOpen: (code: string) => void;
 }> = ({ items, quantityOf, onChange, onOpen }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
-  const categories = trpc.material.getCategoryList.useQuery(undefined, materialQueryOptions);
+  const categories = useQuery(
+    trpc.material.getCategoryList.queryOptions(undefined, materialQueryOptions),
+  );
   const [query, setQuery] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [sort, setSort] = useState<Sort>('name');
@@ -296,8 +300,9 @@ const CatalogItemView: React.FC<{
   onBack: () => void;
   onRequest: () => void;
 }> = ({ code, lines, onChange, onBack, onRequest }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
-  const item = trpc.material.getCatalogItem.useQuery({ code }, materialQueryOptions);
+  const item = useQuery(trpc.material.getCatalogItem.queryOptions({ code }, materialQueryOptions));
   if (item.isLoading) return <LoadingState text={labels.loading[locale]} />;
   if (!item.data) return <MaterialQueryError error={item.error} />;
   const data = item.data;
@@ -368,10 +373,11 @@ const CatalogItemView: React.FC<{
  * forth; the bar at the bottom leads to the request form.
  */
 const CatalogScreen: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const code = useSearchParams().get('item');
   const history = useSearchHistory();
-  const catalog = trpc.material.getCatalog.useQuery(undefined, materialQueryOptions);
+  const catalog = useQuery(trpc.material.getCatalog.queryOptions(undefined, materialQueryOptions));
   const [lines, setLines] = useState<RequestLine[]>([]);
   const [requesting, setRequesting] = useState(false);
 

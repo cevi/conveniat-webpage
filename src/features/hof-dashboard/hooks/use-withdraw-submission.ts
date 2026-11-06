@@ -1,11 +1,12 @@
 'use client';
-
 import { toast } from '@/components/ui/toast';
 import { translate } from '@/features/hof-dashboard/texts';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { TRPCClientError } from '@trpc/client';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 /**
  * Takes back a submission of the Hof and reloads the dashboard. When the Ressort took it up
@@ -15,9 +16,12 @@ export const useWithdrawSubmission = (
   hofId: string,
   locale: Locale,
 ): ((submissionId: string) => Promise<void>) => {
-  const utils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   // fail right away without signal instead of waiting paused for it, so the user hears of it
-  const withdraw = trpc.hofDashboard.deleteSubmission.useMutation({ networkMode: 'always' });
+  const withdraw = useMutation(
+    trpc.hofDashboard.deleteSubmission.mutationOptions({ networkMode: 'always' }),
+  );
 
   return async (submissionId: string): Promise<void> => {
     try {
@@ -30,6 +34,6 @@ export const useWithdrawSubmission = (
         notifyFailure(locale, 'withdrawFailed');
       }
     }
-    await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
+    await queryClient.invalidateQueries(trpc.hofDashboard.getHofDashboard.queryFilter({ hofId }));
   };
 };

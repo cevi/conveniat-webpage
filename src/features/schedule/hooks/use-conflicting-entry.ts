@@ -1,6 +1,7 @@
 'use client';
+import { useTRPC } from '@/trpc/client';
 
-import { trpc } from '@/trpc/client';
+import { useQuery } from '@tanstack/react-query';
 
 export interface ConflictingOrganiser {
   id: string;
@@ -27,16 +28,21 @@ export const useConflictingEntry = (
   entryId: string | undefined,
   entryType: 'workshop' | 'shift',
 ): ConflictingEntry | undefined => {
+  const trpc = useTRPC();
   const isShift = entryType === 'shift';
 
-  const { data: shifts } = trpc.schedule.getHelperShifts.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
-    enabled: entryId !== undefined && isShift,
-  });
+  const { data: shifts } = useQuery(
+    trpc.schedule.getHelperShifts.queryOptions(undefined, {
+      staleTime: 1000 * 60 * 5,
+      enabled: entryId !== undefined && isShift,
+    }),
+  );
 
-  const { data: entries } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
-    enabled: entryId !== undefined && !isShift,
-  });
+  const { data: entries } = useQuery(
+    trpc.schedule.getScheduleEntries.queryOptions(undefined, {
+      enabled: entryId !== undefined && !isShift,
+    }),
+  );
 
   if (entryId === undefined) return undefined;
 

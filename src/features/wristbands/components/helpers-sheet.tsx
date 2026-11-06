@@ -1,5 +1,4 @@
 'use client';
-
 import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/buttons/button';
@@ -15,13 +14,15 @@ import {
 } from '@/features/wristbands/hof-list';
 import { translate } from '@/features/wristbands/texts';
 import type { HofPerson, HofWristbandList } from '@/features/wristbands/types';
-import { trpc } from '@/trpc/client';
+import { useTRPC, useTRPCClient } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { Loader2, UserPlus } from 'lucide-react';
 import type React from 'react';
 import type { RefObject } from 'react';
 import { useState } from 'react';
+
+import { useQueryClient } from '@tanstack/react-query';
 
 /** Without a search the sheet offers the Leitende, the people an AVP asks to help. */
 const leadersFirst = (a: HofPerson, b: HofPerson): number => {
@@ -62,7 +63,9 @@ export const HelpersSheet: React.FC<{
   anchor: RefObject<HTMLElement | null>;
   locale: Locale;
 }> = ({ hofId, list, open, onOpenChange, anchor, locale }) => {
-  const utils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const trpcClient = useTRPCClient();
   const [search, setSearch] = useState('');
   const [failed, setFailed] = useState<string | undefined>();
   const [pendingId, setPendingId] = useState<string | undefined>();
@@ -73,16 +76,16 @@ export const HelpersSheet: React.FC<{
     try {
       const input = { hofId, registrationId: person.registrationId };
       await (helper
-        ? utils.client.wristband.addWristbandHelper.mutate(input)
-        : utils.client.wristband.removeWristbandHelper.mutate(input));
-      utils.wristband.getHofWristbandList.setData({ hofId }, (current) =>
+        ? trpcClient.wristband.addWristbandHelper.mutate(input)
+        : trpcClient.wristband.removeWristbandHelper.mutate(input));
+      queryClient.setQueryData(trpc.wristband.getHofWristbandList.queryKey({ hofId }), (current) =>
         withHelper(readWristbandList(current ?? list), person.registrationId, helper),
       );
     } catch (error) {
       setFailed(userErrorMessage(error, locale, wristbandErrorTexts));
     } finally {
       setPendingId(undefined);
-      void utils.wristband.getHofWristbandList.invalidate({ hofId });
+      void queryClient.invalidateQueries(trpc.wristband.getHofWristbandList.queryFilter({ hofId }));
     }
   };
 

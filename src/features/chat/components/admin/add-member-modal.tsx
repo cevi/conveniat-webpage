@@ -1,6 +1,8 @@
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import React, { useEffect, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface AddMemberModalProperties {
   isOpen: boolean;
@@ -75,6 +77,7 @@ export const AddMemberModal: React.FC<AddMemberModalProperties> = ({
   chatId,
   locale,
 }) => {
+  const trpc = useTRPC();
   const isDe = locale === 'de';
   const t = isDe ? translations.de : translations.en;
 
@@ -97,7 +100,9 @@ export const AddMemberModal: React.FC<AddMemberModalProperties> = ({
     return (): void => clearTimeout(timer);
   }, [search, startTransition]);
 
-  const { data: hoefe = [] } = trpc.admin.getHofList.useQuery(undefined, { enabled: isOpen });
+  const { data: hoefe = [] } = useQuery(
+    trpc.admin.getHofList.queryOptions(undefined, { enabled: isOpen }),
+  );
   const quartiere = [
     ...new Map(
       hoefe.flatMap((hof) => (hof.quartier === undefined ? [] : [[hof.quartier.id, hof.quartier]])),
@@ -105,35 +110,39 @@ export const AddMemberModal: React.FC<AddMemberModalProperties> = ({
   ].toSorted((a, b) => a.name.localeCompare(b.name, 'de'));
 
   // Query users from tRPC
-  const { data: users = [], isLoading } = trpc.admin.searchUsers.useQuery(
-    {
-      search: debouncedSearch === '' ? undefined : debouncedSearch,
-      hofId: hofId === '' ? undefined : hofId,
-      quartierId: quartierId === '' ? undefined : quartierId,
-      role: role === '' ? undefined : role,
-    },
-    {
-      enabled: isOpen,
-    },
+  const { data: users = [], isLoading } = useQuery(
+    trpc.admin.searchUsers.queryOptions(
+      {
+        search: debouncedSearch === '' ? undefined : debouncedSearch,
+        hofId: hofId === '' ? undefined : hofId,
+        quartierId: quartierId === '' ? undefined : quartierId,
+        role: role === '' ? undefined : role,
+      },
+      {
+        enabled: isOpen,
+      },
+    ),
   );
 
-  const trpcUtils = trpc.useUtils();
-  const addMutation = trpc.admin.addMemberToChat.useMutation({
-    onSuccess: async (): Promise<void> => {
-      setSuccessMessage(t.addSuccess);
-      setErrorMessage(undefined);
-      // Invalidate both chat list and current chat messages to trigger refetching
-      await trpcUtils.admin.getChatList.invalidate();
-      await trpcUtils.admin.getChatMessages.invalidate({ chatId });
-      setTimeout((): void => {
+  const queryClient = useQueryClient();
+  const addMutation = useMutation(
+    trpc.admin.addMemberToChat.mutationOptions({
+      onSuccess: async (): Promise<void> => {
+        setSuccessMessage(t.addSuccess);
+        setErrorMessage(undefined);
+        // Invalidate both chat list and current chat messages to trigger refetching
+        await queryClient.invalidateQueries(trpc.admin.getChatList.pathFilter());
+        await queryClient.invalidateQueries(trpc.admin.getChatMessages.queryFilter({ chatId }));
+        setTimeout((): void => {
+          setSuccessMessage(undefined);
+        }, 3000);
+      },
+      onError: (error): void => {
+        setErrorMessage(error.message);
         setSuccessMessage(undefined);
-      }, 3000);
-    },
-    onError: (error): void => {
-      setErrorMessage(error.message);
-      setSuccessMessage(undefined);
-    },
-  });
+      },
+    }),
+  );
 
   const handleAdd = (userId: string): void => {
     addMutation.mutate({ chatId, userId });

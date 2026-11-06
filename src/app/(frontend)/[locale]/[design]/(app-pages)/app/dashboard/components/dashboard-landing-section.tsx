@@ -1,11 +1,12 @@
 'use client';
-
 import { DashboardQuickAccess } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-quick-access';
 import { QuickAccessSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
 import type { QuickAccessFlags } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/utils/quick-access-tiles';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import type React from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 /**
  * The flags of the cached dashboard configuration. Guarded: a phone may restore a configuration
@@ -45,16 +46,19 @@ export const DashboardLandingSection: React.FC<{
   supportEmail: string;
   children?: React.ReactNode;
 }> = ({ locale, materialEnabled, wristbandsEnabled, supportEmail, children }) => {
-  const { data: dashboardConfig } = trpc.appContent.getDashboardConfig.useQuery(
-    { locale },
-    {
-      // keep the cached content for a minute before revalidating in the background
-      staleTime: 60 * 1000,
-      refetchOnMount: true,
-      // a failed background revalidation must not throw away the cached content,
-      // but without any content there is nothing to show but the error
-      throwOnError: (_error, query) => query.state.data === undefined,
-    },
+  const trpc = useTRPC();
+  const { data: dashboardConfig } = useQuery(
+    trpc.appContent.getDashboardConfig.queryOptions(
+      { locale },
+      {
+        // keep the cached content for a minute before revalidating in the background
+        staleTime: 60 * 1000,
+        refetchOnMount: true,
+        // a failed background revalidation must not throw away the cached content,
+        // but without any content there is nothing to show but the error
+        throwOnError: (_error, query) => query.state.data === undefined,
+      },
+    ),
   );
 
   if (dashboardConfig === undefined) {

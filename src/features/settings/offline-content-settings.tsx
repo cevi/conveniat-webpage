@@ -1,15 +1,16 @@
 'use client';
-
 import { Button } from '@/components/ui/buttons/button';
 import { Switch } from '@/components/ui/switch';
 import { SettingsRow } from '@/features/settings/components/settings-row';
 import { useOfflineDownload } from '@/hooks/use-offline-download';
 import { syncAllOfflineData } from '@/lib/chat-sync';
-import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { motion } from 'framer-motion';
 import { RefreshCw } from 'lucide-react';
 import React from 'react';
+
+import { useTRPC } from '@/trpc/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 const offlineSettingsTitle: StaticTranslationString = {
   en: 'Offline Mode',
@@ -52,10 +53,11 @@ interface OfflineContentSettingsProperties {
 }
 
 export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> = ({ locale }) => {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const { status, progress, startDownload, deleteContent } = useOfflineDownload({
     checkCacheOnMount: true,
-    dataSyncFn: () => syncAllOfflineData(trpcUtils),
+    dataSyncFn: () => syncAllOfflineData({ trpc, queryClient }),
   });
 
   const displayStatus = status === 'success' ? 'has-content' : status;

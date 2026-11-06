@@ -1,11 +1,12 @@
 'use client';
-
 import { SectionLabel } from '@/components/ui/section-label';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import type React from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 interface CourseStatus {
   enrolledCount: number;
@@ -67,6 +68,7 @@ export const ParticipantList: React.FC<ParticipantListProperties> = ({
   courseStatus,
   courseType = 'program',
 }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const isShift = courseType === 'shift';
 
@@ -74,8 +76,8 @@ export const ParticipantList: React.FC<ParticipantListProperties> = ({
   // queries are declared unconditionally and gated through `enabled` - the disabled one never
   // reaches the network, and the helper portal's own status query already holds the answer
   // under the same key, so the shift branch resolves from cache rather than a second request.
-  const { data: fetchedCourseStatus, isLoading: isLoadingCourse } =
-    trpc.schedule.getCourseStatus.useQuery(
+  const { data: fetchedCourseStatus, isLoading: isLoadingCourse } = useQuery(
+    trpc.schedule.getCourseStatus.queryOptions(
       { courseId },
       {
         enabled: courseStatus === undefined && !isShift,
@@ -84,17 +86,19 @@ export const ParticipantList: React.FC<ParticipantListProperties> = ({
         // mutation here, so a persisted status would pin `isAdmin` for days.
         refetchOnMount: 'always',
       },
-    );
+    ),
+  );
 
-  const { data: fetchedShiftStatus, isLoading: isLoadingShift } =
-    trpc.shifts.getShiftStatus.useQuery(
+  const { data: fetchedShiftStatus, isLoading: isLoadingShift } = useQuery(
+    trpc.shifts.getShiftStatus.queryOptions(
       { shiftId: courseId },
       {
         enabled: courseStatus === undefined && isShift,
         staleTime: 1000 * 60 * 5,
         refetchOnMount: 'always',
       },
-    );
+    ),
+  );
 
   const status = courseStatus ?? (isShift ? fetchedShiftStatus : fetchedCourseStatus);
   const isLoading = isShift ? isLoadingShift : isLoadingCourse;

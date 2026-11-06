@@ -1,5 +1,4 @@
 'use client';
-
 import { AppFooterController } from '@/components/footer/hide-footer-context';
 import type { ChatDetails as ChatDetailsData } from '@/features/chat/api/types';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
@@ -42,7 +41,7 @@ import { queryAvailability } from '@/features/chat/utils/query-availability';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { isChatArchived } from '@/lib/chat-shared';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/client';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -50,6 +49,8 @@ import { Megaphone, Siren, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 /** The function and Hof lines of a participant; empty for someone not among the contacts. */
 const participantLines = (
@@ -151,6 +152,7 @@ const isChatAdmin = (permission: string | undefined): boolean =>
   permission === ChatMembershipPermission.OWNER || permission === ChatMembershipPermission.ADMIN;
 
 export const ChatDetails: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
   const router = useRouter();
@@ -162,14 +164,16 @@ export const ChatDetails: React.FC = () => {
   const [memberInSheet, setMemberInSheet] = useState<DetailsParticipant | undefined>();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContactsToAdd, setSelectedContactsToAdd] = useState<Contact[]>([]);
-  const { data: allContacts, isLoading: isLoadingContacts } = trpc.chat.contacts.useQuery({});
+  const { data: allContacts, isLoading: isLoadingContacts } = useQuery(
+    trpc.chat.contacts.queryOptions({}),
+  );
   const updateChatMutation = useUpdateChatMutation();
   const addParticipantsMutation = useAddParticipants();
   const removeParticipantMutation = useRemoveParticipants();
-  const { data: currentUser } = trpc.chat.user.useQuery({});
-  const { data: maxGroupMembers } = trpc.chat.getGroupMemberLimit.useQuery();
+  const { data: currentUser } = useQuery(trpc.chat.user.queryOptions({}));
+  const { data: maxGroupMembers } = useQuery(trpc.chat.getGroupMemberLimit.queryOptions());
   const { createChat } = useCreateChat();
-  const trpcUtils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   const isGroupChat = (chatDetails?.participants.length ?? 0) > 2;
   const isAnnouncement = chatDetails?.type === ChatType.ANNOUNCEMENT;
@@ -284,8 +288,8 @@ export const ChatDetails: React.FC = () => {
     const contact = contactById.get(participantId);
     if (contact === undefined) return undefined;
     return (): void => {
-      const existing = trpcUtils.chat.chats
-        .getData({})
+      const existing = queryClient
+        .getQueryData(trpc.chat.chats.queryKey({}))
         ?.find(
           (chat) =>
             chat.chatType === ChatType.ONE_TO_ONE &&

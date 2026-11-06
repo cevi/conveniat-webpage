@@ -1,5 +1,4 @@
 'use client';
-
 import { Select } from '@/features/payload-cms/components/form/select';
 import { Text } from '@/features/payload-cms/components/form/text';
 import type { VisitDaySelectionBlock } from '@/features/payload-cms/components/form/types';
@@ -13,7 +12,7 @@ import {
   WITHOUT_LUNCH,
 } from '@/features/visit-day/visit-day-choices';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import type React from 'react';
@@ -26,6 +25,8 @@ import type {
   UseFormRegister,
 } from 'react-hook-form';
 import { useFormContext, useWatch } from 'react-hook-form';
+
+import { useQuery } from '@tanstack/react-query';
 
 /** The free places are read again this often while the form is open. */
 const PLACES_REFRESH_MS = 60_000;
@@ -212,13 +213,18 @@ export const VisitDaySelection: React.FC<
   registerAction,
   error,
 }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { setValue, getValues } = useFormContext();
-  const hoefe = trpc.visitDay.getVisitDayHofList.useQuery(undefined, { refetchOnMount: true });
-  const days = trpc.visitDay.getVisitDayList.useQuery(undefined, {
-    refetchOnMount: true,
-    refetchInterval: PLACES_REFRESH_MS,
-  });
+  const hoefe = useQuery(
+    trpc.visitDay.getVisitDayHofList.queryOptions(undefined, { refetchOnMount: true }),
+  );
+  const days = useQuery(
+    trpc.visitDay.getVisitDayList.queryOptions(undefined, {
+      refetchOnMount: true,
+      refetchInterval: PLACES_REFRESH_MS,
+    }),
+  );
   const formAsksVisitorType = isFieldName(visitorTypeField);
   const asksLunch = isFieldName(lunchField);
   const asksPersons = typeof maxPersons === 'number' && maxPersons >= 1;

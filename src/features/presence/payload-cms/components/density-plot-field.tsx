@@ -1,9 +1,10 @@
 'use client';
-
-import { TRPCProvider, trpc } from '@/trpc/client';
+import { TRPCProvider, useTRPC } from '@/trpc/client';
 import { useLocale } from '@payloadcms/ui';
 import { Download } from 'lucide-react';
 import React from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const downloadSvg = (): void => {
   const svgElement = document.querySelector('#presence-density-chart');
@@ -21,6 +22,7 @@ const downloadSvg = (): void => {
 };
 
 const DensityPlotFieldInner: React.FC = () => {
+  const trpc = useTRPC();
   const { code: locale } = useLocale();
   const currentLocale = locale === 'de' || locale === 'fr' ? locale : 'en';
 
@@ -43,7 +45,7 @@ const DensityPlotFieldInner: React.FC = () => {
   };
 
   const t = translations[currentLocale];
-  const { data: densityData } = trpc.presence.getPresenceDensityData.useQuery();
+  const { data: densityData } = useQuery(trpc.presence.getPresenceDensityData.queryOptions());
   const densityLogs = densityData || [];
 
   const width = 800;

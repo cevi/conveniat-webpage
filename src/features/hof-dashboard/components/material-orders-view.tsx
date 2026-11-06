@@ -1,5 +1,4 @@
 'use client';
-
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,12 +25,14 @@ import {
   translate,
   type TextKey,
 } from '@/features/hof-dashboard/texts';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronDown, Download, FileSpreadsheet } from 'lucide-react';
 import type React from 'react';
 import { useId, useRef, useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 type View = 'total' | 'perHof';
 
@@ -646,12 +647,15 @@ export const MaterialOrdersView: React.FC<{
   onOpenHof: (hofId: string) => void;
   locale: Locale;
 }> = ({ onOpenHof, locale }) => {
-  const orders = trpc.hofDashboard.getMaterialOrderList.useQuery(undefined, {
-    staleTime: 30_000,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    meta: { persist: false },
-  });
+  const trpc = useTRPC();
+  const orders = useQuery(
+    trpc.hofDashboard.getMaterialOrderList.queryOptions(undefined, {
+      staleTime: 30_000,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      meta: { persist: false },
+    }),
+  );
   const [formId, setFormId] = useState<string>();
   const [view, setView] = useState<View>('total');
   const [exportOpen, setExportOpen] = useState(false);

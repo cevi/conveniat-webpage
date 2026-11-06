@@ -1,5 +1,4 @@
 'use client';
-
 import { Button } from '@/components/ui/buttons/button';
 import {
   offlineContentDescription,
@@ -13,12 +12,14 @@ import {
 } from '@/features/onboarding/onboarding-constants';
 import { useOfflineDownload } from '@/hooks/use-offline-download';
 import { syncAllOfflineData } from '@/lib/chat-sync';
-import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { motion } from 'framer-motion';
 import { Check, CircleAlert, CloudOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useRef } from 'react';
+
+import { useTRPC } from '@/trpc/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface OfflineContentEntrypointComponentProperties {
   callback: (accepted: boolean) => void;
@@ -28,13 +29,14 @@ interface OfflineContentEntrypointComponentProperties {
 export const OfflineContentEntrypointComponent: React.FC<
   OfflineContentEntrypointComponentProperties
 > = ({ callback, locale }) => {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const router = useRouter();
 
   const { status, progress, startDownload } = useOfflineDownload({
     checkSwReadyOnMount: true,
     onSuccess: () => callback(true),
-    dataSyncFn: () => syncAllOfflineData(trpcUtils),
+    dataSyncFn: () => syncAllOfflineData({ trpc, queryClient }),
   });
 
   // Prefetch main destinations while user decides on offline download.

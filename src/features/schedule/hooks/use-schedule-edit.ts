@@ -1,11 +1,12 @@
 'use client';
-
 import { toast } from '@/components/ui/toast';
 import { scheduleErrorTexts } from '@/features/schedule/error-texts';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { useCallback, useState } from 'react';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 const labels = {
   saveSuccess: {
@@ -70,7 +71,8 @@ export function useScheduleEdit({
   locale,
   courseStatus,
 }: UseScheduleEditOptions): UseScheduleEditReturn {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editError, setEditError] = useState<string | undefined>();
@@ -80,22 +82,24 @@ export function useScheduleEdit({
     maxParticipants: 0,
   });
 
-  const updateCourse = trpc.schedule.updateCourseDetails.useMutation({
-    onSuccess: async () => {
-      setIsEditing(false);
-      setEditError(undefined);
-      // Invalidate all related queries to trigger refetch
-      await Promise.all([
-        trpcUtils.schedule.getCourseStatus.invalidate({ courseId }),
-        trpcUtils.schedule.getById.invalidate({ id: courseId }),
-        trpcUtils.schedule.getScheduleEntries.invalidate(),
-      ]);
-      toast.success(labels.saveSuccess[locale]);
-    },
-    // shown in the form, beside what failed to save
-    onError: (error_) =>
-      setEditError(userErrorMessage(error_, locale, scheduleErrorTexts, labels.saveFailed)),
-  });
+  const updateCourse = useMutation(
+    trpc.schedule.updateCourseDetails.mutationOptions({
+      onSuccess: async () => {
+        setIsEditing(false);
+        setEditError(undefined);
+        // Invalidate all related queries to trigger refetch
+        await Promise.all([
+          queryClient.invalidateQueries(trpc.schedule.getCourseStatus.queryFilter({ courseId })),
+          queryClient.invalidateQueries(trpc.schedule.getById.queryFilter({ id: courseId })),
+          queryClient.invalidateQueries(trpc.schedule.getScheduleEntries.pathFilter()),
+        ]);
+        toast.success(labels.saveSuccess[locale]);
+      },
+      // shown in the form, beside what failed to save
+      onError: (error_) =>
+        setEditError(userErrorMessage(error_, locale, scheduleErrorTexts, labels.saveFailed)),
+    }),
+  );
 
   const isAdmin = courseStatus?.isAdmin ?? false;
 

@@ -1,5 +1,4 @@
 'use client';
-
 import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import {
@@ -9,9 +8,11 @@ import {
   type StarRowWrites,
 } from '@/lib/star-sync';
 import { starsCollection, type StarRecord } from '@/lib/tanstack-db';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { TRPCClientError } from '@trpc/client';
 import { useCallback, useEffect, useRef } from 'react';
+
+import { useMutation } from '@tanstack/react-query';
 
 /** How long a change waits for the next one before it is sent, so a double tap is one request. */
 const CHANGE_DEBOUNCE_MS = 1000;
@@ -52,6 +53,7 @@ const isSignedOutError = (error: unknown): boolean => {
  * @param rows - The stored star rows, live.
  */
 export const useStarSync = (rows: StarRecord[]): void => {
+  const trpc = useTRPC();
   const status = useAuthStatus();
   const isOnline = useOnlineStatus();
   const canSync = status === 'authenticated' && isOnline;
@@ -59,7 +61,9 @@ export const useStarSync = (rows: StarRecord[]): void => {
   const isSyncing = useRef(false);
   /** Counts the calls, so a run can tell whether one came in while its request was out. */
   const requests = useRef(0);
-  const { mutateAsync: updateStars } = trpc.schedule.star.updateStars.useMutation();
+  const { mutateAsync: updateStars } = useMutation(
+    trpc.schedule.star.updateStars.mutationOptions(),
+  );
 
   useEffect(() => {
     canSyncReference.current = canSync;

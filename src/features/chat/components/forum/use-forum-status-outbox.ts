@@ -1,5 +1,4 @@
 'use client';
-
 import { isRetryableSendError } from '@/features/chat/utils/send-errors';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import {
@@ -7,9 +6,11 @@ import {
   FORUM_STATUS_OUTBOX_STORAGE_KEY,
 } from '@/lib/chat-local-storage';
 import type { ForumPostStatusValue } from '@/lib/forum-shared';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { TRPCClientError } from '@trpc/client';
 import { useCallback, useEffect, useState } from 'react';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 /**
  * Status changes of forum posts that wait for a connection. A helper reports a post as done
@@ -113,14 +114,20 @@ export const useForumStatusChange = (): ((change: {
   status: ForumPostStatusValue;
   note?: string | undefined;
 }) => Promise<'sent' | 'queued'>) => {
-  const utils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
-  const { mutateAsync } = trpc.forum.updateForumPostStatus.useMutation({ networkMode: 'always' });
+  const { mutateAsync } = useMutation(
+    trpc.forum.updateForumPostStatus.mutationOptions({ networkMode: 'always' }),
+  );
 
   return useCallback(
     async (change) => {
       clearFailure(change.postId);
-      const userId = await utils.chat.user.ensureData({});
+      const userId = await queryClient.query({
+        ...trpc.chat.user.queryOptions({}),
+        staleTime: 'static',
+      });
       const queued: QueuedStatusChange = {
         ...change,
         userId,
@@ -137,10 +144,10 @@ export const useForumStatusChange = (): ((change: {
         enqueue(queued);
         return 'queued';
       }
-      void utils.forum.invalidate();
+      void queryClient.invalidateQueries(trpc.forum.pathFilter());
       return 'sent';
     },
-    [isOnline, mutateAsync, utils],
+    [isOnline, mutateAsync, queryClient, trpc],
   );
 };
 
@@ -153,9 +160,12 @@ let isDraining = false;
  * its reason waits on the post.
  */
 const useForumStatusOutboxDrain = (): void => {
+  const trpc = useTRPC();
   const isOnline = useOnlineStatus();
-  const utils = trpc.useUtils();
-  const { mutateAsync } = trpc.forum.updateForumPostStatus.useMutation({ networkMode: 'always' });
+  const queryClient = useQueryClient();
+  const { mutateAsync } = useMutation(
+    trpc.forum.updateForumPostStatus.mutationOptions({ networkMode: 'always' }),
+  );
 
   useEffect(() => {
     const drain = async (): Promise<void> => {
@@ -165,7 +175,10 @@ const useForumStatusOutboxDrain = (): void => {
       try {
         let userId: string;
         try {
-          userId = await utils.chat.user.ensureData({});
+          userId = await queryClient.query({
+            ...trpc.chat.user.queryOptions({}),
+            staleTime: 'static',
+          });
         } catch {
           return;
         }
@@ -187,7 +200,7 @@ const useForumStatusOutboxDrain = (): void => {
       } finally {
         isDraining = false;
       }
-      if (sent > 0) void utils.forum.invalidate();
+      if (sent > 0) void queryClient.invalidateQueries(trpc.forum.pathFilter());
     };
 
     void drain();
@@ -200,7 +213,7 @@ const useForumStatusOutboxDrain = (): void => {
       globalThis.removeEventListener('online', onEvent);
       globalThis.removeEventListener(OUTBOX_EVENT, onEvent);
     };
-  }, [isOnline, mutateAsync, utils]);
+  }, [isOnline, mutateAsync, queryClient, trpc]);
 };
 
 /** Mounts the drain in the app shell, beside the chat's `OfflineQueueSync`. */

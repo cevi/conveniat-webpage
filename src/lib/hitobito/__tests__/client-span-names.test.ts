@@ -15,7 +15,8 @@ jest.mock('@/utils/server-logger', () => {
   return { createLogger: (): typeof logger => logger };
 });
 
-import { HitobitoClient, routeTemplate } from '@/lib/hitobito/client';
+import { HitobitoClient } from '@/lib/hitobito/client';
+import { routeTemplate } from '@/lib/hitobito/request-metrics';
 
 const BASE_URL = 'https://db.cevi.ch';
 const exporter = new InMemorySpanExporter();

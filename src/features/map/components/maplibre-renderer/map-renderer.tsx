@@ -1,5 +1,4 @@
 'use client';
-
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { ForumMapOverlays } from '@/features/map/components/forum/forum-map-overlays';
 import { AnnotationDetailsDrawer } from '@/features/map/components/map-annotations/annotation-details-drawer';
@@ -19,7 +18,7 @@ import type {
   MapQuartier,
 } from '@/features/map/types/types';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { quartierRufnameOf, shortQuartierName } from '@/utils/quartier-names';
@@ -27,6 +26,8 @@ import { reactToDomElement } from '@/utils/react-to-dom-element';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 /**
  * Factory function to create a DOM element with the Cevi Logo SVG.
@@ -86,6 +87,7 @@ export const MapLibreRenderer = ({
   /** URL of the MapLibre style; the swisstopo base map when omitted. */
   mapStyle?: string;
 }): React.JSX.Element => {
+  const trpc = useTRPC();
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | undefined>();
   const [openAnnotation, setOpenAnnotation] = useState<
     CampMapAnnotationPoint | CampMapAnnotationPolygon | undefined
@@ -107,7 +109,7 @@ export const MapLibreRenderer = ({
   // The places come from the query cache: restored from the device at once, offline as well,
   // and refreshed in the background, see `query-client.ts`. The props only stand in until the
   // cache holds a copy.
-  const { data: mapData } = trpc.map.getMapAnnotations.useQuery({ locale });
+  const { data: mapData } = useQuery(trpc.map.getMapAnnotations.queryOptions({ locale }));
   // the persisted query cache may hold anything an older version stored under this key
   const annotationPoints = useMemo(
     () =>

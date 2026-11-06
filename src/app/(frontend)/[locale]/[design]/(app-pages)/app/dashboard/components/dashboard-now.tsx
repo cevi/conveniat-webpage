@@ -1,5 +1,4 @@
 'use client';
-
 import { JetztSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
 import { selectJetzt } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/utils/select-jetzt';
 import { Card } from '@/components/ui/card';
@@ -13,13 +12,15 @@ import { getCategoryAccent } from '@/features/schedule/utils/category-utils';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
 import { slotOf } from '@/features/schedule/utils/programme-utils';
 import { formatDuration, formatMinutesAsTime } from '@/features/schedule/utils/time-utils';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { CalendarCheck, ChevronRight, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
 import { useMemo } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const wholeProgramme: StaticTranslationString = {
   de: 'Ganzes Programm',
@@ -159,15 +160,20 @@ const JetztContent: React.FC<{
  * downloaded copy, so it renders at once and without a connection.
  */
 export const DashboardNow: React.FC<{ locale: Locale }> = ({ locale }) => {
+  const trpc = useTRPC();
   const { entries: localEntries } = useScheduleEntries();
-  const { data: scheduleEntries } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
-    // a failed background revalidation must not throw away the cached entries, but without
-    // any entries, cached or downloaded, there is nothing to show but the error
-    throwOnError: (_error, query) => query.state.data === undefined && localEntries.length === 0,
-  });
-  const { data: myQuartiere } = trpc.schedule.getMyQuartiere.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
-  });
+  const { data: scheduleEntries } = useQuery(
+    trpc.schedule.getScheduleEntries.queryOptions(undefined, {
+      // a failed background revalidation must not throw away the cached entries, but without
+      // any entries, cached or downloaded, there is nothing to show but the error
+      throwOnError: (_error, query) => query.state.data === undefined && localEntries.length === 0,
+    }),
+  );
+  const { data: myQuartiere } = useQuery(
+    trpc.schedule.getMyQuartiere.queryOptions(undefined, {
+      staleTime: 1000 * 60 * 5,
+    }),
+  );
   // the persisted query cache may hold anything an older version stored under these keys
   const myQuartierIds = useMemo(
     () =>

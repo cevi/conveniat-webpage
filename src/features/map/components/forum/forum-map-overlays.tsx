@@ -1,5 +1,4 @@
 'use client';
-
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { ForumLocationPicker } from '@/features/map/components/forum/forum-location-picker';
 import { forumMapText } from '@/features/map/components/forum/forum-map-texts';
@@ -9,7 +8,7 @@ import { composerHrefFor, findNearestAnnotation } from '@/features/map/utils/nea
 import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { distanceInMetres, forumStatusLabel, type ForumPostSummary } from '@/lib/forum-shared';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -23,6 +22,8 @@ import {
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useMemo, useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const LAYER_STORAGE_KEY = 'conveniat:map-forum-layer';
 const LONG_PRESS_MS = 550;
@@ -58,8 +59,9 @@ const clusterPosts = (posts: readonly ForumPostSummary[]): Cluster[] => {
 
 /** Whether the forum is on for this deployment and the user can use it: signed in. */
 const useForumAvailable = (locale: Locale): boolean => {
+  const trpc = useTRPC();
   const status = useAuthStatus();
-  const { data } = trpc.appContent.getDashboardConfig.useQuery({ locale });
+  const { data } = useQuery(trpc.appContent.getDashboardConfig.queryOptions({ locale }));
   return status === 'authenticated' && data?.featureFlags.forumEnabled !== false;
 };
 
@@ -160,11 +162,14 @@ const useForumPostDeepLink = (
   clusters: readonly Cluster[],
   onOpen: (cluster: Cluster) => void,
 ): void => {
+  const trpc = useTRPC();
   const postId = useSearchParams().get('forumPost');
   const [handled, setHandled] = useState<string | undefined>();
-  const { data } = trpc.forum.getForumPost.useQuery(
-    { postId: postId ?? '' },
-    { enabled: postId !== null && /^[\da-f-]{36}$/i.test(postId) },
+  const { data } = useQuery(
+    trpc.forum.getForumPost.queryOptions(
+      { postId: postId ?? '' },
+      { enabled: postId !== null && /^[\da-f-]{36}$/i.test(postId) },
+    ),
   );
   useEffect(() => {
     if (map === undefined || data?.location == undefined || handled === data.id) return;
@@ -188,6 +193,7 @@ export const ForumMapOverlays: React.FC<{
   annotationPoints: readonly CampMapAnnotationPoint[];
   annotationPolygons: readonly CampMapAnnotationPolygon[];
 }> = ({ annotationPoints, annotationPolygons }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const map = useMap();
   const router = useRouter();
@@ -201,7 +207,9 @@ export const ForumMapOverlays: React.FC<{
     { spot: [number, number]; screen: { x: number; y: number } } | undefined
   >();
 
-  const { data } = trpc.forum.getForumPostMapList.useQuery({}, { enabled: available });
+  const { data } = useQuery(
+    trpc.forum.getForumPostMapList.queryOptions({}, { enabled: available }),
+  );
   const clusters = useMemo(
     () => (shown && !isPicking ? clusterPosts(Array.isArray(data) ? data : []) : []),
     [data, shown, isPicking],

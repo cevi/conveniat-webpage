@@ -1,5 +1,4 @@
 'use client';
-
 import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import {
@@ -15,12 +14,14 @@ import {
 } from '@/features/chat/hooks/use-open-chat-with-contact';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { matchesContactSearch } from '@/features/chat/utils/contact-search';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Loader2, MessageSquare, MessageSquarePlus } from 'lucide-react';
 import type React from 'react';
 import { useId } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const noChatsForText: StaticTranslationString = {
   de: 'Keine Chats für «{query}»',
@@ -47,7 +48,8 @@ export const ChatSearchContacts: React.FC<{
   fallback?: React.ReactNode;
   locale: Locale;
 }> = ({ searchQuery, foundChats, fallback, locale }) => {
-  const { data: contacts, isLoading } = trpc.chat.contacts.useQuery({});
+  const trpc = useTRPC();
+  const { data: contacts, isLoading } = useQuery(trpc.chat.contacts.queryOptions({}));
   // `push`: going back from the chat returns to the list, its search cleared by then
   const { openChatWith, openingUserId, hasOpenFailed } = useOpenChatWithContact('push');
   const labelId = useId();

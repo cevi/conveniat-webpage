@@ -1,12 +1,13 @@
 'use client';
-
 import type { ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import { forgetFailedSend, getFailedSendInput } from '@/features/chat/utils/failed-sends';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { useCallback } from 'react';
+
+import { useQueryClient } from '@tanstack/react-query';
 
 /**
  * Retry and discard for a bubble whose send failed. A retry reuses the message id, which the
@@ -16,8 +17,9 @@ export const useFailedMessageActions = (): {
   retry: (message: ChatMessage) => void;
   discard: (message: ChatMessage) => void;
 } => {
+  const trpc = useTRPC();
   const chatId = useChatId();
-  const trpcUtils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const sendMessageMutation = useMessageSend();
 
   const retry = useCallback(
@@ -44,8 +46,12 @@ export const useFailedMessageActions = (): {
   const discard = useCallback(
     (message: ChatMessage): void => {
       forgetFailedSend(message.id);
-      trpcUtils.chat.infiniteMessages.setInfiniteData(
-        { chatId, limit: CHAT_PAGE_SIZE, parentId: message.parentId },
+      queryClient.setQueryData(
+        trpc.chat.infiniteMessages.infiniteQueryKey({
+          chatId,
+          limit: CHAT_PAGE_SIZE,
+          parentId: message.parentId,
+        }),
         (data) =>
           data && {
             ...data,
@@ -56,14 +62,14 @@ export const useFailedMessageActions = (): {
           },
       );
       if (message.parentId === undefined) {
-        trpcUtils.chat.chatDetails.setData(
-          { chatId },
+        queryClient.setQueryData(
+          trpc.chat.chatDetails.queryKey({ chatId }),
           (old) => old && { ...old, messages: old.messages.filter((m) => m.id !== message.id) },
         );
       }
-      void trpcUtils.chat.chats.invalidate();
+      void queryClient.invalidateQueries(trpc.chat.chats.pathFilter());
     },
-    [chatId, trpcUtils],
+    [chatId, queryClient, trpc],
   );
 
   return { retry, discard };

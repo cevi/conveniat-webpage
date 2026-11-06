@@ -1,15 +1,16 @@
 'use client';
-
 import type { SearchFilters } from '@/features/payload-cms/components/search/search-filter-panel';
 import { parseSearchWords } from '@/features/payload-cms/search/search-text';
 import type { SiteSearchResponse } from '@/features/payload-cms/search/search-types';
 import { buildSearchQueryString } from '@/features/payload-cms/search/search-types';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 /** Short enough to feel instant, long enough not to query for every key typed. */
 export const QUERY_DELAY_MS = 200;
@@ -57,6 +58,7 @@ export const useLiveSearch = (
   locale: Locale,
   initial: { query: string; filters: SearchFilters; page: number; response: SiteSearchResponse },
 ): LiveSearch => {
+  const trpc = useTRPC();
   const isOnline = useOnlineStatus();
   const [draft, setDraft] = useState(initial.query);
   const [filters, setFilters] = useState(initial.filters);
@@ -74,15 +76,17 @@ export const useLiveSearch = (
     filters.period === initial.filters.period &&
     filters.types.join(',') === initial.filters.types.join(',');
 
-  const result = trpc.search.getSearchResultList.useQuery(
-    { locale, query, ...filters, page, pageSize: RESULTS_PER_PAGE },
-    {
-      enabled: isSearchable && isOnline,
-      ...(isInitial ? { initialData: initial.response } : {}),
-      staleTime: 60_000,
-      // a search is asked once and forgotten; it has no place in the cache kept offline
-      meta: { persist: false },
-    },
+  const result = useQuery(
+    trpc.search.getSearchResultList.queryOptions(
+      { locale, query, ...filters, page, pageSize: RESULTS_PER_PAGE },
+      {
+        enabled: isSearchable && isOnline,
+        ...(isInitial ? { initialData: initial.response } : {}),
+        staleTime: 60_000,
+        // a search is asked once and forgotten; it has no place in the cache kept offline
+        meta: { persist: false },
+      },
+    ),
   );
 
   useSearchInUrl(buildSearchQueryString({ query: trimmed, ...filters, page }));

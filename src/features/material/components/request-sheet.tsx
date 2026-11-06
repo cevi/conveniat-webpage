@@ -33,13 +33,15 @@ import {
   nextDayInput,
   toDateInput,
 } from '@/features/material/utils/dates';
-import { trpc, type RouterOutputs } from '@/trpc/client';
+import { useTRPC, type RouterOutputs } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Send, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
+
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 type CatalogItem = RouterOutputs['material']['getCatalog'][number];
 
@@ -98,12 +100,13 @@ export const RequestSheet: React.FC<{
   onLinesChange: (lines: Line[]) => void;
   onClose: () => void;
 }> = ({ lines, items, onLinesChange, onClose }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const now = useNow();
   const router = useRouter();
   const invalidate = useInvalidateMaterial();
-  const me = trpc.material.getMe.useQuery(undefined, materialQueryOptions);
-  const send = trpc.material.createLoanRequest.useMutation();
+  const me = useQuery(trpc.material.getMe.queryOptions(undefined, materialQueryOptions));
+  const send = useMutation(trpc.material.createLoanRequest.mutationOptions());
   const hoefe = me.data?.hoefe ?? [];
 
   const today = toDateInput(now);
@@ -120,9 +123,11 @@ export const RequestSheet: React.FC<{
   const startDate = fromDateInput(start, 'start');
   const endDate = fromDateInput(end, 'end');
   const periodValid = startDate !== undefined && endDate !== undefined && endDate >= startDate;
-  const period = trpc.material.getCatalog.useQuery(
-    periodValid ? { startDate, endDate } : undefined,
-    { ...materialQueryOptions, enabled: periodValid },
+  const period = useQuery(
+    trpc.material.getCatalog.queryOptions(periodValid ? { startDate, endDate } : undefined, {
+      ...materialQueryOptions,
+      enabled: periodValid,
+    }),
   );
   const byId = new Map((period.data ?? items).map((item) => [item.id, item]));
   const capOf = (itemId: string): number => {

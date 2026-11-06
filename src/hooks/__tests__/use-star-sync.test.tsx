@@ -5,6 +5,9 @@
 import { useStarSync } from '@/hooks/use-star-sync';
 import { isStarredRow } from '@/lib/star-sync';
 import { setLocalStar, starsCollection, type StarRecord } from '@/lib/tanstack-db';
+import type { TestTrpc } from '@/trpc/test-trpc';
+import { createTestTrpc } from '@/trpc/test-trpc';
+import type { RenderHookResult } from '@testing-library/react';
 import { act, renderHook } from '@testing-library/react';
 
 let online = true;
@@ -21,13 +24,15 @@ const updateStars = jest.fn(
 
 jest.mock('@/hooks/use-auth-status', () => ({ useAuthStatus: (): string => 'authenticated' }));
 jest.mock('@/hooks/use-online-status', () => ({ useOnlineStatus: (): boolean => online }));
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    schedule: {
-      star: { updateStars: { useMutation: (): unknown => ({ mutateAsync: updateStars }) } },
-    },
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
+
+let server: TestTrpc;
+const renderStarSync = (): RenderHookResult<void, unknown> =>
+  renderHook(() => useStarSync(rows()), { wrapper: server.wrapper });
 
 const rows = (): StarRecord[] => [...starsCollection.state.values()];
 const shownStars = (): string[] =>
@@ -48,6 +53,10 @@ describe('useStarSync', () => {
     online = true;
     database.clear();
     updateStars.mockClear();
+    server = createTestTrpc({
+      'schedule.star.updateStars': (input) =>
+        updateStars(input as { changes: { courseId: string; starred: boolean }[] }),
+    });
     await starsCollection.preload();
     for (const id of starsCollection.state.keys()) starsCollection.delete(id);
   });
@@ -59,7 +68,7 @@ describe('useStarSync', () => {
   it('brings back the stars of the database after the local data was cleared', async () => {
     database.add('seilbruecke');
 
-    renderHook(() => useStarSync(rows()));
+    renderStarSync();
     await settle();
 
     expect(shownStars()).toEqual(['seilbruecke']);
@@ -67,7 +76,7 @@ describe('useStarSync', () => {
 
   it('tells the database about a star removed offline once the device is back online', async () => {
     database.add('seilbruecke');
-    const { rerender } = renderHook(() => useStarSync(rows()));
+    const { rerender } = renderStarSync();
     await settle();
 
     online = false;
@@ -86,7 +95,7 @@ describe('useStarSync', () => {
   });
 
   it('keeps every change when the sync fails', async () => {
-    const { rerender } = renderHook(() => useStarSync(rows()));
+    const { rerender } = renderStarSync();
     await settle();
     updateStars.mockRejectedValueOnce(new Error('Failed to fetch'));
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});

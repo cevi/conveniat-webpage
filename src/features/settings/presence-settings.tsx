@@ -1,10 +1,11 @@
 'use client';
-
 import { Switch } from '@/components/ui/switch';
 import { SettingsRow } from '@/features/settings/components/settings-row';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type React from 'react';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const title: StaticTranslationString = {
   de: 'Auf dem Lagerplatz',
@@ -42,26 +43,34 @@ const failedText: StaticTranslationString = {
  * note when saving fails. Leaving can be undone by switching back, so it does not ask first.
  */
 export const PresenceSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
-  const utils = trpc.useUtils();
-  const { data: presence } = trpc.presence.getPresence.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
-  });
-  const updatePresence = trpc.presence.updatePresence.useMutation({
-    onMutate: async ({ presentAtCamp }) => {
-      await utils.presence.getPresence.cancel();
-      const previous = utils.presence.getPresence.getData();
-      if (previous !== undefined) {
-        utils.presence.getPresence.setData(undefined, { ...previous, isPresent: presentAtCamp });
-      }
-      return { previous };
-    },
-    onError: (_error, _input, context) => {
-      if (context?.previous !== undefined) {
-        utils.presence.getPresence.setData(undefined, context.previous);
-      }
-    },
-    onSettled: () => utils.presence.getPresence.invalidate(),
-  });
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const { data: presence } = useQuery(
+    trpc.presence.getPresence.queryOptions(undefined, {
+      staleTime: 1000 * 60 * 5,
+    }),
+  );
+  const updatePresence = useMutation(
+    trpc.presence.updatePresence.mutationOptions({
+      onMutate: async ({ presentAtCamp }) => {
+        await queryClient.cancelQueries(trpc.presence.getPresence.pathFilter());
+        const previous = queryClient.getQueryData(trpc.presence.getPresence.queryKey());
+        if (previous !== undefined) {
+          queryClient.setQueryData(trpc.presence.getPresence.queryKey(), {
+            ...previous,
+            isPresent: presentAtCamp,
+          });
+        }
+        return { previous };
+      },
+      onError: (_error, _input, context) => {
+        if (context?.previous !== undefined) {
+          queryClient.setQueryData(trpc.presence.getPresence.queryKey(), context.previous);
+        }
+      },
+      onSettled: () => queryClient.invalidateQueries(trpc.presence.getPresence.pathFilter()),
+    }),
+  );
 
   // the persisted query cache may hold a shape from an older version
   const isPresent = presence?.isPresent === true;

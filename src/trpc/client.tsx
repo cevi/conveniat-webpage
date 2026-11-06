@@ -14,12 +14,15 @@ import {
 } from '@/trpc/query-persistence';
 import type { AppRouter } from '@/trpc/routers/_app';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import type { QueryClient } from '@tanstack/react-query';
 import { QueryClientContext } from '@tanstack/react-query';
 import type { Persister } from '@tanstack/react-query-persist-client';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { httpBatchLink } from '@trpc/client';
-import { createTRPCReact } from '@trpc/react-query';
+import type { TRPCClientErrorLike } from '@trpc/client';
+import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
+import type { TRPCOptionsProxy } from '@trpc/tanstack-react-query';
+import { createTRPCContext } from '@trpc/tanstack-react-query';
 import { signOut } from 'next-auth/react';
 import React, { useState } from 'react';
 import superjson from 'superjson';
@@ -64,10 +67,18 @@ const fetchWithAuthRedirect: typeof fetch = async (input, init) => {
   return response;
 };
 
-export const trpc = createTRPCReact<AppRouter>();
+const {
+  TRPCProvider: TRPCContextProvider,
+  useTRPC,
+  useTRPCClient,
+} = createTRPCContext<AppRouter>();
+
+export { useTRPC, useTRPCClient };
 
 export type RouterInputs = inferRouterInputs<AppRouter>;
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
+/** The error a query or mutation of the app's router fails with. */
+export type TrpcError = TRPCClientErrorLike<AppRouter>;
 
 const getUrl = (): string => {
   const base = ((): string => {
@@ -171,33 +182,43 @@ export const TRPCProvider: React.FC<{
   const [queryClient] = useState(() => makeQueryClient());
   // eslint-disable-next-line react-naming-convention/use-state
   const [trpcClient] = useState(() =>
-    trpc.createClient({
+    createTRPCClient<AppRouter>({
       links: [createHttpBatchLink()],
     }),
   );
 
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
+    <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
+      <TRPCContextProvider trpcClient={trpcClient} queryClient={queryClient}>
         {children}
-      </PersistQueryClientProvider>
-    </trpc.Provider>
+      </TRPCContextProvider>
+    </PersistQueryClientProvider>
   );
 };
 
 /**
- * Returns the tRPC utils, or undefined when rendered outside {@link TRPCProvider}.
- *
- * Detection goes through `QueryClientContext` because @trpc/react-query v11 does not export a
- * context to read. The previous implementation looked for `TRPCContext` on the module, which
- * does not exist there, so it resolved to undefined for every caller and silently disabled
- * every consumer — `refreshAndOptimisticallyUpdateChat` never received utils. TRPCProvider
- * renders PersistQueryClientProvider, so a QueryClient in scope means the tRPC provider is too.
+ * What code outside a component needs to read and write the tRPC queries: the typed option and
+ * key builders, and the client that holds the cache.
  */
-export function useOptionalTrpcUtils(): ReturnType<typeof trpc.useUtils> | undefined {
+export interface TrpcQueries {
+  trpc: TRPCOptionsProxy<AppRouter>;
+  queryClient: QueryClient;
+}
+
+/**
+ * Returns the tRPC queries, or undefined when rendered outside {@link TRPCProvider}.
+ *
+ * `useTRPC` throws without its provider. TRPCProvider renders PersistQueryClientProvider, so a
+ * QueryClient in scope means the tRPC provider is too.
+ */
+export function useOptionalTrpcQueries(): TrpcQueries | undefined {
   const queryClient = React.useContext(QueryClientContext);
-  if (queryClient === undefined) {
-    return undefined;
-  }
-  return trpc.useUtils();
+  // Whether the provider is there never changes for a mounted component, so the hooks keep their
+  // order. `useTRPC` throws outside its provider, and the service worker manager renders in both.
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const trpc = queryClient === undefined ? undefined : useTRPC();
+  return React.useMemo(
+    () => (queryClient === undefined || trpc === undefined ? undefined : { trpc, queryClient }),
+    [queryClient, trpc],
+  );
 }

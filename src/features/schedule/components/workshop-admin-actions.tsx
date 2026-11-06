@@ -4,13 +4,15 @@ import { SectionLabel } from '@/components/ui/section-label';
 import { toast } from '@/components/ui/toast';
 import { scheduleErrorTexts } from '@/features/schedule/error-texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { Loader2, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const labels = {
   admin: { de: 'Administration', en: 'Administration', fr: 'Administration' },
@@ -57,31 +59,36 @@ export const WorkshopAdminActions: React.FC<WorkshopAdminActionsProperties> = ({
   isAdmin: isAdminProperty,
   courseStatus: courseStatusProperty,
 }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   // Use passed props or fetch if not provided
-  const { data: fetchedStatus, isLoading } = trpc.schedule.getCourseStatus.useQuery(
-    { courseId },
-    {
-      enabled: isAdminProperty === undefined || courseStatusProperty === undefined,
+  const { data: fetchedStatus, isLoading } = useQuery(
+    trpc.schedule.getCourseStatus.queryOptions(
+      { courseId },
+      {
+        enabled: isAdminProperty === undefined || courseStatusProperty === undefined,
 
-      staleTime: 1000 * 60 * 5,
-    },
+        staleTime: 1000 * 60 * 5,
+      },
+    ),
   );
 
   const status = courseStatusProperty ?? fetchedStatus;
   const isAdmin = isAdminProperty ?? status?.isAdmin ?? false;
 
-  const createChat = trpc.schedule.createWorkshopChat.useMutation({
-    onSuccess: (data) => {
-      // Invalidate the status query to update the UI
-      void utils.schedule.getCourseStatus.invalidate({ courseId });
-      globalThis.location.href = `/app/chat/${data.chatId}`;
-    },
-    onError: (error) =>
-      toast.error(userErrorMessage(error, locale, scheduleErrorTexts, labels.createChatFailed)),
-  });
+  const createChat = useMutation(
+    trpc.schedule.createWorkshopChat.mutationOptions({
+      onSuccess: (data) => {
+        // Invalidate the status query to update the UI
+        void queryClient.invalidateQueries(trpc.schedule.getCourseStatus.queryFilter({ courseId }));
+        globalThis.location.assign(`/app/chat/${data.chatId}`);
+      },
+      onError: (error) =>
+        toast.error(userErrorMessage(error, locale, scheduleErrorTexts, labels.createChatFailed)),
+    }),
+  );
 
   // Don't render if not admin or still loading
   if (isLoading && !status) return;

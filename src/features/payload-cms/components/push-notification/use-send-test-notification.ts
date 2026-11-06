@@ -1,10 +1,12 @@
 import { mapSubscriptionToTestNotificationInput } from '@/features/payload-cms/components/push-notification/subscription-mapper';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { toast } from '@payloadcms/ui';
 import type React from 'react';
 import { useState } from 'react';
 import type webpush from 'web-push';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface UseSendTestNotificationProperties {
   subscription: webpush.PushSubscription | PushNotificationSubscription;
@@ -36,11 +38,14 @@ export function useSendTestNotification({
   isSubmitting: boolean;
   handleSend: () => Promise<void>;
 } {
+  const trpc = useTRPC();
   const [content, setContent] = useState('');
   const [url, setUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const utils = trpc.useUtils();
-  const sendTestNotificationMutation = trpc.pushTracking.sendTestNotification.useMutation();
+  const queryClient = useQueryClient();
+  const sendTestNotificationMutation = useMutation(
+    trpc.pushTracking.sendTestNotification.mutationOptions(),
+  );
 
   const handleSend = async (): Promise<void> => {
     if (content.trim() === '') {
@@ -57,7 +62,7 @@ export function useSendTestNotification({
         url: url === '' ? undefined : url,
         userId: userId !== undefined && userId !== '' ? userId : undefined,
       });
-      await utils.pushTracking.getRecentLogs.invalidate();
+      await queryClient.invalidateQueries(trpc.pushTracking.getRecentLogs.pathFilter());
       if (result.success) {
         setContent('');
         setUrl('');

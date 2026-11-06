@@ -1,4 +1,5 @@
-import type { trpc } from '@/trpc/client';
+import type { TrpcQueries } from '@/trpc/client';
+import type { QueryKey } from '@tanstack/react-query';
 
 const CHAT_PAGE_SIZE = 50;
 
@@ -23,39 +24,14 @@ interface ChatDetailsData {
   messages: Array<PushChatMessage & Record<string, unknown>>;
 }
 
-interface MinimalTrpcUtils {
-  chat?: {
-    infiniteMessages?: {
-      setInfiniteData: (
-        queryKey: { chatId: string; limit: number; parentId: undefined },
-        updater: (old: InfiniteMessagesData | undefined) => InfiniteMessagesData | undefined,
-      ) => void;
-      invalidate: (queryKey: { chatId: string }) => Promise<void>;
-    };
-    chatDetails?: {
-      setData: (
-        queryKey: { chatId: string },
-        updater: (old: ChatDetailsData | undefined) => ChatDetailsData | undefined,
-      ) => void;
-      invalidate: (queryKey: { chatId: string }) => Promise<void>;
-    };
-    chats?: {
-      invalidate: () => Promise<void>;
-    };
-  };
-}
-
 export function refreshAndOptimisticallyUpdateChat(
-  trpcUtils: ReturnType<typeof trpc.useUtils> | undefined,
+  queries: TrpcQueries | undefined,
   chatId: string | undefined,
   payload?: Record<string, unknown>,
 ): void {
-  if (trpcUtils === undefined || typeof chatId !== 'string' || chatId.trim() === '') return;
+  if (queries === undefined || typeof chatId !== 'string' || chatId.trim() === '') return;
 
-  const utils = trpcUtils as unknown as MinimalTrpcUtils;
-  const chatQueries = utils.chat;
-  if (chatQueries === undefined) return;
-
+  const { trpc, queryClient } = queries;
   const cleanChatId = chatId.trim();
 
   // 1. If payload contains message content or messageId, perform optimistic TanStack cache update
@@ -88,30 +64,35 @@ export function refreshAndOptimisticallyUpdateChat(
       };
 
       // Optimistically update infiniteMessages cache
-      chatQueries.infiniteMessages?.setInfiniteData(
-        { chatId: cleanChatId, limit: CHAT_PAGE_SIZE, parentId: undefined },
-        (old) => {
-          if (old === undefined) return old;
-          const allItems = old.pages.flatMap((page) => page.items);
-          if (allItems.some((item) => item.id === pushMessage.id)) {
-            return old;
-          }
-          return {
-            ...old,
-            pages: old.pages.map((page, index) =>
-              index === 0
-                ? {
-                    ...page,
-                    items: [pushMessage, ...page.items],
-                  }
-                : page,
-            ),
-          };
-        },
-      );
+      // Typed loosely on purpose: a push carries only part of a message, and the next refetch
+      // replaces it with the real one.
+      const infiniteMessagesKey: QueryKey = trpc.chat.infiniteMessages.infiniteQueryKey({
+        chatId: cleanChatId,
+        limit: CHAT_PAGE_SIZE,
+        parentId: undefined,
+      });
+      queryClient.setQueryData<InfiniteMessagesData>(infiniteMessagesKey, (old) => {
+        if (old === undefined) return old;
+        const allItems = old.pages.flatMap((page) => page.items);
+        if (allItems.some((item) => item.id === pushMessage.id)) {
+          return old;
+        }
+        return {
+          ...old,
+          pages: old.pages.map((page, index) =>
+            index === 0
+              ? {
+                  ...page,
+                  items: [pushMessage, ...page.items],
+                }
+              : page,
+          ),
+        };
+      });
 
       // Optimistically update chatDetails cache
-      chatQueries.chatDetails?.setData({ chatId: cleanChatId }, (old) => {
+      const chatDetailsKey: QueryKey = trpc.chat.chatDetails.queryKey({ chatId: cleanChatId });
+      queryClient.setQueryData<ChatDetailsData>(chatDetailsKey, (old) => {
         if (old === undefined) return old;
         if (old.messages.some((item) => item.id === pushMessage.id)) {
           return old;
@@ -125,7 +106,9 @@ export function refreshAndOptimisticallyUpdateChat(
   }
 
   // 2. Invalidate and trigger background refetch for fresh chat content
-  void chatQueries.infiniteMessages?.invalidate({ chatId: cleanChatId });
-  void chatQueries.chatDetails?.invalidate({ chatId: cleanChatId });
-  void chatQueries.chats?.invalidate();
+  void queryClient.invalidateQueries(
+    trpc.chat.infiniteMessages.infiniteQueryFilter({ chatId: cleanChatId }),
+  );
+  void queryClient.invalidateQueries(trpc.chat.chatDetails.queryFilter({ chatId: cleanChatId }));
+  void queryClient.invalidateQueries(trpc.chat.chats.queryFilter());
 }
