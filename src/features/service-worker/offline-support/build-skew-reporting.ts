@@ -59,13 +59,30 @@ async function capture(
 }
 
 /**
+ * The build the server runs, as far as this worker knows. Without an answer that said otherwise,
+ * that is the worker's own build: a worker is what the browser last fetched from the server, so a
+ * page of another build is one of an earlier release, such as a cached copy. Not while the next
+ * worker installs or waits, which a release brings: the server runs a newer build then, and a
+ * page loaded from it in the meantime is newer than this worker.
+ */
+function knownServerBuild(): string | undefined {
+  if (serverBuild !== undefined) return serverBuild;
+  const registration = self.registration;
+  if (registration.installing !== null || registration.waiting !== null) return undefined;
+  return deploymentId;
+}
+
+/**
  * Tells one page, or every open page, which build the server runs; each compares it with its own.
+ * The worker tells them all when it takes over from the previous one and when an answer shows a
+ * build it did not know; a page that starts later asks.
  *
  * @param client the page that asked, or undefined for all of them
  */
 export async function reportBuildStatus(client?: Client): Promise<void> {
-  if (serverBuild === undefined) return;
-  const message = { type: ServiceWorkerMessages.BUILD_STATUS, payload: { serverBuild } };
+  const build = knownServerBuild();
+  if (build === undefined) return;
+  const message = { type: ServiceWorkerMessages.BUILD_STATUS, payload: { serverBuild: build } };
   try {
     const pages = client ? [client] : await self.clients.matchAll({ type: 'window' });
     for (const page of pages) page.postMessage(message);
@@ -79,18 +96,6 @@ async function noteServerBuild(build: string): Promise<void> {
   if (build === serverBuild) return;
   serverBuild = build;
   await reportBuildStatus();
-}
-
-/**
- * Tells the pages the build of this worker as the build the server runs, once it has taken over
- * from the previous one. A worker that activates was just fetched from the server, so every page
- * open at that moment runs its build or an older one; a page of the previous build that survived
- * the release learns it here, also when its own worker learned it and was then replaced. At any
- * other time the worker's build says nothing: a page loaded while the next worker still installs
- * is newer than its worker.
- */
-export async function reportWorkerBuild(): Promise<void> {
-  await noteServerBuild(deploymentId);
 }
 
 /**

@@ -99,6 +99,8 @@ describe('reporting pages of an outdated build to PostHog', () => {
   const originalCaches = globalThis.caches;
   const originalNavigator = globalThis.navigator;
   let sent: Sent[];
+  /** The worker's registration: no newer worker installing or waiting, unless a test says so. */
+  let registration: { installing: unknown; waiting: unknown };
 
   beforeEach(async () => {
     jest.resetModules();
@@ -108,10 +110,12 @@ describe('reporting pages of an outdated build to PostHog', () => {
       await import('@/features/service-worker/offline-support/build-skew-reporting'));
     jest.useFakeTimers();
     sent = [];
+    registration = { installing: null, waiting: null };
     Object.defineProperty(globalThis, 'navigator', { value: { onLine: true }, configurable: true });
     Object.defineProperty(globalThis, 'self', {
       value: {
         location: { origin: ORIGIN },
+        registration,
         clients: {
           get: (clientId: string) => Promise.resolve(openPage(clientId)),
           // the one open app page, which WebKit gives no id to while it loads
@@ -270,14 +274,28 @@ describe('reporting pages of an outdated build to PostHog', () => {
    * The release's worker takes over while the outdated page starts. The page asked the worker it
    * had, which then gave way to one that knew nothing of the late answer.
    */
-  it('tells the pages its build once a new worker takes over', async () => {
-    const { reportWorkerBuild } =
+  it('tells the pages its own build when it takes over, or when a page asks', async () => {
+    const { reportBuildStatus } =
       await import('@/features/service-worker/offline-support/build-skew-reporting');
     const { deploymentId } = await import('@/config/deployment-id');
 
-    await reportWorkerBuild();
+    await reportBuildStatus();
 
     expect(toldServerBuild()).toEqual([{ clientId: 'open-dashboard', serverBuild: deploymentId }]);
+  });
+
+  /**
+   * A page loaded while the next release's worker installs, minutes on camp wifi, is newer than
+   * its worker; taking the worker's build for the server's would make it load every page fully.
+   */
+  it('claims nothing while the next worker installs', async () => {
+    const { reportBuildStatus } =
+      await import('@/features/service-worker/offline-support/build-skew-reporting');
+    registration.installing = {};
+
+    await reportBuildStatus();
+
+    expect(toldServerBuild()).toEqual([]);
   });
 
   it('reports a page whose requests the proxy turns away once, and tells the pages', async () => {
