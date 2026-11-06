@@ -117,5 +117,10 @@ describe('instrumentTask', () => {
     expect(getMeter).toHaveBeenCalledWith('payload-jobs');
     expect(createHistogram).toHaveBeenCalledTimes(1);
     expect(createHistogram.mock.calls[0]?.[0]).toBe('payload_job_duration_seconds');
+    // in seconds: the SDK's default boundaries are made for milliseconds and put every run
+    // under five seconds into one bucket
+    expect(createHistogram.mock.calls[0]?.[1]).toMatchObject({
+      advice: { explicitBucketBoundaries: expect.arrayContaining([0.1, 1, 60]) as number[] },
+    });
   });
 });
