@@ -125,3 +125,37 @@ describe('the list on a lost phone', () => {
     }
   });
 });
+
+/*
+Fixed values the derivation and the seal must keep producing. The server never stores a
+signature, only the key derived from it, so a band keeps the key it got when it was programmed;
+and a phone offline across a deploy keeps a list sealed by the code before. A change to the HKDF
+inputs, the info strings or the entry format would leave both unreadable, while every test above,
+deriving and opening with the same new code, still passed. The key is cross-checked against an
+independent RFC 5869 HKDF-SHA256.
+*/
+describe('keys and entries already out there', () => {
+  const STORED_KEY = '9030550B8C0D4A7433E3D06775B9919D7A1995210B41CB497DBB454DE3C6E0D2';
+
+  it('derives the key a band was given when it was programmed', async () => {
+    await expect(deriveBandKey(LEA, LEA_SIGNATURE)).resolves.toBe(STORED_KEY);
+    await expect(deriveBandKey(LEA, null)).resolves.toBe(
+      '33050E1C4C2CDF66D5296CC8D2ECB49864DF0CAA5C7E3FF9144A7D0E2FE47CFA',
+    );
+  });
+
+  it('opens an entry sealed by an earlier version of the app', async () => {
+    const kept: SealedWristbandRoster = {
+      entries: [
+        {
+          index: 'nlhrzzPqARtpZMKM/1kx3w==',
+          box: 'XCuTCkj6v96GdD9oKirT3w0HHu7ivc2S+Se8A8f2frWfGXM8LEvp13jfDsN6A/SnrXMSHx/+ECSvFfTAZFL9IpSpJyL1OJFEQGfg+VYzLNBqMFTWZvX1sdBo4cyZBjgjhLAr/1pEULnehx7o6BQCLY8NYOufMlDAsEk=',
+        },
+      ],
+      revokedUids: [],
+    };
+    await expect(identifyFromRoster(kept, { uid: LEA, signature: LEA_SIGNATURE })).resolves.toEqual(
+      { state: 'assigned', uid: LEA, ...lea, verified: true },
+    );
+  });
+});
