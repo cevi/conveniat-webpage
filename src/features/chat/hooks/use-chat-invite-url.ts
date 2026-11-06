@@ -2,7 +2,7 @@
 
 import { environmentVariables } from '@/config/environment-variables';
 import { CHAT_INVITE_REFRESH_MS } from '@/features/chat/constants';
-import { trpc } from '@/trpc/client';
+import { useTRPCClient } from '@/trpc/client';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
 
@@ -14,13 +14,13 @@ import { useQuery } from '@tanstack/react-query';
  * reopened dialog from flashing the code someone already scanned.
  */
 export const useChatInviteUrl = (): UseQueryResult<string> => {
-  const { client } = trpc.useUtils();
+  const trpcClient = useTRPCClient();
 
   return useQuery({
     queryKey: ['chatInviteUrl'],
     meta: { persist: false },
     queryFn: async (): Promise<string> => {
-      const { token } = await client.chat.createChatInvite.mutate({});
+      const { token } = await trpcClient.chat.createChatInvite.mutate({});
       const host = environmentVariables.NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS
         ? 'https://con27.ch'
         : environmentVariables.NEXT_PUBLIC_APP_HOST_URL;

@@ -33,13 +33,15 @@ import {
 import { useSearchHistory } from '@/features/material/hooks/use-search-history';
 import { summariseBulk } from '@/features/material/utils/list-view';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Check, ChevronRight, PackageOpen, User } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
+
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 const text = {
   requests: { de: 'Anfragen', en: 'Requests', fr: 'Demandes' },
@@ -144,9 +146,10 @@ const PickupCard: React.FC<{
   group: MaterialHolderGroup;
   onAdjust: (group: MaterialHolderGroup) => void;
 }> = ({ group, onAdjust }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const invalidate = useInvalidateMaterial();
-  const issue = trpc.material.issueLoanList.useMutation();
+  const issue = useMutation(trpc.material.issueLoanList.mutationOptions());
   const [asking, setAsking] = useState(false);
   const first = group.loans[0];
   const lines = positionCount(group.loans.length, locale);
@@ -228,11 +231,12 @@ const RequestCard: React.FC<{
   dueToday: boolean;
   onAdjust: (group: MaterialHolderGroup) => void;
 }> = ({ group, dueToday, onAdjust }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const invalidate = useInvalidateMaterial();
-  const confirm = trpc.material.confirmLoanList.useMutation();
-  const reject = trpc.material.rejectLoanList.useMutation();
-  const issue = trpc.material.issueLoanList.useMutation();
+  const confirm = useMutation(trpc.material.confirmLoanList.mutationOptions());
+  const reject = useMutation(trpc.material.rejectLoanList.mutationOptions());
+  const issue = useMutation(trpc.material.issueLoanList.mutationOptions());
   const [step, setStep] = useState<'idle' | 'reject' | 'issue'>('idle');
   const [reason, setReason] = useState('');
   const first = group.loans[0];
@@ -383,11 +387,14 @@ const PreparedPickups: React.FC<{
   onAdjust: (group: MaterialHolderGroup) => void;
   children: React.ReactNode;
 }> = ({ onAdjust, children }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const dayEnd = useDayEnd();
-  const queue = trpc.material.getCounterQueue.useQuery(
-    { dayEnd },
-    { ...materialQueryOptions, refetchInterval: MATERIAL_POLL_INTERVAL_MS },
+  const queue = useQuery(
+    trpc.material.getCounterQueue.queryOptions(
+      { dayEnd },
+      { ...materialQueryOptions, refetchInterval: MATERIAL_POLL_INTERVAL_MS },
+    ),
   );
   if (queue.isLoading) return <LoadingState text={labels.loading[locale]} />;
   if (!queue.data) {
@@ -470,9 +477,12 @@ const initialOf = (name: string): string =>
 
 /** Any Hof, found by name; the list is short enough to show whole, by letter. */
 const HofChoice: React.FC<{ onPick: (start: BasketStart) => void }> = ({ onPick }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const [query, setQuery] = useState('');
-  const holders = trpc.material.getHolderList.useQuery(undefined, materialQueryOptions);
+  const holders = useQuery(
+    trpc.material.getHolderList.queryOptions(undefined, materialQueryOptions),
+  );
   const needle = query.trim().toLowerCase();
   const hoefe = (holders.data?.hoefe ?? [])
     .filter((hof) => hof.name.toLowerCase().includes(needle))
@@ -525,12 +535,15 @@ const HofChoice: React.FC<{ onPick: (start: BasketStart) => void }> = ({ onPick 
 
 /** Anybody who has logged in once, found by name as the server searches. */
 const PersonChoice: React.FC<{ onPick: (start: BasketStart) => void }> = ({ onPick }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const [query, setQuery] = useState('');
   const debounced = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS);
-  const people = trpc.material.searchPersonList.useQuery(
-    { query: debounced },
-    { ...materialQueryOptions, enabled: debounced !== '' },
+  const people = useQuery(
+    trpc.material.searchPersonList.queryOptions(
+      { query: debounced },
+      { ...materialQueryOptions, enabled: debounced !== '' },
+    ),
   );
   return (
     <div className="space-y-2">

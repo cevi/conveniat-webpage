@@ -1,5 +1,4 @@
 'use client';
-
 import { toast } from '@/components/ui/toast';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
@@ -12,18 +11,18 @@ import { isRateLimitError } from '@/features/chat/utils/send-errors';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { ChatCapability, ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { isTransportError, userErrorMessage } from '@/utils/user-error-message';
 import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
 import type { InfiniteData } from '@tanstack/react-query';
-import { useQueryClient } from '@tanstack/react-query';
-import { getQueryKey } from '@trpc/react-query';
 import type { inferProcedureOutput } from '@trpc/server';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback } from 'react';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 type InfiniteMessagesOutput = inferProcedureOutput<AppRouter['chat']['infiniteMessages']>;
 type InfiniteMessagesData = InfiniteData<InfiniteMessagesOutput, string | null>;
@@ -61,12 +60,12 @@ export const useCreateChat = (): {
   /** Seeds the optimistic chat, starts the creation and returns the new chat's id. */
   createChat: (arguments_: CreateChatArguments) => string;
 } => {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
   const queryClient = useQueryClient();
   const router = useRouter();
   const pathname = usePathname();
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { data: currentUserId } = trpc.chat.user.useQuery({});
+  const { data: currentUserId } = useQuery(trpc.chat.user.queryOptions({}));
 
   /**
    * Drops an optimistic chat that never made it to the server (or that the server
@@ -74,73 +73,81 @@ export const useCreateChat = (): {
    */
   const discardOptimisticChat = useCallback(
     (chatId: string): void => {
-      trpcUtils.chat.chats.setData({}, (oldChats) => oldChats?.filter((c) => c.id !== chatId));
-      // removed, not set to undefined: `setData` ignores an updater that returns undefined
-      queryClient.removeQueries({
-        queryKey: getQueryKey(trpc.chat.chatDetails, { chatId }, 'query'),
-      });
-      queryClient.removeQueries({
-        queryKey: getQueryKey(trpc.chat.infiniteMessages, { chatId }, 'infinite'),
-      });
+      queryClient.setQueryData(trpc.chat.chats.queryKey({}), (oldChats) =>
+        oldChats?.filter((c) => c.id !== chatId),
+      );
+      // removed, not set to undefined: `setQueryData` ignores an updater that returns undefined
+      queryClient.removeQueries(trpc.chat.chatDetails.queryFilter({ chatId }));
+      queryClient.removeQueries(trpc.chat.infiniteMessages.infiniteQueryFilter({ chatId }));
     },
-    [queryClient, trpcUtils],
+    [queryClient, trpc],
   );
 
-  const { mutate } = trpc.chat.createChat.useMutation({
-    networkMode: 'always',
+  const { mutate } = useMutation(
+    trpc.chat.createChat.mutationOptions({
+      networkMode: 'always',
 
-    onError: (error, variables) => {
-      const optimisticChatId = variables.chatId;
-      if ((isTransportError(error) || isRateLimitError(error)) && optimisticChatId !== undefined) {
-        // Keep the seeded caches in place: the chat stays open and writable, and the
-        // outbox replays the creation (under the very same id) once we are back online,
-        // or once the rate limit lets this user create chats again.
-        addMessageToOutbox({
-          type: 'CREATE_CHAT',
-          id: optimisticChatId,
-          chatName: variables.chatName,
-          memberIds: variables.members.map((m) => m.userId),
-          createdAt: new Date().toISOString(),
-          userId: currentUserId,
-        });
-        // the chat's first line says it is still waiting, the way a queued message's clock does
-        if (isTransportError(error)) markChatCreation(trpcUtils, optimisticChatId, 'pending');
-        return;
-      }
-
-      console.error('Failed to create chat:', error);
-      toast.error(userErrorMessage(error, locale, chatErrorTexts, createChatFailedText));
-
-      if (optimisticChatId === undefined) return;
-      discardOptimisticChat(optimisticChatId);
-
-      // The user is already looking at a chat that will never exist - send them back.
-      if (pathname.includes(optimisticChatId)) {
-        router.replace('/app/chat');
-      }
-    },
-
-    onSuccess: (createdChatId, variables) => {
-      const optimisticChatId = variables.chatId;
-
-      // The server answers a one-to-one creation with the *existing* private chat when
-      // the two already have one, so the id we optimistically opened can differ from the
-      // one that was actually stored. Drop the placeholder and follow the real chat.
-      if (optimisticChatId !== undefined && optimisticChatId !== createdChatId) {
-        discardOptimisticChat(optimisticChatId);
-        if (pathname.includes(optimisticChatId)) {
-          router.replace(`/app/chat/${createdChatId}`);
+      onError: (error, variables) => {
+        const optimisticChatId = variables.chatId;
+        if (
+          (isTransportError(error) || isRateLimitError(error)) &&
+          optimisticChatId !== undefined
+        ) {
+          // Keep the seeded caches in place: the chat stays open and writable, and the
+          // outbox replays the creation (under the very same id) once we are back online,
+          // or once the rate limit lets this user create chats again.
+          addMessageToOutbox({
+            type: 'CREATE_CHAT',
+            id: optimisticChatId,
+            chatName: variables.chatName,
+            memberIds: variables.members.map((m) => m.userId),
+            createdAt: new Date().toISOString(),
+            userId: currentUserId,
+          });
+          // the chat's first line says it is still waiting, the way a queued message's clock does
+          if (isTransportError(error))
+            markChatCreation({ trpc, queryClient }, optimisticChatId, 'pending');
+          return;
         }
-      }
 
-      // Replace the seeded placeholders with the server's version of the chat.
-      void trpcUtils.chat.chatDetails.invalidate({ chatId: createdChatId }).catch(console.warn);
-      void trpcUtils.chat.infiniteMessages
-        .invalidate({ chatId: createdChatId })
-        .catch(console.warn);
-      void trpcUtils.chat.chats.refetch().catch(console.warn);
-    },
-  });
+        console.error('Failed to create chat:', error);
+        toast.error(userErrorMessage(error, locale, chatErrorTexts, createChatFailedText));
+
+        if (optimisticChatId === undefined) return;
+        discardOptimisticChat(optimisticChatId);
+
+        // The user is already looking at a chat that will never exist - send them back.
+        if (pathname.includes(optimisticChatId)) {
+          router.replace('/app/chat');
+        }
+      },
+
+      onSuccess: (createdChatId, variables) => {
+        const optimisticChatId = variables.chatId;
+
+        // The server answers a one-to-one creation with the *existing* private chat when
+        // the two already have one, so the id we optimistically opened can differ from the
+        // one that was actually stored. Drop the placeholder and follow the real chat.
+        if (optimisticChatId !== undefined && optimisticChatId !== createdChatId) {
+          discardOptimisticChat(optimisticChatId);
+          if (pathname.includes(optimisticChatId)) {
+            router.replace(`/app/chat/${createdChatId}`);
+          }
+        }
+
+        // Replace the seeded placeholders with the server's version of the chat.
+        void queryClient
+          .invalidateQueries(trpc.chat.chatDetails.queryFilter({ chatId: createdChatId }))
+          .catch(console.warn);
+        void queryClient
+          .invalidateQueries(
+            trpc.chat.infiniteMessages.infiniteQueryFilter({ chatId: createdChatId }),
+          )
+          .catch(console.warn);
+        void queryClient.refetchQueries(trpc.chat.chats.pathFilter()).catch(console.warn);
+      },
+    }),
+  );
 
   const createChat = useCallback(
     ({ chatName, members }: CreateChatArguments): string => {
@@ -181,7 +188,10 @@ export const useCreateChat = (): {
         userChatPermission: ChatMembershipPermission.OWNER,
       };
 
-      trpcUtils.chat.chats.setData({}, (oldChats) => [optimisticChat, ...(oldChats ?? [])]);
+      queryClient.setQueryData(trpc.chat.chats.queryKey({}), (oldChats) => [
+        optimisticChat,
+        ...(oldChats ?? []),
+      ]);
 
       // Seeded so that opening `/app/chat/<chatId>` right away renders the chat instead of
       // the "you need to be online" placeholder - the query for a chat the server does not
@@ -218,10 +228,14 @@ export const useCreateChat = (): {
           ChatCapability.EMOJI_REACTIONS,
         ],
       };
-      trpcUtils.chat.chatDetails.setData({ chatId }, optimisticDetails);
+      queryClient.setQueryData(trpc.chat.chatDetails.queryKey({ chatId }), optimisticDetails);
 
-      trpcUtils.chat.infiniteMessages.setInfiniteData(
-        { chatId, limit: CHAT_PAGE_SIZE, parentId: undefined },
+      queryClient.setQueryData(
+        trpc.chat.infiniteMessages.infiniteQueryKey({
+          chatId,
+          limit: CHAT_PAGE_SIZE,
+          parentId: undefined,
+        }),
         (): InfiniteMessagesData => ({
           pages: [{ items: [systemMessage], nextCursor: undefined }],
           pageParams: [null],
@@ -236,7 +250,7 @@ export const useCreateChat = (): {
 
       return chatId;
     },
-    [currentUserId, mutate, trpcUtils],
+    [currentUserId, mutate, queryClient, trpc],
   );
 
   return { createChat };

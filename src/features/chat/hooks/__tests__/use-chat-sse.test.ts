@@ -2,8 +2,12 @@
  * @jest-environment jsdom
  */
 
+import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
-import { trpc } from '@/trpc/client';
+import type { TestTrpc } from '@/trpc/test-trpc';
+import { createTestTrpc } from '@/trpc/test-trpc';
+import type { QueryKey } from '@tanstack/react-query';
+import { hashKey } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react';
 
 jest.mock('superjson', () => ({
@@ -11,16 +15,11 @@ jest.mock('superjson', () => ({
   stringify: (data: unknown): string => JSON.stringify(data),
 }));
 
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    useUtils: jest.fn(),
-    chat: {
-      user: {
-        useQuery: jest.fn(),
-      },
-    },
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 
 jest.mock('@/features/chat/utils/realtime-message-notification', () => ({
   notifyRealtimeChatMessage: jest.fn(),
@@ -30,6 +29,27 @@ describe('useChatSSE', () => {
   let mockEventSourceConstructor: jest.Mock;
   const mockAddEventListener = jest.fn();
   const mockClose = jest.fn();
+  let testTrpc: TestTrpc;
+
+  const renderSSE = (chatIds: string[]): { unmount: () => void } =>
+    renderHook(() => useChatSSE(chatIds), { wrapper: testTrpc.wrapper });
+
+  /** the listener the open stream registered for `type` */
+  const streamListener = (type: string): ((event: unknown) => void) | undefined =>
+    (mockAddEventListener.mock.calls as [string, (event: unknown) => void][]).findLast(
+      ([eventType]) => eventType === type,
+    )?.[1];
+
+  /** counts how often each cached query is invalidated from here on */
+  const countInvalidations = (): ((queryKey: QueryKey) => number) => {
+    const counts = new Map<string, number>();
+    testTrpc.queryClient.getQueryCache().subscribe((event) => {
+      if (event.type === 'updated' && event.action.type === 'invalidate') {
+        counts.set(event.query.queryHash, (counts.get(event.query.queryHash) ?? 0) + 1);
+      }
+    });
+    return (queryKey) => counts.get(hashKey(queryKey)) ?? 0;
+  };
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -42,29 +62,9 @@ describe('useChatSSE', () => {
     }));
     globalThis.EventSource = mockEventSourceConstructor as unknown as typeof EventSource;
 
-    (trpc.useUtils as unknown as jest.Mock).mockReturnValue({
-      chat: {
-        chats: {
-          invalidate: jest.fn().mockResolvedValue(true),
-          getData: jest.fn(),
-          setData: jest.fn(),
-        },
-        infiniteMessages: {
-          invalidate: jest.fn().mockResolvedValue(true),
-          setInfiniteData: jest.fn(),
-        },
-        chatDetails: {
-          invalidate: jest.fn().mockResolvedValue(true),
-          setData: jest.fn(),
-        },
-        getMessage: { setData: jest.fn(), invalidate: jest.fn().mockResolvedValue(true) },
-        getFeatureFlags: { invalidate: jest.fn().mockResolvedValue(true) },
-      },
-    });
-
-    (trpc.chat.user.useQuery as unknown as jest.Mock).mockReturnValue({
-      data: 'user-uuid-123',
-    });
+    testTrpc = createTestTrpc();
+    // signed in: `chat.user` never goes stale, so the seeded answer is all the hook reads
+    testTrpc.queryClient.setQueryData(testTrpc.trpc.chat.user.queryKey({}), 'user-uuid-123');
   });
 
   afterEach(() => {
@@ -78,7 +78,7 @@ describe('useChatSSE', () => {
 
   it('constructs correct EventSource URL with user channel and non-empty chat IDs', () => {
     const chatId = '550e8400-e29b-41d4-a716-446655440000';
-    const { unmount } = renderHook(() => useChatSSE([chatId, '', '   ']));
+    const { unmount } = renderSSE([chatId, '', '   ']);
 
     jest.advanceTimersByTime(1);
 
@@ -96,7 +96,7 @@ describe('useChatSSE', () => {
   });
 
   it('connects to user channel when chatIds is empty array', () => {
-    const { unmount } = renderHook(() => useChatSSE([]));
+    const { unmount } = renderSSE([]);
 
     jest.advanceTimersByTime(1);
 
@@ -110,11 +110,10 @@ describe('useChatSSE', () => {
   });
 
   it('does not open EventSource if currentUser is empty or undefined', () => {
-    (trpc.chat.user.useQuery as unknown as jest.Mock).mockReturnValue({
-      data: undefined,
-    });
+    // signed out, or `chat.user` has not answered yet
+    testTrpc = createTestTrpc({ 'chat.user': () => new Promise(() => {}) });
 
-    const { unmount } = renderHook(() => useChatSSE(['550e8400-e29b-41d4-a716-446655440000']));
+    const { unmount } = renderSSE(['550e8400-e29b-41d4-a716-446655440000']);
 
     jest.advanceTimersByTime(1);
 
@@ -127,19 +126,16 @@ describe('useChatSSE', () => {
   it('patches the chat list for a new message instead of refetching it', () => {
     const chatId = '550e8400-e29b-41d4-a716-446655440000';
     const otherChatId = '550e8400-e29b-41d4-a716-446655440001';
-    const utils = (trpc.useUtils as unknown as jest.Mock)() as {
-      chat: { chats: { invalidate: jest.Mock; getData: jest.Mock; setData: jest.Mock } };
-    };
-    utils.chat.chats.getData.mockReturnValue([
+    const { trpc, queryClient } = testTrpc;
+    const chatsKey = trpc.chat.chats.queryKey({});
+    queryClient.setQueryData(chatsKey, [
       { id: otherChatId, unreadCount: 0, messageCount: 1 },
       { id: chatId, unreadCount: 0, messageCount: 1 },
-    ]);
-    const { unmount } = renderHook(() => useChatSSE([chatId]));
+    ] as never);
+    const { unmount } = renderSSE([chatId]);
     jest.advanceTimersByTime(1);
 
-    const onMessage = (
-      mockAddEventListener.mock.calls as [string, (event: unknown) => void][]
-    ).findLast(([type]) => type === 'message')?.[1];
+    const onMessage = streamListener('message');
     onMessage?.({
       data: JSON.stringify({
         type: 'new_message',
@@ -156,8 +152,8 @@ describe('useChatSSE', () => {
       }),
     });
 
-    expect(utils.chat.chats.invalidate).not.toHaveBeenCalled();
-    expect(utils.chat.chats.setData).toHaveBeenCalledWith({}, [
+    expect(queryClient.getQueryState(chatsKey)?.isInvalidated).toBe(false);
+    expect(queryClient.getQueryData(chatsKey)).toEqual([
       expect.objectContaining({ id: chatId, unreadCount: 1 }),
       expect.objectContaining({ id: otherChatId, unreadCount: 0 }),
     ]);
@@ -168,25 +164,38 @@ describe('useChatSSE', () => {
 
   it('shows a message another member deleted as deleted, without refetching it', () => {
     const chatId = '550e8400-e29b-41d4-a716-446655440000';
-    const utils = (trpc.useUtils as unknown as jest.Mock)() as {
-      chat: {
-        infiniteMessages: { setInfiniteData: jest.Mock; invalidate: jest.Mock };
-        chats: { getData: jest.Mock; setData: jest.Mock };
-      };
-    };
-    utils.chat.chats.getData.mockReturnValue([
+    const { trpc, queryClient } = testTrpc;
+    const chatsKey = trpc.chat.chats.queryKey({});
+    queryClient.setQueryData(chatsKey, [
       {
         id: chatId,
         unreadCount: 0,
         lastMessage: { id: 'message-1', senderId: 'someone-else', messagePreview: 'Hoi' },
       },
-    ]);
-    const { unmount } = renderHook(() => useChatSSE([chatId]));
+    ] as never);
+    const messagesKey = trpc.chat.infiniteMessages.infiniteQueryKey({
+      chatId,
+      limit: CHAT_PAGE_SIZE,
+      parentId: undefined,
+    });
+    queryClient.setQueryData(messagesKey, {
+      pageParams: [null],
+      pages: [
+        {
+          items: [
+            {
+              id: 'message-1',
+              messagePayload: { text: 'Das Passwort ist 1234' },
+              reactions: [{ emoji: '👍', userId: 'user-uuid-123', userName: 'Anna' }],
+            },
+          ],
+        },
+      ],
+    } as never);
+    const { unmount } = renderSSE([chatId]);
     jest.advanceTimersByTime(1);
 
-    const onMessage = (
-      mockAddEventListener.mock.calls as [string, (event: unknown) => void][]
-    ).findLast(([type]) => type === 'message')?.[1];
+    const onMessage = streamListener('message');
     onMessage?.({
       data: JSON.stringify({
         type: 'message_deleted',
@@ -204,31 +213,14 @@ describe('useChatSSE', () => {
       }),
     });
 
-    const update = (utils.chat.infiniteMessages.setInfiniteData.mock.calls as unknown[][]).find(
-      (call) => (call[0] as { parentId?: string }).parentId === undefined,
-    )?.[1] as (old: unknown) => { pages: { items: unknown[] }[] };
-    const cached = {
-      pageParams: [undefined],
-      pages: [
-        {
-          items: [
-            {
-              id: 'message-1',
-              messagePayload: { text: 'Das Passwort ist 1234' },
-              reactions: [{ emoji: '👍', userId: 'user-uuid-123', userName: 'Anna' }],
-            },
-          ],
-        },
-      ],
-    };
-    expect(update(cached).pages[0]?.items[0]).toMatchObject({
+    expect(queryClient.getQueryData(messagesKey)?.pages[0]?.items[0]).toMatchObject({
       id: 'message-1',
       messagePayload: {},
       reactions: [],
       deletedAt: new Date('2027-07-24T09:05:00Z'),
     });
-    expect(utils.chat.infiniteMessages.invalidate).not.toHaveBeenCalled();
-    expect(utils.chat.chats.setData).toHaveBeenCalledWith({}, [
+    expect(queryClient.getQueryState(messagesKey)?.isInvalidated).toBe(false);
+    expect(queryClient.getQueryData(chatsKey)).toEqual([
       expect.objectContaining({
         lastMessage: expect.objectContaining({
           messagePreview: expect.objectContaining({ de: 'Nachricht gelöscht' }) as unknown,
@@ -242,25 +234,32 @@ describe('useChatSSE', () => {
 
   it('refetches the open chat and the feature flags once after a delivery gap', () => {
     const chatId = '550e8400-e29b-41d4-a716-446655440000';
-    const utils = (trpc.useUtils as unknown as jest.Mock)() as {
-      chat: {
-        infiniteMessages: { invalidate: jest.Mock };
-        getFeatureFlags: { invalidate: jest.Mock };
-      };
-    };
-    const { unmount } = renderHook(() => useChatSSE([chatId]));
+    const otherChatId = '550e8400-e29b-41d4-a716-446655440001';
+    const { trpc, queryClient } = testTrpc;
+    const messagesKey = (id: string): QueryKey =>
+      trpc.chat.infiniteMessages.infiniteQueryKey({
+        chatId: id,
+        limit: CHAT_PAGE_SIZE,
+        parentId: undefined,
+      });
+    const flagsKey = trpc.chat.getFeatureFlags.queryKey();
+    for (const id of [chatId, otherChatId]) {
+      queryClient.setQueryData(messagesKey(id), { pages: [], pageParams: [] });
+    }
+    queryClient.setQueryData(flagsKey, {} as never);
+    const invalidations = countInvalidations();
+    const { unmount } = renderSSE([chatId]);
     jest.advanceTimersByTime(1);
 
-    const onResync = (
-      mockAddEventListener.mock.calls as [string, (event: unknown) => void][]
-    ).findLast(([type]) => type === 'resync')?.[1];
+    const onResync = streamListener('resync');
     onResync?.({});
     // the refetch is spread over a jitter window of up to 3 s
     jest.advanceTimersByTime(3000);
 
-    expect(utils.chat.infiniteMessages.invalidate).toHaveBeenCalledTimes(1);
-    expect(utils.chat.infiniteMessages.invalidate).toHaveBeenCalledWith({ chatId });
-    expect(utils.chat.getFeatureFlags.invalidate).toHaveBeenCalledTimes(1);
+    expect(invalidations(messagesKey(chatId))).toBe(1);
+    // only the chats this screen shows
+    expect(invalidations(messagesKey(otherChatId))).toBe(0);
+    expect(invalidations(flagsKey)).toBe(1);
 
     unmount();
     jest.advanceTimersByTime(1);

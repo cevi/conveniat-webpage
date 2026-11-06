@@ -1,5 +1,4 @@
 'use client';
-
 import { SetHeaderActions } from '@/components/header/header-actions';
 import { useScheduleEntries } from '@/context/schedule-entries-context';
 import { DateCarouselViewWrapper } from '@/features/schedule/components/date-carousel-view-wrapper';
@@ -32,11 +31,13 @@ import { buildTimeline } from '@/features/schedule/utils/timeline';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { useStar } from '@/hooks/use-star';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { campClockOf } from '@/utils/camp-clock';
 import React, { useEffect, useMemo, useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const foundEventsText: StaticTranslationString = {
   en: 'Found {{count}} event{{plural}} for ',
@@ -63,6 +64,7 @@ export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({
   openId,
   renderBesideList,
 }) => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { starredEntries, toggleStar } = useStar();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -73,8 +75,10 @@ export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({
   const { myQuartiere, myQuartierIds, scope, setScope } = useScheduleScope();
 
   // rendered from the persisted query cache at once, and refreshed as `query-client.ts` sets
-  // eslint-disable-next-line unicorn/no-useless-undefined
-  const { data: scheduleEntries, isLoading } = trpc.schedule.getScheduleEntries.useQuery(undefined);
+
+  const { data: scheduleEntries, isLoading } = useQuery(
+    trpc.schedule.getScheduleEntries.queryOptions(),
+  );
 
   // Sync fresh server entries into local offline storage
   useEffect(() => {
@@ -101,14 +105,18 @@ export const ScheduleComponent: React.FC<ScheduleComponentProperties> = ({
   );
 
   // "Für Leitende" is offered to the people who may read the part for Leitende
-  const { data: leaderAccess } = trpc.schedule.getLeaderAccess.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
-  });
+  const { data: leaderAccess } = useQuery(
+    trpc.schedule.getLeaderAccess.queryOptions(undefined, {
+      staleTime: 1000 * 60 * 5,
+    }),
+  );
 
   // Get enrolled courses
-  const enrollmentsQuery = trpc.schedule.getMyEnrollments.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
-  });
+  const enrollmentsQuery = useQuery(
+    trpc.schedule.getMyEnrollments.queryOptions(undefined, {
+      staleTime: 1000 * 60 * 5,
+    }),
+  );
   const enrolledIds = useMemo(() => {
     const raw = enrollmentsQuery.data as unknown;
     return new Set(Array.isArray(raw) ? (raw as string[]) : []);

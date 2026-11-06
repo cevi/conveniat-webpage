@@ -1,5 +1,4 @@
 'use client';
-
 import type React from 'react';
 
 import type { ChatDetails } from '@/features/chat/api/types';
@@ -13,13 +12,15 @@ import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { ChatType } from '@/lib/prisma/client';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
+import { useQuery } from '@tanstack/react-query';
 
 const onlineText: StaticTranslationString = {
   de: 'Online',
@@ -123,10 +124,13 @@ const useHeaderChat = (
   chatDetails: ChatDetails | undefined,
   currentUser: string | undefined,
 ): HeaderChat | undefined => {
+  const trpc = useTRPC();
   // only reads what the list loaded; a chat opened from a push has no list entry yet
-  const { data: listEntry } = trpc.chat.chats.useQuery(
-    {},
-    { enabled: false, select: (chats) => chats.find((chat) => chat.id === chatId) },
+  const { data: listEntry } = useQuery(
+    trpc.chat.chats.queryOptions(
+      {},
+      { enabled: false, select: (chats) => chats.find((chat) => chat.id === chatId) },
+    ),
   );
 
   if (chatDetails === undefined) return listEntry;
@@ -224,10 +228,11 @@ export const ChatHeaderBar: React.FC<ChatHeaderBarProperties> = ({
 };
 
 export const ChatHeader: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
-  const { data: user } = trpc.chat.user.useQuery({});
-  const { data: chatDetails } = trpc.chat.chatDetails.useQuery({ chatId });
+  const { data: user } = useQuery(trpc.chat.user.queryOptions({}));
+  const { data: chatDetails } = useQuery(trpc.chat.chatDetails.queryOptions({ chatId }));
   const isOnline = useOnlineStatus();
   const chat = useHeaderChat(chatId, chatDetails, user);
 

@@ -40,13 +40,15 @@ import {
   type LoanHolder,
 } from '@/features/material/utils/holders';
 import { parseScan } from '@/features/material/utils/scan';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Building2, Check, ChevronRight, Hash, User } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
+
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 const text = {
   dueToday: { de: 'Heute fällig', en: 'Due today', fr: 'À rendre aujourd’hui' },
@@ -93,10 +95,11 @@ const DueCard: React.FC<{
   group: MaterialHolderGroup;
   onOpen: (holder: LoanHolder) => void;
 }> = ({ group, onOpen }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const now = useNow();
   const invalidate = useInvalidateMaterial();
-  const giveBack = trpc.material.returnLoanBasket.useMutation();
+  const giveBack = useMutation(trpc.material.returnLoanBasket.mutationOptions());
   const [asking, setAsking] = useState(false);
   const name = holderName(group, locale);
   const announced = group.loans.some((loan) => isAnnounced(loan));
@@ -185,11 +188,14 @@ const DueCard: React.FC<{
 };
 
 const DueReturns: React.FC<{ onOpen: (holder: LoanHolder) => void }> = ({ onOpen }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const dayEnd = useDayEnd();
-  const queue = trpc.material.getCounterQueue.useQuery(
-    { dayEnd },
-    { ...materialQueryOptions, refetchInterval: MATERIAL_POLL_INTERVAL_MS },
+  const queue = useQuery(
+    trpc.material.getCounterQueue.queryOptions(
+      { dayEnd },
+      { ...materialQueryOptions, refetchInterval: MATERIAL_POLL_INTERVAL_MS },
+    ),
   );
   if (queue.isLoading) return <LoadingState text={labels.loading[locale]} />;
   if (!queue.data) return <MaterialQueryError error={queue.error} />;
@@ -219,9 +225,12 @@ const HolderSearch: React.FC<{
   onOpen: (holder: LoanHolder) => void;
   onOpenLoan: (number: number) => void;
 }> = ({ onOpen, onOpenLoan }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const [query, setQuery] = useState('');
-  const holders = trpc.material.getHolderList.useQuery(undefined, materialQueryOptions);
+  const holders = useQuery(
+    trpc.material.getHolderList.queryOptions(undefined, materialQueryOptions),
+  );
   const needle = query.trim().toLowerCase();
   const loanNumber = /^#?(\d+)$/.exec(needle)?.[1];
   const rows = [
@@ -300,8 +309,9 @@ const HolderSearch: React.FC<{
 
 /** A scanned loan label: finds whoever has the loan and opens their take-back. */
 const ScannedLoan: React.FC<{ number: number; onClose: () => void }> = ({ number, onClose }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
-  const loan = trpc.material.getLoan.useQuery({ number }, materialQueryOptions);
+  const loan = useQuery(trpc.material.getLoan.queryOptions({ number }, materialQueryOptions));
   if (loan.isLoading) return <LoadingState text={labels.loading[locale]} />;
   const holder = loan.data === undefined ? undefined : holderOf(loan.data);
   if (holder === undefined) {

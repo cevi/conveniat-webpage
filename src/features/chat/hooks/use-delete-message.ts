@@ -1,14 +1,15 @@
 'use client';
-
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import {
   applyDeletionToChatList,
   applyDeletionToMessages,
   asDeletedMessage,
 } from '@/features/chat/utils/message-deletion';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 
-type TrpcUtilities = ReturnType<typeof trpc.useUtils>;
+import type { RouterInputs, RouterOutputs, TrpcError, TrpcQueries } from '@/trpc/client';
+import type { UseMutationResult } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 /**
  * Turns a message into its deleted form in every cache that holds it: the conversation or
@@ -17,14 +18,18 @@ type TrpcUtilities = ReturnType<typeof trpc.useUtils>;
  * twice changes nothing, since the sender hears their own deletion on the stream as well.
  */
 export const applyMessageDeletion = (
-  trpcUtilities: TrpcUtilities,
+  { trpc, queryClient }: TrpcQueries,
   deletion: { chatId: string; messageId: string; parentId?: string | undefined; deletedAt: Date },
 ): void => {
   const { chatId, messageId, parentId, deletedAt } = deletion;
   const lists = new Set<string | undefined>([undefined, parentId]);
   for (const listParentId of lists) {
-    trpcUtilities.chat.infiniteMessages.setInfiniteData(
-      { chatId, limit: CHAT_PAGE_SIZE, parentId: listParentId },
+    queryClient.setQueryData(
+      trpc.chat.infiniteMessages.infiniteQueryKey({
+        chatId,
+        limit: CHAT_PAGE_SIZE,
+        parentId: listParentId,
+      }),
       (old) => {
         if (!old) return old;
         const pages = old.pages.map((page) => {
@@ -36,23 +41,23 @@ export const applyMessageDeletion = (
     );
   }
 
-  trpcUtilities.chat.getMessage.setData({ messageId }, (old) =>
+  queryClient.setQueryData(trpc.chat.getMessage.queryKey({ messageId }), (old) =>
     old === undefined ? old : asDeletedMessage(old, deletedAt),
   );
 
-  trpcUtilities.chat.chatDetails.setData({ chatId }, (old) => {
+  queryClient.setQueryData(trpc.chat.chatDetails.queryKey({ chatId }), (old) => {
     if (!old) return old;
     const messages = applyDeletionToMessages(old.messages, messageId, deletedAt);
     return messages === old.messages ? old : { ...old, messages };
   });
 
-  const chats = trpcUtilities.chat.chats.getData({});
+  const chats = queryClient.getQueryData(trpc.chat.chats.queryKey({}));
   if (chats !== undefined) {
     const patched = applyDeletionToChatList(chats, chatId, messageId);
-    if (patched !== chats) trpcUtilities.chat.chats.setData({}, patched);
+    if (patched !== chats) queryClient.setQueryData(trpc.chat.chats.queryKey({}), patched);
     // a deleted message no longer counts as unread, and only the server knows whether it did
     if ((chats.find((chat) => chat.id === chatId)?.unreadCount ?? 0) > 0) {
-      trpcUtilities.chat.chats.invalidate().catch(console.error);
+      queryClient.invalidateQueries(trpc.chat.chats.pathFilter()).catch(console.error);
     }
   }
 };
@@ -66,17 +71,27 @@ export const applyMessageDeletion = (
 export const useDeleteMessage = (message: {
   chatId: string;
   parentId?: string | undefined;
-}): ReturnType<typeof trpc.chat.deleteMessage.useMutation> => {
-  const trpcUtilities = trpc.useUtils();
-  return trpc.chat.deleteMessage.useMutation({
-    retry: false,
-    onSuccess: ({ deletedAt }, { messageId }) => {
-      applyMessageDeletion(trpcUtilities, {
-        chatId: message.chatId,
-        messageId,
-        parentId: message.parentId,
-        deletedAt: new Date(deletedAt),
-      });
-    },
-  });
+}): UseMutationResult<
+  RouterOutputs['chat']['deleteMessage'],
+  TrpcError,
+  RouterInputs['chat']['deleteMessage']
+> => {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  return useMutation(
+    trpc.chat.deleteMessage.mutationOptions({
+      retry: false,
+      onSuccess: ({ deletedAt }, { messageId }) => {
+        applyMessageDeletion(
+          { trpc, queryClient },
+          {
+            chatId: message.chatId,
+            messageId,
+            parentId: message.parentId,
+            deletedAt: new Date(deletedAt),
+          },
+        );
+      },
+    }),
+  );
 };

@@ -1,5 +1,4 @@
 'use client';
-
 import { CategoriesSheet } from '@/features/material/components/category-sheet';
 import { FilterChip, SearchField } from '@/features/material/components/counter-ui';
 import { ItemDetailView } from '@/features/material/components/item-detail-view';
@@ -23,12 +22,14 @@ import {
 } from '@/features/material/hooks/use-material';
 import { catalogItemPath, itemPath, loanPath, parseScan } from '@/features/material/utils/scan';
 import { useKeptScrollPosition } from '@/hooks/use-kept-scroll-position';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { AlertTriangle, Plus, Tags } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { Activity, useMemo, useRef, useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const text = {
   search: {
@@ -55,10 +56,13 @@ const isLow = (item: MaterialItem): boolean =>
 
 /** Every article with its stock, found by name, code, shelf or scan, in pages. */
 const InventoryList: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const router = useRouter();
-  const items = trpc.material.getInventory.useQuery(undefined, materialQueryOptions);
-  const categories = trpc.material.getCategoryList.useQuery(undefined, materialQueryOptions);
+  const items = useQuery(trpc.material.getInventory.queryOptions(undefined, materialQueryOptions));
+  const categories = useQuery(
+    trpc.material.getCategoryList.queryOptions(undefined, materialQueryOptions),
+  );
   const [query, setQuery] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [onlyLow, setOnlyLow] = useState(false);

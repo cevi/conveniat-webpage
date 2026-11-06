@@ -10,12 +10,15 @@ import {
   useNativePush,
 } from '@/hooks/use-native-push';
 import { writePreference } from '@/lib/preferences';
+import type { TestTrpc } from '@/trpc/test-trpc';
+import { createTestTrpc } from '@/trpc/test-trpc';
 import { assignLocation } from '@/utils/assign-location';
 import {
   notifyForegroundMessage,
   resetForegroundNotificationState,
 } from '@/utils/foreground-notifications';
 import { reloadPage } from '@/utils/reload-page';
+import type { RenderHookResult } from '@testing-library/react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 
 jest.mock('@/utils/reload-page', () => ({
@@ -53,28 +56,35 @@ jest.mock('next/navigation', () => ({
   useRouter: (): { push: jest.Mock } => mockRouter,
 }));
 
-jest.mock('@/trpc/client', () => ({
-  useOptionalTrpcUtils: jest.fn(),
-  trpc: {
-    useUtils: jest.fn(),
-    nativePush: {
-      registerDevice: {
-        useMutation: jest.fn().mockReturnValue({ mutateAsync: jest.fn() }),
-      },
-      unregisterDevice: {
-        useMutation: jest.fn().mockReturnValue({ mutateAsync: jest.fn() }),
-      },
-    },
-    pushTracking: {
-      markInteracted: {
-        useMutation: (): { mutate: jest.Mock } => ({ mutate: mockMarkInteracted }),
-      },
-      markDelivered: {
-        useMutation: (): { mutate: jest.Mock } => ({ mutate: mockMarkDelivered }),
-      },
-    },
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
+
+const mockRegisterDevice = jest.fn();
+const mockUnregisterDevice = jest.fn();
+
+/** The server side of the four procedures the hook calls. */
+const createServer = (): TestTrpc =>
+  createTestTrpc({
+    'nativePush.registerDevice': mockRegisterDevice,
+    'nativePush.unregisterDevice': mockUnregisterDevice,
+    'pushTracking.markInteracted': mockMarkInteracted,
+    'pushTracking.markDelivered': mockMarkDelivered,
+  });
+
+let server: TestTrpc;
+
+const renderNativePush = (): RenderHookResult<ReturnType<typeof useNativePush>, unknown> =>
+  renderHook(() => useNativePush(), { wrapper: server.wrapper });
+
+/** Lets a mutation the last event started reach the server. */
+const flushCalls = async (): Promise<void> => {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+};
 
 const buildDuplicateMessageEvent = (): CustomEvent =>
   new CustomEvent('app-webview-native-push-event', {
@@ -111,6 +121,9 @@ const openEvent = (url: string, bubbles: boolean): CustomEvent =>
 describe('useNativePush', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRegisterDevice.mockReset().mockResolvedValue({ success: true });
+    mockUnregisterDevice.mockReset().mockResolvedValue({ success: true });
+    server = createServer();
     writePreference('native-push-opted-out', false);
     Object.defineProperty(navigator, 'userAgent', {
       value: 'KonektaApp/1.0',
@@ -129,7 +142,7 @@ describe('useNativePush', () => {
   });
 
   it('navigates to relative URL on native-push-open event', () => {
-    renderHook(() => useNativePush());
+    renderNativePush();
 
     const event = new CustomEvent('app-webview-native-push-event', {
       detail: {
@@ -145,8 +158,8 @@ describe('useNativePush', () => {
     expect(mockPush).toHaveBeenCalledWith('/app/chat/123');
   });
 
-  it('records a tap on a native notification against its push log entry', () => {
-    renderHook(() => useNativePush());
+  it('records a tap on a native notification against its push log entry', async () => {
+    renderNativePush();
 
     act(() => {
       globalThis.dispatchEvent(
@@ -162,11 +175,12 @@ describe('useNativePush', () => {
       );
     });
 
+    await flushCalls();
     expect(mockMarkInteracted).toHaveBeenCalledWith({ id: 'log-123', type: 'CLICK' });
   });
 
   it('records a tap on a native notification in PostHog', async () => {
-    renderHook(() => useNativePush());
+    renderNativePush();
 
     act(() => {
       globalThis.dispatchEvent(openEvent('/app/chat/123', false));
@@ -186,8 +200,8 @@ describe('useNativePush', () => {
    * background the OS renders it without running any. This is the one receipt the server
    * gets for a native push.
    */
-  it('reports a native push received in the foreground as delivered', () => {
-    renderHook(() => useNativePush());
+  it('reports a native push received in the foreground as delivered', async () => {
+    renderNativePush();
 
     act(() => {
       globalThis.dispatchEvent(
@@ -204,21 +218,23 @@ describe('useNativePush', () => {
       );
     });
 
+    await flushCalls();
     expect(mockMarkDelivered).toHaveBeenCalledWith({ id: 'log-456' });
   });
 
-  it('records nothing when a native notification carries no push log id', () => {
-    renderHook(() => useNativePush());
+  it('records nothing when a native notification carries no push log id', async () => {
+    renderNativePush();
 
     act(() => {
       globalThis.dispatchEvent(openEvent('/app/chat/123', false));
     });
 
+    await flushCalls();
     expect(mockMarkInteracted).not.toHaveBeenCalled();
   });
 
   it('parses absolute URL and navigates to target path on native-push-open event', () => {
-    renderHook(() => useNativePush());
+    renderNativePush();
 
     const event = new CustomEvent('app-webview-native-push-event', {
       detail: {
@@ -239,7 +255,7 @@ describe('useNativePush', () => {
   it('opens a link to another origin, like the short domain, as a full navigation', () => {
     sessionStorage.clear();
     localStorage.clear();
-    renderHook(() => useNativePush());
+    renderNativePush();
 
     act(() => {
       globalThis.dispatchEvent(openEvent('https://con27.ch/agbs', false));
@@ -251,7 +267,7 @@ describe('useNativePush', () => {
   });
 
   it('falls back to /app/dashboard for a URL that is not http(s)', () => {
-    renderHook(() => useNativePush());
+    renderNativePush();
 
     act(() => {
       globalThis.dispatchEvent(openEvent('javascript:alert(1)', false));
@@ -264,7 +280,7 @@ describe('useNativePush', () => {
   });
 
   it('prioritizes chatId over generic fallback dashboard url', () => {
-    renderHook(() => useNativePush());
+    renderNativePush();
 
     const event = new CustomEvent('app-webview-native-push-event', {
       detail: {
@@ -284,7 +300,7 @@ describe('useNativePush', () => {
   });
 
   it('falls back to /app/dashboard when payload url is missing or invalid', () => {
-    renderHook(() => useNativePush());
+    renderNativePush();
 
     const event = new CustomEvent('app-webview-native-push-event', {
       detail: {
@@ -301,15 +317,9 @@ describe('useNativePush', () => {
   });
 
   it('sets isUnauthenticated to true when registerDevice fails with authentication error', async () => {
-    const mockRegisterDevice = jest.fn().mockRejectedValue(new Error('User not authenticated'));
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const trpcMock = jest.requireMock('@/trpc/client');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    trpcMock.trpc.nativePush.registerDevice.useMutation.mockReturnValue({
-      mutateAsync: mockRegisterDevice,
-    });
+    mockRegisterDevice.mockRejectedValue(new Error('User not authenticated'));
 
-    const { result } = renderHook(() => useNativePush());
+    const { result } = renderNativePush();
 
     await act(async () => {
       globalThis.dispatchEvent(
@@ -336,32 +346,14 @@ describe('useNativePush', () => {
    * that was in fact stored.
    */
   describe('duplicate registration suppression', () => {
-    const mockRegisterDevice = jest.fn().mockResolvedValue({ success: true });
-    const mockUnregisterDevice = jest.fn().mockResolvedValue({ success: true });
-
     beforeEach(() => {
-      mockRegisterDevice.mockClear();
-      // Restores the default after a test that installs a pending implementation,
-      // which `mockClear` on its own would leave in place for the next one.
-      mockRegisterDevice.mockResolvedValue({ success: true });
-      mockUnregisterDevice.mockClear();
       // A leftover pending redirect would navigate on mount and blur the count below.
       sessionStorage.removeItem('pending_push_redirect');
       localStorage.removeItem('pending_push_redirect');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const trpcMock = jest.requireMock('@/trpc/client');
-      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
-      trpcMock.trpc.nativePush.registerDevice.useMutation.mockReturnValue({
-        mutateAsync: mockRegisterDevice,
-      });
-      trpcMock.trpc.nativePush.unregisterDevice.useMutation.mockReturnValue({
-        mutateAsync: mockUnregisterDevice,
-      });
-      /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
     });
 
     it('registers a repeated token only once', async () => {
-      renderHook(() => useNativePush());
+      renderNativePush();
 
       await dispatchToken('token-repeat');
       await dispatchToken('token-repeat');
@@ -371,7 +363,7 @@ describe('useNativePush', () => {
     });
 
     it('registers a new token after the previous one was deleted', async () => {
-      renderHook(() => useNativePush());
+      renderNativePush();
 
       await dispatchToken('token-old');
 
@@ -406,7 +398,7 @@ describe('useNativePush', () => {
           new Promise((resolve) => pendingRegistrations.set(token, resolve)),
       );
 
-      renderHook(() => useNativePush());
+      renderNativePush();
 
       // Neither call resolves, so both are open at the same time.
       await dispatchToken('token-a');
@@ -430,7 +422,7 @@ describe('useNativePush', () => {
      * delivered twice - the same Event object, handled once.
      */
     it('handles an event that bubbles from document to window only once', () => {
-      renderHook(() => useNativePush());
+      renderNativePush();
 
       // Establish what a single delivery costs, then check that a bubbling one - which
       // reaches the document listener and the window listener - costs exactly the same.
@@ -455,28 +447,13 @@ describe('useNativePush', () => {
    * back on, and sent another "successfully subscribed" push with it.
    */
   describe('turning push off', () => {
-    const mockRegisterDevice = jest.fn().mockResolvedValue({ success: true });
-    const mockUnregisterDevice = jest.fn().mockResolvedValue({ success: true });
-
     beforeEach(() => {
-      mockRegisterDevice.mockClear();
-      mockUnregisterDevice.mockClear();
       sessionStorage.removeItem('pending_push_redirect');
       localStorage.removeItem('pending_push_redirect');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const trpcMock = jest.requireMock('@/trpc/client');
-      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
-      trpcMock.trpc.nativePush.registerDevice.useMutation.mockReturnValue({
-        mutateAsync: mockRegisterDevice,
-      });
-      trpcMock.trpc.nativePush.unregisterDevice.useMutation.mockReturnValue({
-        mutateAsync: mockUnregisterDevice,
-      });
-      /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
     });
 
     it('does not register the new token the shell reports after the delete', async () => {
-      const { result } = renderHook(() => useNativePush());
+      const { result } = renderNativePush();
       await dispatchToken('token-before');
 
       act(() => {
@@ -505,7 +482,7 @@ describe('useNativePush', () => {
 
     it('stays off on the next launch and removes a token the backend still holds once', async () => {
       writePreference('native-push-opted-out', true);
-      const { result } = renderHook(() => useNativePush());
+      const { result } = renderNativePush();
 
       await dispatchToken('token-on-launch');
       await dispatchToken('token-on-launch');
@@ -521,7 +498,7 @@ describe('useNativePush', () => {
 
     it('registers the token again once the user turns push back on', async () => {
       writePreference('native-push-opted-out', true);
-      const { result } = renderHook(() => useNativePush());
+      const { result } = renderNativePush();
 
       act(() => {
         result.current.requestPermission();
@@ -653,7 +630,7 @@ describe('useNativePush', () => {
     });
 
     it('asks the native shell for a system notification while on a different page', () => {
-      renderHook(() => useNativePush());
+      renderNativePush();
 
       const event = new CustomEvent('app-webview-native-push-event', {
         detail: {
@@ -691,7 +668,7 @@ describe('useNativePush', () => {
         deleteToken: jest.fn(),
         openSettings: jest.fn(),
       };
-      renderHook(() => useNativePush());
+      renderNativePush();
 
       const event = new CustomEvent('app-webview-native-push-event', {
         detail: {
@@ -719,7 +696,7 @@ describe('useNativePush', () => {
     it('suppresses the notification when the targeted chat is already open', () => {
       globalThis.history.pushState({}, '', '/de/app/chat/chat-abc');
 
-      renderHook(() => useNativePush());
+      renderNativePush();
 
       const event = new CustomEvent('app-webview-native-push-event', {
         detail: {
@@ -746,7 +723,7 @@ describe('useNativePush', () => {
     });
 
     it('surfaces a message only once when it arrives over both push and SSE', () => {
-      renderHook(() => useNativePush());
+      renderNativePush();
 
       act(() => {
         globalThis.dispatchEvent(buildDuplicateMessageEvent());
@@ -775,7 +752,7 @@ describe('useNativePush', () => {
     });
 
     it('reloads the page when the bridge stays silent after mount', () => {
-      renderHook(() => useNativePush());
+      renderNativePush();
 
       act(() => {
         jest.advanceTimersByTime(5000);
@@ -786,7 +763,7 @@ describe('useNativePush', () => {
     });
 
     it('does not reload when a bridge event was received', () => {
-      renderHook(() => useNativePush());
+      renderNativePush();
 
       act(() => {
         globalThis.dispatchEvent(
@@ -806,7 +783,7 @@ describe('useNativePush', () => {
     it('does not reload again while a recent recovery attempt is recorded', () => {
       sessionStorage.setItem('native_push_bridge_recovery_at', String(Date.now()));
 
-      renderHook(() => useNativePush());
+      renderNativePush();
 
       act(() => {
         jest.advanceTimersByTime(5000);
@@ -818,7 +795,7 @@ describe('useNativePush', () => {
     it('does not reload when the bridge object is absent', () => {
       globalThis.AppWebViewNativePush = undefined;
 
-      renderHook(() => useNativePush());
+      renderNativePush();
 
       act(() => {
         jest.advanceTimersByTime(5000);

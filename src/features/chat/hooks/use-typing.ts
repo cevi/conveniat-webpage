@@ -1,9 +1,10 @@
 'use client';
-
 import type { Typist } from '@/features/chat/utils/typing-store';
 import { getNoTypists, getTypists, subscribeTyping } from '@/features/chat/utils/typing-store';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { useCallback, useRef, useSyncExternalStore } from 'react';
+
+import { useMutation } from '@tanstack/react-query';
 
 /** How often a typist repeats the signal; below the receivers' expiry so the dots stay put. */
 const TYPING_SIGNAL_INTERVAL_MS = 2500;
@@ -18,7 +19,8 @@ export const useTypists = (chatId: string, parentId: string | undefined): Typist
  * signal replayed later would be a lie.
  */
 export const useTypingSignal = (chatId: string, parentId: string | undefined): (() => void) => {
-  const signalTyping = trpc.chat.signalTyping.useMutation();
+  const trpc = useTRPC();
+  const signalTyping = useMutation(trpc.chat.signalTyping.mutationOptions());
   const lastSentAtReference = useRef(0);
 
   return useCallback((): void => {

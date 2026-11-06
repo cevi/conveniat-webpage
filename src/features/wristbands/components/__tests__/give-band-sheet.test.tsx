@@ -6,14 +6,17 @@ import { GiveBandSheet } from '@/features/wristbands/components/give-band-sheet'
 import type { BandScannerHandlers } from '@/features/wristbands/hooks/use-band-scanner';
 import type { HofPerson, HofWristbandList } from '@/features/wristbands/types';
 import { navigateWithinApp } from '@/hooks/use-app-webview-navigate';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import type { TestTrpc } from '@/trpc/test-trpc';
+import { createTestTrpc } from '@/trpc/test-trpc';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type React from 'react';
 
 let mockHandlers: BandScannerHandlers | undefined;
 let mockScanning = false;
-const mockAssign = jest.fn((): Promise<void> => Promise.resolve());
-const mockReplace = jest.fn((): Promise<void> => Promise.resolve());
-const mockUnassign = jest.fn((): Promise<void> => Promise.resolve());
+const mockAssign = jest.fn((): undefined => undefined);
+const mockReplace = jest.fn((): undefined => undefined);
+const mockUnassign = jest.fn((): undefined => undefined);
+let testTrpc: TestTrpc;
 
 // the phone: whoever holds a band to it reaches the handlers the sheet gave the scanner
 jest.mock('@/features/wristbands/hooks/use-band-scanner', () => ({
@@ -32,26 +35,11 @@ jest.mock('@/features/wristbands/hooks/use-band-scanner', () => ({
 jest.mock('@/features/wristbands/hooks/use-native-nfc-available', () => ({
   useNativeNfcAvailable: (): boolean => true,
 }));
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    useUtils: (): unknown => ({
-      client: {
-        wristband: {
-          assignWristband: { mutate: mockAssign },
-          replaceWristband: { mutate: mockReplace },
-          unassignWristband: { mutate: mockUnassign },
-        },
-      },
-      wristband: {
-        getHofWristbandList: {
-          getData: (): undefined => undefined,
-          setData: jest.fn(),
-          invalidate: jest.fn(() => Promise.resolve()),
-        },
-      },
-    }),
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 jest.mock('@/components/ui/bottom-sheet', () => ({
   BottomSheet: ({
     open,
@@ -84,9 +72,25 @@ const NEW_BAND = '04BBBBBBBBBBBB';
 
 const show = (person: HofPerson, onClose = jest.fn()): jest.Mock => {
   const list: HofWristbandList = { people: [person], spareBands: [] };
-  render(<GiveBandSheet hofId="uster" list={list} person={person} locale="de" onClose={onClose} />);
+  testTrpc = createTestTrpc({
+    'wristband.assignWristband': mockAssign,
+    'wristband.replaceWristband': mockReplace,
+    'wristband.unassignWristband': mockUnassign,
+  });
+  render(
+    <GiveBandSheet hofId="uster" list={list} person={person} locale="de" onClose={onClose} />,
+    {
+      wrapper: testTrpc.wrapper,
+    },
+  );
   return onClose;
 };
+
+/** the Hof's list as the station's cache holds it now */
+const cachedList = (): HofWristbandList | undefined =>
+  testTrpc.queryClient.getQueryData(
+    testTrpc.trpc.wristband.getHofWristbandList.queryKey({ hofId: 'uster' }),
+  );
 
 const holdBand = async (uid = NEW_BAND): Promise<void> => {
   await act(async () => {
@@ -113,6 +117,8 @@ describe('the band sheet at the station', () => {
       registrationId: 'reg-lea',
     });
     expect(screen.getByText('Band gehört jetzt Funke')).toBeInTheDocument();
+    // the list shows it at once, before it is fetched again
+    expect(cachedList()?.people[0]?.band).toEqual({ uid: NEW_BAND, status: 'active' });
     // the scanner stops, so a second band on the phone goes to nobody by mistake
     expect(mockScanning).toBe(false);
   });
@@ -120,12 +126,13 @@ describe('the band sheet at the station', () => {
   it('takes a band just given back with Rückgängig, and closes for the next person', async () => {
     const onClose = show(lea);
     await holdBand();
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Rückgängig' }));
-      await Promise.resolve();
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'Rückgängig' }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(mockUnassign).toHaveBeenCalledWith({ hofId: 'uster', uid: NEW_BAND });
-    expect(onClose).toHaveBeenCalled();
+    // the band is the Hof's again, for the next person
+    expect(cachedList()?.people[0]?.band).toBeNull();
+    expect(cachedList()?.spareBands).toEqual([{ uid: NEW_BAND, status: 'active' }]);
   });
 
   it('offers a person with a band a new one, which blocks the old and cannot be undone', async () => {

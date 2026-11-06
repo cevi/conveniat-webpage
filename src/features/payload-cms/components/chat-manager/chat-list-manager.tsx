@@ -1,5 +1,4 @@
 'use client';
-
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
@@ -22,12 +21,14 @@ import {
 } from '@/components/ui/table';
 import { ChatCapability } from '@/lib/chat-shared';
 import { ChatType } from '@/lib/prisma/client';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { useTranslation } from '@payloadcms/ui';
 import { format } from 'date-fns';
 import { RefreshCw, Search, Users } from 'lucide-react';
 import React, { useState } from 'react';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface Translation {
   title: string;
@@ -160,6 +161,7 @@ const translations: Record<Locale, Translation> = {
 };
 
 export const ChatListManager: React.FC = () => {
+  const trpc = useTRPC();
   const { i18n } = useTranslation();
 
   const t = translations[i18n.language as Locale];
@@ -169,29 +171,37 @@ export const ChatListManager: React.FC = () => {
   const [page, setPage] = useState(1);
   const limit = 10;
 
-  const utils = trpc.useUtils();
-  const { data, isLoading, refetch, isRefetching } = trpc.admin.getChatList.useQuery({
-    search: search || undefined,
-    type: typeFilter === 'ALL' ? undefined : (typeFilter as ChatType),
-    page,
-    limit,
-  });
+  const queryClient = useQueryClient();
+  const { data, isLoading, refetch, isRefetching } = useQuery(
+    trpc.admin.getChatList.queryOptions({
+      search: search || undefined,
+      type: typeFilter === 'ALL' ? undefined : (typeFilter as ChatType),
+      page,
+      limit,
+    }),
+  );
 
   const chats = data?.chats || [];
   const total = data?.total || 0;
   const totalPages = Math.ceil(total / limit);
 
-  const toggleCapabilityMutation = trpc.admin.toggleChatCapability.useMutation({
-    onSuccess: () => void utils.admin.getChatList.invalidate(),
-  });
+  const toggleCapabilityMutation = useMutation(
+    trpc.admin.toggleChatCapability.mutationOptions({
+      onSuccess: () => void queryClient.invalidateQueries(trpc.admin.getChatList.pathFilter()),
+    }),
+  );
 
-  const closeChatMutation = trpc.admin.closeChat.useMutation({
-    onSuccess: () => void utils.admin.getChatList.invalidate(),
-  });
+  const closeChatMutation = useMutation(
+    trpc.admin.closeChat.mutationOptions({
+      onSuccess: () => void queryClient.invalidateQueries(trpc.admin.getChatList.pathFilter()),
+    }),
+  );
 
-  const reopenChatMutation = trpc.admin.reopenChat.useMutation({
-    onSuccess: () => void utils.admin.getChatList.invalidate(),
-  });
+  const reopenChatMutation = useMutation(
+    trpc.admin.reopenChat.mutationOptions({
+      onSuccess: () => void queryClient.invalidateQueries(trpc.admin.getChatList.pathFilter()),
+    }),
+  );
 
   const onSearchChange = (value: string): void => {
     setSearch(value);

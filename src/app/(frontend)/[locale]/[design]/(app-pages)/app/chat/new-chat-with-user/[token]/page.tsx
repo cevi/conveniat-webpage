@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { trpc } from '@/trpc/server';
+import { caller } from '@/trpc/server';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
@@ -105,7 +105,7 @@ const NewChatWithUserPage: React.FC<{
       // the session, so they never redeem the code.
       result = 'notLoggedIn';
     } else {
-      const redemption = await trpc.chat.redeemChatInvite({ token }).catch((error: unknown) => {
+      const redemption = await caller.chat.redeemChatInvite({ token }).catch((error: unknown) => {
         if (error instanceof TRPCError && error.code === 'FORBIDDEN') return 'forbidden' as const;
         logger.error('Failed to redeem the chat invite', { error });
         return 'failed' as const;

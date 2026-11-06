@@ -7,7 +7,7 @@ import {
 import { getAdminLocale } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import { isPushDeviceStale } from '@/lib/push/push-device-staleness';
 import type { RouterOutputs } from '@/trpc/client';
-import { trpc, TRPCProvider } from '@/trpc/client';
+import { TRPCProvider, useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import {
@@ -28,6 +28,8 @@ import { Laptop, Smartphone } from 'lucide-react';
 import type React from 'react';
 import type { JSX } from 'react';
 import { isValidElement } from 'react';
+
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 type PushDevice = RouterOutputs['pushTracking']['getPushDeviceList'][number];
 
@@ -125,6 +127,7 @@ const PushDeviceRow: React.FC<{
   sourceLabel: string;
   onChanged: () => void;
 }> = ({ device, locale, sourceLabel, onChanged }) => {
+  const trpc = useTRPC();
   const [DocumentDrawer, , { openDrawer }] = useDocumentDrawer({
     collectionSlug: SUBSCRIPTIONS_SLUG,
     id: device.id,
@@ -132,7 +135,7 @@ const PushDeviceRow: React.FC<{
     overrideEntityVisibility: true,
   });
   const { openModal } = useModal();
-  const deleteDevice = trpc.pushTracking.deletePushDevice.useMutation();
+  const deleteDevice = useMutation(trpc.pushTracking.deletePushDevice.mutationOptions());
   const label = describePushDevice(device, locale);
   const isStale = isPushDeviceStale(device.lastUsedAt);
   const confirmSlug = `remove-push-device-${device.id}`;
@@ -215,15 +218,18 @@ const PushDeviceRow: React.FC<{
 };
 
 const PushDeviceTable: React.FC<{ userId: string; locale: Locale }> = ({ userId, locale }) => {
+  const trpc = useTRPC();
   const {
     data: devices,
     isLoading,
     refetch,
-  } = trpc.pushTracking.getPushDeviceList.useQuery(
-    { userId },
-    // Someone else's devices have no place in the cache the browser keeps across visits, and a
-    // restored copy would show devices that are long gone.
-    { meta: { persist: false } },
+  } = useQuery(
+    trpc.pushTracking.getPushDeviceList.queryOptions(
+      { userId },
+      // Someone else's devices have no place in the cache the browser keeps across visits, and a
+      // restored copy would show devices that are long gone.
+      { meta: { persist: false } },
+    ),
   );
   const sourceLabelOf = useRegistrationSourceLabel();
 

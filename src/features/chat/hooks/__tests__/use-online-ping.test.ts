@@ -3,22 +3,37 @@
  */
 
 import { useOnlinePing } from '@/features/chat/hooks/use-online-ping';
+import type { TestTrpc } from '@/trpc/test-trpc';
+import { createTestTrpc } from '@/trpc/test-trpc';
 import { act, renderHook } from '@testing-library/react';
-
-const mockPing = jest.fn();
 
 jest.mock('next-auth/react', () => ({
   useSession: (): unknown => ({ status: 'authenticated' }),
 }));
 
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    chat: { onlinePing: { useMutation: (): unknown => ({ mutate: mockPing }) } },
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
+
+const advance = async (ms: number): Promise<void> => {
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(ms);
+  });
+};
 
 describe('useOnlinePing', () => {
   let visibilityState: DocumentVisibilityState = 'visible';
+  let testTrpc: TestTrpc;
+
+  /** the pings that reached the server, once the mutations in flight have been sent */
+  const pingCount = async (): Promise<number> => {
+    await act(async () => {
+      await Promise.resolve();
+    });
+    return testTrpc.calls.filter((call) => call.path === 'chat.onlinePing').length;
+  };
 
   const setVisibility = (state: DocumentVisibilityState): void => {
     visibilityState = state;
@@ -36,64 +51,56 @@ describe('useOnlinePing', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
-    mockPing.mockClear();
     visibilityState = 'visible';
+    testTrpc = createTestTrpc({ 'chat.onlinePing': (): void => {} });
   });
 
   afterEach(() => {
     jest.useRealTimers();
   });
 
-  it('pings at once and then often enough to stay inside the 30 s online window', () => {
-    const { unmount } = renderHook(() => useOnlinePing());
-    expect(mockPing).toHaveBeenCalledTimes(1);
+  it('pings at once and then often enough to stay inside the 30 s online window', async () => {
+    const { unmount } = renderHook(() => useOnlinePing(), { wrapper: testTrpc.wrapper });
+    expect(await pingCount()).toBe(1);
 
-    act(() => {
-      jest.advanceTimersByTime(25_000);
-    });
-    expect(mockPing).toHaveBeenCalledTimes(2);
+    await advance(25_000);
+    expect(await pingCount()).toBe(2);
 
     unmount();
   });
 
-  it('stops pinging while the app is in the background', () => {
-    const { unmount } = renderHook(() => useOnlinePing());
-    mockPing.mockClear();
+  it('stops pinging while the app is in the background', async () => {
+    const { unmount } = renderHook(() => useOnlinePing(), { wrapper: testTrpc.wrapper });
+    const pingsWhileVisible = await pingCount();
 
     setVisibility('hidden');
-    act(() => {
-      jest.advanceTimersByTime(10 * 60 * 1000);
-    });
+    await advance(10 * 60 * 1000);
 
-    expect(mockPing).not.toHaveBeenCalled();
+    expect(await pingCount()).toBe(pingsWhileVisible);
     unmount();
   });
 
-  it('pings at once when the app comes back to the foreground', () => {
+  it('pings at once when the app comes back to the foreground', async () => {
     visibilityState = 'hidden';
-    const { unmount } = renderHook(() => useOnlinePing());
-    expect(mockPing).not.toHaveBeenCalled();
+    const { unmount } = renderHook(() => useOnlinePing(), { wrapper: testTrpc.wrapper });
+    expect(await pingCount()).toBe(0);
 
     setVisibility('visible');
-    expect(mockPing).toHaveBeenCalledTimes(1);
+    expect(await pingCount()).toBe(1);
 
-    act(() => {
-      jest.advanceTimersByTime(25_000);
-    });
-    expect(mockPing).toHaveBeenCalledTimes(2);
+    await advance(25_000);
+    expect(await pingCount()).toBe(2);
 
     unmount();
   });
 
-  it('stops pinging when the chat is closed', () => {
-    const { unmount } = renderHook(() => useOnlinePing());
+  it('stops pinging when the chat is closed', async () => {
+    const { unmount } = renderHook(() => useOnlinePing(), { wrapper: testTrpc.wrapper });
     unmount();
-    mockPing.mockClear();
+    const pingsWhileOpen = await pingCount();
 
-    act(() => {
-      jest.advanceTimersByTime(60_000);
-    });
+    await advance(60_000);
 
-    expect(mockPing).not.toHaveBeenCalled();
+    expect(await pingCount()).toBe(pingsWhileOpen);
   });
 });

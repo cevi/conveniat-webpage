@@ -1,12 +1,13 @@
 'use client';
-
 import type { QuickAccessTileId } from '@/features/settings/quick-access';
 import {
   DEFAULT_QUICK_ACCESS,
   isDefaultQuickAccess,
   knownQuickAccessTiles,
 } from '@/features/settings/quick-access';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 /**
  * The tiles of the user's Schnellzugriff, in their order, and the way to change them. The choice
@@ -30,19 +31,22 @@ export const useChosenQuickAccess = (
   saveFailed: boolean;
   setChosen: (next: readonly QuickAccessTileId[]) => void;
 } => {
-  const utils = trpc.useUtils();
-  const query = trpc.quickAccess.getQuickAccess.useQuery(undefined, { enabled });
-  const update = trpc.quickAccess.updateQuickAccess.useMutation({
-    // one after the other, so the last change is the one that stays
-    scope: { id: 'quick-access' },
-    onMutate: async ({ tiles }) => {
-      await utils.quickAccess.getQuickAccess.cancel();
-      utils.quickAccess.getQuickAccess.setData(undefined, {
-        tiles: knownQuickAccessTiles(tiles) ?? null,
-      });
-    },
-    onError: () => utils.quickAccess.getQuickAccess.invalidate(),
-  });
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const query = useQuery(trpc.quickAccess.getQuickAccess.queryOptions(undefined, { enabled }));
+  const update = useMutation(
+    trpc.quickAccess.updateQuickAccess.mutationOptions({
+      // one after the other, so the last change is the one that stays
+      scope: { id: 'quick-access' },
+      onMutate: async ({ tiles }) => {
+        await queryClient.cancelQueries(trpc.quickAccess.getQuickAccess.pathFilter());
+        queryClient.setQueryData(trpc.quickAccess.getQuickAccess.queryKey(), {
+          tiles: knownQuickAccessTiles(tiles) ?? null,
+        });
+      },
+      onError: () => queryClient.invalidateQueries(trpc.quickAccess.getQuickAccess.pathFilter()),
+    }),
+  );
 
   // read defensively: the persisted cache may hold a shape of an older release
   const chosen = enabled

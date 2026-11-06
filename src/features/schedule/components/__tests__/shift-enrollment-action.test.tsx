@@ -3,23 +3,13 @@
  */
 
 import { ShiftEnrollmentAction } from '@/features/schedule/components/shift-enrollment-action';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { TRPCClientError } from '@trpc/client';
+import type { ProcedureHandler, TestTrpc } from '@/trpc/test-trpc';
+import { createTestTrpc, testTrpcError } from '@/trpc/test-trpc';
+import type { RenderResult } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type React from 'react';
 
 let mockIsOffline = false;
-const mockRefetch = jest.fn();
-let mockQueryResult: {
-  data: unknown;
-  isLoading: boolean;
-  isFetching: boolean;
-  refetch: jest.Mock;
-} = {
-  data: undefined,
-  isLoading: false,
-  isFetching: false,
-  refetch: mockRefetch,
-};
-const mockUseQuery = jest.fn<typeof mockQueryResult, [unknown, unknown]>(() => mockQueryResult);
 
 jest.mock('@/hooks/use-online-status', () => ({
   useOnlineStatus: (): boolean => !mockIsOffline,
@@ -38,42 +28,43 @@ jest.mock('@/hooks/use-current-locale', () => ({
   useCurrentLocale: (): string => 'de',
 }));
 
-const mutationResult = { mutate: jest.fn(), isPending: false };
-
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    useUtils: (): unknown => ({
-      shifts: {
-        getShiftStatus: { invalidate: jest.fn() },
-        getMyShiftEnrollments: { invalidate: jest.fn() },
-        getShifts: { invalidate: jest.fn() },
-      },
-      schedule: { getHelperShifts: { invalidate: jest.fn() } },
-    }),
-    shifts: {
-      getShiftStatus: {
-        useQuery: (input: unknown, options: unknown): unknown => mockUseQuery(input, options),
-      },
-      enrollInShift: { useMutation: (): unknown => mutationResult },
-      switchIntoShift: { useMutation: (): unknown => mutationResult },
-      unenrollFromShift: { useMutation: (): unknown => mutationResult },
-    },
-  },
-}));
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 
 const OFFLINE_TEXT = 'Offline – Anmeldung nicht möglich.';
 const UNAVAILABLE_TEXT = 'Anmeldestatus konnte nicht geladen werden.';
 
+/** a request the server never answers, so it stays in flight */
+const pending = (): Promise<never> => new Promise<never>(() => {});
+
+/** the cache key of the status of `shift-1` */
+const statusKey = (testTrpc: TestTrpc): readonly unknown[] =>
+  testTrpc.trpc.shifts.getShiftStatus.queryKey({ shiftId: 'shift-1' });
+
+const renderAction = (
+  handlers: Record<string, ProcedureHandler>,
+  properties: Partial<React.ComponentProps<typeof ShiftEnrollmentAction>> = {},
+  seed?: (testTrpc: TestTrpc) => void,
+): RenderResult & TestTrpc => {
+  const testTrpc = createTestTrpc(handlers);
+  seed?.(testTrpc);
+  return Object.assign(
+    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment {...properties} />, {
+      wrapper: testTrpc.wrapper,
+    }),
+    testTrpc,
+  );
+};
+
+const statusCalls = (testTrpc: TestTrpc): TestTrpc['calls'] =>
+  testTrpc.calls.filter((call) => call.path === 'shifts.getShiftStatus');
+
 describe('ShiftEnrollmentAction when the status query has no usable data', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
     mockIsOffline = false;
-    mockQueryResult = {
-      data: undefined,
-      isLoading: false,
-      isFetching: false,
-      refetch: mockRefetch,
-    };
   });
 
   /**
@@ -81,39 +72,40 @@ describe('ShiftEnrollmentAction when the status query has no usable data', () =>
    * *successful* response, so React Query cached and persisted it. The component read "no data" as
    * "no network" and told a demonstrably online user that a single Helferschicht was unreachable.
    */
-  it('does not claim to be offline while the app is online', () => {
-    mockQueryResult = { ...mockQueryResult, data: undefined };
+  it('does not claim to be offline while the app is online', async () => {
+    renderAction({ 'shifts.getShiftStatus': () => null });
 
-    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
-
+    expect(await screen.findByText(UNAVAILABLE_TEXT)).toBeInTheDocument();
     expect(screen.queryByText(OFFLINE_TEXT)).toBeNull();
-    expect(screen.getByText(UNAVAILABLE_TEXT)).toBeInTheDocument();
   });
 
-  it('offers a retry that refetches the shift status', () => {
-    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
+  it('offers a retry that refetches the shift status', async () => {
+    const getShiftStatus = jest.fn(() => null);
+    renderAction({ 'shifts.getShiftStatus': getShiftStatus });
 
-    fireEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Erneut versuchen/ }));
 
-    expect(mockRefetch).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(getShiftStatus).toHaveBeenCalledTimes(2));
+    expect(getShiftStatus).toHaveBeenLastCalledWith({ shiftId: 'shift-1' });
   });
 
-  it('still reports offline when the app really is offline', () => {
+  it('still reports offline when the app really is offline', async () => {
     mockIsOffline = true;
 
-    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
+    renderAction({ 'shifts.getShiftStatus': () => null });
 
-    expect(screen.getByText(OFFLINE_TEXT)).toBeInTheDocument();
+    expect(await screen.findByText(OFFLINE_TEXT)).toBeInTheDocument();
     expect(screen.queryByText(UNAVAILABLE_TEXT)).toBeNull();
   });
 
-  it('shows the skeleton rather than an error while a cached value is being revalidated', () => {
-    mockQueryResult = { ...mockQueryResult, isFetching: true };
+  it('shows the skeleton rather than an error while a cached value is being revalidated', async () => {
+    const testTrpc = renderAction({ 'shifts.getShiftStatus': pending }, {}, (t) =>
+      t.queryClient.setQueryData(statusKey(t), null),
+    );
 
-    const { container } = render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
-
+    await waitFor(() => expect(statusCalls(testTrpc)).toHaveLength(1));
     expect(screen.queryByText(UNAVAILABLE_TEXT)).toBeNull();
-    expect(container.querySelector('.animate-pulse')).not.toBeNull();
+    expect(testTrpc.container.querySelector('.animate-pulse')).not.toBeNull();
   });
 
   /**
@@ -123,17 +115,30 @@ describe('ShiftEnrollmentAction when the status query has no usable data', () =>
    * still respects the five-minute `staleTime`, so a freshly persisted empty value would outlive
    * the next visit.
    */
-  it('refetches an empty cached status on mount without waiting for it to go stale', () => {
-    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
-
-    const options = mockUseQuery.mock.calls[0]?.[1] as {
-      refetchOnMount: (query: { state: { data: unknown } }) => boolean | string;
-    };
-
+  describe('refetches an empty cached status on mount without waiting for it to go stale', () => {
     // the exact value the server used to hand back
-    expect(options.refetchOnMount({ state: { data: null } })).toBe('always');
-    expect(options.refetchOnMount({ state: { data: undefined } })).toBe('always');
-    expect(options.refetchOnMount({ state: { data: { enrolledCount: 1 } } })).toBe(true);
+    it('refetches a fresh cached null', async () => {
+      const testTrpc = renderAction({ 'shifts.getShiftStatus': pending }, {}, (t) =>
+        t.queryClient.setQueryData(statusKey(t), null),
+      );
+
+      await waitFor(() => expect(statusCalls(testTrpc)).toHaveLength(1));
+    });
+
+    it('fetches when nothing is cached', async () => {
+      const testTrpc = renderAction({ 'shifts.getShiftStatus': pending });
+
+      await waitFor(() => expect(statusCalls(testTrpc)).toHaveLength(1));
+    });
+
+    it('leaves a fresh cached status to its staleness schedule', async () => {
+      const testTrpc = renderAction({ 'shifts.getShiftStatus': pending }, {}, (t) =>
+        t.queryClient.setQueryData(statusKey(t), enrolledStatus()),
+      );
+
+      expect(await screen.findByRole('button', { name: /Abmelden/ })).toBeInTheDocument();
+      expect(statusCalls(testTrpc)).toEqual([]);
+    });
   });
 });
 
@@ -157,35 +162,20 @@ const enrolledStatus = (unenrollmentDeadline?: string): Record<string, unknown> 
  */
 describe('ShiftEnrollmentAction once the withdrawal deadline has passed', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
     mockIsOffline = false;
   });
 
-  it('still offers the withdrawal while the deadline is ahead', () => {
-    mockQueryResult = {
-      data: enrolledStatus('2100-01-01T00:00:00.000Z'),
-      isLoading: false,
-      isFetching: false,
-      refetch: mockRefetch,
-    };
+  it('still offers the withdrawal while the deadline is ahead', async () => {
+    renderAction({ 'shifts.getShiftStatus': () => enrolledStatus('2100-01-01T00:00:00.000Z') });
 
-    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
-
-    expect(screen.getByRole('button', { name: /Abmelden/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Abmelden/ })).toBeInTheDocument();
     expect(screen.queryByText(WITHDRAWAL_CLOSED_TEXT)).toBeNull();
   });
 
-  it('replaces the button with a hint once the deadline is behind us', () => {
-    mockQueryResult = {
-      data: enrolledStatus('2000-01-01T00:00:00.000Z'),
-      isLoading: false,
-      isFetching: false,
-      refetch: mockRefetch,
-    };
+  it('replaces the button with a hint once the deadline is behind us', async () => {
+    renderAction({ 'shifts.getShiftStatus': () => enrolledStatus('2000-01-01T00:00:00.000Z') });
 
-    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
-
-    expect(screen.getByText(WITHDRAWAL_CLOSED_TEXT)).toBeInTheDocument();
+    expect(await screen.findByText(WITHDRAWAL_CLOSED_TEXT)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Abmelden/ })).toBeNull();
   });
 
@@ -194,71 +184,84 @@ describe('ShiftEnrollmentAction once the withdrawal deadline has passed', () => 
    * case - the server still refuses a late one, and locking helpers out over a stale cache would
    * be the worse failure.
    */
-  it('keeps the withdrawal available when the cached status carries no deadline', () => {
-    mockQueryResult = {
-      data: enrolledStatus(),
-      isLoading: false,
-      isFetching: false,
-      refetch: mockRefetch,
-    };
+  it('keeps the withdrawal available when the cached status carries no deadline', async () => {
+    renderAction({ 'shifts.getShiftStatus': pending }, {}, (t) =>
+      t.queryClient.setQueryData(statusKey(t), enrolledStatus()),
+    );
 
-    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
-
-    expect(screen.getByRole('button', { name: /Abmelden/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Abmelden/ })).toBeInTheDocument();
   });
 });
 
-/** The error the tRPC client raises for a refusal the router named. */
-const refusal = (reason: string): TRPCClientError<never> =>
-  new TRPCClientError(reason, {
-    result: { error: { code: -32_600, message: reason, data: { code: 'BAD_REQUEST', reason } } },
-  } as never);
-
 describe('ShiftEnrollmentAction after a failed enrolment', () => {
+  const openStatus = { ...enrolledStatus('2100-01-01T00:00:00.000Z'), isEnrolled: false };
+
   beforeEach(() => {
-    jest.clearAllMocks();
     mockIsOffline = false;
-    mockQueryResult = {
-      data: { ...enrolledStatus('2100-01-01T00:00:00.000Z'), isEnrolled: false },
-      isLoading: false,
-      isFetching: false,
-      refetch: mockRefetch,
-    };
+    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    delete (mutationResult as { error?: unknown }).error;
+    jest.restoreAllMocks();
   });
 
-  it.each(['card', 'detail'] as const)('says why under the button (%s)', (variant) => {
-    Object.assign(mutationResult, { error: refusal('shiftFull') });
+  it.each(['card', 'detail'] as const)('says why under the button (%s)', async (variant) => {
+    // the refusal refetches the status; until that answers, the line is all the helper has
+    const testTrpc = renderAction(
+      {
+        'shifts.getShiftStatus': jest
+          .fn()
+          .mockReturnValueOnce(openStatus)
+          .mockImplementation(pending),
+        'shifts.enrollInShift': () => {
+          throw testTrpcError('BAD_REQUEST', { reason: 'shiftFull' });
+        },
+      },
+      { variant },
+    );
 
-    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment variant={variant} />);
+    fireEvent.click(await screen.findByRole('button', { name: /Einschreiben/ }));
 
-    expect(screen.getByRole('alert')).toHaveTextContent(
+    expect(await screen.findByRole('alert')).toHaveTextContent(
       'Dieser Schichteinsatz ist bereits ausgebucht.',
     );
+    expect(testTrpc.calls).toContainEqual({
+      path: 'shifts.enrollInShift',
+      input: { shiftId: 'shift-1' },
+    });
   });
 
-  it('leaves it to the refreshed status once that says the shift is full', () => {
-    mockQueryResult = {
-      ...mockQueryResult,
-      data: { ...enrolledStatus(), isEnrolled: false, enrolledCount: 5 },
-    };
-    Object.assign(mutationResult, { error: refusal('shiftFull') });
+  it('leaves it to the refreshed status once that says the shift is full', async () => {
+    const getShiftStatus = jest
+      .fn()
+      .mockReturnValueOnce(openStatus)
+      .mockReturnValue({ ...enrolledStatus(), isEnrolled: false, enrolledCount: 5 });
+    renderAction({
+      'shifts.getShiftStatus': getShiftStatus,
+      'shifts.enrollInShift': () => {
+        throw testTrpcError('BAD_REQUEST', { reason: 'shiftFull' });
+      },
+    });
 
-    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
+    fireEvent.click(await screen.findByRole('button', { name: /Einschreiben/ }));
 
-    expect(screen.queryByRole('alert')).toBeNull();
+    // the refusal refetches the status, which now says the shift is full
+    await waitFor(() => expect(getShiftStatus).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByRole('button')).toBeNull());
     // the capacity row says it is full; no control is left that only looks tappable
-    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('says there is no connection when the request never arrived', () => {
-    Object.assign(mutationResult, { error: new TRPCClientError('Failed to fetch') });
+  it('says there is no connection when the request never arrived', async () => {
+    renderAction({
+      'shifts.getShiftStatus': () => openStatus,
+      'shifts.enrollInShift': () => {
+        throw new Error('Failed to fetch');
+      },
+    });
 
-    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
+    fireEvent.click(await screen.findByRole('button', { name: /Einschreiben/ }));
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Keine Verbindung.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Keine Verbindung.');
   });
 });

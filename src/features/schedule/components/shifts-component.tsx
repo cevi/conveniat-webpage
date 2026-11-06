@@ -1,5 +1,4 @@
 'use client';
-
 import { SetHeaderActions } from '@/components/header/header-actions';
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -13,10 +12,12 @@ import {
 import { ShiftCard } from '@/features/schedule/components/shift-card';
 import { useSchedule } from '@/features/schedule/hooks/use-schedule';
 import { useShiftFilters } from '@/features/schedule/hooks/use-shift-filter';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { CalendarX, FilterX } from 'lucide-react';
 import React, { useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const noShiftsText: StaticTranslationString = {
   en: 'No helper shifts for this date yet',
@@ -54,13 +55,16 @@ const searchShiftsText: StaticTranslationString = {
  * search and the filter open from the app header, as on the programme.
  */
 export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
+  const trpc = useTRPC();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  const { data: shifts, isLoading } = trpc.schedule.getHelperShifts.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
-  });
+  const { data: shifts, isLoading } = useQuery(
+    trpc.schedule.getHelperShifts.queryOptions(undefined, {
+      staleTime: 1000 * 60 * 5,
+      refetchOnWindowFocus: false,
+    }),
+  );
 
   const { currentDate, allDates, currentProgram: shiftsOfDay, actions } = useSchedule(shifts ?? []);
 

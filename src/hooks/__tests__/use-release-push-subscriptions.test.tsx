@@ -3,27 +3,18 @@
  */
 
 import { useReleasePushSubscriptions } from '@/hooks/use-release-push-subscriptions';
-import { makeQueryClient } from '@/trpc/query-client';
-import type { UseMutationOptions, UseMutationResult } from '@tanstack/react-query';
-import { onlineManager, QueryClientProvider, useMutation } from '@tanstack/react-query';
+import { createTestTrpc } from '@/trpc/test-trpc';
+import { onlineManager } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react';
-import type React from 'react';
 
 const mockReleaseDevice = jest.fn<Promise<{ success: boolean }>, [{ deviceId: string }]>();
 
-// The real hook from TanStack, so the app's `networkMode` defaults decide whether it waits.
-jest.mock('@/trpc/client', () => ({
-  trpc: {
-    nativePush: {
-      releaseDevice: {
-        useMutation: (
-          options?: UseMutationOptions<{ success: boolean }, Error, { deviceId: string }>,
-        ): UseMutationResult<{ success: boolean }, Error, { deviceId: string }> =>
-          useMutation({ ...options, mutationFn: mockReleaseDevice }),
-      },
-    },
-  },
-}));
+// The app's real query client, so its `networkMode` defaults decide whether the release waits.
+jest.mock(
+  '@/trpc/client',
+  () =>
+    jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
+);
 
 jest.mock('@/utils/device-id', () => ({
   getOrCreateDeviceId: (): string => 'device-1',
@@ -42,10 +33,9 @@ jest.mock('@/utils/push-notification-api', () => ({
 }));
 
 const renderRelease = (): (() => Promise<void>) => {
-  const queryClient = makeQueryClient();
-  const wrapper = ({ children }: { children: React.ReactNode }): React.ReactNode => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  const { wrapper } = createTestTrpc({
+    'nativePush.releaseDevice': (input) => mockReleaseDevice(input as { deviceId: string }),
+  });
   return renderHook(() => useReleasePushSubscriptions(), { wrapper }).result.current;
 };
 
@@ -66,7 +56,7 @@ describe('useReleasePushSubscriptions', () => {
 
     await renderRelease()();
 
-    expect(mockReleaseDevice).toHaveBeenCalledWith({ deviceId: 'device-1' }, expect.anything());
+    expect(mockReleaseDevice).toHaveBeenCalledWith({ deviceId: 'device-1' });
     expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
   });
 

@@ -1,7 +1,8 @@
 'use client';
-
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { useState } from 'react';
+
+import { useMutation } from '@tanstack/react-query';
 
 interface IncidentPhotoUpload {
   /** object key to send along with the report, once the upload finished */
@@ -20,7 +21,8 @@ interface IncidentPhotoUpload {
 export const useIncidentPhotoUpload = (
   onKeyChange?: (photoKey?: string) => void,
 ): IncidentPhotoUpload => {
-  const createUploadUrl = trpc.material.createIncidentPhotoUploadUrl.useMutation();
+  const trpc = useTRPC();
+  const createUploadUrl = useMutation(trpc.material.createIncidentPhotoUploadUrl.mutationOptions());
   const [photoKey, setPhotoKey] = useState<string | undefined>();
   const [previewUrl, setPreviewUrl] = useState<string | undefined>();
   const [isUploading, setIsUploading] = useState(false);

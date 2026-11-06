@@ -1,5 +1,4 @@
 'use client';
-
 import { SetHeaderActions } from '@/components/header/header-actions';
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -15,11 +14,13 @@ import { useWristbandRoster } from '@/features/wristbands/hooks/use-wristband-ro
 import { formatCampTime, readerText } from '@/features/wristbands/reader-texts';
 import { translate } from '@/features/wristbands/texts';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { ListChecks, Loader2, Nfc, ShieldOff } from 'lucide-react';
 import type React from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 const Loading: React.FC<{ locale: Locale }> = ({ locale }) => (
   <div className="flex items-center justify-center gap-2 py-16 text-sm text-green-500">
@@ -120,8 +121,9 @@ const Reader: React.FC<{ roster: RosterOnPhone; locale: Locale }> = ({ roster, l
  * the page is not theirs, and the list never reaches their phone.
  */
 export const ReaderView: React.FC = () => {
+  const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const accessQuery = trpc.wristband.getWristbandAccess.useQuery();
+  const accessQuery = useQuery(trpc.wristband.getWristbandAccess.queryOptions());
   const reader = accessQuery.data?.reader;
   const roster = useWristbandRoster(reader);
 

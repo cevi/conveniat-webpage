@@ -1,12 +1,14 @@
 import { toast } from '@/components/ui/toast';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import type { TRPCClientErrorLike } from '@trpc/client';
-import type { UseTRPCMutationResult } from '@trpc/react-query/shared';
 import type { inferProcedureInput, inferProcedureOutput } from '@trpc/server';
+
+import type { UseMutationResult } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 const archiveFailedText: StaticTranslationString = {
   de: 'Chat konnte nicht gelöscht werden.',
@@ -20,7 +22,7 @@ const tryAgainText: StaticTranslationString = {
   fr: 'Réessayer',
 };
 
-type UseArchiveChatMutation = UseTRPCMutationResult<
+type UseArchiveChatMutation = UseMutationResult<
   inferProcedureOutput<AppRouter['chat']['archiveChat']>,
   TRPCClientErrorLike<AppRouter>,
   inferProcedureInput<AppRouter['chat']['archiveChat']>,
@@ -33,58 +35,71 @@ type UseArchiveChatMutation = UseTRPCMutationResult<
  * out, so without the toast the chat would reappear long after the user deleted it, unexplained.
  */
 export const useArchiveChatMutation = (): UseArchiveChatMutation => {
-  const trpcUtils = trpc.useUtils();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
-  const mutation = trpc.chat.archiveChat.useMutation({
-    async onMutate({ chatUuid }) {
-      await trpcUtils.chat.chatDetails.cancel({ chatId: chatUuid });
+  const mutation = useMutation(
+    trpc.chat.archiveChat.mutationOptions({
+      async onMutate({ chatUuid }) {
+        await queryClient.cancelQueries(trpc.chat.chatDetails.queryFilter({ chatId: chatUuid }));
 
-      // Optimistically update the chat details to mark it as archived
-      const previousChatDetails = trpcUtils.chat.chatDetails.getData({ chatId: chatUuid });
-      trpcUtils.chat.chatDetails.setData({ chatId: chatUuid }, (oldDate) => {
-        if (!oldDate) return oldDate;
-        return {
-          ...oldDate,
-          isArchived: true,
-        };
-      });
+        // Optimistically update the chat details to mark it as archived
+        const previousChatDetails = queryClient.getQueryData(
+          trpc.chat.chatDetails.queryKey({ chatId: chatUuid }),
+        );
+        queryClient.setQueryData(
+          trpc.chat.chatDetails.queryKey({ chatId: chatUuid }),
+          (oldDate) => {
+            if (!oldDate) return oldDate;
+            return {
+              ...oldDate,
+              isArchived: true,
+            };
+          },
+        );
 
-      // Optimistically update the chat list to remove the archived chat
-      const previousChats = trpcUtils.chat.chats.getData({});
-      trpcUtils.chat.chats.setData({}, (oldChats) => {
-        if (!oldChats) return oldChats;
-        return oldChats.filter((chat) => chat.id !== chatUuid);
-      });
+        // Optimistically update the chat list to remove the archived chat
+        const previousChats = queryClient.getQueryData(trpc.chat.chats.queryKey({}));
+        queryClient.setQueryData(trpc.chat.chats.queryKey({}), (oldChats) => {
+          if (!oldChats) return oldChats;
+          return oldChats.filter((chat) => chat.id !== chatUuid);
+        });
 
-      return { previousChatDetails, previousChats };
-    },
+        return { previousChatDetails, previousChats };
+      },
 
-    onSuccess: (_, { chatUuid }) => {
-      console.log(`Chat ${chatUuid} archived successfully, invalidating chat detail query.`);
-      trpcUtils.chat.chatDetails.invalidate({ chatId: chatUuid }).catch(console.error);
-      trpcUtils.chat.chats.invalidate().catch(console.error);
-    },
+      onSuccess: (_, { chatUuid }) => {
+        console.log(`Chat ${chatUuid} archived successfully, invalidating chat detail query.`);
+        queryClient
+          .invalidateQueries(trpc.chat.chatDetails.queryFilter({ chatId: chatUuid }))
+          .catch(console.error);
+        queryClient.invalidateQueries(trpc.chat.chats.pathFilter()).catch(console.error);
+      },
 
-    onError: (error, input, context) => {
-      const { chatUuid } = input;
-      console.error('Failed to archive chat:', error);
+      onError: (error, input, context) => {
+        const { chatUuid } = input;
+        console.error('Failed to archive chat:', error);
 
-      // Roll back the chat details to the previous stateD
-      if (context?.previousChatDetails) {
-        trpcUtils.chat.chatDetails.setData({ chatId: chatUuid }, context.previousChatDetails);
-      }
+        // Roll back the chat details to the previous stateD
+        if (context?.previousChatDetails) {
+          queryClient.setQueryData(
+            trpc.chat.chatDetails.queryKey({ chatId: chatUuid }),
+            context.previousChatDetails,
+          );
+        }
 
-      // Roll back the chat list to the previous state
-      if (context?.previousChats) {
-        trpcUtils.chat.chats.setData({}, context.previousChats);
-      }
+        // Roll back the chat list to the previous state
+        if (context?.previousChats) {
+          queryClient.setQueryData(trpc.chat.chats.queryKey({}), context.previousChats);
+        }
 
-      toast.error(archiveFailedText[locale], {
-        action: { label: tryAgainText[locale], onClick: () => mutation.mutate(input) },
-      });
-    },
-  });
+        toast.error(archiveFailedText[locale], {
+          action: { label: tryAgainText[locale], onClick: () => mutation.mutate(input) },
+        });
+      },
+    }),
+  );
 
   return mutation;
 };

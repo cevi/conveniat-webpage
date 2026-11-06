@@ -39,12 +39,14 @@ import {
 } from '@/features/material/utils/returns';
 import { loanPath } from '@/features/material/utils/scan';
 import type { MaterialCondition } from '@/lib/prisma/client';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronLeft, PackageCheck, QrCode } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
+
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 const text = {
   hasOut: { de: 'Hat draussen', en: 'Has out', fr: 'A dehors' },
@@ -269,13 +271,16 @@ export const ReturnEditor: React.FC<{
   scannedNumber?: number | undefined;
   onClose: () => void;
 }> = ({ holder, scannedNumber, onClose }) => {
+  const trpc = useTRPC();
   const locale = useMaterialLocale();
   const invalidate = useInvalidateMaterial();
-  const open = trpc.material.getOpenLoansForHolder.useQuery(
-    holder.kind === 'HOF' ? { hofId: holder.id } : { personId: holder.id },
-    materialQueryOptions,
+  const open = useQuery(
+    trpc.material.getOpenLoansForHolder.queryOptions(
+      holder.kind === 'HOF' ? { hofId: holder.id } : { personId: holder.id },
+      materialQueryOptions,
+    ),
   );
-  const giveBack = trpc.material.returnLoanBasket.useMutation();
+  const giveBack = useMutation(trpc.material.returnLoanBasket.mutationOptions());
   const [edits, setEdits] = useState<Record<string, LineState>>({});
   const [label, setLabel] = useState<MaterialLoan | undefined>();
 

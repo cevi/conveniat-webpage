@@ -1,7 +1,8 @@
 'use client';
-
 import type { RouterOutputs } from '@/trpc/client';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
+
+import { useQuery } from '@tanstack/react-query';
 
 /** The enrolment status of one shift, as `shifts.getShiftStatus` answers it. */
 export type ShiftStatus = NonNullable<RouterOutputs['shifts']['getShiftStatus']>;
@@ -25,20 +26,23 @@ export interface ShiftStatusResult {
  * what keeps those observers from disagreeing about staleness.
  */
 export const useShiftStatus = (shiftId: string | undefined): ShiftStatusResult => {
-  const { data, isLoading, isFetching, refetch } = trpc.shifts.getShiftStatus.useQuery(
-    { shiftId: shiftId ?? '' },
-    {
-      // `undefined` is a caller that has no shift to ask about yet - the conflict dialog before
-      // it knows which shift it is arguing about - not a shift whose status is missing
-      enabled: shiftId !== undefined && shiftId !== '',
-      staleTime: 1000 * 60 * 5,
-      gcTime: 1000 * 60 * 60 * 24 * 7,
-      // With the 7-day `gcTime` and disk persistence, one bad value used to stick for days.
-      // A plain `true` respects `staleTime`, so a value cached less than five minutes
-      // ago would survive the next visit; an empty status is never worth keeping for a moment, so
-      // refetch it unconditionally and leave real data on the normal staleness schedule.
-      refetchOnMount: (query) => (query.state.data == undefined ? 'always' : true),
-    },
+  const trpc = useTRPC();
+  const { data, isLoading, isFetching, refetch } = useQuery(
+    trpc.shifts.getShiftStatus.queryOptions(
+      { shiftId: shiftId ?? '' },
+      {
+        // `undefined` is a caller that has no shift to ask about yet - the conflict dialog before
+        // it knows which shift it is arguing about - not a shift whose status is missing
+        enabled: shiftId !== undefined && shiftId !== '',
+        staleTime: 1000 * 60 * 5,
+        gcTime: 1000 * 60 * 60 * 24 * 7,
+        // With the 7-day `gcTime` and disk persistence, one bad value used to stick for days.
+        // A plain `true` respects `staleTime`, so a value cached less than five minutes
+        // ago would survive the next visit; an empty status is never worth keeping for a moment, so
+        // refetch it unconditionally and leave real data on the normal staleness schedule.
+        refetchOnMount: (query) => (query.state.data == undefined ? 'always' : true),
+      },
+    ),
   );
 
   return {

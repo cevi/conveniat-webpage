@@ -1,9 +1,10 @@
 'use client';
-
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+
+import { useQueryClient } from '@tanstack/react-query';
 
 export type CeviDatabaseGroupSyncState = 'idle' | 'syncing' | 'synced' | 'failed';
 
@@ -20,9 +21,10 @@ interface CeviDatabaseGroupSync {
  * session cookie and only that endpoint re-signs it.
  */
 export const useCeviDatabaseGroupSync = (): CeviDatabaseGroupSync => {
+  const trpc = useTRPC();
   const { data: session, update } = useSession();
   const router = useRouter();
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const [state, setState] = useState<CeviDatabaseGroupSyncState>('idle');
 
   const sync = async (): Promise<void> => {
@@ -42,7 +44,7 @@ export const useCeviDatabaseGroupSync = (): CeviDatabaseGroupSync => {
     }
 
     setState('synced');
-    void utils.invalidate();
+    void queryClient.invalidateQueries(trpc.pathFilter());
     router.refresh();
   };
 

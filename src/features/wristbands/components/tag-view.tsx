@@ -1,5 +1,4 @@
 'use client';
-
 import { Button } from '@/components/ui/buttons/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -21,7 +20,7 @@ import { translate } from '@/features/wristbands/texts';
 import type { WristbandCard } from '@/features/wristbands/types';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -29,12 +28,14 @@ import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { keepPreviousData } from '@tanstack/react-query';
 import type { TRPCClientErrorLike } from '@trpc/client';
-import type { UseTRPCQueryResult } from '@trpc/react-query/shared';
 import { ChevronRight, Loader2, MessageSquare, Nfc, ScanLine, UserRound, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
+
+import type { UseQueryResult } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 /**
  * Starts the private chat a band leads to and opens it: with the wearer, or for the safety
@@ -45,38 +46,41 @@ const useStartChat = (
   signature: string | null | undefined,
   locale: Locale,
 ): { start: (avpUserId?: string) => void; pending: boolean } => {
+  const trpc = useTRPC();
   const router = useRouter();
-  const mutation = trpc.chat.startChatFromWristband.useMutation({
-    // offline it fails at once and says so, instead of waiting unseen
-    networkMode: 'always',
-    onSuccess: (result) => {
-      switch (result.status) {
-        case 'started': {
-          router.push(`/app/chat/${result.chatId}`);
-          break;
+  const mutation = useMutation(
+    trpc.chat.startChatFromWristband.mutationOptions({
+      // offline it fails at once and says so, instead of waiting unseen
+      networkMode: 'always',
+      onSuccess: (result) => {
+        switch (result.status) {
+          case 'started': {
+            router.push(`/app/chat/${result.chatId}`);
+            break;
+          }
+          case 'ownBand': {
+            toast.info(tagText('ownBand', locale));
+            break;
+          }
+          case 'noAccount': {
+            toast.info(tagText('noAccount', locale));
+            break;
+          }
+          case 'unknownBand': {
+            toast.info(tagText('bandGone', locale));
+            break;
+          }
+          case 'notVerified': {
+            toast.info(tagText('notVerified', locale));
+            break;
+          }
         }
-        case 'ownBand': {
-          toast.info(tagText('ownBand', locale));
-          break;
-        }
-        case 'noAccount': {
-          toast.info(tagText('noAccount', locale));
-          break;
-        }
-        case 'unknownBand': {
-          toast.info(tagText('bandGone', locale));
-          break;
-        }
-        case 'notVerified': {
-          toast.info(tagText('notVerified', locale));
-          break;
-        }
-      }
-    },
-    onError: (error) => {
-      toast.error(userErrorMessage(error, locale, chatErrorTexts, tagTexts.chatFailed));
-    },
-  });
+      },
+      onError: (error) => {
+        toast.error(userErrorMessage(error, locale, chatErrorTexts, tagTexts.chatFailed));
+      },
+    }),
+  );
   return {
     start: (avpUserId?: string): void => {
       // only offered for a verified card, which a signature led to; the server checks it again
@@ -498,14 +502,21 @@ const useWristbandCard = (
   uid: string,
   signature: string | null | undefined,
   enabled: boolean,
-): UseTRPCQueryResult<WristbandCard, TRPCClientErrorLike<AppRouter>> =>
-  trpc.wristband.getWristbandCard.useQuery(signature === undefined ? { uid } : { uid, signature }, {
-    enabled,
-    meta: { persist: false },
-    retry: false,
-    // the card read by the UID alone stays while the signature is checked
-    placeholderData: keepPreviousData,
-  });
+): UseQueryResult<WristbandCard, TRPCClientErrorLike<AppRouter>> => {
+  const trpc = useTRPC();
+  return useQuery(
+    trpc.wristband.getWristbandCard.queryOptions(
+      signature === undefined ? { uid } : { uid, signature },
+      {
+        enabled,
+        meta: { persist: false },
+        retry: false,
+        // the card read by the UID alone stays while the signature is checked
+        placeholderData: keepPreviousData,
+      },
+    ),
+  );
+};
 
 /**
  * The chats a band read by security and first aid leads to, under the reader's answer: the

@@ -1,5 +1,4 @@
 'use client';
-
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import type { HofDashboardData } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import type { HofOverviewRow } from '@/features/hof-dashboard/api/hof-overview';
@@ -44,7 +43,7 @@ import {
 } from '@/features/hof-dashboard/utils/submission-progress';
 import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import { HitobitoNextAuthUserSchema } from '@/types/hitobito-next-auth-user';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -54,6 +53,8 @@ import { FileText, LayoutGrid } from 'lucide-react';
 import { signIn, useSession } from 'next-auth/react';
 import type React from 'react';
 import { useCallback, useMemo, useRef, useState } from 'react';
+
+import { useQuery } from '@tanstack/react-query';
 
 /** The sections of one Hof's dashboard. */
 type Tab = 'overview' | HofDashboardArea | 'documents';
@@ -110,19 +111,23 @@ const RetryMessage: React.FC<{ locale: Locale; onRetry: () => void }> = ({ local
 
 /** One Hof's dashboard data, shared by its sections and the line under its name. */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- tRPC's query result
-const useHofDashboard = (hofId: string, locale: Locale) =>
-  trpc.hofDashboard.getHofDashboard.useQuery(
-    { hofId, locale },
-    {
-      // a reviewer's answer should reach the Hof within a look away; the app's defaults
-      // would keep showing what was loaded until the next full reload
-      staleTime: 30_000,
-      refetchOnMount: true,
-      refetchOnWindowFocus: true,
-      // nothing here works offline, and yesterday's shape of it must not render after a deploy
-      meta: { persist: false },
-    },
+const useHofDashboard = (hofId: string, locale: Locale) => {
+  const trpc = useTRPC();
+  return useQuery(
+    trpc.hofDashboard.getHofDashboard.queryOptions(
+      { hofId, locale },
+      {
+        // a reviewer's answer should reach the Hof within a look away; the app's defaults
+        // would keep showing what was loaded until the next full reload
+        staleTime: 30_000,
+        refetchOnMount: true,
+        refetchOnWindowFocus: true,
+        // nothing here works offline, and yesterday's shape of it must not render after a deploy
+        meta: { persist: false },
+      },
+    ),
   );
+};
 
 /** The Hof's responsible people under its name, once its dashboard has loaded. */
 const HofResponsible: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, locale }) => {
@@ -371,18 +376,23 @@ const DashboardForUser: React.FC<{ account: React.ReactNode; locale: Locale }> =
   account,
   locale,
 }) => {
-  const hoefe = trpc.hofDashboard.getMyHofList.useQuery(undefined, {
-    // a Hof the user was given or lost since the last visit
-    refetchOnMount: true,
-    meta: { persist: false },
-  });
+  const trpc = useTRPC();
+  const hoefe = useQuery(
+    trpc.hofDashboard.getMyHofList.queryOptions(undefined, {
+      // a Hof the user was given or lost since the last visit
+      refetchOnMount: true,
+      meta: { persist: false },
+    }),
+  );
   // for the reviewers every Hof at a glance; empty for a Hof's own people
-  const overview = trpc.hofDashboard.getHofOverview.useQuery(undefined, {
-    staleTime: 30_000,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    meta: { persist: false },
-  });
+  const overview = useQuery(
+    trpc.hofDashboard.getHofOverview.queryOptions(undefined, {
+      staleTime: 30_000,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      meta: { persist: false },
+    }),
+  );
 
   if (hoefe.isLoading || overview.isLoading) return <DashboardSkeleton locale={locale} />;
   if (hoefe.data === undefined) {

@@ -1,12 +1,11 @@
 'use client';
-
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { toast } from '@/components/ui/toast';
 import { photoContestErrorTexts } from '@/features/photo-contest/error-texts';
 import { useAuthStatus } from '@/hooks/use-auth-status';
-import { trpc } from '@/trpc/client';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
@@ -28,6 +27,8 @@ import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 type ContestStatus = 'HIDDEN' | 'ACTIVE' | 'CLOSED_HIDDEN' | 'CLOSED';
 
@@ -216,6 +217,7 @@ interface PhotoContestViewProperties {
 }
 
 export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initialContestSlug }) => {
+  const trpc = useTRPC();
   const { locale: localeParameter } = useParams<{ locale: Locale }>();
   const locale: Locale = localeParameter in translations.eyebrow ? localeParameter : 'de';
   const t = useCallback(
@@ -236,17 +238,21 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
   // A contest that is switched to ACTIVE has to appear on the next visit, even one within the
   // five minutes the default `refetchOnMount` would still trust the persisted list. The cached
   // value still renders instantly; it is only revalidated in the background.
-  const contestsQuery = trpc.photoContest.getContests.useQuery(undefined, {
-    refetchOnMount: 'always',
-  });
+  const contestsQuery = useQuery(
+    trpc.photoContest.getContests.queryOptions(undefined, {
+      refetchOnMount: 'always',
+    }),
+  );
   const contests = contestsQuery.data ?? [];
 
   // Without an explicit slug from the CMS block the page simply shows the newest contest.
   const activeSlug = selectedSlug ?? contests[0]?.slug;
 
-  const currentContestQuery = trpc.photoContest.getContestBySlug.useQuery(
-    { slug: activeSlug ?? '' },
-    { enabled: activeSlug !== undefined, refetchOnMount: 'always' },
+  const currentContestQuery = useQuery(
+    trpc.photoContest.getContestBySlug.queryOptions(
+      { slug: activeSlug ?? '' },
+      { enabled: activeSlug !== undefined, refetchOnMount: 'always' },
+    ),
   );
 
   // Votes save themselves, so the last acknowledged allocation — not a refetch — is what the
@@ -254,7 +260,7 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
   // with the pre-save server state and make the gallery flicker on every tap.
   const [lastSavedVotes, setLastSavedVotes] = useState<Record<string, number>>();
 
-  const castVotesMutation = trpc.photoContest.castVotes.useMutation();
+  const castVotesMutation = useMutation(trpc.photoContest.castVotes.mutationOptions());
 
   const contest = currentContestQuery.data;
   const status = contest?.status;
