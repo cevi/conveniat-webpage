@@ -4,7 +4,15 @@ import { KernteamBadge } from '@/features/chat/components/forum/kernteam-badge';
 import type { ForumPostSummary } from '@/lib/forum-shared';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Clock, Image as ImageIcon, Lock, MapPin, MessageCircle, ThumbsUp } from 'lucide-react';
+import {
+  Clock,
+  Image as ImageIcon,
+  Lock,
+  MapPin,
+  MessageCircle,
+  Pin,
+  ThumbsUp,
+} from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
 
@@ -25,6 +33,12 @@ export const ForumPostRow: React.FC<{
       className="focus-visible:focus-surface hover:bg-quiet/60 flex flex-col gap-1.5 px-4 py-3 transition-colors"
     >
       <span className="flex flex-wrap items-center gap-1.5 text-[12px] text-green-700">
+        {post.pinned && (
+          <span className="bg-conveniat-green inline-flex h-[22px] w-[22px] items-center justify-center rounded-full text-white">
+            <Pin className="h-3 w-3 rotate-30" aria-hidden="true" />
+            <span className="sr-only">{forumText.pinned[locale]}</span>
+          </span>
+        )}
         {post.pending === true ? (
           <span className="border-line inline-flex h-[22px] items-center gap-1 rounded-full border border-dashed bg-white px-2 text-[12px] font-semibold text-green-700">
             <Clock className="h-3.5 w-3.5" aria-hidden="true" />

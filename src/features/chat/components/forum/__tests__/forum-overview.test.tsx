@@ -2,11 +2,14 @@
  * @jest-environment jsdom
  */
 import { ForumOverview } from '@/features/chat/components/forum/forum-overview';
+import type { ForumPostSummary } from '@/lib/forum-shared';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type React from 'react';
 
 let topics: unknown[] | undefined;
 let settings: object;
+let pinnedPosts: ForumPostSummary[];
+let feedPosts: ForumPostSummary[];
 const query = (data: unknown): object => ({ data, isLoading: false, isError: false });
 
 jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
@@ -24,12 +27,12 @@ jest.mock('@/trpc/client', () => ({
     useUtils: (): object => ({}),
     forum: {
       getForumTopicList: { useQuery: (): object => query(topics) },
-      getForumPinnedPostList: { useQuery: (): object => query([]) },
+      getForumPinnedPostList: { useQuery: (): object => query(pinnedPosts) },
       getForumSettings: { useQuery: (): object => query(settings) },
       getForumPostSuggestionList: { useQuery: (): object => query([]) },
       getForumPostList: {
         useInfiniteQuery: (): object => ({
-          data: { pages: [{ items: [], nextCursor: null }] },
+          data: { pages: [{ items: feedPosts, nextCursor: null }] },
           isLoading: false,
           isError: false,
           hasNextPage: false,
@@ -49,8 +52,28 @@ const filters = (): string[] => {
   );
 };
 const topic = { id: 'topic', name: 'Platz & Infrastruktur', subscribed: false };
+const post = (overrides: Partial<ForumPostSummary>): ForumPostSummary => ({
+  id: 'post',
+  topicId: topic.id,
+  topicName: topic.name,
+  title: 'Zu heisses Wasser',
+  excerpt: '',
+  status: 'OPEN',
+  createdAt: new Date(0),
+  author: null,
+  byTopicAdmin: false,
+  location: null,
+  likeCount: 0,
+  likedByMe: false,
+  commentCount: 0,
+  pinned: false,
+  imageCount: 0,
+  ...overrides,
+});
 
 beforeEach(() => {
+  pinnedPosts = [];
+  feedPosts = [];
   settings = { moderationRequired: false, canModerate: false, hasOpenAssignments: false };
 });
 
@@ -97,5 +120,28 @@ describe('the forum feed', () => {
     render(<ForumOverview />);
 
     expect(filters()).toEqual(['Alle', 'Meine', 'Abonniert', 'Meine Aufträge', 'Zur Freigabe']);
+  });
+
+  it('marks a pinned post by its pin, not by a section title', () => {
+    topics = [topic];
+    const pinnedPost = post({ id: 'pinned', pinned: true });
+    pinnedPosts = [pinnedPost];
+    feedPosts = [pinnedPost, post({ id: 'other', title: 'WC beim Quartier 3 verstopft' })];
+    render(<ForumOverview />);
+
+    expect(screen.getByRole('link', { name: /Angeheftet.*Zu heisses Wasser/ })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /Angeheftet.*WC beim Quartier 3/ })).toBeNull();
+    expect(screen.getAllByRole('link', { name: /Zu heisses Wasser/ })).toHaveLength(1);
+    expect(screen.queryByText('Neueste')).toBeNull();
+  });
+
+  it('says there is nothing besides the pinned posts instead of showing an empty list', () => {
+    topics = [topic];
+    const pinnedPost = post({ id: 'pinned', pinned: true });
+    pinnedPosts = [pinnedPost];
+    feedPosts = [pinnedPost];
+    render(<ForumOverview />);
+
+    expect(screen.getByText('Noch keine weiteren Beiträge')).toBeTruthy();
   });
 });
