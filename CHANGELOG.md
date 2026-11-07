@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.53.2](https://github.com/cevi/conveniat-webpage/compare/v1.53.1...v1.53.2) (2026-11-07)
+
+
+### Bug Fixes
+
+* **app:** load when the browser blocks site data ([5cecc2a](https://github.com/cevi/conveniat-webpage/commit/5cecc2a7d97ebbe1c9d3ae19ae09caa99b2a8e3b))
+* **app:** load when the browser blocks site data ([d751fda](https://github.com/cevi/conveniat-webpage/commit/d751fda219f5d450341c16847934bc72eccd4380)), closes [#2358](https://github.com/cevi/conveniat-webpage/issues/2358)
+* **app:** mark PostHog events of browsers that block site data ([e91814e](https://github.com/cevi/conveniat-webpage/commit/e91814ee0c4f422c52c53287b27f81f01961d197))
+* **app:** mutations fail at once offline instead of waiting unseen ([c887c6d](https://github.com/cevi/conveniat-webpage/commit/c887c6d0d4286525257b50a8414109382bbecfad))
+* **app:** mutations fail at once offline instead of waiting unseen ([b29c99c](https://github.com/cevi/conveniat-webpage/commit/b29c99c18590666f35824f95e3d4e7f72fc5ded7)), closes [#2163](https://github.com/cevi/conveniat-webpage/issues/2163)
+* **app:** never persist mutations to the offline cache ([4137f71](https://github.com/cevi/conveniat-webpage/commit/4137f718f67956575bcef0827005901c6fa073ea))
+* **app:** never persist mutations to the offline cache ([5d7d322](https://github.com/cevi/conveniat-webpage/commit/5d7d322842d059d12f88294034ee3299d6d61e6f)), closes [#2163](https://github.com/cevi/conveniat-webpage/issues/2163)
+* **chat:** read receipts still wait for the connection ([54ec24b](https://github.com/cevi/conveniat-webpage/commit/54ec24b4712cb86bddca4a0c8c4ea41b5157f3e7))
+* **cms:** the publishing status sees changes inside localized arrays and blocks ([6daab2c](https://github.com/cevi/conveniat-webpage/commit/6daab2cc82a1c6dad87db89258c9103dbb664ec9))
+* **cms:** the publishing status sees changes inside localized arrays and blocks ([3780853](https://github.com/cevi/conveniat-webpage/commit/37808530286fdf1886584ee015b89e5fdb698aca))
+* **logging:** log the errors behind wrapped errors ([b6bb603](https://github.com/cevi/conveniat-webpage/commit/b6bb60339b65e375d1c825ac5cbd32835722f9c3))
+* **logging:** log the errors behind wrapped errors ([bf27102](https://github.com/cevi/conveniat-webpage/commit/bf271021bd213b0567d77e9d449d95b756cc269b))
+
+
+### Performance
+
+* **prisma:** drop the workarounds the CommonJS client needed ([31e8529](https://github.com/cevi/conveniat-webpage/commit/31e85295292a410ed09afcc8e9cbb65b1f3cd2ed))
+* **prisma:** generate the client with prisma-client, so browsers load only its enums ([a6c1c48](https://github.com/cevi/conveniat-webpage/commit/a6c1c4840390ee0e46ee9d7ee741fadd14932767))
+* **prisma:** generate the client with prisma-client, so browsers load only its enums ([941e660](https://github.com/cevi/conveniat-webpage/commit/941e660f537feb9518ffd41dfaaa6d4e002d1e2a))
+
 ## [1.53.1](https://github.com/cevi/conveniat-webpage/compare/v1.53.0...v1.53.1) (2026-11-07)
 
 
