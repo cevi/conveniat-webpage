@@ -58,6 +58,33 @@ describe('createAuthJsLogger', () => {
     expect(record?.['error.message']).toBe('Hitobito rejected the authorization code');
   });
 
+  it('writes the error a CallbackRouteError wraps and the OAuth error code', () => {
+    const { lines, logger } = build();
+    // oauth4webapi's ResponseBodyError: the parsed error body on `cause`, its code on `error`.
+    const refused = Object.assign(
+      new Error('server responded with an error in the response body', {
+        cause: { error: 'invalid_grant', error_description: 'Die Autorisierung ist ungültig.' },
+      }),
+      { name: 'ResponseBodyError', code: 'OAUTH_RESPONSE_BODY_ERROR', error: 'invalid_grant' },
+    );
+    // Auth.js's AuthError keeps the wrapped error on `cause.err`, not as the cause itself.
+    const callbackError = Object.assign(
+      new Error('Read more at https://errors.authjs.dev#callbackrouteerror', {
+        cause: { err: refused, provider: 'cevi-db' },
+      }),
+      { name: 'CallbackRouteError', type: 'CallbackRouteError' },
+    );
+
+    logger.error?.(callbackError);
+
+    const [record] = records(lines);
+    expect(record?.['level']).toBe(50);
+    expect(record?.['auth.error']).toBe('CallbackRouteError');
+    expect(record?.['auth.cause.name']).toBe('ResponseBodyError');
+    expect(record?.['auth.cause.code']).toBe('OAUTH_RESPONSE_BODY_ERROR');
+    expect(record?.['oauth.error']).toBe('invalid_grant');
+  });
+
   it('drops the docs link Auth.js appends to every message', () => {
     const { lines, logger } = build();
 
