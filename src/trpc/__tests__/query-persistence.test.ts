@@ -158,7 +158,7 @@ describe('persisted query cache', () => {
       }),
     });
 
-    expect(deserializePersistedClient(blob).clientState.mutations).toEqual([]);
+    expect(superjson.parse<PersistedClient>(blob).clientState.mutations).toEqual([]);
   });
 
   it('drops the waiting mutations a blob saved before they were left out', async () => {
