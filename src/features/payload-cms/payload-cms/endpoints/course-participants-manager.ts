@@ -70,101 +70,108 @@ export const handleParticipantMutation: PayloadHandler = async (request) => {
         return Response.json({ error: 'Course not found' }, { status: 404 });
       }
 
-      // Check max capacity
-      const currentCount = await prisma.enrollment.count({
-        where: { courseId, courseType, userId: { not: userId } },
-      });
-      if (
-        course.participants_max !== null &&
-        course.participants_max !== undefined &&
-        currentCount >= course.participants_max
-      ) {
-        return Response.json({ error: 'This course is already full.' }, { status: 400 });
-      }
+      // The tRPC enrolment takes the same lock (`enrollInCourse`, `enrollInShift`), so a
+      // participant enrolling in the app and an admin adding someone cannot both take the last
+      // place. Held until the upsert commits.
+      return await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${courseId}))`;
 
-      // Check time overlap
-      const userEnrollments = await prisma.enrollment.findMany({
-        where: { userId, courseId: { not: courseId } },
-      });
+        // Check max capacity
+        const currentCount = await tx.enrollment.count({
+          where: { courseId, courseType, userId: { not: userId } },
+        });
+        if (
+          course.participants_max !== null &&
+          course.participants_max !== undefined &&
+          currentCount >= course.participants_max
+        ) {
+          return Response.json({ error: 'This course is already full.' }, { status: 400 });
+        }
 
-      if (userEnrollments.length > 0) {
-        const activeShifts = userEnrollments.filter(
-          (enrollment) => enrollment.courseType === 'SHIFT',
-        );
-        const activePrograms = userEnrollments.filter(
-          (enrollment) => enrollment.courseType === 'PROGRAM',
-        );
+        // Check time overlap
+        const userEnrollments = await tx.enrollment.findMany({
+          where: { userId, courseId: { not: courseId } },
+        });
 
-        if (activeShifts.length > 0) {
-          const otherShifts = await request.payload.find({
-            collection: 'helper-shifts',
-            where: { id: { in: activeShifts.map((enrollment) => enrollment.courseId) } },
-            pagination: false,
-            depth: 0,
-            select: { timeslot: true, title: true },
-          });
+        if (userEnrollments.length > 0) {
+          const activeShifts = userEnrollments.filter(
+            (enrollment) => enrollment.courseType === 'SHIFT',
+          );
+          const activePrograms = userEnrollments.filter(
+            (enrollment) => enrollment.courseType === 'PROGRAM',
+          );
 
-          for (const other of otherShifts.docs) {
-            if (
-              isOverlapping(
-                String(course.timeslot.time),
-                String(course.timeslot.date),
-                String(other.timeslot.time),
-                String(other.timeslot.date),
-              )
-            ) {
-              return Response.json(
-                { error: `Time conflict with shift: ${String(other.title)}` },
-                { status: 400 },
-              );
+          if (activeShifts.length > 0) {
+            const otherShifts = await request.payload.find({
+              collection: 'helper-shifts',
+              where: { id: { in: activeShifts.map((enrollment) => enrollment.courseId) } },
+              pagination: false,
+              depth: 0,
+              select: { timeslot: true, title: true },
+            });
+
+            for (const other of otherShifts.docs) {
+              if (
+                isOverlapping(
+                  String(course.timeslot.time),
+                  String(course.timeslot.date),
+                  String(other.timeslot.time),
+                  String(other.timeslot.date),
+                )
+              ) {
+                return Response.json(
+                  { error: `Time conflict with shift: ${String(other.title)}` },
+                  { status: 400 },
+                );
+              }
+            }
+          }
+
+          if (activePrograms.length > 0) {
+            const otherPrograms = await request.payload.find({
+              collection: 'camp-schedule-entry',
+              where: { id: { in: activePrograms.map((enrollment) => enrollment.courseId) } },
+              pagination: false,
+              depth: 0,
+              select: { timeslot: true, title: true },
+            });
+
+            for (const other of otherPrograms.docs) {
+              if (
+                isOverlapping(
+                  String(course.timeslot.time),
+                  String(course.timeslot.date),
+                  String(other.timeslot.time),
+                  String(other.timeslot.date),
+                )
+              ) {
+                return Response.json(
+                  { error: `Time conflict with programme/workshop: ${String(other.title)}` },
+                  { status: 400 },
+                );
+              }
             }
           }
         }
 
-        if (activePrograms.length > 0) {
-          const otherPrograms = await request.payload.find({
-            collection: 'camp-schedule-entry',
-            where: { id: { in: activePrograms.map((enrollment) => enrollment.courseId) } },
-            pagination: false,
-            depth: 0,
-            select: { timeslot: true, title: true },
-          });
-
-          for (const other of otherPrograms.docs) {
-            if (
-              isOverlapping(
-                String(course.timeslot.time),
-                String(course.timeslot.date),
-                String(other.timeslot.time),
-                String(other.timeslot.date),
-              )
-            ) {
-              return Response.json(
-                { error: `Time conflict with programme/workshop: ${String(other.title)}` },
-                { status: 400 },
-              );
-            }
-          }
-        }
-      }
-
-      await prisma.enrollment.upsert({
-        where: {
-          courseId_courseType_userId: {
-            courseId,
-            courseType,
-            userId,
+        await tx.enrollment.upsert({
+          where: {
+            courseId_courseType_userId: {
+              courseId,
+              courseType,
+              userId,
+            },
           },
-        },
-        update: {},
-        create: {
-          courseId,
-          userId,
-          courseType,
-        },
-      });
+          update: {},
+          create: {
+            courseId,
+            userId,
+            courseType,
+          },
+        });
 
-      return Response.json({ success: true });
+        return Response.json({ success: true });
+      });
     }
 
     if (method === 'DELETE') {

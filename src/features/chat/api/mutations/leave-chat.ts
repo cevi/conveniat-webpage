@@ -83,24 +83,31 @@ export const leaveChat = trpcBaseProcedure
       membership.chatPermission === ChatMembershipPermission.OWNER &&
       !remaining.some((m) => m.chatPermission === ChatMembershipPermission.OWNER);
 
-    if (isLastOwner && remaining.length > 0) {
-      const successorId = await findSuccessor(chat.uuid, remaining, prisma);
-      if (successorId === undefined) {
-        throw new TRPCError({
-          code: 'PRECONDITION_FAILED',
-          message: 'Nobody left in this chat can take over as owner. Delete the chat instead.',
-        });
-      }
+    const successorId =
+      isLastOwner && remaining.length > 0
+        ? await findSuccessor(chat.uuid, remaining, prisma)
+        : undefined;
+    if (isLastOwner && remaining.length > 0 && successorId === undefined) {
+      throw new TRPCError({
+        code: 'PRECONDITION_FAILED',
+        message: 'Nobody left in this chat can take over as owner. Delete the chat instead.',
+      });
+    }
+
+    // Before the handover, so a second tap that crossed the first stops here instead of handing
+    // the chat on and announcing the leave a second time. Its delete waits for the first to commit.
+    const { count } = await prisma.chatMembership.deleteMany({
+      where: { userId: user.uuid, chatId: chat.uuid },
+    });
+    if (count === 0) return { success: true };
+
+    if (successorId !== undefined) {
       await prisma.chatMembership.update({
         where: { userId_chatId: { userId: successorId, chatId: chat.uuid } },
         data: { chatPermission: ChatMembershipPermission.OWNER },
       });
       logger.debug('Chat ownership passed on by a leaving owner', { 'chat.id': chat.uuid });
     }
-
-    await prisma.chatMembership.delete({
-      where: { userId_chatId: { userId: user.uuid, chatId: chat.uuid } },
-    });
 
     const leftMessagePayload = getLeftGroupMessagePayload(user.name);
     const leftMessage = await prisma.message.create({
