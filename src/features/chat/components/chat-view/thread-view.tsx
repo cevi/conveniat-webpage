@@ -192,6 +192,7 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
 
   const { mutate: markThreadAsRead } = useMutation(
     trpc.chat.markThreadAsRead.mutationOptions({
+      networkMode: 'online', // a receipt holds offline, see `useMessageReadStatus`
       onMutate: () => {
         // 1. Optimistically update getMessage query for the thread message itself
         queryClient.setQueryData(

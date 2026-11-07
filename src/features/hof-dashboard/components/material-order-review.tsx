@@ -114,9 +114,7 @@ const ReviewActions: React.FC<{
 }> = ({ hofId, version, locale }) => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const mutation = useMutation(
-    trpc.hofDashboard.updateSubmissionReview.mutationOptions({ networkMode: 'always' }),
-  );
+  const mutation = useMutation(trpc.hofDashboard.updateSubmissionReview.mutationOptions());
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState(version.feedback);
   const reasonId = useId();

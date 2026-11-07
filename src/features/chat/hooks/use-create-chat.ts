@@ -85,8 +85,6 @@ export const useCreateChat = (): {
 
   const { mutate } = useMutation(
     trpc.chat.createChat.mutationOptions({
-      networkMode: 'always',
-
       onError: (error, variables) => {
         const optimisticChatId = variables.chatId;
         if (

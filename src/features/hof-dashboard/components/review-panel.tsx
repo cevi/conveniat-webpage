@@ -36,9 +36,7 @@ const CommentComposer: React.FC<{ entry: HofDashboardEntry; hofId: string; local
 }) => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const mutation = useMutation(
-    trpc.hofDashboard.addSubmissionComment.mutationOptions({ networkMode: 'always' }),
-  );
+  const mutation = useMutation(trpc.hofDashboard.addSubmissionComment.mutationOptions());
   const [text, setText] = useState('');
   const commentId = useId();
   const comment = text.trim();

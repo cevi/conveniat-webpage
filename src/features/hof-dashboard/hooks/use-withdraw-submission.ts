@@ -18,10 +18,7 @@ export const useWithdrawSubmission = (
 ): ((submissionId: string) => Promise<void>) => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  // fail right away without signal instead of waiting paused for it, so the user hears of it
-  const withdraw = useMutation(
-    trpc.hofDashboard.deleteSubmission.mutationOptions({ networkMode: 'always' }),
-  );
+  const withdraw = useMutation(trpc.hofDashboard.deleteSubmission.mutationOptions());
 
   return async (submissionId: string): Promise<void> => {
     try {

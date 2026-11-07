@@ -129,11 +129,7 @@ export const EmergencyComponent: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const router = useRouter();
-  // An alarm is always tried, even while the network seems not to answer: a paused mutation would
-  // leave the button waiting instead of showing the call fallback.
-  const emergencyQuery = useMutation(
-    trpc.emergency.newAlert.mutationOptions({ networkMode: 'always' }),
-  );
+  const emergencyQuery = useMutation(trpc.emergency.newAlert.mutationOptions());
   const queryClient = useQueryClient();
 
   const status = useAuthStatus();
