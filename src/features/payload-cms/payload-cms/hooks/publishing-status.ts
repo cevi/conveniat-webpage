@@ -133,6 +133,39 @@ const ignoredFields = new Set([
   'blockName',
 ]);
 
+const delocalizedFields = new WeakMap<Field[], Field[]>();
+
+/**
+ * The fields below a localized field, as they are stored: read with `locale: 'all'`, Payload keys
+ * only the outermost localized field by locale, and everything inside it holds plain values,
+ * whatever their own `localized` says.
+ *
+ * @param fields the fields inside a localized field
+ */
+const delocalize = (fields: Field[]): Field[] => {
+  const known = delocalizedFields.get(fields);
+  if (known !== undefined) return known;
+
+  const result = fields.map((field) => ({
+    ...field,
+    localized: false,
+    ...(field.fields === undefined ? {} : { fields: delocalize(field.fields) }),
+    ...(field.tabs === undefined
+      ? {}
+      : { tabs: field.tabs.map((tab) => ({ ...tab, fields: delocalize(tab.fields as Field[]) })) }),
+    ...(field.blocks === undefined
+      ? {}
+      : {
+          blocks: field.blocks.map((block) => ({
+            ...block,
+            fields: delocalize(block.fields as Field[]),
+          })),
+        }),
+  })) as Field[];
+  delocalizedFields.set(fields, result);
+  return result;
+};
+
 /**
  * Recursively checks if two documents have differences.
  *
@@ -194,11 +227,12 @@ const hasDiffs = (
 
           const blockTypeDefinition = blocks.find((b) => b.slug === blockType);
           if (blockTypeDefinition === undefined) throw new Error('Block type not found');
+          const blockFields = blockTypeDefinition['fields'] as Field[];
 
           if (
             hasDiffs(
               locale,
-              blockTypeDefinition['fields'] as Field[],
+              field.localized ? delocalize(blockFields) : blockFields,
               block1 as PayloadDocument,
               block2 as PayloadDocument,
             )
@@ -253,12 +287,19 @@ const hasDiffs = (
           const v2 = (
             value2 as Record<Config['locale'], PayloadDocument | undefined> | undefined
           )?.[locale];
-          if (hasDiffs(locale, fields, v1, v2)) return true;
+          if (hasDiffs(locale, delocalize(fields), v1, v2)) return true;
           break;
         }
 
-        // an array without rows may be missing or empty, depending on how it was saved
-        if (type === 'array' && !field.localized) {
+        let rowFields = fields;
+        if (type === 'array') {
+          // a localized array holds its rows per locale, e.g. the main menu
+          if (field.localized) {
+            value1 = (value1 as Record<string, unknown> | null | undefined)?.[locale];
+            value2 = (value2 as Record<string, unknown> | null | undefined)?.[locale];
+            rowFields = delocalize(fields);
+          }
+          // an array without rows may be missing or empty, depending on how it was saved
           value1 = value1 ?? [];
           value2 = value2 ?? [];
         }
@@ -275,7 +316,7 @@ const hasDiffs = (
             if (
               hasDiffs(
                 locale,
-                fields,
+                rowFields,
                 _value1 as unknown as PayloadDocument,
                 _value2 as unknown as PayloadDocument,
               )
