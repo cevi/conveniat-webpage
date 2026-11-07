@@ -1,5 +1,6 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
+import { MessageType } from '@/lib/prisma/enums';
 import type { TrpcQueries } from '@/trpc/client';
 
 /**
@@ -12,9 +13,8 @@ export const markChatCreation = (
   chatId: string,
   state: 'pending' | 'stored' | 'failed',
 ): void => {
-  // compared by value: the Prisma enum would pull its runtime into the browser hooks' tests
   const mark = (item: ChatMessage): ChatMessage =>
-    item.type === 'SYSTEM_MSG'
+    item.type === MessageType.SYSTEM_MSG
       ? { ...item, isPendingOffline: state === 'pending', sendFailed: state === 'failed' }
       : item;
 

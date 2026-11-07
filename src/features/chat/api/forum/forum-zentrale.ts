@@ -14,7 +14,7 @@ import {
 } from '@/features/chat/api/forum/forum-posts';
 import { getFunktionDirectory } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import type { ForumPostSummary } from '@/lib/forum-shared';
-import { type Prisma } from '@/lib/prisma/client';
+import type { Prisma } from '@/lib/prisma/client';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import type { PrismaClientOrTransaction } from '@/types/types';

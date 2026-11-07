@@ -1,4 +1,4 @@
-import { type Prisma } from '@/lib/prisma/client';
+import type { Prisma } from '@/lib/prisma/client';
 import { MessageType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { TRPCError } from '@trpc/server';

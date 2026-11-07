@@ -10,7 +10,7 @@ import {
   getStatusFromMessageEvents,
   isChatArchived,
 } from '@/lib/chat-shared';
-import { type Prisma } from '@/lib/prisma/client';
+import type { Prisma } from '@/lib/prisma/client';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import type { StaticTranslationString } from '@/types/types';

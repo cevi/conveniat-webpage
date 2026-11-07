@@ -112,9 +112,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # copy the fallback cache containing pre-build / static assets
 COPY --from=builder --chown=nextjs:nodejs /app/.next/cache/fs-fallback ./.next/cache/fs-fallback
 
-# copy prisma client
-COPY --from=builder --chown=nextjs:nodejs /app/src/lib/prisma/ /app/src/lib/prisma/
-
 COPY --chown=nextjs:nodejs docker/entrypoint.sh ./entrypoint.sh
 
 USER nextjs
