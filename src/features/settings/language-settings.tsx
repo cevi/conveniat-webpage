@@ -5,7 +5,7 @@ import { languageNames, languageOptions } from '@/config/language-options';
 import { SettingsRow } from '@/features/settings/components/settings-row';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import React from 'react';
 
 const languageLabel: StaticTranslationString = {
@@ -16,16 +16,15 @@ const languageLabel: StaticTranslationString = {
 
 export const LanguageSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
   const pathname = usePathname();
-  const searchParameters = useSearchParams();
   const router = useRouter();
 
   const handleLanguageChange = (lang: Locale): void => {
     const langRegex = /^\/(de|en|fr)\//;
     let newPath;
 
-    const searchParametersString = searchParameters.toString();
-    const searchParameterPrefixed =
-      searchParametersString === '' ? '' : `?${searchParametersString}`;
+    // Read at the click, not with useSearchParams, which would render the settings on the
+    // client only, up to the next Suspense boundary, instead of in the static shell.
+    const searchParameterPrefixed = globalThis.location.search;
 
     if (langRegex.test(pathname)) {
       newPath = pathname.replace(langRegex, `/${lang}/`) + searchParameterPrefixed;

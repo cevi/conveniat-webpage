@@ -156,6 +156,42 @@ const sessionUser = async (): Promise<HitobitoNextAuthUser | undefined> => {
   }
 };
 
+/**
+ * The Höfe and Quartiere of the user, unless the feature flag hides them. `hofRoles` is
+ * undefined when hidden or when they cannot be read.
+ */
+const readHofRoles = async (
+  userId: string,
+): Promise<{
+  hideHofAndQuartier: boolean;
+  hofRoles: Awaited<ReturnType<typeof findHofRolesOfUser>>;
+}> => {
+  let hideHofAndQuartier = false;
+  try {
+    hideHofAndQuartier = await getFeatureFlag(FEATURE_HIDE_HOF_AND_QUARTIER);
+  } catch {
+    // Default to false if Redis is unreachable
+  }
+  return {
+    hideHofAndQuartier,
+    hofRoles: hideHofAndQuartier ? undefined : await findHofRolesOfUser(userId),
+  };
+};
+
+/** The URL of the user's own profile picture, undefined when there is none or it cannot be read. */
+const readPictureUrl = async (userId: string): Promise<string | undefined> => {
+  try {
+    const own = await prisma.user.findUnique({
+      where: { uuid: userId },
+      select: { profilePictureVersion: true },
+    });
+    return profilePictureUrlOrUndefined(userId, own?.profilePictureVersion);
+  } catch {
+    // the initials stand in, e.g. while the database is unreachable
+    return undefined;
+  }
+};
+
 /** "Abmelden" at the foot of the settings, for a logged-in user. */
 export const LogoutSection: React.FC = async () => {
   const user = await sessionUser();
@@ -168,8 +204,7 @@ export const LogoutSection: React.FC = async () => {
  * log in instead.
  */
 export const ProfileDetails: React.FC = async () => {
-  const locale = await getRouteLocale();
-  const user = await sessionUser();
+  const [locale, user] = await Promise.all([getRouteLocale(), sessionUser()]);
 
   if (user === undefined) {
     return (
@@ -191,13 +226,11 @@ export const ProfileDetails: React.FC = async () => {
   const getDetail = (value: string | number | undefined | null): string =>
     value?.toString() ?? notAvailable[locale];
 
-  let hideHofAndQuartier = false;
-  try {
-    hideHofAndQuartier = await getFeatureFlag(FEATURE_HIDE_HOF_AND_QUARTIER);
-  } catch {
-    // Default to false if Redis is unreachable
-  }
-  const hofRoles = hideHofAndQuartier ? undefined : await findHofRolesOfUser(user.uuid);
+  // The Höfe and the picture are independent reads, so neither waits for the other.
+  const [{ hideHofAndQuartier, hofRoles }, pictureUrl] = await Promise.all([
+    readHofRoles(user.uuid),
+    readPictureUrl(user.uuid),
+  ]);
   const hoefe = hofRoles === undefined ? undefined : describeHofRolesForProfile(hofRoles.roles);
   const hofText = (): string => {
     if (hoefe === undefined) return notAvailable[locale];
@@ -212,17 +245,6 @@ export const ProfileDetails: React.FC = async () => {
       <QuartierList quartiere={hofRoles.quartiere} />
     );
   };
-
-  let pictureUrl: string | undefined;
-  try {
-    const own = await prisma.user.findUnique({
-      where: { uuid: user.uuid },
-      select: { profilePictureVersion: true },
-    });
-    pictureUrl = profilePictureUrlOrUndefined(user.uuid, own?.profilePictureVersion);
-  } catch {
-    // the initials stand in, e.g. while the database is unreachable
-  }
 
   const { ceviName, fullName } = displayNamesOf(user.name, user.nickname);
 
