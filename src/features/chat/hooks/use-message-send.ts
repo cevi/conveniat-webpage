@@ -15,8 +15,10 @@ import {
 } from '@/features/chat/utils/offline-outbox';
 import { quotedSnippetOf } from '@/features/chat/utils/quoted-snippet';
 import { isRateLimitError } from '@/features/chat/utils/send-errors';
-import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
-import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
+import { ChatStatus, MessageEventType, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+// Types only: the outbox runs in the app shell on every page, and a value import of the generated
+// client would ship Prisma's browser runtime (about 19 KB) to all of them.
+import type { ChatType, MessageType } from '@/lib/prisma/client';
 import { useTRPC } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import { isTransportError } from '@/utils/user-error-message';
@@ -102,7 +104,7 @@ const performOptimisticMessageUpdate = async (
     id: messageId ?? generateMessageId(),
     // the same payload shape the server stores, see `createMessage`
     messagePayload:
-      type === MessageType.IMAGE_MSG
+      type === 'IMAGE_MSG'
         ? { url: content }
         : {
             text: content.trim(),
@@ -184,7 +186,7 @@ const performOptimisticMessageUpdate = async (
             id: chatId,
             messages: [optimisticMessage],
             capabilities: [],
-            type: ChatType.ONE_TO_ONE,
+            type: 'ONE_TO_ONE' satisfies ChatType,
             status: ChatStatus.OPEN,
           };
         }
@@ -246,7 +248,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
     trpc.chat.sendMessage.mutationOptions({
       networkMode: 'always',
       async onMutate({ chatId, content, type, quotedMessageId, parentId, messageId, timestamp }) {
-        const messageType = type ?? MessageType.TEXT_MSG;
+        const messageType: MessageType = type ?? 'TEXT_MSG';
 
         // Queue the send before its request goes out, not once it failed: the composer and
         // its draft are already empty, and a PWA suspended or killed mid-request would
