@@ -84,10 +84,10 @@ const Reader: React.FC<{ roster: RosterOnPhone; locale: Locale }> = ({ roster, l
         <div className="bg-quiet flex items-start gap-3 rounded-[14px] p-4">
           <IconTile icon={Nfc} />
           <div className="min-w-0">
-            <h2 className="text-[15px] font-semibold text-green-900">
+            <h2 className="text-[15px] font-semibold text-balance text-green-900">
               {readerText('notInAppTitle', locale)}
             </h2>
-            <p className="mt-0.5 text-[13px] leading-normal text-green-700">
+            <p className="mt-0.5 text-[13px] leading-normal text-balance text-green-700">
               {readerText('notInAppDescription', locale)}
             </p>
           </div>
