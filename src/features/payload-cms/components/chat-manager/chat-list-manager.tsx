@@ -89,6 +89,7 @@ const translations: Record<Locale, Translation> = {
       [ChatCapability.THREADS]: 'Threads',
       [ChatCapability.THREAD_REPLIES]: 'Thread Replies',
       [ChatCapability.EMOJI_REACTIONS]: 'Emoji Reactions',
+      [ChatCapability.VOICE_CALLS]: 'Voice Calls',
     },
     one_to_one: 'One-To-One',
   },
@@ -122,6 +123,7 @@ const translations: Record<Locale, Translation> = {
       [ChatCapability.THREADS]: 'Threads',
       [ChatCapability.THREAD_REPLIES]: 'Antworten in Threads',
       [ChatCapability.EMOJI_REACTIONS]: 'Emoji-Reaktionen',
+      [ChatCapability.VOICE_CALLS]: 'Anrufe',
     },
     one_to_one: 'Eins-zu-Eins',
   },
@@ -155,6 +157,7 @@ const translations: Record<Locale, Translation> = {
       [ChatCapability.THREADS]: 'Threads',
       [ChatCapability.THREAD_REPLIES]: 'Réponses dans les fils',
       [ChatCapability.EMOJI_REACTIONS]: 'Réactions emoji',
+      [ChatCapability.VOICE_CALLS]: 'Appels',
     },
     one_to_one: 'Un-à-un',
   },
@@ -335,19 +338,24 @@ export const ChatListManager: React.FC = () => {
         <TableCell>{renderStatusBadge(chat.status)}</TableCell>
         <TableCell>
           <div className="flex flex-col gap-2">
-            {Object.values(ChatCapability).map((cap) => (
-              <div key={cap} className="flex items-center justify-between gap-4">
-                <span className="text-xs">{t.capabilityLabels[cap]}</span>
-                <Switch
-                  checked={chat.capabilities.includes(cap)}
-                  onCheckedChange={(checked) => {
-                    void handleToggleCapability(chat.id, cap, checked);
-                  }}
-                  disabled={toggleCapabilityMutation.isPending}
-                  aria-label={`${t.capabilityLabels[cap]} – ${getChatDisplayName(chat)}`}
-                />
-              </div>
-            ))}
+            {Object.values(ChatCapability)
+              // calls only exist between the two members of a one-to-one chat
+              .filter(
+                (cap) => cap !== ChatCapability.VOICE_CALLS || chat.type === ChatType.ONE_TO_ONE,
+              )
+              .map((cap) => (
+                <div key={cap} className="flex items-center justify-between gap-4">
+                  <span className="text-xs">{t.capabilityLabels[cap]}</span>
+                  <Switch
+                    checked={chat.capabilities.includes(cap)}
+                    onCheckedChange={(checked) => {
+                      void handleToggleCapability(chat.id, cap, checked);
+                    }}
+                    disabled={toggleCapabilityMutation.isPending}
+                    aria-label={`${t.capabilityLabels[cap]} – ${getChatDisplayName(chat)}`}
+                  />
+                </div>
+              ))}
           </div>
         </TableCell>
         <TableCell className="text-right">

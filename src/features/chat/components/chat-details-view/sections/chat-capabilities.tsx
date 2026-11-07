@@ -41,6 +41,10 @@ const capabilityLabels: Record<
     on: { de: 'Reaktionen', en: 'Reactions', fr: 'Réactions' },
     off: { de: 'Keine Reaktionen', en: 'No reactions', fr: 'Pas de réactions' },
   },
+  VOICE_CALLS: {
+    on: { de: 'Anrufe', en: 'Calls', fr: 'Appels' },
+    off: { de: 'Keine Anrufe', en: 'No calls', fr: 'Pas d’appels' },
+  },
 };
 
 /**
@@ -100,6 +104,8 @@ export const ChatCapabilities: React.FC<ChatCapabilitiesProperties> = ({
       key,
       isEnabled: isCapabilityEnabled(key, capabilities, chatPermission, isAnnouncement),
     }))
+    // calls are the exception, not the rule: a chip only where they are switched on
+    .filter(({ key, isEnabled }) => key !== ChatCapability.VOICE_CALLS || isEnabled)
     // what is on first, as the design reads
     .sort((a, b) => Number(b.isEnabled) - Number(a.isEnabled));
 

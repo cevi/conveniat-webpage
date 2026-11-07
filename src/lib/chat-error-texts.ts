@@ -7,6 +7,21 @@ import type { StaticTranslationString } from '@/types/types';
  * procedures too.
  */
 export const chatErrorTexts = {
+  callsDisabled: {
+    de: 'Anrufe sind gerade ausgeschaltet.',
+    en: 'Calls are switched off right now.',
+    fr: 'Les appels sont désactivés pour le moment.',
+  },
+  callsNotInThisChat: {
+    de: 'In diesem Chat sind keine Anrufe möglich.',
+    en: 'Calls are not possible in this chat.',
+    fr: 'Les appels ne sont pas possibles dans ce chat.',
+  },
+  tooManyCalls: {
+    de: 'Du hast gerade sehr viele Anrufe gestartet. Versuche es in ein paar Minuten nochmals.',
+    en: 'You started a lot of calls just now. Please try again in a few minutes.',
+    fr: 'Tu as lancé beaucoup d’appels à l’instant. Réessaie dans quelques minutes.',
+  },
   messagingDisabled: {
     de: 'Nachrichten sind gerade ausgeschaltet. Versuche es später nochmals.',
     en: 'Messaging is switched off right now. Please try again later.',
