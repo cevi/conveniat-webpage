@@ -56,3 +56,29 @@ describe('starting the app once the onboarding is done', () => {
     expect(startApp('/entrypoint?app-mode=true', { ...done, ...pending })).toBeUndefined();
   });
 });
+
+describe('starting the app where the browser blocks site data', () => {
+  afterEach(() => {
+    Reflect.deleteProperty(globalThis, 'localStorage');
+  });
+
+  /** Reading the storage itself throws there, before the script's own guard could see it. */
+  it('leaves the start to the onboarding instead of throwing', () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get: (): never => {
+        throw new DOMException('Access is denied for this document.', 'SecurityError');
+      },
+    });
+    const html = renderToString(<EntrypointFastPath />);
+    const source = /<script>([\S\s]*)<\/script>/.exec(html)?.[1] ?? '';
+    const replace = jest.fn();
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval -- the inline script under test
+    const runScript = new Function('location', source) as (location: unknown) => void;
+
+    expect(() => {
+      runScript({ pathname: '/entrypoint', search: '?app-mode=true', replace });
+    }).not.toThrow();
+    expect(replace).not.toHaveBeenCalled();
+  });
+});
