@@ -384,7 +384,8 @@ const PostHeader: React.FC<{
           <span className="text-heading block truncate font-semibold">
             {post.author?.name ?? ''}
           </span>
-          {post.topicName} · {relativeTimeText(new Date(post.createdAt), locale, now)}
+          {/* the topic is the screen's title already */}
+          {relativeTimeText(new Date(post.createdAt), locale, now)}
         </p>
         {post.byTopicAdmin && (
           <KernteamBadge locale={locale} label={post.kernteamLabel} className="ml-auto" />
@@ -450,8 +451,10 @@ const PostHeader: React.FC<{
             onClick={() => like.mutate({ messageId: post.id, emoji: FORUM_LIKE_EMOJI })}
             className={cn(
               'focus-visible:focus-surface flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border text-[14px] font-bold transition-colors disabled:opacity-50',
+              // liked is a state, not the view's primary action: the soft tint, so "Ich
+              // übernehme" stays the one filled button for whoever handles the post
               post.likedByMe
-                ? 'bg-conveniat-green border-conveniat-green text-white'
+                ? 'bg-tint border-tint-line text-green-800'
                 : 'border-line hover:bg-quiet bg-white text-green-800',
             )}
           >

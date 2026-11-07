@@ -46,6 +46,7 @@ describe('the title in the header', () => {
       'Material depot',
     ],
     [['(app-pages)', 'app', 'wristbands'], 'Armbänder', 'Bracelets', 'Wristbands'],
+    [['(app-pages)', 'app', 'forum', 'new'], 'Neuer Beitrag', 'Nouvelle publication', 'New post'],
   ])('names the app page %j in all three locales', (route, de, fr, en) => {
     expect(titleAt(route, 'de')).toBe(de);
     expect(titleAt(route, 'fr')).toBe(fr);
