@@ -105,6 +105,7 @@ export const useAdminChatManagement = ({
 
   const { mutate: markChatAsRead } = useMutation(
     trpc.admin.markChatAsRead.mutationOptions({
+      networkMode: 'online', // a receipt holds offline, see `useMessageReadStatus`
       onMutate({ chatId }) {
         queryClient.setQueryData(
           trpc.admin.listSupportChats.queryKey({

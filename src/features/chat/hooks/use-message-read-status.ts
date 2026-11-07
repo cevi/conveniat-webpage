@@ -78,6 +78,9 @@ export const useMessageReadStatus = ({
   // the callbacks are handed to useMutation itself, so the compiler sees they run after render
   const { mutate: markChatAsRead } = useMutation({
     ...trpc.chat.markChatAsRead.mutationOptions<void>(),
+    // Nobody waits for a receipt, so unlike the default it holds offline and goes out once the
+    // connection is back; failing, the chat would turn unread again and the sender never learn.
+    networkMode: 'online',
     retry: false,
     onMutate: () => {
       // What the notifications show has now been read, and the next message would add to
@@ -119,6 +122,7 @@ export const useMessageReadStatus = ({
   // the reader's own message, and then no receipt goes out.
   const { mutate: markChatUnread } = useMutation(
     trpc.chat.markChatUnread.mutationOptions({
+      networkMode: 'online', // held offline, like the read receipt above
       retry: false,
       onMutate: () => {
         queryClient.setQueryData(
