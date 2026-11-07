@@ -71,4 +71,6 @@ export interface MapControlOptions {
   showNavigation?: boolean;
   showGeolocate?: boolean;
   showScale?: boolean;
+  /** where a tap on the compass turns a map that already points north, in degrees */
+  homeBearing?: number;
 }
