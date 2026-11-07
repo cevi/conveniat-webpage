@@ -9,6 +9,7 @@ import type {
   FieldHookArgs,
   GlobalConfig,
   GlobalSlug,
+  JSONField,
   Tab,
 } from 'payload';
 
@@ -24,6 +25,14 @@ interface Field {
 }
 
 type PayloadDocument = Record<string, Record<Config['locale'], string>>;
+
+/**
+ * The name of the field that keeps the publishing status of a collection document.
+ *
+ * Comparing a draft against the published version reads both in every locale. A list of 50
+ * pages did that for every row and took a second, so the result is kept on the latest version.
+ */
+export const STORED_PUBLISHING_STATUS = '_publishing_status_cache';
 
 /**
  * Checks if a field without sub-fields holds a different value in the two versions, in one locale.
@@ -114,6 +123,7 @@ const ignoredFields = new Set([
   '_localized_status',
   '_locale',
   '_disable_unpublishing',
+  STORED_PUBLISHING_STATUS,
   'internalPageName',
   'internalStatus',
   'authors',
@@ -386,6 +396,13 @@ const localeStates = (
   };
 };
 
+/** The status shown while it cannot be worked out, e.g. for a document without a draft yet. */
+const unknownStatus = (): PublishingStatusType => ({
+  de: { pendingChanges: false, published: false },
+  en: { pendingChanges: false, published: false },
+  fr: { pendingChanges: false, published: false },
+});
+
 export const getPublishingStatusGlobal =
   (config: GlobalConfig) =>
   async (arguments_: FieldHookArgs): Promise<PublishingStatusType> => {
@@ -421,23 +438,153 @@ export const getPublishingStatusGlobal =
     } catch {
       // if the document is not found, we return an empty publishing status
       // this may happen if the document was just created and has no draft yet
-      return {
-        de: { pendingChanges: false, published: false },
-        en: { pendingChanges: false, published: false },
-        fr: { pendingChanges: false, published: false },
-      };
+      return unknownStatus();
     }
   };
 
 /**
+ * The field that keeps the publishing status, for every collection that has `publishingStatus`.
+ *
+ * Only `getPublishingStatus` writes it, straight to one version in the database, and only while
+ * that version is unchanged since the comparison. Every write through Payload empties it,
+ * including the autosave that changes the latest version in place, so a value that is there
+ * was worked out for exactly that version.
+ */
+export const storedPublishingStatusField: JSONField = {
+  name: STORED_PUBLISHING_STATUS,
+  type: 'json',
+  admin: { disabled: true },
+  access: {
+    create: () => false,
+    update: () => false,
+  },
+  hooks: {
+    beforeChange: [(): null => null],
+  },
+};
+
+/** The latest version of a document, as it was before the comparison. */
+interface LatestVersion {
+  id: string;
+  /** the version's own timestamp, which every save of the version through Payload changes */
+  updatedAt: string;
+}
+
+/**
+ * Compares the published version of a document against its latest draft, in every locale, and
+ * names the latest version as it was before.
+ *
+ * The latest version is looked up first. Should it change meanwhile, the status is not stored,
+ * see {@link storePublishingStatus}.
+ *
+ * @param slug the collection of the document
+ * @param fieldDefinition the fields of the collection
+ * @param id the document
+ * @param payload the Payload instance
+ */
+const computePublishingStatus = async (
+  slug: CollectionSlug,
+  fieldDefinition: Field[],
+  id: string,
+  payload: FieldHookArgs['req']['payload'],
+): Promise<{ status: PublishingStatusType; latestVersion: LatestVersion | undefined }> => {
+  const { docs } = await payload.db.findVersions({
+    collection: slug,
+    where: { and: [{ parent: { equals: id } }, { latest: { equals: true } }] },
+    select: { updatedAt: true },
+    sort: '-updatedAt',
+    limit: 1,
+    pagination: false,
+  });
+  const latestVersion = docs[0] as { id: string; updatedAt?: unknown } | undefined;
+
+  const read = (draft: boolean): Promise<unknown> =>
+    payload.findByID({
+      collection: slug,
+      id,
+      // avoid infinite recursion
+      select: { publishingStatus: false, [STORED_PUBLISHING_STATUS]: false },
+      // hasDiffs skips a join it does not get, and with locale 'all' Payload looks a join
+      // up on a field that does not exist, scanning the whole joined collection. The cast:
+      // for a slug only known at runtime, Payload types `joins` as never.
+      joins: false as never,
+      depth: 0,
+      locale: 'all',
+      trash: true, // include trashed documents
+      draft,
+    });
+
+  const [originalDocument, draftDocument] = (await Promise.all([read(false), read(true)])) as [
+    PayloadDocument,
+    PayloadDocument,
+  ];
+
+  return {
+    status: localeStates(fieldDefinition, originalDocument, draftDocument),
+    latestVersion:
+      typeof latestVersion?.updatedAt === 'string'
+        ? { id: latestVersion.id, updatedAt: latestVersion.updatedAt }
+        : undefined,
+  };
+};
+
+/**
+ * Keeps the status on the version it was worked out for.
+ *
+ * It sets the one field with `$set`, through the version model: Payload's own `updateVersion`
+ * replaces the whole `version` with what it is given, which would empty the draft. Neither
+ * creates a version or runs hooks, and `timestamps: false` keeps the version's `updatedAt`, which
+ * Payload finds the latest version by. The write only lands while the version still has the
+ * `updatedAt` it had before the comparison: an autosave changes the version in place, and its
+ * `updatedAt` with it.
+ *
+ * @param slug the collection of the document
+ * @param version the latest version, as it was before the comparison
+ * @param status the status
+ * @param request the request reading the document
+ */
+const storePublishingStatus = async (
+  slug: CollectionSlug,
+  version: LatestVersion,
+  status: PublishingStatusType,
+  request: FieldHookArgs['req'],
+): Promise<void> => {
+  // A version saved in a transaction that is still open cannot be written from outside it. The
+  // next draft read stores the status instead.
+  if (request.transactionID !== undefined) return;
+
+  const versions = request.payload.db.versions[slug];
+  if (versions === undefined) return;
+
+  try {
+    await versions.updateOne(
+      { _id: version.id, updatedAt: version.updatedAt },
+      { $set: { [`version.${STORED_PUBLISHING_STATUS}`]: status } },
+      { timestamps: false },
+    );
+  } catch (error) {
+    // the status is still shown, the next draft read just works it out again
+    request.payload.logger.warn({
+      err: error,
+      msg: `Could not store the publishing status of version ${version.id} of ${slug}`,
+    });
+  }
+};
+
+/**
  * Returns a field hook that retrieves the publishing status of a document.
+ *
+ * It returns the stored status when the version being read has one, and otherwise
+ * compares the published version against the latest draft, as it always did. A draft read then
+ * stores the result on the latest version, so the next list shows it without reading the
+ * document again.
+ *
  * @param config the collection configuration
  */
 export const getPublishingStatus =
   (config: CollectionConfig) =>
   async (arguments_: FieldHookArgs): Promise<PublishingStatusType> => {
-    const { data, req, collection } = arguments_;
-    const { payload } = req;
+    const { data, req, collection, draft } = arguments_;
 
     const id = data?.['id'] as string | undefined;
 
@@ -445,46 +592,28 @@ export const getPublishingStatus =
     // e.g. for a new document
     if (id == undefined) return {};
 
-    try {
-      const [originalDocument, draftDocument] = (await Promise.all([
-        payload.findByID({
-          collection: config.slug as CollectionSlug,
-          id,
-          // avoid infinite recursion
-          select: { publishingStatus: false },
-          // hasDiffs skips a join it does not get, and with locale 'all' Payload looks a join
-          // up on a field that does not exist, scanning the whole joined collection. The cast:
-          // for a slug only known at runtime, Payload types `joins` as never.
-          joins: false as never,
-          depth: 0,
-          locale: 'all',
-          trash: true, // include trashed documents
-          draft: false,
-        }),
-        payload.findByID({
-          collection: config.slug as CollectionSlug,
-          id,
-          // avoid infinite recursion
-          select: { publishingStatus: false },
-          joins: false as never,
-          locale: 'all',
-          depth: 0,
-          trash: true, // include trashed documents
-          draft: true,
-        }),
-      ])) as unknown as [PayloadDocument, PayloadDocument];
+    const storedStatus = data?.[STORED_PUBLISHING_STATUS] as
+      PublishingStatusType | null | undefined;
+    if (typeof storedStatus === 'object' && storedStatus !== null) return storedStatus;
 
+    const slug = config.slug as CollectionSlug;
+    let computed: Awaited<ReturnType<typeof computePublishingStatus>>;
+    try {
       const fieldDefinition = (collection?.fields as unknown as Field[] | undefined) ?? undefined;
       if (fieldDefinition === undefined) throw new Error('Field definitions are undefined');
 
-      return localeStates(fieldDefinition, originalDocument, draftDocument);
+      computed = await computePublishingStatus(slug, fieldDefinition, id, req.payload);
     } catch {
       // if the document is not found, we return an empty publishing status
       // this may happen if the document was just created and has no draft yet
-      return {
-        de: { pendingChanges: false, published: false },
-        en: { pendingChanges: false, published: false },
-        fr: { pendingChanges: false, published: false },
-      };
+      return unknownStatus();
     }
+
+    // A draft read returns the latest version, which is where the status is kept. The published
+    // document never carries one, so a read of it has nothing to store for.
+    if (draft === true && computed.latestVersion !== undefined) {
+      await storePublishingStatus(slug, computed.latestVersion, computed.status, req);
+    }
+
+    return computed.status;
   };
