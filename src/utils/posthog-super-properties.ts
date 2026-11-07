@@ -3,6 +3,7 @@
 // eslint-disable-next-line import/no-restricted-paths
 import build from '@/build';
 import type { NativeAppInfo } from '@/hooks/use-native-app-info';
+import { isStorageFallbackActive } from '@/lib/blocked-storage-fallback';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import type { PostHog } from 'posthog-js';
 
@@ -79,6 +80,10 @@ export const registerPostHogSuperProperties = (client: PostHog): (() => void) =>
         // so an issue can be lined up against a deploy.
         $app_version: build.version,
         web_commit_hash: build.git.hash,
+        // The browser blocks site data, so stars and preferences last for the tab only. A
+        // property and not an event of its own: such a browser cannot keep the consent cookie,
+        // so it only ever sends the anonymous page views and errors.
+        storage_blocked: isStorageFallbackActive(),
       });
 
       if (!isNative) {

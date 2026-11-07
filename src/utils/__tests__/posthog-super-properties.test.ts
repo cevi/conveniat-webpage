@@ -11,6 +11,11 @@ jest.mock('@/build', () => ({
   },
 }));
 
+const mockIsStorageFallbackActive = jest.fn(() => false);
+jest.mock('@/lib/blocked-storage-fallback', () => ({
+  isStorageFallbackActive: (): boolean => mockIsStorageFallbackActive(),
+}));
+
 const NATIVE_USER_AGENT =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 KonektaApp/1.0';
 const SAFARI_USER_AGENT =
@@ -66,6 +71,19 @@ describe('registerPostHogSuperProperties', () => {
   afterEach(() => {
     jest.useRealTimers();
     setNativeAppInfo(undefined);
+  });
+
+  it('marks the events of a browser that blocks site data', () => {
+    setUserAgent(SAFARI_USER_AGENT);
+    const { client, register } = createClient();
+
+    mockIsStorageFallbackActive.mockReturnValueOnce(false);
+    registerPostHogSuperProperties(client);
+    expect(register).toHaveBeenLastCalledWith(expect.objectContaining({ storage_blocked: false }));
+
+    mockIsStorageFallbackActive.mockReturnValueOnce(true);
+    registerPostHogSuperProperties(client);
+    expect(register).toHaveBeenLastCalledWith(expect.objectContaining({ storage_blocked: true }));
   });
 
   it('registers the web build version and commit hash on every client', () => {

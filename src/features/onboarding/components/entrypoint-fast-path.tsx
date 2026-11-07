@@ -47,7 +47,10 @@ export function entrypointFastPath(
 export const EntrypointFastPath: React.FC = () => (
   <script
     dangerouslySetInnerHTML={{
-      __html: `(${entrypointFastPath.toString()})(location,{local:localStorage,session:sessionStorage},${JSON.stringify(ONBOARDING_COMPLETE_KEY)},${JSON.stringify(FAST_PATH_TARGET)});`,
+      // A browser that blocks site data throws on reading the storages themselves, which happens
+      // here, before the function's own guard. This runs before any bundle, so nothing can stand
+      // in for them yet, see `installBlockedStorageFallback`.
+      __html: `try{(${entrypointFastPath.toString()})(location,{local:localStorage,session:sessionStorage},${JSON.stringify(ONBOARDING_COMPLETE_KEY)},${JSON.stringify(FAST_PATH_TARGET)})}catch(e){}`,
     }}
   />
 );
