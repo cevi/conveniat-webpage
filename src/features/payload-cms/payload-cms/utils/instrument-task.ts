@@ -1,6 +1,6 @@
+import { defineHistogram } from '@/lib/telemetry/metrics';
 import { withSpan } from '@/utils/tracing-helpers';
-import type { Attributes, Histogram } from '@opentelemetry/api';
-import { metrics, ValueType } from '@opentelemetry/api';
+import type { Attributes } from '@opentelemetry/api';
 import type { JobsConfig, TaskConfig, TaskHandlerResult, TypedJobs } from 'payload';
 
 /**
@@ -19,37 +19,17 @@ interface TaskInputOutput {
 type TaskOutcome = 'error' | 'success';
 
 /**
- * The duration histogram, created on first use rather than at module scope.
- *
- * `metrics.getMeter()` resolves the global MeterProvider at the moment it is called, and the
- * metrics API keeps no proxy standing in for a provider that is not registered yet — see the
- * comment on `startRuntimeMetrics` in `src/tracing.ts`. This module is imported by
- * `payload.config.ts`, which is evaluated while the SDK is still starting, so binding the meter
- * eagerly would attach it to the no-op provider and drop every series for the life of the
- * process. The first task run happens long after `sdk.start()`.
- */
-/**
  * Buckets in seconds. Without them the SDK uses its defaults, which are made for milliseconds
  * (0, 5, 10, 25, …): every run under five seconds, nearly all of them, landed in the first
  * bucket and every task read a p95 of 4.75 s. A queue drain takes milliseconds, a Hof sync
  * minutes, so the boundaries span both.
  */
-const DURATION_BUCKETS_SECONDS = [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300, 600];
-
-let durationHistogram: Histogram | undefined;
-
-const getDurationHistogram = (): Histogram => {
-  // The unit lives in the metric name rather than the `unit` field: exporters may append a
-  // unit suffix, and a name that shifts under us silently breaks every dashboard panel.
-  durationHistogram ??= metrics
-    .getMeter('payload-jobs')
-    .createHistogram('payload_job_duration_seconds', {
-      description: 'How long a Payload job task ran, in seconds, by task slug and outcome',
-      valueType: ValueType.DOUBLE,
-      advice: { explicitBucketBoundaries: DURATION_BUCKETS_SECONDS },
-    });
-  return durationHistogram;
-};
+const durationHistogram = defineHistogram<{ 'job.slug': string; 'job.outcome': TaskOutcome }>({
+  scope: 'payload-jobs',
+  name: 'payload_job_duration_seconds',
+  description: 'How long a Payload job task ran, in seconds, by task slug and outcome',
+  buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300, 600],
+});
 
 /** Reads a string field off the job document without trusting its shape. */
 const readJobField = (job: unknown, field: string): string | undefined => {
@@ -106,7 +86,7 @@ export const instrumentTask = <
       const startedAt = Date.now();
       const record = (outcome: TaskOutcome): number => {
         const durationSeconds = (Date.now() - startedAt) / 1000;
-        getDurationHistogram().record(durationSeconds, {
+        durationHistogram.record(durationSeconds, {
           'job.slug': slug,
           'job.outcome': outcome,
         });

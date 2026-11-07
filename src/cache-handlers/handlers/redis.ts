@@ -1,7 +1,7 @@
 import { BaseCacheHandler } from '@/cache-handlers/handlers/base';
 import type { CacheEntry } from '@/cache-handlers/types';
+import { defineCounter } from '@/lib/telemetry/metrics';
 import { createLogger } from '@/utils/server-logger';
-import { metrics, ValueType } from '@opentelemetry/api';
 import Redis from 'ioredis';
 
 const logger = createLogger('cache:redis');
@@ -22,9 +22,10 @@ const FLUSHED_AT_PREFIX = 'flushed-at:';
  */
 export const COMMAND_TIMEOUT_MS = 1000;
 
-const meter = metrics.getMeter('nextjs-redis-cache');
-const cacheInvalidationCounter = meter.createCounter('cache_invalidation_total', {
-  valueType: ValueType.INT,
+const cacheInvalidationCounter = defineCounter<{ type: 'tag'; tag: string }>({
+  scope: 'nextjs-redis-cache',
+  name: 'cache_invalidation_total',
+  description: 'Cache tags flushed that still had entries',
 });
 
 /** A connection to the Redis that holds the cache entries and the tag flush times. */

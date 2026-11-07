@@ -1,5 +1,10 @@
 import type { RealtimeOpenReason } from '@/lib/chat-shared';
-import { metrics, ValueType } from '@opentelemetry/api';
+import {
+  defineCounter,
+  defineHistogram,
+  defineObservableGauges,
+  defineUpDownCounter,
+} from '@/lib/telemetry/metrics';
 
 /**
  * OpenTelemetry instruments for the chat realtime path: the Postgres LISTEN/NOTIFY
@@ -19,7 +24,7 @@ import { metrics, ValueType } from '@opentelemetry/api';
  * Attribute values are deliberately drawn from small fixed sets — never raw error
  * messages — so that a failure loop cannot explode series cardinality.
  */
-const meter = metrics.getMeter('chat-realtime');
+const SCOPE = 'chat-realtime';
 
 /** Why a LISTEN connection was thrown away. */
 export type PubSubRecycleReason = 'health_probe' | 'client_error';
@@ -62,27 +67,33 @@ export const setPubSubSubscriberCount = (count: number): void => {
   subscriberCount = count;
 };
 
-meter
-  .createObservableGauge('chat_pubsub_listening', {
-    description: '1 if this replica holds a working Postgres LISTEN connection, else 0',
-    valueType: ValueType.INT,
-  })
-  .addCallback((result) => {
-    result.observe(isListening ? 1 : 0);
-  });
+defineObservableGauges({
+  scope: SCOPE,
+  gauges: {
+    listening: {
+      name: 'chat_pubsub_listening',
+      description: '1 if this replica holds a working Postgres LISTEN connection, else 0',
+      valueType: 'int',
+    },
+    subscribers: {
+      name: 'chat_pubsub_subscribers',
+      description: 'Channel subscriptions currently registered on this replica',
+      valueType: 'int',
+    },
+  },
+  observe: (observe): void => {
+    observe('listening', isListening ? 1 : 0);
+    observe('subscribers', subscriberCount);
+  },
+});
 
-meter
-  .createObservableGauge('chat_pubsub_subscribers', {
-    description: 'Channel subscriptions currently registered on this replica',
-    valueType: ValueType.INT,
-  })
-  .addCallback((result) => {
-    result.observe(subscriberCount);
-  });
-
-const pubsubConnectionCounter = meter.createCounter('chat_pubsub_connection_events_total', {
+const pubsubConnectionCounter = defineCounter<{
+  event: PubSubConnectionEvent;
+  reason?: PubSubRecycleReason;
+}>({
+  scope: SCOPE,
+  name: 'chat_pubsub_connection_events_total',
   description: 'Lifecycle transitions of the Postgres LISTEN connection',
-  valueType: ValueType.INT,
 });
 
 /**
@@ -93,63 +104,71 @@ const pubsubConnectionCounter = meter.createCounter('chat_pubsub_connection_even
  * flatlines while `chat_pubsub_publish_total` keeps rising elsewhere has gone deaf —
  * which is exactly the failure this instrumentation was written for.
  */
-const pubsubNotificationCounter = meter.createCounter('chat_pubsub_notifications_total', {
+const pubsubNotificationCounter = defineCounter<{ outcome: 'delivered' | 'parse_error' }>({
+  scope: SCOPE,
+  name: 'chat_pubsub_notifications_total',
   description: 'Notifications received on the chat_events channel',
-  valueType: ValueType.INT,
 });
 
-const pubsubPublishCounter = meter.createCounter('chat_pubsub_publish_total', {
+const pubsubPublishCounter = defineCounter<{ outcome: PubSubPublishOutcome }>({
+  scope: SCOPE,
+  name: 'chat_pubsub_publish_total',
   description: 'Events this replica published via pg_notify',
-  valueType: ValueType.INT,
 });
 
-const sseStreamsActive = meter.createUpDownCounter('chat_sse_streams_active', {
+const sseStreamsActive = defineUpDownCounter({
+  scope: SCOPE,
+  name: 'chat_sse_streams_active',
   description: 'SSE chat streams currently open on this replica',
-  valueType: ValueType.INT,
 });
 
-const sseStreamCounter = meter.createCounter('chat_sse_streams_total', {
+const sseStreamCounter = defineCounter<{ outcome: SseStreamOutcome }>({
+  scope: SCOPE,
+  name: 'chat_sse_streams_total',
   description: 'SSE chat streams opened, by how they ended',
-  valueType: ValueType.INT,
 });
 
-// The unit is carried by the metric name rather than the `unit` field: exporters may
-// append a unit suffix, and a name that shifts under us silently breaks the dashboard
-// panels built on `chat_sse_stream_duration_seconds_bucket`.
-const sseStreamDuration = meter.createHistogram('chat_sse_stream_duration_seconds', {
+const sseStreamDuration = defineHistogram<{ outcome: SseStreamOutcome }>({
+  scope: SCOPE,
+  name: 'chat_sse_stream_duration_seconds',
   description: 'How long SSE chat streams stayed open, in seconds',
-  valueType: ValueType.DOUBLE,
+  // The SDK's default boundaries, kept so the series continue. Meant for milliseconds, they
+  // happen to fit a stream that lives from seconds to hours.
+  buckets: [0, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1000, 2500, 5000, 7500, 10_000],
 });
 
-const sseStreamOpenedCounter = meter.createCounter('chat_sse_streams_opened_total', {
+const sseStreamOpenedCounter = defineCounter<{ reason: SseOpenReason }>({
+  scope: SCOPE,
+  name: 'chat_sse_streams_opened_total',
   description: 'SSE chat streams opened, by why the client opened them',
-  valueType: ValueType.INT,
 });
 
-const sseEventCounter = meter.createCounter('chat_sse_events_delivered_total', {
+const sseEventCounter = defineCounter<{ type: string }>({
+  scope: SCOPE,
+  name: 'chat_sse_events_delivered_total',
   description: 'Realtime events written to an SSE stream',
-  valueType: ValueType.INT,
 });
+
+/** Buckets for the realtime path, which answers in milliseconds when it is well. */
+const REALTIME_BUCKETS_SECONDS = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
 
 // Measured against the publishing replica's clock. The replicas run NTP, so the skew is a
 // few milliseconds, well below the delays this is meant to catch.
-const sseDeliveryLag = meter.createHistogram('chat_sse_delivery_lag_seconds', {
+const sseDeliveryLag = defineHistogram<{ type: string }>({
+  scope: SCOPE,
+  name: 'chat_sse_delivery_lag_seconds',
   description: 'Time from publishing a realtime event to writing it to an SSE stream, in seconds',
-  valueType: ValueType.DOUBLE,
-  advice: {
-    explicitBucketBoundaries: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
-  },
+  buckets: REALTIME_BUCKETS_SECONDS,
 });
 
 // The awaits on the pub/sub run after the route handler returned, so no span covers them.
 // A slow LISTEN connect shows up here and nowhere else.
-const sseSubscribeDuration = meter.createHistogram('chat_sse_subscribe_duration_seconds', {
+const sseSubscribeDuration = defineHistogram<{ outcome: SseSubscribeOutcome }>({
+  scope: SCOPE,
+  name: 'chat_sse_subscribe_duration_seconds',
   description:
     'Time an SSE stream took to subscribe to its channels, in seconds, by how the setup ended',
-  valueType: ValueType.DOUBLE,
-  advice: {
-    explicitBucketBoundaries: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
-  },
+  buckets: REALTIME_BUCKETS_SECONDS,
 });
 
 export const recordPubSubConnectionEvent = (
