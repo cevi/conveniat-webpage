@@ -186,15 +186,17 @@ const GiveBand: React.FC<{
 
   if (nfcAvailable === false) {
     return (
-      <div className="bg-quiet mt-6 rounded-[14px] p-4 text-left">
-        <p className="text-[15px] font-semibold text-balance text-green-900">
-          {translate('notInAppTitle', locale)}
-        </p>
-        <p className="mt-0.5 text-[13px] text-balance text-green-700">
-          {translate('notInAppDescription', locale)}
-        </p>
+      <>
+        <div className="bg-quiet mt-6 rounded-[14px] p-4 text-left">
+          <p className="text-[15px] font-semibold text-balance text-green-900">
+            {translate('notInAppTitle', locale)}
+          </p>
+          <p className="mt-0.5 text-[13px] text-balance text-green-700">
+            {translate('notInAppDescription', locale)}
+          </p>
+        </div>
         <CancelButton locale={locale} onClose={onClose} />
-      </div>
+      </>
     );
   }
 
