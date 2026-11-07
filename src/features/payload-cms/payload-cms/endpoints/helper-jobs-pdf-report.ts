@@ -233,9 +233,6 @@ export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
       },
     });
   } catch (error) {
-    if (error instanceof Error) {
-      console.error('PDF Gen Error:', error.message, error.stack);
-    }
     request.payload.logger.error({ err: error }, 'Failed to generate PDF Report');
     return Response.json({ error: 'Internal Server Error' }, { status: 500 });
   }

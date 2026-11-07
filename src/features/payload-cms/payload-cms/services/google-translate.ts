@@ -1,4 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { createLogger } from '@/utils/server-logger';
+
+const logger = createLogger('payload-cms:google-translate');
 
 interface TranslateResult {
   translatedText: string;
@@ -101,10 +104,11 @@ export async function translateTexts(
         attempt++;
         lastError = error instanceof Error ? error : new Error(String(error));
         if (attempt < maxAttempts) {
-          console.warn(
-            `Translation attempt ${attempt} failed, retrying in ${attempt * 1000}ms...`,
-            lastError.message,
-          );
+          logger.warn('Translation attempt failed, retrying', {
+            'translate.attempt': attempt,
+            'translate.retry_in_ms': attempt * 1000,
+            error: lastError,
+          });
           await sleep(attempt * 1000);
         }
       }

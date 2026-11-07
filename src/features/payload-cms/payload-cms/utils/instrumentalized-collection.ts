@@ -76,7 +76,7 @@ const otelBeforeOperation: CollectionBeforeOperationHook = ({
     req.context['spans'] ??= [];
     (req.context['spans'] as Span[]).push(span);
   } catch (error) {
-    console.error('Error creating OpenTelemetry span:', error);
+    req.payload.logger.error({ err: error }, 'Error creating OpenTelemetry span');
   }
 };
 

@@ -1,7 +1,10 @@
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import { mainContentField } from '@/features/payload-cms/payload-cms/shared-fields/main-content-field';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { createLogger } from '@/utils/server-logger';
 import type { Block, Field } from 'payload';
+
+const logger = createLogger('payload-cms:content-validation');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 const blocks = (mainContentField as any).blocks as Block[];
@@ -86,7 +89,7 @@ export const validateContentBlock = (
 
   // If we can't find the definition, we flag it as invalid to prevent render crashes
   if (!blockDefinition) {
-    console.error(`[ContentValidation] Block definition not found for type: ${block.blockType}`);
+    logger.error('Block definition not found', { 'payload.block_type': block.blockType });
     return {
       isValid: false,
       missingFields: ['Block Definition Missing'],
