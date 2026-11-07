@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.53.0](https://github.com/cevi/conveniat-webpage/compare/v1.52.3...v1.53.0) (2026-11-07)
+
+
+### Features
+
+* **cache:** count and trace what each 'use cache' lookup finds ([bf98ba6](https://github.com/cevi/conveniat-webpage/commit/bf98ba6b17f56850536cb319adb7e23b2751edff))
+* **cache:** count and trace what each 'use cache' lookup finds ([9ab0917](https://github.com/cevi/conveniat-webpage/commit/9ab09176da14882afb5ae2a935512b59f9f73c4f))
+* **chat:** measure SSE delivery lag and why streams reconnect ([327863d](https://github.com/cevi/conveniat-webpage/commit/327863d0f81d8b2a10f989ec8f4dcd16d9ed0744))
+
+
+### Bug Fixes
+
+* **cache:** give up on a Redis that stops answering after 1 s ([49a489c](https://github.com/cevi/conveniat-webpage/commit/49a489c667b4c95067b6ee904f86e8716b095ae7))
+* **chat:** count stream reasons from the previous URL and time failed setups ([6a715af](https://github.com/cevi/conveniat-webpage/commit/6a715af84e4bfc2d32331bb43b01fc85b5261e36))
+* **chat:** pass a string to the history API so the service worker can receive it ([122c0fe](https://github.com/cevi/conveniat-webpage/commit/122c0fe50c82b9729c557e1a5e5c2d41f2add85d))
+* **chat:** pass a string to the history API so the service worker can receive it ([c656603](https://github.com/cevi/conveniat-webpage/commit/c656603995760010b46caad6ba8bbade321e37c4))
+* **cms:** a featured section no longer looks unpublished after every save ([b13ffaa](https://github.com/cevi/conveniat-webpage/commit/b13ffaae467b670251492232d3008ef5a05ef8c9))
+* **cms:** a featured section no longer looks unpublished after every save ([d2fcbca](https://github.com/cevi/conveniat-webpage/commit/d2fcbca7bd342f117f782683733497bbbd6bc39f))
+* **cms:** a link change in any language and in a global shows as unpublished ([9717278](https://github.com/cevi/conveniat-webpage/commit/9717278d448258086a39ef5aeb73f4d464a6f8ce))
+* **cms:** a timeline block shows every entry of its categories, not the first ten ([c0cb7ac](https://github.com/cevi/conveniat-webpage/commit/c0cb7acac708f1721b144089fcc8dad4fcc2a335))
+* **cms:** a timeline block shows every entry of its categories, not the first ten ([1ca8fdd](https://github.com/cevi/conveniat-webpage/commit/1ca8fdd504166ddac52e1c409c88a5b51c4e85a6))
+* **cms:** an unpublished language no longer reads as published in its tooltip ([fd5779e](https://github.com/cevi/conveniat-webpage/commit/fd5779ec21ac611509323b3350f4cf9f9e506c59))
+* **cms:** an unpublished language no longer reads as published in its tooltip ([0a15985](https://github.com/cevi/conveniat-webpage/commit/0a159855593d9949cb6f58bebcad689d30c2cb14))
+* **cms:** publishing a language publishes only that language ([d02d4c7](https://github.com/cevi/conveniat-webpage/commit/d02d4c70e7a1a4732a8519b13ceabb323c1a4665))
+* **cms:** publishing a language publishes only that language ([0a3dfb9](https://github.com/cevi/conveniat-webpage/commit/0a3dfb9361ee4be4cfd483f0cbcc245126744fbb))
+* **cms:** the publishing status counts only changes a visitor would see ([50760ea](https://github.com/cevi/conveniat-webpage/commit/50760eab600ba6cd3acfe2918a0a01fbb605f403))
+* **cms:** the publishing status counts only changes a visitor would see ([c353375](https://github.com/cevi/conveniat-webpage/commit/c353375da5664ee7a498672b7c9d101fbcab4fa8))
+* **logging:** move per-tick lines to debug and route server console calls through the logger ([41cc6b9](https://github.com/cevi/conveniat-webpage/commit/41cc6b917a9c7d5cce0b420ecf84eaa4982eb7a2))
+* **logging:** move per-tick lines to debug and route server console calls through the logger ([e82f3fd](https://github.com/cevi/conveniat-webpage/commit/e82f3fd241a7967f8df542c235c0853b5a41e3c6)), closes [#2222](https://github.com/cevi/conveniat-webpage/issues/2222)
+
+
+### Performance
+
+* **cms:** store the publishing status so the page list stops re-reading every page ([604519e](https://github.com/cevi/conveniat-webpage/commit/604519e0c7ddcc9a5b38b725cb55df920f69e4f5))
+* **cms:** store the publishing status so the page list stops re-reading every page ([2c89ec1](https://github.com/cevi/conveniat-webpage/commit/2c89ec18cacaea6905afc21ec287c25cb6c74129))
+
 ## [1.52.3](https://github.com/cevi/conveniat-webpage/compare/v1.52.2...v1.52.3) (2026-11-07)
 
 
