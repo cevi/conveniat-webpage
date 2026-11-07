@@ -26,6 +26,13 @@ const PRESIGNING_IMPORTS = [
   },
 ];
 
+const METRICS_IMPORT = {
+  name: '@opentelemetry/api',
+  importNames: ['metrics'],
+  message:
+    'Define instruments through defineCounter, defineHistogram and the rest of @/lib/telemetry/metrics.',
+};
+
 const LOCALE_HOOK_IMPORT = {
   name: 'next-i18n-router/client',
   importNames: ['useCurrentLocale'],
@@ -212,6 +219,10 @@ const config = defineConfig([
   // neither by default. `src/lib/presigned-urls.ts` binds an upload to a policy, so a new
   // upload goes through it instead of getting its own signing code.
   //
+  // A meter taken from `metrics` before `sdk.start()` stays a no-op for the life of the process.
+  // `src/lib/telemetry/metrics.ts` binds every instrument on first use instead; tests register
+  // their own provider and keep the import.
+  //
   // `next-i18n-router` reads the locale cookie in the browser and only the pathname on the
   // server, so its hook renders a prefix-less URL in two languages and hydration fails.
   // `@/hooks/use-current-locale` wraps it.
@@ -225,7 +236,18 @@ const config = defineConfig([
       'src/lib/presigned-urls.ts',
       'src/hooks/use-current-locale.ts',
       'src/components/ui/toast.tsx',
+      'src/lib/telemetry/metrics.ts',
+      'src/**/__tests__/**',
     ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { paths: [...PRESIGNING_IMPORTS, LOCALE_HOOK_IMPORT, TOAST_IMPORT, METRICS_IMPORT] },
+      ],
+    },
+  },
+  {
+    files: ['src/lib/telemetry/metrics.ts', 'src/**/__tests__/**'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -235,17 +257,30 @@ const config = defineConfig([
   },
   {
     files: ['src/lib/presigned-urls.ts'],
-    rules: { 'no-restricted-imports': ['error', { paths: [LOCALE_HOOK_IMPORT, TOAST_IMPORT] }] },
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { paths: [LOCALE_HOOK_IMPORT, TOAST_IMPORT, METRICS_IMPORT] },
+      ],
+    },
   },
   {
     files: ['src/hooks/use-current-locale.ts'],
-    rules: { 'no-restricted-imports': ['error', { paths: [...PRESIGNING_IMPORTS, TOAST_IMPORT] }] },
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { paths: [...PRESIGNING_IMPORTS, TOAST_IMPORT, METRICS_IMPORT] },
+      ],
+    },
   },
   {
     // the one place the toast library is used
     files: ['src/components/ui/toast.tsx'],
     rules: {
-      'no-restricted-imports': ['error', { paths: [...PRESIGNING_IMPORTS, LOCALE_HOOK_IMPORT] }],
+      'no-restricted-imports': [
+        'error',
+        { paths: [...PRESIGNING_IMPORTS, LOCALE_HOOK_IMPORT, METRICS_IMPORT] },
+      ],
     },
   },
 
