@@ -3785,7 +3785,6 @@ export interface FeaturedSectionBlock {
       email?: string | null;
       openInNewTab?: boolean | null;
     };
-    id?: string | null;
   };
   subFeatures?:
     | {
@@ -6619,7 +6618,6 @@ export interface FeaturedSectionBlockSelect<T extends boolean = true> {
               email?: T;
               openInNewTab?: T;
             };
-        id?: T;
       };
   subFeatures?:
     | T
