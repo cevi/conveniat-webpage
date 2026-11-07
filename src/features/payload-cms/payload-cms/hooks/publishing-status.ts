@@ -26,15 +26,15 @@ interface Field {
 type PayloadDocument = Record<string, Record<Config['locale'], string>>;
 
 /**
- * Checks if two values are different.
+ * Checks if a field without sub-fields holds a different value in the two versions, in one locale.
  *
- * Returns false if one of the values is undefined or null.
- * Returns true if the values are different.
+ * A missing value and `null` both mean "no value". A localized field the locale has no value in
+ * may be missing, `null` or `{}`, depending on how the version was saved.
  *
- * @param locale
- * @param field
- * @param value1
- * @param value2
+ * @param locale the locale to compare
+ * @param field the field definition
+ * @param value1 the value in one version
+ * @param value2 the value in the other version
  */
 const hasFieldDifferentValue = (
   locale: Config['locale'] | undefined,
@@ -42,19 +42,17 @@ const hasFieldDifferentValue = (
   value1: unknown,
   value2: unknown,
 ): boolean => {
-  if (value1 === undefined && value2 === undefined) return false;
-  if (value1 === null && value2 === null) return false;
-  if (value1 === undefined || value2 === undefined) return true;
-  if (value1 === null || value2 === null) return true;
-
-  if (field.localized) {
-    if (locale === undefined) throw new Error('Locale is undefined but field is localized');
-    const v1 = value1 as Record<Config['locale'], string>;
-    const v2 = value2 as Record<Config['locale'], string>;
-    return JSON.stringify(v1[locale]) !== JSON.stringify(v2[locale]);
+  if (field.presentational) return false;
+  if (field.localized && locale === undefined) {
+    throw new Error('Locale is undefined but field is localized');
   }
 
-  return !field.presentational && JSON.stringify(value1) !== JSON.stringify(value2);
+  const inLocale = (value: unknown): unknown =>
+    field.localized && locale !== undefined
+      ? (value as Record<string, unknown> | null | undefined)?.[locale]
+      : value;
+
+  return JSON.stringify(inLocale(value1) ?? null) !== JSON.stringify(inLocale(value2) ?? null);
 };
 
 /**
@@ -99,8 +97,8 @@ const stripInternalLinks = (value: unknown): unknown => {
   if (Boolean(value.fields?.doc?.value)) {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-    value.fields.doc.linkedDocId = value.fields.doc.value.id ?? '';
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    value.fields.doc.linkedDocId = relationTarget(value.fields.doc.value);
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
@@ -129,9 +127,17 @@ const ignoredFields = new Set([
   'updatedAt',
   'createdAt',
   '_status',
+  // the publishing bookkeeping itself, which this status reports on
+  '_localized_status',
+  '_locale',
+  '_disable_unpublishing',
   'internalPageName',
   'internalStatus',
   'authors',
+  'lastEditedByUser',
+  'allowsEditsByUser',
+  // the title of a block in the admin panel, never shown on the page
+  'blockName',
 ]);
 
 /**
@@ -178,18 +184,15 @@ const hasDiffs = (
         type BlockType = Record<string, unknown>;
         type LocalizedBlockType = Record<Config['locale'], BlockType[]>;
 
-        const blocks1 = field.localized
-          ? (value1 as LocalizedBlockType)[locale]
-          : (value1 as BlockType[]);
-        const blocks2 = field.localized
-          ? (value2 as LocalizedBlockType)[locale]
-          : (value2 as BlockType[]);
-
-        // the following check is necessary for the case where there is not
-        // previous version of the document, i.e. the document was just created
-        // in that case the types are wrong...
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (blocks1 === undefined || blocks2 === undefined) return true;
+        // a blocks field without blocks may be missing or empty, depending on how it was saved
+        const blocks1 =
+          (field.localized
+            ? (value1 as LocalizedBlockType | undefined)?.[locale]
+            : (value1 as BlockType[] | undefined)) ?? [];
+        const blocks2 =
+          (field.localized
+            ? (value2 as LocalizedBlockType | undefined)?.[locale]
+            : (value2 as BlockType[] | undefined)) ?? [];
 
         for (const block1 of blocks1) {
           const blockType = block1['blockType'];
@@ -261,8 +264,14 @@ const hasDiffs = (
           break;
         }
 
+        // an array without rows may be missing or empty, depending on how it was saved
+        if (type === 'array' && !field.localized) {
+          value1 = value1 ?? [];
+          value2 = value2 ?? [];
+        }
+
         if (Array.isArray(value1)) {
-          if (value2 === undefined || !Array.isArray(value2)) return true;
+          if (!Array.isArray(value2)) return true;
           if (value1.length !== value2.length) return true;
 
           for (const _value1 of value1 as ({ id: string } & Record<string, unknown>)[]) {

@@ -15,6 +15,45 @@ const statusOf = async (stored: object): Promise<unknown> => {
   return getPublishingStatus({ slug: 'generic-page' } as CollectionConfig)(arguments_);
 };
 
+/** Whether German shows unpublished changes when the draft differs from the published page. */
+const germanHasPendingChanges = async (
+  fieldDefinitions: object[],
+  published: object,
+  draft: object,
+): Promise<boolean> => {
+  const findByID = jest.fn(({ draft: isDraft }: { draft: boolean }) =>
+    Promise.resolve({
+      id: PAGE_ID,
+      _localized_status: { de: { published: true } },
+      ...(isDraft ? draft : published),
+    }),
+  );
+  const arguments_ = {
+    data: { id: PAGE_ID },
+    collection: { fields: fieldDefinitions },
+    req: { payload: { findByID } },
+  } as unknown as FieldHookArgs;
+
+  const status = await getPublishingStatus({ slug: 'generic-page' } as CollectionConfig)(
+    arguments_,
+  );
+  return status['de']?.pendingChanges === true;
+};
+
+/** Rich text holding one internal link, as Payload stores it at depth 0. */
+const richText = (target: string): object => ({
+  root: {
+    type: 'root',
+    children: [
+      {
+        type: 'link',
+        fields: { linkType: 'internal', doc: { relationTo: 'generic-page', value: target } },
+        children: [{ type: 'text', text: 'hier' }],
+      },
+    ],
+  },
+});
+
 describe('getPublishingStatus', () => {
   it('reports a page published only in German as published in German', async () => {
     const status = await statusOf({
@@ -50,27 +89,6 @@ describe('getPublishingStatus', () => {
       { name: 'gallery', type: 'upload', hasMany: true, localized: true, presentational: false },
     ];
 
-    /** Whether German shows unpublished changes when the draft differs from the published page. */
-    const germanHasPendingChanges = async (published: object, draft: object): Promise<boolean> => {
-      const findByID = jest.fn(({ draft: isDraft }: { draft: boolean }) =>
-        Promise.resolve({
-          id: PAGE_ID,
-          _localized_status: { de: { published: true } },
-          ...(isDraft ? draft : published),
-        }),
-      );
-      const arguments_ = {
-        data: { id: PAGE_ID },
-        collection: { fields: cardFields },
-        req: { payload: { findByID } },
-      } as unknown as FieldHookArgs;
-
-      const status = await getPublishingStatus({ slug: 'generic-page' } as CollectionConfig)(
-        arguments_,
-      );
-      return status['de']?.pendingChanges === true;
-    };
-
     it.each([
       ['a link is set where there was none', {}, { link: PAGE }],
       ['a link points at another page', { link: PAGE }, { link: OTHER_PAGE }],
@@ -83,7 +101,7 @@ describe('getPublishingStatus', () => {
         { gallery: { de: ['image-b', 'image-a'] } },
       ],
     ])('shows unpublished changes when %s', async (_case, published, draft) => {
-      expect(await germanHasPendingChanges(published, draft)).toBe(true);
+      expect(await germanHasPendingChanges(cardFields, published, draft)).toBe(true);
     });
 
     it.each([
@@ -96,7 +114,74 @@ describe('getPublishingStatus', () => {
         { gallery: { de: ['image-a'], fr: ['image-b'] } },
       ],
     ])('shows no unpublished changes for %s', async (_case, published, draft) => {
-      expect(await germanHasPendingChanges(published, draft)).toBe(false);
+      expect(await germanHasPendingChanges(cardFields, published, draft)).toBe(false);
+    });
+  });
+
+  describe('a page with text, rich text and blocks', () => {
+    const pageFields = [
+      { name: 'metaTitle', type: 'text', localized: true, presentational: false },
+      { name: 'body', type: 'richText', localized: false, presentational: false },
+      { name: 'steps', type: 'array', localized: false, presentational: false, fields: [] },
+      {
+        name: 'columns',
+        type: 'blocks',
+        localized: false,
+        presentational: false,
+        blocks: [
+          {
+            slug: 'text',
+            fields: [
+              { name: 'blockName', type: 'text', localized: false, presentational: false },
+              { name: 'title', type: 'text', localized: false, presentational: false },
+            ],
+          },
+        ],
+      },
+      { name: 'lastEditedByUser', type: 'relationship', localized: false, presentational: false },
+      {
+        name: 'allowsEditsByUser',
+        type: 'relationship',
+        hasMany: true,
+        localized: false,
+        presentational: false,
+      },
+    ];
+    const column = { blockType: 'text', id: 'column-1', title: 'Programm' };
+
+    it('shows unpublished changes when a link in the text points at another page', async () => {
+      expect(
+        await germanHasPendingChanges(
+          pageFields,
+          { body: richText('page-a') },
+          { body: richText('page-b') },
+        ),
+      ).toBe(true);
+    });
+
+    it.each([
+      ['the same link in the text', { body: richText('page-a') }, { body: richText('page-a') }],
+      [
+        // how a publish in one language stores the empty fields of the others
+        'a translated field without a value, stored empty in one version',
+        { metaTitle: {} },
+        {},
+      ],
+      ['an array without rows, missing in one version', { steps: [] }, {}],
+      ['blocks without a single block, missing in both versions', {}, {}],
+      ['blocks without a single block, missing in one version', { columns: [] }, {}],
+      [
+        'a renamed block title, which the page never shows',
+        { columns: [column] },
+        { columns: [{ ...column, blockName: 'Spalte links' }] },
+      ],
+      [
+        'who edited the page last and who may edit it',
+        { lastEditedByUser: 'user-a', allowsEditsByUser: [] },
+        { lastEditedByUser: 'user-b', allowsEditsByUser: ['user-b'] },
+      ],
+    ])('shows no unpublished changes for %s', async (_case, published, draft) => {
+      expect(await germanHasPendingChanges(pageFields, published, draft)).toBe(false);
     });
   });
 });
