@@ -35,6 +35,16 @@ export const shouldPersistQuery = (query: Query): boolean => {
 };
 
 /**
+ * Keeps every mutation out of the IndexedDB blob.
+ *
+ * TanStack persists a paused mutation with its variables, but not its `mutationFn`, which lives
+ * in the component that started it. Restored on the next launch, it is resumed, rejects with
+ * "No mutationFn found", and the mutation cache swallows that: the action is gone without a
+ * word. What has to survive a relaunch, like a chat message, sits in its feature's own outbox.
+ */
+export const shouldPersistMutation = (): boolean => false;
+
+/**
  * How long the IndexedDB blob stays usable after it was last written.
  *
  * TanStack discards an older blob at startup, and its default is 24 hours, shorter than the
@@ -70,8 +80,9 @@ const isPlainWristbandRoster = (queryKey: readonly unknown[]): boolean => {
 };
 
 /**
- * Parses the IndexedDB blob and drops queries that were saved while still pending, and the plain
- * list of bands, see {@link isPlainWristbandRoster}.
+ * Parses the IndexedDB blob and drops queries that were saved while still pending, the plain
+ * list of bands, see {@link isPlainWristbandRoster}, and the mutations an older blob still
+ * holds, see {@link shouldPersistMutation}.
  *
  * Blobs written before {@link shouldPersistQuery} stopped persisting them can still hold such a
  * query, and a single one makes the whole restore throw. Dropping them here keeps the rest of
@@ -87,6 +98,7 @@ export const deserializePersistedClient = (data: string): PersistedClient => {
         queries: persistedClient.clientState.queries.filter(
           (query) => query.state.status !== 'pending' && !isPlainWristbandRoster(query.queryKey),
         ),
+        mutations: [],
       },
     };
   } catch (error) {
