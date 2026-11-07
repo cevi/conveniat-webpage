@@ -1,8 +1,12 @@
 'use client';
+import { toast } from '@/components/ui/toast';
 import type { ChatMessage } from '@/features/chat/api/types';
 import { useChatId } from '@/features/chat/context/chat-id-context';
+import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { useTRPC } from '@/trpc/client';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { userErrorMessage } from '@/utils/user-error-message';
 import { Check, Circle, Loader2 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 
@@ -11,14 +15,24 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 interface AlertQuestionMessageProperties {
   message: ChatMessage;
   isCurrentUser: boolean;
+  locale: Locale;
 }
+
+const answerFailedText: StaticTranslationString = {
+  de: 'Deine Antwort konnte nicht gesendet werden. Versuche es nochmals.',
+  en: 'Your answer could not be sent. Please try again.',
+  fr: 'Ta réponse n’a pas pu être envoyée. Réessaie.',
+};
 
 interface OptionItem {
   id?: string | undefined;
   option: string;
 }
 
-export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({ message }) => {
+export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
+  message,
+  locale,
+}) => {
   const trpc = useTRPC();
   const chatId = useChatId();
   const rawPayload = message.messagePayload;
@@ -72,6 +86,7 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
       onError: (error) => {
         setIsSubmitting(false);
         setOptimisticSelection(undefined);
+        toast.error(userErrorMessage(error, locale, chatErrorTexts, answerFailedText));
         console.error('Failed to update message:', error);
       },
     }),
