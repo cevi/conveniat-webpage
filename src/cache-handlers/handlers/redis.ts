@@ -14,6 +14,14 @@ const REDIS_URL = process.env['REDIS_URL'] || 'redis://localhost:6379';
  */
 const FLUSHED_AT_PREFIX = 'flushed-at:';
 
+/**
+ * How long a command may take before ioredis rejects it. `connectTimeout` and
+ * `maxRetriesPerRequest` only act when the connection drops; a Redis that stays connected but
+ * stops answering would otherwise hold every `'use cache'` read, and with it the render. A read
+ * that times out is a miss, so the page renders without the cache.
+ */
+export const COMMAND_TIMEOUT_MS = 1000;
+
 const meter = metrics.getMeter('nextjs-redis-cache');
 const cacheInvalidationCounter = meter.createCounter('cache_invalidation_total', {
   valueType: ValueType.INT,
@@ -24,6 +32,7 @@ export const createCacheRedisClient = (): Redis => {
   const redis = new Redis(REDIS_URL, {
     lazyConnect: true,
     connectTimeout: 2000,
+    commandTimeout: COMMAND_TIMEOUT_MS,
     maxRetriesPerRequest: 1,
     retryStrategy: (times: number): number | void | null => Math.min(times * 50, 2000),
   });
