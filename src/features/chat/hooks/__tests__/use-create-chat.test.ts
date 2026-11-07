@@ -12,12 +12,6 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { TRPCClientError } from '@trpc/client';
 
 // the generated prisma client cannot be loaded under jsdom; the hook only needs its enums
-jest.mock('@prisma/client', () => ({
-  ChatMembershipPermission: { OWNER: 'OWNER', MEMBER: 'MEMBER' },
-  ChatType: { ONE_TO_ONE: 'ONE_TO_ONE', GROUP: 'GROUP' },
-  MessageEventType: { CREATED: 'CREATED', STORED: 'STORED' },
-  MessageType: { SYSTEM_MSG: 'SYSTEM_MSG' },
-}));
 
 jest.mock(
   '@/trpc/client',

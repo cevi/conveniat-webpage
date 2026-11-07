@@ -35,7 +35,7 @@ import {
   ChatType,
   MessageEventType,
   MessageType,
-} from '@/lib/prisma/client';
+} from '@/lib/prisma/enums';
 import { invariantError } from '@/trpc/error-formatter';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';

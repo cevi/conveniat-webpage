@@ -1,6 +1,6 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import { formatDayLabel, groupMessagesByDay } from '@/features/chat/utils/message-grouping';
-import { MessageEventType, MessageType } from '@/lib/prisma/client';
+import { MessageEventType, MessageType } from '@/lib/prisma/enums';
 
 const message = (
   id: string,

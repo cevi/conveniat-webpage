@@ -1,5 +1,5 @@
 import type { NotificationType } from '@/lib/notification-type';
-import { PushNotificationKind } from '@/lib/prisma';
+import { PushNotificationKind } from '@/lib/prisma/enums';
 import { recordPushSend } from '@/lib/push-metrics';
 import { isUrgentKind, PUSH_TIME_TO_LIVE_SECONDS } from '@/lib/push/push-delivery-policy';
 import { endpointHostOf } from '@/lib/push/push-endpoint';

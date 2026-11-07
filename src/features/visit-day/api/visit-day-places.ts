@@ -1,5 +1,5 @@
 import { toDatabaseDate } from '@/features/visit-day/visit-day-settings';
-import type { PrismaClient } from '@/lib/prisma';
+import type { PrismaClient } from '@/lib/prisma/client';
 
 /** The places taken on one day, by kind. */
 export interface TakenPlaces {

@@ -1,5 +1,5 @@
 import { formatRegistrationNumber, reservePlaces } from '@/features/visit-day/api/visit-day-places';
-import type { PrismaClient } from '@/lib/prisma';
+import type { PrismaClient } from '@/lib/prisma/client';
 
 const fakePrisma = (
   taken: number,

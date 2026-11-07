@@ -4,8 +4,8 @@ import { syncChannelMemberships } from '@/features/payload-cms/payload-cms/chat-
 import type { ChatCapability } from '@/lib/chat-shared';
 import { ChatStatus } from '@/lib/chat-shared';
 import prisma from '@/lib/db/prisma';
-import type { ChatType } from '@/lib/prisma/client';
-import { ChatMembershipPermission, MessageEventType, MessageType } from '@/lib/prisma/client';
+import type { ChatType } from '@/lib/prisma/enums';
+import { ChatMembershipPermission, MessageEventType, MessageType } from '@/lib/prisma/enums';
 import type { StaticTranslationString } from '@/types/types';
 import type { CollectionAfterChangeHook, CollectionAfterDeleteHook } from 'payload';
 

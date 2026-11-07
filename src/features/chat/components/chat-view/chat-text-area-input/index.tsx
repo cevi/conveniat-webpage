@@ -19,13 +19,13 @@ import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { noConnectionTranslation } from '@/utils/shared-translations';
 import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
-import { ChatMembershipPermission, ChatType } from '@prisma/client';
 import type { LucideIcon } from 'lucide-react';
 import {
   Archive,

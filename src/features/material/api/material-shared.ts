@@ -8,7 +8,8 @@ import {
   type MaterialItemStatus,
   type StockSummary,
 } from '@/features/material/utils/stock';
-import type { MaterialLoanStatus, Prisma, PrismaClient } from '@/lib/prisma/client';
+import type { Prisma, PrismaClient } from '@/lib/prisma/client';
+import type { MaterialLoanStatus } from '@/lib/prisma/enums';
 import { createErrorThrower } from '@/trpc/error-formatter';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { TRPCError } from '@trpc/server';

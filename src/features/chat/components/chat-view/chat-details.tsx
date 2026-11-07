@@ -40,7 +40,7 @@ import {
 import { queryAvailability } from '@/features/chat/utils/query-availability';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { isChatArchived } from '@/lib/chat-shared';
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma/client';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';

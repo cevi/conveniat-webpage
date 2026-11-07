@@ -2,7 +2,7 @@ import {
   findOwnChatMembership,
   updateOwnChatMembership,
 } from '@/features/chat/api/database-interactions/update-own-chat-membership';
-import { ChatType } from '@/lib/prisma';
+import { ChatType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';

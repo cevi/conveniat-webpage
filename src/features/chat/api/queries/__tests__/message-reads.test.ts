@@ -7,7 +7,6 @@ jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
 jest.mock('@/config/environment-variables', () => ({ environmentVariables: {} }));
 // the queries take the enum from the generated client; the values are all they need
-jest.mock('@prisma/client', () => ({ MessageEventType: { READ: 'READ', STORED: 'STORED' } }));
 jest.mock('@/utils/get-locale-from-cookies', () => ({
   getLocaleFromCookies: jest.fn().mockResolvedValue('de'),
 }));

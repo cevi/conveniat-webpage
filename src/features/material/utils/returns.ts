@@ -1,4 +1,4 @@
-import type { MaterialCondition } from '@/lib/prisma/client';
+import type { MaterialCondition } from '@/lib/prisma/enums';
 
 /**
  * Whether a check-in makes sense before it is sent: "missing" needs pieces that did not come

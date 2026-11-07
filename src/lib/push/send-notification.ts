@@ -1,7 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import prisma from '@/lib/db/prisma';
 import type { NotificationType } from '@/lib/notification-type';
-import { PushNotificationKind } from '@/lib/prisma';
+import { PushNotificationKind } from '@/lib/prisma/enums';
 import { enqueuePushNotification } from '@/lib/push/push-queue';
 import { getAppShortName } from '@/utils/get-app-short-name';
 import { createLogger } from '@/utils/server-logger';

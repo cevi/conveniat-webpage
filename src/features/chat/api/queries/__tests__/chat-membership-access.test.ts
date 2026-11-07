@@ -10,7 +10,6 @@ jest.mock('payload', () => ({
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
 // `get-message.ts` takes the enum from the generated client; the values are all it needs.
-jest.mock('@prisma/client', () => ({ MessageEventType: { READ: 'READ', STORED: 'STORED' } }));
 jest.mock('@/config/environment-variables', () => ({
   environmentVariables: {
     CEVIDB_GROUP_FULL_ADMIN: [],

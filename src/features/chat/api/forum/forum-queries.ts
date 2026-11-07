@@ -33,7 +33,8 @@ import {
   type ForumCapacityValue,
   type ForumPostStatusValue,
 } from '@/lib/forum-shared';
-import { ChatMembershipPermission, ChatType, type Prisma } from '@/lib/prisma/client';
+import type { Prisma } from '@/lib/prisma/client';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import type { Locale } from '@/types/types';
 import config from '@payload-config';

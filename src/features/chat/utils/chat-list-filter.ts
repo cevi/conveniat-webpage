@@ -1,5 +1,5 @@
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { ChatType } from '@/lib/prisma/client';
+import { ChatType } from '@/lib/prisma/enums';
 
 /** What the chips over the chat list show: every chat, the unread ones, or the groups. */
 export type ChatListFilter = 'all' | 'unread' | 'groups';

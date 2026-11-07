@@ -5,9 +5,9 @@ import {
   getLeftGroupMessagePayload,
 } from '@/features/chat/api/utils/system-message-helpers';
 import { SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
-import type { JsonArray, JsonObject } from '@/lib/prisma/runtime/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { isStaticTranslationString } from '@/utils/type-guards';
+import type { JsonArray, JsonObject } from '@prisma/client/runtime/client';
 import Link from 'next/link';
 import type React from 'react';
 

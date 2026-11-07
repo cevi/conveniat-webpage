@@ -34,17 +34,17 @@ import { createChatImageUploadUrl } from '@/lib/chat-image-upload';
 import { chatImageUploadInputSchema } from '@/lib/chat-images';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { getFeatureFlag, setFeatureFlag } from '@/lib/db/redis';
+import type { Prisma } from '@/lib/prisma/client';
 import {
   ChatMembershipPermission,
   ChatType,
   MessageEventType,
   MessageType,
   PushNotificationKind,
-} from '@/lib/prisma/client';
+} from '@/lib/prisma/enums';
 import { createTRPCRouter, trpcBaseProcedure, trpcFullAdminProcedure } from '@/trpc/init';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { createLogger } from '@/utils/server-logger';
-import type { Prisma } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 

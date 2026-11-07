@@ -21,11 +21,6 @@ import { TRPCClientError } from '@trpc/client';
 import type { TRPC_ERROR_CODE_KEY } from '@trpc/server';
 
 // the generated prisma client cannot be loaded under jsdom; the drain only needs its enums
-jest.mock('@/lib/prisma/client', () => ({
-  ChatType: { ONE_TO_ONE: 'ONE_TO_ONE', GROUP: 'GROUP' },
-  MessageEventType: { CREATED: 'CREATED', STORED: 'STORED' },
-  MessageType: { TEXT_MSG: 'TEXT_MSG', IMAGE_MSG: 'IMAGE_MSG' },
-}));
 
 jest.mock(
   '@/trpc/client',

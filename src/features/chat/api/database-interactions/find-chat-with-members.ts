@@ -1,4 +1,4 @@
-import { ChatType } from '@/lib/prisma/client';
+import { ChatType } from '@/lib/prisma/enums';
 import type { PrismaClientOrTransaction } from '@/types/types';
 
 export const findChatWithMembers = async (

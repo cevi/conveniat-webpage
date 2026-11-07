@@ -14,7 +14,7 @@ import {
 } from '@/features/schedule/utils/reminder-timing';
 import { dayKeyOf } from '@/features/schedule/utils/time-utils';
 import prisma from '@/lib/db/prisma';
-import { CourseType, PushNotificationKind } from '@/lib/prisma';
+import { CourseType, PushNotificationKind } from '@/lib/prisma/enums';
 import { enqueuePushNotification } from '@/lib/push/push-queue';
 import type { Locale } from '@/types/types';
 import { getAppShortName } from '@/utils/get-app-short-name';

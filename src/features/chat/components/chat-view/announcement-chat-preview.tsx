@@ -14,9 +14,9 @@ import {
   MessageRow,
 } from '@/features/chat/components/chat-view/message/message-bubble';
 import { ChatIdProvider } from '@/features/chat/context/chat-id-context';
-import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
-import type { JsonObject } from '@/lib/prisma/runtime/client';
+import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/enums';
 import type { Locale } from '@/types/types';
+import type { JsonObject } from '@prisma/client/runtime/client';
 import type React from 'react';
 
 interface AnnouncementChatPreviewProperties {

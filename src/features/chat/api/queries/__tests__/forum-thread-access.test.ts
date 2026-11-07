@@ -5,9 +5,6 @@ jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('payload', () => ({ getPayload: jest.fn() }));
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
-jest.mock('@prisma/client', () =>
-  jest.requireActual<typeof import('@/lib/prisma')>('@/lib/prisma'),
-);
 jest.mock('@/config/environment-variables', () => ({
   environmentVariables: {
     // the groups the forum's rights read, none of them held here
@@ -55,7 +52,7 @@ jest.mock('@/features/chat/api/forum/forum-kernteam-labels', () => ({
 
 import { getChatMessages } from '@/features/chat/api/queries/get-chat-messages';
 import { getMessage } from '@/features/chat/api/queries/get-message';
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 
 const TOPIC = '0193f1a0-0000-7000-8000-000000000001';
 const REPORT = '0193f1a0-0000-7000-8000-0000000000aa';

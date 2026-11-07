@@ -1,6 +1,6 @@
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import prisma from '@/lib/db/prisma';
-import { PushNotificationKind, PushNotificationStatus } from '@/lib/prisma';
+import { PushNotificationKind, PushNotificationStatus } from '@/lib/prisma/enums';
 import { fakerDE as faker } from '@faker-js/faker';
 import type { Payload } from 'payload';
 

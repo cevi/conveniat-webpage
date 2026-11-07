@@ -1,7 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
 import type { NotificationType } from '@/lib/notification-type';
-import { PushNotificationChannel } from '@/lib/prisma';
+import { PushNotificationChannel } from '@/lib/prisma/enums';
 import { isPushServiceEndpoint, UNKNOWN_PUSH_SERVICE_ERROR } from '@/lib/push/push-endpoint';
 import type { DatabasePushSubscription, SchemaPushSubscription } from '@/schemas/push';
 import {

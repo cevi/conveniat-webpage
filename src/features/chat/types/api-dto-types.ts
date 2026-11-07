@@ -1,4 +1,4 @@
-import type { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
+import type { ChatMembershipPermission, ChatType, MessageEventType } from '@/lib/prisma/enums';
 
 import type { StaticTranslationString } from '@/types/types';
 

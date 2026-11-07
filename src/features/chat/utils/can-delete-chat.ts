@@ -1,5 +1,5 @@
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma/client';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 
 const DELETING_PERMISSIONS = new Set<ChatMembershipPermission>([
   ChatMembershipPermission.OWNER,

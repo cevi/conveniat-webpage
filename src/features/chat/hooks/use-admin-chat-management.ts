@@ -10,7 +10,7 @@ import {
 import type { RealtimeConnectionStatus } from '@/features/chat/utils/realtime-connection';
 import { ChatStatus, SYSTEM_MSG_TYPE_EMERGENCY_ALERT, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import type { ChatRealtimeEvent } from '@/lib/db/chat-pubsub';
-import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
+import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import { useCallback, useEffect, useRef } from 'react';
 import superjson from 'superjson';

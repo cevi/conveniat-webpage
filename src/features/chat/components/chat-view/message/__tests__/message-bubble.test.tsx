@@ -7,10 +7,6 @@ jest.mock('@/hooks/use-current-locale', () => ({
 }));
 
 // the generated Prisma client cannot be loaded in jsdom; the enums are all the bubble needs
-jest.mock('@/lib/prisma/client', () => ({
-  MessageEventType: { CREATED: 'CREATED', STORED: 'STORED' },
-  MessageType: { TEXT_MSG: 'TEXT_MSG', IMAGE_MSG: 'IMAGE_MSG' },
-}));
 // images sign their URLs through tRPC; these messages carry none
 jest.mock('@/features/chat/components/chat-view/message/chat-image', () => ({
   ChatImage: (): undefined => undefined,
