@@ -51,6 +51,14 @@ describe('foreground notifications', () => {
     });
   });
 
+  it('shows the message under the tag of its push, so either replaces the other', () => {
+    notifyForegroundMessage({ ...baseNotification, tag: 'chat:chat-1', stack: true });
+
+    expect(showNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ tag: 'chat:chat-1', stack: true }),
+    );
+  });
+
   /**
    * Firebase never renders a foreground message, so the channel the server named on
    * the push is not consulted. The shell reads `notificationType` from the bridge call

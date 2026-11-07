@@ -6,6 +6,7 @@ import { forgetOnboardingComplete } from '@/lib/onboarding-complete';
 import { clearPersonalPreferences } from '@/lib/preferences';
 import { starsCollection } from '@/lib/tanstack-db';
 import { Cookie } from '@/types/types';
+import { closeAllNotifications } from '@/utils/close-notifications';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import Cookies from 'js-cookie';
 
@@ -36,6 +37,7 @@ const LEGACY_STARS_KEY = 'starredItems';
  * - The record that the onboarding is done, so the next start runs it again
  * - Legacy `starredItems` localStorage key
  * - Unsent chat messages and drafts, unless `keepUnsentChatMessages` is set
+ * - With `clearCachedPages`, every notification shown, in the browser and in the native app
  *
  * What is preserved:
  * - TanStack DB `schedule-entries` collection (public, non-personal)
@@ -69,6 +71,12 @@ export function flushPersonalData({
   });
 
   forgetOnboardingComplete();
+
+  // The notifications show the leaving person's messages. An expired session keeps them: the
+  // person did not leave, and they are still theirs.
+  if (clearCachedPages) {
+    void closeAllNotifications();
+  }
 
   // The offline download goes with the cached pages, so the next person must be offered it
   // again instead of inheriting "skipped" from the previous one.
