@@ -62,10 +62,7 @@ import {
 import { keepPublicErrorData } from '@/features/payload-cms/payload-cms/hooks/keep-public-error-data';
 import { localizeUploadTooLarge } from '@/features/payload-cms/payload-cms/hooks/localize-upload-too-large';
 import { instrumentTasks } from '@/features/payload-cms/payload-cms/utils/instrument-task';
-import {
-  customPayloadLoggerConfig,
-  setQueriedJobSlugs,
-} from '@/features/payload-cms/payload-cms/utils/job-logger';
+import { customPayloadLoggerConfig } from '@/features/payload-cms/payload-cms/utils/job-logger';
 import {
   MAX_UPLOAD_FILE_BYTES,
   MAX_UPLOAD_REQUEST_BYTES,
@@ -76,7 +73,7 @@ import {
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
 import { withVisitDayPlaces } from '@/features/visit-day/payload-cms/visit-day-submission-hooks';
 import { dbConfig } from '@/lib/db/mongodb';
-import type { CollectionAfterOperationHook, Endpoint, JobsConfig, MetaConfig } from 'payload';
+import type { Endpoint, JobsConfig, MetaConfig } from 'payload';
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
@@ -267,28 +264,6 @@ const jobsConfig: JobsConfig = {
           ...defaultJobsCollection.admin?.components,
           beforeListTable: ['@/features/payload-cms/payload-cms/components/jobs-summary-banner'],
         },
-      },
-      hooks: {
-        ...defaultJobsCollection.hooks,
-        afterOperation: [
-          (({ operation, result }) => {
-            if (operation === 'find' && 'docs' in result && Array.isArray(result.docs)) {
-              const slugs = (result.docs as Record<string, unknown>[])
-                .map(
-                  (document_) =>
-                    (document_['taskSlug'] as string | undefined) ||
-                    (document_['workflowSlug'] as string | undefined),
-                )
-                .filter(
-                  (slug: string | undefined): slug is string =>
-                    typeof slug === 'string' && slug.length > 0,
-                );
-              setQueriedJobSlugs(slugs);
-            }
-            return result;
-          }) as CollectionAfterOperationHook,
-          ...(defaultJobsCollection.hooks?.afterOperation ?? []),
-        ],
       },
       fields,
     };
