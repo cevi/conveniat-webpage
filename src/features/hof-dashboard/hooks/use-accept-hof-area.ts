@@ -22,10 +22,7 @@ export const useAcceptHofArea = (
 } => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  // fail right away without signal instead of waiting paused for it, so the user hears of it
-  const mutation = useMutation(
-    trpc.hofDashboard.acceptHofArea.mutationOptions({ networkMode: 'always' }),
-  );
+  const mutation = useMutation(trpc.hofDashboard.acceptHofArea.mutationOptions());
   const [pendingHofId, setPendingHofId] = useState<string>();
 
   const accept = async (hofId: string, areas: readonly HofDashboardArea[]): Promise<void> => {

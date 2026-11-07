@@ -57,13 +57,9 @@ export const useOfflineQueueProcessor = (): void => {
   const trpc = useTRPC();
   const isOnline = useOnlineStatus();
   const queryClient = useQueryClient();
-  const sendMessageMutation = useMutation(
-    trpc.chat.sendMessage.mutationOptions({ networkMode: 'always' }),
-  );
+  const sendMessageMutation = useMutation(trpc.chat.sendMessage.mutationOptions());
   const mutateAsyncReference = useRef(sendMessageMutation.mutateAsync);
-  const createChatMutation = useMutation(
-    trpc.chat.createChat.mutationOptions({ networkMode: 'always' }),
-  );
+  const createChatMutation = useMutation(trpc.chat.createChat.mutationOptions());
   const createChatMutateAsyncReference = useRef(createChatMutation.mutateAsync);
   const router = useRouter();
   // Read through a ref: the drain lives in a long-running effect that must not be torn

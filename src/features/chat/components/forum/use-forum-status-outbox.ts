@@ -117,9 +117,7 @@ export const useForumStatusChange = (): ((change: {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
-  const { mutateAsync } = useMutation(
-    trpc.forum.updateForumPostStatus.mutationOptions({ networkMode: 'always' }),
-  );
+  const { mutateAsync } = useMutation(trpc.forum.updateForumPostStatus.mutationOptions());
 
   return useCallback(
     async (change) => {
@@ -163,9 +161,7 @@ const useForumStatusOutboxDrain = (): void => {
   const trpc = useTRPC();
   const isOnline = useOnlineStatus();
   const queryClient = useQueryClient();
-  const { mutateAsync } = useMutation(
-    trpc.forum.updateForumPostStatus.mutationOptions({ networkMode: 'always' }),
-  );
+  const { mutateAsync } = useMutation(trpc.forum.updateForumPostStatus.mutationOptions());
 
   useEffect(() => {
     const drain = async (): Promise<void> => {

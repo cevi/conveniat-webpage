@@ -50,8 +50,6 @@ const useStartChat = (
   const router = useRouter();
   const mutation = useMutation(
     trpc.chat.startChatFromWristband.mutationOptions({
-      // offline it fails at once and says so, instead of waiting unseen
-      networkMode: 'always',
       onSuccess: (result) => {
         switch (result.status) {
           case 'started': {

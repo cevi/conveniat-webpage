@@ -244,7 +244,6 @@ export const useMessageSend = (): UseMessageSendMutation => {
 
   return useMutation(
     trpc.chat.sendMessage.mutationOptions({
-      networkMode: 'always',
       async onMutate({ chatId, content, type, quotedMessageId, parentId, messageId, timestamp }) {
         const messageType = type ?? MessageType.TEXT_MSG;
 

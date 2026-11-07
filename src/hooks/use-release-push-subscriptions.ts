@@ -18,9 +18,9 @@ import { useMutation } from '@tanstack/react-query';
  * the shell re-emits it on every page load and it is registered to whoever is signed in then.
  *
  * Failures are logged, not thrown, so a flaky connection never keeps someone from logging out.
- * Neither half may wait for the connection either. The release runs with `networkMode:
- * 'always'`, because a paused mutation would hold the logout and, once the network returned,
- * run under whoever signed in next. For the same reason the browser half is not
+ * Neither half may wait for the connection either. A held release would hold the logout and,
+ * once the network returned, run under whoever signed in next; mutations never wait, see
+ * `makeQueryClient`. For the same reason the browser half is not
  * `unsubscribeFromPushNotifications`: its Server Action is replayed by Next's `useOffline`
  * after the connection returns, never failed. A row the release misses, from before rows
  * carried a device id, points at the endpoint unsubscribed here and is pruned by the next send.
@@ -28,9 +28,7 @@ import { useMutation } from '@tanstack/react-query';
 export function useReleasePushSubscriptions(): () => Promise<void> {
   const trpc = useTRPC();
   const { mutateAsync: releaseDevice } = useMutation(
-    trpc.nativePush.releaseDevice.mutationOptions({
-      networkMode: 'always',
-    }),
+    trpc.nativePush.releaseDevice.mutationOptions(),
   );
 
   return useCallback(async (): Promise<void> => {
