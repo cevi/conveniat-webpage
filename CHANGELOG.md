@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.53.1](https://github.com/cevi/conveniat-webpage/compare/v1.53.0...v1.53.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* **fonts:** preload the fonts from &lt;head&gt;, not from a Link header ([6cb917e](https://github.com/cevi/conveniat-webpage/commit/6cb917ef52190f329453ba168b4e3373bf43a95c))
+* **seo:** turn off iOS format detection so Safari cannot break hydration ([6d9db57](https://github.com/cevi/conveniat-webpage/commit/6d9db57900e0a5613b89ea25b2aff2985d62302f))
+* **seo:** turn off iOS format detection so Safari cannot break hydration ([f8df239](https://github.com/cevi/conveniat-webpage/commit/f8df239e6902f6ceab6887409dd45b21cb71e423)), closes [#2726](https://github.com/cevi/conveniat-webpage/issues/2726)
+
+
+### Performance
+
+* **app:** load the background logo at default priority ([1dd7800](https://github.com/cevi/conveniat-webpage/commit/1dd78001a4c8edc7420c4acdc0f83fa7e229d528))
+* **app:** load the background logo at default priority ([6068a5b](https://github.com/cevi/conveniat-webpage/commit/6068a5b395c85748d10dd2f8aa0a8436ea303f5f))
+* **cms:** look the public permission up once per request ([bba50c7](https://github.com/cevi/conveniat-webpage/commit/bba50c77282d852f14ace05cb832e1f3438bb872))
+* **cms:** look the public permission up once per request ([8df3b6b](https://github.com/cevi/conveniat-webpage/commit/8df3b6b03f887f9d857873480f2a8aee1aa20226))
+* **settings:** render the settings in the static shell, profile streams in ([f5a11ec](https://github.com/cevi/conveniat-webpage/commit/f5a11ecdec5c4f19adacd4fbc7741d63fcc27787))
+* **settings:** render the settings in the static shell, profile streams in ([4ae9f84](https://github.com/cevi/conveniat-webpage/commit/4ae9f84999797bd8df2a3127195b35ba61850775))
+
 ## [1.53.0](https://github.com/cevi/conveniat-webpage/compare/v1.52.3...v1.53.0) (2026-11-07)
 
 
