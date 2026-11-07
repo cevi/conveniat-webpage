@@ -58,6 +58,27 @@ const hasFieldDifferentValue = (
 };
 
 /**
+ * Reduces a relationship or upload value to what it points at, so a draft and the published
+ * version compare equal exactly when they link the same documents.
+ *
+ * At depth 0 Payload stores a plain id, `{ relationTo, value }` for a field with several target
+ * collections, or a list of either. A populated document is reduced to its id. A missing value
+ * and `null` both mean "no target".
+ *
+ * @param value the stored value of the field
+ */
+const relationTarget = (value: unknown): unknown => {
+  if (value === undefined || value === null) return null;
+  if (Array.isArray(value)) return value.map((element) => relationTarget(element));
+  if (typeof value !== 'object') return value;
+  if ('relationTo' in value && 'value' in value) {
+    return { relationTo: value.relationTo, value: relationTarget(value.value) };
+  }
+  if ('id' in value) return value.id;
+  return value;
+};
+
+/**
  * Strips internal links from a JSON object.
  *
  * traverse the JSON recursively and remove internal links
@@ -299,52 +320,24 @@ const hasDiffs = (
         break; // no diff found, continue with the next field
       }
 
+      // a join lists the documents that point at this one; it is not content of this document
+      case 'join': {
+        break; // continue with the next field
+      }
+
       // handle relationship fields
-      case 'join':
       case 'relationship':
       case 'upload': {
-        type UploadRecord = Record<Config['locale'], { id: string } | undefined>;
-        type UploadRecordMany = Record<Config['locale'], { id: string }[] | undefined>;
-
         if (field.presentational) break;
 
-        if (field.localized && field.hasMany === true) {
-          const v1 = value1 as UploadRecordMany;
-          const v2 = value2 as UploadRecordMany;
-          if (v1[locale] === undefined || v2[locale] === undefined) continue;
+        const v1 = field.localized
+          ? (value1 as Record<string, unknown> | null | undefined)?.[locale]
+          : value1;
+        const v2 = field.localized
+          ? (value2 as Record<string, unknown> | null | undefined)?.[locale]
+          : value2;
 
-          if (v1[locale].length !== v2[locale].length) return true; // different number of items
-
-          for (const [index, element] of v1[locale].entries()) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-expect-error
-            if (element.id !== v2[locale][index].id) return true; // different id
-          }
-          break; // no diff found, continue with the next field
-        }
-
-        if (!field.localized && field.hasMany === true) {
-          const v1 = value1 as { id: string }[] | undefined;
-          const v2 = value2 as { id: string }[] | undefined;
-          if (v1 === undefined || v2 === undefined) continue;
-          if (v1.length !== v2.length) return true; // different number of items
-          if (JSON.stringify(v1) !== JSON.stringify(v2)) return true; // different ids
-          break; // no diff found, continue with the next field
-        }
-
-        if (field.localized) {
-          const v1 = value1 as UploadRecord;
-          const v2 = value2 as UploadRecord;
-          if (v1[locale] === undefined || v2[locale] === undefined) continue;
-
-          if (v1[locale].id !== v2[locale].id) return true;
-          break; // no diff found, continue with the next field
-        }
-
-        if (value1 === undefined || value2 === undefined) continue;
-        const v1 = value1 as { id: string } | undefined;
-        const v2 = value2 as { id: string } | undefined;
-        if (v1?.id !== v2?.id) return true;
+        if (JSON.stringify(relationTarget(v1)) !== JSON.stringify(relationTarget(v2))) return true;
         break; // no diff found, continue with the next field
       }
 
