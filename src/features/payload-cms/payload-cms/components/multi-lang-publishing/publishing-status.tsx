@@ -1,7 +1,11 @@
-import React from 'react';
+'use client';
+import type React from 'react';
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { PublishingStatusType } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/type';
+import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
+import type { StaticTranslationString } from '@/types/types';
+import { useTranslation } from '@payloadcms/ui';
 import { cva } from 'class-variance-authority';
 
 export const languageStatusClasses = cva(
@@ -39,16 +43,36 @@ export const languageStatusClasses = cva(
   },
 );
 
+const notPublishedTooltip: StaticTranslationString = {
+  de: 'Nicht veröffentlicht',
+  en: 'Not published',
+  fr: 'Non publié',
+};
+
+const pendingChangesTooltip: StaticTranslationString = {
+  de: 'Veröffentlicht, mit unveröffentlichten Änderungen',
+  en: 'Published, with unpublished changes',
+  fr: 'Publié, avec des modifications non publiées',
+};
+
+const upToDateTooltip: StaticTranslationString = {
+  de: 'Veröffentlicht und aktuell',
+  en: 'Published and up to date',
+  fr: 'Publié et à jour',
+};
+
 export const LanguageStatus: React.FC<{
   published: boolean;
   pendingChanges: boolean;
   label: string;
 }> = ({ published, pendingChanges, label }) => {
-  let tooltip = 'Not published';
-  if (pendingChanges) {
-    tooltip = 'Published but has unpublished changes';
-  } else if (published) {
-    tooltip = 'Published and up to date';
+  const { i18n } = useTranslation();
+  const locale = resolveAdminLocale(i18n.language);
+
+  // a language that is not live differs from its draft by definition; say only that it is not live
+  let tooltip = notPublishedTooltip[locale];
+  if (published) {
+    tooltip = pendingChanges ? pendingChangesTooltip[locale] : upToDateTooltip[locale];
   }
   return (
     <TooltipProvider>
