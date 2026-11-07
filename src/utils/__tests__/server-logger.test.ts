@@ -69,6 +69,41 @@ describe('createLogger', () => {
     expect(record['cache.key']).toBe('k');
   });
 
+  it('writes the errors an error was caused by, with their codes', () => {
+    const destination = collector();
+    const logger = createLogger('test', { destination, level: 'debug' });
+    const refused = Object.assign(new Error('connect ECONNREFUSED 10.0.0.1:443'), {
+      code: 'ECONNREFUSED',
+    });
+
+    logger.error('Request failed', { error: new TypeError('fetch failed', { cause: refused }) });
+
+    const record = parse(destination.lines[0] ?? '');
+    expect(record['error.message']).toBe('fetch failed');
+    expect(record['error.cause.message']).toBe('connect ECONNREFUSED 10.0.0.1:443');
+    expect(record['error.cause.code']).toBe('ECONNREFUSED');
+    expect(typeof record['error.cause.stack']).toBe('string');
+  });
+
+  it('stops following causes that loop, and skips causes that are not errors', () => {
+    const destination = collector();
+    const logger = createLogger('test', { destination, level: 'debug' });
+    const looping = new Error('a');
+    looping.cause = new Error('b', { cause: looping });
+    const withBody = new Error('rejected', { cause: { access_token: 'secret' } });
+
+    logger.error('Failed', { looping, withBody });
+
+    const line = destination.lines[0] ?? '';
+    const record = parse(line);
+    expect(record['looping.cause.message']).toBe('b');
+    expect(record['looping.cause.cause.message']).toBe('a');
+    expect(record['looping.cause.cause.cause.message']).toBe('b');
+    expect(record['looping.cause.cause.cause.cause.message']).toBeUndefined();
+    expect(record['withBody.message']).toBe('rejected');
+    expect(line).not.toContain('secret');
+  });
+
   it('still logs the message when an attribute is circular', () => {
     const destination = collector();
     const logger = createLogger('test', { destination, level: 'debug' });
