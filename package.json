@@ -32,6 +32,7 @@
     "prepare": "git config core.hooksPath .githooks || true",
     "prettier": "prettier --config-path .prettierrc.json --write --cache --experimental-cli .",
     "prettier:check": "prettier  --config .prettierrc.json --check .",
+    "setup:worktree": "bash setup-worktree.sh",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
     "test": "jest",
     "test:e2e": "playwright test",
