@@ -1,5 +1,8 @@
-import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
-import type { CollectionConfig, FieldHookArgs } from 'payload';
+import {
+  getPublishingStatus,
+  getPublishingStatusGlobal,
+} from '@/features/payload-cms/payload-cms/hooks/publishing-status';
+import type { CollectionConfig, FieldHookArgs, GlobalConfig } from 'payload';
 
 const PAGE_ID = '65f0c1a2b3d4e5f6a7b8c9d0';
 const fields = [{ name: 'title', type: 'text', localized: true, presentational: false }];
@@ -182,6 +185,92 @@ describe('getPublishingStatus', () => {
       ],
     ])('shows no unpublished changes for %s', async (_case, published, draft) => {
       expect(await germanHasPendingChanges(pageFields, published, draft)).toBe(false);
+    });
+  });
+
+  it('notices a changed link in the text of every language', async () => {
+    const textFields = [{ name: 'body', type: 'richText', localized: true, presentational: false }];
+    const published = {
+      body: { de: richText('page-a'), en: richText('page-a'), fr: richText('page-a') },
+    };
+    const draft = {
+      body: { de: richText('page-a'), en: richText('page-b'), fr: richText('page-c') },
+    };
+    const findByID = jest.fn(({ draft: isDraft }: { draft: boolean }) =>
+      Promise.resolve({ id: PAGE_ID, ...(isDraft ? draft : published) }),
+    );
+
+    const status = await getPublishingStatus({ slug: 'generic-page' } as CollectionConfig)({
+      data: { id: PAGE_ID },
+      collection: { fields: textFields },
+      req: { payload: { findByID } },
+    } as unknown as FieldHookArgs);
+
+    expect(status['de']?.pendingChanges).toBe(false);
+    expect(status['en']?.pendingChanges).toBe(true);
+    expect(status['fr']?.pendingChanges).toBe(true);
+  });
+});
+
+/** The blocks of a landing page, one text block. */
+const block = (body: string): object[] => [{ blockType: 'text', id: 'block-1', body }];
+
+describe('getPublishingStatusGlobal', () => {
+  const globalFields = [
+    { name: 'title', type: 'text', localized: true, presentational: false },
+    {
+      name: 'pageContent',
+      type: 'blocks',
+      localized: true,
+      presentational: false,
+      blocks: [
+        {
+          slug: 'text',
+          fields: [{ name: 'body', type: 'text', localized: false, presentational: false }],
+        },
+      ],
+    },
+  ];
+  const landingPage = {
+    id: 'landing-page',
+    title: { de: 'Willkommen', fr: 'Bienvenue' },
+    pageContent: { de: block('Hallo'), fr: block('Salut') },
+    _localized_status: { de: { published: true }, fr: { published: true } },
+  };
+
+  /** The status of a global whose published version is the landing page above. */
+  const globalStatusOf = async (draft: object): Promise<unknown> => {
+    // Payload answers with every locale only when asked for 'all'; anything else is a mistake here
+    const findGlobal = jest.fn(({ draft: isDraft, locale }: { draft: boolean; locale: string }) =>
+      locale === 'all'
+        ? Promise.resolve(isDraft ? { ...landingPage, ...draft } : landingPage)
+        : Promise.reject(new Error(`unexpected locale ${locale}`)),
+    );
+    return getPublishingStatusGlobal({ slug: 'app-landing-page' } as GlobalConfig)({
+      data: { id: 'landing-page' },
+      global: { fields: globalFields },
+      req: { payload: { findGlobal } },
+    } as unknown as FieldHookArgs);
+  };
+
+  it('reports the published languages as up to date', async () => {
+    expect(await globalStatusOf({})).toEqual({
+      de: { pendingChanges: false, published: true },
+      en: { pendingChanges: false, published: false },
+      fr: { pendingChanges: false, published: true },
+    });
+  });
+
+  it('shows unpublished changes in the language whose blocks changed', async () => {
+    expect(
+      await globalStatusOf({ pageContent: { de: block('Hallo zusammen'), fr: block('Salut') } }),
+    ).toMatchObject({ de: { pendingChanges: true }, fr: { pendingChanges: false } });
+  });
+
+  it('shows unpublished changes in the language whose text changed', async () => {
+    expect(await globalStatusOf({ title: { de: 'Willkommen', fr: 'Bonjour' } })).toMatchObject({
+      de: { pendingChanges: false },
+      fr: { pendingChanges: true },
     });
   });
 });

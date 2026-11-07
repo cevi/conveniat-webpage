@@ -77,42 +77,25 @@ const relationTarget = (value: unknown): unknown => {
 };
 
 /**
- * Strips internal links from a JSON object.
+ * Copies rich text with every internal link reduced to the document it points at, so two
+ * versions compare equal exactly when their links point at the same documents.
  *
- * traverse the JSON recursively and remove internal links
- * by replacing any nested fields.doc.value with '>> not comparable <<'
+ * It copies rather than changes the value: the same document is compared once per locale.
  *
- * @param value
+ * @param value rich text, or a part of it
  */
-const stripInternalLinks = (value: unknown): unknown => {
+const normalizeInternalLinks = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map((element) => normalizeInternalLinks(element));
   if (typeof value !== 'object' || value === null) return value;
 
-  if (Array.isArray(value)) {
-    return value.map((element) => stripInternalLinks(element));
+  const copy: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value)) copy[key] = normalizeInternalLinks(child);
+
+  const fields = copy['fields'];
+  if (typeof fields === 'object' && fields !== null && 'doc' in fields) {
+    copy['fields'] = { ...fields, doc: relationTarget(fields.doc) };
   }
-
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-expect-error
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  if (Boolean(value.fields?.doc?.value)) {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    value.fields.doc.linkedDocId = relationTarget(value.fields.doc.value);
-
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    value.fields.doc.value = '>> not comparable <<';
-  }
-
-  for (const key in value) {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    value[key] = stripInternalLinks(value[key]);
-  }
-
-  return value;
+  return copy;
 };
 
 /**
@@ -307,9 +290,13 @@ const hasDiffs = (
 
       // handle rich text
       case 'richText': {
-        const strippedValue1 = replaceInlinedDocumentWithDocumentId(stripInternalLinks(value1));
-        const strippedValue2 = replaceInlinedDocumentWithDocumentId(stripInternalLinks(value2));
-        if (hasFieldDifferentValue(locale, field, strippedValue1, strippedValue2)) return true;
+        const normalizedValue1 = replaceInlinedDocumentWithDocumentId(
+          normalizeInternalLinks(value1),
+        );
+        const normalizedValue2 = replaceInlinedDocumentWithDocumentId(
+          normalizeInternalLinks(value2),
+        );
+        if (hasFieldDifferentValue(locale, field, normalizedValue1, normalizedValue2)) return true;
         break; // no diff found, continue with the next field
       }
 
@@ -365,6 +352,40 @@ const hasDiffs = (
   return false;
 };
 
+/**
+ * The publishing status of every locale, from both versions read with `locale: 'all'`.
+ *
+ * @param fieldDefinition the fields of the collection or global
+ * @param originalDocument the published version
+ * @param draftDocument the latest draft
+ */
+const localeStates = (
+  fieldDefinition: Field[],
+  originalDocument: PayloadDocument,
+  draftDocument: PayloadDocument,
+): PublishingStatusType => {
+  const getLocaleState = (
+    locale: Config['locale'],
+  ): {
+    pendingChanges: boolean;
+    published: boolean;
+  } => ({
+    pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
+    // A locale that was never saved has no entry, e.g. `en` on a konekta document.
+    published:
+      (
+        originalDocument['_localized_status']?.[locale] as unknown as
+          { published?: boolean } | undefined
+      )?.published === true,
+  });
+
+  return {
+    de: getLocaleState(LOCALE.DE),
+    en: getLocaleState(LOCALE.EN),
+    fr: getLocaleState(LOCALE.FR),
+  };
+};
+
 export const getPublishingStatusGlobal =
   (config: GlobalConfig) =>
   async (arguments_: FieldHookArgs): Promise<PublishingStatusType> => {
@@ -378,43 +399,25 @@ export const getPublishingStatusGlobal =
       const fieldDefinition = (global?.fields as unknown as Field[] | undefined) ?? undefined;
       if (fieldDefinition === undefined) throw new Error('Field definitions are undefined');
 
-      const getLocaleState = async (
-        locale: Config['locale'],
-      ): Promise<{ pendingChanges: boolean; published: boolean }> => {
-        const [originalDocument, draftDocument] = (await Promise.all([
-          payload.findGlobal({
-            slug: config.slug as GlobalSlug,
-            select: { publishingStatus: false },
-            depth: 0,
-            locale: locale,
-            draft: false,
-          }),
-          payload.findGlobal({
-            slug: config.slug as GlobalSlug,
-            select: { publishingStatus: false },
-            depth: 0,
-            locale: locale,
-            draft: true,
-          }),
-        ])) as unknown as [PayloadDocument, PayloadDocument];
+      // every locale at once, like a collection: hasDiffs expects localized fields keyed by locale
+      const [originalDocument, draftDocument] = (await Promise.all([
+        payload.findGlobal({
+          slug: config.slug as GlobalSlug,
+          select: { publishingStatus: false },
+          depth: 0,
+          locale: 'all',
+          draft: false,
+        }),
+        payload.findGlobal({
+          slug: config.slug as GlobalSlug,
+          select: { publishingStatus: false },
+          depth: 0,
+          locale: 'all',
+          draft: true,
+        }),
+      ])) as unknown as [PayloadDocument, PayloadDocument];
 
-        return {
-          pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
-          published:
-            (
-              originalDocument['_localized_status'] as unknown as
-                { published?: boolean } | undefined
-            )?.published === true,
-        };
-      };
-
-      const [de, en, fr] = await Promise.all([
-        getLocaleState(LOCALE.DE),
-        getLocaleState(LOCALE.EN),
-        getLocaleState(LOCALE.FR),
-      ]);
-
-      return { de, en, fr };
+      return localeStates(fieldDefinition, originalDocument, draftDocument);
     } catch {
       // if the document is not found, we return an empty publishing status
       // this may happen if the document was just created and has no draft yet
@@ -474,28 +477,7 @@ export const getPublishingStatus =
       const fieldDefinition = (collection?.fields as unknown as Field[] | undefined) ?? undefined;
       if (fieldDefinition === undefined) throw new Error('Field definitions are undefined');
 
-      const getLocaleState = (
-        locale: Config['locale'],
-      ): {
-        pendingChanges: boolean;
-        published: boolean;
-      } => {
-        return {
-          pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
-          // A locale that was never saved has no entry, e.g. `en` on a konekta document.
-          published:
-            (
-              originalDocument['_localized_status']?.[locale] as unknown as
-                { published?: boolean } | undefined
-            )?.published === true,
-        };
-      };
-
-      return {
-        de: getLocaleState(LOCALE.DE),
-        en: getLocaleState(LOCALE.EN),
-        fr: getLocaleState(LOCALE.FR),
-      };
+      return localeStates(fieldDefinition, originalDocument, draftDocument);
     } catch {
       // if the document is not found, we return an empty publishing status
       // this may happen if the document was just created and has no draft yet
