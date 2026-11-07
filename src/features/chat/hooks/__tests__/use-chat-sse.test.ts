@@ -233,6 +233,39 @@ describe('useChatSSE', () => {
     jest.advanceTimersByTime(1);
   });
 
+  it('refetches an edited message where a thread or a quote shows it', () => {
+    const chatId = '550e8400-e29b-41d4-a716-446655440000';
+    const { trpc, queryClient } = testTrpc;
+    const editedKey = trpc.chat.getMessage.queryKey({ messageId: 'message-1' });
+    const otherKey = trpc.chat.getMessage.queryKey({ messageId: 'message-2' });
+    queryClient.setQueryData(editedKey, { id: 'message-1' } as never);
+    queryClient.setQueryData(otherKey, { id: 'message-2' } as never);
+    const { unmount } = renderSSE([chatId]);
+    jest.advanceTimersByTime(1);
+
+    streamListener('message')?.({
+      data: JSON.stringify({
+        type: 'message_updated',
+        chatId,
+        senderId: 'someone-else',
+        message: {
+          id: 'message-1',
+          createdAt: '2027-07-24T09:00:00Z',
+          messagePayload: { text: 'Treffpunkt beim Hof Cevi Uster' },
+          senderId: 'someone-else',
+          status: 'STORED',
+          type: 'TEXT_MSG',
+        },
+      }),
+    });
+
+    expect(queryClient.getQueryState(editedKey)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(otherKey)?.isInvalidated).toBe(false);
+
+    unmount();
+    jest.advanceTimersByTime(1);
+  });
+
   it('refetches the open chat and the feature flags once after a delivery gap', () => {
     const chatId = '550e8400-e29b-41d4-a716-446655440000';
     const otherChatId = '550e8400-e29b-41d4-a716-446655440001';
