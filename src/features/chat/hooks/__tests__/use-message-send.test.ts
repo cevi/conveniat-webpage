@@ -141,6 +141,20 @@ describe('useMessageSend optimistic chat overview update', () => {
 
     expect(chat.lastMessage?.messagePreview).toBe('padded');
   });
+
+  it('invents no overview and no chat details for a chat opened without them', async () => {
+    const { send, trpc, queryClient, messages } = await renderSendMutation();
+    queryClient.removeQueries({ queryKey: trpc.chat.chats.queryKey({}) });
+
+    await send({ chatId: CHAT_ID, content: 'Wir sind beim Hof Züri 11' });
+
+    expect(queryClient.getQueryData(trpc.chat.chats.queryKey({}))).toBeUndefined();
+    expect(
+      queryClient.getQueryData(trpc.chat.chatDetails.queryKey({ chatId: CHAT_ID })),
+    ).toBeUndefined();
+    // the message still shows in the chat
+    expect(messages()).toHaveLength(1);
+  });
 });
 
 /**

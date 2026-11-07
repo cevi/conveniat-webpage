@@ -115,7 +115,7 @@ export const useAdminChatManagement = ({
             includeId: selectedChatId ?? undefined,
           }),
           (oldChats?: ChatWithMessagePreview[]) => {
-            if (!oldChats) return [];
+            if (!oldChats) return oldChats;
             return oldChats.map((chat) =>
               chat.id === chatId ? { ...chat, unreadCount: 0 } : chat,
             );
