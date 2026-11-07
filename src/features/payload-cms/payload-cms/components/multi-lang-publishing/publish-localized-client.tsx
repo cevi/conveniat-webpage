@@ -170,12 +170,21 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
     setIsModalOpen(true);
   }, []);
 
+  // Without `publishSpecificLocale`, Payload publishes the drafts of every language along with
+  // this one, and unpublishing one language publishes the others' drafts too.
+  const localeAction = useCallback((): string => {
+    const path =
+      globalSlug === undefined
+        ? `/${collectionSlug ?? ''}/${String(id ?? '')}`
+        : `/globals/${globalSlug}`;
+    return `${serverURL}${api}${path}?locale=${code}&depth=0&fallback-locale=null&publishSpecificLocale=${code}`;
+  }, [api, code, collectionSlug, globalSlug, id, serverURL]);
+
   const handleConfirmPublish = useCallback(async () => {
     setIsSubmitting(true);
     try {
       await submit({
-        // TODO: temporary fix for https://github.com/payloadcms/payload/issues/15642
-        // action,
+        action: localeAction(),
         overrides: {
           _status: 'published',
           _localized_status: {
@@ -193,14 +202,13 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [code, refetch, submit]);
+  }, [code, localeAction, refetch, submit]);
 
   const handleConfirmUnpublish = useCallback(async () => {
     setIsSubmitting(true);
     try {
       await submit({
-        // TODO: temporary fix for https://github.com/payloadcms/payload/issues/15642
-        // action,
+        action: localeAction(),
         overrides: {
           _status: 'published',
           _localized_status: {
@@ -217,7 +225,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [refetch, submit]);
+  }, [localeAction, refetch, submit]);
 
   const isCurrentLocalePublished = publishingStatus?.[code]?.published === true;
   const hasPendingChanges = publishingStatus?.[code]?.pendingChanges === true;
