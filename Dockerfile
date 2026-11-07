@@ -76,7 +76,6 @@ ARG BUILD_GIT_REF
 RUN sh create_build_info.sh
 
 # generate prisma client
-ENV PRISMA_OUTPUT='src/lib/prisma/client/'
 RUN pnpm exec prisma generate --no-hints
 
 RUN pnpm run build
