@@ -39,14 +39,20 @@ const customizeLabel: StaticTranslationString = {
 
 const signInLabel: StaticTranslationString = { de: 'Anmelden', en: 'Log in', fr: 'Connexion' };
 
+// icon above the name, three to a row; `h-full` keeps a row even when one name takes two lines,
+// and the icons start at the top, so they stay on one line across the row
 const tileClassName =
-  'focus-visible:focus-surface border-line hover:bg-quiet flex min-h-[64px] w-full cursor-pointer items-center gap-2.5 rounded-[14px] border bg-white px-3 py-2.5 text-left text-[14px] leading-[18px] font-semibold text-green-900';
+  'focus-visible:focus-surface border-line hover:bg-quiet flex h-full min-h-[96px] w-full cursor-pointer flex-col items-center justify-start gap-2 rounded-[14px] border bg-white px-1.5 py-3 text-center text-[13px] leading-[17px] font-semibold text-green-900';
 
 const TileContent: React.FC<{ icon: LucideIcon; label: string }> = ({ icon, label }) => (
   <>
     <IconTile icon={icon} />
-    {/* balanced, so "Mein QR-Code" breaks before the word and not at its hyphen */}
-    <span className="min-w-0 text-balance">{label}</span>
+    {/* balanced, so "Mein QR-Code" breaks before the word and not at its hyphen; a word of ten
+        letters or more may be hyphenated, so "Schichteinsätze" fits a third of a phone and
+        "Bilder" stays whole */}
+    <span className="max-w-full min-w-0 text-balance hyphens-auto [hyphenate-limit-chars:10_4_4]">
+      {label}
+    </span>
   </>
 );
 
@@ -109,7 +115,7 @@ export const DashboardQuickAccess: React.FC<{
         )}
       </div>
       {(isGuest || shown.length > 0) && (
-        <ul className="grid grid-cols-2 gap-2.5">
+        <ul className="grid grid-cols-3 gap-2.5">
           {isGuest && (
             <li>
               <button
