@@ -119,6 +119,9 @@ export default async function StoryBoardView({
         )}
         <StoryBoard
           columns={columns}
+          figures={figures.docs
+            .map((figure) => ({ id: figure.id, name: figure.name }))
+            .sort((a, b) => a.name.localeCompare(b.name))}
           locale={locale}
           asOf={asOf.toISOString()}
           hasStoryCategory={storyCategoryIds.length > 0}

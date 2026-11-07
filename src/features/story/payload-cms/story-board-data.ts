@@ -30,7 +30,7 @@ export interface BoardBlock {
   /** titles of the events that link the block */
   storyTitles: string[];
   /** what a new event for this block starts with */
-  newEvent: { title: string; day: string; visibleFrom: string | undefined };
+  newEvent: { day: string; visibleFrom: string | undefined };
 }
 
 export interface BoardColumn {
@@ -186,7 +186,6 @@ export const buildStoryBoard = ({
         .filter((event) => (event.scheduleEntries ?? []).some((entry) => idOf(entry) === block.id))
         .map((event) => event.title ?? ''),
       newEvent: {
-        title: block.title ?? '',
         day: block.timeslot?.date ?? '',
         visibleFrom: suggestedVisibleFrom(dayKey, time),
       },

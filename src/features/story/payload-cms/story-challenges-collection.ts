@@ -107,6 +107,8 @@ export const StoryChallengesCollection: CollectionConfig = {
           relationTo: 'camp-schedule-entry',
           hasMany: true,
           admin: {
+            // a table with the date, the time and the Quartiere: many blocks share a title
+            appearance: 'drawer',
             width: '50%',
             description: {
               de: 'Z.B. Stadtleben: der Block zeigt Leitenden die Challenge.',

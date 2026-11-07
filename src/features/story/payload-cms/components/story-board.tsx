@@ -14,7 +14,7 @@ import { Button, Pill, useDocumentDrawer } from '@payloadcms/ui';
 import { CalendarDays, Link2, Plus, Unlink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const labels = {
   prologue: { de: 'Vorgeschichte', en: 'Backstory', fr: 'Préhistoire' },
@@ -30,7 +30,8 @@ const labels = {
   noStory: { de: 'keine Story', en: 'no story', fr: 'pas d’histoire' },
   link: { de: 'verknüpfen', en: 'link', fr: 'lier' },
   addEvent: { de: 'Ereignis', en: 'Event', fr: 'Événement' },
-  addFigure: { de: 'Figur', en: 'Figure', fr: 'Personnage' },
+  addFigure: { de: 'Neue Figur', en: 'New figure', fr: 'Nouveau personnage' },
+  newsAbout: { de: 'Neues über …', en: 'News about …', fr: 'Du nouveau sur …' },
   addChallenge: { de: 'Challenge', en: 'Challenge', fr: 'Défi' },
   asOf: {
     de: 'So sehen es Leitende am',
@@ -143,7 +144,9 @@ const AddButton: React.FC<{
   initialData: Record<string, unknown>;
 }> = ({ collection, label, initialData }) => {
   const refresh = useRefreshBoard();
-  const [DocumentDrawer, , { openDrawer }] = useDocumentDrawer({ collectionSlug: collection });
+  const [DocumentDrawer, , { openDrawer, closeDrawer }] = useDocumentDrawer({
+    collectionSlug: collection,
+  });
   return (
     <>
       <button
@@ -154,14 +157,78 @@ const AddButton: React.FC<{
         <Plus className="size-3" aria-hidden />
         {label}
       </button>
-      <DocumentDrawer initialData={initialData} onSave={refresh} />
+      <DocumentDrawer
+        initialData={initialData}
+        // stay on the board: back to it with the new card, not to the document's own page
+        redirectAfterCreate={false}
+        onSave={() => {
+          closeDrawer();
+          refresh();
+        }}
+      />
+    </>
+  );
+};
+
+/** Opens a drawer as soon as the component that holds it is shown. */
+const useOpenWhenShown = (open: () => void): void => {
+  useEffect(() => {
+    open();
+    // once per mount: the picker mounts a new opener for every pick
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+};
+
+const FigureDrawerOpener: React.FC<{ id: string }> = ({ id }) => {
+  const refresh = useRefreshBoard();
+  const [DocumentDrawer, , { openDrawer }] = useDocumentDrawer({
+    collectionSlug: 'story-figures',
+    id,
+  });
+  useOpenWhenShown(openDrawer);
+  return <DocumentDrawer onSave={refresh} onDelete={refresh} />;
+};
+
+/**
+ * "Neues über …": picks a figure and opens it, to add what became known on this day under «Was
+ * wir wissen». Most news is about a figure that already exists, which «+ Figur» would not reach.
+ */
+const FigureNewsPicker: React.FC<{
+  figures: { id: string; name: string }[];
+  locale: Locale;
+}> = ({ figures, locale }) => {
+  const [pick, setPick] = useState<{ id: string; count: number }>();
+  if (figures.length === 0) return <></>;
+  return (
+    <>
+      <select
+        aria-label={labels.newsAbout[locale]}
+        value=""
+        onChange={(event) => {
+          const id = event.target.value;
+          if (id !== '') setPick({ id, count: (pick?.count ?? 0) + 1 });
+        }}
+        className="w-full cursor-pointer rounded-(--style-radius-s) border border-dashed border-(--theme-elevation-150) bg-transparent p-1.5 text-center text-xs text-(--theme-elevation-500) hover:border-(--theme-elevation-400) hover:text-(--theme-text)"
+      >
+        <option value="">+ {labels.newsAbout[locale]}</option>
+        {figures.map((figure) => (
+          <option key={figure.id} value={figure.id}>
+            {figure.name}
+          </option>
+        ))}
+      </select>
+      {pick !== undefined && (
+        <FigureDrawerOpener key={`${pick.id}-${String(pick.count)}`} id={pick.id} />
+      )}
     </>
   );
 };
 
 const Block: React.FC<{ block: BoardBlock; locale: Locale }> = ({ block, locale }) => {
   const refresh = useRefreshBoard();
-  const [DocumentDrawer, , { openDrawer }] = useDocumentDrawer({ collectionSlug: 'story-events' });
+  const [DocumentDrawer, , { openDrawer, closeDrawer }] = useDocumentDrawer({
+    collectionSlug: 'story-events',
+  });
   const isLinked = block.storyTitles.length > 0;
   return (
     <div
@@ -192,14 +259,17 @@ const Block: React.FC<{ block: BoardBlock; locale: Locale }> = ({ block, locale 
       )}
       <DocumentDrawer
         initialData={{
-          title: block.newEvent.title,
           day: block.newEvent.day,
           scheduleEntries: [block.id],
           ...(block.newEvent.visibleFrom === undefined
             ? {}
             : { visibleFrom: block.newEvent.visibleFrom }),
         }}
-        onSave={refresh}
+        redirectAfterCreate={false}
+        onSave={() => {
+          closeDrawer();
+          refresh();
+        }}
       />
     </div>
   );
@@ -256,11 +326,13 @@ const AsOfPicker: React.FC<{ asOf: string; locale: Locale }> = ({ asOf, locale }
 /** The Story-Board's grid: lanes down, camp days across. */
 export const StoryBoard: React.FC<{
   columns: BoardColumn[];
+  /** every figure, for «Neues über …» */
+  figures: { id: string; name: string }[];
   locale: Locale;
   asOf: string;
   hasStoryCategory: boolean;
   categoriesHref: string;
-}> = ({ columns, locale, asOf, hasStoryCategory, categoriesHref }) => {
+}> = ({ columns, figures, locale, asOf, hasStoryCategory, categoriesHref }) => {
   const todayKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Zurich' }).format(
     new Date(asOf),
   );
@@ -344,6 +416,7 @@ export const StoryBoard: React.FC<{
               {column.figureNews.map((card, index) => (
                 <Card key={`${card.id}-${String(index)}`} card={card} locale={locale} />
               ))}
+              {!isPrologue && <FigureNewsPicker figures={figures} locale={locale} />}
               {!isPrologue && (
                 <AddButton
                   collection="story-figures"

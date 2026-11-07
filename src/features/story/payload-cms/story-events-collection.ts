@@ -102,6 +102,8 @@ export const StoryEventsCollection: CollectionConfig = {
           relationTo: 'camp-schedule-entry',
           hasMany: true,
           admin: {
+            // a table with the date, the time and the Quartiere: many blocks share a title
+            appearance: 'drawer',
             description: {
               de: 'Diese Blöcke zeigen Leitenden in der App «Was bisher geschah» mit einem Link hierher, sobald das Ereignis sichtbar ist.',
               en: 'Once the event is visible, these blocks show Leitende a link here in the app.',

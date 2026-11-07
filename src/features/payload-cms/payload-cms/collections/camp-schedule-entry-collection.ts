@@ -20,7 +20,10 @@ import {
 } from '@payloadcms/richtext-lexical';
 import type { CollectionAfterReadHook, CollectionConfig, TextFieldSingleValidation } from 'payload';
 
-import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  hasAdminOrWebAccess,
+  isEditor,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { campScheduleOrganiserExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-organiser-export';
 import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
 import { handleParticipantMutation } from '@/features/payload-cms/payload-cms/endpoints/course-participants-manager';
@@ -147,7 +150,9 @@ export const CampScheduleEntryCollection: CollectionConfig = {
     },
   },
   access: {
-    read: hasAdminOrWebAccess,
+    // reference data the story points at, which every editor reads, as the Quartiere; the app
+    // reads it server-side for everybody
+    read: isEditor,
     create: hasAdminOrWebAccess,
     update: hasAdminOrWebAccess,
     delete: hasAdminOrWebAccess,

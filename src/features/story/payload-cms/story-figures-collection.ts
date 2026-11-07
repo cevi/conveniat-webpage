@@ -32,88 +32,84 @@ export const StoryFiguresCollection: CollectionConfig = {
     afterChange: [syncStoryImageVisibility],
   },
   fields: [
+    // the profile above the tabs, so a figure opens on what is known about it
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          label: { de: 'Name', en: 'Name', fr: 'Nom' },
+          type: 'text',
+          required: true,
+          admin: { width: '50%' },
+        },
+        {
+          name: 'role',
+          label: { de: 'Rolle', en: 'Role', fr: 'Rôle' },
+          type: 'text',
+          localized: true,
+          admin: {
+            width: '50%',
+            placeholder: 'Königlicher Champion',
+          },
+        },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'belongsTo',
+          label: { de: 'Gehört zu', en: 'Belongs to', fr: 'Appartient à' },
+          type: 'select',
+          required: true,
+          defaultValue: 'court',
+          options: [
+            {
+              value: 'court',
+              label: {
+                de: 'Hofstaat des Königs',
+                en: 'The king’s court',
+                fr: 'La cour du roi',
+              },
+            },
+            {
+              value: 'quartier',
+              label: {
+                de: 'Quartieroberhaupt',
+                en: 'Head of a Quartier',
+                fr: 'Chef d’un Quartier',
+              },
+            },
+            {
+              value: 'other',
+              label: { de: 'Weitere Figuren', en: 'Other figures', fr: 'Autres' },
+            },
+          ],
+          admin: { width: '50%' },
+        },
+        {
+          name: 'quartier',
+          label: { de: 'Quartier', en: 'Quartier', fr: 'Quartier' },
+          type: 'relationship',
+          relationTo: 'quartiere',
+          admin: {
+            width: '50%',
+            condition: (_data, siblingData) => siblingData['belongsTo'] === 'quartier',
+          },
+        },
+      ],
+    },
     {
       type: 'tabs',
       tabs: [
         {
-          label: { de: 'Steckbrief', en: 'Profile', fr: 'Profil' },
-          fields: [
-            {
-              type: 'row',
-              fields: [
-                {
-                  name: 'name',
-                  label: { de: 'Name', en: 'Name', fr: 'Nom' },
-                  type: 'text',
-                  required: true,
-                  admin: { width: '50%' },
-                },
-                {
-                  name: 'role',
-                  label: { de: 'Rolle', en: 'Role', fr: 'Rôle' },
-                  type: 'text',
-                  localized: true,
-                  admin: {
-                    width: '50%',
-                    placeholder: 'Königlicher Champion',
-                  },
-                },
-              ],
-            },
-            {
-              type: 'row',
-              fields: [
-                {
-                  name: 'belongsTo',
-                  label: { de: 'Gehört zu', en: 'Belongs to', fr: 'Appartient à' },
-                  type: 'select',
-                  required: true,
-                  defaultValue: 'court',
-                  options: [
-                    {
-                      value: 'court',
-                      label: {
-                        de: 'Hofstaat des Königs',
-                        en: 'The king’s court',
-                        fr: 'La cour du roi',
-                      },
-                    },
-                    {
-                      value: 'quartier',
-                      label: {
-                        de: 'Quartieroberhaupt',
-                        en: 'Head of a Quartier',
-                        fr: 'Chef d’un Quartier',
-                      },
-                    },
-                    {
-                      value: 'other',
-                      label: { de: 'Weitere Figuren', en: 'Other figures', fr: 'Autres' },
-                    },
-                  ],
-                  admin: { width: '50%' },
-                },
-                {
-                  name: 'quartier',
-                  label: { de: 'Quartier', en: 'Quartier', fr: 'Quartier' },
-                  type: 'relationship',
-                  relationTo: 'quartiere',
-                  admin: {
-                    width: '50%',
-                    condition: (_data, siblingData) => siblingData['belongsTo'] === 'quartier',
-                  },
-                },
-              ],
-            },
-          ],
-        },
-        {
           label: { de: 'Was wir wissen', en: 'What we know', fr: 'Ce que l’on sait' },
           admin: {
             description: {
-              de: 'Ein Abschnitt pro Enthüllung, neueste oben. Jeder erscheint erst ab seiner Zeit; ohne eigene Zeit ab der des Ereignisses, sonst ab der Figur.',
-              en: 'One section per reveal, newest on top. Each appears from its own time; without one from its event’s, else from the figure’s.',
-              fr: 'Une section par révélation, la plus récente en haut. Chacune apparaît à son heure.',
+              de: 'Ein Abschnitt pro Enthüllung, neue unten anfügen; die App zeigt das Neueste zuoberst. Jeder erscheint erst ab seiner Zeit, ohne eigene Zeit ab der seines Ereignisses, sonst ab der Figur.',
+              en: 'One section per reveal, add new ones at the bottom; the app shows the newest first. Each appears from its own time, without one from its event’s, else from the figure’s.',
+              fr: 'Une section par révélation, ajoutée en bas ; l’app montre la plus récente en premier. Chacune apparaît à son heure.',
             },
           },
           fields: [
