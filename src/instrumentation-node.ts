@@ -27,9 +27,8 @@ export const registerNodeInstrumentation = (): void => {
   // a provider that records nothing, and every database span is lost.
   bindDatabaseInstrumentations();
 
-  // Must come after sdk.start(): the instruments bind to the global MeterProvider at the
-  // moment they are created, and the metrics API has no proxy for one that is not registered
-  // yet, so anything built earlier stays a no-op.
+  // Must come after sdk.start(): it registers the gauges defined while the SDK was starting,
+  // and the metrics API has no proxy for a provider that is not registered yet.
   startRuntimeMetrics();
 
   // Must come after sdk.start(): before the SDK registers a LoggerProvider the

@@ -1,4 +1,4 @@
-import { type Histogram, metrics, ValueType } from '@opentelemetry/api';
+import { defineHistogram } from '@/lib/telemetry/metrics';
 
 /**
  * How long every request to Cevi.DB took and how it ended, as one Prometheus histogram.
@@ -46,29 +46,19 @@ export type CeviDatabaseOutcome =
   /** No answer at all: DNS, a refused or reset connection. */
   | 'network';
 
-/**
- * Buckets in seconds. Cevi.DB answers in a few hundred milliseconds when it is well and
- * pages a group's people in seconds; the client gives up after 20, so the tail stops there.
- */
-const DURATION_BUCKETS_SECONDS = [0.05, 0.1, 0.25, 0.5, 1, 2, 3, 5, 10, 20];
-
-let durationHistogram: Histogram | undefined;
-
-/**
- * Takes the meter on first use rather than at module scope: `payload.config.ts` reaches the
- * client while the SDK is still starting, and a meter taken then stays a no-op for the life
- * of the process. See `startRuntimeMetrics` in `src/tracing.ts`.
- */
-const getDurationHistogram = (): Histogram => {
-  durationHistogram ??= metrics
-    .getMeter('cevidb')
-    .createHistogram('cevidb_request_duration_seconds', {
-      description: 'Duration of a request to Cevi.DB, in seconds, by channel, route and outcome',
-      valueType: ValueType.DOUBLE,
-      advice: { explicitBucketBoundaries: DURATION_BUCKETS_SECONDS },
-    });
-  return durationHistogram;
-};
+const durationHistogram = defineHistogram<{
+  channel: CeviDatabaseChannel;
+  method: string;
+  route: string;
+  outcome: CeviDatabaseOutcome;
+}>({
+  scope: 'cevidb',
+  name: 'cevidb_request_duration_seconds',
+  description: 'Duration of a request to Cevi.DB, in seconds, by channel, route and outcome',
+  // Cevi.DB answers in a few hundred milliseconds when it is well and pages a group's people in
+  // seconds; the client gives up after 20, so the tail stops there.
+  buckets: [0.05, 0.1, 0.25, 0.5, 1, 2, 3, 5, 10, 20],
+});
 
 /**
  * The route of a Cevi.DB path or URL: its path with every numeric segment replaced by `:id`,
@@ -119,7 +109,7 @@ export function startCeviDatabaseRequest(
 ): (outcome: CeviDatabaseOutcome) => void {
   const startedAt = performance.now();
   return (outcome) => {
-    getDurationHistogram().record((performance.now() - startedAt) / 1000, {
+    durationHistogram.record((performance.now() - startedAt) / 1000, {
       channel: request.channel,
       method: request.method,
       route: request.route,

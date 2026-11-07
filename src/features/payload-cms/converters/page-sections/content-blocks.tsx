@@ -152,14 +152,14 @@ export const errorMessageForType = (type: StaticTranslationString, locale: Local
   return combined[locale];
 };
 const getTimelineEntriesCachedPersistent = async (
-  ids: string[],
+  categoryIds: string[],
   locale: Locale,
 ): Promise<{ docs: Timeline[] }> => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'collection:timeline');
 
-  return getTimelineEntriesCached(ids, locale);
+  return getTimelineEntriesCached(categoryIds, locale);
 };
 
 export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
@@ -172,15 +172,13 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
   const timelineEntryCategories: (string | TimelineCategory)[] =
     block.timelineEntryCategories ?? [];
 
-  const timelineEntryUuids: string[] = timelineEntryCategories
-    .filter((entry: string | TimelineCategory) => typeof entry === 'object')
-    .flatMap((entry: TimelineCategory) => entry.relatedTimelineEntries?.docs ?? [])
-    .flat()
-    .filter((entry: string | Timeline) => typeof entry === 'string');
+  const categoryIds: string[] = timelineEntryCategories.map((category) =>
+    typeof category === 'string' ? category : category.id,
+  );
 
   const { docs: timelineEntriesUnsorted } = await (renderInPreviewMode
-    ? getTimelineEntriesCached(timelineEntryUuids, locale, true)
-    : getTimelineEntriesCachedPersistent(timelineEntryUuids, locale));
+    ? getTimelineEntriesCached(categoryIds, locale, true)
+    : getTimelineEntriesCachedPersistent(categoryIds, locale));
 
   const timelineEntries = timelineEntriesUnsorted
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

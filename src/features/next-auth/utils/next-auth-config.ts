@@ -392,7 +392,7 @@ class TerminalRefreshError extends Error {
  */
 async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT | null | undefined> {
   try {
-    logger.info('Refreshing access token', {
+    logger.debug('Refreshing access token', {
       'auth.user_uuid': token.uuid,
       'hitobito.refresh_reason': reason,
     });

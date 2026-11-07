@@ -332,6 +332,15 @@ export interface GenericPage {
     | number
     | boolean
     | null;
+  _publishing_status_cache?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   _localized_status: LocalizedPublishingStatus;
   _disable_unpublishing?: boolean | null;
   _locale: string;
@@ -2342,6 +2351,15 @@ export interface Form {
     | number
     | boolean
     | null;
+  _publishing_status_cache?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   _localized_status: LocalizedPublishingStatus;
   _disable_unpublishing?: boolean | null;
   _locale: string;
@@ -2441,6 +2459,15 @@ export interface FormSubmission {
 export interface HelperJob {
   id: string;
   publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _publishing_status_cache?:
     | {
         [k: string]: unknown;
       }
@@ -2937,6 +2964,15 @@ export interface TimelineCategory {
 export interface Timeline {
   id: string;
   publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _publishing_status_cache?:
     | {
         [k: string]: unknown;
       }
@@ -3785,7 +3821,6 @@ export interface FeaturedSectionBlock {
       email?: string | null;
       openInNewTab?: boolean | null;
     };
-    id?: string | null;
   };
   subFeatures?:
     | {
@@ -4264,6 +4299,15 @@ export interface Announcement {
 export interface EmergencyCard {
   id: string;
   publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _publishing_status_cache?:
     | {
         [k: string]: unknown;
       }
@@ -5721,6 +5765,7 @@ export interface PayloadMigration {
  */
 export interface GenericPageSelect<T extends boolean = true> {
   publishingStatus?: T;
+  _publishing_status_cache?: T;
   _localized_status?: T;
   _disable_unpublishing?: T;
   _locale?: T;
@@ -6619,7 +6664,6 @@ export interface FeaturedSectionBlockSelect<T extends boolean = true> {
               email?: T;
               openInNewTab?: T;
             };
-        id?: T;
       };
   subFeatures?:
     | T
@@ -6757,6 +6801,7 @@ export interface TabsBlockSelect<T extends boolean = true> {
  */
 export interface TimelineSelect<T extends boolean = true> {
   publishingStatus?: T;
+  _publishing_status_cache?: T;
   _localized_status?: T;
   _disable_unpublishing?: T;
   _locale?: T;
@@ -7008,6 +7053,7 @@ export interface FormCollectionSelect<T extends boolean = true> {
  */
 export interface HelperJobsSelect<T extends boolean = true> {
   publishingStatus?: T;
+  _publishing_status_cache?: T;
   _localized_status?: T;
   _disable_unpublishing?: T;
   _locale?: T;
@@ -7112,6 +7158,7 @@ export interface AnnouncementsSelect<T extends boolean = true> {
  */
 export interface EmergencyCardsSelect<T extends boolean = true> {
   publishingStatus?: T;
+  _publishing_status_cache?: T;
   _localized_status?: T;
   _disable_unpublishing?: T;
   _locale?: T;
@@ -8353,6 +8400,7 @@ export interface FormsSelect<T extends boolean = true> {
       };
   submissions?: T;
   publishingStatus?: T;
+  _publishing_status_cache?: T;
   _localized_status?: T;
   _disable_unpublishing?: T;
   _locale?: T;

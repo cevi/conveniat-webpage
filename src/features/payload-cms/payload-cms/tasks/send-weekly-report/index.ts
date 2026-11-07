@@ -88,8 +88,9 @@ export const sendWeeklyReportTask: TaskConfig = {
           }
 
           if (runnableOrActiveJobs > 0) {
-            req.payload.logger.info(
-              `sendWeeklyReport: ${runnableOrActiveJobs} active or runnable jobs already exist. Skipping scheduling.`,
+            req.payload.logger.debug(
+              { 'jobs.runnable_or_active': runnableOrActiveJobs },
+              'sendWeeklyReport: active or runnable jobs already exist. Skipping scheduling.',
             );
             return skipSchedule();
           }

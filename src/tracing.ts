@@ -8,6 +8,7 @@ import { createPrismaInstrumentation } from '@/lib/prisma-instrumentation';
 import { replicaAttributes } from '@/lib/replica-attributes';
 import { RequestSpanProcessor } from '@/lib/request-span';
 import { registerRuntimeMemoryMetrics } from '@/lib/runtime-memory-metrics';
+import { bindPendingGauges } from '@/lib/telemetry/metrics';
 import { diag, DiagConsoleLogger, type DiagLogger, DiagLogLevel } from '@opentelemetry/api';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
@@ -325,22 +326,18 @@ export const sdk = new NodeSDK({
 });
 
 /**
- * Starts the process-level instruments: host metrics, the Node memory and event loop gauges.
+ * Starts the process-level instruments: host metrics, the Node memory and event loop gauges,
+ * and the gauges `@/lib/telemetry/metrics` was handed before the SDK was up.
  *
- * Call this after `sdk.start()`, never before. Both sets of instruments take their meter from
- * the global MeterProvider, `metrics.getMeter()` resolves that provider at the moment it is
- * called, and the metrics API keeps no proxy standing in for a provider that is not registered
- * yet. `HostMetrics` binds its meter in its constructor, so building it at module scope — as
- * this file did until now — bound it to the no-op provider that is in place while
- * `src/tracing.ts` is still being evaluated, which happens before `register()` runs
- * `sdk.start()`. Every `system.*` and `process.*` series it defines was therefore dropped for
- * the life of the process: `/metrics` served four series and none of them described memory,
- * which is why issue #1659 could only infer why the containers were being killed.
- *
- * `@/lib/chat-realtime-metrics` takes its meter at module scope too and works, because nothing
- * imports it until a request needs the chat pub/sub, long after the SDK is up.
+ * Call this right after `sdk.start()`. The metrics API keeps no proxy for a provider that is
+ * not registered yet, so an instrument created earlier stays a no-op for the life of the
+ * process. `HostMetrics` binds its meter in its constructor; built at module scope here, it
+ * lost every `system.*` and `process.*` series that way, which is why issue #1659 could only
+ * infer why the containers were being killed. Everything else defines its instruments through
+ * `@/lib/telemetry/metrics`, which binds them on first use.
  */
 export const startRuntimeMetrics = (): void => {
+  bindPendingGauges();
   const hostMetrics = new HostMetrics({ name: 'host-metrics' });
   hostMetrics.start();
   registerRuntimeMemoryMetrics();

@@ -1,4 +1,4 @@
-import { metrics, ValueType } from '@opentelemetry/api';
+import { defineObservableGauges } from '@/lib/telemetry/metrics';
 import { monitorEventLoopDelay } from 'node:perf_hooks';
 
 /**
@@ -15,7 +15,7 @@ import { monitorEventLoopDelay } from 'node:perf_hooks';
  * rather than since the process started; a spike of an hour ago does not stay in the p99.
  *
  * Exported through the Prometheus exporter in `src/tracing.ts` (`:9464`). No attributes, so
- * three series per replica. Units are in the names, as in `@/lib/runtime-memory-metrics`.
+ * three series per replica.
  */
 
 /** How often the monitor samples the loop, in milliseconds. */
@@ -26,9 +26,7 @@ const NANOSECONDS_PER_SECOND = 1e9;
 let registered = false;
 
 /**
- * Registers the event loop delay gauges on the global MeterProvider.
- *
- * Must be called after `sdk.start()`, see `registerRuntimeMemoryMetrics`.
+ * Registers the event loop delay gauges. Later calls do nothing.
  */
 export const registerEventLoopDelayMetrics = (): void => {
   if (registered) return;
@@ -37,35 +35,32 @@ export const registerEventLoopDelayMetrics = (): void => {
   const histogram = monitorEventLoopDelay({ resolution: RESOLUTION_MS });
   histogram.enable();
 
-  const meter = metrics.getMeter('runtime-event-loop');
-  const gauge = (
-    name: string,
-    description: string,
-  ): ReturnType<typeof meter.createObservableGauge> =>
-    meter.createObservableGauge(name, { description, valueType: ValueType.DOUBLE });
-
-  const p50 = gauge(
-    'nodejs_eventloop_delay_p50_seconds',
-    'Median delay of the event loop since the last scrape, in seconds',
-  );
-  const p99 = gauge(
-    'nodejs_eventloop_delay_p99_seconds',
-    'p99 delay of the event loop since the last scrape, in seconds',
-  );
-  const max = gauge(
-    'nodejs_eventloop_delay_max_seconds',
-    'Longest delay of the event loop since the last scrape, in seconds',
-  );
-
-  meter.addBatchObservableCallback(
-    (observer) => {
+  defineObservableGauges({
+    scope: 'runtime-event-loop',
+    gauges: {
+      p50: {
+        name: 'nodejs_eventloop_delay_p50_seconds',
+        description: 'Median delay of the event loop since the last scrape, in seconds',
+        valueType: 'double',
+      },
+      p99: {
+        name: 'nodejs_eventloop_delay_p99_seconds',
+        description: 'p99 delay of the event loop since the last scrape, in seconds',
+        valueType: 'double',
+      },
+      max: {
+        name: 'nodejs_eventloop_delay_max_seconds',
+        description: 'Longest delay of the event loop since the last scrape, in seconds',
+        valueType: 'double',
+      },
+    },
+    observe: (observe): void => {
       // no sample yet, as right after start: report nothing rather than a zero that reads healthy
       if (histogram.count === 0) return;
-      observer.observe(p50, histogram.percentile(50) / NANOSECONDS_PER_SECOND);
-      observer.observe(p99, histogram.percentile(99) / NANOSECONDS_PER_SECOND);
-      observer.observe(max, histogram.max / NANOSECONDS_PER_SECOND);
+      observe('p50', histogram.percentile(50) / NANOSECONDS_PER_SECOND);
+      observe('p99', histogram.percentile(99) / NANOSECONDS_PER_SECOND);
+      observe('max', histogram.max / NANOSECONDS_PER_SECOND);
       histogram.reset();
     },
-    [p50, p99, max],
-  );
+  });
 };

@@ -13,6 +13,21 @@ export const CHAT_CAPABILITY_PICTURE_UPLOAD = ChatCapability.PICTURE_UPLOAD;
 
 export const SYSTEM_MSG_TYPE_EMERGENCY_ALERT = 'emergency_alert';
 
+/**
+ * Why the client opens a realtime stream, sent as its `reason` query parameter so the
+ * server can count reconnects by cause. A rising share of `watchdog` means streams die
+ * silently.
+ */
+export const REALTIME_OPEN_REASONS = [
+  'open',
+  'url_changed',
+  'watchdog',
+  'wake',
+  'error',
+  'manual',
+] as const;
+export type RealtimeOpenReason = (typeof REALTIME_OPEN_REASONS)[number];
+
 export type ChatStatus = 'OPEN' | 'CLOSED';
 export const ChatStatus = {
   OPEN: 'OPEN' as const,

@@ -76,9 +76,13 @@ export async function resolveRichTextLinks(
         // Inject the fetched document back into the node
         documentInfo.value = fetchedDocument;
       } catch (error) {
-        console.error(
-          `Failed to resolve link for ${documentInfo.relationTo}:${documentInfo.value}`,
-          error,
+        payload.logger.warn(
+          {
+            err: error,
+            'payload.link_relation_to': documentInfo.relationTo,
+            'payload.link_document_id': documentInfo.value,
+          },
+          'Failed to resolve a rich text link',
         );
       }
     }),
