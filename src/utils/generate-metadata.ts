@@ -51,10 +51,19 @@ export const generateMetadataCached = async (): Promise<Metadata> => {
         google: googleSearchConsoleVerification,
       },
 
+      // iOS Safari wraps whatever looks like a phone number, address, date or
+      // email in a link before React hydrates, and the changed text node fails
+      // hydration (React #418, issue #2726): the IBAN and the bank address on
+      // /spenden read as a phone number and an address. Next.js writes a key
+      // into the meta tag only when it is `false`, so `true` left every
+      // detector on. Everything we want tappable is an explicit link already:
+      // rich text, chat messages and the Notfall screen render `tel:` and
+      // `mailto:` themselves.
       formatDetection: {
-        email: true,
-        address: true,
-        telephone: true,
+        telephone: false,
+        date: false,
+        address: false,
+        email: false,
       },
 
       icons: metadataIconDefinitions,
