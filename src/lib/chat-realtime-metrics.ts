@@ -1,3 +1,4 @@
+import type { RealtimeOpenReason } from '@/lib/chat-shared';
 import { metrics, ValueType } from '@opentelemetry/api';
 
 /**
@@ -32,6 +33,13 @@ export type PubSubPublishOutcome = 'published' | 'oversized' | 'invalid' | 'erro
 /** How an SSE stream ended. */
 export type SseStreamOutcome =
   'client_disconnect' | 'subscribe_failed' | 'unauthorized' | 'forbidden' | 'bad_request';
+
+/**
+ * Why an SSE stream was opened: the reason the client sent, `browser_retry` for a
+ * reconnect the browser made on its own, and `unknown` for a client that sends none, such
+ * as a bundle from before the parameter existed.
+ */
+export type SseOpenReason = RealtimeOpenReason | 'browser_retry' | 'unknown';
 
 /**
  * Whether this replica currently holds a working LISTEN connection.
@@ -110,9 +118,34 @@ const sseStreamDuration = meter.createHistogram('chat_sse_stream_duration_second
   valueType: ValueType.DOUBLE,
 });
 
+const sseStreamOpenedCounter = meter.createCounter('chat_sse_streams_opened_total', {
+  description: 'SSE chat streams opened, by why the client opened them',
+  valueType: ValueType.INT,
+});
+
 const sseEventCounter = meter.createCounter('chat_sse_events_delivered_total', {
   description: 'Realtime events written to an SSE stream',
   valueType: ValueType.INT,
+});
+
+// Measured against the publishing replica's clock. The replicas run NTP, so the skew is a
+// few milliseconds, well below the delays this is meant to catch.
+const sseDeliveryLag = meter.createHistogram('chat_sse_delivery_lag_seconds', {
+  description: 'Time from publishing a realtime event to writing it to an SSE stream, in seconds',
+  valueType: ValueType.DOUBLE,
+  advice: {
+    explicitBucketBoundaries: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+  },
+});
+
+// The awaits on the pub/sub run after the route handler returned, so no span covers them.
+// A slow LISTEN connect shows up here and nowhere else.
+const sseSubscribeDuration = meter.createHistogram('chat_sse_subscribe_duration_seconds', {
+  description: 'Time an SSE stream took to subscribe to all of its channels, in seconds',
+  valueType: ValueType.DOUBLE,
+  advice: {
+    explicitBucketBoundaries: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+  },
 });
 
 export const recordPubSubConnectionEvent = (
@@ -130,8 +163,9 @@ export const recordPubSubPublish = (outcome: PubSubPublishOutcome): void => {
   pubsubPublishCounter.add(1, { outcome });
 };
 
-export const recordSseStreamOpened = (): void => {
+export const recordSseStreamOpened = (reason: SseOpenReason): void => {
   sseStreamsActive.add(1);
+  sseStreamOpenedCounter.add(1, { reason });
 };
 
 export const recordSseStreamClosed = (outcome: SseStreamOutcome, durationSeconds: number): void => {
@@ -145,6 +179,18 @@ export const recordSseStreamRejected = (outcome: SseStreamOutcome): void => {
   sseStreamCounter.add(1, { outcome });
 };
 
-export const recordSseEventDelivered = (type: string): void => {
+/**
+ * Counts an event written to a stream. `publishedAt` is the publisher's timestamp; an
+ * event without one, a `resync` frame or one from a replica that predates the field,
+ * is counted without a lag.
+ */
+export const recordSseEventDelivered = (type: string, publishedAt?: number): void => {
   sseEventCounter.add(1, { type });
+  if (typeof publishedAt === 'number' && Number.isFinite(publishedAt)) {
+    sseDeliveryLag.record(Math.max(0, Date.now() - publishedAt) / 1000, { type });
+  }
+};
+
+export const recordSseSubscribeDuration = (durationSeconds: number): void => {
+  sseSubscribeDuration.record(durationSeconds);
 };

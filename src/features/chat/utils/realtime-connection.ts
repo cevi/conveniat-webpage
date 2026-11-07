@@ -1,3 +1,5 @@
+import type { RealtimeOpenReason } from '@/lib/chat-shared';
+
 /**
  * State of a realtime stream, as surfaced by the live-sync indicators.
  *
@@ -30,6 +32,9 @@ const RESYNC_JITTER_MS = 3000;
  * existing on the global (it does not in every test environment).
  */
 const EVENT_SOURCE_CLOSED = 2;
+
+const withReason = (url: string, reason: RealtimeOpenReason): string =>
+  `${url}${url.includes('?') ? '&' : '?'}reason=${reason}`;
 
 export interface RealtimeConnectionOptions {
   /** Called for every `message` frame received on the stream. */
@@ -158,7 +163,7 @@ export const createRealtimeConnection = ({
 
     reconnectTimer = setTimeout(() => {
       reconnectTimer = undefined;
-      connect();
+      connect('error');
     }, delay);
   };
 
@@ -172,7 +177,7 @@ export const createRealtimeConnection = ({
       if (aliveAt === undefined || Date.now() - aliveAt <= STALE_AFTER_MS) return;
       console.warn(`${logPrefix} No heartbeat from the server, reconnecting`);
       setStatus('offline');
-      connect();
+      connect('watchdog');
     }, WATCHDOG_INTERVAL_MS);
   };
 
@@ -183,7 +188,7 @@ export const createRealtimeConnection = ({
     // A tab that was suspended long enough for the stream to die needs a new one;
     // otherwise the stream is fine and only the data behind it may have moved on.
     if (aliveAt !== undefined && Date.now() - aliveAt > STALE_AFTER_MS) {
-      connect();
+      connect('wake');
       return;
     }
     requestResync();
@@ -215,7 +220,7 @@ export const createRealtimeConnection = ({
 
   // A function declaration so that the handlers above, which all run asynchronously,
   // can schedule it before it is defined.
-  function connect(): void {
+  function connect(reason: RealtimeOpenReason): void {
     if (url === undefined) return;
 
     clearReconnectTimer();
@@ -225,7 +230,7 @@ export const createRealtimeConnection = ({
     // A first attempt is ordinary; repeated ones mean the user is genuinely cut off.
     setStatus(reconnectAttempts > 1 ? 'offline' : 'connecting');
 
-    const nextSource = new EventSource(url);
+    const nextSource = new EventSource(withReason(url, reason));
     source = nextSource;
 
     nextSource.addEventListener('open', (): void => {
@@ -293,12 +298,12 @@ export const createRealtimeConnection = ({
       }
 
       reconnectAttempts = 0;
-      connect();
+      connect(hasConnectedBefore ? 'url_changed' : 'open');
     },
 
     reconnect: (): void => {
       reconnectAttempts = 0;
-      connect();
+      connect('manual');
     },
 
     close: (): void => {
