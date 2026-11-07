@@ -58,18 +58,18 @@ const JetztSectionSkeleton: React.FC = () => (
   </div>
 );
 
-/** "Schnellzugriff" while the CMS configuration has not been loaded yet: a 2×2 grid of tiles. */
+/** "Schnellzugriff" while the CMS configuration has not been loaded yet: two rows of three tiles. */
 export const QuickAccessSkeleton: React.FC = () => (
   <div className="space-y-2" aria-hidden="true">
     <LabelSkeleton width="w-28" />
-    <div className="grid grid-cols-2 gap-2.5">
-      {['w-20', 'w-24', 'w-24', 'w-20'].map((width, index) => (
+    <div className="grid grid-cols-3 gap-2.5">
+      {['w-16', 'w-12', 'w-14', 'w-12', 'w-14', 'w-16'].map((width, index) => (
         <div
           key={index}
-          className="border-line flex min-h-[64px] items-center gap-2.5 rounded-[14px] border bg-white px-3 py-2.5"
+          className="border-line flex min-h-[96px] flex-col items-center justify-start gap-2 rounded-[14px] border bg-white px-1.5 py-3"
         >
           <div className={cn('h-[38px] w-[38px] shrink-0 rounded-[10px]', pulse)} />
-          <div className={cn('h-4 rounded', width, pulse)} />
+          <div className={cn('h-3.5 rounded', width, pulse)} />
         </div>
       ))}
     </div>
