@@ -61,7 +61,7 @@ const noChatsYetText: StaticTranslationString = {
 
 const newConversationText: StaticTranslationString = {
   en: 'Start a new conversation by showing the QR code to someone',
-  de: 'Starte eine neue Unterhaltung, indem du den QR Code jemandem zeigst.',
+  de: 'Starte eine neue Unterhaltung, indem du den QR-Code jemandem zeigst.',
   fr: "Commencez une nouvelle conversation en montrant le code QR à quelqu'un",
 };
 
@@ -85,7 +85,7 @@ const clearSearchText: StaticTranslationString = {
 
 const startConversationCTAText: StaticTranslationString = {
   de: 'Unterhaltung starten',
-  en: 'Start Conversation',
+  en: 'Start conversation',
   fr: 'Démarrer une conversation',
 };
 

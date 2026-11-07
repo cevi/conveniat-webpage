@@ -51,8 +51,8 @@ export const describeMembers = (names: string[], locale: Locale): string => {
   const named = names.slice(0, NAMED_MEMBERS).join(', ');
   const rest = names.length - NAMED_MEMBERS;
   if (rest > 0) {
-    if (locale === 'de') return `${named} und ${rest} weitere`;
-    if (locale === 'fr') return `${named} et ${rest} autres`;
+    if (locale === 'de') return `${named} und ${rest} ${rest === 1 ? 'weitere Person' : 'weitere'}`;
+    if (locale === 'fr') return `${named} et ${rest} ${rest === 1 ? 'autre' : 'autres'}`;
     return `${named} and ${rest} more`;
   }
   if (named === '') return '';
