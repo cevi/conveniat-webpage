@@ -7,10 +7,14 @@ import { Suspense } from 'react';
  * the service worker can replay one shell for all of them, like a chat.
  */
 const ForumPostPage: React.FC = () => (
-  // the back button reads `?from=zentrale`
-  <Suspense>
-    <ForumPostView />
-  </Suspense>
+  // On a desktop the screen fills its closest positioned box, like a chat does in the chat split
+  // view. Without this one it filled the viewport, under the header and the rail of tabs.
+  <div className="xl:h-app-content xl:relative">
+    {/* the back button reads `?from=zentrale` */}
+    <Suspense>
+      <ForumPostView />
+    </Suspense>
+  </div>
 );
 
 export default ForumPostPage;
