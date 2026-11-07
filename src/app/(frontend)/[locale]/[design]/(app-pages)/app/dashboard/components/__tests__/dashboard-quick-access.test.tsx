@@ -56,6 +56,7 @@ const renderTiles = (access: unknown, wristbandsEnabled = true): TestTrpc => {
         helperShiftsEnabled: false,
         photoContestEnabled: false,
         wristbandsEnabled,
+        storyEnabled: false,
       }}
     />,
     { wrapper: testTrpc.wrapper },

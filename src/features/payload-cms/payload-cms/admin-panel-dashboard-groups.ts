@@ -60,6 +60,7 @@ export const AdminPanelDashboardGroups = {
     en: 'Campsite & Programme',
     fr: 'Terrain de camp et programme',
   }),
+  AppStory: defineGroup('app', { de: 'Story', en: 'Story', fr: 'Histoire' }),
   AppOperations: defineGroup('app', { de: 'Betrieb', en: 'Operations', fr: 'Exploitation' }),
   BackofficePeople: defineGroup('backoffice', {
     de: 'Personen & Zugriff',

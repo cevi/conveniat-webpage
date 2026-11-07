@@ -141,6 +141,11 @@ export const environmentVariables = createEnv({
       .string()
       .transform((value) => value === 'true')
       .default(false),
+    /** the story for Leitende and the Challenges in the app, see `src/features/story` */
+    FEATURE_ENABLE_STORY: z
+      .string()
+      .transform((value) => value === 'true')
+      .default(false),
     /**
      * The key the write password of every NFC wristband is derived from. Required once the
      * wristbands are on, and fixed from the first band programmed: changing it locks every

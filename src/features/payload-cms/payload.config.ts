@@ -148,6 +148,11 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
         path: '/material-setup',
         exact: true,
       },
+      storyBoard: {
+        Component: '@/features/story/payload-cms/story-board-view#default',
+        path: '/story-board',
+        exact: true,
+      },
     },
   },
   user: UserCollection.slug,
