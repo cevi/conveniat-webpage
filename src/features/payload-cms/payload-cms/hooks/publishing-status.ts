@@ -26,15 +26,15 @@ interface Field {
 type PayloadDocument = Record<string, Record<Config['locale'], string>>;
 
 /**
- * Checks if two values are different.
+ * Checks if a field without sub-fields holds a different value in the two versions, in one locale.
  *
- * Returns false if one of the values is undefined or null.
- * Returns true if the values are different.
+ * A missing value and `null` both mean "no value". A localized field the locale has no value in
+ * may be missing, `null` or `{}`, depending on how the version was saved.
  *
- * @param locale
- * @param field
- * @param value1
- * @param value2
+ * @param locale the locale to compare
+ * @param field the field definition
+ * @param value1 the value in one version
+ * @param value2 the value in the other version
  */
 const hasFieldDifferentValue = (
   locale: Config['locale'] | undefined,
@@ -42,58 +42,60 @@ const hasFieldDifferentValue = (
   value1: unknown,
   value2: unknown,
 ): boolean => {
-  if (value1 === undefined && value2 === undefined) return false;
-  if (value1 === null && value2 === null) return false;
-  if (value1 === undefined || value2 === undefined) return true;
-  if (value1 === null || value2 === null) return true;
-
-  if (field.localized) {
-    if (locale === undefined) throw new Error('Locale is undefined but field is localized');
-    const v1 = value1 as Record<Config['locale'], string>;
-    const v2 = value2 as Record<Config['locale'], string>;
-    return JSON.stringify(v1[locale]) !== JSON.stringify(v2[locale]);
+  if (field.presentational) return false;
+  if (field.localized && locale === undefined) {
+    throw new Error('Locale is undefined but field is localized');
   }
 
-  return !field.presentational && JSON.stringify(value1) !== JSON.stringify(value2);
+  const inLocale = (value: unknown): unknown =>
+    field.localized && locale !== undefined
+      ? (value as Record<string, unknown> | null | undefined)?.[locale]
+      : value;
+
+  return JSON.stringify(inLocale(value1) ?? null) !== JSON.stringify(inLocale(value2) ?? null);
 };
 
 /**
- * Strips internal links from a JSON object.
+ * Reduces a relationship or upload value to what it points at, so a draft and the published
+ * version compare equal exactly when they link the same documents.
  *
- * traverse the JSON recursively and remove internal links
- * by replacing any nested fields.doc.value with '>> not comparable <<'
+ * At depth 0 Payload stores a plain id, `{ relationTo, value }` for a field with several target
+ * collections, or a list of either. A populated document is reduced to its id. A missing value
+ * and `null` both mean "no target".
  *
- * @param value
+ * @param value the stored value of the field
  */
-const stripInternalLinks = (value: unknown): unknown => {
+const relationTarget = (value: unknown): unknown => {
+  if (value === undefined || value === null) return null;
+  if (Array.isArray(value)) return value.map((element) => relationTarget(element));
+  if (typeof value !== 'object') return value;
+  if ('relationTo' in value && 'value' in value) {
+    return { relationTo: value.relationTo, value: relationTarget(value.value) };
+  }
+  if ('id' in value) return value.id;
+  return value;
+};
+
+/**
+ * Copies rich text with every internal link reduced to the document it points at, so two
+ * versions compare equal exactly when their links point at the same documents.
+ *
+ * It copies rather than changes the value: the same document is compared once per locale.
+ *
+ * @param value rich text, or a part of it
+ */
+const normalizeInternalLinks = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map((element) => normalizeInternalLinks(element));
   if (typeof value !== 'object' || value === null) return value;
 
-  if (Array.isArray(value)) {
-    return value.map((element) => stripInternalLinks(element));
+  const copy: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value)) copy[key] = normalizeInternalLinks(child);
+
+  const fields = copy['fields'];
+  if (typeof fields === 'object' && fields !== null && 'doc' in fields) {
+    copy['fields'] = { ...fields, doc: relationTarget(fields.doc) };
   }
-
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-expect-error
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  if (Boolean(value.fields?.doc?.value)) {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
-    value.fields.doc.linkedDocId = value.fields.doc.value.id ?? '';
-
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    value.fields.doc.value = '>> not comparable <<';
-  }
-
-  for (const key in value) {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    value[key] = stripInternalLinks(value[key]);
-  }
-
-  return value;
+  return copy;
 };
 
 /**
@@ -108,9 +110,17 @@ const ignoredFields = new Set([
   'updatedAt',
   'createdAt',
   '_status',
+  // the publishing bookkeeping itself, which this status reports on
+  '_localized_status',
+  '_locale',
+  '_disable_unpublishing',
   'internalPageName',
   'internalStatus',
   'authors',
+  'lastEditedByUser',
+  'allowsEditsByUser',
+  // the title of a block in the admin panel, never shown on the page
+  'blockName',
 ]);
 
 /**
@@ -157,18 +167,15 @@ const hasDiffs = (
         type BlockType = Record<string, unknown>;
         type LocalizedBlockType = Record<Config['locale'], BlockType[]>;
 
-        const blocks1 = field.localized
-          ? (value1 as LocalizedBlockType)[locale]
-          : (value1 as BlockType[]);
-        const blocks2 = field.localized
-          ? (value2 as LocalizedBlockType)[locale]
-          : (value2 as BlockType[]);
-
-        // the following check is necessary for the case where there is not
-        // previous version of the document, i.e. the document was just created
-        // in that case the types are wrong...
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (blocks1 === undefined || blocks2 === undefined) return true;
+        // a blocks field without blocks may be missing or empty, depending on how it was saved
+        const blocks1 =
+          (field.localized
+            ? (value1 as LocalizedBlockType | undefined)?.[locale]
+            : (value1 as BlockType[] | undefined)) ?? [];
+        const blocks2 =
+          (field.localized
+            ? (value2 as LocalizedBlockType | undefined)?.[locale]
+            : (value2 as BlockType[] | undefined)) ?? [];
 
         for (const block1 of blocks1) {
           const blockType = block1['blockType'];
@@ -240,8 +247,14 @@ const hasDiffs = (
           break;
         }
 
+        // an array without rows may be missing or empty, depending on how it was saved
+        if (type === 'array' && !field.localized) {
+          value1 = value1 ?? [];
+          value2 = value2 ?? [];
+        }
+
         if (Array.isArray(value1)) {
-          if (value2 === undefined || !Array.isArray(value2)) return true;
+          if (!Array.isArray(value2)) return true;
           if (value1.length !== value2.length) return true;
 
           for (const _value1 of value1 as ({ id: string } & Record<string, unknown>)[]) {
@@ -277,9 +290,13 @@ const hasDiffs = (
 
       // handle rich text
       case 'richText': {
-        const strippedValue1 = replaceInlinedDocumentWithDocumentId(stripInternalLinks(value1));
-        const strippedValue2 = replaceInlinedDocumentWithDocumentId(stripInternalLinks(value2));
-        if (hasFieldDifferentValue(locale, field, strippedValue1, strippedValue2)) return true;
+        const normalizedValue1 = replaceInlinedDocumentWithDocumentId(
+          normalizeInternalLinks(value1),
+        );
+        const normalizedValue2 = replaceInlinedDocumentWithDocumentId(
+          normalizeInternalLinks(value2),
+        );
+        if (hasFieldDifferentValue(locale, field, normalizedValue1, normalizedValue2)) return true;
         break; // no diff found, continue with the next field
       }
 
@@ -299,52 +316,24 @@ const hasDiffs = (
         break; // no diff found, continue with the next field
       }
 
+      // a join lists the documents that point at this one; it is not content of this document
+      case 'join': {
+        break; // continue with the next field
+      }
+
       // handle relationship fields
-      case 'join':
       case 'relationship':
       case 'upload': {
-        type UploadRecord = Record<Config['locale'], { id: string } | undefined>;
-        type UploadRecordMany = Record<Config['locale'], { id: string }[] | undefined>;
-
         if (field.presentational) break;
 
-        if (field.localized && field.hasMany === true) {
-          const v1 = value1 as UploadRecordMany;
-          const v2 = value2 as UploadRecordMany;
-          if (v1[locale] === undefined || v2[locale] === undefined) continue;
+        const v1 = field.localized
+          ? (value1 as Record<string, unknown> | null | undefined)?.[locale]
+          : value1;
+        const v2 = field.localized
+          ? (value2 as Record<string, unknown> | null | undefined)?.[locale]
+          : value2;
 
-          if (v1[locale].length !== v2[locale].length) return true; // different number of items
-
-          for (const [index, element] of v1[locale].entries()) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-expect-error
-            if (element.id !== v2[locale][index].id) return true; // different id
-          }
-          break; // no diff found, continue with the next field
-        }
-
-        if (!field.localized && field.hasMany === true) {
-          const v1 = value1 as { id: string }[] | undefined;
-          const v2 = value2 as { id: string }[] | undefined;
-          if (v1 === undefined || v2 === undefined) continue;
-          if (v1.length !== v2.length) return true; // different number of items
-          if (JSON.stringify(v1) !== JSON.stringify(v2)) return true; // different ids
-          break; // no diff found, continue with the next field
-        }
-
-        if (field.localized) {
-          const v1 = value1 as UploadRecord;
-          const v2 = value2 as UploadRecord;
-          if (v1[locale] === undefined || v2[locale] === undefined) continue;
-
-          if (v1[locale].id !== v2[locale].id) return true;
-          break; // no diff found, continue with the next field
-        }
-
-        if (value1 === undefined || value2 === undefined) continue;
-        const v1 = value1 as { id: string } | undefined;
-        const v2 = value2 as { id: string } | undefined;
-        if (v1?.id !== v2?.id) return true;
+        if (JSON.stringify(relationTarget(v1)) !== JSON.stringify(relationTarget(v2))) return true;
         break; // no diff found, continue with the next field
       }
 
@@ -363,6 +352,40 @@ const hasDiffs = (
   return false;
 };
 
+/**
+ * The publishing status of every locale, from both versions read with `locale: 'all'`.
+ *
+ * @param fieldDefinition the fields of the collection or global
+ * @param originalDocument the published version
+ * @param draftDocument the latest draft
+ */
+const localeStates = (
+  fieldDefinition: Field[],
+  originalDocument: PayloadDocument,
+  draftDocument: PayloadDocument,
+): PublishingStatusType => {
+  const getLocaleState = (
+    locale: Config['locale'],
+  ): {
+    pendingChanges: boolean;
+    published: boolean;
+  } => ({
+    pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
+    // A locale that was never saved has no entry, e.g. `en` on a konekta document.
+    published:
+      (
+        originalDocument['_localized_status']?.[locale] as unknown as
+          { published?: boolean } | undefined
+      )?.published === true,
+  });
+
+  return {
+    de: getLocaleState(LOCALE.DE),
+    en: getLocaleState(LOCALE.EN),
+    fr: getLocaleState(LOCALE.FR),
+  };
+};
+
 export const getPublishingStatusGlobal =
   (config: GlobalConfig) =>
   async (arguments_: FieldHookArgs): Promise<PublishingStatusType> => {
@@ -376,43 +399,25 @@ export const getPublishingStatusGlobal =
       const fieldDefinition = (global?.fields as unknown as Field[] | undefined) ?? undefined;
       if (fieldDefinition === undefined) throw new Error('Field definitions are undefined');
 
-      const getLocaleState = async (
-        locale: Config['locale'],
-      ): Promise<{ pendingChanges: boolean; published: boolean }> => {
-        const [originalDocument, draftDocument] = (await Promise.all([
-          payload.findGlobal({
-            slug: config.slug as GlobalSlug,
-            select: { publishingStatus: false },
-            depth: 0,
-            locale: locale,
-            draft: false,
-          }),
-          payload.findGlobal({
-            slug: config.slug as GlobalSlug,
-            select: { publishingStatus: false },
-            depth: 0,
-            locale: locale,
-            draft: true,
-          }),
-        ])) as unknown as [PayloadDocument, PayloadDocument];
+      // every locale at once, like a collection: hasDiffs expects localized fields keyed by locale
+      const [originalDocument, draftDocument] = (await Promise.all([
+        payload.findGlobal({
+          slug: config.slug as GlobalSlug,
+          select: { publishingStatus: false },
+          depth: 0,
+          locale: 'all',
+          draft: false,
+        }),
+        payload.findGlobal({
+          slug: config.slug as GlobalSlug,
+          select: { publishingStatus: false },
+          depth: 0,
+          locale: 'all',
+          draft: true,
+        }),
+      ])) as unknown as [PayloadDocument, PayloadDocument];
 
-        return {
-          pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
-          published:
-            (
-              originalDocument['_localized_status'] as unknown as
-                { published?: boolean } | undefined
-            )?.published === true,
-        };
-      };
-
-      const [de, en, fr] = await Promise.all([
-        getLocaleState(LOCALE.DE),
-        getLocaleState(LOCALE.EN),
-        getLocaleState(LOCALE.FR),
-      ]);
-
-      return { de, en, fr };
+      return localeStates(fieldDefinition, originalDocument, draftDocument);
     } catch {
       // if the document is not found, we return an empty publishing status
       // this may happen if the document was just created and has no draft yet
@@ -472,28 +477,7 @@ export const getPublishingStatus =
       const fieldDefinition = (collection?.fields as unknown as Field[] | undefined) ?? undefined;
       if (fieldDefinition === undefined) throw new Error('Field definitions are undefined');
 
-      const getLocaleState = (
-        locale: Config['locale'],
-      ): {
-        pendingChanges: boolean;
-        published: boolean;
-      } => {
-        return {
-          pendingChanges: hasDiffs(locale, fieldDefinition, draftDocument, originalDocument),
-          // A locale that was never saved has no entry, e.g. `en` on a konekta document.
-          published:
-            (
-              originalDocument['_localized_status']?.[locale] as unknown as
-                { published?: boolean } | undefined
-            )?.published === true,
-        };
-      };
-
-      return {
-        de: getLocaleState(LOCALE.DE),
-        en: getLocaleState(LOCALE.EN),
-        fr: getLocaleState(LOCALE.FR),
-      };
+      return localeStates(fieldDefinition, originalDocument, draftDocument);
     } catch {
       // if the document is not found, we return an empty publishing status
       // this may happen if the document was just created and has no draft yet
