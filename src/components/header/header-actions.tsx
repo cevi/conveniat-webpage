@@ -74,10 +74,13 @@ export const AppHeaderTitle: React.FC<{
         inlineOnDesktop && 'xl:pointer-events-auto xl:static xl:ml-3 xl:h-10 xl:shrink-0 xl:gap-1',
       )}
     >
-      {/* the page's heading: the title is what every app page is called */}
+      {/* the page's heading: the title is what every app page is called. `truncate` clips to the
+          line box, so the line height has to hold Montserrat's descenders (1.22em): with
+          `leading-none` the "g" of Programm lost its tail. `font-heading`, not
+          `font-['Montserrat']`, which tailwind-merge takes for a weight and drops. */}
       <Title
         className={cn(
-          "min-w-0 flex-1 truncate font-['Montserrat'] text-[22px] leading-none font-extrabold xl:hidden",
+          'font-heading min-w-0 flex-1 truncate text-[22px] leading-tight font-extrabold xl:hidden',
           // in place of the brand's name, in its green, size and weight; a page without a name
           // of its own is titled with the brand's name anyway
           inlineOnDesktop &&
