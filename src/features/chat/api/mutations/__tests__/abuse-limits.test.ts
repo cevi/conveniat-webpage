@@ -72,8 +72,13 @@ import { createChatInvite } from '@/features/chat/api/mutations/create-chat-invi
 import { createMessage } from '@/features/chat/api/mutations/create-message';
 import { renameChat } from '@/features/chat/api/mutations/rename-chat';
 import { toggleReaction } from '@/features/chat/api/mutations/toggle-reaction';
-import { ChatCapability } from '@/lib/chat-shared';
-import { ChatMembershipPermission, ChatType, MessageType } from '@/lib/prisma/enums';
+
+import {
+  ChatCapability,
+  ChatMembershipPermission,
+  ChatType,
+  MessageType,
+} from '@/lib/prisma/enums';
 
 const CHAT_ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 const OTHER_CHAT_ID = '0190a5b2-0000-7000-8000-000000000002';

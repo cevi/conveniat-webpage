@@ -5,8 +5,8 @@ import { createChannelChatHooks } from '@/features/payload-cms/payload-cms/chat-
 import { channelEndpoints } from '@/features/payload-cms/payload-cms/chat-channels/channel-endpoints';
 import { membersTab } from '@/features/payload-cms/payload-cms/chat-channels/members-tab';
 import type { AnnouncementChannel } from '@/features/payload-cms/payload-types';
-import { ChatCapability } from '@/lib/chat-shared';
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
+
+import { ChatCapability, ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import type { CollectionConfig } from 'payload';
 
 /** What members may do in the chat, as the editor ticked it on the Chat tab. */

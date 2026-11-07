@@ -12,8 +12,13 @@ import type { EmergencyCard } from '@/features/payload-cms/payload-types';
 import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { CHAT_PAGE_SIZE, ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
-import { ChatMembershipPermission, ChatType, MessageEventType } from '@/lib/prisma/enums';
+import { CHAT_PAGE_SIZE, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import {
+  ChatMembershipPermission,
+  ChatStatus,
+  ChatType,
+  MessageEventType,
+} from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';

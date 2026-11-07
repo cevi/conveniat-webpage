@@ -1,12 +1,6 @@
-export const SYSTEM_SENDER_ID = 'system';
+import { ChatCapability, MessageEventType } from '@/lib/prisma/enums';
 
-export enum ChatCapability {
-  CAN_SEND_MESSAGES = 'CAN_SEND_MESSAGES',
-  PICTURE_UPLOAD = 'PICTURE_UPLOAD',
-  THREADS = 'THREADS',
-  THREAD_REPLIES = 'THREAD_REPLIES',
-  EMOJI_REACTIONS = 'EMOJI_REACTIONS',
-}
+export const SYSTEM_SENDER_ID = 'system';
 
 export const CHAT_CAPABILITY_CAN_SEND_MESSAGES = ChatCapability.CAN_SEND_MESSAGES;
 export const CHAT_CAPABILITY_PICTURE_UPLOAD = ChatCapability.PICTURE_UPLOAD;
@@ -27,21 +21,6 @@ export const REALTIME_OPEN_REASONS = [
   'manual',
 ] as const;
 export type RealtimeOpenReason = (typeof REALTIME_OPEN_REASONS)[number];
-
-export type ChatStatus = 'OPEN' | 'CLOSED';
-export const ChatStatus = {
-  OPEN: 'OPEN' as const,
-  CLOSED: 'CLOSED' as const,
-};
-
-export type MessageEventType = 'CREATED' | 'STORED' | 'DISTRIBUTED' | 'RECEIVED' | 'READ';
-export const MessageEventType = {
-  CREATED: 'CREATED' as const,
-  STORED: 'STORED' as const,
-  DISTRIBUTED: 'DISTRIBUTED' as const,
-  RECEIVED: 'RECEIVED' as const,
-  READ: 'READ' as const,
-};
 
 export const USER_RELEVANT_MESSAGE_EVENTS: MessageEventType[] = [
   MessageEventType.STORED, // show one tick

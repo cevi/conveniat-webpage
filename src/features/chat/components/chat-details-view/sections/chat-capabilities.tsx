@@ -1,6 +1,6 @@
 import { SectionLabel } from '@/components/ui/section-label';
-import { ChatCapability } from '@/lib/chat-shared';
-import { ChatMembershipPermission } from '@/lib/prisma/enums';
+
+import { ChatCapability, ChatMembershipPermission } from '@/lib/prisma/enums';
 import { cn } from '@/utils/tailwindcss-override';
 import { Ban, Check, Lock } from 'lucide-react';
 

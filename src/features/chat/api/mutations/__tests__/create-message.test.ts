@@ -122,8 +122,13 @@ jest.mock('@/lib/push/send-notification', () => ({
 }));
 
 import { createMessage } from '@/features/chat/api/mutations/create-message';
-import { ChatCapability, LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
-import { ChatMembershipPermission, ChatType, MessageType } from '@/lib/prisma/enums';
+import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
+import {
+  ChatCapability,
+  ChatMembershipPermission,
+  ChatType,
+  MessageType,
+} from '@/lib/prisma/enums';
 
 const CHAT_ID = '00000000-0000-4000-8000-000000000001';
 

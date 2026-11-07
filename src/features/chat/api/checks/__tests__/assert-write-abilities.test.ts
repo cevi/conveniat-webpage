@@ -1,6 +1,7 @@
 import { assertWriteAbilities } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import type { CapabilityChat } from '@/lib/capabilities/types';
-import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
+import { ChatCapability, ChatStatus } from '@/lib/prisma/enums';
+
 import type { PrismaClientOrTransaction } from '@/types/types';
 
 jest.mock('@/utils/server-logger', () => ({

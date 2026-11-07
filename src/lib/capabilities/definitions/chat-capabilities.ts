@@ -13,9 +13,10 @@ import {
   type CapabilityContext,
   CapabilitySubject,
 } from '@/lib/capabilities/types';
-import { ChatCapability, ChatStatus, isChatArchived } from '@/lib/chat-shared';
+import { isChatArchived } from '@/lib/chat-shared';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_CREATE_CHATS_ENABLED, FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
+import { ChatCapability, ChatStatus } from '@/lib/prisma/enums';
 
 /**
  * The chat a check decides on: the one the caller handed in, or else read once. Undefined
