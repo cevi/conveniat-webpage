@@ -258,11 +258,14 @@ describe('createRealtimeConnection', () => {
 
   it('can be pointed at a new URL after having been cleared', () => {
     connection.setUrl('/api/chat/sse?chatIds=a');
+    latestSource().open();
     connection.setUrl(undefined);
 
     connection.setUrl('/api/chat/sse?chatIds=a');
 
     expect(FakeEventSource.instances).toHaveLength(2);
+    // Coming back after every chat screen was left is a fresh open, not a changed subscription.
+    expect(latestSource().url).toContain('reason=open');
   });
 
   it('stops reconnecting after close()', () => {

@@ -261,7 +261,7 @@ describe('GET /api/chat/sse', () => {
       'new_message',
       1_700_000_000_000,
     );
-    expect(mockMetrics.recordSseSubscribeDuration).toHaveBeenCalledTimes(1);
+    expect(mockMetrics.recordSseSubscribeDuration).toHaveBeenCalledWith(expect.any(Number), 'ok');
   });
 
   it('ends the stream when the subscription fails, instead of serving a silent one', async () => {
@@ -286,6 +286,10 @@ describe('GET /api/chat/sse', () => {
 
     // A `retry:` hint paces the browser's own reconnect attempts.
     expect(frames).toContain('retry:');
+    expect(mockMetrics.recordSseSubscribeDuration).toHaveBeenCalledWith(
+      expect.any(Number),
+      'failed',
+    );
   });
 
   it('tells the client to refetch when the pub/sub connection was re-established', async () => {

@@ -34,6 +34,9 @@ export type PubSubPublishOutcome = 'published' | 'oversized' | 'invalid' | 'erro
 export type SseStreamOutcome =
   'client_disconnect' | 'subscribe_failed' | 'unauthorized' | 'forbidden' | 'bad_request';
 
+/** How an SSE stream's subscriptions ended: all set up, one failed, or the client left first. */
+export type SseSubscribeOutcome = 'ok' | 'failed' | 'aborted';
+
 /**
  * Why an SSE stream was opened: the reason the client sent, `browser_retry` for a
  * reconnect the browser made on its own, and `unknown` for a client that sends none, such
@@ -141,7 +144,8 @@ const sseDeliveryLag = meter.createHistogram('chat_sse_delivery_lag_seconds', {
 // The awaits on the pub/sub run after the route handler returned, so no span covers them.
 // A slow LISTEN connect shows up here and nowhere else.
 const sseSubscribeDuration = meter.createHistogram('chat_sse_subscribe_duration_seconds', {
-  description: 'Time an SSE stream took to subscribe to all of its channels, in seconds',
+  description:
+    'Time an SSE stream took to subscribe to its channels, in seconds, by how the setup ended',
   valueType: ValueType.DOUBLE,
   advice: {
     explicitBucketBoundaries: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
@@ -191,6 +195,9 @@ export const recordSseEventDelivered = (type: string, publishedAt?: number): voi
   }
 };
 
-export const recordSseSubscribeDuration = (durationSeconds: number): void => {
-  sseSubscribeDuration.record(durationSeconds);
+export const recordSseSubscribeDuration = (
+  durationSeconds: number,
+  outcome: SseSubscribeOutcome,
+): void => {
+  sseSubscribeDuration.record(durationSeconds, { outcome });
 };

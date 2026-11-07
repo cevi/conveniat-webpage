@@ -7,6 +7,7 @@ import {
   recordSseSubscribeDuration,
   type SseOpenReason,
   type SseStreamOutcome,
+  type SseSubscribeOutcome,
 } from '@/lib/chat-realtime-metrics';
 import { REALTIME_OPEN_REASONS, type RealtimeOpenReason } from '@/lib/chat-shared';
 import { chatPubSub, type ChatRealtimeEvent } from '@/lib/db/chat-pubsub';
@@ -274,7 +275,13 @@ export async function GET(request: NextRequest): Promise<Response> {
        * lets the browser reconnect (paced by the `retry` hint) once the pub/sub
        * backend is reachable again.
        */
+      const subscribeStartedAt = performance.now();
+      const recordSubscribe = (outcome: SseSubscribeOutcome): void => {
+        recordSseSubscribeDuration((performance.now() - subscribeStartedAt) / 1000, outcome);
+      };
+
       const failSubscription = (context: string, error: unknown): void => {
+        recordSubscribe('failed');
         closeOutcome = 'subscribe_failed';
         logger.error('Subscription failed, closing the stream so the client reconnects', {
           error,
@@ -289,8 +296,6 @@ export async function GET(request: NextRequest): Promise<Response> {
           // Already closed by the client going away.
         }
       };
-
-      const subscribeStartedAt = performance.now();
 
       // Automatically subscribe to the user's personal channel (user.uuid) to receive direct updates
       try {
@@ -333,9 +338,8 @@ export async function GET(request: NextRequest): Promise<Response> {
         }
       }
 
-      if (!isCleanedUp()) {
-        recordSseSubscribeDuration((performance.now() - subscribeStartedAt) / 1000);
-      }
+      // A client that left halfway through ends the setup early; still a sample of how long it took.
+      recordSubscribe(isCleanedUp() ? 'aborted' : 'ok');
     },
 
     // `cleanup` already records the close and logs it; cancelling is just one of the

@@ -290,6 +290,7 @@ export const createRealtimeConnection = ({
   return {
     setUrl: (nextUrl: string | undefined): void => {
       if (nextUrl === url) return;
+      const previousUrl = url;
       url = nextUrl;
 
       if (nextUrl === undefined) {
@@ -298,7 +299,7 @@ export const createRealtimeConnection = ({
       }
 
       reconnectAttempts = 0;
-      connect(hasConnectedBefore ? 'url_changed' : 'open');
+      connect(previousUrl === undefined ? 'open' : 'url_changed');
     },
 
     reconnect: (): void => {
