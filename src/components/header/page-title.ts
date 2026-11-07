@@ -28,7 +28,10 @@ const appPageTitles: Record<string, StaticTranslationString> = {
 
 /** Pages one level further down that are called something else than their section. */
 const appSubPageTitles: Record<string, Record<string, StaticTranslationString>> = {
-  forum: { zentrale: { de: 'Zentrale', en: 'Zentrale', fr: 'Zentrale' } },
+  forum: {
+    zentrale: { de: 'Zentrale', en: 'Zentrale', fr: 'Zentrale' },
+    new: { de: 'Neuer Beitrag', en: 'New post', fr: 'Nouvelle publication' },
+  },
 };
 
 /**
