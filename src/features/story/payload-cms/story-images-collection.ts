@@ -43,6 +43,8 @@ export const StoryImagesCollection: CollectionConfig = {
   },
   admin: {
     group: storyAdminGroup,
+    // the stored file name is random, see `randomizeFilename`; the description says who it shows
+    useAsTitle: 'alt',
     defaultColumns: ['filename', 'alt', 'visibleFrom'],
   },
   access: {
@@ -60,6 +62,8 @@ export const StoryImagesCollection: CollectionConfig = {
       label: { de: 'Beschreibung', en: 'Description', fr: 'Description' },
       type: 'text',
       localized: true,
+      // the picture's title in pickers and lists, where a missing one reads «Untitled»
+      required: true,
       admin: {
         description: {
           de: 'Für Screenreader, z.B. «Der Champion in Rüstung».',

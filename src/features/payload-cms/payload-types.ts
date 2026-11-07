@@ -4599,7 +4599,7 @@ export interface StoryImage {
   /**
    * For screen readers.
    */
-  alt?: string | null;
+  alt: string;
   /**
    * Taken from the figure that shows the picture. Without one it stays hidden.
    */

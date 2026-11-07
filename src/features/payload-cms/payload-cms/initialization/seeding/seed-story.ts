@@ -53,11 +53,13 @@ export const seedStory = async (
   });
 
   const blockIds: string[] = [];
-  for (const day of CAMP_DAYS) {
+  for (const [index, day] of CAMP_DAYS.entries()) {
     const { id } = await payload.create({
       collection: 'camp-schedule-entry',
       data: {
-        title: 'Rollenspiel',
+        // one per day, so a link to one says which: the public programme lists them too, so
+        // the title says no more than the day
+        title: `Rollenspiel Tag ${String(index + 1)}`,
         kind: 'program',
         timeslot: { date: day, time: '21:00 - 21:30' },
         location: mainStageId,
