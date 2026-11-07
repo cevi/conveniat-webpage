@@ -75,6 +75,15 @@ const nextConfig: NextConfig = {
    */
   compress: false,
 
+  /**
+   * React writes the font preloads of `next/font` into `<head>`, never into a `Link` header. With
+   * the default 6000 bytes it sends them as a header, and Next.js stores that header with the
+   * cached shell. A shell renewed after a client-side navigation keeps none of it
+   * (vercel/next.js#98600) while React counts the fonts as sent, so the page loses its font
+   * preload until the next deployment and paints in the fallback font first.
+   */
+  reactMaxHeadersLength: 0,
+
   ...(process.env['NODE_ENV'] !== 'development' && {
     cacheHandlers: {
       default: require.resolve('./src/cache-handlers/default.cjs'),
