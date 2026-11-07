@@ -136,7 +136,9 @@ const PageQrCode: React.FC<{ locale: Locale }> = ({ locale }) => {
           />
         )}
       </div>
-      <p className="max-w-xs text-center text-sm text-green-700">{text.scan[locale]}</p>
+      <p className="max-w-xs text-center text-sm text-balance text-green-700">
+        {text.scan[locale]}
+      </p>
     </div>
   );
 };

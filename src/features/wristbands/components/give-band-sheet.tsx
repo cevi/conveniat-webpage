@@ -187,10 +187,10 @@ const GiveBand: React.FC<{
   if (nfcAvailable === false) {
     return (
       <div className="bg-quiet mt-6 rounded-[14px] p-4 text-left">
-        <p className="text-[15px] font-semibold text-green-900">
+        <p className="text-[15px] font-semibold text-balance text-green-900">
           {translate('notInAppTitle', locale)}
         </p>
-        <p className="mt-0.5 text-[13px] text-green-700">
+        <p className="mt-0.5 text-[13px] text-balance text-green-700">
           {translate('notInAppDescription', locale)}
         </p>
         <CancelButton locale={locale} onClose={onClose} />
@@ -212,7 +212,9 @@ const GiveBand: React.FC<{
         <p className="mt-1 text-[13px] text-green-700">{phaseHint(phase, locale)}</p>
       </div>
       {replace && (
-        <p className="mt-3 text-[13px] text-green-700">{translate('oldBandBlocked', locale)}</p>
+        <p className="mt-3 text-[13px] text-balance text-green-700">
+          {translate('oldBandBlocked', locale)}
+        </p>
       )}
       {notice !== undefined && (
         <div className="mt-4 text-left">

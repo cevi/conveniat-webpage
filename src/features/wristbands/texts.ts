@@ -12,7 +12,8 @@ export const wristbandTexts = {
     fr: 'Les bracelets se programment dans l’app',
   },
   notInAppDescription: {
-    de: 'Öffne diese Seite in der conveniat27-App auf einem Handy mit NFC.',
+    // a non-breaking hyphen: the balanced wrap would otherwise split the name after `conveniat27-`
+    de: 'Öffne diese Seite in der conveniat27\u2011App auf einem Handy mit NFC.',
     en: 'Open this page in the conveniat27 app on a phone with NFC.',
     fr: 'Ouvre cette page dans l’app conveniat27 sur un téléphone avec NFC.',
   },

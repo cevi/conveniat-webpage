@@ -105,7 +105,7 @@ export const LoginScreen: React.FC<{ locale: 'de' | 'fr' | 'en' }> = ({ locale }
         )}
       </Button>
       {hasError && (
-        <p className="text-danger-text mt-4 text-center text-[15px]" role="alert">
+        <p className="text-danger-text mt-4 text-center text-[15px] text-balance" role="alert">
           {errorText[locale]}
         </p>
       )}

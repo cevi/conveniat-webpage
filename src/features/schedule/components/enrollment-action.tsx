@@ -428,11 +428,11 @@ export const EnrollmentAction: React.FC<{
               </div>
             </div>
             {isSwitchBlocked ? (
-              <p className="border-danger-line bg-danger-soft text-danger-text w-full rounded-[14px] border px-3.5 py-2.5 text-center text-sm">
+              <p className="border-danger-line bg-danger-soft text-danger-text w-full rounded-[14px] border px-3.5 py-2.5 text-center text-sm text-balance">
                 {localizedSwitchBlockedShift[locale]}
               </p>
             ) : (
-              <p className="text-center text-sm text-green-700">
+              <p className="text-center text-sm text-balance text-green-700">
                 {conflictType === 'shift'
                   ? localizedSwitchQuestionShift[locale]
                   : localizedSwitchQuestionWorkshop[locale]}
