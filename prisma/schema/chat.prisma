@@ -33,6 +33,9 @@ enum ChatCapability {
   THREADS
   THREAD_REPLIES
   EMOJI_REACTIONS
+  /// voice calls between the two members of a one-to-one chat; no chat gets it by default, an
+  /// admin switches it on per chat
+  VOICE_CALLS
 }
 
 model Chat {

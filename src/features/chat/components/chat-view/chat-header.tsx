@@ -2,6 +2,7 @@
 import type React from 'react';
 
 import type { ChatDetails } from '@/features/chat/api/types';
+import { CallButton } from '@/features/chat/calls/components/call-button';
 import type { ChatAvatarChat } from '@/features/chat/components/ui/chat-avatar';
 import { ChatAvatar } from '@/features/chat/components/ui/chat-avatar';
 import { LinkPendingSpinner } from '@/features/chat/components/ui/link-pending-spinner';
@@ -11,6 +12,7 @@ import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
+import { ChatCapability } from '@/lib/chat-shared';
 import { ChatType } from '@/lib/prisma/client';
 import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -162,6 +164,8 @@ interface ChatHeaderBarProperties {
   hasMemberLine: boolean;
   /** Where a tap on the chat's name leads; without, the name leads nowhere, as in a preview. */
   details?: { href: string; label: string };
+  /** Buttons on the right, like the call button of a one-to-one chat. */
+  actions?: React.ReactNode;
 }
 
 /** The chat's header as it looks, from what is known of the chat; it loads nothing itself. */
@@ -171,6 +175,7 @@ export const ChatHeaderBar: React.FC<ChatHeaderBarProperties> = ({
   subtitle,
   hasMemberLine,
   details,
+  actions,
 }) => {
   const hasSubtitle = subtitle !== undefined;
   const identity = (
@@ -223,6 +228,7 @@ export const ChatHeaderBar: React.FC<ChatHeaderBarProperties> = ({
           {identity}
         </Link>
       )}
+      {actions}
     </div>
   );
 };
@@ -276,6 +282,11 @@ export const ChatHeader: React.FC = () => {
         href: `/app/chat/${chatId}/details`,
         label: `${chat.name}, ${openDetailsText[locale]}`,
       }}
+      actions={
+        isOneToOne && chatDetails?.capabilities.includes(ChatCapability.VOICE_CALLS) === true ? (
+          <CallButton chatId={chatId} partnerName={chat.name} partnerId={chat.partner?.userId} />
+        ) : undefined
+      }
     />
   );
 };

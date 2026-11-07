@@ -131,7 +131,7 @@ export const isNotificationTargetVisible = (
 };
 
 /** Asks the native shell to render a real system notification. */
-const requestNativeSystemNotification = (notification: ForegroundNotification): void => {
+export const requestNativeSystemNotification = (notification: ForegroundNotification): void => {
   const bridge = globalThis.AppWebViewNativePush as Record<string, unknown> | undefined;
   const showNotification = bridge?.['showNotification'];
   if (typeof showNotification !== 'function') return;
