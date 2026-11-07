@@ -38,7 +38,7 @@ import {
   type ReturnDraft,
 } from '@/features/material/utils/returns';
 import { loanPath } from '@/features/material/utils/scan';
-import type { MaterialCondition } from '@/lib/prisma/client';
+import type { MaterialCondition } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';

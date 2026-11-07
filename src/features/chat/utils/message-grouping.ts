@@ -1,5 +1,5 @@
 import type { ChatMessage } from '@/features/chat/api/types';
-import { MessageType } from '@/lib/prisma/client';
+import { MessageType } from '@/lib/prisma/enums';
 import type { Locale, StaticTranslationString } from '@/types/types';
 
 /** Consecutive messages from one sender closer together than this read as one block. */

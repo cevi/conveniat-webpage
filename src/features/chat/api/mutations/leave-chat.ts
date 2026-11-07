@@ -3,7 +3,12 @@ import { getLeftGroupMessagePayload } from '@/features/chat/api/utils/system-mes
 import { isChatArchived } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
-import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@/lib/prisma';
+import {
+  ChatMembershipPermission,
+  ChatType,
+  MessageEventType,
+  MessageType,
+} from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import type { PrismaClientOrTransaction } from '@/types/types';

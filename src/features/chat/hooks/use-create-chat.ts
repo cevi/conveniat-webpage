@@ -11,12 +11,17 @@ import { isRateLimitError } from '@/features/chat/utils/send-errors';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { ChatCapability, ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import {
+  ChatMembershipPermission,
+  ChatType,
+  MessageEventType,
+  MessageType,
+} from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { isTransportError, userErrorMessage } from '@/utils/user-error-message';
-import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { inferProcedureOutput } from '@trpc/server';
 import { usePathname, useRouter } from 'next/navigation';

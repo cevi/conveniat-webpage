@@ -20,7 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ChatCapability } from '@/lib/chat-shared';
-import { ChatType } from '@/lib/prisma/client';
+import { ChatType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { useTranslation } from '@payloadcms/ui';

@@ -1,5 +1,5 @@
 // Type-only, so the admin panel can read the attempt limit without bundling the Prisma client.
-import type { PushNotificationKind } from '@/lib/prisma';
+import type { PushNotificationKind } from '@/lib/prisma/enums';
 
 const MINUTE = 60;
 const HOUR = 60 * MINUTE;

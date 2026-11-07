@@ -25,12 +25,6 @@ jest.mock('superjson', () => ({
 }));
 // `createNewChat` reads the enums from the package, which only the generated `@/lib/prisma`
 // client provides here.
-jest.mock('@prisma/client', () => ({
-  ChatMembershipPermission: { OWNER: 'OWNER' },
-  ChatType: { GROUP: 'GROUP', ONE_TO_ONE: 'ONE_TO_ONE' },
-  MessageEventType: { CREATED: 'CREATED', STORED: 'STORED' },
-  MessageType: { SYSTEM_MSG: 'SYSTEM_MSG' },
-}));
 jest.mock('@/lib/db/redis', () => ({
   getFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
 }));
@@ -44,7 +38,7 @@ jest.mock('@/lib/db/chat-pubsub', () => ({
 
 import { addParticipants } from '@/features/chat/api/mutations/add-participants';
 import { createChat } from '@/features/chat/api/mutations/create-chat';
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 
 const CHAT_ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 const OWNER = 'aaaaaaaaaaaaaaaaaaaaaaaa';

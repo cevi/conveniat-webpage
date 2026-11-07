@@ -7,7 +7,7 @@ import { useUpdateChatMutation } from '@/features/chat/hooks/use-update-chat-mut
 import { useUserCanArchiveChat } from '@/features/chat/hooks/use-user-can-archive';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { isChatArchived } from '@/lib/chat-shared';
-import { ChatMembershipPermission } from '@/lib/prisma';
+import { ChatMembershipPermission } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';

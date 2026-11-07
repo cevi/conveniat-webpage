@@ -12,7 +12,7 @@ import { imageSentText, isImageKeyOfChat } from '@/lib/chat-images';
 import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 import { type ChatRealtimeEvent, chatPubSub } from '@/lib/db/chat-pubsub';
 import poolPrisma from '@/lib/db/prisma';
-import { ChatType, MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma/client';
+import { ChatType, MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma/enums';
 import { sendNotification } from '@/lib/push/send-notification';
 import { invariantError } from '@/trpc/error-formatter';
 import { trpcBaseProcedure } from '@/trpc/init';

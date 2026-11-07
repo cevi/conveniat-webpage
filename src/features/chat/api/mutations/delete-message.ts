@@ -1,5 +1,5 @@
 import { chatPubSub } from '@/lib/db/chat-pubsub';
-import { MessageEventType, MessageType } from '@/lib/prisma/client';
+import { MessageEventType, MessageType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { createLogger } from '@/utils/server-logger';

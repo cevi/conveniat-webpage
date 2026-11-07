@@ -7,15 +7,6 @@ jest.mock('@/hooks/use-current-locale', () => ({
 }));
 
 // the generated Prisma client cannot be loaded in jsdom; the enum is all this component needs
-jest.mock('@/lib/prisma/client', () => ({
-  MessageEventType: {
-    CREATED: 'CREATED',
-    STORED: 'STORED',
-    DISTRIBUTED: 'DISTRIBUTED',
-    RECEIVED: 'RECEIVED',
-    READ: 'READ',
-  },
-}));
 
 // the sheet in the same module deletes through tRPC, which this line never touches
 jest.mock('@/features/chat/hooks/use-delete-message', () => ({ useDeleteMessage: jest.fn() }));

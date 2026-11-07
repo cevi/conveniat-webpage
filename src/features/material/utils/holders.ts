@@ -1,4 +1,4 @@
-import type { MaterialLoanStatus } from '@/lib/prisma/client';
+import type { MaterialLoanStatus } from '@/lib/prisma/enums';
 
 /**
  * Who has a loan: the person it is booked on, otherwise its Hof. A loan booked on a person

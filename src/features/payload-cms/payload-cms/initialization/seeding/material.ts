@@ -1,6 +1,6 @@
 import type { Hof } from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
-import type { MaterialLoanStatus } from '@/lib/prisma/client';
+import type { MaterialLoanStatus } from '@/lib/prisma/enums';
 import { fakerDE as faker } from '@faker-js/faker';
 import type { Payload } from 'payload';
 

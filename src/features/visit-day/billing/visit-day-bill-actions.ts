@@ -15,7 +15,7 @@ import {
   visitDayBillReference,
   visitDayInvoiceNumber,
 } from '@/features/visit-day/billing/visit-day-bill-reference';
-import type { PrismaClient } from '@/lib/prisma';
+import type { PrismaClient } from '@/lib/prisma/client';
 import type { Locale } from '@/types/types';
 import type { Payload } from 'payload';
 

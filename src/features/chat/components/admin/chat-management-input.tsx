@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/buttons/button';
 import { useAutoResizeTextarea } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-auto-resize-textarea';
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
 import { CHAT_MESSAGE_MAX_LENGTH } from '@/features/chat/limits';
-import type { MessageType } from '@/lib/prisma/client';
+import type { MessageType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import { Paperclip, Send } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';

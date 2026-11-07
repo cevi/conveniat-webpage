@@ -6,7 +6,7 @@ import {
   holderOf,
   holderSearch,
 } from '@/features/material/utils/holders';
-import type { MaterialLoanStatus } from '@/lib/prisma/client';
+import type { MaterialLoanStatus } from '@/lib/prisma/enums';
 
 const at = (day: number, hour = 12): Date => new Date(2027, 6, day, hour);
 

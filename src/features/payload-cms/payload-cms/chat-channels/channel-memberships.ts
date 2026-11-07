@@ -3,7 +3,7 @@ import { findAudienceUserIds } from '@/features/payload-cms/payload-cms/chat-cha
 import { CHANNEL_COLLECTIONS } from '@/features/payload-cms/payload-cms/chat-channels/channel-collections';
 import prisma from '@/lib/db/prisma';
 import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
-import { ChatMembershipPermission } from '@/lib/prisma/client';
+import { ChatMembershipPermission } from '@/lib/prisma/enums';
 import type { Payload, PayloadRequest } from 'payload';
 
 /**

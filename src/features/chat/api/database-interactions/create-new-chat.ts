@@ -1,8 +1,13 @@
 import { ChatCapability } from '@/lib/chat-shared';
+import {
+  ChatMembershipPermission,
+  ChatType,
+  MessageEventType,
+  MessageType,
+} from '@/lib/prisma/enums';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, PrismaClientOrTransaction, StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
-import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
 
 const logger = createLogger('chat:mutations');
 

@@ -1,5 +1,5 @@
 import { matchesChatListFilter } from '@/features/chat/utils/chat-list-filter';
-import { ChatType } from '@/lib/prisma/client';
+import { ChatType } from '@/lib/prisma/enums';
 
 const privateRead = { chatType: ChatType.ONE_TO_ONE, unreadCount: 0 };
 const privateUnread = { chatType: ChatType.ONE_TO_ONE, unreadCount: 2 };

@@ -1,7 +1,7 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import { visiblePayloadOf, withoutDeletedQuote } from '@/features/chat/api/utils/deleted-messages';
 import type { MessageThread } from '@/features/chat/api/utils/thread-summaries';
-import type { MessageEventType } from '@prisma/client';
+import type { MessageEventType } from '@/lib/prisma/enums';
 
 /** A message as `getChatMessages` and `getMessage` read it, with what they include. */
 export interface MessageRow {

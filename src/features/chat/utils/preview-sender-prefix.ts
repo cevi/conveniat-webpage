@@ -1,6 +1,6 @@
 import type { PreviewMessage } from '@/features/chat/types/api-dto-types';
+import type { ChatType } from '@/lib/prisma/enums';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import type { ChatType } from '@prisma/client';
 
 const youText: StaticTranslationString = {
   de: 'Du',

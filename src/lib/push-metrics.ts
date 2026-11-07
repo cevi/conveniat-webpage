@@ -1,4 +1,4 @@
-import type { PushNotificationChannel, PushNotificationKind } from '@/lib/prisma';
+import type { PushNotificationChannel, PushNotificationKind } from '@/lib/prisma/enums';
 import { defineCounter, defineHistogram, defineObservableGauges } from '@/lib/telemetry/metrics';
 
 /**

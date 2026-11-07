@@ -3,7 +3,6 @@ import { createCallerFactory } from '@/trpc/init';
 
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('payload', () => ({ getPayload: jest.fn() }));
-jest.mock('@/lib/prisma', () => ({ CourseType: { PROGRAM: 'PROGRAM', SHIFT: 'SHIFT' } }));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
 jest.mock('@/config/environment-variables', () => ({

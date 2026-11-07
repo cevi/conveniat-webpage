@@ -6,7 +6,7 @@ import {
 } from '@/features/schedule/api/shift-withdrawal-guard';
 import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
-import { CourseType } from '@/lib/prisma';
+import { CourseType } from '@/lib/prisma/enums';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';

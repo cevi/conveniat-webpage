@@ -1,4 +1,4 @@
-import { CourseType } from '@/lib/prisma';
+import { CourseType } from '@/lib/prisma/enums';
 import type { Context } from '@/trpc/init';
 import { createCallerFactory } from '@/trpc/init';
 
@@ -7,14 +7,6 @@ jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('payload', () => ({
   getPayload: jest.fn(),
   NotFound: class NotFound extends Error {},
-}));
-
-jest.mock('@/lib/prisma', () => ({
-  CourseType: { SHIFT: 'SHIFT', PROGRAM: 'PROGRAM' },
-  ChatMembershipPermission: { ADMIN: 'ADMIN', GUEST: 'GUEST' },
-  ChatType: {},
-  MessageEventType: {},
-  MessageType: {},
 }));
 
 jest.mock('@/lib/db/prisma', () => ({

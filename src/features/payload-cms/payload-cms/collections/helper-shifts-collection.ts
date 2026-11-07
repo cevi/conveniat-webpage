@@ -22,7 +22,7 @@ import {
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import { DEFAULT_UNENROLLMENT_DEADLINE_MINUTES } from '@/features/schedule/utils/unenrollment-deadline';
-import { CourseType } from '@/lib/prisma';
+import { CourseType } from '@/lib/prisma/enums';
 import type { BlocksField, CollectionConfig, Field, TextFieldSingleValidation } from 'payload';
 
 export const HelperShiftsCollection: CollectionConfig = {

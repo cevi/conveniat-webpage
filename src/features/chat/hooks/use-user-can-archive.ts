@@ -1,4 +1,4 @@
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 
 import { useQueryClient } from '@tanstack/react-query';

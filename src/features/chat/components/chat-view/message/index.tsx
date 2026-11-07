@@ -32,7 +32,7 @@ import { describeQuotedMessage } from '@/features/chat/utils/quoted-snippet';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
-import { MessageEventType, MessageType } from '@/lib/prisma/client';
+import { MessageEventType, MessageType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';

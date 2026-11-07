@@ -3,7 +3,7 @@ import { assertChatNotArchived } from '@/features/chat/api/checks/assert-can-wri
 import { ChatCapability } from '@/lib/chat-shared';
 import { type ChatRealtimeEvent, chatPubSub } from '@/lib/db/chat-pubsub';
 import poolPrisma from '@/lib/db/prisma';
-import { ChatType } from '@/lib/prisma/client';
+import { ChatType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { createLogger } from '@/utils/server-logger';

@@ -14,7 +14,7 @@ import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useDeleteMessage } from '@/features/chat/hooks/use-delete-message';
 import { getDateFnsLocale } from '@/features/chat/hooks/use-format-date';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { MessageEventType } from '@/lib/prisma/client';
+import { MessageEventType } from '@/lib/prisma/enums';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { format } from 'date-fns';

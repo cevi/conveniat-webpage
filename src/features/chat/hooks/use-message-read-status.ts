@@ -2,7 +2,7 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
-import { MessageType } from '@/lib/prisma';
+import { MessageType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import { closeChatNotifications } from '@/utils/close-notifications';
 import { useEffect, useRef, useSyncExternalStore } from 'react';

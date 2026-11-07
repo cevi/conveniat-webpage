@@ -13,7 +13,7 @@ jest.mock('@/features/payload-cms/api/cached-globals', () => ({
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
 jest.mock('@/config/environment-variables', () => ({ environmentVariables: {} }));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
-jest.mock('@prisma/client', () => ({
+jest.mock('@/lib/prisma/client', () => ({
   ChatMembershipPermission: { MEMBER: 'MEMBER' },
   ChatType: { EMERGENCY: 'EMERGENCY' },
   MessageEventType: { STORED: 'STORED' },

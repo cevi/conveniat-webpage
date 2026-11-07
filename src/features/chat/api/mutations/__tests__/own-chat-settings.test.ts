@@ -26,7 +26,7 @@ jest.mock('@/lib/db/chat-pubsub', () => ({
 import { markChatUnread } from '@/features/chat/api/mutations/mark-chat-unread';
 import { muteChat } from '@/features/chat/api/mutations/mute-chat';
 import { pinChat } from '@/features/chat/api/mutations/pin-chat';
-import { ChatType } from '@/lib/prisma';
+import { ChatType } from '@/lib/prisma/enums';
 
 const GROUP_CHAT = '0192f3a4-0000-7000-8000-000000000011';
 const EMERGENCY_CHAT = '0192f3a4-0000-7000-8000-000000000012';

@@ -1,7 +1,7 @@
 'use client';
 import { useAdminChatManagement } from '@/features/chat/hooks/use-admin-chat-management';
 import { DashboardStatCard } from '@/features/payload-cms/payload-cms/widgets/dashboard-stat-card';
-import { ChatType } from '@/lib/prisma';
+import { ChatType } from '@/lib/prisma/enums';
 import { TRPCProvider } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { useLocale } from '@payloadcms/ui';

@@ -5,11 +5,11 @@ import { buildAnnouncementMessagePayload } from '@/features/payload-cms/payload-
 import type { Announcement } from '@/features/payload-cms/payload-types';
 import configPromise from '@/features/payload-cms/payload.config';
 import { resolvePreviewAccess } from '@/features/payload-cms/utils/preview/preview-utils';
-import type { JsonObject } from '@/lib/prisma/runtime/client';
 import type { Locale, SearchParameters } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import { createLogger } from '@/utils/server-logger';
+import type { JsonObject } from '@prisma/client/runtime/client';
 import { notFound } from 'next/navigation';
 import { getPayload } from 'payload';
 import type React from 'react';

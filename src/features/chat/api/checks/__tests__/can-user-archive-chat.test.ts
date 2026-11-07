@@ -1,5 +1,5 @@
 import { canUserArchiveChat } from '@/features/chat/api/checks/can-user-archive-chat';
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma/client';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 
 const user = { uuid: 'user-1' } as HitobitoNextAuthUser;

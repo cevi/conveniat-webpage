@@ -3,7 +3,7 @@ import { generateMessageId } from '@/features/chat/utils';
 import { prepareChatImage } from '@/features/chat/utils/prepare-chat-image';
 import type { ChatImageUploadInput } from '@/lib/chat-images';
 import { CHAT_IMAGE_MAX_BYTES, isChatImageContentType } from '@/lib/chat-images';
-import { MessageType } from '@/lib/prisma/client';
+import { MessageType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import { errorReasonOf } from '@/utils/user-error-message';
 import { useCallback, useState } from 'react';

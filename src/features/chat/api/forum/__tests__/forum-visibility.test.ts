@@ -8,9 +8,6 @@ jest.mock('@/config/environment-variables', () => ({
 }));
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('payload', () => ({ getPayload: jest.fn() }));
-jest.mock('@prisma/client', () =>
-  jest.requireActual<typeof import('@/lib/prisma')>('@/lib/prisma'),
-);
 const publish = jest.fn<Promise<void>, unknown[]>(() => Promise.resolve());
 jest.mock('@/lib/db/chat-pubsub', () => ({
   chatPubSub: { publish: (...arguments_: unknown[]): unknown => publish(...arguments_) },
@@ -28,7 +25,7 @@ import {
   publishForumThreadEvent,
 } from '@/features/chat/api/forum/forum-visibility';
 import type { ChatRealtimeEvent } from '@/lib/db/chat-pubsub';
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import type { PrismaClientOrTransaction } from '@/types/types';
 
 const TOPIC = '0193f1a0-0000-7000-8000-000000000001';
