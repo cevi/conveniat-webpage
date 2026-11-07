@@ -67,18 +67,17 @@ export class RedisCache extends BaseCacheHandler {
     this.redis = createCacheRedisClient();
   }
 
+  /**
+   * The entry under `key`, or `undefined` when there is none or its tags were flushed after its
+   * render. Rejects when Redis fails or times out, so the caller can tell an outage from a miss.
+   */
   async get(key: string): Promise<{ value: Buffer; metadata?: Partial<CacheEntry> } | undefined> {
-    try {
-      const data = await this.redis.getBuffer(key);
-      if (!data) return;
+    const data = await this.redis.getBuffer(key);
+    if (!data) return;
 
-      const entry = this.deserialize(data);
-      if (!entry || (await this.wasFlushedAfterRender(entry.metadata))) return;
-      return entry;
-    } catch (error) {
-      logger.warn('GET failed', { 'cache.key': key, error });
-      return;
-    }
+    const entry = this.deserialize(data);
+    if (!entry || (await this.wasFlushedAfterRender(entry.metadata))) return;
+    return entry;
   }
 
   async set(key: string, value: Buffer, metadata: CacheEntry): Promise<void> {

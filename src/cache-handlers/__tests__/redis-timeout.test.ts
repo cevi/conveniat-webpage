@@ -38,14 +38,17 @@ describe('cache Redis client against a Redis that stopped answering', () => {
   });
 
   it('serves a cache read as a miss', async () => {
-    const { COMMAND_TIMEOUT_MS, RedisCache } = await import('@/cache-handlers/handlers/redis');
-    const cache = new RedisCache();
+    const { COMMAND_TIMEOUT_MS } = await import('@/cache-handlers/handlers/redis');
+    const { Orchestrator } = await import('@/cache-handlers/orchestrator');
+    const cache = new Orchestrator();
     const started = Date.now();
     try {
       await expect(cache.get('page')).resolves.toBeUndefined();
       expect(Date.now() - started).toBeLessThan(COMMAND_TIMEOUT_MS + 1000);
     } finally {
-      (cache as unknown as { redis: { disconnect: () => void } }).redis.disconnect();
+      (
+        cache as unknown as { redisCache: { redis: { disconnect: () => void } } }
+      ).redisCache.redis.disconnect();
     }
   });
 });

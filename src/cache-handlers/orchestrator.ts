@@ -3,6 +3,7 @@
  */
 import { FileSystemCache } from '@/cache-handlers/handlers/file-system';
 import { RedisCache } from '@/cache-handlers/handlers/redis';
+import { classifyLookup, now, recordEntrySize, recordLookup } from '@/cache-handlers/telemetry';
 import type { CacheEntry, CacheOrchestrator, Timestamp } from '@/cache-handlers/types';
 import { createLogger } from '@/utils/server-logger';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
@@ -50,13 +51,22 @@ export class Orchestrator implements CacheOrchestrator {
 
     // Try Redis First (Runtime only)
     if (!isBuild && this.redisCache) {
-      const redisResult = await this.redisCache.get(cacheKey);
-      if (redisResult) {
-        return this.hydrateEntry(redisResult.value, redisResult.metadata);
+      const startedAt = now();
+      let entry: CacheEntry | undefined;
+      try {
+        const redisResult = await this.redisCache.get(cacheKey);
+        // At runtime with Redis, a missing key means it was revalidated/evicted.
+        // Do not fall back to stale build-time fsCache!
+        entry = redisResult && this.hydrateEntry(redisResult.value, redisResult.metadata);
+      } catch (error) {
+        // A Redis that fails or stops answering is served as a miss, so the page renders
+        // without the cache instead of waiting for it.
+        logger.warn('GET failed', { 'cache.key': cacheKey, error });
+        recordLookup('error', startedAt);
+        return undefined;
       }
-      // At runtime with Redis, a missing key means it was revalidated/evicted.
-      // Do not fall back to stale build-time fsCache!
-      return undefined;
+      recordLookup(classifyLookup(entry, now()), startedAt, entry);
+      return entry;
     }
 
     // Try FileSystem Second (Fallback/Immutable)
@@ -98,6 +108,7 @@ export class Orchestrator implements CacheOrchestrator {
       }
 
       const valueBuffer = Buffer.concat(chunks);
+      if (!isBuild) recordEntrySize(valueBuffer.length);
 
       if (isBuild) {
         // Write to FileSystem (Build)

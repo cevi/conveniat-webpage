@@ -1,5 +1,16 @@
 import { Orchestrator } from '@/cache-handlers/orchestrator';
 import type { CacheEntry } from '@/cache-handlers/types';
+import { metrics, trace } from '@opentelemetry/api';
+import { PrometheusExporter, PrometheusSerializer } from '@opentelemetry/exporter-prometheus';
+import { metrics as sdkMetrics } from '@opentelemetry/sdk-node';
+import {
+  BasicTracerProvider,
+  InMemorySpanExporter,
+  SimpleSpanProcessor,
+} from '@opentelemetry/sdk-trace-base';
+
+/** A key whose read fails as if Redis had stopped answering. Hoisted into the mock below. */
+const UNREACHABLE_KEY = 'unreachable';
 
 interface FakePipeline {
   set: (key: string, value: Buffer) => FakePipeline;
@@ -19,6 +30,7 @@ jest.mock('ioredis', () => {
     }
 
     getBuffer(key: string): Promise<Buffer | null> {
+      if (key === UNREACHABLE_KEY) return Promise.reject(new Error('Command timed out'));
       return Promise.resolve(this.strings.get(key) ?? null);
     }
 
@@ -97,6 +109,14 @@ const startRender = (
   };
 };
 
+/** Writes a finished entry rendered at `timestamp`. */
+const writeEntry = async (cache: Orchestrator, key: string, timestamp: number): Promise<void> => {
+  const render = startRender(timestamp);
+  const written = cache.set(key, render.entry);
+  render.finish('body');
+  await written;
+};
+
 const readBody = async (entry: CacheEntry | undefined): Promise<string | undefined> =>
   entry ? await new Response(entry.value).text() : undefined;
 
@@ -133,5 +153,76 @@ describe('Orchestrator', () => {
     await written;
 
     expect(await readBody(await cache.get(KEY))).toBe('untouched');
+  });
+});
+
+describe('Orchestrator telemetry', () => {
+  const exporter = new PrometheusExporter({ preventServerStart: true });
+  const spans = new InMemorySpanExporter();
+  const tracer = new BasicTracerProvider({
+    spanProcessors: [new SimpleSpanProcessor(spans)],
+  }).getTracer('test');
+
+  beforeAll(() => {
+    metrics.setGlobalMeterProvider(new sdkMetrics.MeterProvider({ readers: [exporter] }));
+  });
+
+  afterAll(() => {
+    metrics.disable();
+  });
+
+  const scrape = async (): Promise<string> => {
+    const { resourceMetrics } = await exporter.collect();
+    return new PrometheusSerializer().serialize(resourceMetrics);
+  };
+
+  /** The `cache.lookup` events a lookup of `key` adds to the span that asked. */
+  const lookUp = async (
+    cache: Orchestrator,
+    key: string,
+  ): Promise<Record<string, unknown> | undefined> => {
+    const span = tracer.startSpan('trpc.query schedule.getScheduleEntries');
+    const active = jest.spyOn(trace, 'getActiveSpan').mockReturnValue(span);
+    try {
+      await cache.get(key);
+    } finally {
+      active.mockRestore();
+      span.end();
+    }
+    const finished = spans.getFinishedSpans().at(-1);
+    return finished?.events.find((event) => event.name === 'cache.lookup')?.attributes;
+  };
+
+  it('tells a fresh, a stale, a missing and an unreachable entry apart', async () => {
+    const cache = new Orchestrator();
+    await writeEntry(cache, 'fresh', Date.now());
+    // revalidate is an hour and expire a day: two hours old is served stale and refreshed
+    await writeEntry(cache, 'stale', Date.now() - 2 * 3600 * 1000);
+
+    expect(await lookUp(cache, 'fresh')).toMatchObject({
+      'cache.result': 'hit',
+      'cache.tags': [TAG],
+    });
+    expect(await lookUp(cache, 'stale')).toMatchObject({
+      'cache.result': 'stale',
+      'cache.age_seconds': 7200,
+    });
+    expect(await lookUp(cache, 'absent')).toMatchObject({ 'cache.result': 'miss' });
+    expect(await lookUp(cache, UNREACHABLE_KEY)).toMatchObject({ 'cache.result': 'error' });
+
+    const scraped = await scrape();
+    for (const result of ['hit', 'stale', 'miss', 'error']) {
+      expect(scraped).toContain(
+        `cache_lookups_total{result="${result}",otel_scope_name="nextjs-redis-cache"} 1`,
+      );
+    }
+    expect(scraped).toContain(
+      'cache_entry_size_bytes_count{otel_scope_name="nextjs-redis-cache"} 2',
+    );
+  });
+
+  it('serves an unreachable Redis as a miss', async () => {
+    const cache = new Orchestrator();
+    await expect(cache.get(UNREACHABLE_KEY)).resolves.toBeUndefined();
   });
 });
