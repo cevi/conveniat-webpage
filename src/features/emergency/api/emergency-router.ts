@@ -2,10 +2,11 @@ import type { EmergencyCardDto } from '@/features/emergency/api/emergency-card-d
 import { toEmergencyCardDto } from '@/features/emergency/api/emergency-card-dto';
 import { getAlertSettingsCached } from '@/features/payload-cms/api/cached-globals';
 import type { AlertSetting } from '@/features/payload-cms/payload-types';
-import { ChatCapability, SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
+import { SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import type { Prisma } from '@/lib/prisma/client';
 import {
+  ChatCapability,
   ChatMembershipPermission,
   ChatType,
   MessageEventType,

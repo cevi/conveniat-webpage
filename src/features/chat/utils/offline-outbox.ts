@@ -1,7 +1,7 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import type { SendMessageInput } from '@/features/chat/utils/failed-sends';
 import { CHAT_OUTBOX_STORAGE_KEY } from '@/lib/chat-local-storage';
-import { MessageEventType } from '@/lib/chat-shared';
+import { MessageEventType } from '@/lib/prisma/enums';
 
 export interface OfflineMessage {
   type: 'MESSAGE';

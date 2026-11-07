@@ -1,5 +1,5 @@
-import type { ChatStatus } from '@/lib/chat-shared';
 import type { ChatMembershipPermission, MessageEventType } from '@/lib/prisma/enums';
+import { type ChatStatus } from '@/lib/prisma/enums';
 import type { JsonArray, JsonObject } from '@prisma/client/runtime/client';
 
 /** Who replied in a thread and when last, for the chip under its message. */

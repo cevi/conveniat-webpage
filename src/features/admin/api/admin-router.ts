@@ -1,7 +1,5 @@
 import { imageSentText } from '@/lib/chat-images';
 import {
-  ChatCapability,
-  ChatStatus,
   getStatusFromMessageEvents,
   SYSTEM_SENDER_ID,
   USER_RELEVANT_MESSAGE_EVENTS,
@@ -36,7 +34,9 @@ import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { getFeatureFlag, setFeatureFlag } from '@/lib/db/redis';
 import type { Prisma } from '@/lib/prisma/client';
 import {
+  ChatCapability,
   ChatMembershipPermission,
+  ChatStatus,
   ChatType,
   MessageEventType,
   MessageType,

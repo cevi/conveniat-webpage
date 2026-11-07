@@ -12,7 +12,8 @@ import { createRealtimeConnection } from '@/features/chat/utils/realtime-connect
 import { notifyRealtimeChatMessage } from '@/features/chat/utils/realtime-message-notification';
 import { addReplyToThreadSummary } from '@/features/chat/utils/thread-summary';
 import { clearTyping, recordTyping } from '@/features/chat/utils/typing-store';
-import type { ChatStatus } from '@/lib/chat-shared';
+import { type ChatStatus } from '@/lib/prisma/enums';
+
 import { useTRPC } from '@/trpc/client';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import superjson from 'superjson';

@@ -10,9 +10,11 @@ import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
 import { isRateLimitError } from '@/features/chat/utils/send-errors';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
-import { ChatCapability, ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import {
+  ChatCapability,
   ChatMembershipPermission,
+  ChatStatus,
   ChatType,
   MessageEventType,
   MessageType,

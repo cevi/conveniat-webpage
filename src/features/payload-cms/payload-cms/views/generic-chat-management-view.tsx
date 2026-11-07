@@ -12,8 +12,8 @@ import { LocationMap } from '@/features/map/components/location-map';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import type { Config } from '@/features/payload-cms/payload-types';
 import { useServiceWorkerClientUrlResponder } from '@/hooks/use-service-worker-client-url-responder';
-import { ChatStatus } from '@/lib/chat-shared';
-import { ChatType } from '@/lib/prisma/enums';
+
+import { ChatStatus, ChatType } from '@/lib/prisma/enums';
 import { TRPCProvider } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { useLocale } from '@payloadcms/ui';

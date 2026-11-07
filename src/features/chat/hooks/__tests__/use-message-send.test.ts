@@ -6,7 +6,8 @@ import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { getOfflineOutbox } from '@/features/chat/utils/offline-outbox';
-import { ChatStatus } from '@/lib/chat-shared';
+import { ChatStatus } from '@/lib/prisma/enums';
+
 import type { RouterInputs } from '@/trpc/client';
 import type { TestTrpc } from '@/trpc/test-trpc';
 import { createTestTrpc } from '@/trpc/test-trpc';

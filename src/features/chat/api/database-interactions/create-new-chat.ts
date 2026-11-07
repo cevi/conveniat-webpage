@@ -1,5 +1,5 @@
-import { ChatCapability } from '@/lib/chat-shared';
 import {
+  ChatCapability,
   ChatMembershipPermission,
   ChatType,
   MessageEventType,

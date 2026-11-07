@@ -15,8 +15,8 @@ import {
 } from '@/features/chat/utils/offline-outbox';
 import { quotedSnippetOf } from '@/features/chat/utils/quoted-snippet';
 import { isRateLimitError } from '@/features/chat/utils/send-errors';
-import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
-import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/enums';
+import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import { ChatStatus, ChatType, MessageEventType, MessageType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import { isTransportError } from '@/utils/user-error-message';

@@ -1,6 +1,6 @@
 import { assertMembershipCanWrite } from '@/features/chat/api/checks/assert-can-write-in-chat';
-import { ChatCapability } from '@/lib/chat-shared';
-import { ChatMembershipPermission } from '@/lib/prisma/enums';
+
+import { ChatCapability, ChatMembershipPermission } from '@/lib/prisma/enums';
 
 jest.mock('@/utils/server-logger', () => ({
   createLogger: (): { warn: () => void } => ({ warn: jest.fn() }),
