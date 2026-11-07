@@ -87,7 +87,8 @@ export const featuredSectionBlock: Block = {
       },
       minRows: 1,
       maxRows: 3,
-      fields: featureFields,
+      // a copy: Payload adds the row id to the fields of an array, and the group above must not get it
+      fields: [...featureFields],
     },
   ],
 };
