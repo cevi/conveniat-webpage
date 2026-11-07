@@ -6,6 +6,7 @@ import * as migration_20261031_090400_backfill_bill_payments from './20261031_09
 import * as migration_20261102_090000_localize_form_version_placeholders from './20261102_090000_localize_form_version_placeholders';
 import * as migration_20261103_090000_announcement_channel_internal_name from './20261103_090000_announcement_channel_internal_name';
 import * as migration_20261103_120000_bill_payments_point_to_bills from './20261103_120000_bill_payments_point_to_bills';
+import * as migration_20261107_120000_store_publishing_status from './20261107_120000_store_publishing_status';
 
 export const migrations = [
   {
@@ -47,5 +48,10 @@ export const migrations = [
     up: migration_20261103_120000_bill_payments_point_to_bills.up,
     down: migration_20261103_120000_bill_payments_point_to_bills.down,
     name: '20261103_120000_bill_payments_point_to_bills',
+  },
+  {
+    up: migration_20261107_120000_store_publishing_status.up,
+    down: migration_20261107_120000_store_publishing_status.down,
+    name: '20261107_120000_store_publishing_status',
   },
 ];

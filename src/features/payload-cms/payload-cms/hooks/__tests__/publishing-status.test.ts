@@ -1,10 +1,14 @@
 import {
   getPublishingStatus,
   getPublishingStatusGlobal,
+  STORED_PUBLISHING_STATUS,
+  storedPublishingStatusField,
 } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
 import type { CollectionConfig, FieldHookArgs, GlobalConfig } from 'payload';
 
 const PAGE_ID = '65f0c1a2b3d4e5f6a7b8c9d0';
+/** The database of a page without a latest version, so nothing is stored. */
+const noVersions = { findVersions: jest.fn().mockResolvedValue({ docs: [] }) };
 const fields = [{ name: 'title', type: 'text', localized: true, presentational: false }];
 
 /** Runs the field hook against a page whose stored and draft versions are both `stored`. */
@@ -12,7 +16,7 @@ const statusOf = async (stored: object): Promise<unknown> => {
   const arguments_ = {
     data: { id: PAGE_ID },
     collection: { fields },
-    req: { payload: { findByID: jest.fn().mockResolvedValue(stored) } },
+    req: { payload: { findByID: jest.fn().mockResolvedValue(stored), db: noVersions } },
   } as unknown as FieldHookArgs;
 
   return getPublishingStatus({ slug: 'generic-page' } as CollectionConfig)(arguments_);
@@ -34,7 +38,7 @@ const germanHasPendingChanges = async (
   const arguments_ = {
     data: { id: PAGE_ID },
     collection: { fields: fieldDefinitions },
-    req: { payload: { findByID } },
+    req: { payload: { findByID, db: noVersions } },
   } as unknown as FieldHookArgs;
 
   const status = await getPublishingStatus({ slug: 'generic-page' } as CollectionConfig)(
@@ -203,12 +207,156 @@ describe('getPublishingStatus', () => {
     const status = await getPublishingStatus({ slug: 'generic-page' } as CollectionConfig)({
       data: { id: PAGE_ID },
       collection: { fields: textFields },
-      req: { payload: { findByID } },
+      req: { payload: { findByID, db: noVersions } },
     } as unknown as FieldHookArgs);
 
     expect(status['de']?.pendingChanges).toBe(false);
     expect(status['en']?.pendingChanges).toBe(true);
     expect(status['fr']?.pendingChanges).toBe(true);
+  });
+});
+
+describe('the stored publishing status', () => {
+  const VERSION_ID = '65f0c1a2b3d4e5f6a7b8c9ff';
+  const VERSION_SAVED_AT = '2026-11-07T10:00:00.000Z';
+  const publishedInGerman = {
+    de: { pendingChanges: false, published: true },
+    en: { pendingChanges: false, published: false },
+    fr: { pendingChanges: false, published: false },
+  };
+  const pendingInGerman = { ...publishedInGerman, de: { pendingChanges: true, published: true } };
+  const publishedPage = {
+    id: PAGE_ID,
+    title: { de: 'Willkommen' },
+    _localized_status: { de: { published: true } },
+  };
+
+  /**
+   * Runs the hook for a page whose latest version changed the German title against the published
+   * page, so a comparison finds "pending changes in German".
+   */
+  const read = async ({
+    document,
+    draft,
+    transactionID,
+    findByID = jest.fn(({ draft: isDraft }: { draft: boolean }) =>
+      Promise.resolve(
+        isDraft ? { ...publishedPage, title: { de: 'Willkommen im Lager' } } : publishedPage,
+      ),
+    ),
+    updateOne = jest.fn().mockResolvedValue({ modifiedCount: 1 }),
+  }: {
+    document: object;
+    draft: boolean;
+    transactionID?: string;
+    findByID?: jest.Mock;
+    updateOne?: jest.Mock;
+  }): Promise<{ status: unknown; findByID: jest.Mock; updateOne: jest.Mock; warn: jest.Mock }> => {
+    const warn = jest.fn();
+    const findVersions = jest
+      .fn()
+      .mockResolvedValue({ docs: [{ id: VERSION_ID, updatedAt: VERSION_SAVED_AT }] });
+    const status = await getPublishingStatus({ slug: 'generic-page' } as CollectionConfig)({
+      data: { id: PAGE_ID, ...document },
+      draft,
+      collection: { fields },
+      req: {
+        transactionID,
+        payload: {
+          findByID,
+          db: { findVersions, versions: { 'generic-page': { updateOne } } },
+          logger: { warn },
+        },
+      },
+    } as unknown as FieldHookArgs);
+    return { status, findByID, updateOne, warn };
+  };
+
+  it('shows the stored status of the version being read without reading the page again', async () => {
+    const { status, findByID } = await read({
+      draft: true,
+      document: { [STORED_PUBLISHING_STATUS]: publishedInGerman },
+    });
+
+    expect(status).toEqual(publishedInGerman);
+    expect(findByID).not.toHaveBeenCalled();
+  });
+
+  it('compares the versions when the version has no stored status, as after every save', async () => {
+    const { status, findByID } = await read({
+      draft: true,
+      document: { [STORED_PUBLISHING_STATUS]: null },
+    });
+
+    expect(status).toEqual(pendingInGerman);
+    expect(findByID).toHaveBeenCalledTimes(2);
+  });
+
+  it('stores what a draft read worked out on the version it compared, only while that is unchanged', async () => {
+    const { updateOne } = await read({ draft: true, document: {} });
+
+    expect(updateOne).toHaveBeenCalledWith(
+      { _id: VERSION_ID, updatedAt: VERSION_SAVED_AT },
+      // one field, never the whole version
+      { $set: { [`version.${STORED_PUBLISHING_STATUS}`]: pendingInGerman } },
+      // the version keeps its own timestamp
+      { timestamps: false },
+    );
+  });
+
+  it('stores nothing when the published page is read', async () => {
+    const { status, updateOne } = await read({ draft: false, document: {} });
+
+    expect(status).toEqual(pendingInGerman);
+    expect(updateOne).not.toHaveBeenCalled();
+  });
+
+  it('stores nothing while the request holds an open transaction', async () => {
+    const { status, updateOne } = await read({ draft: true, document: {}, transactionID: 'tx' });
+
+    expect(status).toEqual(pendingInGerman);
+    expect(updateOne).not.toHaveBeenCalled();
+  });
+
+  it('stores nothing when the page cannot be compared', async () => {
+    const { status, updateOne } = await read({
+      draft: true,
+      document: {},
+      findByID: jest.fn().mockRejectedValue(new Error('Not Found')),
+    });
+
+    expect(status).toEqual({
+      de: { pendingChanges: false, published: false },
+      en: { pendingChanges: false, published: false },
+      fr: { pendingChanges: false, published: false },
+    });
+    expect(updateOne).not.toHaveBeenCalled();
+  });
+
+  it('still shows the status when it cannot be stored', async () => {
+    const { status, warn } = await read({
+      draft: true,
+      document: {},
+      updateOne: jest.fn().mockRejectedValue(new Error('connection reset')),
+    });
+
+    expect(status).toEqual(pendingInGerman);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('empties the stored status on every save, so a new version never inherits it', () => {
+    const hook = storedPublishingStatusField.hooks?.beforeChange?.[0];
+    expect(hook?.({ value: publishedInGerman } as unknown as FieldHookArgs)).toBeNull();
+  });
+
+  it('does not count the stored status as a change of the draft', async () => {
+    expect(
+      await germanHasPendingChanges(
+        [...fields, { name: STORED_PUBLISHING_STATUS, type: 'json', localized: false }],
+        { [STORED_PUBLISHING_STATUS]: null },
+        { [STORED_PUBLISHING_STATUS]: publishedInGerman },
+      ),
+    ).toBe(false);
   });
 });
 

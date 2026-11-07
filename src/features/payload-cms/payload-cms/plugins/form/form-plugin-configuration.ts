@@ -10,7 +10,10 @@ import {
   Roles,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
+import {
+  getPublishingStatus,
+  storedPublishingStatusField,
+} from '@/features/payload-cms/payload-cms/hooks/publishing-status';
 import { getFormSubmissionResendOptionsHandler } from '@/features/payload-cms/payload-cms/plugins/form/endpoints/get-form-submission-resend-options';
 import { resendFormSubmissionEmailsHandler } from '@/features/payload-cms/payload-cms/plugins/form/endpoints/resend-form-submission-emails';
 import { triggerPastWorkflowsHandler } from '@/features/payload-cms/payload-cms/plugins/form/endpoints/trigger-past-workflows';
@@ -143,6 +146,7 @@ const formLocalizationFields: Field[] = [
       ],
     },
   },
+  storedPublishingStatusField,
   {
     name: '_localized_status',
     type: 'json', // required
