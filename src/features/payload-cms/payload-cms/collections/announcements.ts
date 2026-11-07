@@ -9,7 +9,7 @@ import { buildAnnouncementMessagePayload } from '@/features/payload-cms/payload-
 import type { Announcement } from '@/features/payload-cms/payload-types';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import prisma from '@/lib/db/prisma';
-import { MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma/client';
+import { MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma/enums';
 import { sendNotification } from '@/lib/push/send-notification';
 import { AlignFeature, lexicalEditor, UnorderedListFeature } from '@payloadcms/richtext-lexical';
 import { randomUUID } from 'node:crypto';

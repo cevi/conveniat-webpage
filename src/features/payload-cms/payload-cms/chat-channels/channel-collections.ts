@@ -1,4 +1,4 @@
-import { ChatMembershipPermission } from '@/lib/prisma/client';
+import { ChatMembershipPermission } from '@/lib/prisma/enums';
 
 /** A collection whose documents are chats with an audience. */
 export interface ChannelCollection {

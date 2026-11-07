@@ -1,7 +1,3 @@
-jest.mock('@prisma/client', () =>
-  jest.requireActual<typeof import('@/lib/prisma')>('@/lib/prisma'),
-);
-
 import {
   findForumPostsMatching,
   type ForumSuggestion,

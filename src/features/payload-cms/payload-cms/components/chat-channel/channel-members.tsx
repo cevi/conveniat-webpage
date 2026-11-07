@@ -1,6 +1,6 @@
 import { getAdminLocale } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import prisma from '@/lib/db/prisma';
-import { ChatMembershipPermission } from '@/lib/prisma/client';
+import { ChatMembershipPermission } from '@/lib/prisma/enums';
 import type { StaticTranslationString } from '@/types/types';
 import { FieldLabel, Pill } from '@payloadcms/ui';
 import type { UIFieldServerProps } from 'payload';

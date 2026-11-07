@@ -31,9 +31,6 @@ jest.mock('superjson', () => ({
     deserialize: (value: { json: unknown }): unknown => value.json,
   },
 }));
-jest.mock('@prisma/client', () =>
-  jest.requireActual<typeof import('@/lib/prisma')>('@/lib/prisma'),
-);
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
   get default(): unknown {
@@ -69,7 +66,7 @@ import {
   endForumPostAssignment,
   moveForumPost,
 } from '@/features/chat/api/forum/forum-mutations';
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import type { PrismaClientOrTransaction } from '@/types/types';
 
 const PLATZ = '0193f1a0-0000-7000-8000-000000000001';

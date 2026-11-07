@@ -11,7 +11,7 @@ import {
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
-import { CourseType } from '@/lib/prisma';
+import { CourseType } from '@/lib/prisma/enums';
 import {
   BlocksFeature,
   defaultEditorLexicalConfig,

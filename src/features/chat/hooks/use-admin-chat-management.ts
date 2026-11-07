@@ -8,9 +8,9 @@ import {
   unlockNotificationSounds,
 } from '@/features/chat/utils/notification-sounds';
 import type { RealtimeConnectionStatus } from '@/features/chat/utils/realtime-connection';
-import { ChatStatus, SYSTEM_MSG_TYPE_EMERGENCY_ALERT, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import { SYSTEM_MSG_TYPE_EMERGENCY_ALERT, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import type { ChatRealtimeEvent } from '@/lib/db/chat-pubsub';
-import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
+import { ChatStatus, ChatType, MessageEventType, MessageType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import { useCallback, useEffect, useRef } from 'react';
 import superjson from 'superjson';
@@ -105,6 +105,7 @@ export const useAdminChatManagement = ({
 
   const { mutate: markChatAsRead } = useMutation(
     trpc.admin.markChatAsRead.mutationOptions({
+      networkMode: 'online', // a receipt holds offline, see `useMessageReadStatus`
       onMutate({ chatId }) {
         queryClient.setQueryData(
           trpc.admin.listSupportChats.queryKey({

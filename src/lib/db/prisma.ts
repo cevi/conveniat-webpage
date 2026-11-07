@@ -1,5 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { PrismaClient } from '@/lib/prisma';
+import { PrismaClient } from '@/lib/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';

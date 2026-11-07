@@ -1,7 +1,7 @@
 import { getActivePiketMembers } from '@/features/chat/api/utils/piket-service';
 import prisma from '@/lib/db/prisma';
 import { forumPostPath } from '@/lib/forum-shared';
-import { ChatType, PushNotificationKind } from '@/lib/prisma/client';
+import { ChatType, PushNotificationKind } from '@/lib/prisma/enums';
 import { sendNotification } from '@/lib/push/send-notification';
 import { createLogger } from '@/utils/server-logger';
 

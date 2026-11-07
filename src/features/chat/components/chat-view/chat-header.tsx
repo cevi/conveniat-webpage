@@ -11,7 +11,7 @@ import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { ChatType } from '@/lib/prisma/client';
+import { ChatType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';

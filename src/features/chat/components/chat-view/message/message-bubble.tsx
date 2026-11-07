@@ -4,7 +4,7 @@ import { ImageMessage } from '@/features/chat/components/chat-view/message/image
 import { extractMessageImages } from '@/features/chat/components/chat-view/message/utils/extract-message-images';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
 import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date';
-import { MessageEventType, MessageType } from '@/lib/prisma/client';
+import { MessageEventType, MessageType } from '@/lib/prisma/enums';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';

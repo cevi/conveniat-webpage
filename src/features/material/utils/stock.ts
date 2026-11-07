@@ -1,4 +1,4 @@
-import type { MaterialLoanStatus } from '@/lib/prisma/client';
+import type { MaterialLoanStatus } from '@/lib/prisma/enums';
 
 export type MaterialItemStatus =
   | 'AVAILABLE'

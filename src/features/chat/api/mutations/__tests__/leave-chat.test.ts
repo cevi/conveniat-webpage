@@ -35,7 +35,7 @@ import { addParticipants } from '@/features/chat/api/mutations/add-participants'
 import { leaveChat } from '@/features/chat/api/mutations/leave-chat';
 import { removeParticipant } from '@/features/chat/api/mutations/remove-participant';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import type { StaticTranslationString } from '@/types/types';
 
 type Permission = ChatMembershipPermission;

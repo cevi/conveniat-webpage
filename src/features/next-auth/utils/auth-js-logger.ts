@@ -21,6 +21,26 @@ const errorType = (error: Error): string => {
 const stripDocumentationLink = (message: string): string =>
   message.replace(/\.? ?Read more at https:\/\/errors\.authjs\.dev#\S*$/, '');
 
+/**
+ * The error an `AuthError` wraps. Auth.js does not chain it as `cause` but puts it on `cause.err`,
+ * which is why a `CallbackRouteError` reached Loki as nothing but its docs link.
+ */
+const wrappedError = (error: Error): Error | undefined => {
+  const { cause } = error as { cause?: unknown };
+  if (typeof cause !== 'object' || cause === null) return undefined;
+  const { err } = cause as { err?: unknown };
+  return err instanceof Error ? err : undefined;
+};
+
+/**
+ * The RFC 6749 error code of a refused OAuth request, such as `invalid_grant` for an
+ * authorization code that was already redeemed. oauth4webapi sets it on the error it throws.
+ */
+const oauthErrorCode = (error: Error | undefined): string | undefined => {
+  const code = (error as { error?: unknown } | undefined)?.error;
+  return typeof code === 'string' && code !== '' ? code : undefined;
+};
+
 /** `UnknownAction` is always thrown as `Cannot parse action at <pathname>`. */
 const unknownActionPath = /^Cannot parse action at (\S+)$/;
 
@@ -33,7 +53,8 @@ const unknownActionPath = /^Cannot parse action at (\S+)$/;
  * `/api/auth/` that is not one of Auth.js's actions. Auth.js already answers those itself and
  * nothing of ours failed, so they belong at debug with the probed path as an attribute, not in
  * the error rate. Every other Auth.js error keeps its level and gains `auth.error` plus the
- * flattened error, which is queryable in a way a bare stack line never was.
+ * flattened error, which is queryable in a way a bare stack line never was, and the error it
+ * wraps as `auth.cause`, with the provider's `oauth.error` code when the provider refused.
  *
  * @param target - The logger the records are written to; injectable for tests.
  * @returns A `logger` object for `NextAuthConfig`.
@@ -52,7 +73,14 @@ export const createAuthJsLogger = (target: ServerLogger): AuthJsLogger => ({
       return;
     }
 
-    target.error(message === '' ? type : message, { 'auth.error': type, error });
+    const cause = wrappedError(error);
+    const oauthError = oauthErrorCode(cause);
+    target.error(message === '' ? type : message, {
+      'auth.error': type,
+      error,
+      ...(cause === undefined ? {} : { 'auth.cause': cause }),
+      ...(oauthError === undefined ? {} : { 'oauth.error': oauthError }),
+    });
   },
 
   warn: (code): void => {

@@ -8,16 +8,14 @@ import {
   useMessageReadStatus,
 } from '@/features/chat/hooks/use-message-read-status';
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
-import { MessageType } from '@/lib/prisma';
+import { MessageType } from '@/lib/prisma/enums';
 import type { TestTrpc } from '@/trpc/test-trpc';
 import { createTestTrpc } from '@/trpc/test-trpc';
+import { onlineManager } from '@tanstack/react-query';
 import type { RenderHookResult } from '@testing-library/react';
 import { act, renderHook } from '@testing-library/react';
 
 // the generated prisma client cannot be loaded under jsdom; the hook only needs its enums
-jest.mock('@/lib/prisma', () => ({
-  MessageType: { TEXT_MSG: 'TEXT_MSG', SYSTEM_MSG: 'SYSTEM_MSG' },
-}));
 
 jest.mock(
   '@/trpc/client',
@@ -112,6 +110,7 @@ describe('useMessageReadStatus', () => {
 
   afterEach(() => {
     jest.useRealTimers();
+    onlineManager.setOnline(true);
   });
 
   interface Properties {
@@ -218,5 +217,20 @@ describe('useMessageReadStatus', () => {
 
     await settle();
     expect(markChatUnread).not.toHaveBeenCalled();
+  });
+
+  it('sends a receipt for a chat read offline once the connection is back', async () => {
+    onlineManager.setOnline(false);
+    render('chat-offline', { sortedMessages: [message('msg-1')], isAtBottom: true });
+
+    await settle();
+    expect(markChatAsRead).not.toHaveBeenCalled();
+
+    act(() => onlineManager.setOnline(true));
+    await settle();
+    expect(markChatAsRead).toHaveBeenCalledWith({
+      chatId: 'chat-offline',
+      lastMessageId: 'msg-1',
+    });
   });
 });

@@ -1,7 +1,8 @@
 import { RealtimeStatusBadge } from '@/features/chat/components/admin/realtime-status-badge';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import type { RealtimeConnectionStatus } from '@/features/chat/utils/realtime-connection';
-import { ChatStatus } from '@/lib/chat-shared';
+import { ChatStatus } from '@/lib/prisma/enums';
+
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { RefreshCw } from 'lucide-react';

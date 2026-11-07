@@ -12,10 +12,10 @@ import { formatChatListDate } from '@/features/chat/utils/format-chat-list-date'
 import { previewSenderPrefix } from '@/features/chat/utils/preview-sender-prefix';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import { ChatMembershipPermission, ChatType, MessageEventType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
 import { BellOff, Check, Clock, Pin } from 'lucide-react';
 import Link, { useLinkStatus } from 'next/link';
 import { useSearchParams } from 'next/navigation';

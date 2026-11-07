@@ -8,9 +8,6 @@ jest.mock('@/config/environment-variables', () => ({
     CEVIDB_GROUP_FORUM_ZENTRALE: [],
   },
 }));
-jest.mock('@prisma/client', () =>
-  jest.requireActual<typeof import('@/lib/prisma')>('@/lib/prisma'),
-);
 
 let memberships: { userId: string; subscribed: boolean }[];
 let threadSubscribers: string[];
@@ -48,7 +45,7 @@ jest.mock('@/lib/push/send-notification', () => ({
 }));
 
 import { pushForumThread, pushNewForumPost } from '@/features/chat/api/forum/forum-push';
-import { PushNotificationKind } from '@/lib/prisma';
+import { PushNotificationKind } from '@/lib/prisma/enums';
 
 const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 

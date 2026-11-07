@@ -9,7 +9,7 @@ import { usePendingChatDeletionContext } from '@/features/chat/context/pending-c
 import type { ChatListActions } from '@/features/chat/hooks/use-chat-list-actions';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { canDeleteChat } from '@/features/chat/utils/can-delete-chat';
-import { ChatType } from '@/lib/prisma/client';
+import { ChatType } from '@/lib/prisma/enums';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import {
   Bell,

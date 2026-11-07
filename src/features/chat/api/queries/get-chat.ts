@@ -11,7 +11,7 @@ import { findCmsUserNames } from '@/features/chat/api/utils/find-cms-user-names'
 import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 import { ONLINE_WINDOW_MS } from '@/features/chat/constants';
-import { ChatType, MessageEventType } from '@/lib/prisma/client';
+import { ChatType, MessageEventType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { profilePictureUrlOrUndefined } from '@/utils/profile-picture-url';
 import { TRPCError } from '@trpc/server';

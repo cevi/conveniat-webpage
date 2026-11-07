@@ -1,7 +1,7 @@
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
 import { findChatByUuid } from '@/features/chat/api/database-interactions/find-chat-by-uuid';
 import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
-import { ChatMembershipPermission } from '@/lib/prisma';
+import { ChatMembershipPermission } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { TRPCError } from '@trpc/server';

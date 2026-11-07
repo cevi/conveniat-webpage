@@ -1,4 +1,4 @@
-import { CourseType } from '@/lib/prisma';
+import { CourseType } from '@/lib/prisma/enums';
 import type { Context } from '@/trpc/init';
 import { createCallerFactory } from '@/trpc/init';
 import { TRPCError } from '@trpc/server';
@@ -8,13 +8,6 @@ jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('payload', () => ({
   getPayload: jest.fn(),
   NotFound: class NotFound extends Error {},
-}));
-
-jest.mock('@/lib/prisma', () => ({
-  CourseType: {
-    SHIFT: 'SHIFT',
-    PROGRAM: 'PROGRAM',
-  },
 }));
 
 jest.mock('@/lib/db/prisma', () => ({

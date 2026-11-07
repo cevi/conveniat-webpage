@@ -12,12 +12,17 @@ import type { EmergencyCard } from '@/features/payload-cms/payload-types';
 import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { CHAT_PAGE_SIZE, ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import { CHAT_PAGE_SIZE, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import {
+  ChatMembershipPermission,
+  ChatStatus,
+  ChatType,
+  MessageEventType,
+} from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
 import { Accordion } from '@radix-ui/react-accordion';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BriefcaseMedical, Download, FileText, ImageIcon, SearchX } from 'lucide-react';
@@ -129,11 +134,7 @@ export const EmergencyComponent: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const router = useRouter();
-  // An alarm is always tried, even while the network seems not to answer: a paused mutation would
-  // leave the button waiting instead of showing the call fallback.
-  const emergencyQuery = useMutation(
-    trpc.emergency.newAlert.mutationOptions({ networkMode: 'always' }),
-  );
+  const emergencyQuery = useMutation(trpc.emergency.newAlert.mutationOptions());
   const queryClient = useQueryClient();
 
   const status = useAuthStatus();

@@ -1,8 +1,9 @@
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
 import type { NotificationType } from '@/lib/notification-type';
-import type { PushNotification, PushNotificationChannel } from '@/lib/prisma';
-import { PushNotificationKind } from '@/lib/prisma';
+import type { PushNotification } from '@/lib/prisma/client';
+import type { PushNotificationChannel } from '@/lib/prisma/enums';
+import { PushNotificationKind } from '@/lib/prisma/enums';
 import type { PushDropReason, PushQueueSnapshot } from '@/lib/push-metrics';
 import {
   recordPushDeliveriesDropped,

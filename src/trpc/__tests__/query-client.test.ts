@@ -1,6 +1,6 @@
 import { makeQueryClient } from '@/trpc/query-client';
 import type { QueryClient, QueryObserverResult } from '@tanstack/react-query';
-import { dehydrate, onlineManager, QueryObserver } from '@tanstack/react-query';
+import { dehydrate, MutationObserver, onlineManager, QueryObserver } from '@tanstack/react-query';
 import { persistQueryClientRestore } from '@tanstack/react-query-persist-client';
 
 const KEY = ['map', 'getMapAnnotations'];
@@ -136,5 +136,25 @@ describe('persisted query cache on a restarted app', () => {
 
     expect(server).not.toHaveBeenCalled();
     unmount();
+  });
+});
+
+describe('mutations without a connection', () => {
+  afterEach(() => {
+    onlineManager.setOnline(true);
+  });
+
+  test('fail at once instead of waiting unseen for the connection', async () => {
+    const client = makeQueryClient();
+    client.mount();
+    onlineManager.setOnline(false);
+    const server = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+
+    const observer = new MutationObserver<unknown, Error, void>(client, { mutationFn: server });
+
+    await expect(observer.mutate()).rejects.toThrow('Failed to fetch');
+    expect(server).toHaveBeenCalledTimes(1);
+    expect(observer.getCurrentResult()).toMatchObject({ status: 'error', isPaused: false });
+    client.unmount();
   });
 });

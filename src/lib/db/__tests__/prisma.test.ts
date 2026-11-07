@@ -1,4 +1,4 @@
-import { PrismaClient } from '@/lib/prisma';
+import { PrismaClient } from '@/lib/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { EventEmitter } from 'node:events';
 import type { PoolConfig } from 'pg';
@@ -10,7 +10,7 @@ jest.mock('@/config/environment-variables', () => ({
     NODE_ENV: 'test',
   },
 }));
-jest.mock('@/lib/prisma', () => ({ PrismaClient: jest.fn() }));
+jest.mock('@/lib/prisma/client', () => ({ PrismaClient: jest.fn() }));
 jest.mock('@prisma/adapter-pg', () => ({ PrismaPg: jest.fn() }));
 
 /** A client that connects without a server, so the pool can be filled in a test. */

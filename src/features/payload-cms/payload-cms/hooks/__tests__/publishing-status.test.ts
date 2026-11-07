@@ -422,3 +422,123 @@ describe('getPublishingStatusGlobal', () => {
     });
   });
 });
+
+/** The column «Mitmachen» of the main menu, with these links. */
+const entry = (...subLabels: string[]): object => ({
+  id: 'mitmachen',
+  label: 'Mitmachen',
+  subMenu: subLabels.map((label) => ({ id: label, label })),
+});
+
+describe('the main menu, a localized array', () => {
+  const menuFields = [
+    {
+      name: 'mainMenu',
+      type: 'array',
+      localized: true,
+      presentational: false,
+      fields: [
+        { name: 'label', type: 'text', localized: false, presentational: false },
+        {
+          // marked localized in the config, but stored inside the localized menu without locales
+          name: 'subMenu',
+          type: 'array',
+          localized: true,
+          presentational: false,
+          fields: [{ name: 'label', type: 'text', localized: false, presentational: false }],
+        },
+      ],
+    },
+  ];
+  const header = {
+    id: 'header',
+    mainMenu: { de: [entry('Als Teilnehmende')], fr: [{ id: 'participer', label: 'Participer' }] },
+    _localized_status: { de: { published: true }, fr: { published: true } },
+  };
+
+  const menuStatusOf = async (draftMenu: object): Promise<unknown> => {
+    const findGlobal = jest.fn(({ draft: isDraft }: { draft: boolean }) =>
+      Promise.resolve(isDraft ? { ...header, mainMenu: draftMenu } : header),
+    );
+    return getPublishingStatusGlobal({ slug: 'header' } as GlobalConfig)({
+      data: { id: 'header' },
+      global: { fields: menuFields },
+      req: { payload: { findGlobal } },
+    } as unknown as FieldHookArgs);
+  };
+
+  it('reports an unchanged menu as up to date', async () => {
+    expect(await menuStatusOf(header.mainMenu)).toMatchObject({
+      de: { pendingChanges: false },
+      fr: { pendingChanges: false },
+    });
+  });
+
+  it('shows unpublished changes when a link was added to a column of the menu', async () => {
+    expect(
+      await menuStatusOf({
+        ...header.mainMenu,
+        de: [entry('Als Teilnehmende', 'Stand am Stadtleben')],
+      }),
+    ).toMatchObject({ de: { pendingChanges: true }, fr: { pendingChanges: false } });
+  });
+
+  it('shows unpublished changes when the label of a link was changed', async () => {
+    expect(
+      await menuStatusOf({ ...header.mainMenu, fr: [{ id: 'participer', label: 'Participez' }] }),
+    ).toMatchObject({ de: { pendingChanges: false }, fr: { pendingChanges: true } });
+  });
+});
+
+/** One text section of a page, with this text. */
+const section = (text: string): object[] => [
+  { blockType: 'richTextSection', id: 'section-1', text },
+];
+
+describe('a block inside the localized content of a page', () => {
+  const pageFields = [
+    {
+      name: 'mainContent',
+      type: 'blocks',
+      localized: true,
+      presentational: false,
+      blocks: [
+        {
+          slug: 'richTextSection',
+          // marked localized in the config, but stored inside the localized blocks without locales
+          fields: [{ name: 'text', type: 'text', localized: true, presentational: false }],
+        },
+      ],
+    },
+  ];
+  const page = {
+    id: PAGE_ID,
+    mainContent: {
+      de: section('Teilnahmeprognose'),
+      fr: section('prévisions de participation'),
+    },
+    _localized_status: { de: { published: true }, fr: { published: true } },
+  };
+
+  it('shows unpublished changes only in the language whose text changed', async () => {
+    const findByID = jest.fn(({ draft }: { draft: boolean }) =>
+      Promise.resolve(
+        draft
+          ? {
+              ...page,
+              mainContent: { ...page.mainContent, fr: section('estimation de participation') },
+            }
+          : page,
+      ),
+    );
+    const status = await getPublishingStatus({ slug: 'generic-page' } as CollectionConfig)({
+      data: { id: PAGE_ID },
+      collection: { fields: pageFields },
+      req: {
+        payload: { findByID, db: { findVersions: jest.fn().mockResolvedValue({ docs: [] }) } },
+      },
+    } as unknown as FieldHookArgs);
+
+    expect(status).toMatchObject({ de: { pendingChanges: false }, fr: { pendingChanges: true } });
+  });
+});

@@ -1,5 +1,5 @@
 // Helper functions for resolving chat names and message statuses
-import { ChatType } from '@/lib/prisma/client';
+import { ChatType } from '@/lib/prisma/enums';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { formatUserFullName } from '@/utils/format-user-name';
 

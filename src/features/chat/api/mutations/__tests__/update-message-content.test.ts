@@ -25,7 +25,7 @@ jest.mock('@/lib/db/chat-pubsub', () => ({
 }));
 
 import { updateMessageContent } from '@/features/chat/api/mutations/update-message-content';
-import { MessageType } from '@/lib/prisma/client';
+import { MessageType } from '@/lib/prisma/enums';
 
 interface StoredMessage {
   uuid: string;

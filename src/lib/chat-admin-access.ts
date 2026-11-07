@@ -3,7 +3,8 @@ import {
   hasAccessToThisUser,
   SUPPORT_DESK_ROLES,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
-import { ChatType, type PrismaClient } from '@/lib/prisma/client';
+import type { PrismaClient } from '@/lib/prisma/client';
+import { ChatType } from '@/lib/prisma/enums';
 
 /** The session user, as far as the roles need it. */
 interface SessionUser {

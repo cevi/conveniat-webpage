@@ -1,4 +1,4 @@
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma/client';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import type { PrismaClientOrTransaction } from '@/types/types';
 
 /**

@@ -1,8 +1,7 @@
 import { isChatArchived } from '@/lib/chat-shared';
-import { MessageEventType } from '@/lib/prisma/client';
+import { MessageEventType, MessageType } from '@/lib/prisma/enums';
 import type { PrismaClientOrTransaction } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
-import { MessageType } from '@prisma/client';
 
 const logger = createLogger('chat:mutations');
 

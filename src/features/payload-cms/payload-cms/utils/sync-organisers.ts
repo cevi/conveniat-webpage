@@ -6,7 +6,7 @@ import {
   CourseType,
   MessageEventType,
   MessageType,
-} from '@prisma/client';
+} from '@/lib/prisma/enums';
 
 import {
   getJoinedAsAdminMessagePayload,

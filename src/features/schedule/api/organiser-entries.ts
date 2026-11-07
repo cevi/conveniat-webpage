@@ -1,5 +1,5 @@
-import type { PrismaClient } from '@/lib/prisma';
-import { CourseType } from '@/lib/prisma';
+import type { PrismaClient } from '@/lib/prisma/client';
+import { CourseType } from '@/lib/prisma/enums';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { getPayload } from 'payload';

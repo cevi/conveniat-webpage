@@ -1,6 +1,6 @@
 import { getHelperShift, getHelperShifts } from '@/features/schedule/api/get-helper-shifts';
 import { getFeatureFlag } from '@/lib/db/redis';
-import type { PrismaClient } from '@/lib/prisma';
+import type { PrismaClient } from '@/lib/prisma/client';
 
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('payload', () => ({
@@ -22,13 +22,6 @@ jest.mock('@/utils/get-locale-from-cookies', () => ({
 
 jest.mock('@/lib/db/redis', () => ({
   getFeatureFlag: jest.fn(),
-}));
-
-jest.mock('@/lib/prisma', () => ({
-  CourseType: {
-    SHIFT: 'SHIFT',
-    PROGRAM: 'PROGRAM',
-  },
 }));
 
 jest.mock('@/lib/db/prisma', () => ({

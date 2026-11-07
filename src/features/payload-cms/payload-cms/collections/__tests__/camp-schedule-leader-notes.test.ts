@@ -3,7 +3,6 @@
  */
 
 jest.mock('@payload-config', () => ({}), { virtual: true });
-jest.mock('@/lib/prisma', () => ({ CourseType: { PROGRAM: 'PROGRAM' } }));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
 
 const hasAdminOrWebAccess = jest.fn();

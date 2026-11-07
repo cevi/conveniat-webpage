@@ -2,7 +2,7 @@ import { assertChatNotArchived } from '@/features/chat/api/checks/assert-can-wri
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
 import { parseChatName } from '@/features/chat/api/checks/verify-chat-name';
 import { findChatByUuid } from '@/features/chat/api/database-interactions/find-chat-by-uuid';
-import { ChatMembershipPermission } from '@/lib/prisma';
+import { ChatMembershipPermission } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { TRPCError } from '@trpc/server';

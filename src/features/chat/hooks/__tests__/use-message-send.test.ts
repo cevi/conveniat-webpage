@@ -6,7 +6,8 @@ import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { getOfflineOutbox } from '@/features/chat/utils/offline-outbox';
-import { ChatStatus } from '@/lib/chat-shared';
+import { ChatStatus } from '@/lib/prisma/enums';
+
 import type { RouterInputs } from '@/trpc/client';
 import type { TestTrpc } from '@/trpc/test-trpc';
 import { createTestTrpc } from '@/trpc/test-trpc';
@@ -14,11 +15,6 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { TRPCClientError } from '@trpc/client';
 
 // the generated prisma client cannot be loaded under jsdom; the hook only needs its enums
-jest.mock('@/lib/prisma/client', () => ({
-  ChatType: { ONE_TO_ONE: 'ONE_TO_ONE', GROUP: 'GROUP' },
-  MessageEventType: { CREATED: 'CREATED', STORED: 'STORED' },
-  MessageType: { TEXT_MSG: 'TEXT_MSG', IMAGE_MSG: 'IMAGE_MSG' },
-}));
 
 jest.mock(
   '@/trpc/client',

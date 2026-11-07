@@ -1,5 +1,5 @@
 import prisma from '@/lib/db/prisma';
-import type { CourseType } from '@/lib/prisma';
+import type { CourseType } from '@/lib/prisma/enums';
 import type { CollectionAfterReadHook } from 'payload';
 
 /**

@@ -8,7 +8,7 @@ import {
 import type { CourseSummary } from '@/features/payload-cms/payload-cms/utils/course-participation';
 import { aggregateCourseParticipation } from '@/features/payload-cms/payload-cms/utils/course-participation';
 import prisma from '@/lib/db/prisma';
-import { CourseType } from '@/lib/prisma';
+import { CourseType } from '@/lib/prisma/enums';
 import type { PayloadHandler } from 'payload';
 
 /**

@@ -26,7 +26,6 @@ jest.mock('@/features/chat/hooks/use-leave-chat-mutation', () => ({
     reset: jest.fn(),
   }),
 }));
-jest.mock('@/lib/prisma', () => ({ ChatMembershipPermission: { OWNER: 'OWNER' } }));
 jest.mock('@/features/chat/context/chat-id-context', () => ({ useChatId: (): string => 'b' }));
 jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
 

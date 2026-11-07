@@ -1,7 +1,7 @@
 import type { LocaleCode } from '@/features/payload-cms/payload-cms/locales';
 import { enabledLocales, LOCALE } from '@/features/payload-cms/payload-cms/locales';
-import type { PrismaClient } from '@/lib/prisma';
-import type { ITXClientDenyList } from '@/lib/prisma/runtime/client';
+import type { PrismaClient } from '@/lib/prisma/client';
+import type { ITXClientDenyList } from '@prisma/client/runtime/client';
 import type { Metadata } from 'next';
 import type { Config } from 'next-i18n-router/dist/types';
 import type { CollectionConfig, Config as PayloadConfig } from 'payload';
