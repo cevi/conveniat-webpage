@@ -32,7 +32,7 @@ export default async function PresenceCounterWidget({
       where: { presentAtCamp: true },
     });
   } catch (error) {
-    console.warn('[PresenceCounterWidget] Could not query present users count:', error);
+    req.payload.logger.warn({ err: error }, 'Could not count the users present at camp');
   }
 
   return (

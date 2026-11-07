@@ -11,6 +11,9 @@ import type {
   CapabilitySubject,
 } from '@/lib/capabilities/types';
 import type { PrismaClientOrTransaction } from '@/types/types';
+import { createLogger } from '@/utils/server-logger';
+
+const logger = createLogger('chat:capabilities');
 
 const capabilities: Capability[] = [
   new MessageCapabilities(),
@@ -34,7 +37,7 @@ export const checkCapability = async <S extends CapabilitySubject>(
 ): Promise<boolean> => {
   const capability = capabilities.find((c) => c.subject === subject);
   if (!capability) {
-    console.warn(`No capability definition found for subject: ${subject}`);
+    logger.error('No capability definition found for subject', { 'capability.subject': subject });
     return false;
   }
   if (!chatId) return capability.can(action, { prisma });
