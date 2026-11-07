@@ -85,7 +85,20 @@ describe('createRealtimeConnection', () => {
     connection.setUrl('/api/chat/sse?chatIds=a');
 
     expect(FakeEventSource.instances).toHaveLength(1);
-    expect(latestSource().url).toBe('/api/chat/sse?chatIds=a');
+    expect(latestSource().url).toBe('/api/chat/sse?chatIds=a&reason=open');
+  });
+
+  it('tells the server why it opened each stream', () => {
+    connection.setUrl('/api/chat/sse?chatIds=a');
+    latestSource().open();
+    connection.setUrl('/api/chat/sse?chatIds=a,b');
+    connection.reconnect();
+
+    expect(FakeEventSource.instances.map((source) => source.url)).toEqual([
+      '/api/chat/sse?chatIds=a&reason=open',
+      '/api/chat/sse?chatIds=a,b&reason=url_changed',
+      '/api/chat/sse?chatIds=a,b&reason=manual',
+    ]);
   });
 
   it('reports "live" once the stream opens and forwards message events', () => {
@@ -151,6 +164,7 @@ describe('createRealtimeConnection', () => {
     jest.advanceTimersByTime(1000);
 
     expect(FakeEventSource.instances).toHaveLength(2);
+    expect(latestSource().url).toContain('reason=error');
   });
 
   it('reconnects a stream that stopped heartbeating while still reported as open', () => {
@@ -171,6 +185,7 @@ describe('createRealtimeConnection', () => {
 
     expect(FakeEventSource.instances).toHaveLength(2);
     expect(FakeEventSource.instances[0]?.closed).toBe(true);
+    expect(latestSource().url).toContain('reason=watchdog');
 
     latestSource().open();
     expect(connection.getStatus()).toBe('live');
@@ -243,11 +258,14 @@ describe('createRealtimeConnection', () => {
 
   it('can be pointed at a new URL after having been cleared', () => {
     connection.setUrl('/api/chat/sse?chatIds=a');
+    latestSource().open();
     connection.setUrl(undefined);
 
     connection.setUrl('/api/chat/sse?chatIds=a');
 
     expect(FakeEventSource.instances).toHaveLength(2);
+    // Coming back after every chat screen was left is a fresh open, not a changed subscription.
+    expect(latestSource().url).toContain('reason=open');
   });
 
   it('stops reconnecting after close()', () => {

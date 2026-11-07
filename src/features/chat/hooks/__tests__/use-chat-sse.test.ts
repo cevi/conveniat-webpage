@@ -103,7 +103,8 @@ describe('useChatSSE', () => {
     expect(mockEventSourceConstructor).toHaveBeenCalledTimes(1);
     const calls = mockEventSourceConstructor.mock.calls as string[][];
     const calledUrl = calls[0]?.[0] ?? '';
-    expect(calledUrl).toBe('/api/chat/sse?chatIds=user-uuid-123');
+    // The reason depends on whether an earlier test already opened the shared stream.
+    expect(calledUrl).toMatch(/^\/api\/chat\/sse\?chatIds=user-uuid-123&reason=\w+$/);
 
     unmount();
     jest.advanceTimersByTime(1);
