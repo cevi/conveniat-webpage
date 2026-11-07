@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.52.3](https://github.com/cevi/conveniat-webpage/compare/v1.52.2...v1.52.3) (2026-11-07)
+
+
+### Dependencies
+
+* **deps:** update Payload to 3.93.0 and Next.js to 16.4.5 ([f4d1a33](https://github.com/cevi/conveniat-webpage/commit/f4d1a336092358a9c95822c21ee3db877d3a9839))
+* **deps:** update Payload to 3.93.0 and Next.js to 16.4.5 ([a58be47](https://github.com/cevi/conveniat-webpage/commit/a58be476c3efdca340d38612156ed230fd7fe641))
+
 ## [1.52.2](https://github.com/cevi/conveniat-webpage/compare/v1.52.1...v1.52.2) (2026-11-06)
 
 
