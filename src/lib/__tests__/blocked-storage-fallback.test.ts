@@ -36,6 +36,20 @@ describe('installBlockedStorageFallback', () => {
     expect(target.localStorage.length).toBe(1);
   });
 
+  it('reports the fallback only once it replaced a storage', async () => {
+    await jest.isolateModulesAsync(async () => {
+      const fallback = await import('@/lib/blocked-storage-fallback');
+      fallback.installBlockedStorageFallback({
+        localStorage: {} as Storage,
+        sessionStorage: {} as Storage,
+      } as Window);
+      expect(fallback.isStorageFallbackActive()).toBe(false);
+
+      fallback.installBlockedStorageFallback(blockedWindow());
+      expect(fallback.isStorageFallbackActive()).toBe(true);
+    });
+  });
+
   it('leaves working storage alone', () => {
     const localStorage = { getItem: (): null => null } as unknown as Storage;
     const sessionStorage = { getItem: (): null => null } as unknown as Storage;

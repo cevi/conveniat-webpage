@@ -1,3 +1,5 @@
+let isFallbackActive = false;
+
 /** A `Storage` that lives only as long as the tab. */
 const createTabStorage = (): Storage => {
   const entries = new Map<string, string>();
@@ -36,6 +38,15 @@ export const installBlockedStorageFallback = (target: Window): void => {
       void target[name];
     } catch {
       Object.defineProperty(target, name, { value: createTabStorage(), configurable: true });
+      isFallbackActive = true;
     }
   }
 };
+
+/**
+ * Whether this page runs on the stand-in, because the browser blocked `localStorage` or
+ * `sessionStorage`. PostHog carries it on every event, see `registerPostHogSuperProperties`.
+ *
+ * @returns True once `installBlockedStorageFallback` replaced either storage.
+ */
+export const isStorageFallbackActive = (): boolean => isFallbackActive;
