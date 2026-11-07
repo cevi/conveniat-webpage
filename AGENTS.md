@@ -148,6 +148,10 @@ Stop only what you started, and only by a process id you captured yourself.
 
 ## Verifying
 
+A fresh clone or worktree lacks the gitignored Prisma client, `src/build.ts` and `.env`, and
+`typecheck` fails on dozens of missing modules without them. Run `pnpm setup:worktree` first, and
+again after a rebase that changed `prisma/schema`. T3 Code runs it when it creates a worktree.
+
 Run the full suite before you call a task done or write a commit:
 
 ```bash
