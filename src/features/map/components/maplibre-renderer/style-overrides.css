@@ -15,7 +15,8 @@
   top: calc(56px + var(--app-logo-overhang, 0px));
 }
 
-/* the compass is round and floats like the locate button above it, on the same right edge */
+/* the compass is round and floats like the locate button above it, on the same right edge; it ends
+   at 108px, where the forum's flag button below it starts counting (forum-map-overlays.tsx) */
 .map-has-own-locate-button .maplibregl-ctrl-top-right .maplibregl-ctrl-group {
   margin: 8px 16px 0 0;
   overflow: hidden;
