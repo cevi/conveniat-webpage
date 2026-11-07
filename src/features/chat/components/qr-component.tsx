@@ -305,7 +305,7 @@ export const QRCodeClientComponent: React.FC = () => {
       const url = new URL(globalThis.location.href);
       url.searchParams.delete(QR_PARAMETER);
       // the native history call keeps Next's router in sync without a round trip
-      globalThis.history.replaceState(undefined, '', url);
+      globalThis.history.replaceState(undefined, '', url.toString());
     },
     [requestedTab],
   );
