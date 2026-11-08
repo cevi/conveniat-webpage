@@ -1,5 +1,50 @@
 # Changelog
 
+## [1.54.0](https://github.com/cevi/conveniat-webpage/compare/v1.53.2...v1.54.0) (2026-11-08)
+
+
+### Features
+
+* **dashboard:** Schnellzugriff tiles show the icon over the name, three to a row ([d0b66bc](https://github.com/cevi/conveniat-webpage/commit/d0b66bcbfdae3048509d70f103e3ab0a7037728e))
+* **dashboard:** Schnellzugriff tiles show the icon over the name, three to a row ([cc72d27](https://github.com/cevi/conveniat-webpage/commit/cc72d27823cd1eb5620ca96d14140e1b5e938aa0))
+* **forum:** compact feed rows, quieter empty states and a way from search to writing ([860aa6b](https://github.com/cevi/conveniat-webpage/commit/860aa6bdfc369d47b850d141ccfbbc8f5f51508c))
+* **forum:** compact feed rows, quieter empty states and a way from search to writing ([5de8452](https://github.com/cevi/conveniat-webpage/commit/5de845264b0b1b27ca0a76cf689859038b6af711))
+* **push:** the app replaces and closes its notifications by tag, like the browser ([af5f42e](https://github.com/cevi/conveniat-webpage/commit/af5f42ef34b475e2802650f8013079b375d5470a))
+* **push:** the app replaces and closes its notifications by tag, like the browser ([e2869b6](https://github.com/cevi/conveniat-webpage/commit/e2869b6934925d279e01e79aef2c14b7432ab8e0))
+* **schedule:** previous and next day as a pair of pills ([9d6c205](https://github.com/cevi/conveniat-webpage/commit/9d6c205bc7a9d00f4f0148404a2e77d808ec4624))
+* **schedule:** previous and next day as a pair of pills ([5af9f63](https://github.com/cevi/conveniat-webpage/commit/5af9f630594d9af47f2dd2fce04e2928f9b6988d))
+* **story:** story and challenges for Leitende, edited on a Story-Board ([c466bb7](https://github.com/cevi/conveniat-webpage/commit/c466bb71c63673764a667ddb38679ddc9979c441))
+* **story:** story and challenges for Leitende, edited on a Story-Board ([499f538](https://github.com/cevi/conveniat-webpage/commit/499f53809d02b8f4ea4791e82914c3be38ac260c))
+
+
+### Bug Fixes
+
+* **app:** the header title keeps its descenders and its Montserrat ([002bbb0](https://github.com/cevi/conveniat-webpage/commit/002bbb055563ee7b5e6e037ab14cd39b7d1b0c4b))
+* **app:** the header title keeps its descenders and its Montserrat ([5e067dd](https://github.com/cevi/conveniat-webpage/commit/5e067dddc29bea2bc3fbc03d82cffd2ab622d41f))
+* **chat:** a failed answer to an emergency question tells the user ([2c19343](https://github.com/cevi/conveniat-webpage/commit/2c193436e41df99e2fe547b7375cd1fc82b2f982))
+* **chat:** a failed answer to an emergency question tells the user ([9b5c644](https://github.com/cevi/conveniat-webpage/commit/9b5c644be4f25387cfcb2649e0321dc9c8ae7fb5))
+* **chat:** a send or a new chat no longer empties an unloaded chat list ([5be2b8b](https://github.com/cevi/conveniat-webpage/commit/5be2b8b881cfe68352c5549e20b84f87fc61a5be))
+* **chat:** a send or a new chat no longer empties an unloaded chat list ([c625566](https://github.com/cevi/conveniat-webpage/commit/c6255666f3a1b19077040243843f5fc5308100ed)), closes [#2184](https://github.com/cevi/conveniat-webpage/issues/2184)
+* **chat:** an edited message refreshes in the open thread and the quote ([cb3ad35](https://github.com/cevi/conveniat-webpage/commit/cb3ad3522a45295ed0e167574518596263d21f56))
+* **chat:** an edited message refreshes in the open thread and the quote ([bc92999](https://github.com/cevi/conveniat-webpage/commit/bc92999e480412c32bddb2691eb0862182e4aef6)), closes [#1563](https://github.com/cevi/conveniat-webpage/issues/1563)
+* **chat:** German and English wording of QR-Code, owners and one more member ([256ae31](https://github.com/cevi/conveniat-webpage/commit/256ae31b7c7e17d72a5eac0aa3316aee36a69bc2))
+* **chat:** German and English wording of QR-Code, owners and one more member ([50d8e33](https://github.com/cevi/conveniat-webpage/commit/50d8e33623d6e4579dc69fa8bf0f3b10e2d68c0f))
+* **chat:** reaction cap, leave and remove hold under double taps ([c07b0cc](https://github.com/cevi/conveniat-webpage/commit/c07b0cc0c61888b3d71dce85b99053f8357a9c1f))
+* **chat:** reaction cap, leave and remove hold under double taps ([49cfd03](https://github.com/cevi/conveniat-webpage/commit/49cfd039522ea072eae5312c3c0b03f60beb8acb)), closes [#2173](https://github.com/cevi/conveniat-webpage/issues/2173)
+* **forum:** post stays beside the side rail on desktops ([7a42447](https://github.com/cevi/conveniat-webpage/commit/7a42447f891272b1cac3a4c8be5d509051b67d30))
+* **forum:** post stays beside the side rail on desktops ([ec8c49b](https://github.com/cevi/conveniat-webpage/commit/ec8c49b60c5b7d8f7074880c91d8227d4a5f1168))
+* **map:** compass clear of the forum flag, second tap turns back to the camp's orientation ([bc34c2b](https://github.com/cevi/conveniat-webpage/commit/bc34c2bff80053263a0f40b0815bd8744fc8e8d0))
+* **map:** compass no longer hides under the forum flag and turns back to the camp's orientation ([a2c1514](https://github.com/cevi/conveniat-webpage/commit/a2c1514c54f51292c8ee8f17ede297edd1dbf077))
+* **schedule:** keep the session check out of the programme's browser bundle ([3d55c04](https://github.com/cevi/conveniat-webpage/commit/3d55c04415ebb609e90e437c3d8d7d601d93c4c0))
+* **story:** address review: pictures after a deleted figure, refresh, empty board, Jetzt ([3a0e286](https://github.com/cevi/conveniat-webpage/commit/3a0e286562fd2e98aee8a503729905580074c8df))
+* **story:** let the story team link blocks and places and stay on the board ([eff03c5](https://github.com/cevi/conveniat-webpage/commit/eff03c584f0cb1a2a9eef6014e409d9be823d58a))
+* **story:** name story pictures and seeded Rollenspiel blocks in pickers ([153c038](https://github.com/cevi/conveniat-webpage/commit/153c038fda7435ea2f3dea82a15ae8946fc10fce))
+* **story:** open events, figures and challenges as full screens like a block ([3a723b4](https://github.com/cevi/conveniat-webpage/commit/3a723b445b8e0cb9eee68c33632519c77ccf26df))
+* **ui:** balance the line breaks of short notices and hints ([181733c](https://github.com/cevi/conveniat-webpage/commit/181733c4bf06e1771f3ae6be0b51c8982257787a))
+* **ui:** balance the line breaks of short notices and hints ([dfec8c7](https://github.com/cevi/conveniat-webpage/commit/dfec8c7fc0e62e9f60bc806426a56a27b16e027c))
+* **wristbands:** show the cancel button of the no-NFC notice as a button ([62d12fd](https://github.com/cevi/conveniat-webpage/commit/62d12fda355d71ec512fe42947020c5e41987fd8))
+* **wristbands:** show the cancel button of the no-NFC notice as a button ([6d7c1ae](https://github.com/cevi/conveniat-webpage/commit/6d7c1aeb7236202e6f94ecc34c93e9e609679428))
+
 ## [1.53.2](https://github.com/cevi/conveniat-webpage/compare/v1.53.1...v1.53.2) (2026-11-07)
 
 
