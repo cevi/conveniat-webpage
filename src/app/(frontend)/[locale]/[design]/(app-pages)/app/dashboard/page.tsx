@@ -5,6 +5,7 @@ import { DashboardNow } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app
 import { DashboardWelcomeContent } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-welcome-content';
 import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
 import { environmentVariables } from '@/config/environment-variables';
+import { StoryHighlightsCard } from '@/features/story/components/story-highlights-card';
 import type { Locale } from '@/types/types';
 import type React from 'react';
 import { Suspense } from 'react';
@@ -36,6 +37,7 @@ const Dashboard: React.FC<{
           locale={locale}
           materialEnabled={environmentVariables.FEATURE_ENABLE_MATERIAL_MANAGEMENT}
           wristbandsEnabled={environmentVariables.FEATURE_ENABLE_NFC_WRISTBANDS}
+          storyEnabled={environmentVariables.FEATURE_ENABLE_STORY}
           supportEmail={environmentVariables.APP_SUPPORT_EMAIL}
         >
           {/* Welcome content blocks can only be rendered on the server */}
@@ -46,6 +48,8 @@ const Dashboard: React.FC<{
           </SafeErrorBoundary>
 
           <DashboardNow locale={locale} />
+
+          {environmentVariables.FEATURE_ENABLE_STORY && <StoryHighlightsCard locale={locale} />}
         </DashboardLandingSection>
       </DashboardContentErrorBoundary>
     </article>

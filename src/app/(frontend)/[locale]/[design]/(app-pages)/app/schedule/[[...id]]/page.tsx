@@ -48,7 +48,7 @@ const SchedulePage: React.FC = () => {
           place survive the visit, the way Next.js keeps a page the user left */}
       <Activity mode={isListHidden ? 'hidden' : 'visible'}>
         {/* the width is where the block's pane starts, see ScheduleDetailView */}
-        <div className="xl:border-line xl:min-h-[calc(100dvh-var(--app-content-top)-var(--app-tab-bar-height))] xl:w-[400px] xl:border-r">
+        <div className="xl:border-line xl:min-h-app-content xl:w-[400px] xl:border-r">
           <ScheduleComponent
             openId={hasId ? scheduleId : undefined}
             // a phone shows the list alone while no block is open

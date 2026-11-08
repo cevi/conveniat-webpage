@@ -48,6 +48,20 @@ const defaultNotificationTitle: StaticTranslationString = {
   fr: 'Nouveau message',
 };
 
+/** What the native shell renders, see `NativePushShowNotificationRequest` in cevi/app-core. */
+export interface NativeShowNotificationRequest {
+  title: string;
+  body: string;
+  url: string;
+  chatId?: string;
+  messageId?: string;
+  notificationType?: 'emergency';
+  /** Replaces what is shown under the same tag, and is what the page closes it by. */
+  tag?: string;
+  /** One more message of the conversation under `tag`; iOS groups them, Android replaces. */
+  stack?: boolean;
+}
+
 export interface ForegroundNotification {
   /** Chat the notification belongs to, when it is a chat message. */
   chatId?: string | undefined;
@@ -63,6 +77,14 @@ export interface ForegroundNotification {
    * {@link NotificationType}.
    */
   notificationType?: NotificationType | undefined;
+  /**
+   * The tag the notification is shown under, the same one the server puts on the push, so
+   * the native shell replaces and closes it like the one the OS renders in the background.
+   * See `notificationGroupingOf`.
+   */
+  tag?: string | undefined;
+  /** One more message of the conversation under {@link tag}. */
+  stack?: boolean | undefined;
 }
 
 const notifiedKeys = new Set<string>();
@@ -137,7 +159,7 @@ const requestNativeSystemNotification = (notification: ForegroundNotification): 
   if (typeof showNotification !== 'function') return;
 
   try {
-    (showNotification as (request: Record<string, string>) => void)({
+    (showNotification as (request: NativeShowNotificationRequest) => void)({
       title: notification.title,
       body: notification.body,
       url: notification.targetPath,
@@ -146,6 +168,8 @@ const requestNativeSystemNotification = (notification: ForegroundNotification): 
       // The shell reads this to pick the emergency channel; anything other than
       // `emergency` (including omitting it) means the regular chat channel.
       ...(notification.notificationType === 'emergency' && { notificationType: 'emergency' }),
+      ...(notification.tag !== undefined && { tag: notification.tag }),
+      ...(notification.tag !== undefined && notification.stack === true && { stack: true }),
     });
   } catch (error: unknown) {
     console.warn('[ForegroundNotification] native showNotification failed:', error);

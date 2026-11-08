@@ -213,7 +213,7 @@ const prisma = {
     },
     count: ({ where }: { where: { userId: string } }): Promise<number> =>
       Promise.resolve(reactions.filter((r) => r.userId === where.userId).length),
-    createMany: record('messageReaction.createMany'),
+    create: record('messageReaction.create'),
     deleteMany: record('messageReaction.deleteMany'),
   },
 };

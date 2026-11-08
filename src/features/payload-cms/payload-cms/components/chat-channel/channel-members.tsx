@@ -20,9 +20,9 @@ const countLabel = (count: number): StaticTranslationString => ({
   fr: `${String(count)} ${count === 1 ? 'personne' : 'personnes'}`,
 });
 const moreLabel = (count: number): StaticTranslationString => ({
-  de: `… und ${String(count)} weitere`,
+  de: `… und ${String(count)} ${count === 1 ? 'weitere Person' : 'weitere'}`,
   en: `… and ${String(count)} more`,
-  fr: `… et ${String(count)} autres`,
+  fr: `… et ${String(count)} ${count === 1 ? 'autre' : 'autres'}`,
 });
 const explanation: StaticTranslationString = {
   de: 'Wer zur Zielgruppe gehört und sich noch nie in der App angemeldet hat, fehlt hier und kommt bei der ersten Anmeldung dazu.',

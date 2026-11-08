@@ -1,9 +1,11 @@
 'use client';
 
+import { Button } from '@/components/ui/buttons/button';
 import { DateCarousel } from '@/features/schedule/components/date-carousel';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import React from 'react';
 
 const nextDayLabel: StaticTranslationString = {
@@ -26,8 +28,19 @@ interface DateCarouselViewWrapperProperties {
   children: React.ReactNode;
 }
 
-const dayLinkClassName =
-  'flex h-13 w-full cursor-pointer items-center gap-1.5 rounded-[14px] border border-line bg-white px-4 text-left text-[15px] text-green-700 transition-colors hover:border-rail';
+const swipeHint: StaticTranslationString = {
+  en: 'or swipe sideways',
+  de: 'oder seitlich wischen',
+  fr: 'ou balayer sur le côté',
+};
+
+const dayPillClassName = 'rounded-full [&_svg]:size-5';
+
+const formatWeekday = (date: Date, locale: Locale): string =>
+  date.toLocaleDateString(locale, { weekday: 'long' });
+
+const formatFullDay = (date: Date, locale: Locale): string =>
+  date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' });
 
 const slideVariants = {
   enter: (direction_: number): { x: number; opacity: number } => ({
@@ -109,48 +122,43 @@ export const DateCarouselViewWrapper: React.FC<DateCarouselViewWrapperProperties
             <div className="space-y-4">
               {children}
 
-              {/* Navigation Links */}
+              {/* the neighbouring days as a pair of pills: the weekday is enough to say which
+                  one, the full date goes to the screen reader */}
               {(previousDay ?? nextDate) && (
-                <div className="flex flex-col space-y-3 pt-2">
-                  {/* Prev Day Link */}
-                  {previousDay && (
-                    <button
-                      type="button"
-                      className={dayLinkClassName}
-                      onClick={() => onDateSelect(previousDay)}
-                    >
-                      <ArrowLeft
-                        className="text-conveniat-green h-5 w-5 shrink-0"
-                        aria-hidden="true"
-                      />
-                      <span>{previousDayLabel[locale]}</span>
-                      <span className="font-semibold text-green-900">
-                        {previousDay.toLocaleDateString(locale, {
-                          weekday: 'long',
-                          day: 'numeric',
-                        })}
-                      </span>
-                    </button>
-                  )}
-
-                  {/* Next Day Link */}
-                  {nextDate && (
-                    <button
-                      type="button"
-                      className={dayLinkClassName}
-                      onClick={() => onDateSelect(nextDate)}
-                    >
-                      <span>{nextDayLabel[locale]}</span>
-                      <span className="font-semibold text-green-900">
-                        {nextDate.toLocaleDateString(locale, { weekday: 'long', day: 'numeric' })}
-                      </span>
-                      <ArrowRight
-                        className="text-conveniat-green ml-auto h-5 w-5 shrink-0"
-                        aria-hidden="true"
-                      />
-                    </button>
-                  )}
-                </div>
+                <nav className="flex flex-col items-center gap-2 pt-4">
+                  <div className="flex justify-center gap-2.5">
+                    {previousDay && (
+                      <Button
+                        type="button"
+                        variant="outlined"
+                        size="touch"
+                        className={cn(dayPillClassName, 'pr-4 pl-2.5')}
+                        aria-label={`${previousDayLabel[locale]}: ${formatFullDay(previousDay, locale)}`}
+                        onClick={() => onDateSelect(previousDay)}
+                      >
+                        <ChevronLeft aria-hidden="true" />
+                        {formatWeekday(previousDay, locale)}
+                      </Button>
+                    )}
+                    {nextDate && (
+                      <Button
+                        type="button"
+                        variant="outlined"
+                        size="touch"
+                        className={cn(dayPillClassName, 'pr-2.5 pl-4')}
+                        aria-label={`${nextDayLabel[locale]}: ${formatFullDay(nextDate, locale)}`}
+                        onClick={() => onDateSelect(nextDate)}
+                      >
+                        {formatWeekday(nextDate, locale)}
+                        <ChevronRight aria-hidden="true" />
+                      </Button>
+                    )}
+                  </div>
+                  {/* a mouse drags the day as well, but nobody calls that a swipe */}
+                  <p className="hidden text-xs text-green-500 pointer-coarse:block">
+                    {swipeHint[locale]}
+                  </p>
+                </nav>
               )}
             </div>
           </motion.div>

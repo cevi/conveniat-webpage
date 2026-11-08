@@ -12,7 +12,7 @@ const CAMP_DAYS = 6; // Monday to Saturday
  * Helper to create a Lexical RichText object from plain text.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const createRichText = (text: string): { root: any } => ({
+export const createRichText = (text: string): { root: any } => ({
   root: {
     type: 'root',
     children: [

@@ -267,9 +267,11 @@ export const MapLibreRenderer = ({
         campMapAnnotationPolygons={filteredAnnotationPolygons}
         ceviLogoMarkers={ceviLogoMarkers}
         // the search row brings its own locate button
-        mapControlOptions={
-          enableSearch ? { ...mapControlOptions, showGeolocate: false } : mapControlOptions
-        }
+        mapControlOptions={{
+          homeBearing: initialMapPose.bearing ?? 0,
+          ...mapControlOptions,
+          ...(enableSearch && { showGeolocate: false }),
+        }}
         disableFlyTo={disableFlyTo}
       />
     </MapContextProvider>

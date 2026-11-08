@@ -113,6 +113,17 @@ export async function sendFcmNotification(
        * `emergency` routes the push to the siren channel. See {@link NotificationType}.
        */
       notificationType?: NotificationType;
+      /**
+       * The notification's tag, as on the web: on Android a push under a tag replaces the
+       * notification already shown under it, and the shell closes notifications by tag.
+       */
+      tag?: string;
+      /**
+       * `'true'` when the push is one more message of the conversation under `tag`. Android
+       * keeps one notification per conversation either way; iOS shows one per message and
+       * groups them by the tag.
+       */
+      stack?: 'true';
       [key: string]: string | undefined;
     };
   },
@@ -141,6 +152,14 @@ export async function sendFcmNotification(
     // some devices and not on others.
     const isEmergency = payload.data.notificationType === 'emergency';
     const timeToLiveSeconds = payload.timeToLiveSeconds;
+    // The shell reads the tag from `android.data` and from the root of the APNs payload, the
+    // `userInfo` of what iOS rendered, to find and close it later. `apns-collapse-id` stays the push log id: it may be 64 bytes at most, which an
+    // emergency tag with its two ids exceeds, and a stacked chat must not collapse anyway.
+    const tag = payload.data.tag === '' ? undefined : payload.data.tag;
+    const grouping = {
+      ...(tag !== undefined && { tag }),
+      ...(tag !== undefined && payload.data.stack === 'true' && { stack: 'true' }),
+    };
     await adminInstance.messaging().send({
       token,
       notification: {
@@ -161,6 +180,7 @@ export async function sendFcmNotification(
           ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
         }),
         ...(isEmergency && { notificationType: 'emergency' }),
+        ...grouping,
       },
       apns: {
         headers: {
@@ -183,6 +203,8 @@ export async function sendFcmNotification(
             // foreground path and lets the alert break through Focus modes.
             sound: isEmergency ? IOS_EMERGENCY_SOUND : 'default',
             ...(isEmergency && { 'interruption-level': 'time-sensitive' }),
+            // Groups the notifications of one tag, the messages of a chat, into one stack.
+            ...(tag !== undefined && { 'thread-id': tag }),
           },
           notificationId,
           ...(payload.data.url !== undefined && { url: payload.data.url }),
@@ -192,6 +214,7 @@ export async function sendFcmNotification(
             ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
           }),
           ...(isEmergency && { notificationType: 'emergency' }),
+          ...(tag !== undefined && { tag }),
           data: {
             title: payload.title,
             body: payload.body,
@@ -222,6 +245,9 @@ export async function sendFcmNotification(
           channelId: isEmergency
             ? ANDROID_EMERGENCY_NOTIFICATION_CHANNEL_ID
             : ANDROID_NOTIFICATION_CHANNEL_ID,
+          // Firebase posts the notification under this tag, so the next push of the same chat
+          // replaces it and the shell can close it once the chat is read.
+          ...(tag !== undefined && { tag }),
         },
         data: {
           title: payload.title,
@@ -237,6 +263,8 @@ export async function sendFcmNotification(
             ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
           }),
           ...(isEmergency && { notificationType: 'emergency' }),
+          // `android.data` replaces the message's `data` on Android, so the tag goes here too.
+          ...grouping,
         },
       },
     });

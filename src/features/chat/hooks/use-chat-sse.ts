@@ -467,6 +467,11 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
             }),
           )
           .catch(console.error);
+        // An open thread's parent and the quoted-message preview read the same message
+        // from `getMessage`, which no list refetch reaches.
+        queryClient
+          .invalidateQueries(trpc.chat.getMessage.queryFilter({ messageId: message.id }))
+          .catch(console.error);
       }
     };
 

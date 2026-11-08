@@ -16,7 +16,7 @@ import { Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type React from 'react';
 const localizedRoleNames: Record<ChatMembershipPermission, StaticTranslationString> = {
-  [ChatMembershipPermission.OWNER]: { en: 'Owner', de: 'Besitzer', fr: 'Propriétaire' },
+  [ChatMembershipPermission.OWNER]: { en: 'Owner', de: 'Besitzer/-in', fr: 'Propriétaire' },
   [ChatMembershipPermission.ADMIN]: { en: 'Admin', de: 'Admin', fr: 'Admin' },
   [ChatMembershipPermission.MEMBER]: { en: 'Member', de: 'Mitglied', fr: 'Membre' },
   [ChatMembershipPermission.GUEST]: { en: 'Guest', de: 'Gast', fr: 'Invité' },
@@ -50,7 +50,7 @@ const getCannotDeleteExplanation = (role: ChatMembershipPermission, locale: Loca
   const roleName = localizedRoleNames[role][locale];
   const explanations: StaticTranslationString = {
     en: `Only admins and owners can delete this chat. Your role: ${roleName}.`,
-    de: `Nur Admins und Besitzer können diesen Chat löschen. Deine Rolle: ${roleName}.`,
+    de: `Nur Admins und Besitzer/-innen können diesen Chat löschen. Deine Rolle: ${roleName}.`,
     fr: `Seuls les admins et propriétaires peuvent supprimer cette discussion. Votre rôle: ${roleName}.`,
   };
   return explanations[locale];

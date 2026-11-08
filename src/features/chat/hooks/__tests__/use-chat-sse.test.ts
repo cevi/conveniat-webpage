@@ -7,8 +7,8 @@ import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import type { TestTrpc } from '@/trpc/test-trpc';
 import { createTestTrpc } from '@/trpc/test-trpc';
 import type { QueryKey } from '@tanstack/react-query';
-import { hashKey } from '@tanstack/react-query';
-import { renderHook } from '@testing-library/react';
+import { hashKey, useQuery } from '@tanstack/react-query';
+import { renderHook, waitFor } from '@testing-library/react';
 
 jest.mock('superjson', () => ({
   parse: (data: unknown): unknown => JSON.parse(data as string),
@@ -227,6 +227,65 @@ describe('useChatSSE', () => {
           messagePreview: expect.objectContaining({ de: 'Nachricht gelöscht' }) as unknown,
         }) as unknown,
       }),
+    ]);
+
+    unmount();
+    jest.advanceTimersByTime(1);
+  });
+
+  it('shows the edit in an open thread or quote, and refetches no other message', async () => {
+    const chatId = '550e8400-e29b-41d4-a716-446655440000';
+    let editedText = 'Treffpunkt beim Hof Züri 11';
+    testTrpc = createTestTrpc({
+      'chat.getMessage': (input) => {
+        const { messageId } = input as { messageId: string };
+        return { id: messageId, messagePayload: { text: editedText } };
+      },
+    });
+    const { trpc, queryClient, calls, wrapper } = testTrpc;
+    queryClient.setQueryData(trpc.chat.user.queryKey({}), 'user-uuid-123');
+    for (const messageId of ['message-1', 'message-2']) {
+      queryClient.setQueryData(trpc.chat.getMessage.queryKey({ messageId }), {
+        id: messageId,
+        messagePayload: { text: editedText },
+      } as never);
+    }
+    // what a thread header and a quote preview read
+    const shown = (messageId: string): { current: unknown } =>
+      renderHook(() => useQuery(trpc.chat.getMessage.queryOptions({ messageId })), { wrapper })
+        .result;
+    const edited = shown('message-1');
+    const other = shown('message-2');
+    const { unmount } = renderSSE([chatId]);
+    jest.advanceTimersByTime(1);
+
+    editedText = 'Treffpunkt beim Hof Cevi Uster';
+    streamListener('message')?.({
+      data: JSON.stringify({
+        type: 'message_updated',
+        chatId,
+        senderId: 'someone-else',
+        message: {
+          id: 'message-1',
+          createdAt: '2027-07-24T09:00:00Z',
+          messagePayload: { text: editedText },
+          senderId: 'someone-else',
+          status: 'STORED',
+          type: 'TEXT_MSG',
+        },
+      }),
+    });
+
+    await waitFor(() =>
+      expect(edited.current).toMatchObject({
+        data: { messagePayload: { text: 'Treffpunkt beim Hof Cevi Uster' } },
+      }),
+    );
+    expect(other.current).toMatchObject({
+      data: { messagePayload: { text: 'Treffpunkt beim Hof Züri 11' } },
+    });
+    expect(calls.filter(({ path }) => path === 'chat.getMessage')).toEqual([
+      { path: 'chat.getMessage', input: { messageId: 'message-1' } },
     ]);
 
     unmount();

@@ -35,6 +35,10 @@ import { UserSubmittedImagesCollection } from '@/features/payload-cms/payload-cm
 import { asInstrumentalCollection } from '@/features/payload-cms/payload-cms/utils/instrumentalized-collection';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import { PresenceLogCollection } from '@/features/presence/payload-cms/collections/presence-log-collection';
+import { StoryChallengesCollection } from '@/features/story/payload-cms/story-challenges-collection';
+import { StoryEventsCollection } from '@/features/story/payload-cms/story-events-collection';
+import { StoryFiguresCollection } from '@/features/story/payload-cms/story-figures-collection';
+import { StoryImagesCollection } from '@/features/story/payload-cms/story-images-collection';
 import { VisitDayBillEventsCollection } from '@/features/visit-day/billing/visit-day-bill-events';
 import { visitDayBillKind } from '@/features/visit-day/billing/visit-day-bill-kind';
 import { VisitDayBillsCollection } from '@/features/visit-day/billing/visit-day-bills-collection';
@@ -72,6 +76,10 @@ const rawCollectionsConfig: CollectionConfig[] = [
   CampCategoryCollection,
   CampScheduleEntryCollection,
   HelperShiftsCollection,
+  StoryEventsCollection,
+  StoryFiguresCollection,
+  StoryChallengesCollection,
+  StoryImagesCollection,
   PiketScheduleCollection,
   PushNotificationSubscriptions,
 

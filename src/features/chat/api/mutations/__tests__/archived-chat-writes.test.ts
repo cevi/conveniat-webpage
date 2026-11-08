@@ -179,7 +179,7 @@ const mockPrisma = {
   messageReaction: {
     findUnique: (): Promise<null> => Promise.resolve(null),
     count: (): Promise<number> => Promise.resolve(0),
-    createMany: record('messageReaction.createMany'),
+    create: record('messageReaction.create'),
     deleteMany: record('messageReaction.deleteMany'),
   },
 };

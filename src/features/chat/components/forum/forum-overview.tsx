@@ -2,6 +2,7 @@
 import { SetHeaderActions } from '@/components/header/header-actions';
 import { OfflineBanner } from '@/components/offline-banner';
 import { AppSearchBar } from '@/components/ui/app-search-bar';
+import { Button } from '@/components/ui/buttons/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SectionLabel } from '@/components/ui/section-label';
@@ -121,6 +122,43 @@ const ZentraleLink: React.FC<{
 };
 
 /**
+ * What the feed says when it lists nothing. A filter that matches nothing says so and offers the
+ * way back; below pinned posts one quiet line is enough, since the page is not empty; only an
+ * empty forum gets the full empty state.
+ */
+const FeedEmpty: React.FC<{
+  filtered: boolean;
+  besidesPinned: boolean;
+  onResetFilters: () => void;
+  locale: Locale;
+}> = ({ filtered, besidesPinned, onResetFilters, locale }) => {
+  if (filtered) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-8 text-center">
+        <p className="text-[15px] text-green-700">{forumText.noFilterMatch[locale]}</p>
+        <Button variant="outlined" size="touch" onClick={onResetFilters}>
+          {forumText.resetFiltersAction[locale]}
+        </Button>
+      </div>
+    );
+  }
+  if (besidesPinned) {
+    return (
+      <p className="py-3 text-center text-[14px] text-green-700">
+        {forumText.emptyBesidesPinnedTitle[locale]}
+      </p>
+    );
+  }
+  return (
+    <EmptyState
+      icon={Megaphone}
+      title={forumText.emptyTitle[locale]}
+      description={forumText.emptyHint[locale]}
+    />
+  );
+};
+
+/**
  * The forum: the posts of every topic the user belongs to, newest first, the Kernteam's pinned
  * posts on top. Searching shows what already exists before anyone writes it a second time.
  */
@@ -161,7 +199,11 @@ export const ForumOverview: React.FC = () => {
     router.replace(id === undefined ? '/app/forum' : `/app/forum?topic=${id}`, { scroll: false });
   };
   const posts = list.data?.pages.flatMap((page) => page.items) ?? [];
-  const pinnedIds = new Set((pinned.data ?? []).map((post) => post.id));
+  const filtered = isFiltered(filters);
+  // A filter asks for its posts, and the pinned ones would only push them out of sight: they stand
+  // on top of the unfiltered feed alone, and a filtered feed lists them where they match.
+  const pinnedPosts = filtered ? [] : (pinned.data ?? []);
+  const pinnedIds = new Set(pinnedPosts.map((post) => post.id));
   // the pinned posts stand on top already, so the feed below leaves them out
   const feedPosts = posts.filter((post) => !pinnedIds.has(post.id));
 
@@ -203,14 +245,14 @@ export const ForumOverview: React.FC = () => {
           type="button"
           onClick={() => setFiltersOpen(true)}
           aria-label={forumText.filterTitle[locale]}
-          aria-pressed={isFiltered(filters)}
+          aria-pressed={filtered}
           className={cn(
             'focus-visible:focus-surface hover:bg-quiet relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full',
-            isFiltered(filters) ? 'text-conveniat-green' : 'text-green-700',
+            filtered ? 'text-conveniat-green' : 'text-green-700',
           )}
         >
           <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
-          {isFiltered(filters) && (
+          {filtered && (
             <span className="bg-conveniat-green absolute top-2.5 right-2.5 h-2 w-2 rounded-full" />
           )}
         </button>
@@ -253,9 +295,24 @@ export const ForumOverview: React.FC = () => {
                 <Loader2 className="h-5 w-5 animate-spin text-green-700" aria-hidden="true" />
               </li>
             )}
+            {/* the search is there to find a post before writing it; finding none leads on to
+                writing it, with what was searched for as its title */}
             {results.data?.length === 0 && (
-              <li className="px-4 py-3 text-[14px] text-green-700">
-                {forumText.emptyTitle[locale]}
+              <li className="flex flex-col items-start gap-3 px-4 py-4">
+                <p className="text-[15px] text-green-800">
+                  {forumText.searchNoResult[locale].replace('{query}', search.trim())}
+                </p>
+                <Button asChild variant="outlined" size="touch">
+                  <Link
+                    href={`/app/forum/new?${new URLSearchParams({
+                      title: search.trim(),
+                      ...(topicId === undefined ? {} : { topic: topicId }),
+                    }).toString()}`}
+                  >
+                    <Plus aria-hidden="true" />
+                    {forumText.writeAsNewPost[locale]}
+                  </Link>
+                </Button>
               </li>
             )}
             {results.data?.map((post) => (
@@ -270,9 +327,9 @@ export const ForumOverview: React.FC = () => {
           </Card>
         ) : (
           <>
-            {(pinned.data?.length ?? 0) > 0 && (
+            {pinnedPosts.length > 0 && (
               <Card as="ul" divided className="border-tint-line bg-tint mb-1">
-                {pinned.data?.map((post) => (
+                {pinnedPosts.map((post) => (
                   <ForumPostRow
                     key={post.id}
                     post={post}
@@ -286,7 +343,7 @@ export const ForumOverview: React.FC = () => {
 
             <section className="flex flex-col gap-2">
               {/* the unfiltered feed needs no title: the pin marks what stands on top */}
-              {isFiltered(filters) && (
+              {filtered && (
                 <div className="flex items-center justify-between">
                   <SectionLabel>{describeFilters(filters, locale)}</SectionLabel>
                   <button
@@ -308,17 +365,15 @@ export const ForumOverview: React.FC = () => {
                 <EmptyState icon={MessageCircleQuestion} title={forumText.loadFailed[locale]} />
               )}
               {!list.isLoading &&
+                !list.isError &&
                 !list.hasNextPage &&
                 feedPosts.length === 0 &&
                 (topics.data?.length ?? 0) > 0 && (
-                  <EmptyState
-                    icon={Megaphone}
-                    title={
-                      pinnedIds.size > 0
-                        ? forumText.emptyBesidesPinnedTitle[locale]
-                        : forumText.emptyTitle[locale]
-                    }
-                    description={forumText.emptyHint[locale]}
+                  <FeedEmpty
+                    filtered={filtered}
+                    besidesPinned={pinnedIds.size > 0}
+                    onResetFilters={() => setFilters(DEFAULT_FORUM_FILTERS)}
+                    locale={locale}
                   />
                 )}
               {feedPosts.length > 0 && (
@@ -330,6 +385,7 @@ export const ForumOverview: React.FC = () => {
                       locale={locale}
                       showTopic={topicId === undefined}
                       now={now}
+                      compact
                     />
                   ))}
                 </Card>

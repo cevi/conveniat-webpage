@@ -26,7 +26,12 @@ export const ForumPostRow: React.FC<{
   /** the topic's name, for a list of several topics */
   showTopic: boolean;
   now: Date;
-}> = ({ post, locale, showTopic, now }) => (
+  /**
+   * for the feed below the pinned posts: title and counts without the text, the place as a pin
+   * only, and no pill for an open post, the state nearly every post in the feed is in
+   */
+  compact?: boolean;
+}> = ({ post, locale, showTopic, now, compact = false }) => (
   <li>
     <Link
       href={`/app/forum/${post.id}`}
@@ -45,7 +50,9 @@ export const ForumPostRow: React.FC<{
             {forumText.pendingPill[locale]}
           </span>
         ) : (
-          <ForumStatusPill status={post.status} locale={locale} />
+          (!compact || post.status !== 'OPEN') && (
+            <ForumStatusPill status={post.status} locale={locale} />
+          )
         )}
         {post.private === true && (
           <span className="bg-chip inline-flex h-[22px] items-center gap-1 rounded-md px-1.5 text-[12px] font-semibold text-green-800">
@@ -55,9 +62,14 @@ export const ForumPostRow: React.FC<{
         )}
         {post.byTopicAdmin && <KernteamBadge locale={locale} label={post.kernteamLabel} />}
         {post.location !== null && (
-          <span className="bg-tint inline-flex items-center gap-1 rounded-md px-1.5 py-px text-green-800">
+          <span
+            className={cn(
+              'bg-tint inline-flex items-center gap-1 rounded-md py-px text-green-800',
+              compact ? 'px-1' : 'px-1.5',
+            )}
+          >
             <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-            {forumText.onMap[locale]}
+            <span className={cn(compact && 'sr-only')}>{forumText.onMap[locale]}</span>
           </span>
         )}
         {showTopic && <span className="truncate">{post.topicName}</span>}
@@ -65,7 +77,7 @@ export const ForumPostRow: React.FC<{
       <span className="font-heading text-heading text-[15px] leading-snug font-bold">
         {post.title}
       </span>
-      {post.excerpt !== '' && (
+      {!compact && post.excerpt !== '' && (
         <span className="line-clamp-2 text-[14px] leading-[1.4] text-green-700">
           {post.excerpt}
         </span>
@@ -88,8 +100,12 @@ export const ForumPostRow: React.FC<{
             {post.imageCount}
           </span>
         )}
-        <span className="ml-auto truncate font-normal text-green-600">
-          {post.author?.name ?? ''} · {relativeTimeText(new Date(post.createdAt), locale, now)}
+        {/* a long name gives way, the time does not: it tells how fresh the post is */}
+        <span className="ml-auto flex min-w-0 gap-1 font-normal text-green-600">
+          <span className="truncate">{post.author?.name ?? ''}</span>
+          <span className="shrink-0">
+            · {relativeTimeText(new Date(post.createdAt), locale, now)}
+          </span>
         </span>
       </span>
     </Link>

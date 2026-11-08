@@ -239,6 +239,17 @@ export const FORUM_ZENTRALE_ROLES: Roles[] = [
  */
 export const CHAT_OVERSIGHT_ROLES: Roles[] = [Roles.FullAdmin];
 
+/**
+ * Who writes the story of the camp, its Ereignisse, Figuren and Challenges: the full admins, the
+ * web core team, and the program team, which the story team is part of. The translation team
+ * translates the story like every other content, but does not create or delete it.
+ */
+export const STORY_ROLES: Roles[] = [Roles.FullAdmin, Roles.WebCoreTeam, Roles.ProgramTeam];
+
+/** Who creates and deletes story entries, see `STORY_ROLES`. */
+export const canWriteStory: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) =>
+  hasAccessToThis({ req, requiredRoles: STORY_ROLES });
+
 /** Any editor, see `EDITOR_ROLES`. */
 export const isEditor: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) =>
   hasAccessToThis({ req, requiredRoles: EDITOR_ROLES });

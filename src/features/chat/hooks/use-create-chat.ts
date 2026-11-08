@@ -193,10 +193,10 @@ export const useCreateChat = (): {
         userChatPermission: ChatMembershipPermission.OWNER,
       };
 
-      queryClient.setQueryData(trpc.chat.chats.queryKey({}), (oldChats) => [
-        optimisticChat,
-        ...(oldChats ?? []),
-      ]);
+      // nothing cached: a list of only this chat would hide the others until it is stale
+      queryClient.setQueryData(trpc.chat.chats.queryKey({}), (oldChats) =>
+        oldChats === undefined ? oldChats : [optimisticChat, ...oldChats],
+      );
 
       // Seeded so that opening `/app/chat/<chatId>` right away renders the chat instead of
       // the "you need to be online" placeholder - the query for a chat the server does not

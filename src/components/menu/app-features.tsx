@@ -1,6 +1,7 @@
 import type { AppFeaturesVariant } from '@/components/menu/app-feature-menu-item';
 import { AppFeatureMenuItem } from '@/components/menu/app-feature-menu-item';
 import { appFeaturesTitle } from '@/components/menu/app-features-title';
+import { StoryMenuItems } from '@/components/menu/story-menu-items';
 import { WristbandsMenuItem } from '@/components/menu/wristbands-menu-item';
 import { environmentVariables } from '@/config/environment-variables';
 import { getAppFeatureFlagsCached } from '@/features/payload-cms/api/cached-globals';
@@ -168,6 +169,11 @@ export const AppFeatures: React.FC<{
           text={reservationsFeatureTranslation[locale]}
         />
       )}
+      <StoryMenuItems
+        variant={variant}
+        locale={locale}
+        enabled={environmentVariables.FEATURE_ENABLE_STORY}
+      />
       <WristbandsMenuItem
         variant={variant}
         locale={locale}

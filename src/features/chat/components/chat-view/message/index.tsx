@@ -450,7 +450,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   if (message.type === ('ALERT_QUESTION' as unknown as MessageType)) {
     return (
       <MessageFrame {...frameProperties}>
-        <AlertQuestionMessage message={message} isCurrentUser={isCurrentUser} />
+        <AlertQuestionMessage message={message} isCurrentUser={isCurrentUser} locale={locale} />
       </MessageFrame>
     );
   }
