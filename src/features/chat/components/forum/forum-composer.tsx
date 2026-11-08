@@ -24,7 +24,18 @@ import { isHeicFile } from '@/utils/image-file';
 import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { keepPreviousData } from '@tanstack/react-query';
-import { ArrowLeft, Camera, Loader2, Lock, MapPin, Search, ThumbsUp, Users, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  Camera,
+  ImageIcon,
+  Loader2,
+  Lock,
+  MapPin,
+  Search,
+  ThumbsUp,
+  Users,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useState } from 'react';
@@ -193,6 +204,8 @@ export const ForumComposer: React.FC = () => {
   const [removedLocation, setRemovedLocation] = useState<PickedLocation | undefined>();
   if (location !== undefined && removedLocation !== undefined) setRemovedLocation(undefined);
   const [images, setImages] = useState<PickedImage[]>([]);
+  // a HEIC outside Safari has no preview until it is converted on publishing
+  const [brokenPreviews, setBrokenPreviews] = useState<ReadonlySet<string>>(new Set());
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   // what the user chose on the toggle; until then the map's private link, or, for someone in no
@@ -530,8 +543,21 @@ export const ForumComposer: React.FC = () => {
           <ul className="grid grid-cols-4 gap-2">
             {images.map((image) => (
               <li key={image.preview} className="relative aspect-square overflow-hidden rounded-xl">
-                {/* eslint-disable-next-line @next/next/no-img-element -- a local preview blob */}
-                <img src={image.preview} alt="" className="h-full w-full object-cover" />
+                {brokenPreviews.has(image.preview) ? (
+                  <div className="bg-quiet flex h-full w-full items-center justify-center text-green-700">
+                    <ImageIcon className="h-7 w-7" aria-hidden="true" />
+                  </div>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element -- a local preview blob
+                  <img
+                    src={image.preview}
+                    alt=""
+                    onError={() =>
+                      setBrokenPreviews((previous) => new Set(previous).add(image.preview))
+                    }
+                    className="h-full w-full object-cover"
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() => setImages((previous) => previous.filter((item) => item !== image))}

@@ -131,6 +131,10 @@ describe('the composer', () => {
     fireEvent.change(screen.getByLabelText(/Foto/), { target: { files: [picked] } });
     fireEvent.click(screen.getByRole('button', { name: 'Veröffentlichen' }));
 
+    // the HEIC cannot be previewed here, as outside Safari, so its tile shows an icon instead
+    fireEvent.error(document.querySelector('img[src="blob:preview"]') as Element);
+    expect(document.querySelector('img[src="blob:preview"]')).toBeNull();
+
     await waitFor(() => expect(createPost).toHaveBeenCalled());
     expect(getUploadUrl.mock.calls[0]?.[0]).toMatchObject({
       chatId: 'topic',
@@ -138,6 +142,7 @@ describe('the composer', () => {
       contentLength: 1234,
     });
     expect(put.mock.calls[0]?.[1].body).toBe(preparedImage);
+    expect(put.mock.calls[0]?.[1].headers).toEqual({ 'Content-Type': 'image/jpeg' });
     expect(createPost.mock.calls[0]?.[0]).toMatchObject({
       images: ['chat-images/topic/photo.jpg'],
     });
