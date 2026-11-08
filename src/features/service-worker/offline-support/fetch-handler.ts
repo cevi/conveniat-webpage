@@ -571,6 +571,19 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     // console.log(`[SW] Cross-Origin request: ${url.origin}`);
   }
 
+  // A Flight answer comes from the server or from this worker's RSC cache, which checks its build,
+  // never from the browser's HTTP cache. Next.js sends prefetch answers with
+  // `s-maxage=900, stale-while-revalidate=…`; a browser ignores `s-maxage` and keeps the answer
+  // as stale-but-usable for up to a day. Its URL is the same in every build (`_rsc` hashes the
+  // router headers, not `x-deployment-id`, which `Vary` does not name either), so after a release
+  // the HTTP cache handed the previous build's prefetches to the new pages, decoding them ran that
+  // build's chunks, and Turbopack kept their module factories: "Module … was instantiated because
+  // it was required from module …, but the module factory is not available" (7 Nov 2026, v1.53.2).
+  // Upstream: vercel/next.js#99726.
+  if (isRsc && url.origin === self.location.origin) {
+    requestToHandle = new Request(requestToHandle, { cache: 'no-store' });
+  }
+
   try {
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
 
