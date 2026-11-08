@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.56.0](https://github.com/cevi/conveniat-webpage/compare/v1.55.0...v1.56.0) (2026-11-08)
+
+
+### Features
+
+* **forms:** helper job cards show the prerequisites ([307dbb2](https://github.com/cevi/conveniat-webpage/commit/307dbb287a163bcbc8fd43301facf4e088485133))
+* **forms:** helper job cards show the prerequisites, and the free spots are always current ([a5681a2](https://github.com/cevi/conveniat-webpage/commit/a5681a2ce67ccb44615dca546a559374aff38189))
+
 ## [1.55.0](https://github.com/cevi/conveniat-webpage/compare/v1.54.0...v1.55.0) (2026-11-08)
 
 
