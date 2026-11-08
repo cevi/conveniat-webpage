@@ -78,6 +78,13 @@ export type PushDevice =
 export interface PushMessage {
   title: string;
   body: string;
+  /**
+   * Who wrote the message of a chat push, through {@link composePushSenderName}. `body` starts
+   * with it; the Android app shows the message under its sender instead.
+   */
+  senderName?: string | undefined;
+  /** The chat push is about a direct chat between two people. */
+  directChat?: boolean | undefined;
   url?: string | undefined;
   /** Id of the underlying chat message, used by clients to de-duplicate push vs. SSE. */
   messageId?: string | undefined;
@@ -92,8 +99,9 @@ export interface PushMessage {
    * How the notification sits next to the ones already shown. `tag` replaces what is shown
    * under the same tag and is what the page closes notifications by. `stack` marks one more
    * message of the conversation under the tag: the service worker lists the newest pushes
-   * under it and alerts again (see `presentNotification` there), Android replaces the
-   * conversation's notification, and iOS adds one grouped under the tag.
+   * under it and alerts again (see `presentNotification` there), the Android app adds the
+   * message to the chat's conversation notification (an older build replaces it), and iOS
+   * adds one grouped under the tag.
    */
   tag?: string | undefined;
   stack?: boolean | undefined;
@@ -153,6 +161,36 @@ export const composePushText = (text: { title: string; body: string }): PushMess
   title: fitPushText(stripMarkdownFormatting(text.title), PUSH_TITLE_MAX_BYTES),
   body: fitPushText(stripMarkdownFormatting(text.body), PUSH_BODY_MAX_BYTES),
 });
+
+/** The sender's name as the device gets it, cut like the title. */
+export const composePushSenderName = (name: string | undefined): string | undefined => {
+  if (name === undefined || name.trim() === '') return undefined;
+  return fitPushText(stripMarkdownFormatting(name), PUSH_TITLE_MAX_BYTES);
+};
+
+/**
+ * The message of a chat push without the sender in front, which `sendNotification` put there
+ * for the platforms that show a single line. The whole body when it does not start with the
+ * sender, as after a cut.
+ */
+export const messageTextOf = (body: string, senderName?: string): string => {
+  const prefix = senderName === undefined ? undefined : `${senderName}: `;
+  return prefix !== undefined && body.startsWith(prefix) ? body.slice(prefix.length) : body;
+};
+
+/**
+ * The Android app draws a chat's notification itself, as one conversation that lists its
+ * messages. It says so when it registers, and then gets the messages of a chat as data
+ * only; every other push, and every device that did not say so, gets a notification the
+ * operating system draws.
+ */
+const rendersChatNotification = (device: PushDevice, message: PushMessage): boolean =>
+  message.stack === true &&
+  message.tag !== undefined &&
+  'platform' in device &&
+  device.platform === 'android' &&
+  'rendersChatNotifications' in device &&
+  device.rendersChatNotifications === true;
 
 /** `Retry-After` is either a number of seconds or an HTTP date. */
 export const parseRetryAfter = (value: unknown, now: Date = new Date()): number | undefined => {
@@ -244,6 +282,7 @@ async function sendNative(
   token: string,
   message: PushMessage,
   options: PushDeliveryOptions,
+  appRendersNotification: boolean,
 ): Promise<PushTransportResult> {
   const url = nativeUrlOf(message.url === '' ? undefined : message.url);
   const chatId = chatIdOfUrl(url);
@@ -257,6 +296,13 @@ async function sendNative(
     title: message.title,
     body: message.body,
     timeToLiveSeconds: options.timeToLiveSeconds,
+    ...(appRendersNotification && {
+      conversation: {
+        ...(message.senderName !== undefined && { senderName: message.senderName }),
+        text: messageTextOf(message.body, message.senderName),
+        isGroup: message.directChat !== true,
+      },
+    }),
     data: {
       ...(url !== undefined && { url, path: url, link: url }),
       ...(chatId !== undefined && { chatId }),
@@ -371,7 +417,7 @@ export async function sendPushToDevice(
           error: `Native push token is missing for platform: ${platform}`,
         };
       }
-      return await sendNative(token, message, options);
+      return await sendNative(token, message, options, rendersChatNotification(device, message));
     }
 
     const keys = 'keys' in device ? device.keys : undefined;

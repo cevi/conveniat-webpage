@@ -273,6 +273,8 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
         notifyRealtimeChatMessage({
           chatId: data.chatId,
           chatName: cachedChat?.name,
+          isGroupChat:
+            cachedChat?.chatType === undefined ? undefined : cachedChat.chatType !== 'ONE_TO_ONE',
           message,
           currentUserId: currentUser,
         });

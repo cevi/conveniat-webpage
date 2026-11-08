@@ -48,6 +48,14 @@ const defaultNotificationTitle: StaticTranslationString = {
   fr: 'Nouveau message',
 };
 
+/** One message of a chat, as the Android app lists it in the chat's notification. */
+export interface ConversationMessage {
+  senderName?: string | undefined;
+  text: string;
+  /** A group chat shows its title and every sender; a direct chat neither. Group if unknown. */
+  isGroup?: boolean | undefined;
+}
+
 /** What the native shell renders, see `NativePushShowNotificationRequest` in cevi/app-core. */
 export interface NativeShowNotificationRequest {
   title: string;
@@ -58,8 +66,15 @@ export interface NativeShowNotificationRequest {
   notificationType?: 'emergency';
   /** Replaces what is shown under the same tag, and is what the page closes it by. */
   tag?: string;
-  /** One more message of the conversation under `tag`; iOS groups them, Android replaces. */
+  /**
+   * One more message of the conversation under `tag`: iOS groups them, the Android app adds
+   * it to the chat's conversation notification.
+   */
   stack?: boolean;
+  /** The message alone and who wrote it, see {@link ForegroundNotification.conversation}. */
+  senderName?: string;
+  text?: string;
+  isGroup?: boolean;
 }
 
 export interface ForegroundNotification {
@@ -85,6 +100,11 @@ export interface ForegroundNotification {
   tag?: string | undefined;
   /** One more message of the conversation under {@link tag}. */
   stack?: boolean | undefined;
+  /**
+   * The message of a chat apart from its sender, for the Android app, which lists a chat's
+   * messages under their senders. `body` still has the sender in front, for everyone else.
+   */
+  conversation?: ConversationMessage | undefined;
 }
 
 const notifiedKeys = new Set<string>();
@@ -170,6 +190,15 @@ const requestNativeSystemNotification = (notification: ForegroundNotification): 
       ...(notification.notificationType === 'emergency' && { notificationType: 'emergency' }),
       ...(notification.tag !== undefined && { tag: notification.tag }),
       ...(notification.tag !== undefined && notification.stack === true && { stack: true }),
+      ...(notification.conversation !== undefined && {
+        text: notification.conversation.text,
+        ...(notification.conversation.senderName !== undefined && {
+          senderName: notification.conversation.senderName,
+        }),
+        ...(notification.conversation.isGroup !== undefined && {
+          isGroup: notification.conversation.isGroup,
+        }),
+      }),
     });
   } catch (error: unknown) {
     console.warn('[ForegroundNotification] native showNotification failed:', error);

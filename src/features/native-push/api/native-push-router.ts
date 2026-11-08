@@ -17,10 +17,15 @@ export const nativePushRouter = createTRPCRouter({
         token: z.string().min(1),
         platform: z.enum(['ios', 'android']),
         deviceId: z.string().optional(),
+        /** Sent by app builds that draw chat notifications themselves, see `push-transport`. */
+        rendersChatNotifications: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      logger.debug('Registering a device', { 'device.platform': input.platform });
+      logger.debug('Registering a device', {
+        'device.platform': input.platform,
+        'device.renders_chat_notifications': input.rendersChatNotifications === true,
+      });
 
       const payload = await getPayload({ config });
       const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
@@ -57,6 +62,9 @@ export const nativePushRouter = createTRPCRouter({
           token: input.token,
           user: payloadUser.id,
           deviceId: deviceId ?? null,
+          // Every registration states it anew, so a device that went back to an older build
+          // gets notifications the system draws again.
+          rendersChatNotifications: input.rendersChatNotifications === true,
           lastUsedAt: new Date().toISOString(),
         };
 
