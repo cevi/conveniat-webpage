@@ -2,6 +2,7 @@
 import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
 import { SetHideHeader } from '@/components/header/hide-header-context';
 import { Button } from '@/components/ui/buttons/button';
+import { floatingButtonClassName } from '@/components/ui/buttons/floating-button';
 import { ShareLinkButton } from '@/components/ui/buttons/share-link-button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { environmentVariables } from '@/config/environment-variables';
@@ -10,7 +11,6 @@ import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
 import { ScheduleDetailContent } from '@/features/schedule/components/schedule-detail-content';
 import { ScheduleDetailSkeleton } from '@/features/schedule/components/schedule-detail-skeleton';
 import { ScheduleEditHeaderActions } from '@/features/schedule/components/schedule-edit-header-actions';
-import { floatingButtonClassName } from '@/features/schedule/components/schedule-mini-map';
 import { useScheduleEdit } from '@/features/schedule/hooks/use-schedule-edit';
 import { useScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
 import {

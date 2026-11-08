@@ -9,6 +9,7 @@ import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StoryDetailScreen } from '@/features/story/components/story-detail-screen';
 import {
   FigurePortrait,
   NewPill,
@@ -25,6 +26,7 @@ import type {
 } from '@/features/story/types';
 import { formatStoryDay, storyDayParts } from '@/features/story/utils/story-time';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import type { RouterOutputs } from '@/trpc/client';
 import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -34,7 +36,6 @@ import {
   AlertTriangle,
   BookOpen,
   CalendarDays,
-  ChevronLeft,
   ChevronRight,
   EyeOff,
   MapPin,
@@ -46,16 +47,6 @@ import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 
 type Tab = 'events' | 'figures';
-
-const BackLink: React.FC<{ href: string; label: string }> = ({ href, label }) => (
-  <Link
-    href={href}
-    className="focus-visible:focus-surface hover:bg-quiet -ml-2 inline-flex h-11 items-center gap-1 rounded-xl px-2 text-[15px] font-semibold text-green-700"
-  >
-    <ChevronLeft className="size-5" aria-hidden />
-    {label}
-  </Link>
-);
 
 const LoadingList: React.FC = () => (
   <div className="space-y-3">
@@ -292,17 +283,20 @@ export const ChallengeRow: React.FC<{ challenge: StoryChallengeSummary; locale: 
   </li>
 );
 
-const EventScreen: React.FC<{ id: string; locale: Locale }> = ({ id, locale }) => {
-  const trpc = useTRPC();
-  const { data, isError } = useQuery(trpc.story.getStoryEvent.queryOptions({ id }));
+type EventAnswer = RouterOutputs['story']['getStoryEvent'];
+type FigureAnswer = RouterOutputs['story']['getStoryFigure'];
 
+const EventContent: React.FC<{
+  data: EventAnswer | undefined;
+  isError: boolean;
+  locale: Locale;
+}> = ({ data, isError, locale }) => {
   if (data === undefined) return isError ? <LoadFailed locale={locale} /> : <LoadingList />;
   if (data.access !== 'ok') return <StoryAccessGate access={data.access} locale={locale} />;
   const event = data.event;
 
   return (
-    <div className="space-y-5">
-      <BackLink href="/app/story" label={storyTexts.story[locale]} />
+    <>
       {event === null ? (
         <NotFound locale={locale} />
       ) : (
@@ -362,21 +356,21 @@ const EventScreen: React.FC<{ id: string; locale: Locale }> = ({ id, locale }) =
           )}
         </>
       )}
-    </div>
+    </>
   );
 };
 
-const FigureScreen: React.FC<{ id: string; locale: Locale }> = ({ id, locale }) => {
-  const trpc = useTRPC();
-  const { data, isError } = useQuery(trpc.story.getStoryFigure.queryOptions({ id }));
-
+const FigureContent: React.FC<{
+  data: FigureAnswer | undefined;
+  isError: boolean;
+  locale: Locale;
+}> = ({ data, isError, locale }) => {
   if (data === undefined) return isError ? <LoadFailed locale={locale} /> : <LoadingList />;
   if (data.access !== 'ok') return <StoryAccessGate access={data.access} locale={locale} />;
   const figure = data.figure;
 
   return (
-    <div className="space-y-5">
-      <BackLink href="/app/story?tab=figuren" label={storyTexts.figures[locale]} />
+    <>
       {figure === null ? (
         <NotFound locale={locale} />
       ) : (
@@ -449,19 +443,58 @@ const FigureScreen: React.FC<{ id: string; locale: Locale }> = ({ id, locale }) 
           )}
         </>
       )}
-    </div>
+    </>
   );
 };
 
-/** One event by `?event=`, one figure by `?figure=`, else the overview. */
+const EventScreen: React.FC<{ id: string; locale: Locale }> = ({ id, locale }) => {
+  const trpc = useTRPC();
+  const { data, isError } = useQuery(trpc.story.getStoryEvent.queryOptions({ id }));
+  const event = data?.access === 'ok' ? data.event : null;
+  return (
+    <StoryDetailScreen
+      fallbackHref="/app/story"
+      share={
+        event === null ? undefined : { path: `/app/story?event=${event.id}`, title: event.title }
+      }
+      locale={locale}
+    >
+      <EventContent data={data} isError={isError} locale={locale} />
+    </StoryDetailScreen>
+  );
+};
+
+const FigureScreen: React.FC<{ id: string; locale: Locale }> = ({ id, locale }) => {
+  const trpc = useTRPC();
+  const { data, isError } = useQuery(trpc.story.getStoryFigure.queryOptions({ id }));
+  const figure = data?.access === 'ok' ? data.figure : null;
+  return (
+    <StoryDetailScreen
+      fallbackHref="/app/story?tab=figuren"
+      share={
+        figure === null ? undefined : { path: `/app/story?figure=${figure.id}`, title: figure.name }
+      }
+      locale={locale}
+    >
+      <FigureContent data={data} isError={isError} locale={locale} />
+    </StoryDetailScreen>
+  );
+};
+
+/**
+ * One event by `?event=`, one figure by `?figure=`, else the overview. Keyed by the id, so the
+ * next event or figure opens at the top.
+ */
 const StoryScreen: React.FC<{
   eventId: string | null;
   figureId: string | null;
   tab: Tab;
   locale: Locale;
 }> = ({ eventId, figureId, tab, locale }) => {
-  if (eventId !== null && eventId !== '') return <EventScreen id={eventId} locale={locale} />;
-  if (figureId !== null && figureId !== '') return <FigureScreen id={figureId} locale={locale} />;
+  if (eventId !== null && eventId !== '')
+    return <EventScreen key={eventId} id={eventId} locale={locale} />;
+  if (figureId !== null && figureId !== '')
+    return <FigureScreen key={figureId} id={figureId} locale={locale} />;
   return <StoryOverviewScreen tab={tab} locale={locale} />;
 };
 

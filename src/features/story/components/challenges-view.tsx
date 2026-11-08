@@ -1,13 +1,12 @@
 'use client';
 
 import { SetHeaderActions } from '@/components/header/header-actions';
-import { ShareLinkButton } from '@/components/ui/buttons/share-link-button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FactRow } from '@/components/ui/fact-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { environmentVariables } from '@/config/environment-variables';
+import { StoryDetailScreen } from '@/features/story/components/story-detail-screen';
 import {
   FigurePortrait,
   NewPill,
@@ -23,6 +22,7 @@ import {
   storyDayParts,
 } from '@/features/story/utils/story-time';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import type { RouterOutputs } from '@/trpc/client';
 import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -33,7 +33,6 @@ import {
   AlertTriangle,
   BookOpen,
   CalendarDays,
-  ChevronLeft,
   Clock,
   EyeOff,
   Info,
@@ -178,10 +177,11 @@ const ChallengeList: React.FC<{ locale: Locale; day: string | null }> = ({ local
   );
 };
 
-const ChallengeScreen: React.FC<{ id: string; locale: Locale }> = ({ id, locale }) => {
-  const trpc = useTRPC();
-  const { data, isError } = useQuery(trpc.story.getChallenge.queryOptions({ id }));
-
+const ChallengeContent: React.FC<{
+  data: RouterOutputs['story']['getChallenge'] | undefined;
+  isError: boolean;
+  locale: Locale;
+}> = ({ data, isError, locale }) => {
   if (data === undefined) {
     return isError ? (
       <EmptyState icon={AlertTriangle} title={storyTexts.loadFailed[locale]} />
@@ -194,23 +194,7 @@ const ChallengeScreen: React.FC<{ id: string; locale: Locale }> = ({ id, locale 
   const until = challenge === null ? undefined : untilLabel(challenge, locale);
 
   return (
-    <div className="space-y-5">
-      <SetHeaderActions>
-        {challenge !== null && (
-          <ShareLinkButton
-            url={`${environmentVariables.NEXT_PUBLIC_APP_HOST_URL}/app/challenges?id=${challenge.id}`}
-            title={challenge.title}
-            locale={locale}
-          />
-        )}
-      </SetHeaderActions>
-      <Link
-        href="/app/challenges"
-        className="focus-visible:focus-surface hover:bg-quiet -ml-2 inline-flex h-11 items-center gap-1 rounded-xl px-2 text-[15px] font-semibold text-green-700"
-      >
-        <ChevronLeft className="size-5" aria-hidden />
-        {storyTexts.challenges[locale]}
-      </Link>
+    <>
       {challenge === null ? (
         <EmptyState
           icon={EyeOff}
@@ -281,7 +265,26 @@ const ChallengeScreen: React.FC<{ id: string; locale: Locale }> = ({ id, locale 
           </section>
         </>
       )}
-    </div>
+    </>
+  );
+};
+
+const ChallengeScreen: React.FC<{ id: string; locale: Locale }> = ({ id, locale }) => {
+  const trpc = useTRPC();
+  const { data, isError } = useQuery(trpc.story.getChallenge.queryOptions({ id }));
+  const challenge = data?.access === 'ok' ? data.challenge : null;
+  return (
+    <StoryDetailScreen
+      fallbackHref="/app/challenges"
+      share={
+        challenge === null
+          ? undefined
+          : { path: `/app/challenges?id=${challenge.id}`, title: challenge.title }
+      }
+      locale={locale}
+    >
+      <ChallengeContent data={data} isError={isError} locale={locale} />
+    </StoryDetailScreen>
   );
 };
 
@@ -293,7 +296,7 @@ export const ChallengesView: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
   const id = searchParameters.get('id');
-  if (id !== null && id !== '') return <ChallengeScreen id={id} locale={locale} />;
+  if (id !== null && id !== '') return <ChallengeScreen key={id} id={id} locale={locale} />;
   return (
     <>
       <SetHeaderActions />
