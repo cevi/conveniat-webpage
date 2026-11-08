@@ -2,8 +2,14 @@
 
 import type { JobWithQuota } from '@/features/payload-cms/components/form/actions/get-jobs';
 import { getJobs } from '@/features/payload-cms/components/form/actions/get-jobs';
+import { DateSlotSelection } from '@/features/payload-cms/components/form/date-slot-selection';
 import { Required } from '@/features/payload-cms/components/form/required';
 import type { JobSelectionBlock } from '@/features/payload-cms/components/form/types';
+import { formatDayCount } from '@/features/payload-cms/components/form/utils/date-slot-format';
+import {
+  getJobPeriodFieldName,
+  getJobSelectableDays,
+} from '@/features/payload-cms/components/form/utils/job-period';
 import {
   HELPER_AREA_LABELS,
   RESSORT_OPTIONS,
@@ -16,7 +22,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2, Search, X } from 'lucide-react';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { Control, FieldValues } from 'react-hook-form';
-import { Controller } from 'react-hook-form';
+import { Controller, useFormContext, useWatch } from 'react-hook-form';
 
 // Context to share search/filter state between sidebar and main cards
 interface JobSelectionFieldState {
@@ -27,6 +33,7 @@ interface JobSelectionFieldState {
 
 interface JobSelectionContextType {
   states: Record<string, JobSelectionFieldState>;
+  defaultFieldState: JobSelectionFieldState;
   setSearchTerm: (name: string, s: string) => void;
   setSelectedRessorts: (name: string, s: Set<string>) => void;
   setIsSearchOpen: (name: string, b: boolean) => void;
@@ -34,44 +41,67 @@ interface JobSelectionContextType {
 
 const JobSelectionContext = createContext<JobSelectionContextType | undefined>(undefined);
 
-const defaultFieldState: JobSelectionFieldState = {
-  searchTerm: '',
-  selectedRessorts: new Set(),
-  isSearchOpen: false,
-};
+const emptyRessorts: ReadonlySet<string> = new Set();
 
-export const JobSelectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+/**
+ * Keeps the search and the Ressort filter of every job selection of one form.
+ *
+ * `initialRessorts` preselects the filter of every job selection that has none yet, so a
+ * link can lead straight to the jobs of one area while the helper can still see the others.
+ */
+export const JobSelectionProvider: React.FC<{
+  children: React.ReactNode;
+  initialRessorts?: ReadonlySet<string>;
+}> = ({ children, initialRessorts = emptyRessorts }) => {
   const [states, setStates] = useState<Record<string, JobSelectionFieldState>>({});
+  const defaultFieldState = useMemo(
+    (): JobSelectionFieldState => ({
+      searchTerm: '',
+      selectedRessorts: new Set(initialRessorts),
+      isSearchOpen: false,
+    }),
+    [initialRessorts],
+  );
 
-  const setSearchTerm = useCallback((name: string, searchTerm: string): void => {
-    setStates((previous) => ({
-      ...previous,
-      [name]: { ...(previous[name] ?? defaultFieldState), searchTerm },
-    }));
-  }, []);
+  const setSearchTerm = useCallback(
+    (name: string, searchTerm: string): void => {
+      setStates((previous) => ({
+        ...previous,
+        [name]: { ...(previous[name] ?? defaultFieldState), searchTerm },
+      }));
+    },
+    [defaultFieldState],
+  );
 
-  const setSelectedRessorts = useCallback((name: string, selectedRessorts: Set<string>): void => {
-    setStates((previous) => ({
-      ...previous,
-      [name]: { ...(previous[name] ?? defaultFieldState), selectedRessorts },
-    }));
-  }, []);
+  const setSelectedRessorts = useCallback(
+    (name: string, selectedRessorts: Set<string>): void => {
+      setStates((previous) => ({
+        ...previous,
+        [name]: { ...(previous[name] ?? defaultFieldState), selectedRessorts },
+      }));
+    },
+    [defaultFieldState],
+  );
 
-  const setIsSearchOpen = useCallback((name: string, isSearchOpen: boolean): void => {
-    setStates((previous) => ({
-      ...previous,
-      [name]: { ...(previous[name] ?? defaultFieldState), isSearchOpen },
-    }));
-  }, []);
+  const setIsSearchOpen = useCallback(
+    (name: string, isSearchOpen: boolean): void => {
+      setStates((previous) => ({
+        ...previous,
+        [name]: { ...(previous[name] ?? defaultFieldState), isSearchOpen },
+      }));
+    },
+    [defaultFieldState],
+  );
 
   const value = useMemo(() => {
     return {
       states,
+      defaultFieldState,
       setSearchTerm,
       setSelectedRessorts,
       setIsSearchOpen,
     };
-  }, [states, setSearchTerm, setSelectedRessorts, setIsSearchOpen]);
+  }, [states, defaultFieldState, setSearchTerm, setSelectedRessorts, setIsSearchOpen]);
 
   return <JobSelectionContext.Provider value={value}>{children}</JobSelectionContext.Provider>;
 };
@@ -91,7 +121,7 @@ const useJobSelection = (
     throw new Error('useJobSelection must be used within a JobSelectionProvider');
   }
 
-  const state = context.states[name] ?? defaultFieldState;
+  const state = context.states[name] ?? context.defaultFieldState;
 
   return useMemo(
     () => ({
@@ -153,6 +183,18 @@ const spotsLeftSuffixPlural: StaticTranslationString = {
   fr: 'Places restantes',
 };
 
+const minimumDurationPrefix: StaticTranslationString = {
+  de: 'mind.',
+  en: 'min.',
+  fr: 'min.',
+};
+
+const periodLabelText: StaticTranslationString = {
+  de: 'Wann bist du für diesen Job dabei?',
+  en: 'When are you there for this job?',
+  fr: 'Quand es-tu là pour ce job ?',
+};
+
 const noJobsFoundText: StaticTranslationString = {
   de: 'Keine Jobs gefunden',
   en: 'No jobs found',
@@ -177,6 +219,9 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
     isSearchOpen,
     setIsSearchOpen,
   } = useJobSelection(name);
+  const { setValue } = useFormContext();
+  const periodFieldName = getJobPeriodFieldName(name);
+  const selectedJobId = useWatch({ control, name }) as unknown;
 
   const { data: jobs, isLoading } = useQuery<JobWithQuota[]>({
     queryKey: ['helper-jobs', dateRangeCategory, category, locale],
@@ -234,6 +279,11 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
       return startA - startB;
     });
   }, [filteredJobs]);
+
+  // A job with a minimum duration asks for the helper's own days within its window.
+  const selectedJob = jobs?.find((job) => job.id === selectedJobId);
+  const selectedJobPeriod =
+    selectedJob === undefined ? undefined : getJobSelectableDays(selectedJob);
 
   const renderSearch = (): React.ReactElement => (
     <div className="relative flex h-8 w-8 shrink-0 items-center justify-end">
@@ -381,6 +431,8 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                         type="button"
                         onClick={() => {
                           if (!isDisabled) {
+                            // days picked for another job do not fit this one
+                            if (value !== job.id) setValue(periodFieldName, '');
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             (onChange as (val: any) => void)(job.id);
                           }
@@ -420,6 +472,8 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                             {new Date(job.dateRange.startDate).toLocaleDateString(locale)}
                             {' - '}
                             {new Date(job.dateRange.endDate).toLocaleDateString(locale)}
+                            {typeof job.minDays === 'number' &&
+                              ` · ${minimumDurationPrefix[locale]} ${formatDayCount(job.minDays, locale)}`}
                           </span>
                           {typeof job.availableQuota === 'number' && (
                             <span
@@ -475,6 +529,22 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
             </div>
           )}
         />
+        {selectedJob !== undefined && selectedJobPeriod !== undefined && (
+          <div className="mt-4 border-t border-gray-100 pt-6">
+            <DateSlotSelection
+              key={selectedJob.id}
+              blockType="dateSlotSelection"
+              control={control}
+              name={periodFieldName}
+              label={`${periodLabelText[locale]} (${String(selectedJob.title)})`}
+              required
+              startDate={selectedJobPeriod.firstDay}
+              endDate={selectedJobPeriod.lastDay}
+              minDays={selectedJobPeriod.minDays}
+              maxRanges={1}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,3 +1,5 @@
+import { getJobPeriodFieldName } from '@/features/payload-cms/components/form/utils/job-period';
+
 /**
  * Every block of one type in a form section, including those inside a conditioned block.
  */
@@ -28,7 +30,8 @@ export const getFormBlockNames = (
 
 /**
  * The name of every answer a form section can hold: each named block, those inside a
- * conditioned block too, and the Ressort wish a date slot selection asks next to its days.
+ * conditioned block too, the Ressort wish a date slot selection asks next to its days, and
+ * the days a job selection asks for a job with a minimum duration.
  */
 export const getFormFieldNames = (fields: unknown[] | null | undefined): string[] => {
   if (!Array.isArray(fields)) return [];
@@ -41,7 +44,11 @@ export const getFormFieldNames = (fields: unknown[] | null | undefined): string[
       fields?: unknown[] | null;
     };
     if (block.blockType === 'conditionedBlock') return getFormFieldNames(block.fields);
-    return [block.name, block.ressortName].filter(
+    const jobPeriodName =
+      block.blockType === 'jobSelection' && typeof block.name === 'string'
+        ? getJobPeriodFieldName(block.name)
+        : undefined;
+    return [block.name, block.ressortName, jobPeriodName].filter(
       (name): name is string => typeof name === 'string' && name !== '',
     );
   });

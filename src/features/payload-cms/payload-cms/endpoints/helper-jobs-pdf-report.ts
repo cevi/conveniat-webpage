@@ -1,4 +1,8 @@
 /* eslint-disable @typescript-eslint/prefer-promise-reject-errors, unicorn/prefer-logical-operator-over-ternary, @typescript-eslint/strict-boolean-expressions */
+import {
+  getJobPeriodFieldName,
+  getJobSelectableDays,
+} from '@/features/payload-cms/components/form/utils/job-period';
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { HelperJob } from '@/features/payload-cms/payload-types';
@@ -86,7 +90,21 @@ export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
           main: 'Hauptlager',
           teardown: 'Abbaulager Infrastruktur',
         };
-        const zeitraum = zeitraumMap[jobObject.dateRangeCategory] ?? jobObject.dateRangeCategory;
+        const phase = zeitraumMap[jobObject.dateRangeCategory] ?? jobObject.dateRangeCategory;
+        // A job with a minimum duration lists the days the helper picked. The job answer
+        // holds the job's title by now, and its days sit under the derived field name.
+        const pickedDays =
+          getJobSelectableDays(jobObject) === undefined
+            ? undefined
+            : subData
+                .filter((entry) => entry.value === jobObject.title)
+                .map(
+                  (entry) =>
+                    subData.find((other) => other.field === getJobPeriodFieldName(entry.field))
+                      ?.value,
+                )
+                .find((value): value is string => typeof value === 'string' && value !== '');
+        const zeitraum = pickedDays === undefined ? phase : `${phase} (${pickedDays})`;
 
         const currentGroup = ressortGroups.get(categoryLabelDe);
         if (currentGroup) {

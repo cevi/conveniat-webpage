@@ -2526,6 +2526,10 @@ export interface HelperJob {
      */
     endDate: string;
   };
+  /**
+   * Empty = the job lasts the whole date range. Filled in = helpers pick their own consecutive days within the date range, at least this many.
+   */
+  minDays?: number | null;
   dateRangeCategory: 'setup' | 'main' | 'teardown';
   /**
    * Prerequisites for the job (e.g. Minimum age, specific skills, etc.).
@@ -7261,6 +7265,7 @@ export interface HelperJobsSelect<T extends boolean = true> {
         startDate?: T;
         endDate?: T;
       };
+  minDays?: T;
   dateRangeCategory?: T;
   prerequisites?: T;
   submissions?: T;

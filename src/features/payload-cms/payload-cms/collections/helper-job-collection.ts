@@ -165,6 +165,23 @@ export const JobCollection: CollectionConfig = asLocalizedCollection({
       ],
     },
     {
+      name: 'minDays',
+      type: 'number',
+      min: 1,
+      label: {
+        en: 'Minimum duration (days)',
+        de: 'Mindestdauer (Tage)',
+        fr: 'Durée minimale (jours)',
+      },
+      admin: {
+        description: {
+          en: 'Empty = the job lasts the whole date range. Filled in = helpers pick their own consecutive days within the date range, at least this many.',
+          de: 'Leer = der Job dauert den ganzen Zeitraum. Ausgefüllt = Helfende wählen ihre eigenen Tage am Stück innerhalb des Zeitraums, mindestens so viele.',
+          fr: 'Vide = le job dure toute la période. Rempli = les bénévoles choisissent leurs propres jours consécutifs dans la période, au moins autant.',
+        },
+      },
+    },
+    {
       name: 'dateRangeCategory',
       type: 'select',
       required: true,
