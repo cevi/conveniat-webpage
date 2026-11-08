@@ -53,6 +53,7 @@ describe('getJobs', () => {
       description: 'Du baust Zelte auf.',
       category: 'infrastruktur',
       dateRange: storedJob.dateRange,
+      minDays: null,
       availableQuota: 2,
     });
     expect(JSON.stringify(job)).not.toMatch(/secret-token|helper@example\.com/);

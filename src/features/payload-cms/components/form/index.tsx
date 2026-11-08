@@ -3,7 +3,7 @@
 import { useRevalidateFieldsWithErrors } from '@/features/payload-cms/components/form/hooks/use-revalidate-fields-with-errors';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { usePostHog } from '@/providers/posthog-context';
-import type { Locale } from '@/types/types'; // Import Locale
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import React, { useEffect, useMemo } from 'react';
@@ -24,13 +24,25 @@ import {
 } from '@/features/payload-cms/components/form/components/form-field-renderer';
 import { ProgressBar } from '@/features/payload-cms/components/form/components/progress-bar';
 import { SubmissionMessage } from '@/features/payload-cms/components/form/components/submission-message';
-import { useFormSteps } from '@/features/payload-cms/components/form/hooks/use-form-steps';
+import { useLinkPreset } from '@/features/payload-cms/components/form/hooks/use-answers-from-link';
+import {
+  isStepShown,
+  useFormSteps,
+} from '@/features/payload-cms/components/form/hooks/use-form-steps';
 import { useFormSubmission } from '@/features/payload-cms/components/form/hooks/use-form-submission';
 import { JobSelectionProvider } from '@/features/payload-cms/components/form/job-selection';
 import type { ConditionedBlock, FormBlockType } from '@/features/payload-cms/components/form/types';
 import { getEffectivePlacement } from '@/features/payload-cms/components/form/utils/field-placement';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
+import { getFormBlockNames } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
+import { LayoutList } from 'lucide-react';
 export type { FormBlockType } from '@/features/payload-cms/components/form/types';
+
+const showAllJobsText: StaticTranslationString = {
+  de: 'Alle Helfenden-Jobs anzeigen',
+  en: 'Show all helper jobs',
+  fr: 'Afficher tous les jobs de bénévole',
+};
 
 const formatFieldErrors = (errors: FieldErrors): string => {
   return Object.entries(errors)
@@ -73,7 +85,6 @@ export const FormBlock: React.FC<
     () => ({ ...buildEmptyFormState(config), ...initialValues, ...presetValues }),
     [config, initialValues, presetValues],
   );
-  const hiddenFields = useMemo(() => new Set(Object.keys(presetValues ?? {})), [presetValues]);
   const formMethods = useForm<FieldValues>({
     mode: 'onSubmit',
     reValidateMode: 'onChange',
@@ -102,6 +113,14 @@ export const FormBlock: React.FC<
     }
   }, [config, formMethods, presetValues]);
 
+  // after the restore above, so the answers a link gives win over those of an earlier visit
+  const linkPreset = useLinkPreset(config, formMethods, presetValues === undefined);
+  const presetFields = useMemo(() => new Set(Object.keys(presetValues ?? {})), [presetValues]);
+  const hiddenFields = useMemo(
+    () => new Set([...presetFields, ...Object.keys(linkPreset.answers)]),
+    [presetFields, linkPreset.answers],
+  );
+
   // 2. Initialize Hooks
   // Map config.sections (wrappers) to FormSection[]
   const formSections = useMemo(() => config.sections.map((s) => s.formSection), [config.sections]);
@@ -114,7 +133,26 @@ export const FormBlock: React.FC<
     next,
     prev,
     currentActualStep,
-  } = useFormSteps(formSections, formMethods, config.id, presetValues === undefined);
+  } = useFormSteps(formSections, formMethods, config.id, presetValues === undefined, hiddenFields);
+
+  // A link narrowed the jobs; the helper may want to see every job and every question.
+  const offersAllJobs =
+    linkPreset.isActive &&
+    currentActualStep !== undefined &&
+    getFormBlockNames(currentActualStep.fields, 'jobSelection').length > 0;
+  const showAllJobs = (): void => {
+    // stay on this step, which moves once the skipped steps before it come back
+    const allSteps = formSections.filter((section) =>
+      isStepShown(
+        section,
+        presetFields,
+        (name) => formMethods.getValues(name) as string | number | boolean | undefined,
+      ),
+    );
+    const index = currentActualStep === undefined ? -1 : allSteps.indexOf(currentActualStep);
+    linkPreset.showAll();
+    if (index !== -1) setCurrentStepIndex(index);
+  };
 
   const {
     submit,
@@ -253,7 +291,7 @@ export const FormBlock: React.FC<
             locale={locale}
           />
         ) : (
-          <JobSelectionProvider>
+          <JobSelectionProvider initialRessorts={linkPreset.jobArea}>
             <FormProvider {...formMethods}>
               <HiddenFieldsContext.Provider value={hiddenFields}>
                 <form id={config.id} onSubmit={handleSubmit} noValidate>
@@ -272,6 +310,16 @@ export const FormBlock: React.FC<
                           'space-y-4 rounded-xl border border-gray-100 bg-white p-8 shadow-sm',
                       )}
                     >
+                      {offersAllJobs && (
+                        <button
+                          type="button"
+                          onClick={showAllJobs}
+                          className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+                        >
+                          <LayoutList className="h-4 w-4" aria-hidden="true" />
+                          {showAllJobsText[locale]}
+                        </button>
+                      )}
                       {steps.length > 1 && currentActualStep && (
                         <ProgressBar
                           locale={locale}

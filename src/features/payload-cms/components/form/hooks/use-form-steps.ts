@@ -7,6 +7,7 @@ import type {
   JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
+import { getJobPeriodFieldName } from '@/features/payload-cms/components/form/utils/job-period';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FieldName, UseFormReturn } from 'react-hook-form';
 import { useWatch } from 'react-hook-form';
@@ -51,7 +52,10 @@ type SectionField =
   | HofSelectionBlock
   | DateSlotSelectionBlock;
 
-/** Names of the fields a `dateSlotSelection` block registers — it owns up to two. */
+/**
+ * Names of the fields a block registers: a `dateSlotSelection` and a `jobSelection` own up
+ * to two, the Besuchstag several.
+ */
 const getFieldNames = (
   field: FormFieldBlock | JobSelectionBlock | HofSelectionBlock | DateSlotSelectionBlock,
 ): string[] => {
@@ -66,6 +70,8 @@ const getFieldNames = (
   ) {
     names.push(field.ressortName);
   }
+  // a job with a minimum duration also asks for the helper's days
+  if (field.blockType === 'jobSelection') names.push(getJobPeriodFieldName(field.name));
   // the Besuchstag field also asks whom they visit, the persons, lunch and, without a Hof, the day
   if (field.blockType === 'visitDaySelection') {
     for (const name of [field.visitorTypeField, field.childNameField, field.lunchField]) {
@@ -78,10 +84,82 @@ const getFieldNames = (
 };
 
 /** Every field name under a list of blocks, conditioned ones included. */
-const collectFieldNames = (fields: SectionField[]): string[] =>
+export const collectFieldNames = (fields: SectionField[]): string[] =>
   fields.flatMap((field) =>
     field.blockType === 'conditionedBlock' ? collectFieldNames(field.fields) : getFieldNames(field),
   );
+
+/** Reads the current answer to a field. */
+export type ValueOf = (name: string) => string | number | boolean | undefined;
+
+const isAnswered = (valueOf: ValueOf, condition: { field: string; value: string }): boolean =>
+  String(valueOf(condition.field) ?? '') === condition.value;
+
+/** The names of the fields a section shows right now, conditioned blocks resolved. */
+const getShownFieldNames = (fields: SectionField[], valueOf: ValueOf): string[] =>
+  fields.flatMap((block) => {
+    if (block.blockType !== 'conditionedBlock') return getFieldNames(block);
+    return isAnswered(valueOf, block.displayCondition)
+      ? getShownFieldNames(block.fields, valueOf)
+      : [];
+  });
+
+/**
+ * Whether a section only asks what is answered already: it holds a hidden field, and no
+ * other field it would show right now. A link or an embedding feature presets those
+ * answers, and a step left with nothing to answer is skipped. A section without any hidden
+ * field, like a welcome text, always stays.
+ */
+const asksNothing = (
+  fields: SectionField[],
+  hiddenFields: ReadonlySet<string>,
+  valueOf: ValueOf,
+): boolean => {
+  const names = getShownFieldNames(fields, valueOf);
+  return (
+    names.some((name) => hiddenFields.has(name)) && names.every((name) => hiddenFields.has(name))
+  );
+};
+
+/**
+ * Whether a section is a step right now: its display condition holds, and it still asks
+ * something the helper sees.
+ */
+export const isStepShown = (
+  section: FormSection,
+  hiddenFields: ReadonlySet<string>,
+  valueOf: ValueOf,
+): boolean => {
+  const condition = section.displayCondition;
+  if (
+    typeof condition?.field === 'string' &&
+    condition.field !== '' &&
+    !isAnswered(valueOf, { field: condition.field, value: condition.value ?? '' })
+  ) {
+    return false;
+  }
+  return !asksNothing(section.fields, hiddenFields, valueOf);
+};
+
+/** Every field a step's visibility depends on: section conditions and conditioned blocks. */
+const collectTriggerNames = (sections: FormSection[]): string[] => {
+  const names = new Set<string>();
+  const visit = (fields: SectionField[]): void => {
+    for (const field of fields) {
+      if (field.blockType !== 'conditionedBlock') continue;
+      names.add(field.displayCondition.field);
+      visit(field.fields);
+    }
+  };
+  for (const section of sections) {
+    const field = section.displayCondition?.field;
+    if (typeof field === 'string' && field !== '') names.add(field);
+    visit(section.fields);
+  }
+  return [...names];
+};
+
+const noHiddenFields: ReadonlySet<string> = new Set();
 
 export const useFormSteps = (
   sections: FormSection[],
@@ -90,6 +168,8 @@ export const useFormSteps = (
   formId?: string,
   /** Off for an embedded form, which starts from its presets rather than a stored step. */
   persistStep = true,
+  /** Answers given for the helper; a step that asks nothing else is skipped. */
+  hiddenFields: ReadonlySet<string> = noHiddenFields,
 ): UseFormStepsReturn => {
   /*
    * A section can be gated on an answer from an earlier step, so the list of steps is
@@ -104,10 +184,11 @@ export const useFormSteps = (
       }),
     [sections],
   );
+  const triggerNames = useMemo(() => collectTriggerNames(sections), [sections]);
 
-  const conditionValues = useWatch({
+  const triggerValues = useWatch({
     control: formMethods.control,
-    name: conditionFieldNames,
+    name: triggerNames,
   }) as (string | number | boolean | undefined)[];
 
   /*
@@ -115,12 +196,9 @@ export const useFormSteps = (
    * array every render, so memoizing on it would give `steps` a new identity each time and
    * re-run everything downstream — including the reset below.
    */
+  const valueOf: ValueOf = (name) => triggerValues[triggerNames.indexOf(name)];
   const visibilityKey = sections
-    .map((section, index) => {
-      if (conditionFieldNames[index] === '') return '1';
-      const expected = section.displayCondition?.value ?? '';
-      return String(conditionValues[index] ?? '') === expected ? '1' : '0';
-    })
+    .map((section) => (isStepShown(section, hiddenFields, valueOf) ? '1' : '0'))
     .join('');
 
   const steps = useMemo(
@@ -136,7 +214,8 @@ export const useFormSteps = (
    * carry phantom job answers into the submission and the export.
    *
    * A field another section is gated on is never dropped: unregistering it would flip that
-   * section's visibility, which would recompute this list, which would flip it back.
+   * section's visibility, which would recompute this list, which would flip it back. Nor is
+   * a hidden answer: it was given for the helper, and its step was skipped, not left.
    *
    * Only a section that was shown and is now hidden counts as left. Back from the Cevi.DB
    * login, the first render has empty answers and every gated section looks hidden; the
@@ -154,9 +233,9 @@ export const useFormSteps = (
     const leftFieldNames = sections
       .filter((_, index) => previous[index] === '1' && visibilityKey[index] !== '1')
       .flatMap((section) => collectFieldNames(section.fields))
-      .filter((name) => !gateFields.has(name));
+      .filter((name) => !gateFields.has(name) && !hiddenFields.has(name));
     if (leftFieldNames.length > 0) unregister(leftFieldNames);
-  }, [sections, visibilityKey, conditionFieldNames, unregister]);
+  }, [sections, visibilityKey, conditionFieldNames, unregister, hiddenFields]);
 
   /*
    * Initialize state from sessionStorage if available to avoid layout shift

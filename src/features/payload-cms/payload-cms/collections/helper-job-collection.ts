@@ -1,3 +1,4 @@
+import { getJobSelectableDays } from '@/features/payload-cms/components/form/utils/job-period';
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import {
   hasAdminOrWebAccess,
@@ -7,7 +8,7 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { helperJobsPdfReportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-jobs-pdf-report';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
-import type { CollectionConfig, DateFieldValidation } from 'payload';
+import type { CollectionConfig, DateFieldValidation, NumberFieldSingleValidation } from 'payload';
 
 const EndAfterStartDateValidation: DateFieldValidation = (value, { siblingData, req }) => {
   const localeString = req.i18n.language;
@@ -29,6 +30,25 @@ const EndAfterStartDateValidation: DateFieldValidation = (value, { siblingData, 
     });
   }
   return true;
+};
+
+/** A minimum longer than the date range would leave helpers nothing to pick. */
+const MinimumFitsDateRangeValidation: NumberFieldSingleValidation = (
+  value,
+  { siblingData, req },
+) => {
+  if (typeof value !== 'number') return true;
+  const { dateRange } = siblingData as {
+    dateRange?: { startDate?: string | null; endDate?: string | null } | null;
+  };
+  if (getJobSelectableDays({ dateRange: dateRange ?? null, minDays: value }) !== undefined) {
+    return true;
+  }
+  return getValidationMessage(req.i18n.language, {
+    en: 'The minimum duration must fit into the date range.',
+    de: 'Die Mindestdauer muss in den Zeitraum passen.',
+    fr: 'La durée minimale doit tenir dans la période.',
+  });
 };
 
 export const JobCollection: CollectionConfig = asLocalizedCollection({
@@ -163,6 +183,24 @@ export const JobCollection: CollectionConfig = asLocalizedCollection({
           validate: EndAfterStartDateValidation,
         },
       ],
+    },
+    {
+      name: 'minDays',
+      type: 'number',
+      min: 1,
+      validate: MinimumFitsDateRangeValidation,
+      label: {
+        en: 'Minimum duration (days)',
+        de: 'Mindestdauer (Tage)',
+        fr: 'Durée minimale (jours)',
+      },
+      admin: {
+        description: {
+          en: 'Empty = the job lasts the whole date range. Filled in = helpers pick their own consecutive days within the date range, at least this many.',
+          de: 'Leer = der Job dauert den ganzen Zeitraum. Ausgefüllt = Helfende wählen ihre eigenen Tage am Stück innerhalb des Zeitraums, mindestens so viele.',
+          fr: 'Vide = le job dure toute la période. Rempli = les bénévoles choisissent leurs propres jours consécutifs dans la période, au moins autant.',
+        },
+      },
     },
     {
       name: 'dateRangeCategory',
