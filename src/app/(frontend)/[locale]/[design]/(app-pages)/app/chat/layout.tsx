@@ -1,3 +1,4 @@
+import { CallScreen } from '@/features/chat/calls/components/call-screen';
 import {
   ChatQrCodeButton,
   QrCodeIconSkeleton,
@@ -40,6 +41,7 @@ const Layout: React.FC<LayoutProperties> = async ({ children, params }) => {
   return (
     <>
       <SetOnlineStatus />
+      <CallScreen />
       <ChatSplitView
         list={<ChatsOverviewClientComponent qrCodeButton={qrCodeButton} />}
         // in a browser on a desktop, the way to the app on the phone

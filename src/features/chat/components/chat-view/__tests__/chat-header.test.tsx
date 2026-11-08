@@ -101,6 +101,7 @@ describe('ChatHeader', () => {
       id: CHAT_ID,
       name: 'Anna Muster v/o Fuchs',
       type: 'ONE_TO_ONE',
+      capabilities: [] as string[],
       participants: [
         participant(ME, 'Max Muster v/o Igel'),
         participant('user-anna', 'Anna Muster v/o Fuchs', '/pictures/anna.webp'),
@@ -121,6 +122,7 @@ describe('ChatHeader', () => {
       id: CHAT_ID,
       name: 'Hofleitung Züri 11',
       type: 'GROUP',
+      capabilities: [] as string[],
       participants: [
         participant(ME, 'Max Muster v/o Igel'),
         participant('user-anna', 'Anna Muster v/o Fuchs'),

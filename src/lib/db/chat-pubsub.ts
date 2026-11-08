@@ -1,5 +1,6 @@
 /* eslint-disable unicorn/prefer-event-target */
 import { environmentVariables } from '@/config/environment-variables';
+import type { CallSignal } from '@/lib/chat-call-signal';
 import {
   recordPubSubConnectionEvent,
   recordPubSubNotification,
@@ -32,7 +33,8 @@ export interface ChatRealtimeEvent {
     | 'chat_updated'
     | 'new_chat'
     | 'membership_revoked'
-    | 'typing';
+    | 'typing'
+    | 'call_signal';
   chatId: string;
   senderId: string;
   /**
@@ -71,6 +73,8 @@ export interface ChatRealtimeEvent {
     name: string;
     parentId?: string | undefined;
   };
+  /** Set on `call_signal`: one step of a call's handshake, see `CallSignal`. */
+  call?: CallSignal;
 }
 
 /** How often the LISTEN connection is probed with a round-trip query. */

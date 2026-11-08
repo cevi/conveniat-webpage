@@ -42,6 +42,14 @@ export const environmentVariables = createEnv({
     BREVO_API_KEY: z.string().optional(),
     GOOGLE_TRANSLATE_API_KEY: z.string().optional(),
     FIREBASE_SERVICE_ACCOUNT_KEY_PATH: z.string().optional(),
+    /**
+     * The TURN relays voice calls fall back to when two phones cannot reach each other
+     * directly, comma separated, e.g. `turn:turn.example.ch:3478?transport=udp`. Unset, calls
+     * only connect directly. The secret is coturn's `static-auth-secret`, which signs the
+     * short-lived credentials handed out per call.
+     */
+    CALL_TURN_URLS: z.string().optional(),
+    CALL_TURN_SECRET: z.string().min(16).optional(),
 
     // Access control: the Cevi.DB groups that hold each role, see `access-rules/roles.ts`
     CEVIDB_GROUP_FULL_ADMIN: groupIds,
