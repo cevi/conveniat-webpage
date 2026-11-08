@@ -1,3 +1,4 @@
+import { collectFieldNames } from '@/features/payload-cms/components/form/hooks/use-form-steps';
 import {
   fieldIsNotValidText,
   fieldIsRequiredText,
@@ -215,14 +216,9 @@ export const useFormSubmission = ({
               const firstError = fieldErrors[0];
               if (firstError) {
                 const firstErrorField = firstError.field;
+                // every name a block answers under, the days of a job selection included
                 const stepIndex = formSections.findIndex((section) =>
-                  section.fields.some((f) => {
-                    if ('name' in f && f.name === firstErrorField) return true;
-                    if (f.blockType === 'conditionedBlock') {
-                      return f.fields.some((sub) => 'name' in sub && sub.name === firstErrorField);
-                    }
-                    return false;
-                  }),
+                  collectFieldNames(section.fields).includes(firstErrorField),
                 );
                 if (stepIndex !== -1) {
                   setCurrentStepIndex(stepIndex);

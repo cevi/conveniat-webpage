@@ -54,6 +54,13 @@ export const JobSelectionProvider: React.FC<{
   initialRessorts?: ReadonlySet<string>;
 }> = ({ children, initialRessorts = emptyRessorts }) => {
   const [states, setStates] = useState<Record<string, JobSelectionFieldState>>({});
+  // A new starting filter, as when the helper asks for all jobs, replaces what was searched
+  // and filtered since: the old area would otherwise stay selected.
+  const [statesStartedFrom, setStatesStartedFrom] = useState(initialRessorts);
+  if (statesStartedFrom !== initialRessorts) {
+    setStatesStartedFrom(initialRessorts);
+    setStates({});
+  }
   const defaultFieldState = useMemo(
     (): JobSelectionFieldState => ({
       searchTerm: '',
