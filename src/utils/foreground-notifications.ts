@@ -172,6 +172,19 @@ export const isNotificationTargetVisible = (
   return targetPathname !== '' && currentPathname.endsWith(targetPathname);
 };
 
+/** The message and its sender without the chat's markdown, like the title and body. */
+const stripConversationMarkdown = (conversation: ConversationMessage): ConversationMessage => {
+  const senderName =
+    conversation.senderName === undefined
+      ? undefined
+      : stripMarkdownFormatting(conversation.senderName).trim();
+  return {
+    ...conversation,
+    text: stripMarkdownFormatting(conversation.text).trim(),
+    senderName: senderName === '' ? undefined : senderName,
+  };
+};
+
 /** Asks the native shell to render a real system notification. */
 const requestNativeSystemNotification = (notification: ForegroundNotification): void => {
   const bridge = globalThis.AppWebViewNativePush as Record<string, unknown> | undefined;
@@ -240,6 +253,9 @@ export const notifyForegroundMessage = (notification: ForegroundNotification): v
     ...notification,
     title: strippedTitle === '' ? defaultNotificationTitle[getDocumentLocale()] : strippedTitle,
     body: stripMarkdownFormatting(notification.body).trim(),
+    ...(notification.conversation !== undefined && {
+      conversation: stripConversationMarkdown(notification.conversation),
+    }),
   };
 
   requestNativeSystemNotification(resolvedNotification);

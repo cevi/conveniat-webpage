@@ -51,6 +51,19 @@ describe('foreground notifications', () => {
     });
   });
 
+  it('hands the Android app the message and its sender without markdown', () => {
+    notifyForegroundMessage({
+      ...baseNotification,
+      tag: 'chat:chat-1',
+      stack: true,
+      conversation: { senderName: '_Anna_', text: '*Wichtig:* [Plan](https://example.test)' },
+    });
+
+    expect(showNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ senderName: 'Anna', text: 'Wichtig: Plan' }),
+    );
+  });
+
   it('shows the message under the tag of its push, so either replaces the other', () => {
     notifyForegroundMessage({ ...baseNotification, tag: 'chat:chat-1', stack: true });
 
