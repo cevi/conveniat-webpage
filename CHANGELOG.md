@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.55.0](https://github.com/cevi/conveniat-webpage/compare/v1.54.0...v1.55.0) (2026-11-08)
+
+
+### Features
+
+* **chat:** offer calls only in app builds that declare the microphone ([0fd4257](https://github.com/cevi/conveniat-webpage/commit/0fd4257154a5cd40d0da055e13d2801496e98575))
+* **chat:** voice calls in one-to-one chats ([79ce4bc](https://github.com/cevi/conveniat-webpage/commit/79ce4bcbc53eca96b70d529cb5315715af392cdd))
+* **forms:** helper jobs with a minimum duration and a link into one branch of a form ([59abf2c](https://github.com/cevi/conveniat-webpage/commit/59abf2cc756befede437e320c22ad040303f68e4))
+* **forms:** Sanität helper jobs with a minimum duration and a flyer link ([dff9618](https://github.com/cevi/conveniat-webpage/commit/dff96186b2b37f3ff94071b86f1c59480d3b949d))
+* **push:** the Android app lists a chat's messages under their senders ([a4e51d3](https://github.com/cevi/conveniat-webpage/commit/a4e51d3357f09a51cf7389c221ee485112583a23))
+* **push:** the Android app lists a chat's messages under their senders ([65343cd](https://github.com/cevi/conveniat-webpage/commit/65343cd892700b4ab5dee722ec26987200e0bd6f))
+
+
+### Bug Fixes
+
+* **forms:** address review of the helper job minimum duration ([359966b](https://github.com/cevi/conveniat-webpage/commit/359966be445f69133c3de38b4b596c008ea5983a))
+* **forum:** a photo is uploaded as the JPEG the chat sends ([6bad4eb](https://github.com/cevi/conveniat-webpage/commit/6bad4ebef145146eb25851907fa8485d0031ceaa))
+* **forum:** a photo is uploaded as the JPEG the chat sends ([4e2997e](https://github.com/cevi/conveniat-webpage/commit/4e2997e57992b1c814ced62249ee4610ca8d814a))
+* **forum:** a photo the browser cannot preview shows an icon until it is sent ([f6b925b](https://github.com/cevi/conveniat-webpage/commit/f6b925be82f703925e8b86447dfcf9427ee54b69))
+* **push:** the foreground chat message reaches the Android app without markdown ([e4086c3](https://github.com/cevi/conveniat-webpage/commit/e4086c391611e60abd5848ac9d9afc487c5cc81e))
+* **service-worker:** Flight requests skip the browser HTTP cache ([06087e2](https://github.com/cevi/conveniat-webpage/commit/06087e2e7c303ea18d48e434f93504bb96d6139b))
+* **service-worker:** Flight requests skip the browser HTTP cache ([789824f](https://github.com/cevi/conveniat-webpage/commit/789824f73eff370c3b410dbda8f6237b60206975))
+
 ## [1.54.0](https://github.com/cevi/conveniat-webpage/compare/v1.53.2...v1.54.0) (2026-11-08)
 
 
