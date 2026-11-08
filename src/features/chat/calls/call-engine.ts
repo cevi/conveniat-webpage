@@ -155,8 +155,21 @@ export const setCallTransport = (next: CallTransport | undefined): void => {
 };
 
 /**
- * Whether this browser can place and take calls: the native app's WebView and Chromium
- * browsers, the two this prototype supports.
+ * Whether the native app around this page can call: only a build that declares the
+ * microphone says so. Read on every check, because the app may add the info after our bundle
+ * ran; a read must never throw in a torn-down WebView.
+ */
+const nativeAppSupportsCalls = (): boolean => {
+  try {
+    return globalThis.AppWebViewNativeApp?.voiceCalls === true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Whether this browser can place and take calls: a native app build that supports them and
+ * Chromium browsers. An older app build neither shows the button nor rings.
  */
 export const canMakeCalls = (): boolean => {
   if (typeof navigator === 'undefined' || typeof RTCPeerConnection === 'undefined') return false;
@@ -167,7 +180,8 @@ export const canMakeCalls = (): boolean => {
     userAgentData?: { brands?: { brand: string }[] };
   };
   const isChromium = userAgentData?.brands?.some((entry) => entry.brand === 'Chromium') === true;
-  return isNativeAppWebView() || isChromium;
+  if (isNativeAppWebView()) return nativeAppSupportsCalls();
+  return isChromium;
 };
 
 const send = (
