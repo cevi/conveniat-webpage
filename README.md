@@ -290,7 +290,6 @@ export $(grep -v '^#' .env | grep '^NEXT_PUBLIC_' | xargs)
 export BUILD_TARGET="production"
 export NODE_ENV="production"
 export DISABLE_SERVICE_WORKER="true" # speeds up build process (optional)
-export PRISMA_OUTPUT="src/lib/prisma/client/"
 
 # Install dependencies
 pnpm install

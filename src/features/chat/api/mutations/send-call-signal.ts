@@ -14,7 +14,7 @@ import {
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_VOICE_CALLS_ENABLED } from '@/lib/feature-flags';
-import { ChatCapability, ChatType, PushNotificationKind } from '@/lib/prisma/client';
+import { ChatCapability, ChatType, PushNotificationKind } from '@/lib/prisma/enums';
 import { sendNotification } from '@/lib/push/send-notification';
 import { invariantError } from '@/trpc/error-formatter';
 import { trpcBaseProcedure } from '@/trpc/init';

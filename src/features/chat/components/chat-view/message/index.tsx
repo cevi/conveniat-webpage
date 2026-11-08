@@ -31,8 +31,8 @@ import { isMessageDeleted } from '@/features/chat/utils/message-deletion';
 import { describeQuotedMessage } from '@/features/chat/utils/quoted-snippet';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
-import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
-import { MessageEventType, MessageType } from '@/lib/prisma/client';
+
+import { ChatCapability, ChatStatus, MessageEventType, MessageType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -450,7 +450,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   if (message.type === ('ALERT_QUESTION' as unknown as MessageType)) {
     return (
       <MessageFrame {...frameProperties}>
-        <AlertQuestionMessage message={message} isCurrentUser={isCurrentUser} />
+        <AlertQuestionMessage message={message} isCurrentUser={isCurrentUser} locale={locale} />
       </MessageFrame>
     );
   }

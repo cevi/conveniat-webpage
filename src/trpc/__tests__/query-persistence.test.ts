@@ -3,6 +3,7 @@ import {
   deserializePersistedClient,
   PERSISTED_QUERY_CACHE_MAX_AGE,
   serializePersistedClient,
+  shouldPersistMutation,
   shouldPersistQuery,
 } from '@/trpc/query-persistence';
 import type { QueryClient } from '@tanstack/react-query';
@@ -47,6 +48,24 @@ const sessionWithAQueryWaitingOffline = async (): Promise<QueryClient> => {
   client.setQueryData(CACHED_KEY, ['a cached chat']);
   onlineManager.setOnline(false);
   client.query({ queryKey: WAITING_KEY, queryFn: () => Promise.resolve('late') }).catch(() => {});
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  return client;
+};
+
+/** A session that went offline while the user enrolled, with a mutation that waits for signal. */
+const sessionWithAMutationWaitingOffline = async (): Promise<QueryClient> => {
+  const client = newClient();
+  client.setQueryData(CACHED_KEY, ['a cached chat']);
+  onlineManager.setOnline(false);
+  client
+    .getMutationCache()
+    .build(client, {
+      mutationKey: [['shifts', 'enroll']],
+      mutationFn: () => Promise.resolve('enrolled'),
+      networkMode: 'online',
+    })
+    .execute({ shiftId: 'shift-1' })
+    .catch(() => {});
   await new Promise((resolve) => setTimeout(resolve, 0));
   return client;
 };
@@ -123,6 +142,39 @@ describe('persisted query cache', () => {
     const { client, removed } = await restore(blob);
 
     expect(removed).toBe(false);
+    expect(client.getQueryData(CACHED_KEY)).toEqual(['a cached chat']);
+  });
+
+  it('does not keep a mutation that waited offline when the app was closed', async () => {
+    const previousSession = await sessionWithAMutationWaitingOffline();
+    expect(previousSession.getMutationCache().getAll()[0]?.state.isPaused).toBe(true);
+
+    const blob = serializePersistedClient({
+      timestamp: Date.now(),
+      buster: '',
+      clientState: dehydrate(previousSession, {
+        shouldDehydrateQuery: shouldPersistQuery,
+        shouldDehydrateMutation: shouldPersistMutation,
+      }),
+    });
+
+    expect(superjson.parse<PersistedClient>(blob).clientState.mutations).toEqual([]);
+  });
+
+  it('drops the waiting mutations a blob saved before they were left out', async () => {
+    const previousSession = await sessionWithAMutationWaitingOffline();
+    // what the persister used to write: TanStack's default keeps every paused mutation
+    const blob = serializePersistedClient({
+      timestamp: Date.now(),
+      buster: '',
+      clientState: dehydrate(previousSession, { shouldDehydrateQuery: shouldPersistQuery }),
+    });
+    expect(superjson.parse<PersistedClient>(blob).clientState.mutations).toHaveLength(1);
+    onlineManager.setOnline(true);
+
+    const { client } = await restore(blob);
+
+    expect(client.getMutationCache().getAll()).toEqual([]);
     expect(client.getQueryData(CACHED_KEY)).toEqual(['a cached chat']);
   });
 });

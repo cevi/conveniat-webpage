@@ -13,6 +13,8 @@ export const QUICK_ACCESS_TILE_IDS = [
   'chat',
   'helperShifts',
   'photoContest',
+  'story',
+  'challenges',
   'settings',
 ] as const;
 

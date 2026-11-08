@@ -50,8 +50,6 @@ const useStartChat = (
   const router = useRouter();
   const mutation = useMutation(
     trpc.chat.startChatFromWristband.mutationOptions({
-      // offline it fails at once and says so, instead of waiting unseen
-      networkMode: 'always',
       onSuccess: (result) => {
         switch (result.status) {
           case 'started': {
@@ -137,7 +135,7 @@ const HofAvps: React.FC<{
   <section className="space-y-2">
     <SectionLabel className="px-1">{tagText('hofAvp', locale)}</SectionLabel>
     {avps.length === 0 ? (
-      <p className="bg-quiet rounded-[14px] p-4 text-[15px] text-green-700">
+      <p className="bg-quiet rounded-[14px] p-4 text-[15px] text-balance text-green-700">
         {tagText('noAvp', locale)}
       </p>
     ) : (

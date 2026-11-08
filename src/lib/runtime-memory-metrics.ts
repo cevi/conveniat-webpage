@@ -1,4 +1,4 @@
-import { metrics, ValueType } from '@opentelemetry/api';
+import { defineObservableGauges } from '@/lib/telemetry/metrics';
 import v8 from 'node:v8';
 
 /**
@@ -18,65 +18,60 @@ import v8 from 'node:v8';
  *
  * Exported through the Prometheus exporter in `src/tracing.ts` (`:9464`), scraped per replica.
  * No attributes, so this is six series per replica and cannot grow.
- *
- * Units are carried by the metric names rather than the `unit` field, matching
- * `@/lib/chat-realtime-metrics`: exporters may append a unit suffix, and a name that shifts
- * under us silently breaks the dashboard panels built on it.
  */
 
 let registered = false;
 
 /**
- * Registers the Node runtime memory gauges on the global MeterProvider.
- *
- * Must be called after `sdk.start()`. `metrics.getMeter()` resolves the global provider at the
- * moment it is called and the metrics API keeps no proxy for a provider that is not registered
- * yet, so a meter taken earlier stays a no-op for the life of the process.
+ * Registers the Node runtime memory gauges. Later calls do nothing.
  */
 export const registerRuntimeMemoryMetrics = (): void => {
   if (registered) return;
   registered = true;
 
-  const meter = metrics.getMeter('runtime-memory');
-
-  const gauge = (
-    name: string,
-    description: string,
-  ): ReturnType<typeof meter.createObservableGauge> =>
-    meter.createObservableGauge(name, { description, valueType: ValueType.INT });
-
-  const rss = gauge(
-    'nodejs_memory_rss_bytes',
-    'Resident set size of the Node process, the number the container limit is enforced against',
-  );
-  const heapTotal = gauge(
-    'nodejs_memory_heap_total_bytes',
-    'V8 heap currently reserved from the OS',
-  );
-  const heapUsed = gauge('nodejs_memory_heap_used_bytes', 'Live objects on the V8 heap');
-  const heapLimit = gauge(
-    'nodejs_memory_heap_limit_bytes',
-    'Ceiling V8 will grow the heap to, derived from the cgroup memory limit',
-  );
-  const external = gauge(
-    'nodejs_memory_external_bytes',
-    'Memory held by C++ objects bound to JavaScript values, outside the V8 heap',
-  );
-  const arrayBuffers = gauge(
-    'nodejs_memory_array_buffers_bytes',
-    'Memory held by ArrayBuffers and Buffers, included in the external total',
-  );
-
-  meter.addBatchObservableCallback(
-    (observer) => {
-      const usage = process.memoryUsage();
-      observer.observe(rss, usage.rss);
-      observer.observe(heapTotal, usage.heapTotal);
-      observer.observe(heapUsed, usage.heapUsed);
-      observer.observe(external, usage.external);
-      observer.observe(arrayBuffers, usage.arrayBuffers);
-      observer.observe(heapLimit, v8.getHeapStatistics().heap_size_limit);
+  defineObservableGauges({
+    scope: 'runtime-memory',
+    gauges: {
+      rss: {
+        name: 'nodejs_memory_rss_bytes',
+        description:
+          'Resident set size of the Node process, the number the container limit is enforced against',
+        valueType: 'int',
+      },
+      heapTotal: {
+        name: 'nodejs_memory_heap_total_bytes',
+        description: 'V8 heap currently reserved from the OS',
+        valueType: 'int',
+      },
+      heapUsed: {
+        name: 'nodejs_memory_heap_used_bytes',
+        description: 'Live objects on the V8 heap',
+        valueType: 'int',
+      },
+      heapLimit: {
+        name: 'nodejs_memory_heap_limit_bytes',
+        description: 'Ceiling V8 will grow the heap to, derived from the cgroup memory limit',
+        valueType: 'int',
+      },
+      external: {
+        name: 'nodejs_memory_external_bytes',
+        description: 'Memory held by C++ objects bound to JavaScript values, outside the V8 heap',
+        valueType: 'int',
+      },
+      arrayBuffers: {
+        name: 'nodejs_memory_array_buffers_bytes',
+        description: 'Memory held by ArrayBuffers and Buffers, included in the external total',
+        valueType: 'int',
+      },
     },
-    [rss, heapTotal, heapUsed, heapLimit, external, arrayBuffers],
-  );
+    observe: (observe): void => {
+      const usage = process.memoryUsage();
+      observe('rss', usage.rss);
+      observe('heapTotal', usage.heapTotal);
+      observe('heapUsed', usage.heapUsed);
+      observe('external', usage.external);
+      observe('arrayBuffers', usage.arrayBuffers);
+      observe('heapLimit', v8.getHeapStatistics().heap_size_limit);
+    },
+  });
 };

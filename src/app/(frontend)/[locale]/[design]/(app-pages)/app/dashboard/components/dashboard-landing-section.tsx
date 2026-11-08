@@ -16,6 +16,7 @@ const quickAccessFlagsOf = (
   featureFlags: unknown,
   materialEnabled: boolean,
   wristbandsEnabled: boolean,
+  storyEnabled: boolean,
 ): QuickAccessFlags => {
   const flags = (featureFlags ?? {}) as Partial<Record<keyof QuickAccessFlags, boolean>>;
   return {
@@ -24,6 +25,7 @@ const quickAccessFlagsOf = (
     photoContestEnabled: flags.photoContestEnabled !== false,
     materialEnabled,
     wristbandsEnabled,
+    storyEnabled,
   };
 };
 
@@ -43,9 +45,10 @@ export const DashboardLandingSection: React.FC<{
   locale: Locale;
   materialEnabled: boolean;
   wristbandsEnabled: boolean;
+  storyEnabled: boolean;
   supportEmail: string;
   children?: React.ReactNode;
-}> = ({ locale, materialEnabled, wristbandsEnabled, supportEmail, children }) => {
+}> = ({ locale, materialEnabled, wristbandsEnabled, storyEnabled, supportEmail, children }) => {
   const trpc = useTRPC();
   const { data: dashboardConfig } = useQuery(
     trpc.appContent.getDashboardConfig.queryOptions(
@@ -74,7 +77,12 @@ export const DashboardLandingSection: React.FC<{
     <DashboardLanding
       locale={locale}
       showActionCards={dashboardConfig.showActionCards}
-      flags={quickAccessFlagsOf(dashboardConfig.featureFlags, materialEnabled, wristbandsEnabled)}
+      flags={quickAccessFlagsOf(
+        dashboardConfig.featureFlags,
+        materialEnabled,
+        wristbandsEnabled,
+        storyEnabled,
+      )}
       supportEmail={supportEmail}
     >
       {children}

@@ -1,9 +1,9 @@
 import { chatError } from '@/features/chat/api/chat-errors';
 import { assertChatNotArchived } from '@/features/chat/api/checks/assert-can-write-in-chat';
-import { ChatCapability } from '@/lib/chat-shared';
+
 import { type ChatRealtimeEvent, chatPubSub } from '@/lib/db/chat-pubsub';
 import poolPrisma from '@/lib/db/prisma';
-import { ChatType } from '@/lib/prisma/client';
+import { ChatCapability, ChatType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { createLogger } from '@/utils/server-logger';
@@ -111,7 +111,11 @@ export const toggleReaction = trpcBaseProcedure
       });
     }
 
-    // 4. Toggle reaction: delete if exists, create if not
+    // 4. Toggle reaction: delete if exists, create if not. Two taps of the same person on the
+    // same message wait for each other here, so the second reads what the first wrote: crossing
+    // taps on two emojis cannot both pass the cap below, and two taps on one emoji toggle twice.
+    // Prefixed, because `updateMessageContent` locks on the bare message id.
+    await prisma.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`reaction:${messageId}:${user.uuid}`}, 0))`;
     const existingReaction = await prisma.messageReaction.findUnique({
       where: {
         messageId_userId_emoji: {
@@ -123,7 +127,7 @@ export const toggleReaction = trpcBaseProcedure
     });
 
     if (existingReaction) {
-      // a second tap that crossed the first may already have removed it
+      // deleting the message removes its reactions without taking the lock above
       await prisma.messageReaction.deleteMany({
         where: {
           uuid: existingReaction.uuid,
@@ -139,11 +143,8 @@ export const toggleReaction = trpcBaseProcedure
         });
       }
 
-      // Two taps that cross both find no reaction. Skipping the duplicate keeps the second from
-      // failing on the unique index, which would also abort the transaction it runs in.
-      await prisma.messageReaction.createMany({
-        data: [{ messageId, userId: user.uuid, emoji }],
-        skipDuplicates: true,
+      await prisma.messageReaction.create({
+        data: { messageId, userId: user.uuid, emoji },
       });
     }
 

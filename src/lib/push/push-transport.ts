@@ -1,7 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
 import type { NotificationType } from '@/lib/notification-type';
-import { PushNotificationChannel } from '@/lib/prisma';
+import { PushNotificationChannel } from '@/lib/prisma/enums';
 import { isPushServiceEndpoint, UNKNOWN_PUSH_SERVICE_ERROR } from '@/lib/push/push-endpoint';
 import type { DatabasePushSubscription, SchemaPushSubscription } from '@/schemas/push';
 import {
@@ -89,9 +89,11 @@ export interface PushMessage {
   ignoreIfAppOpen?: boolean | undefined;
   ignoreIfUrlMatches?: boolean | undefined;
   /**
-   * How the web notification sits next to the ones already shown; only the service worker reads
-   * these, see `presentNotification` there. `tag` replaces what is shown under the same tag,
-   * `stack` lists the newest pushes under it and alerts again.
+   * How the notification sits next to the ones already shown. `tag` replaces what is shown
+   * under the same tag and is what the page closes notifications by. `stack` marks one more
+   * message of the conversation under the tag: the service worker lists the newest pushes
+   * under it and alerts again (see `presentNotification` there), Android replaces the
+   * conversation's notification, and iOS adds one grouped under the tag.
    */
   tag?: string | undefined;
   stack?: boolean | undefined;
@@ -265,6 +267,8 @@ async function sendNative(
       ...(message.notificationType !== undefined && {
         notificationType: message.notificationType,
       }),
+      ...(message.tag !== undefined && { tag: message.tag }),
+      ...(message.stack === true && { stack: 'true' }),
     },
   });
   if (result.success) return { outcome: 'accepted' };

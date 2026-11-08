@@ -65,6 +65,35 @@ const configuredLevel = (): LogLevel => {
 /** Attributes become queryable Loki labels; objects are JSON-encoded by the destination. */
 export type LogAttributes = Record<string, unknown>;
 
+/** Deep enough for a wrapper around a library error around a socket error, finite for a loop. */
+const MAX_CAUSE_DEPTH = 3;
+
+/**
+ * Writes an error under `prefix`, followed by the errors it was caused by.
+ *
+ * A wrapper's message rarely says what went wrong: `fetch failed` hides the refused connection
+ * and Auth.js's `CallbackRouteError` hides the provider's answer, both on `cause`. `code` is the
+ * machine-readable reason Node and most libraries set (`ECONNREFUSED`). A cause that is not an
+ * `Error` is skipped, because a plain object can be anything, a response body included.
+ */
+const flattenError = (
+  flattened: LogAttributes,
+  prefix: string,
+  error: Error,
+  depth: number,
+): void => {
+  flattened[`${prefix}.message`] = error.message;
+  flattened[`${prefix}.name`] = error.name;
+  if (error.stack !== undefined) flattened[`${prefix}.stack`] = error.stack;
+
+  const { code } = error as { code?: unknown };
+  if (typeof code === 'string' && code !== '') flattened[`${prefix}.code`] = code;
+
+  if (error.cause instanceof Error && depth < MAX_CAUSE_DEPTH) {
+    flattenError(flattened, `${prefix}.cause`, error.cause, depth + 1);
+  }
+};
+
 /**
  * `Error` carries its interesting fields on the prototype, so `JSON.stringify`
  * renders it as `{}`. Flatten it before it reaches the destination, otherwise the
@@ -75,9 +104,7 @@ const flattenErrors = (attributes: LogAttributes): LogAttributes => {
 
   for (const [key, value] of Object.entries(attributes)) {
     if (value instanceof Error) {
-      flattened[`${key}.message`] = value.message;
-      flattened[`${key}.name`] = value.name;
-      if (value.stack !== undefined) flattened[`${key}.stack`] = value.stack;
+      flattenError(flattened, key, value, 0);
     } else {
       flattened[key] = value;
     }

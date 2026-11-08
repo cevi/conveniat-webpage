@@ -1,6 +1,6 @@
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { ChatStatus } from '@/lib/chat-shared';
-import { ChatType } from '@/lib/prisma/client';
+
+import { ChatStatus, ChatType } from '@/lib/prisma/enums';
 import React from 'react';
 
 interface ChatManagementHeaderProperties {

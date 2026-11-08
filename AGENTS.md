@@ -148,6 +148,10 @@ Stop only what you started, and only by a process id you captured yourself.
 
 ## Verifying
 
+A fresh clone or worktree lacks the gitignored Prisma client, `src/build.ts` and `.env`, and
+`typecheck` fails on dozens of missing modules without them. Run `pnpm setup:worktree` first, and
+again after a rebase that changed `prisma/schema`. T3 Code runs it when it creates a worktree.
+
 Run the full suite before you call a task done or write a commit:
 
 ```bash
@@ -236,6 +240,17 @@ Server code never calls `console.log`, `info`, `debug` or `trace`, and ESLint bl
 `@/utils/server-logger`. Anything firing per request, per render or per cache write is `debug`.
 `console.error` is not a way to make a debug line reach Loki. Three of them once produced 82% of a
 day's error volume and made the error rate meaningless.
+
+Metrics go through `@/lib/telemetry/metrics`: `defineCounter`, `defineUpDownCounter`,
+`defineHistogram` and `defineObservableGauges`, never `metrics.getMeter()`, which ESLint blocks.
+The JS metrics API has no proxy for a provider that is not registered yet, so a meter taken
+before `sdk.start()` records nothing for the life of the process, and the helper binds on first
+use instead. The name is the one Prometheus scrapes, because the dashboards and alerts query it:
+a counter ends in `_total`, a histogram in `_seconds` or `_bytes`, and the unit follows from that.
+Every histogram names its buckets for what it measures. Attribute values come from small fixed
+sets, typed as a union of literals: an id, a path or an error message is a series per value. A
+renamed metric or label breaks a panel in `cevi/cevi-tools-infrastructure` without an error, so
+change the dashboard in the same breath.
 
 ESLint cannot tell a client file from a server one, so `no-console` covers all of `src`, and the
 browser files that need `console` are listed by name in `eslint.config.mjs`. Add a browser file

@@ -1,4 +1,7 @@
-import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
+import {
+  getPublishingStatus,
+  storedPublishingStatusField,
+} from '@/features/payload-cms/payload-cms/hooks/publishing-status';
 import { rememberDraftSave } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import type { CollectionConfig } from 'payload';
@@ -92,6 +95,7 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
           afterRead: [getPublishingStatus(config)],
         },
       },
+      storedPublishingStatusField,
 
       // add the localized publishing status field
       {

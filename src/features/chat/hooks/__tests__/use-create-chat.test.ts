@@ -12,12 +12,6 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { TRPCClientError } from '@trpc/client';
 
 // the generated prisma client cannot be loaded under jsdom; the hook only needs its enums
-jest.mock('@prisma/client', () => ({
-  ChatMembershipPermission: { OWNER: 'OWNER', MEMBER: 'MEMBER' },
-  ChatType: { ONE_TO_ONE: 'ONE_TO_ONE', GROUP: 'GROUP' },
-  MessageEventType: { CREATED: 'CREATED', STORED: 'STORED' },
-  MessageType: { SYSTEM_MSG: 'SYSTEM_MSG' },
-}));
 
 jest.mock(
   '@/trpc/client',
@@ -52,7 +46,8 @@ interface PendingCreation {
   reject: (error: unknown) => void;
 }
 
-const renderCreateChat = async (): Promise<
+/** `overviewLoaded: false` opens the form without the chat overview ever having loaded */
+const renderCreateChat = async ({ overviewLoaded = true } = {}): Promise<
   TestTrpc & {
     createChat: ReturnType<typeof useCreateChat>['createChat'];
     createChatHandler: jest.Mock;
@@ -76,6 +71,7 @@ const renderCreateChat = async (): Promise<
     'chat.createChat': createChatHandler,
   });
   const { trpc, queryClient, wrapper } = testTrpc;
+  if (overviewLoaded) queryClient.setQueryData(trpc.chat.chats.queryKey({}), []);
 
   const { result, rerender } = renderHook(() => useCreateChat(), { wrapper });
   await waitFor(() =>
@@ -157,6 +153,16 @@ describe('useCreateChat', () => {
     expect(rendered.messages(chatId)?.pages[0]?.items[0]).toMatchObject({
       type: 'SYSTEM_MSG',
     });
+  });
+
+  test('leaves an overview that was never loaded for the server to fill', async () => {
+    const rendered = await renderCreateChat({ overviewLoaded: false });
+
+    const chatId = await createChatWithAnna(rendered);
+
+    expect(rendered.chats()).toBeUndefined();
+    // the chat itself still opens right away
+    expect(rendered.details(chatId)).toMatchObject({ id: chatId });
   });
 
   test('names a group chat after the entered group name', async () => {

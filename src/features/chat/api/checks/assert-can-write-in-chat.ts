@@ -1,8 +1,8 @@
 import { chatError } from '@/features/chat/api/chat-errors';
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, type CapabilityChat, CapabilitySubject } from '@/lib/capabilities/types';
-import { ChatCapability, isChatArchived } from '@/lib/chat-shared';
-import { ChatMembershipPermission } from '@/lib/prisma/client';
+import { isChatArchived } from '@/lib/chat-shared';
+import { ChatCapability, ChatMembershipPermission } from '@/lib/prisma/enums';
 import type { PrismaClientOrTransaction } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';

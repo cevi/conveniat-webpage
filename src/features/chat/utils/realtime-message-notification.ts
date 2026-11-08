@@ -4,6 +4,7 @@ import type { ChatMessage } from '@/features/chat/api/types';
 import { imageSentText } from '@/lib/chat-images';
 import type { StaticTranslationString } from '@/types/types';
 import { getDocumentLocale, notifyForegroundMessage } from '@/utils/foreground-notifications';
+import { chatNotificationTag } from '@/utils/notification-tags';
 
 const fallbackChatName: StaticTranslationString = {
   de: 'Neue Nachricht',
@@ -76,5 +77,8 @@ export const notifyRealtimeChatMessage = ({
     // Always the regular channel: the one message that sirens is the alert opening an
     // emergency chat, a system message this path skips, so it arrives by push only.
     targetPath: `/app/chat/${chatId}`,
+    // The tag the server puts on the push of a chat message, so both replace each other.
+    tag: chatNotificationTag(chatId),
+    stack: true,
   });
 };

@@ -20,16 +20,6 @@ jest.mock(
   () =>
     jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
 );
-jest.mock('@/lib/prisma/client', () => ({
-  ChatType: {
-    ONE_TO_ONE: 'ONE_TO_ONE',
-    GROUP: 'GROUP',
-    EMERGENCY: 'EMERGENCY',
-    SUPPORT_GROUP: 'SUPPORT_GROUP',
-    ANNOUNCEMENT: 'ANNOUNCEMENT',
-    COURSE_GROUP: 'COURSE_GROUP',
-  },
-}));
 jest.mock('@/features/chat/context/chat-id-context', () => ({ useChatId: (): string => CHAT_ID }));
 jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
 const mockBack = jest.fn();

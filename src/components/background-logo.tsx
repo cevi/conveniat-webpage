@@ -20,6 +20,10 @@ import React from 'react';
  * would shrink the mark by a quarter wherever the container clamps it (narrow phones) and
  * push it down the page everywhere else. Both the padding and the blur come from
  * `src/scripts/generate-background-logo.tsx`.
+ *
+ * It keeps the default fetch priority. On pages without a hero image the mark is the largest
+ * thing in the viewport and so the LCP element; `fetchPriority="low"` queued its 11 KB behind
+ * the JS bundles and painted it well over a second after the text.
  */
 export const BackgroundLogo: React.FC<{ className?: string }> = ({ className }) => (
   <img
@@ -27,7 +31,6 @@ export const BackgroundLogo: React.FC<{ className?: string }> = ({ className }) 
     alt=""
     aria-hidden="true"
     decoding="async"
-    fetchPriority="low"
     className={cn(
       'mx-auto h-full w-full max-w-[384px] scale-[1.3333333] object-contain opacity-10',
       className,

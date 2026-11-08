@@ -35,7 +35,7 @@ import { addParticipants } from '@/features/chat/api/mutations/add-participants'
 import { leaveChat } from '@/features/chat/api/mutations/leave-chat';
 import { removeParticipant } from '@/features/chat/api/mutations/remove-participant';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import type { StaticTranslationString } from '@/types/types';
 
 type Permission = ChatMembershipPermission;
@@ -60,6 +60,8 @@ const CHAT_ID = 'hof-chat';
 let chatType: ChatType;
 let memberships: Membership[];
 let messages: StoredMessage[];
+/** What a second tap read, set while it crosses the first: the chat as it was before. */
+let crossedRead: Membership[] | undefined;
 
 /** The chat tables, with just enough of Prisma's behaviour for these two procedures. */
 const prisma = {
@@ -73,7 +75,9 @@ const prisma = {
         archivedAt: null,
         createdAt: new Date(0),
         lastUpdate: new Date(0),
-        chatMemberships: memberships.filter((m) => m.chatId === where.uuid).map((m) => ({ ...m })),
+        chatMemberships: (crossedRead ?? memberships)
+          .filter((m) => m.chatId === where.uuid)
+          .map((m) => ({ ...m })),
       }),
     update: (): Promise<void> => Promise.resolve(),
   },
@@ -92,16 +96,16 @@ const prisma = {
       membership.chatPermission = data.chatPermission;
       return Promise.resolve();
     },
-    delete: ({
+    deleteMany: ({
       where,
     }: {
-      where: { userId_chatId: { userId: string; chatId: string } };
-    }): Promise<void> => {
+      where: { userId: string; chatId: string };
+    }): Promise<{ count: number }> => {
+      const before = memberships.length;
       memberships = memberships.filter(
-        (m) =>
-          !(m.userId === where.userId_chatId.userId && m.chatId === where.userId_chatId.chatId),
+        (m) => !(m.userId === where.userId && m.chatId === where.chatId),
       );
-      return Promise.resolve();
+      return Promise.resolve({ count: before - memberships.length });
     },
     createMany: ({
       data,
@@ -169,8 +173,28 @@ const wrote = (senderId: string, minutesAgo: number): StoredMessage => ({
   payload: 'Hoi zäme',
 });
 
+const leaveAs =
+  (uuid: string): (() => Promise<unknown>) =>
+  () =>
+    as(uuid).leaveChat({ chatUuid: CHAT_ID });
+const ownerRemovesAnna = (): Promise<unknown> =>
+  as('owner').removeParticipant({ chatId: CHAT_ID, participantId: 'anna' });
+
+/** Runs the call as a second tap that read the chat before `first` changed it. */
+const crossing = async <T>(first: () => Promise<unknown>, second: () => Promise<T>): Promise<T> => {
+  const read = memberships.map((m) => ({ ...m }));
+  await first();
+  crossedRead = read;
+  try {
+    return await second();
+  } finally {
+    crossedRead = undefined;
+  }
+};
+
 beforeEach(() => {
   publish.mockClear();
+  crossedRead = undefined;
   chatType = ChatType.GROUP;
   messages = [];
   memberships = [
@@ -217,6 +241,25 @@ describe('leaving a group chat', () => {
     expect(permissionOf('anna')).toBe(ChatMembershipPermission.MEMBER);
   });
 
+  it('takes a double tap as one leave', async () => {
+    await expect(crossing(leaveAs('anna'), leaveAs('anna'))).resolves.toEqual({ success: true });
+
+    expect(memberships.map((m) => m.userId)).toEqual(['owner', 'ben']);
+    expect(messages).toHaveLength(1);
+  });
+
+  it('hands the chat on once when its last owner taps twice', async () => {
+    messages.push(wrote('anna', 30), wrote('ben', 5));
+    await crossing(leaveAs('owner'), async () => {
+      // somebody else writes between the two taps, the second must not pick them as well
+      messages.push(wrote('anna', 0));
+      return leaveAs('owner')();
+    });
+
+    expect(permissionOf('ben')).toBe(ChatMembershipPermission.OWNER);
+    expect(permissionOf('anna')).toBe(ChatMembershipPermission.MEMBER);
+  });
+
   it('refuses somebody who is not a member', async () => {
     await expect(as('stranger').leaveChat({ chatUuid: CHAT_ID })).rejects.toMatchObject({
       code: 'FORBIDDEN',
@@ -234,6 +277,13 @@ describe('being removed by an owner', () => {
       chatId: CHAT_ID,
       senderId: 'owner',
     });
+  });
+
+  it('takes a double tap as one removal', async () => {
+    await expect(crossing(ownerRemovesAnna, ownerRemovesAnna)).resolves.toEqual({ success: true });
+
+    expect(permissionOf('anna')).toBeUndefined();
+    expect(publish).toHaveBeenCalledTimes(1);
   });
 
   it('revokes nothing when the removal is refused', async () => {

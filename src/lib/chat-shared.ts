@@ -1,33 +1,26 @@
-export const SYSTEM_SENDER_ID = 'system';
+import { ChatCapability, MessageEventType } from '@/lib/prisma/enums';
 
-export enum ChatCapability {
-  CAN_SEND_MESSAGES = 'CAN_SEND_MESSAGES',
-  PICTURE_UPLOAD = 'PICTURE_UPLOAD',
-  THREADS = 'THREADS',
-  THREAD_REPLIES = 'THREAD_REPLIES',
-  EMOJI_REACTIONS = 'EMOJI_REACTIONS',
-  VOICE_CALLS = 'VOICE_CALLS',
-}
+export const SYSTEM_SENDER_ID = 'system';
 
 export const CHAT_CAPABILITY_CAN_SEND_MESSAGES = ChatCapability.CAN_SEND_MESSAGES;
 export const CHAT_CAPABILITY_PICTURE_UPLOAD = ChatCapability.PICTURE_UPLOAD;
 
 export const SYSTEM_MSG_TYPE_EMERGENCY_ALERT = 'emergency_alert';
 
-export type ChatStatus = 'OPEN' | 'CLOSED';
-export const ChatStatus = {
-  OPEN: 'OPEN' as const,
-  CLOSED: 'CLOSED' as const,
-};
-
-export type MessageEventType = 'CREATED' | 'STORED' | 'DISTRIBUTED' | 'RECEIVED' | 'READ';
-export const MessageEventType = {
-  CREATED: 'CREATED' as const,
-  STORED: 'STORED' as const,
-  DISTRIBUTED: 'DISTRIBUTED' as const,
-  RECEIVED: 'RECEIVED' as const,
-  READ: 'READ' as const,
-};
+/**
+ * Why the client opens a realtime stream, sent as its `reason` query parameter so the
+ * server can count reconnects by cause. A rising share of `watchdog` means streams die
+ * silently.
+ */
+export const REALTIME_OPEN_REASONS = [
+  'open',
+  'url_changed',
+  'watchdog',
+  'wake',
+  'error',
+  'manual',
+] as const;
+export type RealtimeOpenReason = (typeof REALTIME_OPEN_REASONS)[number];
 
 export const USER_RELEVANT_MESSAGE_EVENTS: MessageEventType[] = [
   MessageEventType.STORED, // show one tick

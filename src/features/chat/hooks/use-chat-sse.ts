@@ -13,7 +13,8 @@ import { notifyRealtimeChatMessage } from '@/features/chat/utils/realtime-messag
 import { addReplyToThreadSummary } from '@/features/chat/utils/thread-summary';
 import { clearTyping, recordTyping } from '@/features/chat/utils/typing-store';
 import type { CallSignal } from '@/lib/chat-call-signal';
-import type { ChatStatus } from '@/lib/chat-shared';
+import { type ChatStatus } from '@/lib/prisma/enums';
+
 import { useTRPC } from '@/trpc/client';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import superjson from 'superjson';
@@ -517,6 +518,11 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
               parentId: message.parentId ?? undefined,
             }),
           )
+          .catch(console.error);
+        // An open thread's parent and the quoted-message preview read the same message
+        // from `getMessage`, which no list refetch reaches.
+        queryClient
+          .invalidateQueries(trpc.chat.getMessage.queryFilter({ messageId: message.id }))
           .catch(console.error);
       }
     };

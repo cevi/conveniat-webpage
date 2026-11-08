@@ -13,18 +13,6 @@ jest.mock('@/features/payload-cms/api/cached-globals', () => ({
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
 jest.mock('@/config/environment-variables', () => ({ environmentVariables: {} }));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
-jest.mock('@prisma/client', () => ({
-  ChatMembershipPermission: { MEMBER: 'MEMBER' },
-  ChatType: { EMERGENCY: 'EMERGENCY' },
-  MessageEventType: { STORED: 'STORED' },
-  MessageType: {
-    SYSTEM_MSG: 'SYSTEM_MSG',
-    LOCATION_MSG: 'LOCATION_MSG',
-    ALERT_QUESTION: 'ALERT_QUESTION',
-  },
-  Prisma: {},
-}));
-
 // The push and the realtime events are what the piket notices, so they are what gets observed.
 const mockPublish = jest.fn((): Promise<void> => Promise.resolve());
 const mockSendNotification = jest.fn((): Promise<void> => Promise.resolve());

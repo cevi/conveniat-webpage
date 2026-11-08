@@ -1,4 +1,4 @@
-import { PushNotificationKind } from '@/lib/prisma';
+import { PushNotificationKind } from '@/lib/prisma/enums';
 import {
   announcementNotificationTag,
   chatNotificationTag,

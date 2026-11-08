@@ -34,6 +34,27 @@ export const forumText = {
     en: 'Questions, problems and feedback from the camp appear here.',
     fr: 'Les questions, problèmes et retours du camp apparaissent ici.',
   },
+  noFilterMatch: {
+    de: 'Kein Beitrag passt zu diesen Filtern.',
+    en: 'No post matches these filters.',
+    fr: 'Aucune publication ne correspond à ces filtres.',
+  },
+  resetFiltersAction: {
+    de: 'Filter zurücksetzen',
+    en: 'Reset filters',
+    fr: 'Réinitialiser les filtres',
+  },
+  /** `{query}` is what was searched for */
+  searchNoResult: {
+    de: 'Noch kein Beitrag zu «{query}».',
+    en: 'No post about “{query}” yet.',
+    fr: 'Pas encore de publication sur « {query} ».',
+  },
+  writeAsNewPost: {
+    de: 'Als neuen Beitrag schreiben',
+    en: 'Write it as a new post',
+    fr: 'En faire une nouvelle publication',
+  },
   noTopics: {
     de: 'Noch kein Forum für dich',
     en: 'No forum for you yet',

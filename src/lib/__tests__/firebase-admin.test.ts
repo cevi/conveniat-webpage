@@ -28,14 +28,16 @@ import {
 interface SentMessage {
   data?: Record<string, string>;
   android?: {
-    notification?: { channelId?: string; sound?: string; priority?: string };
+    notification?: { channelId?: string; sound?: string; priority?: string; tag?: string };
     priority?: string;
     data?: Record<string, string>;
   };
   apns?: {
+    headers?: Record<string, string>;
     payload?: {
-      aps?: { sound?: string; 'interruption-level'?: string };
+      aps?: { sound?: string; 'interruption-level'?: string; 'thread-id'?: string };
       notificationType?: string;
+      tag?: string;
       data?: Record<string, string>;
     };
   };
@@ -55,6 +57,13 @@ const sendEmergency = (): Promise<unknown> =>
     title: 'Notfall',
     body: 'Einsatz',
     data: { notificationType: 'emergency' },
+  });
+
+const sendChatMessage = (): Promise<unknown> =>
+  sendFcmNotification('token-1', {
+    title: 'Cevi Uster',
+    body: 'Anna: Hoi zäme',
+    data: { chatId: 'chat-1', notificationId: 'log-1', tag: 'chat:chat-1', stack: 'true' },
   });
 
 describe('sendFcmNotification', () => {
@@ -163,6 +172,7 @@ describe('sendFcmNotification', () => {
         ignoreIfAppOpen: 'false',
         ignoreIfUrlMatches: 'true',
         notificationType: 'emergency',
+        tag: 'emergency:0b6e1c52-9a57-4bbf-9f8e-2d1c4a7e3f10:5f2d8a41-7c3e-4b9a-8e16-9d0f2c7b4a63',
       },
     });
 
@@ -175,5 +185,37 @@ describe('sendFcmNotification', () => {
     };
     expect(jsonBytes(apnsPayload) + fcmReserve).toBeLessThanOrEqual(4096);
     expect(jsonBytes(androidMessage) + fcmReserve).toBeLessThanOrEqual(4096);
+  });
+
+  describe('notification tags', () => {
+    it('posts the Android notification under the tag, so the next message replaces it', async () => {
+      await sendChatMessage();
+
+      const message = lastSentMessage();
+      expect(message.android?.notification?.tag).toBe('chat:chat-1');
+      // The shell reads the tag of a foreground push from here, which replaces `data`.
+      expect(message.android?.data?.['tag']).toBe('chat:chat-1');
+      expect(message.android?.data?.['stack']).toBe('true');
+    });
+
+    it('groups the iOS notifications of a chat by the tag, one per message', async () => {
+      await sendChatMessage();
+
+      const apns = lastSentMessage().apns;
+      expect(apns?.payload?.aps?.['thread-id']).toBe('chat:chat-1');
+      expect(apns?.payload?.tag).toBe('chat:chat-1');
+      // A retry of the same push still collapses, a new message does not.
+      expect(apns?.headers?.['apns-collapse-id']).toBe('log-1');
+    });
+
+    it('leaves a push without a tag untagged everywhere', async () => {
+      await sendFcmNotification('token-1', { title: 'Test', body: 'Push', data: {} });
+
+      const message = lastSentMessage();
+      expect(message.android?.notification?.tag).toBeUndefined();
+      expect(message.android?.data?.['tag']).toBeUndefined();
+      expect(message.apns?.payload?.aps?.['thread-id']).toBeUndefined();
+      expect(message.data?.['stack']).toBeUndefined();
+    });
   });
 });

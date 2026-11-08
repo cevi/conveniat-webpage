@@ -14,9 +14,12 @@ const joinReportTopic = jest.fn(() => Promise.resolve({ topicId: 'zentrale' }));
 
 jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
 jest.mock('@/hooks/use-online-status', () => ({ useOnlineStatus: (): boolean => true }));
+// the composer brings its own bar in place of the app header
+jest.mock('@/components/header/hide-header-context', () => ({ SetHideHeader: (): null => null }));
 let address = '';
+const back = jest.fn();
 jest.mock('next/navigation', () => ({
-  useRouter: (): object => ({ replace: jest.fn() }),
+  useRouter: (): object => ({ replace: jest.fn(), back }),
   useSearchParams: (): URLSearchParams => new URLSearchParams(address),
 }));
 jest.mock(
@@ -47,11 +50,20 @@ const writeTitle = (): void => {
   });
 };
 
+// jsdom keeps no navigation entries; the composer reads them to tell whether it is the first page
+beforeAll(() => {
+  Object.defineProperty(performance, 'getEntriesByType', {
+    value: (): PerformanceEntryList => [],
+    configurable: true,
+  });
+});
+
 beforeEach(() => {
   address = '';
   privateReportsAvailable = true;
   createPost.mockClear();
   joinReportTopic.mockClear();
+  back.mockClear();
 });
 
 describe('the composer', () => {
@@ -112,6 +124,25 @@ describe('the composer', () => {
     expect(
       screen.getByRole<HTMLButtonElement>('button', { name: 'Veröffentlichen' }).disabled,
     ).toBe(false);
+  });
+
+  it('is titled Neuer Beitrag and goes back to where it was opened', () => {
+    topics = [{ id: 'topic', name: 'Platz & Infrastruktur', isAdmin: false }];
+    renderComposer();
+
+    expect(screen.getByRole('heading', { name: 'Neuer Beitrag' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Zurück' }));
+    expect(back).toHaveBeenCalled();
+  });
+
+  it('takes the title the search found nothing for', () => {
+    topics = [{ id: 'topic', name: 'Platz & Infrastruktur', isAdmin: false }];
+    address = 'title=Zeltheringe';
+    renderComposer();
+
+    expect(screen.getByPlaceholderText<HTMLInputElement>(/Toitoi in der Mitte/).value).toBe(
+      'Zeltheringe',
+    );
   });
 
   it('brings a removed spot back with Rückgängig', () => {

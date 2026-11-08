@@ -14,8 +14,8 @@ export const previewLinkTextLong: StaticTranslationString = {
  */
 export const qrCodeLoadingText: StaticTranslationString = {
   de: 'QR-Code',
-  fr: 'QR-Code',
-  en: 'QR Code',
+  fr: 'Code QR',
+  en: 'QR code',
 };
 
 /**

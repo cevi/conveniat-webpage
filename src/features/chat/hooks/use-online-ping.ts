@@ -24,7 +24,6 @@ export const useOnlinePing = (): void => {
 
   const { mutate: ping } = useMutation(
     trpc.chat.onlinePing.mutationOptions({
-      networkMode: 'always',
       retry: false,
     }),
   );

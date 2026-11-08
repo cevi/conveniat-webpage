@@ -32,7 +32,13 @@ const installServiceWorker = (): {
 describe('OfflineBanner on wifi without an uplink', () => {
   beforeAll(() => {
     // jsdom has none; the banner uses it to publish its height
+    // takes the callback like the real one, so static analysis resolving
+    // ResizeObserver to this stub sees the right constructor signature
     globalThis.ResizeObserver = class {
+      readonly callback: ResizeObserverCallback;
+      constructor(callback: ResizeObserverCallback) {
+        this.callback = callback;
+      }
       observe(): void {}
       disconnect(): void {}
       unobserve(): void {}

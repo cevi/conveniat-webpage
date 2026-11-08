@@ -6,7 +6,7 @@ import {
   ChatType,
   MessageEventType,
   MessageType,
-} from '@/lib/prisma/client';
+} from '@/lib/prisma/enums';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';

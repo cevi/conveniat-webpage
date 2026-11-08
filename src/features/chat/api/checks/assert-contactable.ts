@@ -1,7 +1,7 @@
 import { chatError } from '@/features/chat/api/chat-errors';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_RESTRICT_CONTACT_LIST } from '@/lib/feature-flags';
-import type { Prisma } from '@/lib/prisma';
+import type { Prisma } from '@/lib/prisma/client';
 import type { PrismaClientOrTransaction } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';

@@ -3,7 +3,7 @@ import {
   REMINDER_LEAD_OPTIONS,
   reminderTimingOf,
 } from '@/features/schedule/utils/reminder-timing';
-import { CourseType } from '@/lib/prisma';
+import { CourseType } from '@/lib/prisma/enums';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';
 import config from '@payload-config';

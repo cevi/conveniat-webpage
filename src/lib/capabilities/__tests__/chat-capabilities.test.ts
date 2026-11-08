@@ -1,7 +1,8 @@
 import { checkCapability } from '@/lib/capabilities';
 import type { CapabilityChat } from '@/lib/capabilities/types';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
-import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
+import { ChatCapability, ChatStatus } from '@/lib/prisma/enums';
+
 import type { PrismaClientOrTransaction } from '@/types/types';
 
 jest.mock('@/lib/db/redis', () => ({

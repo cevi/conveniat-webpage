@@ -1,6 +1,7 @@
 import { findKernteamLabels, kernteamKey } from '@/features/chat/api/forum/forum-kernteam-labels';
 import { FORUM_LIKE_EMOJI, type ForumPostSummary } from '@/lib/forum-shared';
-import { ChatMembershipPermission, type Prisma } from '@/lib/prisma/client';
+import type { Prisma } from '@/lib/prisma/client';
+import { ChatMembershipPermission } from '@/lib/prisma/enums';
 import type { Locale, PrismaClientOrTransaction } from '@/types/types';
 
 export type { ForumPostSummary } from '@/lib/forum-shared';

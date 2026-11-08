@@ -24,11 +24,16 @@ const appPageTitles: Record<string, StaticTranslationString> = {
   'upload-images': { de: 'Bild-Upload', en: 'Image Upload', fr: "Téléchargement d'images" },
   material: { de: 'Materialdepot', en: 'Material depot', fr: 'Dépôt de matériel' },
   wristbands: { de: 'Armbänder', en: 'Wristbands', fr: 'Bracelets' },
+  story: { de: 'Story', en: 'Story', fr: 'Histoire' },
+  challenges: { de: 'Challenges', en: 'Challenges', fr: 'Défis' },
 };
 
 /** Pages one level further down that are called something else than their section. */
 const appSubPageTitles: Record<string, Record<string, StaticTranslationString>> = {
-  forum: { zentrale: { de: 'Zentrale', en: 'Zentrale', fr: 'Zentrale' } },
+  forum: {
+    zentrale: { de: 'Zentrale', en: 'Zentrale', fr: 'Zentrale' },
+    new: { de: 'Neuer Beitrag', en: 'New post', fr: 'Nouvelle publication' },
+  },
 };
 
 /**

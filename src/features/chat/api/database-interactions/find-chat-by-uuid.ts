@@ -1,4 +1,4 @@
-import type { ChatMembershipPermission } from '@/lib/prisma/client';
+import type { ChatMembershipPermission } from '@/lib/prisma/enums';
 import type { PrismaClientOrTransaction } from '@/types/types';
 
 export const findChatByUuid = async (

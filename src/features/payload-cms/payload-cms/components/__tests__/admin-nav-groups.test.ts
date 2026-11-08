@@ -2,6 +2,8 @@ jest.mock('@/config/environment-variables', () => ({
   environmentVariables: {
     CEVIDB_GROUP_FULL_ADMIN: [541],
     CEVIDB_GROUP_WEB_CORE_TEAM: [105],
+    CEVIDB_GROUP_TRANSLATION_TEAM: [],
+    CEVIDB_GROUP_PROGRAM_TEAM: [],
     CEVIDB_GROUP_MATERIAL_TEAM: [108],
     CEVIDB_GROUP_FORUM_ZENTRALE: [],
   },
@@ -66,6 +68,7 @@ describe('buildAdminNavGroups', () => {
       ],
       // the Zentrale is a page of the app
       'App · Betrieb': ['/admin/forum-protocol', '/app/forum/zentrale'],
+      'App · Story': ['/admin/story-board'],
     });
     expect(groups.flatMap((group) => group.links.map((link) => link.label))).toEqual([
       'Benutzer',
@@ -73,6 +76,7 @@ describe('buildAdminNavGroups', () => {
       'Benutzer zusammenführen',
       'Hof-Dashboard Einstellungen',
       'Materialdepot einrichten',
+      'Story-Board',
       'Forum-Protokoll',
       'Forum-Zentrale',
     ]);
@@ -89,6 +93,7 @@ describe('buildAdminNavGroups', () => {
     expect(groups.map((group) => group.links.map((link) => link.label))).toEqual([
       ['Utilisateurs', 'Accès par groupe Cevi.DB', 'Fusionner des utilisateurs'],
       ['Paramètres du tableau de bord des Hofs', 'Configurer le dépôt de matériel'],
+      ['Story-Board'],
       ['Protocole du forum', 'Zentrale du forum'],
     ]);
   });
@@ -105,7 +110,27 @@ describe('buildAdminNavGroups', () => {
       'Backoffice · Personen & Zugriff': ['/admin/collections/users'],
       'Backoffice · Höfe & Material': ['/admin/globals/hof-dashboard-settings'],
       'App · Betrieb': ['/admin/forum-protocol', '/app/forum/zentrale'],
+      'App · Story': ['/admin/story-board'],
     });
+  });
+
+  it('lists the Story-Board before the story collections of its group', () => {
+    const groups = buildAdminNavGroups({
+      entityGroups: [
+        {
+          label: 'App · Story',
+          entities: [{ slug: 'story-events', type: 'collections', label: { de: 'Ereignisse' } }],
+        },
+      ],
+      user: userIn(WEB_CORE_TEAM),
+      locale: 'de',
+      adminRoute: '/admin',
+    });
+
+    expect(linksByGroup(groups)['App · Story']).toEqual([
+      '/admin/story-board',
+      '/admin/collections/story-events',
+    ]);
   });
 
   it('opens the Zentrale in a new tab, since it leaves the admin panel', () => {

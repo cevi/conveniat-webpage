@@ -12,8 +12,7 @@ import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { ChatCapability } from '@/lib/chat-shared';
-import { ChatType } from '@/lib/prisma/client';
+import { ChatCapability, ChatType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -53,8 +52,8 @@ export const describeMembers = (names: string[], locale: Locale): string => {
   const named = names.slice(0, NAMED_MEMBERS).join(', ');
   const rest = names.length - NAMED_MEMBERS;
   if (rest > 0) {
-    if (locale === 'de') return `${named} und ${rest} weitere`;
-    if (locale === 'fr') return `${named} et ${rest} autres`;
+    if (locale === 'de') return `${named} und ${rest} ${rest === 1 ? 'weitere Person' : 'weitere'}`;
+    if (locale === 'fr') return `${named} et ${rest} ${rest === 1 ? 'autre' : 'autres'}`;
     return `${named} and ${rest} more`;
   }
   if (named === '') return '';

@@ -5,10 +5,9 @@ import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status
 import { findThreadSummaries } from '@/features/chat/api/utils/thread-summaries';
 import { toChatMessage } from '@/features/chat/api/utils/to-chat-message';
 import { findTopicAdminIds } from '@/features/chat/api/utils/topic-admins';
-import { ChatType } from '@/lib/prisma/client';
+import { ChatType, MessageEventType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { createLogger } from '@/utils/server-logger';
-import { MessageEventType } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 

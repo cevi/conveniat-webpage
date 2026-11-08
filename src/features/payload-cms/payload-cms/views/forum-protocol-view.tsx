@@ -2,7 +2,8 @@ import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-r
 import { getAdminLocale } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import prisma from '@/lib/db/prisma';
 import { FORUM_POST_STATUSES, forumCapacityLabel, forumStatusLabel } from '@/lib/forum-shared';
-import type { ForumActorCapacity, ForumAuditAction, Prisma } from '@/lib/prisma/client';
+import type { Prisma } from '@/lib/prisma/client';
+import type { ForumActorCapacity, ForumAuditAction } from '@/lib/prisma/enums';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { DefaultTemplate } from '@payloadcms/next/templates';
 import { Gutter, SetStepNav } from '@payloadcms/ui';

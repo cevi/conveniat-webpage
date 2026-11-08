@@ -4,8 +4,12 @@ import {
   recordSseStreamClosed,
   recordSseStreamOpened,
   recordSseStreamRejected,
+  recordSseSubscribeDuration,
+  type SseOpenReason,
   type SseStreamOutcome,
+  type SseSubscribeOutcome,
 } from '@/lib/chat-realtime-metrics';
+import { REALTIME_OPEN_REASONS, type RealtimeOpenReason } from '@/lib/chat-shared';
 import { chatPubSub, type ChatRealtimeEvent } from '@/lib/db/chat-pubsub';
 import prisma from '@/lib/db/prisma';
 import { auth } from '@/utils/auth';
@@ -28,6 +32,24 @@ const HEARTBEAT_INTERVAL_MS = 20_000;
  * subscriptions could not be established.
  */
 const SUBSCRIBE_FAILURE_RETRY_MS = 5000;
+
+/**
+ * Sent once on every stream. The browser then repeats it as `Last-Event-ID` when it
+ * reconnects on its own, which a stream the client opened itself never carries. That is
+ * the only way to tell those reconnects apart, because they reuse the URL, `reason` and
+ * all.
+ */
+const STREAM_EVENT_ID = 'stream';
+
+const isRealtimeOpenReason = (value: string | null): value is RealtimeOpenReason =>
+  (REALTIME_OPEN_REASONS as readonly (string | null)[]).includes(value);
+
+/** Why the client opened this stream. Only a fixed set of values, to bound the metric. */
+const openReasonOf = (request: NextRequest): SseOpenReason => {
+  if (request.headers.get('last-event-id') !== null) return 'browser_retry';
+  const reason = new URL(request.url).searchParams.get('reason');
+  return isRealtimeOpenReason(reason) ? reason : 'unknown';
+};
 
 export async function GET(request: NextRequest): Promise<Response> {
   const session = await auth();
@@ -100,12 +122,15 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
   }
 
+  const openReason = openReasonOf(request);
+
   // The subscribed channels are the one thing that makes an SSE trace readable: the
   // span otherwise records only that "some stream" ran for a while.
   trace.getActiveSpan()?.setAttributes({
     'chat.user.id': user.uuid,
     'chat.sse.channel_count': chatIds.length + 1,
     'chat.sse.is_admin': isAdmin,
+    'chat.sse.open_reason': openReason,
   });
 
   const encoder = new TextEncoder();
@@ -154,9 +179,9 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const stream = new ReadableStream({
     async start(controller: ReadableStreamDefaultController<Uint8Array>): Promise<void> {
-      // Send initial handshake comment
-      controller.enqueue(encoder.encode(':ok\n\n'));
-      recordSseStreamOpened();
+      // Send initial handshake comment, and the id the browser repeats on its own reconnects.
+      controller.enqueue(encoder.encode(`:ok\nid: ${STREAM_EVENT_ID}\n\n`));
+      recordSseStreamOpened(openReason);
 
       const write = (frame: string): boolean => {
         try {
@@ -198,7 +223,7 @@ export async function GET(request: NextRequest): Promise<Response> {
           const dataString = superjson.stringify(event);
           controller.enqueue(encoder.encode(`data: ${dataString}\n\n`));
           deliveredEvents += 1;
-          recordSseEventDelivered(event.type);
+          recordSseEventDelivered(event.type, event.publishedAt);
         } catch (error) {
           logger.error('Failed to write event to stream controller', {
             error,
@@ -229,14 +254,14 @@ export async function GET(request: NextRequest): Promise<Response> {
             });
             // The event may have been a new emergency alert, and heartbeats keep the stream
             // looking healthy. Nothing is replayed, so tell the client to refetch.
-            write('event: resync\ndata: {}\n\n');
+            if (write('event: resync\ndata: {}\n\n')) recordSseEventDelivered('resync');
           });
       };
 
       // The Postgres LISTEN connection behind the pub/sub can be recycled while this
       // stream stays open. Nothing is replayed, so tell the client to refetch.
       const unsubscribeRestored = chatPubSub.onConnectionRestored((): void => {
-        write('event: resync\ndata: {}\n\n');
+        if (write('event: resync\ndata: {}\n\n')) recordSseEventDelivered('resync');
       });
       if (isCleanedUp()) {
         unsubscribeRestored();
@@ -250,7 +275,13 @@ export async function GET(request: NextRequest): Promise<Response> {
        * lets the browser reconnect (paced by the `retry` hint) once the pub/sub
        * backend is reachable again.
        */
+      const subscribeStartedAt = performance.now();
+      const recordSubscribe = (outcome: SseSubscribeOutcome): void => {
+        recordSseSubscribeDuration((performance.now() - subscribeStartedAt) / 1000, outcome);
+      };
+
       const failSubscription = (context: string, error: unknown): void => {
+        recordSubscribe('failed');
         closeOutcome = 'subscribe_failed';
         logger.error('Subscription failed, closing the stream so the client reconnects', {
           error,
@@ -306,6 +337,9 @@ export async function GET(request: NextRequest): Promise<Response> {
           return;
         }
       }
+
+      // A client that left halfway through ends the setup early; still a sample of how long it took.
+      recordSubscribe(isCleanedUp() ? 'aborted' : 'ok');
     },
 
     // `cleanup` already records the close and logs it; cancelling is just one of the

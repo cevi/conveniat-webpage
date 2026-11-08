@@ -20,7 +20,6 @@ jest.mock(
 jest.mock('@/features/chat/hooks/use-message-send', () => ({
   useMessageSend: (): unknown => ({ mutate: mockSend, isPending: false }),
 }));
-jest.mock('@/lib/prisma/client', () => ({ MessageType: { IMAGE_MSG: 'IMAGE_MSG' } }));
 // the browser's image decoding is not what these tests are about
 jest.mock('@/features/chat/utils/prepare-chat-image', () => ({
   prepareChatImage: (file: File): Promise<File> => Promise.resolve(file),

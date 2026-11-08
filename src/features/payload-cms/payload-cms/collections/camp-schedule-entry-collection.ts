@@ -11,7 +11,7 @@ import {
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
-import { CourseType } from '@/lib/prisma';
+import { CourseType } from '@/lib/prisma/enums';
 import {
   BlocksFeature,
   defaultEditorLexicalConfig,
@@ -20,7 +20,10 @@ import {
 } from '@payloadcms/richtext-lexical';
 import type { CollectionAfterReadHook, CollectionConfig, TextFieldSingleValidation } from 'payload';
 
-import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  hasAdminOrWebAccess,
+  isEditor,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { campScheduleOrganiserExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-organiser-export';
 import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
 import { handleParticipantMutation } from '@/features/payload-cms/payload-cms/endpoints/course-participants-manager';
@@ -147,7 +150,9 @@ export const CampScheduleEntryCollection: CollectionConfig = {
     },
   },
   access: {
-    read: hasAdminOrWebAccess,
+    // reference data the story points at, which every editor reads, as the Quartiere; the app
+    // reads it server-side for everybody
+    read: isEditor,
     create: hasAdminOrWebAccess,
     update: hasAdminOrWebAccess,
     delete: hasAdminOrWebAccess,
@@ -727,6 +732,49 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       required: false,
       admin: {
         position: 'sidebar',
+      },
+    },
+    {
+      name: 'story',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field: '@/features/story/payload-cms/components/story-links-field#StoryLinksField',
+        },
+      },
+    },
+    {
+      name: 'furtherPage',
+      label: {
+        en: 'Further page',
+        de: 'Weiterführende Seite',
+        fr: 'Page complémentaire',
+      },
+      type: 'relationship',
+      relationTo: 'generic-page',
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'A page of the website the block links to, e.g. the course of an opening ceremony. For the story, link the block from the Story-Board instead.',
+          de: 'Eine Seite der Webseite, auf die der Block verlinkt, z.B. «Ablauf Eröffnungsfeier». Für die Story den Block stattdessen im Story-Board verknüpfen.',
+          fr: 'Une page du site vers laquelle le bloc renvoie. Pour l’histoire, relier le bloc depuis le Story-Board.',
+        },
+      },
+    },
+    {
+      name: 'furtherPageLabel',
+      label: {
+        en: 'Label of the link',
+        de: 'Beschriftung des Links',
+        fr: 'Libellé du lien',
+      },
+      type: 'text',
+      localized: true,
+      admin: {
+        position: 'sidebar',
+        placeholder: 'Mehr dazu',
+        condition: (data) => Boolean(data['furtherPage']),
       },
     },
     LastEditedByUserField,

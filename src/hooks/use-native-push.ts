@@ -5,7 +5,10 @@ import type { NotificationType } from '@/lib/notification-type';
 import { readPreference, writePreference } from '@/lib/preferences';
 import { useOptionalTrpcQueries, useTRPC } from '@/trpc/client';
 import { Cookie } from '@/types/types';
-import { notifyForegroundMessage } from '@/utils/foreground-notifications';
+import {
+  type NativeShowNotificationRequest,
+  notifyForegroundMessage,
+} from '@/utils/foreground-notifications';
 import { refreshChatOfPush } from '@/utils/push-query-refresher';
 import { chatIdOfTarget, resolvePushTarget } from '@/utils/push-target';
 import { reloadPage } from '@/utils/reload-page';
@@ -38,7 +41,15 @@ declare global {
          * Only available on native app builds that implement the
          * `native-push-show-notification` bridge command; feature-detect before calling.
          */
-        showNotification?: (request: Record<string, string>) => void;
+        showNotification?: (request: NativeShowNotificationRequest) => void;
+        /**
+         * Closes the shown notifications whose tag is one of `tags` or starts with one of
+         * `tagPrefixes`, background pushes included. Missing on app builds before
+         * November 2026; feature-detect before calling.
+         */
+        closeNotifications?: (filter: { tags?: string[]; tagPrefixes?: string[] }) => void;
+        /** Closes every notification of the app. Missing on the same older builds. */
+        closeAllNotifications?: () => void;
       }
     | undefined;
 }
@@ -278,6 +289,19 @@ function findPayloadString(
   }
 
   return undefined;
+}
+
+/**
+ * Reads the tag and the stacking the server put into the FCM `data` payload, so a foreground
+ * push is shown under the same tag as the one the OS renders in the background.
+ */
+export function extractNotificationGrouping(payload: Record<string, unknown>): {
+  tag?: string;
+  stack?: boolean;
+} {
+  const tag = findPayloadString(payload, ['tag']);
+  if (tag === undefined) return {};
+  return { tag, ...(findPayloadString(payload, ['stack']) === 'true' && { stack: true }) };
 }
 
 /**
@@ -679,6 +703,7 @@ export function useNativePush(): {
             body: notificationBody,
             targetPath,
             notificationType: extractNotificationType(payload),
+            ...extractNotificationGrouping(payload),
           });
           break;
         }

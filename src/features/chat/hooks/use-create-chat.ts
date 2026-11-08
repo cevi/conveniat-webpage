@@ -10,13 +10,20 @@ import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
 import { isRateLimitError } from '@/features/chat/utils/send-errors';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
-import { ChatCapability, ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import {
+  ChatCapability,
+  ChatMembershipPermission,
+  ChatStatus,
+  ChatType,
+  MessageEventType,
+  MessageType,
+} from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { isTransportError, userErrorMessage } from '@/utils/user-error-message';
-import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { inferProcedureOutput } from '@trpc/server';
 import { usePathname, useRouter } from 'next/navigation';
@@ -85,8 +92,6 @@ export const useCreateChat = (): {
 
   const { mutate } = useMutation(
     trpc.chat.createChat.mutationOptions({
-      networkMode: 'always',
-
       onError: (error, variables) => {
         const optimisticChatId = variables.chatId;
         if (
@@ -188,10 +193,10 @@ export const useCreateChat = (): {
         userChatPermission: ChatMembershipPermission.OWNER,
       };
 
-      queryClient.setQueryData(trpc.chat.chats.queryKey({}), (oldChats) => [
-        optimisticChat,
-        ...(oldChats ?? []),
-      ]);
+      // nothing cached: a list of only this chat would hide the others until it is stale
+      queryClient.setQueryData(trpc.chat.chats.queryKey({}), (oldChats) =>
+        oldChats === undefined ? oldChats : [optimisticChat, ...oldChats],
+      );
 
       // Seeded so that opening `/app/chat/<chatId>` right away renders the chat instead of
       // the "you need to be online" placeholder - the query for a chat the server does not

@@ -1,5 +1,6 @@
 import { chatPubSub } from '@/lib/db/chat-pubsub';
-import type { ChatType, Prisma } from '@/lib/prisma';
+import type { Prisma } from '@/lib/prisma/client';
+import type { ChatType } from '@/lib/prisma/enums';
 import type { PrismaClientOrTransaction } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';

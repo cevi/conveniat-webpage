@@ -1,4 +1,5 @@
-import type { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
+import type { ChatMembershipPermission, ChatType, MessageEventType } from '@/lib/prisma/enums';
+import { type ChatStatus } from '@/lib/prisma/enums';
 
 import type { StaticTranslationString } from '@/types/types';
 
@@ -19,8 +20,6 @@ export interface PreviewMessage {
   createdAt: Date;
   status: MessageEventType;
 }
-
-import type { ChatStatus } from '@/lib/chat-shared';
 
 export interface ChatWithMessagePreview {
   id: string;

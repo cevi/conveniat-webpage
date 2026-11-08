@@ -18,7 +18,7 @@ export interface JobQueueRun {
  * Payload logs `Running N jobs.` at info on every tick that finds work. With three queues on
  * a 10s tick that was ~97% of everything the app shipped to Loki, and nobody reads it — the
  * job's own logs carry the detail. Silenced in production only, so the queue still ticks
- * visibly in dev (enriched with the job slugs by `formatRunningJobsLogMessage`).
+ * visibly in dev.
  *
  * `silent.info` gates that one line and nothing else; job failures are gated separately by
  * `silent.error` and stay on.

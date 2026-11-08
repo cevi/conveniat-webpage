@@ -249,6 +249,7 @@ export const ForumMapOverlays: React.FC<{
 
   return (
     <>
+      {/* under MapLibre's compass, which ends at 108px (see style-overrides.css) */}
       <button
         type="button"
         onClick={toggleShown}
@@ -256,7 +257,7 @@ export const ForumMapOverlays: React.FC<{
         aria-label={shown ? forumMapText.layerOn[locale] : forumMapText.layerOff[locale]}
         title={shown ? forumMapText.layerOn[locale] : forumMapText.layerOff[locale]}
         className={cn(
-          'absolute top-[calc(4.5rem+var(--app-logo-overhang,0px))] right-4 z-40 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.15)]',
+          'absolute top-[calc(116px+var(--app-logo-overhang,0px))] right-4 z-40 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.15)]',
           shown
             ? 'bg-conveniat-green focus-visible:focus-surface-filled text-white'
             : 'hover:bg-quiet focus-visible:focus-surface bg-white text-green-900',

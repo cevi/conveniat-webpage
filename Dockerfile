@@ -76,7 +76,6 @@ ARG BUILD_GIT_REF
 RUN sh create_build_info.sh
 
 # generate prisma client
-ENV PRISMA_OUTPUT='src/lib/prisma/client/'
 RUN pnpm exec prisma generate --no-hints
 
 RUN pnpm run build
@@ -111,9 +110,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # copy the fallback cache containing pre-build / static assets
 COPY --from=builder --chown=nextjs:nodejs /app/.next/cache/fs-fallback ./.next/cache/fs-fallback
-
-# copy prisma client
-COPY --from=builder --chown=nextjs:nodejs /app/src/lib/prisma/ /app/src/lib/prisma/
 
 COPY --chown=nextjs:nodejs docker/entrypoint.sh ./entrypoint.sh
 

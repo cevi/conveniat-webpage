@@ -249,6 +249,22 @@ describe('ChatPubSub telemetry', () => {
     expect(mockMetrics.recordPubSubPublish).toHaveBeenCalledWith('published');
   });
 
+  it('stamps the publish time on the event, so subscribers can measure delivery lag', async () => {
+    jest.useFakeTimers({ now: new Date('2027-07-26T08:00:00Z') });
+    mockExecuteRaw.mockClear();
+    try {
+      await chatPubSub.publish({ type: 'new_message', chatId: 'chat-t3', senderId: 'user-1' });
+    } finally {
+      jest.useRealTimers();
+    }
+
+    const [[, payload]] = mockExecuteRaw.mock.calls as [[TemplateStringsArray, string]];
+    expect(JSON.parse(payload)).toMatchObject({
+      chatId: 'chat-t3',
+      publishedAt: Date.parse('2027-07-26T08:00:00Z'),
+    });
+  });
+
   it('counts a payload too large for pg_notify instead of publishing it', async () => {
     await chatPubSub.publish({
       type: 'new_message',

@@ -1,6 +1,6 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import { MessageComponent } from '@/features/chat/components/chat-view/message';
-import type { ChatType } from '@/lib/prisma/client';
+import type { ChatType } from '@/lib/prisma/enums';
 import type { Locale } from '@/types/types';
 import { Loader2 } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';

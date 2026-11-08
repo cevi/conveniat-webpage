@@ -130,11 +130,11 @@ const membersLabel: Record<'one' | 'other', StaticTranslationString> = {
   other: { de: 'Personen', en: 'people', fr: 'personnes' },
 };
 
-const moreMembersLabel: StaticTranslationString = {
-  de: 'weitere',
+const moreMembersLabel = (count: number): StaticTranslationString => ({
+  de: count === 1 ? 'weitere Person' : 'weitere',
   en: 'more',
   fr: 'de plus',
-};
+});
 
 const otherGroupName: StaticTranslationString = { de: 'Weitere', en: 'Other', fr: 'Autres' };
 
@@ -352,7 +352,7 @@ const GroupMembers: React.FC<{ data: PageData; group: GroupColumn }> = ({ data, 
         ))}
         {unlisted > 0 && (
           <li>
-            + {unlisted} {moreMembersLabel[locale]}
+            + {unlisted} {moreMembersLabel(unlisted)[locale]}
           </li>
         )}
       </ul>

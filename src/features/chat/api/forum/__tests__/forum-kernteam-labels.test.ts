@@ -1,8 +1,5 @@
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
-jest.mock('@prisma/client', () =>
-  jest.requireActual<typeof import('@/lib/prisma')>('@/lib/prisma'),
-);
 jest.mock('payload', () => ({
   getPayload: (): Promise<unknown> =>
     Promise.resolve({

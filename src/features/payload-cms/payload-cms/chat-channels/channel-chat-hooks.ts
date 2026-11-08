@@ -1,11 +1,11 @@
 import type { ChannelAudience } from '@/features/payload-cms/payload-cms/chat-channels/channel-audience';
 import type { ChannelCollection } from '@/features/payload-cms/payload-cms/chat-channels/channel-collections';
 import { syncChannelMemberships } from '@/features/payload-cms/payload-cms/chat-channels/channel-memberships';
-import type { ChatCapability } from '@/lib/chat-shared';
-import { ChatStatus } from '@/lib/chat-shared';
+import { type ChatCapability, ChatStatus } from '@/lib/prisma/enums';
+
 import prisma from '@/lib/db/prisma';
-import type { ChatType } from '@/lib/prisma/client';
-import { ChatMembershipPermission, MessageEventType, MessageType } from '@/lib/prisma/client';
+import type { ChatType } from '@/lib/prisma/enums';
+import { ChatMembershipPermission, MessageEventType, MessageType } from '@/lib/prisma/enums';
 import type { StaticTranslationString } from '@/types/types';
 import type { CollectionAfterChangeHook, CollectionAfterDeleteHook } from 'payload';
 

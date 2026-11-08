@@ -6,10 +6,6 @@ jest.mock('@/config/environment-variables', () => ({
 jest.mock('@/features/payload-cms/payload-cms/locales', () => ({
   enabledLocales: ['de', 'fr', 'en'],
 }));
-jest.mock('@/lib/prisma', () => ({
-  CourseType: { PROGRAM: 'PROGRAM', SHIFT: 'SHIFT' },
-  PushNotificationKind: { REMINDER: 'REMINDER' },
-}));
 jest.mock('@/lib/push/push-queue', () => ({ enqueuePushNotification: jest.fn() }));
 jest.mock('@/utils/get-app-short-name', () => ({
   getAppShortName: jest.fn().mockResolvedValue('conveniat27'),

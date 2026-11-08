@@ -15,8 +15,8 @@ import {
 } from '@/features/chat/utils/offline-outbox';
 import { quotedSnippetOf } from '@/features/chat/utils/quoted-snippet';
 import { isRateLimitError } from '@/features/chat/utils/send-errors';
-import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
-import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
+import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import { MessageEventType, MessageType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import { isTransportError } from '@/utils/user-error-message';
@@ -175,19 +175,9 @@ const performOptimisticMessageUpdate = async (
   if (!parentId) {
     queryClient.setQueryData(
       trpc.chat.chatDetails.queryKey({ chatId }),
-      (oldData: ChatDetails | undefined): ChatDetails => {
-        if (!oldData) {
-          return {
-            archivedAt: null,
-            name: '',
-            participants: [],
-            id: chatId,
-            messages: [optimisticMessage],
-            capabilities: [],
-            type: ChatType.ONE_TO_ONE,
-            status: ChatStatus.OPEN,
-          };
-        }
+      (oldData: ChatDetails | undefined): ChatDetails | undefined => {
+        // nothing cached (a chat opened from a push): invented details would stay until stale
+        if (!oldData) return oldData;
         if (oldData.messages.some((item) => item.id === optimisticMessage.id)) {
           return {
             ...oldData,
@@ -208,7 +198,8 @@ const performOptimisticMessageUpdate = async (
 
   // optimistically update the chat overview
   queryClient.setQueryData(trpc.chat.chats.queryKey({}), (oldChats) => {
-    if (!oldChats) return [];
+    // nothing cached: an empty list here would show "no chats" and be persisted
+    if (!oldChats) return oldChats;
     return oldChats.map((chat) => {
       if (chat.id === chatId) {
         return {
@@ -244,7 +235,6 @@ export const useMessageSend = (): UseMessageSendMutation => {
 
   return useMutation(
     trpc.chat.sendMessage.mutationOptions({
-      networkMode: 'always',
       async onMutate({ chatId, content, type, quotedMessageId, parentId, messageId, timestamp }) {
         const messageType = type ?? MessageType.TEXT_MSG;
 

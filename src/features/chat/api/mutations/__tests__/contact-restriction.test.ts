@@ -32,9 +32,6 @@ jest.mock('superjson', () => ({
 }));
 // `createNewChat` reads the enums from the package, which only the generated `@/lib/prisma`
 // client provides here.
-jest.mock('@prisma/client', () =>
-  jest.requireActual<typeof import('@/lib/prisma')>('@/lib/prisma'),
-);
 jest.mock('@/lib/capabilities', () => ({
   checkCapability: (): Promise<boolean> => Promise.resolve(true),
 }));
@@ -49,7 +46,7 @@ jest.mock('@/lib/db/chat-pubsub', () => ({
 
 import { addParticipants } from '@/features/chat/api/mutations/add-participants';
 import { createChat } from '@/features/chat/api/mutations/create-chat';
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 
 interface Person {
   uuid: string;

@@ -26,8 +26,8 @@ const Notice: React.FC<{
   <div className="bg-quiet flex items-start gap-3 rounded-[14px] p-4">
     <IconTile icon={icon} />
     <div className="min-w-0 flex-1">
-      <h3 className="text-[15px] font-semibold text-green-900">{title}</h3>
-      <p className="mt-0.5 text-[13px] leading-normal text-green-700">{description}</p>
+      <h3 className="text-[15px] font-semibold text-balance text-green-900">{title}</h3>
+      <p className="mt-0.5 text-[13px] leading-normal text-balance text-green-700">{description}</p>
     </div>
   </div>
 );

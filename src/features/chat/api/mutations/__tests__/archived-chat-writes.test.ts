@@ -23,9 +23,6 @@ jest.mock('superjson', () => ({
 }));
 // `update-message-content` reads the enum from the package, which only the generated
 // `@/lib/prisma` client provides here.
-jest.mock('@prisma/client', () => ({
-  MessageType: { ALERT_QUESTION: 'ALERT_QUESTION', ALERT_RESPONSE: 'ALERT_RESPONSE' },
-}));
 jest.mock('@/lib/db/redis', () => ({
   getFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
   // every rate limit counter at its first call
@@ -59,8 +56,14 @@ import { renameChat } from '@/features/chat/api/mutations/rename-chat';
 import { signalTyping } from '@/features/chat/api/mutations/signal-typing';
 import { toggleReaction } from '@/features/chat/api/mutations/toggle-reaction';
 import { updateMessageContent } from '@/features/chat/api/mutations/update-message-content';
-import { ChatCapability } from '@/lib/chat-shared';
-import { ChatMembershipPermission, ChatStatus, ChatType, MessageType } from '@/lib/prisma';
+
+import {
+  ChatCapability,
+  ChatMembershipPermission,
+  ChatStatus,
+  ChatType,
+  MessageType,
+} from '@/lib/prisma/enums';
 
 const CHAT_ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 const MESSAGE_ID = '0a1b2c3d-4e5f-4a6b-8c7d-8e9f0a1b2c3d';
@@ -176,7 +179,7 @@ const mockPrisma = {
   messageReaction: {
     findUnique: (): Promise<null> => Promise.resolve(null),
     count: (): Promise<number> => Promise.resolve(0),
-    createMany: record('messageReaction.createMany'),
+    create: record('messageReaction.create'),
     deleteMany: record('messageReaction.deleteMany'),
   },
 };

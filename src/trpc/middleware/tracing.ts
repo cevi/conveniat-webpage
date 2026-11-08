@@ -1,6 +1,7 @@
 import { annotateRequest, appendToRequest } from '@/lib/request-span';
+import { defineHistogram } from '@/lib/telemetry/metrics';
 import { withSpan } from '@/utils/tracing-helpers';
-import { type Histogram, metrics, SpanStatusCode, ValueType } from '@opentelemetry/api';
+import { SpanStatusCode } from '@opentelemetry/api';
 
 /**
  * Codes the client is expected to receive and render, rather than symptoms of a broken
@@ -22,34 +23,19 @@ export const EXPECTED_ERROR_CODES = new Set([
   'UNPROCESSABLE_CONTENT',
 ]);
 
-/**
- * Buckets in seconds. Most procedures are a single indexed Prisma query and land in the low
- * tens of milliseconds, so the resolution sits there; the tail exists to tell "slow" apart
- * from "the user gave up", which matters on camp wifi.
- */
-const DURATION_BUCKETS_SECONDS = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
-
-let durationHistogram: Histogram | undefined;
-
-/**
- * Takes the meter on first use rather than at module scope.
- *
- * `metrics.getMeter()` resolves the global MeterProvider at the moment it is called and the
- * metrics API keeps no proxy for a provider that is not registered yet — see the note on
- * `startRuntimeMetrics` in `src/tracing.ts`. This module is reachable from `@/trpc/init`,
- * which the Payload admin and the route handler both pull in early, so binding eagerly would
- * risk catching the no-op provider and dropping every sample for the life of the process.
- */
-const getDurationHistogram = (): Histogram => {
-  durationHistogram ??= metrics
-    .getMeter('trpc')
-    .createHistogram('trpc_procedure_duration_seconds', {
-      description: 'Wall-clock duration of a tRPC procedure, in seconds',
-      valueType: ValueType.DOUBLE,
-      advice: { explicitBucketBoundaries: DURATION_BUCKETS_SECONDS },
-    });
-  return durationHistogram;
-};
+const durationHistogram = defineHistogram<{
+  'trpc.path': string;
+  'trpc.type': string;
+  'trpc.error_code': string;
+}>({
+  scope: 'trpc',
+  name: 'trpc_procedure_duration_seconds',
+  description: 'Wall-clock duration of a tRPC procedure, in seconds',
+  // Most procedures are a single indexed Prisma query and land in the low tens of
+  // milliseconds, so the resolution sits there; the tail exists to tell "slow" apart from "the
+  // user gave up", which matters on camp wifi.
+  buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+});
 
 /** The parts of a tRPC middleware result this needs; `next()` reports failures here, not by throwing. */
 type ProcedureOutcome = { ok: true } | { ok: false; error: { code: string; message: string } };
@@ -93,7 +79,7 @@ export const traceProcedure = async <TOutcome extends ProcedureOutcome>(options:
         }
       }
 
-      getDurationHistogram().record((performance.now() - startedAt) / 1000, {
+      durationHistogram.record((performance.now() - startedAt) / 1000, {
         'trpc.path': path,
         'trpc.type': type,
         'trpc.error_code': errorCode ?? 'ok',

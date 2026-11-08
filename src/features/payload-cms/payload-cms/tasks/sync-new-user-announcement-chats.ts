@@ -7,7 +7,7 @@ import { CHANNEL_COLLECTIONS } from '@/features/payload-cms/payload-cms/chat-cha
 import { findKeptMemberIds } from '@/features/payload-cms/payload-cms/chat-channels/channel-memberships';
 import prisma from '@/lib/db/prisma';
 import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
-import type { ChatMembershipPermission } from '@/lib/prisma/client';
+import type { ChatMembershipPermission } from '@/lib/prisma/enums';
 import { formatUserFullName } from '@/utils/format-user-name';
 import type { Payload, TaskConfig } from 'payload';
 

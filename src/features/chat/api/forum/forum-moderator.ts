@@ -3,12 +3,8 @@ import {
   FORUM_ZENTRALE_ROLES,
   hasAccessToThisUser,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
-import {
-  ChatMembershipPermission,
-  ChatType,
-  type ForumAuditAction,
-  type Prisma,
-} from '@/lib/prisma/client';
+import type { Prisma } from '@/lib/prisma/client';
+import { ChatMembershipPermission, ChatType, type ForumAuditAction } from '@/lib/prisma/enums';
 import type { PrismaClientOrTransaction } from '@/types/types';
 
 /** Who acts in the forum: the session user, whose groups hold the Forum-Zentrale role. */

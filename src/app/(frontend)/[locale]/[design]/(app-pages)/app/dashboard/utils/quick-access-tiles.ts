@@ -2,6 +2,7 @@ import type { QuickAccessTileId } from '@/features/settings/quick-access';
 import type { StaticTranslationString } from '@/types/types';
 import type { LucideIcon } from 'lucide-react';
 import {
+  BookOpen,
   Calendar,
   CalendarCheck2,
   ImageUp,
@@ -12,6 +13,7 @@ import {
   Package,
   QrCode,
   Settings,
+  Swords,
   Trophy,
 } from 'lucide-react';
 
@@ -25,6 +27,8 @@ export interface QuickAccessFlags {
   /** the NFC wristbands of this deployment, see `FEATURE_ENABLE_NFC_WRISTBANDS`, and the user's
    * access to them */
   wristbandsEnabled: boolean;
+  /** the story for Leitende, see `FEATURE_ENABLE_STORY`, and whether the user leads */
+  storyEnabled: boolean;
 }
 
 /**
@@ -112,6 +116,22 @@ export const QUICK_ACCESS_TILES = [
     icon: Trophy,
     label: { de: 'Foto-Wettbewerb', en: 'Photo contest', fr: 'Concours photo' },
     flag: 'photoContestEnabled',
+  },
+  {
+    id: 'story',
+    href: '/app/story',
+    icon: BookOpen,
+    label: { de: 'Story', en: 'Story', fr: 'Histoire' },
+    needsAccount: true,
+    flag: 'storyEnabled',
+  },
+  {
+    id: 'challenges',
+    href: '/app/challenges',
+    icon: Swords,
+    label: { de: 'Challenges', en: 'Challenges', fr: 'Défis' },
+    needsAccount: true,
+    flag: 'storyEnabled',
   },
   {
     id: 'settings',

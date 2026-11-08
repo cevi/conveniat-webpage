@@ -1,6 +1,6 @@
 import { toFunktionIds } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import prisma from '@/lib/db/prisma';
-import { ChatMembershipPermission } from '@/lib/prisma/client';
+import { ChatMembershipPermission } from '@/lib/prisma/enums';
 import type { Payload, PayloadRequest } from 'payload';
 
 /**

@@ -1,7 +1,7 @@
 import { BaseCacheHandler } from '@/cache-handlers/handlers/base';
 import type { CacheEntry } from '@/cache-handlers/types';
+import { defineCounter } from '@/lib/telemetry/metrics';
 import { createLogger } from '@/utils/server-logger';
-import { metrics, ValueType } from '@opentelemetry/api';
 import Redis from 'ioredis';
 
 const logger = createLogger('cache:redis');
@@ -14,9 +14,18 @@ const REDIS_URL = process.env['REDIS_URL'] || 'redis://localhost:6379';
  */
 const FLUSHED_AT_PREFIX = 'flushed-at:';
 
-const meter = metrics.getMeter('nextjs-redis-cache');
-const cacheInvalidationCounter = meter.createCounter('cache_invalidation_total', {
-  valueType: ValueType.INT,
+/**
+ * How long a command may take before ioredis rejects it. `connectTimeout` and
+ * `maxRetriesPerRequest` only act when the connection drops; a Redis that stays connected but
+ * stops answering would otherwise hold every `'use cache'` read, and with it the render. A read
+ * that times out is a miss, so the page renders without the cache.
+ */
+export const COMMAND_TIMEOUT_MS = 1000;
+
+const cacheInvalidationCounter = defineCounter<{ type: 'tag'; tag: string }>({
+  scope: 'nextjs-redis-cache',
+  name: 'cache_invalidation_total',
+  description: 'Cache tags flushed that still had entries',
 });
 
 /** A connection to the Redis that holds the cache entries and the tag flush times. */
@@ -24,6 +33,7 @@ export const createCacheRedisClient = (): Redis => {
   const redis = new Redis(REDIS_URL, {
     lazyConnect: true,
     connectTimeout: 2000,
+    commandTimeout: COMMAND_TIMEOUT_MS,
     maxRetriesPerRequest: 1,
     retryStrategy: (times: number): number | void | null => Math.min(times * 50, 2000),
   });
@@ -57,18 +67,17 @@ export class RedisCache extends BaseCacheHandler {
     this.redis = createCacheRedisClient();
   }
 
+  /**
+   * The entry under `key`, or `undefined` when there is none or its tags were flushed after its
+   * render. Rejects when Redis fails or times out, so the caller can tell an outage from a miss.
+   */
   async get(key: string): Promise<{ value: Buffer; metadata?: Partial<CacheEntry> } | undefined> {
-    try {
-      const data = await this.redis.getBuffer(key);
-      if (!data) return;
+    const data = await this.redis.getBuffer(key);
+    if (!data) return;
 
-      const entry = this.deserialize(data);
-      if (!entry || (await this.wasFlushedAfterRender(entry.metadata))) return;
-      return entry;
-    } catch (error) {
-      logger.warn('GET failed', { 'cache.key': key, error });
-      return;
-    }
+    const entry = this.deserialize(data);
+    if (!entry || (await this.wasFlushedAfterRender(entry.metadata))) return;
+    return entry;
   }
 
   async set(key: string, value: Buffer, metadata: CacheEntry): Promise<void> {

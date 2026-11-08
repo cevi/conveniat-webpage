@@ -1,7 +1,7 @@
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
 import { findChatByUuid } from '@/features/chat/api/database-interactions/find-chat-by-uuid';
 import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
-import { ChatMembershipPermission } from '@/lib/prisma';
+import { ChatMembershipPermission } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { TRPCError } from '@trpc/server';
@@ -63,14 +63,12 @@ export const removeParticipant = trpcBaseProcedure
       });
     }
 
-    await prisma.chatMembership.delete({
-      where: {
-        userId_chatId: {
-          chatId: chat.uuid,
-          userId: participantId,
-        },
-      },
+    // A second tap that crossed the first read the membership before it was gone. The member is
+    // out either way, and the first call already ended their subscription.
+    const { count } = await prisma.chatMembership.deleteMany({
+      where: { chatId: chat.uuid, userId: participantId },
     });
+    if (count === 0) return { success: true };
 
     // Ends the removed user's live subscription to the chat on every device, see the SSE route.
     ctx.afterTransactionCommit(() => {

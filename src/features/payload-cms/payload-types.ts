@@ -70,6 +70,10 @@ export interface Config {
     'camp-categories': CampCategory;
     'camp-schedule-entry': CampScheduleEntry;
     'helper-shifts': HelperShift;
+    'story-events': StoryEvent;
+    'story-figures': StoryFigure;
+    'story-challenges': StoryChallenge;
+    'story-images': StoryImage;
     'piket-schedules': PiketSchedule;
     'push-notification-subscriptions': PushNotificationSubscription;
     users: User;
@@ -158,6 +162,10 @@ export interface Config {
     'camp-categories': CampCategoriesSelect<false> | CampCategoriesSelect<true>;
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
     'helper-shifts': HelperShiftsSelect<false> | HelperShiftsSelect<true>;
+    'story-events': StoryEventsSelect<false> | StoryEventsSelect<true>;
+    'story-figures': StoryFiguresSelect<false> | StoryFiguresSelect<true>;
+    'story-challenges': StoryChallengesSelect<false> | StoryChallengesSelect<true>;
+    'story-images': StoryImagesSelect<false> | StoryImagesSelect<true>;
     'piket-schedules': PiketSchedulesSelect<false> | PiketSchedulesSelect<true>;
     'push-notification-subscriptions': PushNotificationSubscriptionsSelect<false> | PushNotificationSubscriptionsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -324,6 +332,15 @@ export interface PayloadMcpApiKeyAuthOperations {
 export interface GenericPage {
   id: string;
   publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _publishing_status_cache?:
     | {
         [k: string]: unknown;
       }
@@ -1277,6 +1294,11 @@ export interface CampScheduleEntry {
    */
   organiser?: (string | User)[] | null;
   category?: (string | null) | CampCategory;
+  /**
+   * A page of the website the block links to, e.g. the course of an opening ceremony. For the story, link the block from the Story-Board instead.
+   */
+  furtherPage?: (string | null) | GenericPage;
+  furtherPageLabel?: string | null;
   lastEditedByUser?: (string | null) | User;
   enrolledCount?: number | null;
   updatedAt: string;
@@ -1291,6 +1313,10 @@ export interface CampCategory {
   id: string;
   title: string;
   colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
+  /**
+   * The blocks of this category are listed on the Story-Board, so none of them is left without a story.
+   */
+  isStory?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2342,6 +2368,15 @@ export interface Form {
     | number
     | boolean
     | null;
+  _publishing_status_cache?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   _localized_status: LocalizedPublishingStatus;
   _disable_unpublishing?: boolean | null;
   _locale: string;
@@ -2441,6 +2476,15 @@ export interface FormSubmission {
 export interface HelperJob {
   id: string;
   publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _publishing_status_cache?:
     | {
         [k: string]: unknown;
       }
@@ -2937,6 +2981,15 @@ export interface TimelineCategory {
 export interface Timeline {
   id: string;
   publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _publishing_status_cache?:
     | {
         [k: string]: unknown;
       }
@@ -3785,7 +3838,6 @@ export interface FeaturedSectionBlock {
       email?: string | null;
       openInNewTab?: boolean | null;
     };
-    id?: string | null;
   };
   subFeatures?:
     | {
@@ -4272,6 +4324,15 @@ export interface EmergencyCard {
     | number
     | boolean
     | null;
+  _publishing_status_cache?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   _localized_status: LocalizedPublishingStatus;
   _disable_unpublishing?: boolean | null;
   _locale: string;
@@ -4449,6 +4510,163 @@ export interface HelperShift {
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
+}
+/**
+ * What happened in the story. Fastest to edit on the Story-Board.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "story-events".
+ */
+export interface StoryEvent {
+  id: string;
+  title: string;
+  /**
+   * Comes before the first camp day.
+   */
+  isPrologue?: boolean | null;
+  day?: string | null;
+  /**
+   * Short, so that Leitende can retell it to their participants. A blank line starts a new paragraph.
+   */
+  text?: string | null;
+  /**
+   * Once the event is visible, these blocks show Leitende a link here in the app.
+   */
+  scheduleEntries?: (string | CampScheduleEntry)[] | null;
+  figures?: (string | StoryFigure)[] | null;
+  locations?: (string | CampMapAnnotation)[] | null;
+  /**
+   * Leitende see the event from then on, usually just after the block it happens in.
+   */
+  visibleFrom: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * The figures of the story. What is known about them appears section by section.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "story-figures".
+ */
+export interface StoryFigure {
+  id: string;
+  name: string;
+  role?: string | null;
+  belongsTo: 'court' | 'quartier' | 'other';
+  quartier?: (string | null) | Quartier;
+  knowledge?:
+    | {
+        /**
+         * Empty: as the event, else as the figure.
+         */
+        visibleFrom?: string | null;
+        /**
+         * Never appears before this event.
+         */
+        event?: (string | null) | StoryEvent;
+        text: string;
+        id?: string | null;
+      }[]
+    | null;
+  relations?:
+    | {
+        figure: string | StoryFigure;
+        /**
+         * Empty: once both figures are visible.
+         */
+        visibleFrom?: string | null;
+        description: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Only Leitende see it, and only once the figure is visible.
+   */
+  photo?: (string | null) | StoryImage;
+  /**
+   * Before then the figure does not exist in the app at all.
+   */
+  visibleFrom: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "story-images".
+ */
+export interface StoryImage {
+  id: string;
+  /**
+   * For screen readers.
+   */
+  alt: string;
+  /**
+   * Taken from the figure that shows the picture. Without one it stays hidden.
+   */
+  visibleFrom?: string | null;
+  _objectKey?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    tiny?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    portrait?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "story-challenges".
+ */
+export interface StoryChallenge {
+  id: string;
+  title: string;
+  /**
+   * The figure who sets the challenge.
+   */
+  from?: (string | null) | StoryFigure;
+  day: string;
+  /**
+   * After this it is over.
+   */
+  until?: string | null;
+  message?: string | null;
+  task: string;
+  /**
+   * Usually the Infopoint. The app shows the place on the map.
+   */
+  confirmAt?: (string | null) | CampMapAnnotation;
+  /**
+   * E.g. Stadtleben: the block shows the challenge to Leitende.
+   */
+  scheduleEntries?: (string | CampScheduleEntry)[] | null;
+  /**
+   * Leitende see the challenge from then on, e.g. in the morning of the day.
+   */
+  visibleFrom: string;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5564,6 +5782,22 @@ export interface PayloadLockedDocument {
         value: string | HelperShift;
       } | null)
     | ({
+        relationTo: 'story-events';
+        value: string | StoryEvent;
+      } | null)
+    | ({
+        relationTo: 'story-figures';
+        value: string | StoryFigure;
+      } | null)
+    | ({
+        relationTo: 'story-challenges';
+        value: string | StoryChallenge;
+      } | null)
+    | ({
+        relationTo: 'story-images';
+        value: string | StoryImage;
+      } | null)
+    | ({
         relationTo: 'piket-schedules';
         value: string | PiketSchedule;
       } | null)
@@ -5721,6 +5955,7 @@ export interface PayloadMigration {
  */
 export interface GenericPageSelect<T extends boolean = true> {
   publishingStatus?: T;
+  _publishing_status_cache?: T;
   _localized_status?: T;
   _disable_unpublishing?: T;
   _locale?: T;
@@ -6619,7 +6854,6 @@ export interface FeaturedSectionBlockSelect<T extends boolean = true> {
               email?: T;
               openInNewTab?: T;
             };
-        id?: T;
       };
   subFeatures?:
     | T
@@ -6757,6 +6991,7 @@ export interface TabsBlockSelect<T extends boolean = true> {
  */
 export interface TimelineSelect<T extends boolean = true> {
   publishingStatus?: T;
+  _publishing_status_cache?: T;
   _localized_status?: T;
   _disable_unpublishing?: T;
   _locale?: T;
@@ -7008,6 +7243,7 @@ export interface FormCollectionSelect<T extends boolean = true> {
  */
 export interface HelperJobsSelect<T extends boolean = true> {
   publishingStatus?: T;
+  _publishing_status_cache?: T;
   _localized_status?: T;
   _disable_unpublishing?: T;
   _locale?: T;
@@ -7112,6 +7348,7 @@ export interface AnnouncementsSelect<T extends boolean = true> {
  */
 export interface EmergencyCardsSelect<T extends boolean = true> {
   publishingStatus?: T;
+  _publishing_status_cache?: T;
   _localized_status?: T;
   _disable_unpublishing?: T;
   _locale?: T;
@@ -7201,6 +7438,7 @@ export interface QuartiereSelect<T extends boolean = true> {
 export interface CampCategoriesSelect<T extends boolean = true> {
   title?: T;
   colorTheme?: T;
+  isStory?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -7259,6 +7497,8 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
   quartiere?: T;
   organiser?: T;
   category?: T;
+  furtherPage?: T;
+  furtherPageLabel?: T;
   lastEditedByUser?: T;
   enrolledCount?: T;
   updatedAt?: T;
@@ -7319,6 +7559,113 @@ export interface HelperShiftsSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "story-events_select".
+ */
+export interface StoryEventsSelect<T extends boolean = true> {
+  title?: T;
+  isPrologue?: T;
+  day?: T;
+  text?: T;
+  scheduleEntries?: T;
+  figures?: T;
+  locations?: T;
+  visibleFrom?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "story-figures_select".
+ */
+export interface StoryFiguresSelect<T extends boolean = true> {
+  name?: T;
+  role?: T;
+  belongsTo?: T;
+  quartier?: T;
+  knowledge?:
+    | T
+    | {
+        visibleFrom?: T;
+        event?: T;
+        text?: T;
+        id?: T;
+      };
+  relations?:
+    | T
+    | {
+        figure?: T;
+        visibleFrom?: T;
+        description?: T;
+        id?: T;
+      };
+  photo?: T;
+  visibleFrom?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "story-challenges_select".
+ */
+export interface StoryChallengesSelect<T extends boolean = true> {
+  title?: T;
+  from?: T;
+  day?: T;
+  until?: T;
+  message?: T;
+  task?: T;
+  confirmAt?: T;
+  scheduleEntries?: T;
+  visibleFrom?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "story-images_select".
+ */
+export interface StoryImagesSelect<T extends boolean = true> {
+  alt?: T;
+  visibleFrom?: T;
+  _objectKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        tiny?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        portrait?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -8353,6 +8700,7 @@ export interface FormsSelect<T extends boolean = true> {
       };
   submissions?: T;
   publishingStatus?: T;
+  _publishing_status_cache?: T;
   _localized_status?: T;
   _disable_unpublishing?: T;
   _locale?: T;
@@ -10658,6 +11006,10 @@ export interface TaskCreateCollectionExport {
       | 'camp-categories'
       | 'camp-schedule-entry'
       | 'helper-shifts'
+      | 'story-events'
+      | 'story-figures'
+      | 'story-challenges'
+      | 'story-images'
       | 'piket-schedules'
       | 'push-notification-subscriptions'
       | 'users'

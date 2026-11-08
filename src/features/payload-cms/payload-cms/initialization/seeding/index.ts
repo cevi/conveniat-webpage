@@ -31,6 +31,7 @@ import {
 import { seedHofDashboard } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hof-dashboard';
 import { seedJobs } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-jobs';
 import { seedQuartiere } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-quartiere';
+import { seedStory } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-story';
 import { createRandomUser } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-users';
 import {
   generateTimelineEntries,
@@ -708,6 +709,18 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     });
   }
   console.log('Seeding: Schedule entries created.');
+
+  const mainStage = campSitesIds[0];
+  if (mainStage !== undefined) {
+    console.log('Seeding: Creating the story...');
+    const { docs: quartiere } = await payload.find({
+      collection: 'quartiere',
+      limit: 1,
+      depth: 0,
+      select: {},
+    });
+    await seedStory(payload, mainStage, quartiere[0]?.id);
+  }
 
   await seedPushNotifications(payload, userIds);
 

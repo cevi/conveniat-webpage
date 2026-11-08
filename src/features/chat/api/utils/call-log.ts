@@ -1,7 +1,7 @@
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { redis } from '@/lib/db/redis';
-import { MessageEventType, MessageType } from '@/lib/prisma/client';
+import { MessageEventType, MessageType } from '@/lib/prisma/enums';
 import type { PrismaClientOrTransaction, StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 

@@ -64,7 +64,12 @@ export const makeQueryClient = (): QueryClient => {
         refetchOnReconnect: true,
       },
       mutations: {
-        networkMode: 'online',
+        // A mutation is something the user just did and waits for. Held while offline, it showed
+        // a button spinning with no message, and once the connection returned it ran unseen,
+        // possibly for whoever had signed in since. Offline it fails at once instead, and a
+        // screen that wants to send later keeps its own outbox, like the chat and the forum. A
+        // write nobody waits for, like a read receipt, may still set `'online'` to be held.
+        networkMode: 'always',
       },
       dehydrate: {
         shouldDehydrateQuery: (query): boolean =>

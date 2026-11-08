@@ -1,7 +1,7 @@
 'use client';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { ChatType } from '@/lib/prisma/client';
+import { ChatType } from '@/lib/prisma/enums';
 import { cn } from '@/utils/tailwindcss-override';
 import type { LucideIcon } from 'lucide-react';
 import { CalendarDays, LifeBuoy, Megaphone, Siren, Users } from 'lucide-react';

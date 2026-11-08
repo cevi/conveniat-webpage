@@ -123,8 +123,9 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
           }
 
           if (runnableOrActiveJobs > 0) {
-            req.payload.logger.info(
-              `fetchSmtpBounces: ${runnableOrActiveJobs} active or runnable jobs already exist. Skipping scheduling.`,
+            req.payload.logger.debug(
+              { 'jobs.runnable_or_active': runnableOrActiveJobs },
+              'fetchSmtpBounces: active or runnable jobs already exist. Skipping scheduling.',
             );
             return skipSchedule();
           }
@@ -154,14 +155,15 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
           }
 
           if (pendingDsnCount === 0) {
-            req.payload.logger.info(
+            req.payload.logger.debug(
               'fetchSmtpBounces: No outgoing emails in the last 7 days are waiting for DSN. Skipping.',
             );
             return skipSchedule();
           }
 
-          req.payload.logger.info(
-            `fetchSmtpBounces: Slot lock acquired, ${pendingDsnCount} pending DSN emails found. Scheduling job.`,
+          req.payload.logger.debug(
+            { 'smtp.pending_dsn_count': pendingDsnCount },
+            'fetchSmtpBounces: Slot lock acquired, pending DSN emails found. Scheduling job.',
           );
 
           return scheduleAt(queueable.waitUntil);
@@ -206,10 +208,9 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
       }
 
       if (Date.now() < nextAllowedAttemptTime) {
-        logger.info(
-          `fetchSmtpBounces task is backed-off. Next attempt allowed after: ${new Date(
-            nextAllowedAttemptTime,
-          ).toISOString()}`,
+        logger.debug(
+          { 'smtp.next_attempt_at': new Date(nextAllowedAttemptTime).toISOString() },
+          'fetchSmtpBounces task is backed off.',
         );
         return { output: { status: 'backed-off' } };
       }
@@ -235,7 +236,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
         password === undefined ||
         password.length === 0
       ) {
-        logger.info('Skipping fetchSmtpBounces: Missing POP3/SMTP credentials.');
+        logger.debug('Skipping fetchSmtpBounces: Missing POP3/SMTP credentials.');
         return { output: { status: 'skipped' } };
       }
 
@@ -267,7 +268,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
         const messages = parsePop3Messages(listResponseRaw);
 
         if (messages.length === 0) {
-          logger.info('No messages found in inbox while checking for bounces.');
+          logger.debug('No messages found in inbox while checking for bounces.');
           return { output: { status: 'empty' } };
         }
 
@@ -309,8 +310,13 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
           MAX_MESSAGES_PER_RUN,
         );
 
-        logger.info(
-          `Found ${messages.length} messages in inbox while checking for bounces, ${ignoredUids.size} already read and empty. Processing ${messagesToProcess.length}...`,
+        logger.debug(
+          {
+            'smtp.message_count': messages.length,
+            'smtp.ignored_count': ignoredUids.size,
+            'smtp.processing_count': messagesToProcess.length,
+          },
+          'Checking the inbox for bounces.',
         );
 
         let ignoredCount = 0;
@@ -430,8 +436,9 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
                     matched = await processTrackingUpdate(matchedDocumentId);
 
                     if (matched) {
-                      logger.info(
-                        `Processed bounce for outgoing email ${matchedDocumentId} by its Message-ID`,
+                      logger.debug(
+                        { 'outgoing_email.id': matchedDocumentId },
+                        'Processed bounce for outgoing email by its Message-ID',
                       );
                       break;
                     }
@@ -500,9 +507,20 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
           }
         }
 
-        // Log a single summary line instead of per-message noise
-        logger.info(
-          `Bounce check complete: ${messagesToProcess.length} of ${messages.length} messages read, ${matchedCount} matched, ${dmarcCount} DMARC reports deleted, ${ignoredCount} newly ignored (other instance), ${poisonPillCount} poison-pill deleted, ${errorCount} errors`,
+        // One summary line per run, at info only when the run changed something, because the
+        // check runs every 15 minutes and mostly finds nothing of ours.
+        const changedSomething = matchedCount + dmarcCount + poisonPillCount + errorCount > 0;
+        logger[changedSomething ? 'info' : 'debug'](
+          {
+            'smtp.messages_read': messagesToProcess.length,
+            'smtp.message_count': messages.length,
+            'smtp.matched_count': matchedCount,
+            'smtp.dmarc_deleted_count': dmarcCount,
+            'smtp.newly_ignored_count': ignoredCount,
+            'smtp.poison_pill_count': poisonPillCount,
+            'smtp.error_count': errorCount,
+          },
+          'Bounce check complete',
         );
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);

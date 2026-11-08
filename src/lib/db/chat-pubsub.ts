@@ -44,6 +44,11 @@ export interface ChatRealtimeEvent {
    * `new_chat` announcement after being added to a chat.
    */
   channel?: string;
+  /**
+   * When the event was published, in epoch milliseconds, set by `publish`. The SSE route
+   * measures delivery lag against it. Missing on events from a replica that predates it.
+   */
+  publishedAt?: number;
   message?: {
     id: string;
     createdAt: Date;
@@ -334,7 +339,7 @@ class ChatPubSub {
       return;
     }
 
-    const publishedEvent = event;
+    const publishedEvent: ChatRealtimeEvent = { ...event, publishedAt: Date.now() };
     const payload = JSON.stringify(publishedEvent);
     const payloadBytes = Buffer.byteLength(payload, 'utf8');
     const channel = publishedEvent.channel ?? publishedEvent.chatId;

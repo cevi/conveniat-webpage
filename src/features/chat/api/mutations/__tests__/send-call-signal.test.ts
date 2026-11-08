@@ -52,7 +52,7 @@ jest.mock('@/lib/push/send-notification', () => ({
 }));
 
 import { sendCallSignal } from '@/features/chat/api/mutations/send-call-signal';
-import { ChatCapability, ChatType } from '@/lib/prisma';
+import { ChatCapability, ChatType } from '@/lib/prisma/enums';
 
 const CHAT_ID = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 const CALL_ID = '0a1b2c3d-4e5f-4a6b-8c7d-8e9f0a1b2c3d';

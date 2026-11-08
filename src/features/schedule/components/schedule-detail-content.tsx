@@ -20,6 +20,7 @@ import {
   StepsTab,
 } from '@/features/schedule/components/schedule-detail-tabs';
 import { mapCenterOf, ScheduleMiniMap } from '@/features/schedule/components/schedule-mini-map';
+import { ScheduleStoryRows } from '@/features/schedule/components/schedule-story-rows';
 import { WorkshopAdminActions } from '@/features/schedule/components/workshop-admin-actions';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import {
@@ -412,6 +413,15 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                       ))}
                     </div>
                   </FactRow>
+                )}
+
+                {!isEditing && (
+                  <ScheduleStoryRows
+                    entryIds={[...new Set([entry.id, shown.id, ...otherSlots.map(({ id }) => id)])]}
+                    furtherPage={entry.furtherPage}
+                    furtherPageLabel={entry.furtherPageLabel}
+                    locale={locale}
+                  />
                 )}
 
                 {/* Target Group */}

@@ -2,6 +2,7 @@
 import { AppFooterController } from '@/components/footer/hide-footer-context';
 import { SetHideHeader } from '@/components/header/hide-header-context';
 import { Button } from '@/components/ui/buttons/button';
+import { floatingButtonClassName } from '@/components/ui/buttons/floating-button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FactRow } from '@/components/ui/fact-row';
 import { SectionLabel } from '@/components/ui/section-label';
@@ -9,11 +10,7 @@ import { OrganiserContacts } from '@/features/schedule/components/organiser-cont
 import { ParticipantList } from '@/features/schedule/components/participant-list';
 import { ReminderButton, ReminderHint } from '@/features/schedule/components/reminder-button';
 import { ScheduleDetailSkeleton } from '@/features/schedule/components/schedule-detail-skeleton';
-import {
-  floatingButtonClassName,
-  mapCenterOf,
-  ScheduleMiniMap,
-} from '@/features/schedule/components/schedule-mini-map';
+import { mapCenterOf, ScheduleMiniMap } from '@/features/schedule/components/schedule-mini-map';
 import { formatSpotsFilled, ShiftCapacity } from '@/features/schedule/components/shift-capacity';
 import { ShiftEnrollmentAction } from '@/features/schedule/components/shift-enrollment-action';
 import { ShiftMainContent } from '@/features/schedule/components/shift-main-content';

@@ -5,7 +5,7 @@ import { DEFAULT_FORUM_FILTERS } from '@/features/chat/components/forum/forum-fi
 import { ForumOverview } from '@/features/chat/components/forum/forum-overview';
 import type { ForumPostSummary } from '@/lib/forum-shared';
 import { createTestTrpc } from '@/trpc/test-trpc';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type React from 'react';
 
 let topics: unknown[] | undefined;
@@ -155,5 +155,58 @@ describe('the forum feed', () => {
     renderOverview();
 
     expect(screen.getByText('Noch keine weiteren Beiträge')).toBeTruthy();
+    // one quiet line, not the empty state of an empty forum
+    expect(screen.queryByRole('heading', { name: 'Noch keine weiteren Beiträge' })).toBeNull();
+    expect(screen.queryByText(/Hier erscheinen Fragen/)).toBeNull();
+  });
+
+  it('shows an empty forum its full empty state', () => {
+    topics = [topic];
+    renderOverview();
+
+    expect(screen.getByRole('heading', { name: 'Noch keine Beiträge' })).toBeTruthy();
+    expect(screen.getByText(/Hier erscheinen Fragen/)).toBeTruthy();
+  });
+
+  it('leaves the pinned posts out of a filter that matches nothing, and leads back', async () => {
+    topics = [topic];
+    pinnedPosts = [post({ id: 'pinned', pinned: true })];
+    renderOverview();
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Meine' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Schliessen' }));
+
+    expect(await screen.findByText('Kein Beitrag passt zu diesen Filtern.')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /Zu heisses Wasser/ })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter zurücksetzen' }));
+    expect(screen.getByRole('link', { name: /Zu heisses Wasser/ })).toBeTruthy();
+  });
+
+  it('offers to write what the search found nothing for', async () => {
+    topics = [topic];
+    renderOverview();
+    fireEvent.change(screen.getByPlaceholderText(/Suchen/), { target: { value: 'Zeltheringe' } });
+
+    expect(await screen.findByText('Noch kein Beitrag zu «Zeltheringe».')).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Als neuen Beitrag schreiben' }).getAttribute('href'),
+    ).toBe('/app/forum/new?title=Zeltheringe');
+  });
+
+  it('names the status of a post in the feed only where it is no longer open', () => {
+    topics = [topic];
+    feedPosts = [
+      post({ id: 'open', title: 'WC beim Quartier 3 verstopft', excerpt: 'Es riecht.' }),
+      post({ id: 'working', title: 'Strom fällt aus', status: 'IN_PROGRESS' }),
+    ];
+    renderOverview();
+
+    const open = screen.getByRole('link', { name: /WC beim Quartier 3/ });
+    expect(within(open).queryByText('Offen')).toBeNull();
+    // the feed lists titles; the text is one tap away
+    expect(within(open).queryByText('Es riecht.')).toBeNull();
+    const working = screen.getByRole('link', { name: /Strom fällt aus/ });
+    expect(within(working).getByText('In Arbeit')).toBeTruthy();
   });
 });

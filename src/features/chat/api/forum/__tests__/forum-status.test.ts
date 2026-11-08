@@ -22,9 +22,6 @@ jest.mock('superjson', () => ({
     deserialize: (value: { json: unknown }): unknown => value.json,
   },
 }));
-jest.mock('@prisma/client', () =>
-  jest.requireActual<typeof import('@/lib/prisma')>('@/lib/prisma'),
-);
 // the pushes read on the pool after the commit; it sees the same tables
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
@@ -53,7 +50,7 @@ jest.mock('@/lib/push/send-notification', () => ({
 }));
 
 import { updateForumPostStatus } from '@/features/chat/api/forum/forum-mutations';
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 
 const TOPIC = '0193f1a0-0000-7000-8000-000000000001';
 const POST = '0193f1a0-0000-7000-8000-0000000000aa';

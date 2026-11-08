@@ -16,7 +16,7 @@ import {
   CourseType,
   MessageEventType,
   MessageType,
-} from '@/lib/prisma';
+} from '@/lib/prisma/enums';
 import { MAX_STAR_CHANGES_PER_SYNC } from '@/lib/star-sync';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';

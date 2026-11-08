@@ -2,7 +2,7 @@ import type {
   MaterialItemStatus,
   MaterialLoanDisplayStatus,
 } from '@/features/material/utils/stock';
-import type { MaterialCondition } from '@/lib/prisma/client';
+import type { MaterialCondition } from '@/lib/prisma/enums';
 import type { Locale, StaticTranslationString } from '@/types/types';
 
 export const itemStatusLabel: Record<MaterialItemStatus, StaticTranslationString> = {

@@ -42,9 +42,7 @@ export const useAutosaveReview = (
 } => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const mutation = useMutation(
-    trpc.hofDashboard.updateSubmissionReview.mutationOptions({ networkMode: 'always' }),
-  );
+  const mutation = useMutation(trpc.hofDashboard.updateSubmissionReview.mutationOptions());
   const [values, setValues] = useState(stored);
   const [state, setState] = useState<AutosaveState>('idle');
   const lastSaved = useRef(stored);

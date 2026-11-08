@@ -11,9 +11,9 @@ import type { LinkFieldDataType } from '@/features/payload-cms/payload-cms/share
 import { draftGlobalTag } from '@/features/payload-cms/payload-cms/utils/draft-global-tag';
 import {
   getURLForLinkField,
-  hasPermissionsForLinkField,
   openURLInNewTab,
 } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
+import { hasPermissionsForLinkField } from '@/features/payload-cms/payload-cms/utils/link-field-permissions';
 import type { Header } from '@/features/payload-cms/payload-types';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import type { Locale, StaticTranslationString } from '@/types/types';

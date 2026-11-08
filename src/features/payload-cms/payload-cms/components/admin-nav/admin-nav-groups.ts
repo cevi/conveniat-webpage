@@ -1,5 +1,6 @@
 import {
   ADMIN_OR_WEB_ROLES,
+  EDITOR_ROLES,
   FORUM_ZENTRALE_ROLES,
   getUserGroups,
   hasAccessToThisUser,
@@ -39,6 +40,8 @@ interface AdminViewLink {
   group: AdminPanelDashboardGroupKey;
   /** Who gets the link. The view checks the same roles again before it renders. */
   requiredRoles: Roles[];
+  /** listed before the collections of its group instead of after them */
+  first?: boolean;
 }
 
 /**
@@ -46,6 +49,14 @@ interface AdminViewLink {
  * into its sidebar groups, so a view is listed here to join one.
  */
 const ADMIN_VIEW_LINKS: AdminViewLink[] = [
+  {
+    // first in its group: the week at a glance, where the story team works
+    path: '/story-board',
+    label: { de: 'Story-Board', en: 'Story board', fr: 'Story-Board' },
+    group: 'AppStory',
+    requiredRoles: EDITOR_ROLES,
+    first: true,
+  },
   {
     path: '/access-overview',
     label: {
@@ -134,12 +145,14 @@ export const buildAdminNavGroups = ({
       group = { label: groupLabel, links: [] };
       groups.push(group);
     }
-    group.links.push({
+    const link: AdminNavLink = {
       id: `nav-view-${view.path.slice(1).replaceAll('/', '-')}`,
       href: view.inApp === true ? view.path : `${adminRoute}${view.path}`,
       label: view.label[locale],
       ...(view.inApp === true ? { external: true } : {}),
-    });
+    };
+    if (view.first === true) group.links.unshift(link);
+    else group.links.push(link);
   }
 
   return groups;

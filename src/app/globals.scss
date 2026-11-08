@@ -51,6 +51,18 @@
    is really open, see `useKeyboardShrinksPage`. */
 @custom-variant typing (&:where(:root:has(:read-write:focus) *));
 
+/* The free area of an app page: under the header, above the tab bar, which is none on a desktop.
+   A split view gives its pane this height, so a screen with `absolute inset-0` in it fills the
+   pane, not the viewport. The variables are read where the class is used, so a page that moves
+   --app-content-top, like the app pages in the website design, gets its own value. */
+@utility h-app-content {
+  height: calc(100dvh - var(--app-content-top) - var(--app-tab-bar-height));
+}
+
+@utility min-h-app-content {
+  min-height: calc(100dvh - var(--app-content-top) - var(--app-tab-bar-height));
+}
+
 @utility focus-ring {
   outline: 2px solid theme('colors.conveniat-green');
   outline-offset: 2px;

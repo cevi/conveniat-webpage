@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { GET } from '@/app/(frontend)/api/chat/sse/route';
 import { hasAccessToThisUser } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import * as chatRealtimeMetrics from '@/lib/chat-realtime-metrics';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import prisma from '@/lib/db/prisma';
 import { auth } from '@/utils/auth';
@@ -28,6 +29,14 @@ jest.mock('@/utils/auth', () => ({
 
 jest.mock('@/utils/auth-helpers', () => ({
   isValidNextAuthUser: jest.fn(),
+}));
+
+jest.mock('@/lib/chat-realtime-metrics', () => ({
+  recordSseEventDelivered: jest.fn(),
+  recordSseStreamClosed: jest.fn(),
+  recordSseStreamOpened: jest.fn(),
+  recordSseStreamRejected: jest.fn(),
+  recordSseSubscribeDuration: jest.fn(),
 }));
 
 jest.mock('@/lib/db/chat-pubsub', () => ({
@@ -59,6 +68,7 @@ const newMessage = (chatId: string, text: string): object => ({
 const mockAuth = auth as unknown as jest.Mock;
 const mockIsValidNextAuthUser = isValidNextAuthUser as unknown as jest.Mock;
 const mockHasAccess = hasAccessToThisUser as unknown as jest.Mock;
+const mockMetrics = jest.mocked(chatRealtimeMetrics);
 
 /** Signs the next request in as someone holding exactly these role sets. */
 const signInWithRoles = (...held: string[]): void => {
@@ -204,6 +214,56 @@ describe('GET /api/chat/sse', () => {
     await reader?.cancel();
   });
 
+  it.each([
+    ['the reason the client sent', '?reason=watchdog', {}, 'watchdog'],
+    ['a reason it does not know as unknown', '?reason=whatever', {}, 'unknown'],
+    ['no reason as unknown', '', {}, 'unknown'],
+    [
+      "the browser's own reconnect, which repeats the stream's event id",
+      '?reason=open',
+      { 'Last-Event-ID': 'stream' },
+      'browser_retry',
+    ],
+  ])('counts the opened stream by %s', async (_case, query, headers, reason) => {
+    signInWithRoles();
+
+    const response = await GET(
+      new NextRequest(`https://konekta.ch/api/chat/sse${query}`, { headers }),
+    );
+    const reader = response.body?.getReader();
+    const firstChunk = await reader?.read();
+    const opening = new TextDecoder().decode(firstChunk?.value);
+    await reader?.cancel();
+
+    expect(opening).toContain('id: stream');
+    expect(mockMetrics.recordSseStreamOpened).toHaveBeenCalledWith(reason);
+  });
+
+  it('measures how long an event took from its publish to the stream', async () => {
+    signInWithRoles();
+    let deliver: ((event: object) => void) | undefined;
+    (chatPubSub.subscribe as unknown as jest.Mock).mockImplementationOnce(
+      (_channel: string, listener: (event: object) => void) => {
+        deliver = listener;
+        return Promise.resolve(jest.fn());
+      },
+    );
+
+    const response = await GET(new NextRequest('https://konekta.ch/api/chat/sse'));
+    const reader = response.body?.getReader();
+    await reader?.read();
+    await reader?.read();
+    deliver?.({ ...newMessage('user-uuid-123', 'hello'), publishedAt: 1_700_000_000_000 });
+    await reader?.read();
+    await reader?.cancel();
+
+    expect(mockMetrics.recordSseEventDelivered).toHaveBeenCalledWith(
+      'new_message',
+      1_700_000_000_000,
+    );
+    expect(mockMetrics.recordSseSubscribeDuration).toHaveBeenCalledWith(expect.any(Number), 'ok');
+  });
+
   it('ends the stream when the subscription fails, instead of serving a silent one', async () => {
     const mockUser = { uuid: 'user-uuid-123', group_ids: [] };
     mockAuth.mockResolvedValue({ user: mockUser });
@@ -226,6 +286,10 @@ describe('GET /api/chat/sse', () => {
 
     // A `retry:` hint paces the browser's own reconnect attempts.
     expect(frames).toContain('retry:');
+    expect(mockMetrics.recordSseSubscribeDuration).toHaveBeenCalledWith(
+      expect.any(Number),
+      'failed',
+    );
   });
 
   it('tells the client to refetch when the pub/sub connection was re-established', async () => {
@@ -252,6 +316,7 @@ describe('GET /api/chat/sse', () => {
     const chunk = await reader?.read();
 
     expect(new TextDecoder().decode(chunk?.value)).toContain('event: resync');
+    expect(mockMetrics.recordSseEventDelivered).toHaveBeenCalledWith('resync');
     await reader?.cancel();
   });
 

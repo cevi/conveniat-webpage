@@ -2,16 +2,22 @@ import type { EmergencyCardDto } from '@/features/emergency/api/emergency-card-d
 import { toEmergencyCardDto } from '@/features/emergency/api/emergency-card-dto';
 import { getAlertSettingsCached } from '@/features/payload-cms/api/cached-globals';
 import type { AlertSetting } from '@/features/payload-cms/payload-types';
-import { ChatCapability, SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
+import { SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
-import { PushNotificationKind } from '@/lib/prisma';
+import type { Prisma } from '@/lib/prisma/client';
+import {
+  ChatCapability,
+  ChatMembershipPermission,
+  ChatType,
+  MessageEventType,
+  MessageType,
+  PushNotificationKind,
+} from '@/lib/prisma/enums';
 import { sendNotification } from '@/lib/push/send-notification';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
-import type { Prisma } from '@prisma/client';
-import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
 import { getPayload } from 'payload';
 import { z } from 'zod';
 // eslint-disable-next-line import/no-restricted-paths

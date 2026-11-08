@@ -1,7 +1,7 @@
 import { type ForumUser, resolveForumModerator } from '@/features/chat/api/forum/forum-moderator';
 import { getActivePiketMembers } from '@/features/chat/api/utils/piket-service';
 import { type ChatRealtimeEvent, chatPubSub } from '@/lib/db/chat-pubsub';
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma/client';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import type { PrismaClientOrTransaction } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';

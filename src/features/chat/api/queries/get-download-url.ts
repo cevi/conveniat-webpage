@@ -2,7 +2,7 @@ import { assertChatMember } from '@/features/chat/api/checks/assert-chat-member'
 import { canManageChat } from '@/lib/chat-admin-access';
 import { isImageKeyOfChat } from '@/lib/chat-images';
 import { createPresignedDownloadUrl } from '@/lib/presigned-urls';
-import { ChatType } from '@/lib/prisma/client';
+import { ChatType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import type { PrismaClientOrTransaction } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';

@@ -10,6 +10,7 @@ import {
   PERSISTED_QUERY_CACHE_MAX_AGE,
   PERSISTER_THROTTLE_MS,
   serializePersistedClient,
+  shouldPersistMutation,
   shouldPersistQuery,
 } from '@/trpc/query-persistence';
 import type { AppRouter } from '@/trpc/routers/_app';
@@ -168,7 +169,10 @@ const persister: Persister =
 const persistOptions = {
   persister,
   maxAge: PERSISTED_QUERY_CACHE_MAX_AGE,
-  dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
+  dehydrateOptions: {
+    shouldDehydrateQuery: shouldPersistQuery,
+    shouldDehydrateMutation: shouldPersistMutation,
+  },
 };
 
 // the browser only; the server renders this provider too
