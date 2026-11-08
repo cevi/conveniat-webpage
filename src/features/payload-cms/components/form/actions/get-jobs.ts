@@ -15,7 +15,7 @@ import { getPayload } from 'payload';
  */
 export type JobWithQuota = Pick<
   HelperJob,
-  'id' | 'title' | 'description' | 'category' | 'dateRange' | 'minDays'
+  'id' | 'title' | 'description' | 'category' | 'dateRange' | 'minDays' | 'prerequisites'
 > & {
   availableQuota?: number | undefined;
 };
@@ -55,6 +55,7 @@ export const getJobs = async (
       category: true,
       dateRange: true,
       minDays: true,
+      prerequisites: true,
       maxQuota: true,
     },
   });
@@ -83,6 +84,7 @@ export const getJobs = async (
         category: job.category,
         dateRange: job.dateRange,
         minDays: job.minDays ?? null,
+        prerequisites: job.prerequisites ?? null,
         availableQuota,
       };
     }),
