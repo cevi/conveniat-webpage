@@ -54,6 +54,7 @@ describe('getJobs', () => {
       category: 'infrastruktur',
       dateRange: storedJob.dateRange,
       minDays: null,
+      prerequisites: 'Mindestalter: 13 Jahre',
       availableQuota: 2,
     });
     expect(JSON.stringify(job)).not.toMatch(/secret-token|helper@example\.com/);

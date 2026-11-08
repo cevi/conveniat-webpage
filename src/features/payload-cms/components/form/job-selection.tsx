@@ -19,7 +19,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Search, X } from 'lucide-react';
+import { BadgeCheck, Loader2, Search, X } from 'lucide-react';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { Control, FieldValues } from 'react-hook-form';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
@@ -196,6 +196,12 @@ const minimumDurationPrefix: StaticTranslationString = {
   fr: 'min.',
 };
 
+const prerequisitesLabel: StaticTranslationString = {
+  de: 'Voraussetzung',
+  en: 'Requirement',
+  fr: 'Prérequis',
+};
+
 const periodLabelText: StaticTranslationString = {
   de: 'Wann bist du für diesen Job dabei?',
   en: 'When are you there for this job?',
@@ -236,6 +242,10 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
       const result = await getJobs(dateRangeCategory, locale, category);
       return result;
     },
+    // The free spots change with every sign-up, so each visit asks again instead of showing
+    // what the cache restored from the last one.
+    staleTime: 0,
+    meta: { persist: false },
   });
 
   // Calculate dynamic ressort options and counts based on available jobs
@@ -473,6 +483,20 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
                         >
                           {job.description}
                         </div>
+
+                        {typeof job.prerequisites === 'string' &&
+                          job.prerequisites.trim() !== '' && (
+                            <div className="border-tint-line bg-tint mb-4 flex items-start gap-2 rounded-lg border px-2.5 py-2 text-xs leading-snug text-green-800">
+                              <BadgeCheck
+                                className="mt-px h-4 w-4 shrink-0 text-green-600"
+                                aria-hidden="true"
+                              />
+                              <span>
+                                <span className="sr-only">{prerequisitesLabel[locale]}: </span>
+                                {job.prerequisites}
+                              </span>
+                            </div>
+                          )}
 
                         <div className="mt-auto flex items-center justify-between text-[10px] font-medium tracking-tight uppercase">
                           <span className="text-gray-400">
