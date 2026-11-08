@@ -3,6 +3,7 @@ import { SetHideHeader } from '@/components/header/hide-header-context';
 import { textInputClassName } from '@/components/ui/field';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { forumText } from '@/features/chat/components/forum/forum-texts';
+import { prepareChatImage } from '@/features/chat/utils/prepare-chat-image';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useOnlineStatus } from '@/hooks/use-online-status';
@@ -19,10 +20,22 @@ import {
 import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { isHeicFile } from '@/utils/image-file';
 import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { keepPreviousData } from '@tanstack/react-query';
-import { ArrowLeft, Camera, Loader2, Lock, MapPin, Search, ThumbsUp, Users, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  Camera,
+  ImageIcon,
+  Loader2,
+  Lock,
+  MapPin,
+  Search,
+  ThumbsUp,
+  Users,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useState } from 'react';
@@ -191,6 +204,8 @@ export const ForumComposer: React.FC = () => {
   const [removedLocation, setRemovedLocation] = useState<PickedLocation | undefined>();
   if (location !== undefined && removedLocation !== undefined) setRemovedLocation(undefined);
   const [images, setImages] = useState<PickedImage[]>([]);
+  // a HEIC outside Safari has no preview until it is converted on publishing
+  const [brokenPreviews, setBrokenPreviews] = useState<ReadonlySet<string>>(new Set());
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
   // what the user chose on the toggle; until then the map's private link, or, for someone in no
@@ -230,28 +245,39 @@ export const ForumComposer: React.FC = () => {
 
   const addImage = (file: File | undefined): void => {
     if (file === undefined) return;
-    if (!isChatImageContentType(file.type) || file.size > CHAT_IMAGE_MAX_BYTES) {
+    // HEIC is converted on upload, see `uploadImagesTo`
+    if (!isChatImageContentType(file.type) && !isHeicFile(file)) {
       setError(forumText.changeFailed[locale]);
       return;
     }
     setImages((previous) => [...previous, { file, preview: URL.createObjectURL(file) }]);
   };
 
-  /** Uploads the picked photos into the topic of the post, by their keys. */
+  /**
+   * Uploads the picked photos into the topic of the post, by their keys. Each goes as the JPEG
+   * the chat sends, see `prepareChatImage`: the URL is signed for an exact type and length, and
+   * the bucket refused the photos iPad Safari handed over as picked with 403 every time, while
+   * the encoded copy is a blob in memory whose length is the one signed. It is also a few
+   * hundred kilobytes instead of a full-size photo, and carries no location.
+   */
   const uploadImagesTo = async (chatId: string): Promise<string[]> => {
     const keys: string[] = [];
     for (const { file } of images) {
+      const image = await prepareChatImage(file);
+      if (!isChatImageContentType(image.type) || image.size > CHAT_IMAGE_MAX_BYTES) {
+        throw new Error(`Image not uploadable: ${image.type}, ${String(image.size)} bytes`);
+      }
       const { url, key } = await uploadUrl.mutateAsync({
         chatId,
-        contentType: file.type as Parameters<typeof uploadUrl.mutateAsync>[0]['contentType'],
-        contentLength: file.size,
+        contentType: image.type,
+        contentLength: image.size,
       });
       const response = await fetch(url, {
         method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type },
+        body: image,
+        headers: { 'Content-Type': image.type },
       });
-      if (!response.ok) throw new Error('Upload failed');
+      if (!response.ok) throw new Error(`Upload to S3 failed with ${String(response.status)}`);
       keys.push(key);
     }
     return keys;
@@ -293,6 +319,7 @@ export const ForumComposer: React.FC = () => {
       void queryClient.invalidateQueries(trpc.forum.pathFilter());
       router.replace(`/app/forum/${id}`);
     } catch (error_) {
+      console.error('Failed to publish the forum post:', error_);
       setError(userErrorMessage(error_, locale, forumErrorTexts, forumText.changeFailed));
     } finally {
       setIsBusy(false);
@@ -516,8 +543,21 @@ export const ForumComposer: React.FC = () => {
           <ul className="grid grid-cols-4 gap-2">
             {images.map((image) => (
               <li key={image.preview} className="relative aspect-square overflow-hidden rounded-xl">
-                {/* eslint-disable-next-line @next/next/no-img-element -- a local preview blob */}
-                <img src={image.preview} alt="" className="h-full w-full object-cover" />
+                {brokenPreviews.has(image.preview) ? (
+                  <div className="bg-quiet flex h-full w-full items-center justify-center text-green-700">
+                    <ImageIcon className="h-7 w-7" aria-hidden="true" />
+                  </div>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element -- a local preview blob
+                  <img
+                    src={image.preview}
+                    alt=""
+                    onError={() =>
+                      setBrokenPreviews((previous) => new Set(previous).add(image.preview))
+                    }
+                    className="h-full w-full object-cover"
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() => setImages((previous) => previous.filter((item) => item !== image))}
