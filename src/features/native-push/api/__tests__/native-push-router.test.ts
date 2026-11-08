@@ -65,7 +65,12 @@ const EMPTY = { totalDocs: 0, docs: [] };
 
 interface UpdateArguments {
   id: string;
-  data: { token: string; user: string; deviceId: string | null };
+  data: {
+    token: string;
+    user: string;
+    deviceId: string | null;
+    rendersChatNotifications: boolean;
+  };
 }
 
 interface DeviceLookup {
@@ -168,6 +173,23 @@ describe('nativePushRouter.registerDevice under concurrent registrations', () =>
 
     expect(deviceClause?.deviceId?.equals).toBe('device-1');
     expect(firstUpdateArguments(update)?.data.deviceId).toBe('device-1');
+  });
+
+  it('stores whether the app draws chat notifications, and forgets it for an older build', async () => {
+    find.mockResolvedValue({ totalDocs: 1, docs: [{ id: 'sub-token' }] });
+
+    await caller().registerDevice({
+      token: 'token-1',
+      platform: 'android',
+      rendersChatNotifications: true,
+    });
+    // the same device after going back to a build that does not say so
+    await caller().registerDevice({ token: 'token-1', platform: 'android' });
+
+    const stored = (update.mock.calls as UpdateArguments[][]).map(
+      ([call]) => call?.data.rendersChatNotifications,
+    );
+    expect(stored).toEqual([true, false]);
   });
 
   it('creates a subscription and welcomes the device when nothing matches', async () => {

@@ -4704,6 +4704,10 @@ export interface PushNotificationSubscription {
    * Where the web subscription was last stored. Restored: the browser had lost its subscription with the permission still granted, and the app subscribed it again on start.
    */
   registrationSource?: ('/entrypoint' | '/app/settings' | 'restored') | null;
+  /**
+   * Reported by the Android app when it registers. Chat messages then reach it as data, and the app lists them per chat.
+   */
+  rendersChatNotifications?: boolean | null;
   deviceId?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -7700,6 +7704,7 @@ export interface PushNotificationSubscriptionsSelect<T extends boolean = true> {
   platform?: T;
   lastUsedAt?: T;
   registrationSource?: T;
+  rendersChatNotifications?: T;
   deviceId?: T;
   updatedAt?: T;
   createdAt?: T;

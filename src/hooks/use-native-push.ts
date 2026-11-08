@@ -6,6 +6,7 @@ import { readPreference, writePreference } from '@/lib/preferences';
 import { useOptionalTrpcQueries, useTRPC } from '@/trpc/client';
 import { Cookie } from '@/types/types';
 import {
+  type ConversationMessage,
   type NativeShowNotificationRequest,
   notifyForegroundMessage,
 } from '@/utils/foreground-notifications';
@@ -305,6 +306,26 @@ export function extractNotificationGrouping(payload: Record<string, unknown>): {
 }
 
 /**
+ * Reads the message apart from its sender, which the server sends to the Android app that
+ * draws a chat's notification itself, so a foreground push lands in the same conversation.
+ */
+export function extractConversationMessage(payload: Record<string, unknown>): {
+  conversation?: ConversationMessage;
+} {
+  const text = findPayloadString(payload, ['text']);
+  if (text === undefined) return {};
+  const senderName = findPayloadString(payload, ['senderName']);
+  const isGroup = findPayloadString(payload, ['isGroup']);
+  return {
+    conversation: {
+      text,
+      ...(senderName !== undefined && { senderName }),
+      ...(isGroup !== undefined && { isGroup: isGroup === 'true' }),
+    },
+  };
+}
+
+/**
  * Reads the `notificationType` the server put into the FCM `data` payload.
  *
  * Only relevant while the app is in the foreground: Firebase hands the message to
@@ -440,6 +461,7 @@ export function useNativePush(): {
     const handleRegisterDevice = async (
       token: string,
       platform: 'ios' | 'android',
+      rendersChatNotifications: boolean,
     ): Promise<void> => {
       // A repeat emission for a token that is already registered, or one whose call is
       // still open, carries no new information - it only adds a competitor for the same
@@ -459,7 +481,7 @@ export function useNativePush(): {
         addLog(`Calling registerDevice: platform=${platform}`);
         const { getOrCreateDeviceId } = await import('@/utils/device-id');
         const deviceId = getOrCreateDeviceId();
-        await registerDevice({ token, platform, deviceId });
+        await registerDevice({ token, platform, deviceId, rendersChatNotifications });
         registeredTokenReference.current = token;
         console.log('[NativePush:PWA] registerDevice: success');
         addLog(`registerDevice: success`);
@@ -601,6 +623,9 @@ export function useNativePush(): {
         case 'native-push-token': {
           const token = payload['token'];
           const platform = payload['platform'];
+          // Android builds that draw a chat's notification themselves say so with the token;
+          // the server then sends them chat messages as data, see `push-transport`.
+          const rendersChatNotifications = payload['rendersChatNotifications'] === true;
           console.log('[NativePush:PWA] token received: platform =', platform);
           if (typeof token === 'string' && typeof platform === 'string') {
             // The native shell has Firebase issue a new token right after deleting one and
@@ -609,7 +634,11 @@ export function useNativePush(): {
             // once in case an earlier build or a failed delete left it there.
             if (!readPreference('native-push-opted-out')) {
               optedOutTokenReference.current = undefined;
-              void handleRegisterDevice(token, platform as 'ios' | 'android');
+              void handleRegisterDevice(
+                token,
+                platform as 'ios' | 'android',
+                rendersChatNotifications,
+              );
             } else if (optedOutTokenReference.current !== token) {
               optedOutTokenReference.current = token;
               void handleUnregisterDevice(token, platform as 'ios' | 'android');
@@ -704,6 +733,7 @@ export function useNativePush(): {
             targetPath,
             notificationType: extractNotificationType(payload),
             ...extractNotificationGrouping(payload),
+            ...extractConversationMessage(payload),
           });
           break;
         }

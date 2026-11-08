@@ -119,12 +119,24 @@ export async function sendFcmNotification(
        */
       tag?: string;
       /**
-       * `'true'` when the push is one more message of the conversation under `tag`. Android
-       * keeps one notification per conversation either way; iOS shows one per message and
-       * groups them by the tag.
+       * `'true'` when the push is one more message of the conversation under `tag`. iOS shows
+       * one per message and groups them by the tag; an Android build that does not draw chat
+       * notifications itself replaces the conversation's one, see `conversation`.
        */
       stack?: 'true';
       [key: string]: string | undefined;
+    };
+    /**
+     * Set when the device is the Android app that draws a chat's notification itself, as one
+     * conversation listing its messages. The push then goes as data only, so Android draws
+     * nothing of its own, and carries the message apart from its sender.
+     */
+    conversation?: {
+      senderName?: string;
+      /** The message alone; `body` has the sender in front. */
+      text: string;
+      /** A group chat shows its title and the sender of every message; a direct chat neither. */
+      isGroup: boolean;
     };
   },
 ): Promise<{ success: boolean; error?: string; errorCode?: string }> {
@@ -160,28 +172,51 @@ export async function sendFcmNotification(
       ...(tag !== undefined && { tag }),
       ...(tag !== undefined && payload.data.stack === 'true' && { stack: 'true' }),
     };
+    const data = {
+      title: payload.title,
+      body: payload.body,
+      url: payload.data.url ?? '/app/dashboard',
+      notificationId,
+      ...(payload.data.chatId !== undefined && { chatId: payload.data.chatId }),
+      ...(payload.data.messageId !== undefined && { messageId: payload.data.messageId }),
+      ...(payload.data.ignoreIfAppOpen !== undefined && {
+        ignoreIfAppOpen: payload.data.ignoreIfAppOpen,
+      }),
+      ...(payload.data.ignoreIfUrlMatches !== undefined && {
+        ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
+      }),
+      ...(isEmergency && { notificationType: 'emergency' }),
+      ...grouping,
+    };
+
+    if (payload.conversation !== undefined) {
+      // High priority, as for every chat message: FCM keeps it only for data that ends in a
+      // notification the person sees, and the app draws one for every message.
+      await adminInstance.messaging().send({
+        token,
+        android: {
+          priority: 'high',
+          ...(timeToLiveSeconds !== undefined && { ttl: timeToLiveSeconds * 1000 }),
+          data: {
+            ...data,
+            text: payload.conversation.text,
+            isGroup: payload.conversation.isGroup ? 'true' : 'false',
+            ...(payload.conversation.senderName !== undefined && {
+              senderName: payload.conversation.senderName,
+            }),
+          },
+        },
+      });
+      return { success: true };
+    }
+
     await adminInstance.messaging().send({
       token,
       notification: {
         title: payload.title,
         body: payload.body,
       },
-      data: {
-        title: payload.title,
-        body: payload.body,
-        url: payload.data.url ?? '/app/dashboard',
-        notificationId,
-        ...(payload.data.chatId !== undefined && { chatId: payload.data.chatId }),
-        ...(payload.data.messageId !== undefined && { messageId: payload.data.messageId }),
-        ...(payload.data.ignoreIfAppOpen !== undefined && {
-          ignoreIfAppOpen: payload.data.ignoreIfAppOpen,
-        }),
-        ...(payload.data.ignoreIfUrlMatches !== undefined && {
-          ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
-        }),
-        ...(isEmergency && { notificationType: 'emergency' }),
-        ...grouping,
-      },
+      data,
       apns: {
         headers: {
           'apns-collapse-id': notificationId,
@@ -249,23 +284,8 @@ export async function sendFcmNotification(
           // replaces it and the shell can close it once the chat is read.
           ...(tag !== undefined && { tag }),
         },
-        data: {
-          title: payload.title,
-          body: payload.body,
-          notificationId,
-          url: payload.data.url ?? '/app/dashboard',
-          ...(payload.data.chatId !== undefined && { chatId: payload.data.chatId }),
-          ...(payload.data.messageId !== undefined && { messageId: payload.data.messageId }),
-          ...(payload.data.ignoreIfAppOpen !== undefined && {
-            ignoreIfAppOpen: payload.data.ignoreIfAppOpen,
-          }),
-          ...(payload.data.ignoreIfUrlMatches !== undefined && {
-            ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
-          }),
-          ...(isEmergency && { notificationType: 'emergency' }),
-          // `android.data` replaces the message's `data` on Android, so the tag goes here too.
-          ...grouping,
-        },
+        // `android.data` replaces the message's `data` on Android, so it is the same.
+        data,
       },
     });
     return { success: true };

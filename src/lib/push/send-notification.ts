@@ -13,6 +13,8 @@ interface SendNotificationOptions {
   kind: PushNotificationKind;
   chatName?: string;
   senderName?: string;
+  /** The chat is a direct chat between two people. */
+  directChat?: boolean;
   title?: string;
   notificationType?: NotificationType;
   /** where the push leads, below the app host; the chat by default */
@@ -88,6 +90,8 @@ export async function sendNotification(
         options.senderName === undefined || options.senderName === ''
           ? message
           : `${options.senderName}: ${message}`,
+      senderName: options.senderName === '' ? undefined : options.senderName,
+      directChat: options.directChat,
       url: environmentVariables.APP_HOST_URL + (options.path ?? '/app/chat/' + chatId),
       chatId,
       messageId,

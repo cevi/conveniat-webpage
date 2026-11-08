@@ -20,7 +20,7 @@ jest.mock('@/lib/firebase-admin', () => ({
   sendFcmNotification: (...args: unknown[]): unknown => mockSendFcmNotification(...args),
 }));
 
-import { parseRetryAfter, sendPushToDevice } from '@/lib/push/push-transport';
+import { messageTextOf, parseRetryAfter, sendPushToDevice } from '@/lib/push/push-transport';
 
 const webDevice = {
   id: 'sub-web',
@@ -146,6 +146,10 @@ describe('sendPushToDevice web push', () => {
   });
 });
 
+const conversationOfLastSend = (): unknown =>
+  ((mockSendFcmNotification.mock.calls as unknown[][]).at(-1)?.[1] as { conversation?: unknown })
+    .conversation;
+
 describe('sendPushToDevice native', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -170,6 +174,53 @@ describe('sendPushToDevice native', () => {
         data: expect.objectContaining({ tag: 'chat:chat-1', stack: 'true' }) as unknown,
       }),
     );
+  });
+
+  describe('chat messages for the Android app that draws them itself', () => {
+    const androidApp = {
+      id: 'sub-android',
+      platform: 'android' as const,
+      token: 'device-token',
+      rendersChatNotifications: true,
+    };
+    const chatMessage = {
+      title: 'Cevi Uster',
+      body: 'Anna: Hoi zäme',
+      senderName: 'Anna',
+      tag: 'chat:chat-1',
+      stack: true,
+    };
+
+    it('sends the message apart from its sender', async () => {
+      await sendPushToDevice(androidApp, chatMessage, options);
+
+      expect(conversationOfLastSend()).toEqual({
+        senderName: 'Anna',
+        text: 'Hoi zäme',
+        isGroup: true,
+      });
+    });
+
+    it('marks a direct chat, which shows no conversation title', async () => {
+      await sendPushToDevice(androidApp, { ...chatMessage, directChat: true }, options);
+
+      expect(conversationOfLastSend()).toEqual(expect.objectContaining({ isGroup: false }));
+    });
+
+    it('leaves the system to draw everything else', async () => {
+      // a push that is no chat message, like a programme reminder
+      await sendPushToDevice(androidApp, message, options);
+      expect(conversationOfLastSend()).toBeUndefined();
+      // a device that did not say it draws them: an older build, or iOS
+      await sendPushToDevice(
+        { ...androidApp, rendersChatNotifications: false },
+        chatMessage,
+        options,
+      );
+      expect(conversationOfLastSend()).toBeUndefined();
+      await sendPushToDevice({ ...androidApp, platform: 'ios' }, chatMessage, options);
+      expect(conversationOfLastSend()).toBeUndefined();
+    });
   });
 
   it('reports a dead token as a device that unsubscribed', async () => {
@@ -207,6 +258,17 @@ describe('sendPushToDevice native', () => {
     await expect(sendPushToDevice(nativeDevice, message, options)).resolves.toMatchObject({
       outcome: 'failed',
     });
+  });
+});
+
+describe('messageTextOf', () => {
+  it('takes the sender off the front of the body', () => {
+    expect(messageTextOf('Anna: Treffpunkt: Zelt 3', 'Anna')).toBe('Treffpunkt: Zelt 3');
+  });
+
+  it('keeps the whole body when it does not start with the sender', () => {
+    expect(messageTextOf('Anna hat ein Bild gesendet')).toBe('Anna hat ein Bild gesendet');
+    expect(messageTextOf('Ann…', 'Anna Muster')).toBe('Ann…');
   });
 });
 
