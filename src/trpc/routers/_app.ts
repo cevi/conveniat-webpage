@@ -16,6 +16,7 @@ import { scheduleRouter } from '@/features/schedule/api/schedule-router';
 import { shiftsRouter } from '@/features/schedule/api/shifts-router';
 import { profilePictureRouter } from '@/features/settings/api/profile-picture-router';
 import { quickAccessRouter } from '@/features/settings/api/quick-access-router';
+import { storyRouter } from '@/features/story/api/story-router';
 import { visitDayRouter } from '@/features/visit-day/api/visit-day-router';
 import { wristbandRouter } from '@/features/wristbands/api/wristband-router';
 import { createTRPCRouter } from '@/trpc/init';
@@ -28,6 +29,7 @@ export const appRouter = createTRPCRouter({
   map: mapRouter,
   presence: presenceRouter,
   schedule: scheduleRouter,
+  story: storyRouter,
   shifts: shiftsRouter,
   admin: adminRouter,
   pushTracking: pushTrackingRouter,

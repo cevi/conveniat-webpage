@@ -55,6 +55,7 @@ import { default as default_5e6e3bcc43a18e826de12d19a3b1de10 } from '@/features/
 import { default as default_4c4fde438445a819805cfbe983551661 } from '@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field'
 import { BlocksFeatureClient as BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ParticipantsAdminUI as ParticipantsAdminUI_6073fbd2f4ec389b3079bf8bb78b9c59 } from '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui'
+import { StoryLinksField as StoryLinksField_073dd66750933fe145f6d6173c913e10 } from '@/features/story/payload-cms/components/story-links-field'
 import { default as default_9a47e1efa5ebe7e17cc6bea1c1b3bad9 } from '@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell'
 import { CampScheduleOrganiserExport as CampScheduleOrganiserExport_2f5bf8d677cca7cfe25e44ae3a73b945 } from '@/features/payload-cms/payload-cms/components/camp-schedule-organiser-export'
 import { HelperShiftParticipationExport as HelperShiftParticipationExport_89d83a7906586cd6985566aeea8b4a8d } from '@/features/payload-cms/payload-cms/components/helper-shift-participation-export'
@@ -142,6 +143,7 @@ import { default as default_1e4b7ed358a9b39713ba1bd44bbcc1f1 } from '@/features/
 import { default as default_817448654e157f5910ed2cdc349d2477 } from '@/features/payload-cms/payload-cms/views/forum-protocol-view'
 import { default as default_dbd7fa7f7e394074f3d89896acb3145a } from '@/features/payload-cms/payload-cms/views/merge-users-view'
 import { default as default_1301ab5d76cd2e924cf1719e5409e3b4 } from '@/features/material/payload-cms/material-setup-view'
+import { default as default_f20cab4b24ace06c3fe23b393b527f59 } from '@/features/story/payload-cms/story-board-view'
 import { default as default_e7ca4c1ba39ad98f5b6b68aa103e80ee } from '@/features/payload-cms/payload-cms/widgets/emergency-widget'
 import { default as default_f2e2a798db2c97cbd7f7b11ab9c64d45 } from '@/features/presence/payload-cms/widgets/presence-count-widget'
 import { default as default_264aa1452821b700131c9a40a3b93a91 } from '@/features/payload-cms/payload-cms/widgets/user-count-widget'
@@ -209,6 +211,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field#default": default_4c4fde438445a819805cfbe983551661,
   "@payloadcms/richtext-lexical/client#BlocksFeatureClient": BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI": ParticipantsAdminUI_6073fbd2f4ec389b3079bf8bb78b9c59,
+  "@/features/story/payload-cms/components/story-links-field#StoryLinksField": StoryLinksField_073dd66750933fe145f6d6173c913e10,
   "@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell#default": default_9a47e1efa5ebe7e17cc6bea1c1b3bad9,
   "@/features/payload-cms/payload-cms/components/camp-schedule-organiser-export#CampScheduleOrganiserExport": CampScheduleOrganiserExport_2f5bf8d677cca7cfe25e44ae3a73b945,
   "@/features/payload-cms/payload-cms/components/helper-shift-participation-export#HelperShiftParticipationExport": HelperShiftParticipationExport_89d83a7906586cd6985566aeea8b4a8d,
@@ -296,6 +299,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/views/forum-protocol-view#default": default_817448654e157f5910ed2cdc349d2477,
   "@/features/payload-cms/payload-cms/views/merge-users-view#default": default_dbd7fa7f7e394074f3d89896acb3145a,
   "@/features/material/payload-cms/material-setup-view#default": default_1301ab5d76cd2e924cf1719e5409e3b4,
+  "@/features/story/payload-cms/story-board-view#default": default_f20cab4b24ace06c3fe23b393b527f59,
   "@/features/payload-cms/payload-cms/widgets/emergency-widget#default": default_e7ca4c1ba39ad98f5b6b68aa103e80ee,
   "@/features/presence/payload-cms/widgets/presence-count-widget#default": default_f2e2a798db2c97cbd7f7b11ab9c64d45,
   "@/features/payload-cms/payload-cms/widgets/user-count-widget#default": default_264aa1452821b700131c9a40a3b93a91,

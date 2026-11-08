@@ -22,6 +22,11 @@ jest.mock('next/navigation', () => ({
   useRouter: (): { push: jest.Mock } => ({ push: jest.fn() }),
 }));
 
+// the links to the story and to a page have tests of their own
+jest.mock('@/features/schedule/components/schedule-story-rows', () => ({
+  ScheduleStoryRows: (): React.ReactNode => <></>,
+}));
+
 jest.mock('@/hooks/use-online-status', () => ({
   useOnlineStatus: (): boolean => true,
 }));

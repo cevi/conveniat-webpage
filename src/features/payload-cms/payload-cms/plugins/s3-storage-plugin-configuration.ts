@@ -61,6 +61,8 @@ export const s3StorageConfiguration = s3Storage({
     documents: true,
     userSubmittedImages: true,
     'chat-images': true,
+    // served through Payload's read access, which keeps a figure's picture back until it appears
+    'story-images': true,
 
     // The import/export plugin registers these two as upload collections without a staticDir, so
     // Payload defaults it to the collection slug - a *relative* path resolved against the process

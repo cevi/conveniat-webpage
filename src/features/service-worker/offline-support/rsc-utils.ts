@@ -17,6 +17,8 @@ const RSC_SHELL_MAPPINGS: Record<string, string> = {
   '/app/map': '/app/map',
   '/app/dashboard': '/app/dashboard',
   '/app/settings': '/app/settings',
+  '/app/story': '/app/story',
+  '/app/challenges': '/app/challenges',
   '/app/announcement-preview': '/app/dashboard',
 };
 

@@ -15,6 +15,7 @@ import { SectionLabel } from '@/components/ui/section-label';
 import type { QuickAccessTileId } from '@/features/settings/quick-access';
 import { supportMailLink } from '@/features/settings/utils/support-mail';
 import { useAuthStatus } from '@/hooks/use-auth-status';
+import { useLeaderAccess } from '@/hooks/use-leader-access';
 import { useWristbandAccess } from '@/hooks/use-wristband-access';
 import { HitobitoNextAuthUserSchema } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -81,6 +82,7 @@ export const DashboardQuickAccess: React.FC<{
   const [isEditing, setIsEditing] = useState(false);
   const customizeButton = useRef<HTMLButtonElement>(null);
   const wristbands = useWristbandAccess(flags.wristbandsEnabled);
+  const isLeader = useLeaderAccess(flags.storyEnabled && !isGuest);
 
   // until the session and the user's choice are known, the tiles are unknown too; the default
   // ones would jump into other cells once they arrive
@@ -90,7 +92,12 @@ export const DashboardQuickAccess: React.FC<{
   // every user
   const context = {
     signedIn: !isGuest,
-    flags: { ...flags, wristbandsEnabled: flags.wristbandsEnabled && wristbands !== undefined },
+    flags: {
+      ...flags,
+      wristbandsEnabled: flags.wristbandsEnabled && wristbands !== undefined,
+      // the story and the challenges are for Leitende
+      storyEnabled: flags.storyEnabled && isLeader,
+    },
   };
   const available: QuickAccessTileId[] = QUICK_ACCESS_TILES.filter((tile) =>
     isTileAvailable(tile, context),

@@ -1,14 +1,8 @@
-import {
-  EDITOR_ROLES,
-  hasAccessToThisUser,
-} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { LEADER_NOTES_CONTEXT } from '@/features/payload-cms/payload-cms/collections/camp-schedule-entry-collection';
 import type { HofQuartier } from '@/features/payload-cms/payload-cms/utils/hof-directory';
 import { getHofDirectory } from '@/features/payload-cms/payload-cms/utils/hof-directory';
-import {
-  hasLeadingRegistration,
-  toHofIds,
-} from '@/features/payload-cms/payload-cms/utils/hof-membership';
+import { toHofIds } from '@/features/payload-cms/payload-cms/utils/hof-membership';
+import { isLeader as isLeaderIn } from '@/features/payload-cms/payload-cms/utils/is-leader';
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
@@ -52,24 +46,9 @@ export const getQuartiereOfViewer = async (viewer?: Viewer): Promise<ViewerQuart
   return [...quartiere.values()];
 };
 
-/**
- * Who gets to read what a block holds for the people running it: whoever comes to the camp to
- * lead or help, by their registration in Cevi.DB, and the editors who write it.
- */
-export const isLeader = async (viewer: Viewer): Promise<boolean> => {
-  if (hasAccessToThisUser({ user: viewer, requiredRoles: EDITOR_ROLES })) return true;
-
-  const payload = await getPayload({ config });
-  const user = await payload.findByID({
-    collection: 'users',
-    id: viewer.uuid,
-    depth: 0,
-    select: { cevi_db_uuid: true },
-    disableErrors: true,
-  });
-  const ceviId = user?.cevi_db_uuid;
-  return typeof ceviId === 'number' && (await hasLeadingRegistration(payload, ceviId));
-};
+/** Who reads the part of a block for Leitende, see `isLeader` in payload-cms. */
+export const isLeader = async (viewer: Viewer): Promise<boolean> =>
+  isLeaderIn(await getPayload({ config }), viewer);
 
 export type LeaderNotes = NonNullable<CampScheduleEntry['leaders']>;
 

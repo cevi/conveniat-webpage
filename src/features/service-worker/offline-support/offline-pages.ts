@@ -57,6 +57,11 @@ export const offlinePages = [
   // Deployments without the wristbands answer 404, which the download skips.
   '/app/wristbands/lesen',
 
+  // The story and the challenges for Leitende, from the persisted query cache. Deployments
+  // without them answer 404, which the download skips.
+  '/app/story',
+  '/app/challenges',
+
   // Offline pages
   '/~offline',
   '/~offline?app-mode=true',

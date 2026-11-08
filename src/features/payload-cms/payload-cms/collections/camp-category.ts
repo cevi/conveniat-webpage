@@ -69,5 +69,22 @@ export const CampCategoryCollection: CollectionConfig = {
       required: true,
       defaultValue: 'gray',
     },
+    {
+      name: 'isStory',
+      label: {
+        en: 'Part of the story (Rollenspiel)',
+        de: 'Gehört zur Story (Rollenspiel)',
+        fr: 'Fait partie de l’histoire (jeu de rôle)',
+      },
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: {
+          en: 'The blocks of this category are listed on the Story-Board, so none of them is left without a story.',
+          de: 'Die Blöcke dieser Kategorie stehen im Story-Board, damit keiner ohne Story bleibt.',
+          fr: 'Les blocs de cette catégorie apparaissent dans le Story-Board.',
+        },
+      },
+    },
   ],
 };

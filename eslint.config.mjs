@@ -74,6 +74,7 @@ const features_folder = [
   'hof-dashboard',
   'visit-day',
   'wristbands',
+  'story',
 ];
 
 const featuresDirectory = path.join(__dirname, 'src', 'features');
