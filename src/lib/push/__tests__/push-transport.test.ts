@@ -161,6 +161,17 @@ describe('sendPushToDevice native', () => {
     );
   });
 
+  it('hands the tag and the stacking on to FCM, so the app can replace and close it', async () => {
+    await sendPushToDevice(nativeDevice, { ...message, tag: 'chat:chat-1', stack: true }, options);
+
+    expect(mockSendFcmNotification).toHaveBeenCalledWith(
+      'device-token',
+      expect.objectContaining({
+        data: expect.objectContaining({ tag: 'chat:chat-1', stack: 'true' }) as unknown,
+      }),
+    );
+  });
+
   it('reports a dead token as a device that unsubscribed', async () => {
     mockSendFcmNotification.mockResolvedValueOnce({
       success: false,
