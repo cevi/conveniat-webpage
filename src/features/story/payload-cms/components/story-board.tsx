@@ -351,7 +351,8 @@ export const StoryBoard: React.FC<{
 
   return (
     <>
-      <AsOfPicker asOf={asOf} locale={locale} />
+      {/* keyed by the moment, so «Jetzt» and the back button also reset the date it shows */}
+      <AsOfPicker key={asOf} asOf={asOf} locale={locale} />
       {!hasStoryCategory && (
         <p className="mb-4 text-sm text-(--theme-elevation-600)">
           {labels.noCategory[locale]} <a href={categoriesHref}>{labels.openCategories[locale]}</a>

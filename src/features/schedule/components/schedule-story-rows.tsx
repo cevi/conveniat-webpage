@@ -29,7 +29,14 @@ export const ScheduleStoryRows: React.FC<{
   const { data } = useQuery(
     trpc.story.getStoryOfScheduleEntries.queryOptions(
       { entryIds },
-      { enabled: isLeader && entryIds.length > 0, staleTime: 60 * 1000 },
+      {
+        enabled: isLeader && entryIds.length > 0,
+        // the story appears after its block: asked again while the block stays open, see
+        // storyQueryOptions in the story feature
+        staleTime: 60 * 1000,
+        refetchInterval: 5 * 60 * 1000,
+        refetchOnWindowFocus: true,
+      },
     ),
   );
 

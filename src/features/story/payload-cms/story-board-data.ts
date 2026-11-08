@@ -64,6 +64,23 @@ const suggestedVisibleFrom = (dayKey: string, time: string): string | undefined 
   return campInstantOf(dayKey, end + 15)?.toISOString();
 };
 
+/** The most day columns the programme's range opens, against a stray date years away. */
+const MAX_PROGRAMME_DAYS = 31;
+
+/** The camp days from `first` to `last`, both `YYYY-MM-DD`, at most `MAX_PROGRAMME_DAYS`. */
+const daysBetween = (first: string, last: string): string[] => {
+  const days: string[] = [];
+  // noon UTC is the same calendar day in Zurich all year
+  for (
+    let day = new Date(`${first}T12:00:00.000Z`);
+    days.length < MAX_PROGRAMME_DAYS && day.toISOString().slice(0, 10) <= last;
+    day = new Date(day.getTime() + 24 * 60 * 60 * 1000)
+  ) {
+    days.push(day.toISOString().slice(0, 10));
+  }
+  return days;
+};
+
 /**
  * The Story-Board: one column per camp day, the backstory first, with the Rollenspiel blocks of
  * the programme, the events, the news about figures and the challenges of each day. `asOf` is
@@ -74,12 +91,15 @@ export const buildStoryBoard = ({
   figures,
   challenges,
   blocks,
+  programmeDates,
   asOf,
 }: {
   events: RawStoryEvent[];
   figures: RawStoryFigure[];
   challenges: RawStoryChallenge[];
   blocks: RawScheduleBlock[];
+  /** the dates of the programme's first and last block: every day between gets a column */
+  programmeDates?: { first: string | null | undefined; last: string | null | undefined };
   asOf: Date;
 }): BoardColumn[] => {
   const columns = new Map<string, BoardColumn>();
@@ -91,8 +111,14 @@ export const buildStoryBoard = ({
     }
     return found;
   };
-  // the backstory always has its column, so there is somewhere to start
+  // the backstory and every day of the programme have their column, so an empty board has
+  // somewhere to start each kind of card
   column(PROLOGUE_COLUMN);
+  const programmeStart = storyDayKeyOf(programmeDates?.first);
+  const programmeEnd = storyDayKeyOf(programmeDates?.last);
+  if (programmeStart !== undefined && programmeEnd !== undefined) {
+    for (const day of daysBetween(programmeStart, programmeEnd)) column(day);
+  }
   const figureName = new Map(figures.map((figure) => [figure.id, figure.name ?? '']));
   const namesOf = (references: RawStoryEvent['figures']): string[] =>
     (references ?? []).flatMap((reference) => figureName.get(idOf(reference) ?? '') ?? []);

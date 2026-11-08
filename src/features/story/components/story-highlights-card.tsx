@@ -6,6 +6,7 @@ import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import { FigurePortrait, NewPill } from '@/features/story/components/story-parts';
 import { fillStoryText, storyTexts } from '@/features/story/story-texts';
+import { storyQueryOptions } from '@/features/story/utils/story-query-options';
 import { formatStoryTime } from '@/features/story/utils/story-time';
 import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
@@ -20,7 +21,7 @@ import type React from 'react';
 export const StoryHighlightsCard: React.FC<{ locale: Locale }> = ({ locale }) => {
   const trpc = useTRPC();
   const { data } = useQuery(
-    trpc.story.getStoryHighlights.queryOptions(undefined, { staleTime: 60 * 1000 }),
+    trpc.story.getStoryHighlights.queryOptions(undefined, storyQueryOptions),
   );
   // read defensively: a persisted answer may come from an older release
   const challenges = data?.openChallenges ?? [];

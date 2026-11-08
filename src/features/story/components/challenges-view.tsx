@@ -15,6 +15,7 @@ import {
 } from '@/features/story/components/story-parts';
 import { fillStoryText, storyTexts } from '@/features/story/story-texts';
 import type { StoryChallengeSummary } from '@/features/story/types';
+import { storyQueryOptions } from '@/features/story/utils/story-query-options';
 import {
   formatStoryDay,
   formatStoryMoment,
@@ -111,7 +112,9 @@ const initialDayOf = (dayKeys: string[]): string | undefined => {
 
 const ChallengeList: React.FC<{ locale: Locale; day: string | null }> = ({ locale, day }) => {
   const trpc = useTRPC();
-  const { data, isError } = useQuery(trpc.story.getChallengeList.queryOptions());
+  const { data, isError } = useQuery(
+    trpc.story.getChallengeList.queryOptions(undefined, storyQueryOptions),
+  );
 
   if (data === undefined) {
     return isError ? (
@@ -271,7 +274,9 @@ const ChallengeContent: React.FC<{
 
 const ChallengeScreen: React.FC<{ id: string; locale: Locale }> = ({ id, locale }) => {
   const trpc = useTRPC();
-  const { data, isError } = useQuery(trpc.story.getChallenge.queryOptions({ id }));
+  const { data, isError } = useQuery(
+    trpc.story.getChallenge.queryOptions({ id }, storyQueryOptions),
+  );
   const challenge = data?.access === 'ok' ? data.challenge : null;
   return (
     <StoryDetailScreen

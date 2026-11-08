@@ -3,7 +3,10 @@ import {
   storyAdminGroup,
   visibleFromField,
 } from '@/features/story/payload-cms/story-fields';
-import { syncStoryImageVisibility } from '@/features/story/payload-cms/story-image-visibility';
+import {
+  syncDeletedFigureImageVisibility,
+  syncStoryImageVisibility,
+} from '@/features/story/payload-cms/story-image-visibility';
 import type { CollectionConfig } from 'payload';
 
 /**
@@ -30,6 +33,7 @@ export const StoryFiguresCollection: CollectionConfig = {
   access: storyAccess,
   hooks: {
     afterChange: [syncStoryImageVisibility],
+    afterDelete: [syncDeletedFigureImageVisibility],
   },
   fields: [
     // the profile above the tabs, so a figure opens on what is known about it

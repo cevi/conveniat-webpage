@@ -24,6 +24,7 @@ import type {
   StoryFigureSummary,
   StoryOverview,
 } from '@/features/story/types';
+import { storyQueryOptions } from '@/features/story/utils/story-query-options';
 import { formatStoryDay, storyDayParts } from '@/features/story/utils/story-time';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { RouterOutputs } from '@/trpc/client';
@@ -197,7 +198,9 @@ const OverviewFigures: React.FC<{ overview: StoryOverview; locale: Locale }> = (
 
 const StoryOverviewScreen: React.FC<{ tab: Tab; locale: Locale }> = ({ tab, locale }) => {
   const trpc = useTRPC();
-  const { data, isError } = useQuery(trpc.story.getStoryOverview.queryOptions());
+  const { data, isError } = useQuery(
+    trpc.story.getStoryOverview.queryOptions(undefined, storyQueryOptions),
+  );
 
   if (data === undefined) return isError ? <LoadFailed locale={locale} /> : <LoadingList />;
   if (data.access !== 'ok' || data.overview === null) {
@@ -449,7 +452,9 @@ const FigureContent: React.FC<{
 
 const EventScreen: React.FC<{ id: string; locale: Locale }> = ({ id, locale }) => {
   const trpc = useTRPC();
-  const { data, isError } = useQuery(trpc.story.getStoryEvent.queryOptions({ id }));
+  const { data, isError } = useQuery(
+    trpc.story.getStoryEvent.queryOptions({ id }, storyQueryOptions),
+  );
   const event = data?.access === 'ok' ? data.event : null;
   return (
     <StoryDetailScreen
@@ -466,7 +471,9 @@ const EventScreen: React.FC<{ id: string; locale: Locale }> = ({ id, locale }) =
 
 const FigureScreen: React.FC<{ id: string; locale: Locale }> = ({ id, locale }) => {
   const trpc = useTRPC();
-  const { data, isError } = useQuery(trpc.story.getStoryFigure.queryOptions({ id }));
+  const { data, isError } = useQuery(
+    trpc.story.getStoryFigure.queryOptions({ id }, storyQueryOptions),
+  );
   const figure = data?.access === 'ok' ? data.figure : null;
   return (
     <StoryDetailScreen

@@ -74,7 +74,21 @@ export default async function StoryBoardView({
   });
   const storyCategoryIds = storyCategories.docs.map((category) => category.id);
 
-  const [events, figures, challenges, blocks] = await Promise.all([
+  /** the programme's first or last block by date, whatever its category */
+  const programmeEdge = (
+    sort: 'timeslot.date' | '-timeslot.date',
+  ): Promise<{ docs: { timeslot?: { date?: string | null } | null }[] }> =>
+    payload.find({
+      collection: 'camp-schedule-entry',
+      select: { timeslot: true },
+      sort,
+      ...read,
+      overrideAccess: true,
+      limit: 1,
+      pagination: false,
+    });
+
+  const [events, figures, challenges, blocks, firstBlock, lastBlock] = await Promise.all([
     payload.find({ collection: 'story-events', ...read, limit: 0, pagination: false }),
     payload.find({ collection: 'story-figures', ...read, limit: 0, pagination: false }),
     payload.find({ collection: 'story-challenges', ...read, limit: 0, pagination: false }),
@@ -89,6 +103,8 @@ export default async function StoryBoardView({
           limit: 0,
           pagination: false,
         }),
+    programmeEdge('timeslot.date'),
+    programmeEdge('-timeslot.date'),
   ]);
 
   const columns = buildStoryBoard({
@@ -96,6 +112,10 @@ export default async function StoryBoardView({
     figures: figures.docs,
     challenges: challenges.docs,
     blocks: blocks.docs,
+    programmeDates: {
+      first: firstBlock.docs[0]?.timeslot?.date,
+      last: lastBlock.docs[0]?.timeslot?.date,
+    },
     asOf,
   });
 

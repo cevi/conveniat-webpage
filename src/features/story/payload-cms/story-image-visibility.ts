@@ -1,5 +1,5 @@
 import type { StoryFigure } from '@/features/payload-cms/payload-types';
-import type { CollectionAfterChangeHook, PayloadRequest } from 'payload';
+import type { CollectionAfterChangeHook, CollectionAfterDeleteHook, PayloadRequest } from 'payload';
 
 const idOf = (value: StoryFigure['photo'] | undefined): string | undefined => {
   if (typeof value === 'string') return value;
@@ -29,9 +29,10 @@ const recomputeImageVisibility = async (
     .map((figure) => figure.visibleFrom)
     .filter((value): value is string => typeof value === 'string')
     .sort()[0];
+  // by `where`, not by id: a picture deleted before its figure is then no error
   await request.payload.update({
     collection: 'story-images',
-    id: imageId,
+    where: { id: { equals: imageId } },
     data: { visibleFrom: earliest ?? null },
     overrideAccess: true,
     depth: 0,
@@ -51,5 +52,18 @@ export const syncStoryImageVisibility: CollectionAfterChangeHook<StoryFigure> = 
   for (const imageId of ids) {
     await recomputeImageVisibility(request, imageId);
   }
+  return doc;
+};
+
+/**
+ * After a figure is deleted, its photo follows the figures left showing it, and is hidden again
+ * when none is: else a picture shared with a figure still to come stays readable.
+ */
+export const syncDeletedFigureImageVisibility: CollectionAfterDeleteHook<StoryFigure> = async ({
+  doc,
+  req: request,
+}) => {
+  const imageId = idOf(doc.photo);
+  if (imageId !== undefined) await recomputeImageVisibility(request, imageId);
   return doc;
 };
