@@ -3,6 +3,7 @@
  */
 
 import {
+  extractConversationMessage,
   extractMessageIdentifier,
   extractNotificationLogId,
   extractNotificationTitleAndBody,
@@ -101,11 +102,11 @@ const buildDuplicateMessageEvent = (): CustomEvent =>
     },
   });
 
-const dispatchToken = async (token: string): Promise<void> => {
+const dispatchToken = async (token: string, extra: Record<string, unknown> = {}): Promise<void> => {
   await act(async () => {
     globalThis.dispatchEvent(
       new CustomEvent('app-webview-native-push-event', {
-        detail: { type: 'native-push-token', payload: { token, platform: 'android' } },
+        detail: { type: 'native-push-token', payload: { token, platform: 'android', ...extra } },
       }),
     );
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -350,6 +351,16 @@ describe('useNativePush', () => {
       // A leftover pending redirect would navigate on mount and blur the count below.
       sessionStorage.removeItem('pending_push_redirect');
       localStorage.removeItem('pending_push_redirect');
+    });
+
+    it('tells the server whether the app draws chat notifications itself', async () => {
+      renderNativePush();
+
+      await dispatchToken('token-new-build', { rendersChatNotifications: true });
+
+      expect(mockRegisterDevice).toHaveBeenCalledWith(
+        expect.objectContaining({ token: 'token-new-build', rendersChatNotifications: true }),
+      );
     });
 
     it('registers a repeated token only once', async () => {
@@ -803,5 +814,21 @@ describe('useNativePush', () => {
 
       expect(reloadPage).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('extractConversationMessage', () => {
+  it('reads the message, its sender and the kind of chat of a data-only push', () => {
+    expect(
+      extractConversationMessage({
+        data: { text: 'Treffpunkt beim Tor', senderName: 'Mia', isGroup: 'false' },
+      }),
+    ).toEqual({ conversation: { text: 'Treffpunkt beim Tor', senderName: 'Mia', isGroup: false } });
+  });
+
+  it('reads nothing from a push the system draws', () => {
+    expect(extractConversationMessage({ data: { title: 'Cevi Uster', body: 'Mia: Hoi' } })).toEqual(
+      {},
+    );
   });
 });

@@ -174,6 +174,25 @@ export const PushNotificationSubscriptions: CollectionConfig = {
       },
     },
     {
+      type: 'checkbox',
+      name: 'rendersChatNotifications',
+      label: {
+        en: 'App draws chat notifications',
+        de: 'App zeichnet Chat-Benachrichtigungen',
+        fr: "L'app dessine les notifications de chat",
+      },
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        description: {
+          en: 'Reported by the Android app when it registers. Chat messages then reach it as data, and the app lists them per chat.',
+          de: 'Meldet die Android-App bei der Registrierung. Chat-Nachrichten erreichen sie dann als Daten, und die App listet sie pro Chat auf.',
+          fr: "Signalé par l'app Android lors de l'enregistrement. Les messages de chat lui parviennent alors sous forme de données, et l'app les liste par chat.",
+        },
+      },
+    },
+    {
       type: 'text',
       name: 'deviceId',
       label: { en: 'Device ID', de: 'Geräte-ID', fr: "ID de l'appareil" },

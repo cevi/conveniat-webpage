@@ -515,6 +515,7 @@ export const createMessage = trpcBaseProcedure
                     ? PushNotificationKind.EMERGENCY
                     : PushNotificationKind.CHAT,
                 chatName: chat.name,
+                directChat: chat.type === ChatType.ONE_TO_ONE,
                 // the image line already names the sender
                 ...(isImage ? {} : { senderName: user.name }),
                 // No notificationType: only the alert that opens an emergency chat sirens (see

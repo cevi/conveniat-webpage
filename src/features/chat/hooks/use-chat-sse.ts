@@ -12,6 +12,7 @@ import { createRealtimeConnection } from '@/features/chat/utils/realtime-connect
 import { notifyRealtimeChatMessage } from '@/features/chat/utils/realtime-message-notification';
 import { addReplyToThreadSummary } from '@/features/chat/utils/thread-summary';
 import { clearTyping, recordTyping } from '@/features/chat/utils/typing-store';
+import type { CallSignal } from '@/lib/chat-call-signal';
 import { type ChatStatus } from '@/lib/prisma/enums';
 
 import { useTRPC } from '@/trpc/client';
@@ -20,7 +21,7 @@ import superjson from 'superjson';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-interface ChatRealtimeEvent {
+export interface ChatRealtimeEvent {
   type:
     | 'new_message'
     | 'message_updated'
@@ -29,7 +30,8 @@ interface ChatRealtimeEvent {
     | 'chat_updated'
     | 'new_chat'
     | 'membership_revoked'
-    | 'typing';
+    | 'typing'
+    | 'call_signal';
   chatId: string;
   senderId: string;
   /** Delivery channel override (e.g. the user's own uuid for personal events); defaults to chatId. */
@@ -43,6 +45,8 @@ interface ChatRealtimeEvent {
     name: string;
     parentId?: string | undefined;
   };
+  /** Set on `call_signal`, see `CallSignal`. */
+  call?: CallSignal;
 }
 
 /**
@@ -54,6 +58,8 @@ const isUnconfirmed = (message: ChatMessage): boolean =>
 // Global registry of all active chat subscribers on the client to enable multiplexing/deduplication
 const activeChatSubscribers = new Map<string, Set<(event: ChatRealtimeEvent) => void>>();
 const activeReconnectListeners = new Set<() => void>();
+/** See {@link subscribeToCallSignals}. */
+const callSignalListeners = new Set<(event: ChatRealtimeEvent) => void>();
 let updateTimeout: ReturnType<typeof setTimeout> | undefined;
 
 /**
@@ -78,6 +84,20 @@ const handleMessage = (event: MessageEvent): void => {
     if (parsed === null || typeof parsed !== 'object') return;
 
     const data = parsed as unknown as ChatRealtimeEvent;
+
+    // Only ever on the user's own channel, which the server picks from the session, so they
+    // go to the call without asking which channel that is: the user id this tab remembers
+    // can be stale, and a dropped signal leaves a call hanging in "connecting".
+    if (data.type === 'call_signal') {
+      for (const listener of callSignalListeners) {
+        try {
+          listener(data);
+        } catch (error) {
+          console.error('[Chat][SSE] Call signal listener failed:', error);
+        }
+      }
+      return;
+    }
 
     // Dispatch to all listeners registered for the delivery channel. Events
     // delivered on the user's personal channel (e.g. new_chat) carry a
@@ -167,6 +187,36 @@ function updateGlobalEventSource(currentUser: string): void {
   }, 0);
 }
 
+const keepStreamOpen = (): void => {};
+
+/**
+ * Hands every call signal on the stream to `listener`, and keeps the shared stream open while
+ * registered, through a placeholder on the user's personal channel.
+ *
+ * @returns the unsubscribe function
+ */
+export const subscribeToCallSignals = (
+  currentUser: string,
+  listener: (event: ChatRealtimeEvent) => void,
+): (() => void) => {
+  callSignalListeners.add(listener);
+  let listeners = activeChatSubscribers.get(currentUser);
+  if (!listeners) {
+    listeners = new Set();
+    activeChatSubscribers.set(currentUser, listeners);
+  }
+  listeners.add(keepStreamOpen);
+  updateGlobalEventSource(currentUser);
+
+  return (): void => {
+    callSignalListeners.delete(listener);
+    const current = activeChatSubscribers.get(currentUser);
+    current?.delete(keepStreamOpen);
+    if (current?.size === 0) activeChatSubscribers.delete(currentUser);
+    updateGlobalEventSource(currentUser);
+  };
+};
+
 export interface ChatRealtimeSync {
   /** Whether live updates are actually arriving; drives the live-sync indicator. */
   status: RealtimeConnectionStatus;
@@ -233,11 +283,13 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
 
       if (data.type === 'chat_updated' && data.chat) {
         const updatedChatStatus = data.chat.status as ChatStatus;
+        const updatedCapabilities = data.chat.capabilities;
         queryClient.setQueryData(trpc.chat.chatDetails.queryKey({ chatId: data.chatId }), (old) => {
           if (!old) return old;
           return {
             ...old,
             status: updatedChatStatus,
+            capabilities: updatedCapabilities,
           };
         });
         queryClient.invalidateQueries(trpc.chat.chats.pathFilter()).catch(console.error);
@@ -273,6 +325,8 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
         notifyRealtimeChatMessage({
           chatId: data.chatId,
           chatName: cachedChat?.name,
+          isGroupChat:
+            cachedChat?.chatType === undefined ? undefined : cachedChat.chatType !== 'ONE_TO_ONE',
           message,
           currentUserId: currentUser,
         });

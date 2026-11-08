@@ -51,6 +51,12 @@ model PushNotification {
   /// itself, and the chat keeps that.
   title              String
   body               String
+  /// Who wrote the message of a chat push, already in `body` as its prefix. The Android app
+  /// lists a chat's messages under their senders. Emptied with `title` and `body`.
+  senderName         String?
+  /// The chat push is about a direct chat between two people, which the Android app shows
+  /// without a conversation title.
+  directChat         Boolean              @default(false)
   url                String?
   chatId             String?
   /// The chat message the push is about. The client drops the push when the same message

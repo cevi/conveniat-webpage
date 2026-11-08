@@ -4,6 +4,11 @@ export interface NativeAppInfo {
   version: string;
   buildNumber: string;
   platform: string;
+  /**
+   * The build declares the microphone that voice calls need. Missing in the builds released
+   * before calls, which must not offer one: the system refuses them the microphone.
+   */
+  voiceCalls?: boolean;
 }
 
 declare global {

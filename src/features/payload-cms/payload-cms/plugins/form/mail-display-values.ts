@@ -1,5 +1,6 @@
 import { formatRange } from '@/features/payload-cms/components/form/utils/date-slot-format';
 import { parseDateRangesValue } from '@/features/payload-cms/components/form/utils/date-slots';
+import { getJobPeriodFieldName } from '@/features/payload-cms/components/form/utils/job-period';
 import { RESSORT_WISH_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { getFormBlocks } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
 import type { Locale } from '@/types/types';
@@ -66,6 +67,14 @@ export const getMailDisplayValues = (
     const wishLabel = RESSORT_WISH_OPTIONS.find((option) => option.value === wish)?.label;
     if (typeof ressortName === 'string' && wishLabel !== undefined) {
       displayValues[ressortName] = wishLabel[locale];
+    }
+  }
+
+  for (const block of getFormBlocks(fields, 'jobSelection')) {
+    const periodName = getJobPeriodFieldName(block['name'] as string);
+    const ranges = parseDateRangesValue(answers[periodName]);
+    if (ranges !== undefined) {
+      displayValues[periodName] = ranges.map((range) => formatRange(range, locale)).join('\n');
     }
   }
 

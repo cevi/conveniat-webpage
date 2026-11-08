@@ -11,6 +11,17 @@ const createPost = jest.fn<Promise<{ id: string; pending: boolean }>, [unknown]>
   Promise.resolve({ id: 'post', pending: false }),
 );
 const joinReportTopic = jest.fn(() => Promise.resolve({ topicId: 'zentrale' }));
+const getUploadUrl = jest.fn((input: unknown) =>
+  Promise.resolve({
+    url: 'https://s3.example/put',
+    key: `chat-images/${(input as { chatId: string }).chatId}/photo.jpg`,
+  }),
+);
+// what `prepareChatImage` makes of the picked photo; the browser's canvas is not in jsdom
+const preparedImage = new File([new Uint8Array(1234)], 'photo.jpg', { type: 'image/jpeg' });
+jest.mock('@/features/chat/utils/prepare-chat-image', () => ({
+  prepareChatImage: (): Promise<File> => Promise.resolve(preparedImage),
+}));
 
 jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
 jest.mock('@/hooks/use-online-status', () => ({ useOnlineStatus: (): boolean => true }));
@@ -37,6 +48,7 @@ const renderComposer = (): void => {
     'forum.getForumPostSuggestionList': () => [],
     'forum.createForumPost': createPost,
     'forum.getForumPrivateReportTopic': joinReportTopic,
+    'chat.getUploadUrl': getUploadUrl,
   });
   queryClient.setQueryData(trpc.forum.getForumTopicList.queryKey({}), topics as never);
   queryClient.setQueryData(trpc.forum.getForumSettings.queryKey({}), settings as never);
@@ -63,6 +75,7 @@ beforeEach(() => {
   privateReportsAvailable = true;
   createPost.mockClear();
   joinReportTopic.mockClear();
+  getUploadUrl.mockClear();
   back.mockClear();
 });
 
@@ -101,6 +114,37 @@ describe('the composer', () => {
       topicId: 'zentrale',
       private: true,
       title: 'Toitoi in der Mitte ist voll',
+    });
+  });
+
+  it('uploads a picked photo as the prepared JPEG, under the length it was signed for', async () => {
+    topics = [{ id: 'topic', name: 'Platz & Infrastruktur', isAdmin: false }];
+    const put = jest.fn<Promise<{ ok: boolean; status: number }>, [string, RequestInit]>(() =>
+      Promise.resolve({ ok: true, status: 200 }),
+    );
+    globalThis.fetch = put as unknown as typeof fetch;
+    URL.createObjectURL = (): string => 'blob:preview';
+    renderComposer();
+    writeTitle();
+    // a full-size library photo, as the iPad hands it over
+    const picked = new File([new Uint8Array(50_000)], 'IMG_0001.HEIC', { type: 'image/heic' });
+    fireEvent.change(screen.getByLabelText(/Foto/), { target: { files: [picked] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Veröffentlichen' }));
+
+    // the HEIC cannot be previewed here, as outside Safari, so its tile shows an icon instead
+    fireEvent.error(document.querySelector('img[src="blob:preview"]') as Element);
+    expect(document.querySelector('img[src="blob:preview"]')).toBeNull();
+
+    await waitFor(() => expect(createPost).toHaveBeenCalled());
+    expect(getUploadUrl.mock.calls[0]?.[0]).toMatchObject({
+      chatId: 'topic',
+      contentType: 'image/jpeg',
+      contentLength: 1234,
+    });
+    expect(put.mock.calls[0]?.[1].body).toBe(preparedImage);
+    expect(put.mock.calls[0]?.[1].headers).toEqual({ 'Content-Type': 'image/jpeg' });
+    expect(createPost.mock.calls[0]?.[0]).toMatchObject({
+      images: ['chat-images/topic/photo.jpg'],
     });
   });
 

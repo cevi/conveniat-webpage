@@ -9,6 +9,7 @@ import type {
   JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
 import { getEffectivePlacement } from '@/features/payload-cms/components/form/utils/field-placement';
+import { getJobPeriodFieldName } from '@/features/payload-cms/components/form/utils/job-period';
 import React, { createContext, useContext, useEffect } from 'react';
 import { useFormContext, useFormState, useWatch } from 'react-hook-form';
 
@@ -52,6 +53,10 @@ const ConditionedField: React.FC<{
           f.ressortName !== ''
         ) {
           resetField(f.ressortName, { defaultValue: undefined });
+        }
+        // A jobSelection owns a second field for the days of a job with a minimum duration.
+        if (f.blockType === 'jobSelection') {
+          resetField(getJobPeriodFieldName(f.name), { defaultValue: undefined });
         }
       }
     }

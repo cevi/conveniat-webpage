@@ -2526,6 +2526,10 @@ export interface HelperJob {
      */
     endDate: string;
   };
+  /**
+   * Empty = the job lasts the whole date range. Filled in = helpers pick their own consecutive days within the date range, at least this many.
+   */
+  minDays?: number | null;
   dateRangeCategory: 'setup' | 'main' | 'teardown';
   /**
    * Prerequisites for the job (e.g. Minimum age, specific skills, etc.).
@@ -4704,6 +4708,10 @@ export interface PushNotificationSubscription {
    * Where the web subscription was last stored. Restored: the browser had lost its subscription with the permission still granted, and the app subscribed it again on start.
    */
   registrationSource?: ('/entrypoint' | '/app/settings' | 'restored') | null;
+  /**
+   * Reported by the Android app when it registers. Chat messages then reach it as data, and the app lists them per chat.
+   */
+  rendersChatNotifications?: boolean | null;
   deviceId?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -7257,6 +7265,7 @@ export interface HelperJobsSelect<T extends boolean = true> {
         startDate?: T;
         endDate?: T;
       };
+  minDays?: T;
   dateRangeCategory?: T;
   prerequisites?: T;
   submissions?: T;
@@ -7700,6 +7709,7 @@ export interface PushNotificationSubscriptionsSelect<T extends boolean = true> {
   platform?: T;
   lastUsedAt?: T;
   registrationSource?: T;
+  rendersChatNotifications?: T;
   deviceId?: T;
   updatedAt?: T;
   createdAt?: T;

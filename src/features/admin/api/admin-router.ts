@@ -466,10 +466,26 @@ export const adminRouter = createTRPCRouter({
         }
       }
 
-      return prisma.chat.update({
+      const updatedChat = await prisma.chat.update({
         where: { uuid: input.chatId },
         data: { capabilities: newCapabilities },
       });
+      // Open chats take the change right away: their details are otherwise kept for minutes,
+      // also across a reload, and a call button switched on would not show until then.
+      chatPubSub
+        .publish({
+          type: 'chat_updated',
+          chatId: input.chatId,
+          senderId: SYSTEM_SENDER_ID,
+          chat: { status: updatedChat.status, capabilities: updatedChat.capabilities },
+        })
+        .catch((error: unknown) => {
+          logger.error('Failed to publish the chat_updated event on a capability change', {
+            error,
+            'chat.id': input.chatId,
+          });
+        });
+      return updatedChat;
     }),
 
   getChatMessages: adminChatProcedure

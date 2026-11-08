@@ -43,11 +43,14 @@ const isImagePayload = (messagePayload: unknown): boolean =>
 export const notifyRealtimeChatMessage = ({
   chatId,
   chatName,
+  isGroupChat,
   message,
   currentUserId,
 }: {
   chatId: string;
   chatName: string | undefined;
+  /** Unknown while the chat list is not cached yet. */
+  isGroupChat?: boolean | undefined;
   message: ChatMessage;
   currentUserId: string;
 }): void => {
@@ -80,5 +83,13 @@ export const notifyRealtimeChatMessage = ({
     // The tag the server puts on the push of a chat message, so both replace each other.
     tag: chatNotificationTag(chatId),
     stack: true,
+    // the image sentence names the sender already, as on the push
+    conversation: isImage
+      ? { text: body, isGroup: isGroupChat }
+      : {
+          ...(senderName !== '' && { senderName }),
+          text: preview,
+          isGroup: isGroupChat,
+        },
   });
 };

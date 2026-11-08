@@ -26,6 +26,7 @@ import {
 } from '@/utils/push-notifications/fit-push-text';
 
 interface SentMessage {
+  notification?: { title?: string; body?: string };
   data?: Record<string, string>;
   android?: {
     notification?: { channelId?: string; sound?: string; priority?: string; tag?: string };
@@ -206,6 +207,34 @@ describe('sendFcmNotification', () => {
       expect(apns?.payload?.tag).toBe('chat:chat-1');
       // A retry of the same push still collapses, a new message does not.
       expect(apns?.headers?.['apns-collapse-id']).toBe('log-1');
+    });
+
+    it('sends a chat message for the Android app that draws it as data only', async () => {
+      await sendFcmNotification('token-1', {
+        title: 'Cevi Uster',
+        body: 'Anna: Hoi zäme',
+        timeToLiveSeconds: 60,
+        data: { chatId: 'chat-1', notificationId: 'log-1', tag: 'chat:chat-1', stack: 'true' },
+        conversation: { senderName: 'Anna', text: 'Hoi zäme', isGroup: true },
+      });
+
+      const message = lastSentMessage();
+      // Nothing Android would draw by itself, so the app's service gets the message.
+      expect(message.notification).toBeUndefined();
+      expect(message.android?.notification).toBeUndefined();
+      expect(message.apns).toBeUndefined();
+      expect(message.android?.priority).toBe('high');
+      expect(message.android?.data).toEqual(
+        expect.objectContaining({
+          title: 'Cevi Uster',
+          tag: 'chat:chat-1',
+          stack: 'true',
+          notificationId: 'log-1',
+          senderName: 'Anna',
+          text: 'Hoi zäme',
+          isGroup: 'true',
+        }),
+      );
     });
 
     it('leaves a push without a tag untagged everywhere', async () => {

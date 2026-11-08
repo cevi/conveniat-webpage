@@ -18,6 +18,26 @@ describe('getMailDisplayValues', () => {
     });
   });
 
+  it('shows the days picked for a job with a minimum duration under the derived name', () => {
+    const form = formWith([
+      {
+        blockType: 'conditionedBlock',
+        fields: [{ blockType: 'jobSelection', name: 'jobhauptlager' }],
+      },
+    ]);
+
+    expect(
+      getMailDisplayValues(
+        form,
+        {
+          jobhauptlager: 'Mitarbeit in der Einsatzzentrale',
+          jobhauptlager_zeitraum: '2027-07-20 – 2027-07-31',
+        },
+        'de',
+      ),
+    ).toEqual({ jobhauptlager_zeitraum: 'Di., 20.07.2027 – Sa., 31.07.2027 · 12 Tage' });
+  });
+
   it('leaves a value that is not a list of ranges to be shown as submitted', () => {
     const form = formWith([{ blockType: 'dateSlotSelection', name: 'zeitfenster' }]);
 

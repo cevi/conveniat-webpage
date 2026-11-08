@@ -53,6 +53,20 @@ describe('notifyRealtimeChatMessage', () => {
     );
   });
 
+  it('hands the Android app the message apart from its sender, as the push does', () => {
+    notifyRealtimeChatMessage({
+      chatId: 'chat-1',
+      chatName: 'Bob',
+      isGroupChat: false,
+      message: buildMessage(),
+      currentUserId: 'user-alice',
+    });
+
+    expect(showNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ senderName: 'Bob', text: 'Hello there', isGroup: false }),
+    );
+  });
+
   /**
    * Only the alert that opens an emergency chat sirens, and it arrives by push. A reply
    * in a busy emergency chat must not sound like a new emergency (#1654).

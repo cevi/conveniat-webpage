@@ -15,16 +15,19 @@ import { pinChat } from '@/features/chat/api/mutations/pin-chat';
 import { redeemChatInvite } from '@/features/chat/api/mutations/redeem-chat-invite';
 import { removeParticipant } from '@/features/chat/api/mutations/remove-participant';
 import { renameChat } from '@/features/chat/api/mutations/rename-chat';
+import { sendCallSignal } from '@/features/chat/api/mutations/send-call-signal';
 import { signalTyping } from '@/features/chat/api/mutations/signal-typing';
 import { startChatFromWristband } from '@/features/chat/api/mutations/start-chat-from-wristband';
 import { toggleReaction } from '@/features/chat/api/mutations/toggle-reaction';
 import { updateMessageContent } from '@/features/chat/api/mutations/update-message-content';
+import { getCallIceServers } from '@/features/chat/api/queries/get-call-ice-servers';
 import { getChat } from '@/features/chat/api/queries/get-chat';
 import { getChatMessages } from '@/features/chat/api/queries/get-chat-messages';
 import { getDownloadUrl } from '@/features/chat/api/queries/get-download-url';
 import { getFeatureFlags } from '@/features/chat/api/queries/get-feature-flags';
 import { getGroupMemberLimit } from '@/features/chat/api/queries/get-group-member-limit';
 import { getMessage } from '@/features/chat/api/queries/get-message';
+import { getPendingCall } from '@/features/chat/api/queries/get-pending-call';
 import { getUnreadMarker } from '@/features/chat/api/queries/get-unread-marker';
 import { getUser } from '@/features/chat/api/queries/get-user';
 import { getChatList } from '@/features/chat/api/queries/list-chats';
@@ -66,6 +69,9 @@ export const chatRouter = createTRPCRouter({
   removeParticipant: removeParticipant,
   getFeatureFlags: getFeatureFlags,
   getGroupMemberLimit,
+  sendCallSignal,
+  getCallIceServers,
+  getPendingCall,
   checkCapability: trpcBaseProcedure
     .input(
       z.object({

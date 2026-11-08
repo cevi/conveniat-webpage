@@ -10,6 +10,8 @@ export const FEATURE_FLAG_FORUM_ENABLED = 'forum_enabled';
 export const FEATURE_FLAG_FORUM_MODERATION = 'forum_moderation_required';
 export const FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS = 'hide_full_helper_shifts';
 export const FEATURE_FLAG_RESTRICT_CONTACT_LIST = 'restrict_contact_list';
+/** voice calls in one-to-one chats, a prototype: off until a deployment switches it on */
+export const FEATURE_FLAG_VOICE_CALLS_ENABLED = 'voice_calls_enabled';
 
 export const FEATURE_FLAG_DEFAULTS: Record<string, boolean> = {
   [FEATURE_FLAG_SEND_MESSAGES]: true,
@@ -23,4 +25,5 @@ export const FEATURE_FLAG_DEFAULTS: Record<string, boolean> = {
   [FEATURE_FLAG_FORUM_MODERATION]: false,
   [FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS]: true,
   [FEATURE_FLAG_RESTRICT_CONTACT_LIST]: true,
+  [FEATURE_FLAG_VOICE_CALLS_ENABLED]: false,
 };

@@ -23,7 +23,12 @@ import {
   URGENT_PRIORITY,
 } from '@/lib/push/push-delivery-policy';
 import type { PushMessage, PushTransportResult } from '@/lib/push/push-transport';
-import { channelOf, composePushText, sendPushToDevice } from '@/lib/push/push-transport';
+import {
+  channelOf,
+  composePushSenderName,
+  composePushText,
+  sendPushToDevice,
+} from '@/lib/push/push-transport';
 import { createLogger } from '@/utils/server-logger';
 import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
@@ -91,6 +96,13 @@ export interface QueuedPush {
   /** Markdown is stripped and the text cut to fit, see `composePushText`. */
   title: string;
   body: string;
+  /**
+   * Who wrote the message of a chat push. The caller already put it in front of `body`; it is
+   * kept apart for the Android app, which lists a chat's messages under their senders.
+   */
+  senderName?: string | undefined;
+  /** The chat push is about a direct chat between two people. */
+  directChat?: boolean | undefined;
   url?: string | undefined;
   chatId?: string | undefined;
   messageId?: string | undefined;
@@ -161,6 +173,7 @@ export async function enqueuePushNotification(push: QueuedPush): Promise<Enqueue
       }
 
       const text = composePushText({ title: push.title, body: push.body });
+      const senderName = composePushSenderName(push.senderName);
       const now = new Date();
       const notification = await prisma.$transaction(async (transaction) => {
         const created = await transaction.pushNotification.create({
@@ -168,6 +181,8 @@ export async function enqueuePushNotification(push: QueuedPush): Promise<Enqueue
             kind: push.kind,
             title: text.title,
             body: text.body,
+            ...(senderName !== undefined && { senderName }),
+            directChat: push.directChat ?? false,
             ...(push.url !== undefined && { url: push.url }),
             ...(push.chatId !== undefined && { chatId: push.chatId }),
             ...(push.messageId !== undefined && { messageId: push.messageId }),
@@ -361,6 +376,8 @@ export const readQueueSnapshot = async (): Promise<PushQueueSnapshot> => {
 const messageOf = (notification: PushNotification): PushMessage => ({
   title: notification.title,
   body: notification.body,
+  ...(notification.senderName !== null && { senderName: notification.senderName }),
+  ...(notification.directChat && { directChat: true }),
   url: notification.url ?? undefined,
   messageId: notification.messageId ?? undefined,
   notificationType: notification.notificationType === 'emergency' ? 'emergency' : undefined,
@@ -676,7 +693,7 @@ async function completeFinishedNotifications(notificationIds: string[], now: Dat
     // completes the push empties it.
     const asChatPush = await prisma.pushNotification.updateMany({
       where: { id: notificationId, completedAt: null, chatId: { not: null } },
-      data: { completedAt: now, title: '', body: '' },
+      data: { completedAt: now, title: '', body: '', senderName: null },
     });
     const { count } =
       asChatPush.count > 0
