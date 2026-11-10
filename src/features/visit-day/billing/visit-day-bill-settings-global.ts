@@ -223,6 +223,24 @@ export const VisitDayBillSettingsGlobal: GlobalConfig = {
           },
           fields: [
             {
+              name: 'debitAccount',
+              type: 'text',
+              required: true,
+              defaultValue: '11000',
+              label: {
+                en: 'Debit account in Banana',
+                de: 'Sollkonto in Banana',
+                fr: 'Compte au débit dans Banana',
+              },
+              admin: {
+                description: {
+                  en: 'Debited for every Besuchstag bill in the finance export (column AccountDebit).',
+                  de: 'Wird im Finanzexport für jede Besuchstag-Rechnung im Soll gebucht (Spalte AccountDebit).',
+                  fr: 'Débité pour chaque facture dans l’export financier (colonne AccountDebit).',
+                },
+              },
+            },
+            {
               name: 'revenueAccount',
               type: 'text',
               label: {

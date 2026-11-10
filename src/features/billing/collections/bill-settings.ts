@@ -491,6 +491,47 @@ export const BillSettingsGlobal: GlobalConfig = {
               },
             },
             {
+              type: 'row',
+              fields: [
+                {
+                  name: 'debitAccount',
+                  type: 'text',
+                  required: true,
+                  defaultValue: '11000',
+                  label: {
+                    en: 'Debit account in Banana',
+                    de: 'Sollkonto in Banana',
+                    fr: 'Compte au débit dans Banana',
+                  },
+                  admin: {
+                    description: {
+                      en: 'Debited for every camp bill in the finance export (column AccountDebit).',
+                      de: 'Wird im Finanzexport für jede Lager-Rechnung im Soll gebucht (Spalte AccountDebit).',
+                      fr: 'Débité pour chaque facture du camp dans l’export financier (colonne AccountDebit).',
+                    },
+                  },
+                },
+                {
+                  name: 'creditAccount',
+                  type: 'text',
+                  required: true,
+                  defaultValue: '[CA]',
+                  label: {
+                    en: 'Credit account in Banana',
+                    de: 'Habenkonto in Banana',
+                    fr: 'Compte au crédit dans Banana',
+                  },
+                  admin: {
+                    description: {
+                      en: 'Credited for every camp bill in the finance export (column AccountCredit). [CA] is the temporary counter account Banana completes on import.',
+                      de: 'Wird im Finanzexport für jede Lager-Rechnung im Haben gebucht (Spalte AccountCredit). [CA] ist das temporäre Gegenkonto, das Banana beim Import ergänzt.',
+                      fr: 'Crédité pour chaque facture du camp dans l’export financier (colonne AccountCredit). [CA] est le compte de contrepartie temporaire que Banana complète à l’import.',
+                    },
+                  },
+                },
+              ],
+            },
+            {
               name: 'invoiceLetterText',
               type: 'textarea',
               defaultValue:
