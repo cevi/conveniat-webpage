@@ -369,8 +369,11 @@ by its role once a second screen needs it, not before.
   icon. The favourite star is amber. Each programme category keeps its colour, and one that would
   read as red is shifted to pink. Each Quartier keeps its house colour from its banner, Kitsune's
   dark red included: it is the house's identity, not a warning (`src/components/quartier`).
-- **Controls.** Touch targets are at least 44×44px. One `primary` button per view, the rest
-  `quiet` or `outlined`; a destructive action is `outlined` in red (`danger`) and either asks before it acts or can
+- **Controls.** Touch targets are at least 44×44px. At most one `primary` button per view, the
+  rest `quiet` or `outlined`. A button repeated on every row of a list is never the primary one,
+  not even on the first row: rows of the same kind rank equal, so each row's action is `outlined`
+  or `quiet`, and a view that is mostly such a list may have no primary button at all. A
+  destructive action is `outlined` in red (`danger`) and either asks before it acts or can
   be undone right after. A segmented control takes its track and segments
   from `src/components/ui/segmented-control.ts`. A text field takes its frame from
   `src/components/ui/field.ts` and a search is `AppSearchBar`: 44px, 12px radius, a search filled
