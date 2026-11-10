@@ -36,12 +36,24 @@ export const FINANCE_COLUMNS: (keyof FinanceCsvRow)[] = [
 ];
 
 /**
- * The accounts every booking is written against. They are fixed, not a setting: the finance
- * team's Banana file expects exactly these, and `[CA]` is the temporary counter account
- * Banana completes on import.
+ * The accounts a booking falls back to when its settings name none. The fields are required
+ * and default to these, but a settings document saved before they existed has no value until
+ * an editor saves it again. `[CA]` is the temporary counter account Banana completes on import.
  */
-const ACCOUNT_DEBIT = '11000';
-const ACCOUNT_CREDIT = '[CA]';
+const DEFAULT_ACCOUNT_DEBIT = '11000';
+const DEFAULT_ACCOUNT_CREDIT = '[CA]';
+
+/** The configured account, or the fallback where the settings leave it empty. */
+const accountOr = (account: string | null | undefined, fallback: string): string =>
+  typeof account === 'string' && account.trim() !== '' ? account.trim() : fallback;
+
+/** The camp bill accounts from the settings, with the fallbacks applied. */
+const campAccounts = (
+  settings: Pick<BillSetting, 'debitAccount' | 'creditAccount'>,
+): { debit: string; credit: string } => ({
+  debit: accountOr(settings.debitAccount, DEFAULT_ACCOUNT_DEBIT),
+  credit: accountOr(settings.creditAccount, DEFAULT_ACCOUNT_CREDIT),
+});
 
 /** The fee label the bill was raised under, e.g. "Teilnehmendenbeitrag". */
 const resolveFeeLabel = (roleType: string, rolePricing: RolePricingEntry[]): string => {
@@ -71,8 +83,12 @@ const formatIsoDate = (date: Date): string =>
  */
 export function buildFinanceCsvRows(
   participants: BillParticipant[],
-  settings: Pick<BillSetting, 'rolePricing' | 'paymentDeadlineDays'>,
+  settings: Pick<
+    BillSetting,
+    'rolePricing' | 'paymentDeadlineDays' | 'debitAccount' | 'creditAccount'
+  >,
 ): FinanceCsvRow[] {
+  const accounts = campAccounts(settings);
   const rolePricing = (settings.rolePricing ?? []) as RolePricingEntry[];
   const paymentDeadlineDays = settings.paymentDeadlineDays ?? 30;
 
@@ -99,8 +115,8 @@ export function buildFinanceCsvRows(
         Amount: bill.invoiceAmount ?? undefined,
         DateExpiration: formatIsoDate(expirationDate),
         Description: description,
-        AccountDebit: ACCOUNT_DEBIT,
-        AccountCredit: ACCOUNT_CREDIT,
+        AccountDebit: accounts.debit,
+        AccountCredit: accounts.credit,
         Storniert: isCancelled(bill),
         Stornogrund: bill.cancelReason ?? '',
       };
@@ -117,21 +133,18 @@ const cancelReasonOf = (status: VisitDayBill['status']): string =>
 /**
  * One booking per Besuchstag bill ever issued, so Banana gets both kinds of bill from one
  * export. A bill issued again keeps its earlier issue as a cancelled line, like a replaced camp
- * bill, and a cancelled registration cancels its last one. The revenue account comes from the
- * Besuchstag bill settings, the counter account `[CA]` where none is set.
+ * bill, and a cancelled registration cancels its last one. Both accounts come from the
+ * Besuchstag bill settings; the revenue account is optional and falls back to the credit
+ * account of the camp bills.
  */
 export function buildVisitDayFinanceRows(
   bills: Pick<
     VisitDayBill,
     'registrationNumber' | 'fullName' | 'status' | 'issuedBills' | 'dueDate' | 'issuedAt'
   >[],
-  revenueAccount: string | null | undefined,
+  accounts: { debit: string; credit: string },
   paymentDeadlineDays: number,
 ): FinanceCsvRow[] {
-  const accountCredit =
-    typeof revenueAccount === 'string' && revenueAccount.trim() !== ''
-      ? revenueAccount.trim()
-      : ACCOUNT_CREDIT;
   const rows = bills.flatMap((bill) =>
     (bill.issuedBills ?? []).map((issued): FinanceCsvRow => {
       const issuedAt = new Date(issued.issuedAt);
@@ -145,8 +158,8 @@ export function buildVisitDayFinanceRows(
         Amount: issued.amount,
         DateExpiration: formatIsoDate(expiration),
         Description: ['Besuchstag', bill.fullName ?? '', bill.registrationNumber].join(', '),
-        AccountDebit: ACCOUNT_DEBIT,
-        AccountCredit: accountCredit,
+        AccountDebit: accounts.debit,
+        AccountCredit: accounts.credit,
         Storniert: replaced,
         Stornogrund: replaced ? cancelReasonOf(bill.status) : '',
       };
@@ -198,16 +211,20 @@ export async function findFinanceCsvRows(payload: Payload): Promise<FinanceCsvRo
 
   return [
     ...buildFinanceCsvRows(participants.docs, settings),
-    ...(await findVisitDayFinanceRows(payload)),
+    ...(await findVisitDayFinanceRows(payload, settings)),
   ];
 }
 
 /**
  * The bookings of every Besuchstag bill. They are paid into the same account, so finance books
  * both kinds of bill from one file; read by collection, the camp billing imports nothing of the
- * Besuchstag.
+ * Besuchstag. The camp bill settings supply the credit account where the Besuchstag names no
+ * revenue account.
  */
-export async function findVisitDayFinanceRows(payload: Payload): Promise<FinanceCsvRow[]> {
+export async function findVisitDayFinanceRows(
+  payload: Payload,
+  campSettings: Pick<BillSetting, 'debitAccount' | 'creditAccount'>,
+): Promise<FinanceCsvRow[]> {
   const bills = await payload.find({
     collection: 'visit-day-bills',
     limit: 10_000,
@@ -223,7 +240,10 @@ export async function findVisitDayFinanceRows(payload: Payload): Promise<Finance
   });
   return buildVisitDayFinanceRows(
     bills.docs,
-    settings.revenueAccount,
+    {
+      debit: accountOr(settings.debitAccount, DEFAULT_ACCOUNT_DEBIT),
+      credit: accountOr(settings.revenueAccount, campAccounts(campSettings).credit),
+    },
     settings.paymentDeadlineDays,
   );
 }

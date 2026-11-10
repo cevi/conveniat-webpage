@@ -183,7 +183,7 @@ export async function sendWeeklyReport(
       // status today, and a row without a bill yields no line.
       const rows = [
         ...buildFinanceCsvRows(participants, settings),
-        ...(await findVisitDayFinanceRows(payload)),
+        ...(await findVisitDayFinanceRows(payload, settings)),
       ];
       excelAttachment = {
         filename: `rechnungsuebersicht-${stamp}.xlsx`,

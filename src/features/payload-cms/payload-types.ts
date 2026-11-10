@@ -9800,6 +9800,14 @@ export interface BillSetting {
   eventNumberTemplate?: string | null;
   paymentDeadlineDays?: number | null;
   /**
+   * Debited for every camp bill in the finance export (column AccountDebit).
+   */
+  debitAccount: string;
+  /**
+   * Credited for every camp bill in the finance export (column AccountCredit). [CA] is the temporary counter account Banana completes on import.
+   */
+  creditAccount: string;
+  /**
    * Text on page 1, above the registration details. Web addresses such as con27.ch/agbs are printed as clickable links.
    */
   invoiceLetterText?: string | null;
@@ -9969,6 +9977,10 @@ export interface VisitDayBillSetting {
    * Placeholders: {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{invoiceNumber}}, {{registrationNumber}}, {{visitDay}}, {{dueDate}}. {{signatur}} (or {{signatur :: Ressort Finanzen}}) ends the email with the official signature.
    */
   emailBody: string;
+  /**
+   * Debited for every Besuchstag bill in the finance export (column AccountDebit).
+   */
+  debitAccount: string;
   /**
    * Credited for every Besuchstag bill in the finance export. Empty uses the account of the camp bills.
    */
@@ -10547,6 +10559,8 @@ export interface BillSettingsSelect<T extends boolean = true> {
   customReferenceTemplate?: T;
   eventNumberTemplate?: T;
   paymentDeadlineDays?: T;
+  debitAccount?: T;
+  creditAccount?: T;
   invoiceLetterText?: T;
   invoiceLetterTextAfter?: T;
   rolePricing?:
@@ -10619,6 +10633,7 @@ export interface VisitDayBillSettingsSelect<T extends boolean = true> {
   letterText?: T;
   emailSubject?: T;
   emailBody?: T;
+  debitAccount?: T;
   revenueAccount?: T;
   weeklyReport?:
     | T

@@ -21,6 +21,8 @@ const participant = (overrides: Partial<BillParticipant>): BillParticipant =>
 
 const SETTINGS = {
   paymentDeadlineDays: 30,
+  debitAccount: '11000',
+  creditAccount: '[CA]',
   rolePricing: [{ roleTypePattern: 'Participant', label: 'Teilnehmendenbeitrag', amount: 250 }],
 };
 
