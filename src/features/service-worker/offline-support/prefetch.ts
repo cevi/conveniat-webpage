@@ -31,6 +31,8 @@ const pLimit = (concurrency: number) => {
 };
 
 const limit = pLimit(TIMEOUTS.PREFETCH_CONCURRENCY);
+// A page task waits for its chunks in `limit`, so it must never hold a slot of `limit` itself.
+const pageLimit = pLimit(TIMEOUTS.PAGE_PREFETCH_CONCURRENCY);
 
 export function getCacheNameForUrl(url: string): string {
   if (/\.css(\?.*)?$/i.test(url)) return CACHE_NAMES.CSS;
@@ -466,7 +468,7 @@ export async function prefetchOfflinePages(
   // 1. Prefetch Core HTML Pages FIRST so page shells are immediately available offline
   await Promise.all(
     [...pagesToPrefetch].map((pageUrl) =>
-      limit(async () => {
+      pageLimit(async () => {
         try {
           await cachePageAndScrape(pageUrl);
         } catch (error) {
