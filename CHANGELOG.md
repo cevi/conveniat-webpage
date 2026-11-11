@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.57.0](https://github.com/cevi/conveniat-webpage/compare/v1.56.0...v1.57.0) (2026-11-11)
+
+
+### Features
+
+* **auth:** count session refreshes by outcome and reason ([b659c98](https://github.com/cevi/conveniat-webpage/commit/b659c98d0cffa7d35c7c15a9c7bc954c45875a45))
+* **auth:** count session refreshes by outcome and reason ([50d4e6c](https://github.com/cevi/conveniat-webpage/commit/50d4e6cb5955c1bb77ce055d04da9172d523a782)), closes [#1665](https://github.com/cevi/conveniat-webpage/issues/1665)
+* **billing:** Banana accounts are set in the bill settings ([c0ea7d3](https://github.com/cevi/conveniat-webpage/commit/c0ea7d3d5e0655ec9f47f2bd5720404847f71078))
+* **billing:** Banana accounts are set in the bill settings ([9d9ceaa](https://github.com/cevi/conveniat-webpage/commit/9d9ceaa244fc142a8e97671d255a8ff1eecd6181)), closes [#2778](https://github.com/cevi/conveniat-webpage/issues/2778)
+
+
+### Bug Fixes
+
+* **auth:** a refused refresh says which session it ended and how old its token was ([61a22e4](https://github.com/cevi/conveniat-webpage/commit/61a22e4c1c96a79401d2ae0f3ae098ea1875821a))
+* **auth:** a refused refresh says which session it ended and how old its token was ([f92b9dc](https://github.com/cevi/conveniat-webpage/commit/f92b9dc630781311b0a571dd8db9239660038306)), closes [#1665](https://github.com/cevi/conveniat-webpage/issues/1665)
+* **hof-dashboard:** no row of the review list is the primary action ([ebf3185](https://github.com/cevi/conveniat-webpage/commit/ebf31851a2cf77b191fa16da23de359631cad850))
+* **hof-dashboard:** no row of the review list is the primary action ([7362500](https://github.com/cevi/conveniat-webpage/commit/73625007dfe3d029d3cbedd6ed535d006c136f09))
+* **offline:** the offline download no longer hangs at 0% with 20 pages ([292a0a8](https://github.com/cevi/conveniat-webpage/commit/292a0a89c4ae7d6f056b9155b52cb3bf51842536))
+* **offline:** the offline download no longer hangs at 0% with 20 pages ([b7ab68a](https://github.com/cevi/conveniat-webpage/commit/b7ab68a5b9c0394a0bada8438de38d9e8a2c67f9)), closes [#2777](https://github.com/cevi/conveniat-webpage/issues/2777)
+* **service-worker:** navigations no longer throw a DataCloneError ([d4a29d4](https://github.com/cevi/conveniat-webpage/commit/d4a29d4bb8bf5aa25c985bce0b7ce403698c2e6d))
+* **service-worker:** navigations no longer throw a DataCloneError ([20e38b8](https://github.com/cevi/conveniat-webpage/commit/20e38b87ba9694f71e0bafa10aa9cdc922a66540))
+
 ## [1.56.0](https://github.com/cevi/conveniat-webpage/compare/v1.55.0...v1.56.0) (2026-11-08)
 
 
