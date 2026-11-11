@@ -40,6 +40,17 @@ const createMemoryStore = (initial?: {
 
 const timings: MigrationLockTimings = { leaseMs: 60, renewMs: 15, pollMs: 5, maxWaitMs: 2000 };
 
+/**
+ * Runs `work` to the end on the fake clock. Every lease, renewal and poll is a timer, so the
+ * order they fire in is fixed. On real timers a runner that stalls for longer than a lease minus
+ * a renewal lets a waiting replica take over mid-migration, and the test fails for the runner,
+ * not for the lock.
+ */
+const settle = async <T>(work: Promise<T>): Promise<T> => {
+  const [result] = await Promise.all([work, jest.runAllTimersAsync()]);
+  return result;
+};
+
 const createLogger = (): MigrationLockLogger & { lines: string[] } => {
   const lines: string[] = [];
   return {
@@ -92,14 +103,19 @@ const createMigrations = (
 };
 
 describe('runWithMigrationLock', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
   it('lets replicas that start together migrate one after the other, each migration once', async () => {
     const store = createMemoryStore();
     const migrations = createMigrations(['a', 'b'], 20);
     const logger = createLogger();
 
-    await Promise.all(
-      ['replica-1', 'replica-2', 'replica-3'].map((holder) =>
-        runWithMigrationLock({ store, holder, migrate: migrations.migrate, logger, timings }),
+    await settle(
+      Promise.all(
+        ['replica-1', 'replica-2', 'replica-3'].map((holder) =>
+          runWithMigrationLock({ store, holder, migrate: migrations.migrate, logger, timings }),
+        ),
       ),
     );
 
@@ -115,24 +131,26 @@ describe('runWithMigrationLock', () => {
     const migrations = createMigrations(['slow'], timings.leaseMs * 3);
     const logger = createLogger();
 
-    await Promise.all([
-      runWithMigrationLock({
-        store,
-        holder: 'first',
-        migrate: migrations.migrate,
-        logger,
-        timings,
-      }),
-      sleep(timings.pollMs).then(() =>
+    await settle(
+      Promise.all([
         runWithMigrationLock({
           store,
-          holder: 'second',
+          holder: 'first',
           migrate: migrations.migrate,
           logger,
           timings,
         }),
-      ),
-    ]);
+        sleep(timings.pollMs).then(() =>
+          runWithMigrationLock({
+            store,
+            holder: 'second',
+            migrate: migrations.migrate,
+            logger,
+            timings,
+          }),
+        ),
+      ]),
+    );
 
     expect(migrations.maxConcurrentRuns()).toBe(1);
     expect(migrations.applied.get('slow')).toBe(1);
@@ -144,13 +162,15 @@ describe('runWithMigrationLock', () => {
     const migrations = createMigrations(['a'], 1);
     const logger = createLogger();
 
-    await runWithMigrationLock({
-      store,
-      holder: 'next',
-      migrate: migrations.migrate,
-      logger,
-      timings,
-    });
+    await settle(
+      runWithMigrationLock({
+        store,
+        holder: 'next',
+        migrate: migrations.migrate,
+        logger,
+        timings,
+      }),
+    );
 
     expect(migrations.applied.get('a')).toBe(1);
     expect(logger.lines).toEqual([
@@ -168,13 +188,15 @@ describe('runWithMigrationLock', () => {
     const migrate = jest.fn(async () => {});
 
     await expect(
-      runWithMigrationLock({
-        store,
-        holder: 'waiting',
-        migrate,
-        logger: createLogger(),
-        timings: { ...timings, maxWaitMs: 30 },
-      }),
+      settle(
+        runWithMigrationLock({
+          store,
+          holder: 'waiting',
+          migrate,
+          logger: createLogger(),
+          timings: { ...timings, maxWaitMs: 30 },
+        }),
+      ),
     ).rejects.toThrow('Gave up waiting for the migration lock');
     expect(migrate).not.toHaveBeenCalled();
     expect(store.current()?.holder).toBe('stuck');
@@ -190,12 +212,14 @@ describe('runWithMigrationLock', () => {
     };
 
     await expect(
-      runWithMigrationLock({ store, holder: 'first', migrate, logger: createLogger(), timings }),
+      settle(
+        runWithMigrationLock({ store, holder: 'first', migrate, logger: createLogger(), timings }),
+      ),
     ).rejects.toThrow('migration failed');
     expect(store.current()).toBeUndefined();
 
     const logger = createLogger();
-    await runWithMigrationLock({ store, holder: 'second', migrate, logger, timings });
+    await settle(runWithMigrationLock({ store, holder: 'second', migrate, logger, timings }));
     expect(attempts).toBe(2);
     expect(logger.lines[0]).toBe('info Took the migration lock (second).');
   });
@@ -210,7 +234,7 @@ describe('runWithMigrationLock', () => {
       await sleep(timings.renewMs * 3);
     };
 
-    await runWithMigrationLock({ store, holder: 'holder', migrate, logger, timings });
+    await settle(runWithMigrationLock({ store, holder: 'holder', migrate, logger, timings }));
 
     expect(
       logger.lines.filter(
