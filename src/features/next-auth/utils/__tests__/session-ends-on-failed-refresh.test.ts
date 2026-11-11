@@ -17,6 +17,14 @@ jest.mock('@/utils/server-logger', () => ({
     error: jest.fn(),
   }),
 }));
+jest.mock('@/lib/telemetry/metrics', () => {
+  const counted = jest.fn();
+  return {
+    ...jest.requireActual<object>('@/lib/telemetry/metrics'),
+    defineCounter: (): { add: jest.Mock } => ({ add: counted }),
+    counted,
+  };
+});
 jest.mock('@/config/environment-variables', () => ({
   environmentVariables: {
     HITOBITO_BASE_URL: 'https://cevi.db.test',
@@ -27,6 +35,8 @@ jest.mock('@/config/environment-variables', () => ({
 }));
 
 import { authOptions } from '@/features/next-auth/utils/next-auth-config';
+
+const { counted } = jest.requireMock<{ counted: jest.Mock }>('@/lib/telemetry/metrics');
 
 type JwtCallback = (parameters: { token: JWT }) => Promise<JWT | null>;
 const jwt = authOptions.callbacks?.jwt as unknown as JwtCallback;
@@ -59,6 +69,7 @@ describe('a session whose access token has expired', () => {
   afterAll(() => jest.useRealTimers());
 
   beforeEach(() => {
+    counted.mockReset();
     fetchMock.mockReset();
     globalThis.fetch = fetchMock as unknown as typeof fetch;
   });
@@ -67,6 +78,30 @@ describe('a session whose access token has expired', () => {
     fetchMock.mockResolvedValue(answer(400, { error: 'invalid_grant' }));
 
     await expect(jwt({ token: expiredToken({ refresh_token: 'refused' }) })).resolves.toBeNull();
+  });
+
+  it('counts a refusal once, however many requests waited for it', async () => {
+    fetchMock.mockResolvedValue(answer(400, { error: 'invalid_grant' }));
+    const token = expiredToken({ refresh_token: 'refused-for-two' });
+
+    await Promise.all([jwt({ token }), jwt({ token })]);
+
+    expect(counted).toHaveBeenCalledTimes(1);
+    expect(counted).toHaveBeenCalledWith(1, { outcome: 'refused', reason: 'token_expired' });
+  });
+
+  it('counts Cevi.DB being unreachable apart from a refusal', async () => {
+    fetchMock.mockResolvedValue(answer(503, { error: 'try again later' }));
+
+    await jwt({ token: expiredToken({ refresh_token: 'unreachable' }) });
+
+    expect(counted).toHaveBeenCalledWith(1, { outcome: 'unreachable', reason: 'token_expired' });
+  });
+
+  it('counts nothing when there is no refresh token to send', async () => {
+    await jwt({ token: expiredToken({ refresh_token: undefined }) });
+
+    expect(counted).not.toHaveBeenCalled();
   });
 
   it('ends when it has no refresh token left to learn its groups with', async () => {
@@ -128,5 +163,6 @@ describe('a session whose access token has expired', () => {
 
     expect(refreshed?.group_ids).toEqual([99]);
     expect(refreshed?.access_token).toBe('new-access-token');
+    expect(counted).toHaveBeenCalledWith(1, { outcome: 'renewed', reason: 'token_expired' });
   });
 });
