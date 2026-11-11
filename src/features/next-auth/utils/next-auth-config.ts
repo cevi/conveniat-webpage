@@ -6,6 +6,7 @@ import { shareRefreshAcrossReplicas } from '@/features/next-auth/utils/shared-re
 import type { User } from '@/features/payload-cms/payload-types';
 import { measureCeviDatabaseFetch, routeTemplate } from '@/lib/hitobito/request-metrics';
 import { withCeviDatabaseUserAgent } from '@/lib/hitobito/user-agent';
+import { defineCounter } from '@/lib/telemetry/metrics';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { createLogger } from '@/utils/server-logger';
 import { withSpan } from '@/utils/tracing-helpers';
@@ -347,6 +348,37 @@ const mustWaitForRequestedSync = (token: JWT): boolean =>
 // Auth.js ends a session on null, not on undefined
 const SESSION_ENDED = null;
 
+/** Why a session asked Cevi.DB for a new access token. */
+type RefreshReason =
+  'user_requested' | 'missing_expires_at' | 'token_expired' | 'token_approaching_expiry';
+
+/** How a refresh against Cevi.DB ended. */
+type RefreshOutcome =
+  /** New tokens: the session goes on. */
+  | 'renewed'
+  /** Cevi.DB refused the refresh token for good: the session ends. */
+  | 'refused'
+  /** Cevi.DB could not be reached: the session goes on with what it has. */
+  | 'unreachable';
+
+/**
+ * Every refresh this app sends to Cevi.DB, once, whichever request or replica started it. The
+ * share of `refused` among them says whether sessions end because their refresh token ran out or
+ * because something here spends it twice. `cevidb_request_duration_seconds` cannot tell: its
+ * `/oauth/token` route also counts the sign-in, and a retry once per attempt.
+ */
+const refreshCounter = defineCounter<{ outcome: RefreshOutcome; reason: RefreshReason }>({
+  scope: 'next-auth',
+  name: 'auth_session_refreshes_total',
+  description: 'Session refreshes against Cevi.DB, by outcome and by why the session refreshed',
+});
+
+const outcomeOf = (outcome: JWT | null | undefined): RefreshOutcome => {
+  if (outcome === null) return 'refused';
+  if (outcome === undefined) return 'unreachable';
+  return 'renewed';
+};
+
 /**
  * Dates the refresh token a refresh answered with. A session from before these fields existed
  * gets its id here, at its first refresh. Without a new refresh token the old one, and its age,
@@ -384,7 +416,7 @@ const inflightRefreshes = new Map<string, Promise<JWT | null | undefined>>();
 async function refreshAccessToken(
   token: JWT,
   refreshToken: string,
-  reason: string,
+  reason: RefreshReason,
 ): Promise<JWT | null | undefined> {
   // If a refresh is already in-flight for this session, wait for it
   const existing = inflightRefreshes.get(refreshToken);
@@ -393,9 +425,11 @@ async function refreshAccessToken(
   }
 
   // Start the actual refresh and store the promise
-  const refreshPromise = shareRefreshAcrossReplicas(refreshToken, () =>
-    doRefreshAccessToken(token, reason),
-  ).finally(() => {
+  const refreshPromise = shareRefreshAcrossReplicas(refreshToken, async () => {
+    const outcome = await doRefreshAccessToken(token, reason);
+    refreshCounter.add(1, { outcome: outcomeOf(outcome), reason });
+    return outcome;
+  }).finally(() => {
     // Clean up after a short delay to handle near-simultaneous arrivals
     setTimeout(() => inflightRefreshes.delete(refreshToken), 1000);
   });
@@ -417,7 +451,10 @@ class TerminalRefreshError extends Error {
  * the refresh token for good, which ends the session, and `undefined` when it could not be
  * reached and the session goes on as it is.
  */
-async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT | null | undefined> {
+async function doRefreshAccessToken(
+  token: JWT,
+  reason: RefreshReason,
+): Promise<JWT | null | undefined> {
   try {
     logger.debug('Refreshing access token', {
       'auth.user_uuid': token.uuid,
@@ -757,7 +794,7 @@ export const authOptions: NextAuthConfig = {
         return SESSION_ENDED;
       }
 
-      let reason: string;
+      let reason: RefreshReason;
       if (isRequestedSync) {
         reason = 'user_requested';
       } else if (expiresAt === 0) {
