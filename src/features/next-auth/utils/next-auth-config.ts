@@ -14,6 +14,7 @@ import { SpanStatusCode, trace } from '@opentelemetry/api';
 import type { NextAuthConfig } from 'next-auth';
 import { customFetch } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
+import { randomUUID } from 'node:crypto';
 import type { BasePayload } from 'payload';
 import { getPayload } from 'payload';
 import { Agent, setGlobalDispatcher } from 'undici';
@@ -379,6 +380,32 @@ const outcomeOf = (outcome: JWT | null | undefined): RefreshOutcome => {
 };
 
 /**
+ * Dates the refresh token a refresh answered with. A session from before these fields existed
+ * gets its id here, at its first refresh. Without a new refresh token the old one, and its age,
+ * stay.
+ */
+const refreshedSession = (
+  token: JWT,
+  newRefreshToken: string | undefined,
+): Pick<JWT, 'session_id' | 'refreshed_at'> => ({
+  session_id: token.session_id ?? randomUUID(),
+  refreshed_at: newRefreshToken === undefined ? token.refreshed_at : Math.floor(Date.now() / 1000),
+});
+
+/**
+ * Which session failed to refresh and how old its refresh token was. Cevi.DB keeps a refresh
+ * token for 7 days, and the session cookie lives exactly as long, so a refusal of a younger one
+ * means the token was used up elsewhere, not that it ran out. Both are missing on a session that
+ * has not been refreshed since they were introduced.
+ */
+const sessionAgeAttributes = (token: JWT): Record<string, string | number> => ({
+  ...(token.session_id === undefined ? {} : { 'auth.session_id': token.session_id }),
+  ...(token.refreshed_at === undefined
+    ? {}
+    : { 'auth.refresh_token_age_seconds': Math.floor(Date.now() / 1000) - token.refreshed_at }),
+});
+
+/**
  * Refreshes in flight, by refresh token. Requests that carry the same session share one call to
  * Cevi.DB, because the second use of a refresh token is refused. This covers one process, and
  * `shareRefreshAcrossReplicas` the other replicas. Two devices of one user hold different refresh
@@ -507,6 +534,7 @@ async function doRefreshAccessToken(
         // Fall back to old refresh token if new one is not returned
         refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
         expires_at: expiresAt,
+        ...refreshedSession(token, refreshedTokens.refresh_token),
         // Update persisted user data synchronously from the token/profile data
         uuid: identity.uuid,
         cevi_db_uuid: identity.cevi_db_uuid,
@@ -531,6 +559,7 @@ async function doRefreshAccessToken(
         access_token: refreshedTokens.access_token,
         refresh_token: refreshedTokens.refresh_token ?? token.refresh_token,
         expires_at: expiresAt,
+        ...refreshedSession(token, refreshedTokens.refresh_token),
       };
     }
   } catch (error) {
@@ -547,6 +576,7 @@ async function doRefreshAccessToken(
     // error. A retryable failure is the network, and the next request tries again.
     logger[isTerminal ? 'error' : 'warn']('Error refreshing access token', {
       'auth.user_uuid': token.uuid,
+      ...sessionAgeAttributes(token),
       'hitobito.refresh_reason': reason,
       'hitobito.refresh_terminal': isTerminal,
       error,
@@ -719,6 +749,8 @@ export const authOptions: NextAuthConfig = {
           access_token: account.access_token,
           refresh_token: account.refresh_token,
           expires_at: account.expires_at ?? Math.floor(Date.now() / 1000) + 3600,
+          session_id: randomUUID(),
+          refreshed_at: Math.floor(Date.now() / 1000),
           uuid: payloadCMSUser.id,
           cevi_db_uuid: payloadCMSUser.cevi_db_uuid ?? undefined, // the id of the user in the CeviDB as number
           group_ids: profile.roles.map((role) => role.group_id),
