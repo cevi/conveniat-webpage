@@ -110,9 +110,15 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
     // drops and returns every few minutes, and each reload threw away whatever the user was
     // typing or reading. Nothing needs it: queries refetch on reconnect and the chat outbox
     // drains on its own.
+    //
+    // `cacheOnNavigation` defaults to on: it patches `history.pushState` and `replaceState` and
+    // posts every URL to the worker as `CACHE_URLS`. Our worker never handles that message, and
+    // when the router passes a URL object instead of a string, `postMessage` throws a
+    // DataCloneError.
     <SerwistProvider
       register={false}
       reloadOnOnline={false}
+      cacheOnNavigation={false}
       swUrl={SW_URL}
       options={SW_REGISTRATION_OPTIONS}
     >

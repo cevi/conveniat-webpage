@@ -10,7 +10,6 @@ import {
   AreaIcon,
   LABEL_CLASS,
   Panel,
-  PRIMARY_BUTTON_CLASS,
   SECONDARY_BUTTON_CLASS,
   SectionHeading,
   SegmentBar,
@@ -91,16 +90,16 @@ const waitingLine = (area: HofDashboardArea, n: number, locale: Locale): string 
 
 /**
  * One Hof with something to review, as a row: what waits, the way to it, and accepting all of
- * it. Only the first row's way in is the view's primary action.
+ * it. Every row's way in is outlined: the rows rank equal, so none of them is the view's primary
+ * action.
  */
 const WaitingRow: React.FC<{
   hof: HofOverviewRow;
-  primary: boolean;
   accepting: boolean;
   onReview: (area: HofDashboardArea) => void;
   onAccept: () => void;
   locale: Locale;
-}> = ({ hof, primary, accepting, onReview, onAccept, locale }) => {
+}> = ({ hof, accepting, onReview, onAccept, locale }) => {
   const waiting = HOF_DASHBOARD_AREAS.filter((area) => hof.areas[area].toReview > 0);
   const toAccept = ACCEPTED_AT_ONCE.reduce((sum, area) => sum + hof.areas[area].toAccept, 0);
   const first = waiting[0];
@@ -125,7 +124,7 @@ const WaitingRow: React.FC<{
         {first !== undefined && (
           <button
             type="button"
-            className={primary ? PRIMARY_BUTTON_CLASS : SECONDARY_BUTTON_CLASS}
+            className={SECONDARY_BUTTON_CLASS}
             aria-label={translate('reviewHofLabel', locale, { hof: hof.name })}
             onClick={() => onReview(first)}
           >
@@ -237,11 +236,10 @@ export const HofOverviewTable: React.FC<{
           </p>
         ) : (
           <ul className="divide-line border-line divide-y border-t">
-            {waiting.map((hof, index) => (
+            {waiting.map((hof) => (
               <WaitingRow
                 key={hof.id}
                 hof={hof}
-                primary={index === 0}
                 accepting={pendingHofId === hof.id}
                 onReview={(area) => onOpen(hof.id, area)}
                 onAccept={() => void accept(hof.id, ACCEPTED_AT_ONCE)}

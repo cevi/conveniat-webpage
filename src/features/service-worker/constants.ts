@@ -38,6 +38,9 @@ export const TIMEOUTS = {
   // server that answers again, short enough not to be felt on wifi without an uplink.
   UNREACHABLE_NETWORK: 500,
   PREFETCH_CONCURRENCY: 20, // High concurrency to utilize HTTP/2 streams for map tiles
+  // Pages of the offline download run in a pool of their own: a page waits for its chunks, so
+  // sharing the asset pool deadlocks as soon as the pages fill it.
+  PAGE_PREFETCH_CONCURRENCY: 6,
   ASSET_FETCH: 15_000, // 15 seconds per asset
   PROGRESS_STALL: 25_000, // 25 seconds without progress = stall
   MAX_RETRIES: 3, // Retry failed fetches up to 3 times

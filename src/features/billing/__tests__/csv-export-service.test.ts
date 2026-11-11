@@ -1,9 +1,16 @@
 import {
   buildFinanceCsvRows,
   buildVisitDayFinanceRows,
+  findVisitDayFinanceRows,
   formatFinanceCsv,
 } from '@/features/billing/services/csv-export-service';
-import type { BillParticipant, VisitDayBill } from '@/features/payload-cms/payload-types';
+import type {
+  BillParticipant,
+  BillSetting,
+  VisitDayBill,
+  VisitDayBillSetting,
+} from '@/features/payload-cms/payload-types';
+import type { Payload } from 'payload';
 
 const participant = (overrides: Partial<BillParticipant>): BillParticipant =>
   ({
@@ -20,6 +27,8 @@ const participant = (overrides: Partial<BillParticipant>): BillParticipant =>
 
 const SETTINGS = {
   paymentDeadlineDays: 31,
+  debitAccount: '11000',
+  creditAccount: '[CA]',
   rolePricing: [
     { roleTypePattern: 'Participant', label: 'Teilnehmendenbeitrag', amount: 300 },
     { roleTypePattern: 'Leader', label: 'Leitendenbeitrag u18', amount: 240 },
@@ -70,6 +79,23 @@ describe('buildFinanceCsvRows', () => {
     );
 
     expect(row?.Date).toBe('2026-05-20');
+  });
+
+  it('books against the accounts set in the camp bill settings', () => {
+    const [row] = buildFinanceCsvRows([participant({})], {
+      ...SETTINGS,
+      debitAccount: ' 10200 ',
+      creditAccount: '3400',
+    });
+
+    expect([row?.AccountDebit, row?.AccountCredit]).toEqual(['10200', '3400']);
+  });
+
+  it('falls back to 11000 and [CA] for settings saved before the accounts existed', () => {
+    const stored = { paymentDeadlineDays: 31, rolePricing: [] } as Partial<BillSetting>;
+    const [row] = buildFinanceCsvRows([participant({})], stored as BillSetting);
+
+    expect([row?.AccountDebit, row?.AccountCredit]).toEqual(['11000', '[CA]']);
   });
 });
 
@@ -227,7 +253,7 @@ describe('buildVisitDayFinanceRows', () => {
           ],
         },
       ],
-      '3410',
+      { debit: '10200', credit: '3410' },
       30,
     );
 
@@ -242,26 +268,57 @@ describe('buildVisitDayFinanceRows', () => {
         Date: '2027-03-01',
         DateExpiration: '2027-03-31',
         Description: 'Besuchstag, Anna Muster, 5321-B007',
-        AccountDebit: '11000',
+        AccountDebit: '10200',
       }),
     );
   });
+});
 
-  it('falls back to the counter account the camp bills use', () => {
-    const [row] = buildVisitDayFinanceRows(
-      [
-        {
-          registrationNumber: 'EXT-B001',
-          fullName: 'Luc',
-          status: 'cancelled',
-          issuedAt: '2027-03-01T10:00:00.000Z',
-          dueDate: '2027-03-31T10:00:00.000Z',
-          issuedBills: [issued('BT2027-0001', '091', '2027-03-05T10:00:00.000Z')],
-        },
-      ],
-      '',
-      30,
+describe('findVisitDayFinanceRows', () => {
+  const bill: Partial<VisitDayBill> = {
+    registrationNumber: 'EXT-B001',
+    fullName: 'Luc',
+    status: 'cancelled',
+    issuedAt: '2027-03-01T10:00:00.000Z',
+    dueDate: '2027-03-31T10:00:00.000Z',
+    issuedBills: [issued('BT2027-0001', '091', '2027-03-05T10:00:00.000Z')],
+  };
+
+  /** A Payload that holds one Besuchstag bill and the given Besuchstag bill settings. */
+  const payloadWith = (settings: Partial<VisitDayBillSetting>): Payload =>
+    ({
+      find: jest.fn().mockResolvedValue({ docs: [bill] }),
+      findGlobal: jest.fn().mockResolvedValue({ paymentDeadlineDays: 30, ...settings }),
+    }) as unknown as Payload;
+
+  it('books against the Besuchstag accounts, not the camp ones', async () => {
+    const [row] = await findVisitDayFinanceRows(
+      payloadWith({ debitAccount: '10210', revenueAccount: '3410' }),
+      { debitAccount: '10200', creditAccount: '3400' },
     );
-    expect([row?.AccountCredit, row?.Stornogrund]).toEqual(['[CA]', 'Anmeldung storniert']);
+
+    expect([row?.AccountDebit, row?.AccountCredit, row?.Stornogrund]).toEqual([
+      '10210',
+      '3410',
+      'Anmeldung storniert',
+    ]);
+  });
+
+  it('credits the account of the camp bills where no revenue account is set', async () => {
+    const [row] = await findVisitDayFinanceRows(
+      payloadWith({ debitAccount: '10210', revenueAccount: '' }),
+      { debitAccount: '10200', creditAccount: '3400' },
+    );
+
+    expect(row?.AccountCredit).toBe('3400');
+  });
+
+  it('debits 11000 for settings saved before the debit account existed', async () => {
+    const [row] = await findVisitDayFinanceRows(payloadWith({}), {
+      debitAccount: '10200',
+      creditAccount: '[CA]',
+    });
+
+    expect([row?.AccountDebit, row?.AccountCredit]).toEqual(['11000', '[CA]']);
   });
 });
