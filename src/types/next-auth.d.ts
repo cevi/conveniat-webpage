@@ -30,6 +30,10 @@ declare module 'next-auth/jwt' {
     access_token?: string | undefined;
     refresh_token?: string | undefined;
     expires_at?: number | undefined;
+    /** Random id of this sign-in, kept across refreshes, so logs tell one device from another. */
+    session_id?: string | undefined;
+    /** Unix seconds of the sign-in or refresh that issued the current refresh token. */
+    refreshed_at?: number | undefined;
     uuid?: string | undefined;
     cevi_db_uuid?: number | undefined;
     group_ids?: number[] | undefined;
