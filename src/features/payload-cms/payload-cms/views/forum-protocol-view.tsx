@@ -67,7 +67,7 @@ const labels = {
   },
 } satisfies Record<string, StaticTranslationString>;
 
-const CAPACITIES: ForumActorCapacity[] = ['TOPIC_ADMIN', 'PIKET', 'DELEGATE'];
+const CAPACITIES: ForumActorCapacity[] = ['TOPIC_ADMIN', 'PIKET', 'ZENTRALE', 'DELEGATE'];
 
 const dateTime = (date: Date, locale: Locale): string =>
   date.toLocaleString(locale === 'de' ? 'de-CH' : locale, {
