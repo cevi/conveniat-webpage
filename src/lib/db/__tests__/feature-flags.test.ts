@@ -76,22 +76,27 @@ describe('feature flags', () => {
     await setFeatureFlag(FEATURE_FLAG_SEND_MESSAGES, false);
 
     await expect(
-      getFeatureFlags([FEATURE_FLAG_SEND_MESSAGES, FEATURE_FLAG_FORUM_MODERATION]),
+      getFeatureFlags({
+        [FEATURE_FLAG_SEND_MESSAGES]: true,
+        [FEATURE_FLAG_FORUM_MODERATION]: true,
+      }),
     ).resolves.toEqual({
       [FEATURE_FLAG_SEND_MESSAGES]: false,
       [FEATURE_FLAG_FORUM_MODERATION]: false,
     });
   });
 
-  it('reads the defaults of several flags while Redis is down', async () => {
-    sharedRedis.values.set(`${FEATURE_FLAG_PREFIX}${FEATURE_FLAG_SEND_MESSAGES}`, 'false');
+  it('reads the values named for an outage, not the defaults, while Redis is down', async () => {
     sharedRedis.failing = true;
 
     await expect(
-      getFeatureFlags([FEATURE_FLAG_SEND_MESSAGES, FEATURE_FLAG_FORUM_MODERATION]),
+      getFeatureFlags({
+        [FEATURE_FLAG_SEND_MESSAGES]: false,
+        [FEATURE_FLAG_FORUM_MODERATION]: true,
+      }),
     ).resolves.toEqual({
-      [FEATURE_FLAG_SEND_MESSAGES]: true,
-      [FEATURE_FLAG_FORUM_MODERATION]: false,
+      [FEATURE_FLAG_SEND_MESSAGES]: false,
+      [FEATURE_FLAG_FORUM_MODERATION]: true,
     });
   });
 });

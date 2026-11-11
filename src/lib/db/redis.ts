@@ -74,34 +74,38 @@ export const getFeatureFlag = async (key: string): Promise<boolean> => {
 };
 
 /**
- * Reads several feature flags in one round trip, each falling back to its default like
- * `getFeatureFlag`. For a path that needs more than one flag on every call.
+ * Reads several feature flags in one round trip. A flag that was never set reads its default,
+ * like `getFeatureFlag`.
+ *
+ * While Redis cannot be read, each flag takes the value the caller names for that case instead
+ * of its default: a default that widens access would otherwise undo an admin's choice for the
+ * length of the outage.
+ *
+ * @param whenUnreadable - the flags to read, each with its value while Redis is unreachable
  */
 export const getFeatureFlags = async <K extends string>(
-  keys: readonly K[],
+  whenUnreadable: Record<K, boolean>,
 ): Promise<Record<K, boolean>> => {
-  const withDefaults = (values: readonly (string | null | undefined)[]): Record<K, boolean> =>
-    Object.fromEntries(
+  const keys = Object.keys(whenUnreadable) as K[];
+  try {
+    // the build-time stand-in for Redis answers every call with undefined
+    const values = (await redis.mget(keys.map((key) => `${FEATURE_FLAG_PREFIX}${key}`))) as
+      (string | null)[] | undefined;
+    return Object.fromEntries(
       keys.map((key, index) => {
-        const value = values[index] ?? undefined;
+        const value = values?.[index] ?? undefined;
         return [
           key,
           value === undefined ? (FEATURE_FLAG_DEFAULTS[key] ?? false) : value === 'true',
         ];
       }),
     ) as Record<K, boolean>;
-
-  try {
-    // the build-time stand-in for Redis answers every call with undefined
-    const values = (await redis.mget(keys.map((key) => `${FEATURE_FLAG_PREFIX}${key}`))) as
-      (string | null)[] | undefined;
-    return withDefaults(values ?? []);
   } catch (error) {
-    logger.warn('Feature flag fetch failed, returning the defaults', {
+    logger.warn('Feature flag fetch failed, returning the values for an outage', {
       error,
       'feature_flag.key': keys.join(','),
     });
-    return withDefaults([]);
+    return { ...whenUnreadable };
   }
 };
 

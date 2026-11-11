@@ -6,6 +6,8 @@ import { TRPCError } from '@trpc/server';
 let organiserIds: string[];
 /** What an admin set in the app feature flags; a key missing here reads its default. */
 let flags: Record<string, boolean>;
+/** Redis cannot be read, so every flag takes the value its caller names for an outage. */
+let redisDown: boolean;
 
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('payload', () => ({
@@ -42,8 +44,15 @@ jest.mock('@/lib/db/redis', () => {
   const read = (key: string): boolean => flags[key] ?? FEATURE_FLAG_DEFAULTS[key] ?? false;
   return {
     getFeatureFlag: (key: string): Promise<boolean> => Promise.resolve(read(key)),
-    getFeatureFlags: (keys: string[]): Promise<Record<string, boolean>> =>
-      Promise.resolve(Object.fromEntries(keys.map((key) => [key, read(key)]))),
+    getFeatureFlags: (whenUnreadable: Record<string, boolean>): Promise<Record<string, boolean>> =>
+      Promise.resolve(
+        Object.fromEntries(
+          Object.entries(whenUnreadable).map(([key, outage]) => [
+            key,
+            redisDown ? outage : read(key),
+          ]),
+        ),
+      ),
     // every rate limit counter at its first call
     redis: { eval: (): Promise<number> => Promise.resolve(1) },
   };
@@ -202,6 +211,7 @@ const contactList = async (): Promise<string[]> => {
 beforeEach(() => {
   ANNA.testAccount = false;
   flags = {};
+  redisDown = false;
   organiserIds = [];
   writes = [];
 });
@@ -328,6 +338,26 @@ describe('choosing the groups of the restricted contact list', () => {
 
       await expect(contactList()).resolves.toEqual(['b', 'c']);
     });
+  });
+});
+
+describe('while Redis is unreachable', () => {
+  beforeEach(() => {
+    redisDown = true;
+  });
+
+  it('lists only the address book, whatever the admin chose', async () => {
+    await expect(contactList()).resolves.toEqual(['c']);
+  });
+
+  it('refuses a group the admin may have switched off', async () => {
+    await expectRefused(startChat(HOF_MATE));
+  });
+
+  it('leaves a test account its own Hof', async () => {
+    ANNA.testAccount = true;
+
+    await expect(contactList()).resolves.toEqual(['b', 'c']);
   });
 });
 

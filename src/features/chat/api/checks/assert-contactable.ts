@@ -24,6 +24,8 @@ const logger = createLogger('chat:checks');
  *
  * A test account, like the one for the App Store review, keeps only its Hof and its address
  * book, whatever the flags say: the review has to be able to reach someone.
+ *
+ * While Redis is unreachable, the list is the address book alone, as with all three groups off.
  */
 export const getContactFilter = async (
   prisma: PrismaClientOrTransaction,
@@ -35,12 +37,13 @@ export const getContactFilter = async (
       where: { uuid: userId },
       select: { hofIds: true, testAccount: true },
     }),
-    getFeatureFlags([
-      FEATURE_FLAG_RESTRICT_CONTACT_LIST,
-      FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF,
-      FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN,
-      FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP,
-    ]),
+    // Without Redis the list narrows to the address book rather than undo an admin's choice.
+    getFeatureFlags({
+      [FEATURE_FLAG_RESTRICT_CONTACT_LIST]: true,
+      [FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF]: false,
+      [FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN]: false,
+      [FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP]: false,
+    }),
   ]);
   const isTestAccount = self?.testAccount === true;
   if (!isTestAccount && !flags[FEATURE_FLAG_RESTRICT_CONTACT_LIST]) return everyone;
