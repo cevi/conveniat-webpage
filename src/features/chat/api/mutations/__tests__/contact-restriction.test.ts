@@ -4,7 +4,8 @@ import { TRPCError } from '@trpc/server';
 
 /** The people named as organiser on a program entry or a Schichteinsatz. */
 let organiserIds: string[];
-let restrictContactList: boolean;
+/** What an admin set in the app feature flags; a key missing here reads its default. */
+let flags: Record<string, boolean>;
 
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('payload', () => ({
@@ -35,17 +36,31 @@ jest.mock('superjson', () => ({
 jest.mock('@/lib/capabilities', () => ({
   checkCapability: (): Promise<boolean> => Promise.resolve(true),
 }));
-jest.mock('@/lib/db/redis', () => ({
-  getFeatureFlag: (): Promise<boolean> => Promise.resolve(restrictContactList),
-  // every rate limit counter at its first call
-  redis: { eval: (): Promise<number> => Promise.resolve(1) },
-}));
+jest.mock('@/lib/db/redis', () => {
+  const { FEATURE_FLAG_DEFAULTS } =
+    jest.requireActual<typeof import('@/lib/feature-flags')>('@/lib/feature-flags');
+  const read = (key: string): boolean => flags[key] ?? FEATURE_FLAG_DEFAULTS[key] ?? false;
+  return {
+    getFeatureFlag: (key: string): Promise<boolean> => Promise.resolve(read(key)),
+    getFeatureFlags: (keys: string[]): Promise<Record<string, boolean>> =>
+      Promise.resolve(Object.fromEntries(keys.map((key) => [key, read(key)]))),
+    // every rate limit counter at its first call
+    redis: { eval: (): Promise<number> => Promise.resolve(1) },
+  };
+});
 jest.mock('@/lib/db/chat-pubsub', () => ({
   chatPubSub: { publish: (): Promise<void> => Promise.resolve() },
 }));
 
 import { addParticipants } from '@/features/chat/api/mutations/add-participants';
 import { createChat } from '@/features/chat/api/mutations/create-chat';
+import { listContacts } from '@/features/chat/api/queries/list-contacts';
+import {
+  FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP,
+  FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN,
+  FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF,
+  FEATURE_FLAG_RESTRICT_CONTACT_LIST,
+} from '@/lib/feature-flags';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 
 interface Person {
@@ -146,11 +161,13 @@ const mockPrisma = {
   },
 };
 
-const caller = createCallerFactory(createTRPCRouter({ createChat, addParticipants }))({
-  user: { uuid: ANNA.uuid, group_ids: [], name: 'Anna', email: 'anna@example.test' },
-  prisma: mockPrisma,
-  locale: 'de',
-} as unknown as Context);
+const caller = createCallerFactory(createTRPCRouter({ createChat, addParticipants, listContacts }))(
+  {
+    user: { uuid: ANNA.uuid, group_ids: [], name: 'Anna', email: 'anna@example.test' },
+    prisma: mockPrisma,
+    locale: 'de',
+  } as unknown as Context,
+);
 
 const rejection = (call: Promise<unknown>): Promise<unknown> =>
   call.then(
@@ -176,9 +193,15 @@ const expectRefused = async (call: Promise<unknown>): Promise<void> => {
   expect(writes).toEqual([]);
 };
 
+/** Whom Anna's contact list shows, by the letter of each person. */
+const contactList = async (): Promise<string[]> => {
+  const contacts = await caller.listContacts({});
+  return contacts.map(({ userId }) => userId[0] ?? '?').toSorted();
+};
+
 beforeEach(() => {
   ANNA.testAccount = false;
-  restrictContactList = true;
+  flags = {};
   organiserIds = [];
   writes = [];
 });
@@ -250,9 +273,82 @@ describe('adding participants while the contact list is restricted', () => {
   });
 });
 
+describe('choosing the groups of the restricted contact list', () => {
+  it('lists the address book and all three groups by default', async () => {
+    await expect(contactList()).resolves.toEqual(['b', 'c', 'd', 'e']);
+  });
+
+  it.each([
+    ['the own Hof', FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF, HOF_MATE, ['c', 'd', 'e']],
+    [
+      'the functions',
+      FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN,
+      RESSORT_MEMBER,
+      ['b', 'c', 'd'],
+    ],
+    ['the AVP', FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP, AVP, ['b', 'c', 'e']],
+  ])('without %s, drops that group and refuses it', async (_group, flag, dropped, listed) => {
+    flags[flag] = false;
+
+    await expect(contactList()).resolves.toEqual(listed);
+    await expectRefused(startChat(dropped));
+  });
+
+  describe('with all three groups off', () => {
+    beforeEach(() => {
+      flags[FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF] = false;
+      flags[FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN] = false;
+      flags[FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP] = false;
+    });
+
+    it('lists only the address book', async () => {
+      await expect(contactList()).resolves.toEqual(['c']);
+    });
+
+    it('still opens a chat with someone from the address book', async () => {
+      await startChat(SCANNED);
+
+      expect(writes).toEqual(['chat.create']);
+    });
+
+    it('refuses everyone else, also when adding them to a group', async () => {
+      await expectRefused(add(HOF_MATE, AVP, RESSORT_MEMBER));
+    });
+
+    it('still opens a chat with an organiser, as the schedule offers it', async () => {
+      organiserIds = [AVP.uuid];
+
+      await startChat(AVP);
+
+      expect(writes).toEqual(['chat.create']);
+    });
+
+    it('leaves a test account its own Hof', async () => {
+      ANNA.testAccount = true;
+
+      await expect(contactList()).resolves.toEqual(['b', 'c']);
+    });
+  });
+});
+
 describe('with the contact list open to everyone', () => {
   beforeEach(() => {
-    restrictContactList = false;
+    flags[FEATURE_FLAG_RESTRICT_CONTACT_LIST] = false;
+  });
+
+  it('lists everyone who is not hidden', async () => {
+    await expect(contactList()).resolves.toEqual(['b', 'c', 'd', 'e', 'f']);
+  });
+
+  it('ignores which groups the restricted list would include', async () => {
+    flags[FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF] = false;
+    flags[FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN] = false;
+    flags[FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP] = false;
+
+    await expect(contactList()).resolves.toEqual(['b', 'c', 'd', 'e', 'f']);
+    await startChat(STRANGER);
+
+    expect(writes).toEqual(['chat.create']);
   });
 
   it('opens a private chat with anyone', async () => {
@@ -294,7 +390,7 @@ describe('as a test account', () => {
   });
 
   it('stays restricted with the contact list open to everyone', async () => {
-    restrictContactList = false;
+    flags[FEATURE_FLAG_RESTRICT_CONTACT_LIST] = false;
 
     await expectRefused(startChat(STRANGER));
   });

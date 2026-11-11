@@ -6,6 +6,9 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { setFeatureFlag } from '@/lib/db/redis';
 import {
+  FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP,
+  FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN,
+  FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF,
   FEATURE_FLAG_CREATE_CHATS_ENABLED,
   FEATURE_FLAG_FORUM_ENABLED,
   FEATURE_FLAG_FORUM_MODERATION,
@@ -18,7 +21,38 @@ import {
   FEATURE_FLAG_SEND_MESSAGES,
   FEATURE_HIDE_HOF_AND_QUARTIER,
 } from '@/lib/feature-flags';
-import type { GlobalConfig } from 'payload';
+import type { CheckboxField, GlobalConfig } from 'payload';
+
+/**
+ * One group the restricted contact list adds to the address book, shown only while the
+ * restriction is on, since it does nothing without it.
+ */
+const contactListGroupField = (
+  name: string,
+  flag: string,
+  label: Record<'en' | 'de' | 'fr', string>,
+  description: Record<'en' | 'de' | 'fr', string>,
+): CheckboxField => ({
+  name,
+  label,
+  type: 'checkbox',
+  defaultValue: true,
+  admin: {
+    description,
+    condition: (data): boolean => data['restrictContactList'] !== false,
+    components: {
+      Field:
+        '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle',
+    },
+  },
+  hooks: {
+    afterChange: [
+      async ({ value }): Promise<void> => {
+        await setFeatureFlag(flag, Boolean(value));
+      },
+    ],
+  },
+});
 
 export const AppFeatureFlags: GlobalConfig = {
   slug: 'app-feature-flags',
@@ -92,9 +126,9 @@ export const AppFeatureFlags: GlobalConfig = {
       defaultValue: true,
       admin: {
         description: {
-          en: 'When on, the contact list for new chats shows only people from the same Hof, people whose chat QR code was scanned (or who scanned yours), and people with a leader function or an AVP role. When off, it shows everyone.',
-          de: 'Wenn aktiv, zeigt die Kontaktliste für neue Chats nur Personen aus dem gleichen Hof, Personen, deren Chat-QR-Code gescannt wurde (oder die den eigenen gescannt haben), sowie Personen mit einer Leitungsfunktion oder als AVP. Wenn inaktiv, zeigt sie alle.',
-          fr: "Si activé, la liste de contacts pour les nouvelles discussions ne montre que les personnes du même Hof, celles dont le code QR de chat a été scanné (ou qui ont scanné le vôtre) et celles qui ont une fonction de direction ou le rôle d'AVP. Si désactivé, elle montre tout le monde.",
+          en: 'When on, the contact list for new chats shows only the people in the own address book, that is whose chat QR code or wristband was scanned (or who scanned one’s own), and the groups switched on below. Nobody is removed from an existing chat. When off, it shows everyone.',
+          de: 'Wenn aktiv, zeigt die Kontaktliste für neue Chats nur die Personen im eigenen Adressbuch, also deren Chat-QR-Code oder Armband gescannt wurde (oder die den eigenen gescannt haben), sowie die unten eingeschalteten Gruppen. Aus bestehenden Chats wird niemand entfernt. Wenn inaktiv, zeigt sie alle.',
+          fr: "Si activé, la liste de contacts pour les nouvelles discussions ne montre que les personnes du carnet d'adresses, dont le code QR de chat ou le bracelet a été scanné (ou qui ont scanné le vôtre), ainsi que les groupes activés ci-dessous. Personne n'est retiré d'une discussion existante. Si désactivé, elle montre tout le monde.",
         },
         components: {
           Field:
@@ -109,6 +143,48 @@ export const AppFeatureFlags: GlobalConfig = {
         ],
       },
     },
+    contactListGroupField(
+      'contactListIncludesHof',
+      FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF,
+      {
+        en: 'People from the own Hof',
+        de: 'Personen aus dem eigenen Hof',
+        fr: 'Personnes du même Hof',
+      },
+      {
+        en: 'Everyone registered at a Hof the user is registered at.',
+        de: 'Alle, die im gleichen Hof angemeldet sind.',
+        fr: 'Toutes les personnes inscrites dans le même Hof.',
+      },
+    ),
+    contactListGroupField(
+      'contactListIncludesFunktionen',
+      FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN,
+      {
+        en: 'People with a function in the camp',
+        de: 'Personen mit einer Funktion im Lager',
+        fr: 'Personnes avec une fonction au camp',
+      },
+      {
+        en: 'Everyone holding one of the functions listed under "Funktionen und Adressbuch", e.g. in the Kernteam or a Ressort.',
+        de: 'Alle mit einer der Funktionen unter «Funktionen und Adressbuch», z.B. im Kernteam oder in einem Ressort.',
+        fr: 'Toutes les personnes ayant une des fonctions de « Funktionen und Adressbuch », p. ex. au Kernteam ou dans un Ressort.',
+      },
+    ),
+    contactListGroupField(
+      'contactListIncludesAvp',
+      FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP,
+      {
+        en: 'AVP of every Hof',
+        de: 'AVP aller Höfe',
+        fr: 'AVP de tous les Höfe',
+      },
+      {
+        en: 'The AVP (Abteilungsverantwortliche Person) of each Hof, also for people from other Höfe.',
+        de: 'Die AVP (Abteilungsverantwortliche Person) jedes Hofs, auch für Personen aus anderen Höfen.',
+        fr: 'L’AVP (Abteilungsverantwortliche Person) de chaque Hof, aussi pour les personnes d’autres Höfe.',
+      },
+    ),
     {
       name: 'hideHofAndQuartier',
       label: 'Hide Hof and Quartier',

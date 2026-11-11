@@ -9687,9 +9687,21 @@ export interface AppFeatureFlag {
    */
   createChatsEnabled?: boolean | null;
   /**
-   * When on, the contact list for new chats shows only people from the same Hof, people whose chat QR code was scanned (or who scanned yours), and people with a leader function or an AVP role. When off, it shows everyone.
+   * When on, the contact list for new chats shows only the people in the own address book, that is whose chat QR code or wristband was scanned (or who scanned one’s own), and the groups switched on below. Nobody is removed from an existing chat. When off, it shows everyone.
    */
   restrictContactList?: boolean | null;
+  /**
+   * Everyone registered at a Hof the user is registered at.
+   */
+  contactListIncludesHof?: boolean | null;
+  /**
+   * Everyone holding one of the functions listed under "Funktionen und Adressbuch", e.g. in the Kernteam or a Ressort.
+   */
+  contactListIncludesFunktionen?: boolean | null;
+  /**
+   * The AVP (Abteilungsverantwortliche Person) of each Hof, also for people from other Höfe.
+   */
+  contactListIncludesAvp?: boolean | null;
   /**
    * Hides the Hof and Quartier sections in the app. This is used for testing purposes.
    */
@@ -10505,6 +10517,9 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   globalMessagingEnabled?: T;
   createChatsEnabled?: T;
   restrictContactList?: T;
+  contactListIncludesHof?: T;
+  contactListIncludesFunktionen?: T;
+  contactListIncludesAvp?: T;
   hideHofAndQuartier?: T;
   helperShiftsEnabled?: T;
   hideFullHelperShifts?: T;

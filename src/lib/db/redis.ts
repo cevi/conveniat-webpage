@@ -74,6 +74,38 @@ export const getFeatureFlag = async (key: string): Promise<boolean> => {
 };
 
 /**
+ * Reads several feature flags in one round trip, each falling back to its default like
+ * `getFeatureFlag`. For a path that needs more than one flag on every call.
+ */
+export const getFeatureFlags = async <K extends string>(
+  keys: readonly K[],
+): Promise<Record<K, boolean>> => {
+  const withDefaults = (values: readonly (string | null | undefined)[]): Record<K, boolean> =>
+    Object.fromEntries(
+      keys.map((key, index) => {
+        const value = values[index] ?? undefined;
+        return [
+          key,
+          value === undefined ? (FEATURE_FLAG_DEFAULTS[key] ?? false) : value === 'true',
+        ];
+      }),
+    ) as Record<K, boolean>;
+
+  try {
+    // the build-time stand-in for Redis answers every call with undefined
+    const values = (await redis.mget(keys.map((key) => `${FEATURE_FLAG_PREFIX}${key}`))) as
+      (string | null)[] | undefined;
+    return withDefaults(values ?? []);
+  } catch (error) {
+    logger.warn('Feature flag fetch failed, returning the defaults', {
+      error,
+      'feature_flag.key': keys.join(','),
+    });
+    return withDefaults([]);
+  }
+};
+
+/**
  * Stores a feature flag in Redis, where every replica reads it on its next call.
  */
 export const setFeatureFlag = async (key: string, value: boolean): Promise<void> => {
