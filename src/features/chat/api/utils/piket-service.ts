@@ -176,12 +176,16 @@ export async function syncPiketMembersToOpenChats(payload: Payload): Promise<voi
       continue;
     }
 
-    // Find all open, unarchived chats matching the schedule target types
+    // Find all open, unarchived chats matching the schedule target types; forum duty covers
+    // the private conversations of the topics as well
+    const types = chatTypes as ChatType[];
     const openChats = await prisma.chat.findMany({
       where: {
         status: 'OPEN',
         archivedAt: null,
-        type: { in: chatTypes as ChatType[] },
+        type: {
+          in: types.includes(ChatType.FORUM) ? [...types, ChatType.FORUM_CONVERSATION] : types,
+        },
       },
       include: {
         chatMemberships: true,
@@ -225,9 +229,9 @@ export async function syncPiketMembersToOpenChats(payload: Payload): Promise<voi
           update: {},
         });
 
-        // A forum topic shows its top-level messages as posts, so a system message would read
+        // A forum topic or conversation shows its top-level messages as posts, so a system message would read
         // as one, and it never appears in the chat list a new_chat event refreshes.
-        if (chat.type === ChatType.FORUM) continue;
+        if (chat.type === ChatType.FORUM || chat.type === ChatType.FORUM_CONVERSATION) continue;
 
         // Localized system message text (since background cron runs without locale context, default to German/English)
         const messageText = `${member.name} wurde automatisch hinzugefügt (Piket-Dienst)`;

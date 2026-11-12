@@ -4228,9 +4228,28 @@ export interface ForumTopic {
    */
   kernteamFunktionen?: (string | Funktion)[] | null;
   /**
-   * A report sent "privately to the Zentrale" becomes a post in this topic that only its author, the Kernteam of this topic and the piket on duty see. One topic at most; whoever reports joins it for their own reports.
+   * Shown next to the topic in the list of topics in the app.
    */
-  receivesPrivateReports?: boolean | null;
+  icon:
+    | 'message-circle'
+    | 'tent'
+    | 'wrench'
+    | 'utensils'
+    | 'star'
+    | 'calendar'
+    | 'bus'
+    | 'heart'
+    | 'shield'
+    | 'info'
+    | 'map';
+  /**
+   * The topic offers "Write the core team privately": a conversation only its writer, the core team of this topic, the piket on duty and the Zentrale read.
+   */
+  allowsPrivateConversations?: boolean | null;
+  /**
+   * A new post is seen only by its author and the moderators until one of them approves it. Posts by the core team need no approval, comments are never held back. The switch in App Features does this for every topic at once.
+   */
+  moderationRequired?: boolean | null;
   targetType: 'all' | 'roles' | 'cevi_groups' | 'avps';
   targetRoles?:
     | (
@@ -7336,7 +7355,9 @@ export interface ForumTopicsSelect<T extends boolean = true> {
   name?: T;
   description?: T;
   kernteamFunktionen?: T;
-  receivesPrivateReports?: T;
+  icon?: T;
+  allowsPrivateConversations?: T;
+  moderationRequired?: T;
   targetType?: T;
   targetRoles?: T;
   targetCeviGroups?:

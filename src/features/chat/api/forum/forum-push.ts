@@ -1,3 +1,4 @@
+import { filterForumPostAudience } from '@/features/chat/api/forum/forum-visibility';
 import { getActivePiketMembers } from '@/features/chat/api/utils/piket-service';
 import prisma from '@/lib/db/prisma';
 import { forumPostPath } from '@/lib/forum-shared';
@@ -18,7 +19,11 @@ const logger = createLogger('forum:push');
  * | post by the topic's admins | the topic's whole audience                   |
  * | comment                    | subscribers of the post, piket on duty       |
  * | status change, assignment  | subscribers of the post                      |
- * | private report             | the topic's admins, piket on duty            |
+ * | private conversation       | its Kernteam, piket on duty                  |
+ * | flag                       | the topic's admins, piket on duty            |
+ *
+ * Subscribers of a post that is hidden or waits for approval only hear about it while they may
+ * still see it, see `filterForumPostAudience`.
  */
 
 const activePiketIds = async (): Promise<string[]> => {
@@ -192,6 +197,12 @@ export const pushForumThread = (event: {
       }),
       event.includePiket ? activePiketIds() : Promise.resolve([]),
     ]);
+    // a subscriber from before the post was hidden no longer sees it
+    const subscribers = await filterForumPostAudience(
+      prisma,
+      event.postId,
+      subscriptions.map((subscription) => subscription.userId),
+    );
     await send({
       chatId: event.chatId,
       postId: event.postId,
@@ -200,10 +211,7 @@ export const pushForumThread = (event: {
       text: event.text,
       ...(event.senderName === undefined ? {} : { senderName: event.senderName }),
       kind: PushNotificationKind.CHAT,
-      recipientIds: without(
-        [...subscriptions.map((subscription) => subscription.userId), ...piketIds],
-        event.actorId,
-      ),
+      recipientIds: without([...subscribers, ...piketIds], event.actorId),
     });
   };
   settle(run(), { 'chat.id': event.chatId, 'forum.post.id': event.postId });

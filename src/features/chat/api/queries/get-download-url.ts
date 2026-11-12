@@ -25,7 +25,7 @@ const isImageOfMovedForumPost = async (
   if (!CHAT_IMAGE_KEY.test(key)) return false;
   const carrier = await prisma.messageContent.findFirst({
     where: {
-      message: { chatId, chat: { type: ChatType.FORUM } },
+      message: { chatId, chat: { type: { in: [ChatType.FORUM, ChatType.FORUM_CONVERSATION] } } },
       OR: [
         { payload: { path: ['url'], equals: key } },
         { payload: { path: ['images'], array_contains: [key] } },
@@ -70,9 +70,13 @@ export const getDownloadUrl = trpcBaseProcedure
     // The object stays in the bucket, but a deleted image is not signed again for anyone who
     // still holds its key, see `deleteMessage`. A key names a single message, see
     // `createMessage`, so only the image's own sender can take it away.
+    // A forum post's photos go with it too, when its author or a moderator deletes it.
     const deletedImage = await ctx.prisma.messageContent.findFirst({
       where: {
-        payload: { path: ['url'], equals: key },
+        OR: [
+          { payload: { path: ['url'], equals: key } },
+          { payload: { path: ['images'], array_contains: [key] } },
+        ],
         message: { chatId, deletedAt: { not: null } },
       },
       select: { uuid: true },

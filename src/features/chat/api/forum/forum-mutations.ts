@@ -14,12 +14,17 @@ import {
   pushForumThread,
   pushNewForumPost,
 } from '@/features/chat/api/forum/forum-push';
-import { findPrivateReportTopicId } from '@/features/chat/api/forum/forum-visibility';
+import { findForumTopicSettings } from '@/features/chat/api/forum/forum-topic-settings';
+import {
+  canSeeForumPost,
+  findForumPostVisibility,
+} from '@/features/chat/api/forum/forum-visibility';
 import { getFunktionDirectory } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import { isImageKeyOfChat } from '@/lib/chat-images';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import {
   FORUM_NOTE_MAX_LENGTH,
+  FORUM_POST_KINDS,
   FORUM_POST_MAX_IMAGES,
   FORUM_POST_STATUSES,
   FORUM_TEXT_MAX_LENGTH,
@@ -65,10 +70,10 @@ const pendingText = (title: string): StaticTranslationString => ({
   fr: `En attente d’approbation : ${title}`,
 });
 
-const privateReportText = (title: string): StaticTranslationString => ({
-  de: `Neue private Meldung: ${title}`,
-  en: `New private report: ${title}`,
-  fr: `Nouveau signalement privé : ${title}`,
+const conversationText = (title: string): StaticTranslationString => ({
+  de: `Neues privates Gespräch: ${title}`,
+  en: `New private conversation: ${title}`,
+  fr: `Nouvelle conversation privée : ${title}`,
 });
 
 const movedText = (from: string, to: string): StaticTranslationString => ({
@@ -93,21 +98,21 @@ const statusPushText = (
 };
 
 /** Moderation is cheap per call but each one may push, so a runaway client is stopped here. */
-const moderationLimit = rateLimit({
+export const moderationLimit = rateLimit({
   name: 'forum.moderate',
   limit: 60,
   windowMs: 60 * 1000,
   refuse: () => forumError('TOO_MANY_REQUESTS', 'tooManyChanges'),
 });
 
-const optionalNote = z
+export const optionalNote = z
   .string()
   .trim()
   .max(FORUM_NOTE_MAX_LENGTH)
   .optional()
   .transform((note) => (note === '' ? undefined : note));
 
-interface LoadedPost {
+export interface LoadedPost {
   messageId: string;
   chatId: string;
   title: string;
@@ -118,13 +123,15 @@ interface LoadedPost {
   answerMessageId: string | null;
   senderId: string | null;
   topicName: string;
+  /** a private conversation rather than a post of a topic */
+  isConversation: boolean;
 }
 
 /**
  * The post a moderation call is about. A post deleted since is a reason, not an invariant: a
  * stale page or the offline outbox replays calls for it.
  */
-const loadPost = async (prisma: PrismaClientOrTransaction, postId: string): Promise<LoadedPost> => {
+export const loadPost = async (prisma: PrismaClientOrTransaction, postId: string): Promise<LoadedPost> => {
   const post = await prisma.forumPost.findUnique({
     where: { messageId: postId },
     select: {
@@ -136,11 +143,16 @@ const loadPost = async (prisma: PrismaClientOrTransaction, postId: string): Prom
       mergedIntoId: true,
       pinnedAt: true,
       answerMessageId: true,
-      chat: { select: { name: true, type: true } },
+      chat: {
+        select: { name: true, type: true, forumTopic: { select: { name: true } } },
+      },
       message: { select: { senderId: true, deletedAt: true } },
     },
   });
-  if (post?.message.deletedAt !== null || post.chat.type !== ChatType.FORUM) {
+  if (
+    post?.message.deletedAt !== null ||
+    (post.chat.type !== ChatType.FORUM && post.chat.type !== ChatType.FORUM_CONVERSATION)
+  ) {
     throw forumError('NOT_FOUND', 'postGone');
   }
   return {
@@ -153,12 +165,14 @@ const loadPost = async (prisma: PrismaClientOrTransaction, postId: string): Prom
     pinnedAt: post.pinnedAt,
     answerMessageId: post.answerMessageId,
     senderId: post.message.senderId,
-    topicName: post.chat.name,
+    // the protocol files a conversation under its topic
+    topicName: post.chat.forumTopic?.name ?? post.chat.name,
+    isConversation: post.chat.type === ChatType.FORUM_CONVERSATION,
   };
 };
 
 /** Refuses anyone who may not moderate the post, in a way their client can explain. */
-const requireModerator = async (
+export const requireModerator = async (
   prisma: PrismaClientOrTransaction,
   user: ForumUser,
   post: LoadedPost,
@@ -175,7 +189,7 @@ const requireModerator = async (
  * Ends every open assignment of a post, when it is done or withdrawn, and takes back the
  * memberships the assignments added: the helper belonged to the topic only for the task.
  */
-const endAssignments = async (
+export const endAssignments = async (
   prisma: PrismaClientOrTransaction,
   where: { messageId: string; id?: string },
   endedById: string,
@@ -257,48 +271,24 @@ const announceForumPost = (post: {
 };
 
 /**
- * Makes sure the caller can write to the topic editors chose for private reports, which most
- * participants are not in, and names it, so the composer can upload the photos of a private
- * report there before it posts. The membership stays while the caller has a private report in
- * the topic, see `findKeptMemberIds`.
- */
-const joinPrivateReportTopic = async (
-  prisma: PrismaClientOrTransaction,
-  userId: string,
-): Promise<string> => {
-  const topicId = await findPrivateReportTopicId();
-  if (topicId === undefined) throw forumError('FORBIDDEN', 'privateReportsUnavailable');
-  await prisma.chatMembership.upsert({
-    where: { userId_chatId: { userId, chatId: topicId } },
-    create: { userId, chatId: topicId, chatPermission: ChatMembershipPermission.MEMBER },
-    update: {},
-  });
-  return topicId;
-};
-
-/** The topic a private report goes to, joined, see `joinPrivateReportTopic`. */
-export const getForumPrivateReportTopic = trpcBaseProcedure
-  .input(z.object({}))
-  .use(databaseTransactionWrapper)
-  .mutation(async ({ ctx }): Promise<{ topicId: string }> => {
-    if (!(await readFeatureFlag('forumEnabled'))) {
-      throw forumError('FORBIDDEN', 'forumDisabled');
-    }
-    return { topicId: await joinPrivateReportTopic(ctx.prisma, ctx.user.uuid) };
-  });
-
-/**
  * Writes a post: a top-level message in the topic's chat, its `ForumPost` row, and the author's
  * subscription to it. Idempotent on `postId`, which the client picks, so the offline outbox and
- * a lost response cannot post twice. A private report goes to the topic editors chose for it,
- * whatever topic the client names, and only its author and the Zentrale ever see it.
+ * a lost response cannot post twice. Into a private conversation opened with
+ * `openForumConversation`, it writes the conversation's one post, which its Kernteam is
+ * subscribed to.
  */
 export const createForumPost = trpcBaseProcedure
   .input(
     z.object({
       topicId: z.uuid(),
       postId: z.uuid(),
-      private: z.boolean().default(false),
+      /**
+       * a private report of the release before conversations, which the outbox may still
+       * replay; refused, so it never becomes a public post
+       */
+      private: z.boolean().optional(),
+      /** missing from the outbox of the release before kinds, whose posts were reports */
+      kind: z.enum(FORUM_POST_KINDS).default('PROBLEM'),
       title: z.string().trim().min(1).max(FORUM_TITLE_MAX_LENGTH),
       text: z.string().trim().max(FORUM_TEXT_MAX_LENGTH).default(''),
       images: z.array(z.string().max(300)).max(FORUM_POST_MAX_IMAGES).default([]),
@@ -326,13 +316,15 @@ export const createForumPost = trpcBaseProcedure
       throw forumError('FORBIDDEN', 'forumDisabled');
     }
 
-    const topicId = input.private ? await joinPrivateReportTopic(prisma, user.uuid) : input.topicId;
+    if (input.private === true) throw forumError('FORBIDDEN', 'conversationsUnavailable');
     const chat = await prisma.chat.findUnique({
-      where: { uuid: topicId },
+      where: { uuid: input.topicId },
       select: {
         uuid: true,
         name: true,
         type: true,
+        forumTopicId: true,
+        forumTopic: { select: { name: true } },
         capabilities: true,
         status: true,
         archivedAt: true,
@@ -344,9 +336,13 @@ export const createForumPost = trpcBaseProcedure
     });
     const membership = chat?.chatMemberships[0];
     // a topic the caller left, or the outbox replaying for a topic since removed
-    if (chat?.type !== ChatType.FORUM || membership === undefined) {
+    if (
+      (chat?.type !== ChatType.FORUM && chat?.type !== ChatType.FORUM_CONVERSATION) ||
+      membership === undefined
+    ) {
       throw forumError('FORBIDDEN', 'notInTopic');
     }
+    const isConversation = chat.type === ChatType.FORUM_CONVERSATION;
     await assertWriteAbilities(prisma, chat.uuid, undefined, chat);
 
     for (const image of input.images) {
@@ -371,6 +367,10 @@ export const createForumPost = trpcBaseProcedure
       });
       return { id: input.postId, pending: stored?.approvedAt === null };
     }
+    // a conversation holds the one post it was opened for
+    if (isConversation && (await prisma.forumPost.count({ where: { chatId: chat.uuid } })) > 0) {
+      throw invariantError('CONFLICT', 'A conversation holds one post.');
+    }
 
     const message = await prisma.message.create({
       data: {
@@ -390,10 +390,13 @@ export const createForumPost = trpcBaseProcedure
     const byTopicAdmin =
       membership.chatPermission === ChatMembershipPermission.OWNER ||
       membership.chatPermission === ChatMembershipPermission.ADMIN;
-    // against spam, the admin panel can hold new posts back until a moderator approves them;
-    // the Kernteam's own posts need no approval, and a private report reaches only them anyway
+    // against spam, the admin panel can hold new posts of a topic back until a moderator
+    // approves them; the Kernteam's own posts need no approval, and a conversation reaches only
+    // the Kernteam anyway
     const pending =
-      !input.private && !byTopicAdmin && (await readFeatureFlag('forumModerationRequired'));
+      !isConversation &&
+      !byTopicAdmin &&
+      (await findForumTopicSettings([chat.uuid])).get(chat.uuid)?.moderationRequired === true;
 
     await prisma.forumPost.create({
       data: {
@@ -401,7 +404,8 @@ export const createForumPost = trpcBaseProcedure
         chatId: chat.uuid,
         title: input.title,
         body: input.text,
-        private: input.private,
+        // a conversation is a request to its Kernteam, followed by its status
+        kind: isConversation ? 'PROBLEM' : input.kind,
         approvedAt: pending ? null : new Date(),
         // the Kernteam's own post waits for nobody in the Zentrale
         reactedAt: byTopicAdmin ? new Date() : null,
@@ -414,10 +418,28 @@ export const createForumPost = trpcBaseProcedure
             }),
       },
     });
-    await prisma.threadSubscription.create({
-      data: { userId: user.uuid, messageId: message.uuid },
+    // the Kernteam of a conversation follows its answers, unless it muted the conversation
+    const followers = isConversation
+      ? await prisma.chatMembership.findMany({
+          where: {
+            chatId: chat.uuid,
+            chatPermission: ChatMembershipPermission.ADMIN,
+            mutedAt: null,
+          },
+          select: { userId: true },
+        })
+      : [];
+    await prisma.threadSubscription.createMany({
+      data: [user.uuid, ...followers.map((follower) => follower.userId)].map((userId) => ({
+        userId,
+        messageId: message.uuid,
+      })),
+      skipDuplicates: true,
     });
-    await prisma.chat.update({ where: { uuid: chat.uuid }, data: { lastUpdate: new Date() } });
+    await prisma.chat.update({
+      where: { uuid: chat.uuid },
+      data: { lastUpdate: new Date(), ...(isConversation ? { name: input.title } : {}) },
+    });
 
     ctx.afterTransactionCommit(() => {
       logger.info('Forum post created', {
@@ -425,7 +447,8 @@ export const createForumPost = trpcBaseProcedure
         'forum.post.id': message.uuid,
         'forum.by_topic_admin': byTopicAdmin,
         'forum.pending': pending,
-        'forum.private': input.private,
+        'forum.conversation': isConversation,
+        'forum.kind': input.kind,
         'forum.has_location': input.location !== undefined,
       });
       const post = {
@@ -433,12 +456,12 @@ export const createForumPost = trpcBaseProcedure
         postId: message.uuid,
         title: input.title,
         text: input.text === '' ? input.title : input.text,
-        topicName: chat.name,
+        topicName: chat.forumTopic?.name ?? chat.name,
         senderId: user.uuid,
         senderName: user.name,
       };
-      if (input.private) {
-        pushForumModerators({ ...post, text: privateReportText(input.title)[ctx.locale] });
+      if (isConversation) {
+        pushForumModerators({ ...post, text: conversationText(input.title)[ctx.locale] });
         return;
       }
       if (pending) {
@@ -476,6 +499,14 @@ export const updateForumPostStatus = trpcBaseProcedure
     const { prisma, user } = ctx;
     await prisma.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${input.postId}, 1))`;
     const post = await loadPost(prisma, input.postId);
+    // asked first, so the answer tells nobody without the right where the post stands
+    const moderator = await resolveForumModerator(prisma, user, post.chatId, post.messageId);
+    if (moderator === undefined) {
+      const hadAssignment = await prisma.forumPostAssignment.count({
+        where: { messageId: post.messageId, assigneeId: user.uuid },
+      });
+      throw forumError('FORBIDDEN', hadAssignment > 0 ? 'assignmentEnded' : 'notAllowed');
+    }
     if (post.mergedIntoId !== null) throw forumError('CONFLICT', 'postMerged');
 
     if (post.status === input.status) {
@@ -483,14 +514,6 @@ export const updateForumPostStatus = trpcBaseProcedure
         return { status: post.status };
       }
       throw forumError('CONFLICT', 'postAlreadyDone');
-    }
-
-    const moderator = await resolveForumModerator(prisma, user, post.chatId, post.messageId);
-    if (moderator === undefined) {
-      const hadAssignment = await prisma.forumPostAssignment.count({
-        where: { messageId: post.messageId, assigneeId: user.uuid },
-      });
-      throw forumError('FORBIDDEN', hadAssignment > 0 ? 'assignmentEnded' : 'notAllowed');
     }
 
     await prisma.forumPost.update({
@@ -510,6 +533,14 @@ export const updateForumPostStatus = trpcBaseProcedure
     });
     if (input.status === 'DONE') {
       await endAssignments(prisma, { messageId: post.messageId }, user.uuid);
+    }
+    // a conversation set to done closes: read only, a new question needs a new one; opened
+    // again when a moderator takes the status back
+    if (post.isConversation) {
+      await prisma.chat.update({
+        where: { uuid: post.chatId },
+        data: { status: input.status === 'DONE' ? 'CLOSED' : 'OPEN' },
+      });
     }
 
     ctx.afterTransactionCommit(() => {
@@ -541,6 +572,7 @@ export const setForumPostPinned = trpcBaseProcedure
     const { prisma, user } = ctx;
     const post = await loadPost(prisma, input.postId);
     const moderator = await requireModerator(prisma, user, post, true);
+    if (post.isConversation) throw forumError('CONFLICT', 'notInConversation');
     if ((post.pinnedAt !== null) === input.pinned) return { pinned: input.pinned };
 
     await prisma.forumPost.update({
@@ -606,6 +638,7 @@ export const mergeForumPost = trpcBaseProcedure
     const post = await loadPost(prisma, input.postId);
     const into = await loadPost(prisma, input.intoPostId);
     const moderator = await requireModerator(prisma, user, post, true);
+    if (post.isConversation) throw forumError('CONFLICT', 'notInConversation');
     if (post.mergedIntoId === into.messageId) return { mergedIntoId: into.messageId };
     if (
       post.messageId === into.messageId ||
@@ -678,103 +711,6 @@ export const unmergeForumPost = trpcBaseProcedure
       before: { intoPostId: post.mergedIntoId },
     });
     return { mergedIntoId: null };
-  });
-
-/**
- * Deletes a post or a comment someone else wrote, for everyone. Authors delete their own through
- * `chat.deleteMessage`. The protocol keeps the deleted text, so a deletion can be reviewed.
- */
-export const deleteForumMessage = trpcBaseProcedure
-  .input(z.object({ messageId: z.uuid(), note: optionalNote }))
-  .use(moderationLimit)
-  .use(databaseTransactionWrapper)
-  .mutation(async ({ ctx, input }): Promise<{ deletedAt: Date }> => {
-    const { prisma, user } = ctx;
-    const message = await prisma.message.findUnique({
-      where: { uuid: input.messageId },
-      select: {
-        uuid: true,
-        chatId: true,
-        type: true,
-        parentId: true,
-        createdAt: true,
-        deletedAt: true,
-        senderId: true,
-        sender: { select: { name: true } },
-        contentVersions: { take: 1, orderBy: { revision: 'desc' }, select: { payload: true } },
-      },
-    });
-    if (message === null) throw forumError('NOT_FOUND', 'postGone');
-    if (message.deletedAt !== null) return { deletedAt: message.deletedAt };
-
-    const post = await loadPost(prisma, message.parentId ?? message.uuid);
-    if (post.chatId !== message.chatId) {
-      throw invariantError('BAD_REQUEST', 'The message is not part of a forum post.');
-    }
-    const moderator = await requireModerator(prisma, user, post, true);
-
-    const deletedAt = new Date();
-    await prisma.message.update({
-      where: { uuid: message.uuid },
-      data: { deletedAt, deletedById: user.uuid },
-    });
-    await prisma.messageReaction.deleteMany({ where: { messageId: message.uuid } });
-    if (post.answerMessageId === message.uuid) {
-      await prisma.forumPost.update({
-        where: { messageId: post.messageId },
-        data: { answerMessageId: null },
-      });
-    }
-    const isComment = message.parentId !== null;
-    if (!isComment) {
-      await endAssignments(prisma, { messageId: post.messageId }, user.uuid);
-    }
-    await recordForumAuditEvent(prisma, {
-      action: 'DELETED',
-      post: { messageId: post.messageId, chatId: post.chatId, title: post.title },
-      topicName: post.topicName,
-      actor: { id: user.uuid, name: user.name },
-      moderator,
-      ...(isComment ? { commentId: message.uuid } : {}),
-      before: {
-        text: readForumPostContent(message.contentVersions[0]?.payload).text,
-        authorId: message.senderId,
-        authorName: message.sender?.name ?? null,
-      },
-      note: input.note,
-    });
-
-    ctx.afterTransactionCommit(() => {
-      logger.info('Forum message deleted by a moderator', {
-        'chat.id': message.chatId,
-        'message.id': message.uuid,
-        'forum.capacity': moderator.capacity,
-      });
-      chatPubSub
-        .publish({
-          type: 'message_deleted',
-          chatId: message.chatId,
-          senderId: user.uuid,
-          message: {
-            id: message.uuid,
-            createdAt: message.createdAt,
-            messagePayload: {},
-            senderId: message.senderId ?? user.uuid,
-            status: MessageEventType.STORED,
-            type: message.type,
-            parentId: message.parentId ?? undefined,
-            deletedAt,
-          },
-        })
-        .catch((error: unknown) => {
-          logger.error('Failed to publish a deleted forum message', {
-            error,
-            'chat.id': message.chatId,
-            'message.id': message.uuid,
-          });
-        });
-    });
-    return { deletedAt };
   });
 
 /**
@@ -853,7 +789,7 @@ const findRessort = async (
 /**
  * Forwards a post: to one person, a helper sent out or someone asked to answer, or to a Ressort,
  * every holder of a function from Funktionen und Adressbuch. Until it is done or handed back,
- * they may see the post, a private report included, reply and change its status, and each gets
+ * they may see the post, a hidden one included, reply and change its status, and each gets
  * a push. Forwarding is no reaction to the post: it waits in the Zentrale until someone answers.
  */
 export const createForumPostAssignment = trpcBaseProcedure
@@ -1071,7 +1007,7 @@ export const claimForumPost = trpcBaseProcedure
 /**
  * Moves a post to another topic, with its comments, likes, status and history, for one that was
  * written in the wrong place. Its author has to be in the new topic, or they would lose their
- * own post; a private report stays where private reports go.
+ * own post; a private conversation stays a conversation.
  */
 export const moveForumPost = trpcBaseProcedure
   .input(z.object({ postId: z.uuid(), topicId: z.uuid() }))
@@ -1083,11 +1019,7 @@ export const moveForumPost = trpcBaseProcedure
     if (post.chatId === input.topicId) return { topicId: post.chatId };
     if (post.mergedIntoId !== null) throw forumError('CONFLICT', 'postMerged');
     const moderator = await requireModerator(prisma, user, post, true);
-    const stored = await prisma.forumPost.findUniqueOrThrow({
-      where: { messageId: post.messageId },
-      select: { private: true },
-    });
-    if (stored.private) throw forumError('CONFLICT', 'privateStays');
+    if (post.isConversation) throw forumError('CONFLICT', 'notInConversation');
 
     const target = await prisma.chat.findUnique({
       where: { uuid: input.topicId },
@@ -1165,6 +1097,21 @@ export const updateForumTopicSubscription = trpcBaseProcedure
     return { subscribed: input.subscribed };
   });
 
+/**
+ * For the Kernteam of a topic: whether its new private conversations push to the caller. Off,
+ * they start muted for them; ones already open keep their own setting.
+ */
+export const updateForumTopicConversationPush = trpcBaseProcedure
+  .input(z.object({ topicId: z.uuid(), enabled: z.boolean() }))
+  .mutation(async ({ ctx, input }): Promise<{ enabled: boolean }> => {
+    const { count } = await ctx.prisma.chatMembership.updateMany({
+      where: { userId: ctx.user.uuid, chatId: input.topicId, chat: { type: ChatType.FORUM } },
+      data: { forumConversationPushOff: !input.enabled },
+    });
+    if (count === 0) throw forumError('FORBIDDEN', 'notInTopic');
+    return { enabled: input.enabled };
+  });
+
 /** Subscribes to the comments and status changes of one post, or stops. */
 export const updateForumPostSubscription = trpcBaseProcedure
   .input(z.object({ postId: z.uuid(), subscribed: z.boolean() }))
@@ -1177,7 +1124,17 @@ export const updateForumPostSubscription = trpcBaseProcedure
       },
       select: { messageId: true },
     });
-    if (post === null) throw forumError('NOT_FOUND', 'postGone');
+    const visibility =
+      post === null ? undefined : await findForumPostVisibility(prisma, post.messageId);
+    // a post waiting for approval or a hidden one: only for those who see it, or its pushes
+    // would tell the rest of the topic what it says
+    if (
+      post === null ||
+      visibility === undefined ||
+      (input.subscribed && !(await canSeeForumPost(prisma, user, visibility)))
+    ) {
+      throw forumError('NOT_FOUND', 'postGone');
+    }
     await (input.subscribed
       ? prisma.threadSubscription.upsert({
           where: { userId_messageId: { userId: user.uuid, messageId: post.messageId } },
@@ -1192,7 +1149,7 @@ export const updateForumPostSubscription = trpcBaseProcedure
 
 /**
  * Approves a post that waited for it, while the admin panel holds new posts back: it becomes
- * public, and only now do its pushes go out. Rejecting is deleting it, `deleteForumMessage`.
+ * public, and only now do its pushes go out. Rejecting is deleting it, `removeForumMessage`.
  */
 export const approveForumPost = trpcBaseProcedure
   .input(z.object({ postId: z.uuid() }))

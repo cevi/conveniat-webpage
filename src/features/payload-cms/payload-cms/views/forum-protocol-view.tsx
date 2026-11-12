@@ -1,7 +1,15 @@
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { getAdminLocale } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import prisma from '@/lib/db/prisma';
-import { FORUM_POST_STATUSES, forumCapacityLabel, forumStatusLabel } from '@/lib/forum-shared';
+import {
+  FORUM_FLAG_REASONS,
+  FORUM_POST_KINDS,
+  FORUM_POST_STATUSES,
+  forumCapacityLabel,
+  forumFlagReasonLabel,
+  forumKindLabel,
+  forumStatusLabel,
+} from '@/lib/forum-shared';
 import type { Prisma } from '@/lib/prisma/client';
 import type { ForumActorCapacity, ForumAuditAction } from '@/lib/prisma/enums';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -20,9 +28,9 @@ const title: StaticTranslationString = {
 };
 
 const intro: StaticTranslationString = {
-  de: 'Jede Änderung an Beiträgen, die nicht von der Person selbst stammt: durch das Kernteam eines Themas, das Piket im Dienst und beauftragte Personen. Das Protokoll lässt sich nicht bearbeiten oder löschen; eine rückgängig gemachte Änderung ist ein neuer Eintrag.',
-  en: 'Every change to posts not made by their author: by the core team of a topic, the piket on duty and assigned helpers. The protocol cannot be edited or deleted; an undone change is a new entry.',
-  fr: 'Chaque modification de publications qui ne vient pas de leur auteur : par l’équipe centrale d’un thème, le piquet de service et les personnes mandatées. Le protocole ne peut être ni modifié ni supprimé ; une modification annulée est une nouvelle entrée.',
+  de: 'Jede Änderung an Beiträgen und Kommentaren, die nicht von der Person selbst stammt: durch das Kernteam eines Themas, das Piket im Dienst, die Zentrale, beauftragte Personen und die Meldungen von Teilnehmenden. Ausgeblendete und gelöschte Texte bleiben hier lesbar. Das Protokoll lässt sich nicht bearbeiten oder löschen; eine rückgängig gemachte Änderung ist ein neuer Eintrag.',
+  en: 'Every change to posts and comments not made by their author: by the core team of a topic, the piket on duty, the Zentrale, assigned helpers and the flags of participants. Hidden and deleted texts stay readable here. The protocol cannot be edited or deleted; an undone change is a new entry.',
+  fr: 'Chaque modification de publications et de commentaires qui ne vient pas de leur auteur : par l’équipe centrale d’un thème, le piquet de service, la Zentrale, les personnes mandatées et les signalements des participants. Les textes masqués et supprimés restent lisibles ici. Le protocole ne peut être ni modifié ni supprimé ; une modification annulée est une nouvelle entrée.',
 };
 
 const actionLabel: Record<ForumAuditAction, StaticTranslationString> = {
@@ -42,6 +50,10 @@ const actionLabel: Record<ForumAuditAction, StaticTranslationString> = {
     fr: 'Mission retirée',
   },
   MOVED: { de: 'Verschoben', en: 'Moved', fr: 'Déplacé' },
+  HIDDEN: { de: 'Ausgeblendet', en: 'Hidden', fr: 'Masqué' },
+  RESTORED: { de: 'Wieder eingeblendet', en: 'Shown again', fr: 'Réaffiché' },
+  FLAGS_DISMISSED: { de: 'Meldungen verworfen', en: 'Flags dismissed', fr: 'Signalements rejetés' },
+  KIND_CHANGED: { de: 'Art geändert', en: 'Kind changed', fr: 'Type modifié' },
 };
 
 const labels = {
@@ -59,7 +71,7 @@ const labels = {
   shift: { de: 'Schicht', en: 'Shift', fr: 'Service' },
   sentBy: { de: 'beauftragt von', en: 'assigned by', fr: 'mandaté par' },
   empty: { de: 'Keine Einträge', en: 'No entries', fr: 'Aucune entrée' },
-  deletedText: { de: 'Gelöschter Text', en: 'Deleted text', fr: 'Texte supprimé' },
+  deletedText: { de: 'Entfernter Text', en: 'Removed text', fr: 'Texte retiré' },
   more: {
     de: 'Es werden die neusten {n} Einträge gezeigt. Grenze die Filter ein.',
     en: 'The newest {n} entries are shown. Narrow the filters.',
@@ -67,7 +79,13 @@ const labels = {
   },
 } satisfies Record<string, StaticTranslationString>;
 
-const CAPACITIES: ForumActorCapacity[] = ['TOPIC_ADMIN', 'PIKET', 'ZENTRALE', 'DELEGATE'];
+const CAPACITIES: ForumActorCapacity[] = [
+  'TOPIC_ADMIN',
+  'PIKET',
+  'ZENTRALE',
+  'DELEGATE',
+  'AUTOMATIC',
+];
 
 const dateTime = (date: Date, locale: Locale): string =>
   date.toLocaleString(locale === 'de' ? 'de-CH' : locale, {
@@ -110,6 +128,18 @@ const describeChange = (
     }
     case 'MOVED': {
       return `«${textOf(before['topicName'])}» → «${textOf(after['topicName'])}»`;
+    }
+    case 'KIND_CHANGED': {
+      const from = FORUM_POST_KINDS.find((kind) => kind === before['kind']);
+      const to = FORUM_POST_KINDS.find((kind) => kind === after['kind']);
+      return from === undefined || to === undefined
+        ? ''
+        : `${forumKindLabel[from][locale]} → ${forumKindLabel[to][locale]}`;
+    }
+    case 'HIDDEN':
+    case 'DELETED': {
+      const reason = FORUM_FLAG_REASONS.find((value) => value === after['reason']);
+      return reason === undefined ? '' : forumFlagReasonLabel[reason][locale];
     }
     default: {
       return '';
@@ -296,7 +326,7 @@ export default async function ForumProtocolView({
               <tbody>
                 {shown.map((event) => {
                   const deletedText =
-                    event.action === 'DELETED' &&
+                    (event.action === 'DELETED' || event.action === 'HIDDEN') &&
                     typeof event.before === 'object' &&
                     event.before !== null
                       ? (event.before as { text?: unknown }).text

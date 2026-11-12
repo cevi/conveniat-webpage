@@ -17,6 +17,62 @@ export const FORUM_POST_MAX_IMAGES = 4;
 /** How far around a place the composer looks for posts about the same thing, in metres. */
 export const FORUM_NEARBY_RADIUS_METRES = 50;
 
+/** How many participants have to flag a post or a comment before it is hidden on its own. */
+export const FORUM_FLAGS_TO_HIDE = 3;
+
+/** How long after sending someone may still change the text of their message. */
+export const MESSAGE_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export const FORUM_POST_KINDS = ['QUESTION', 'PROBLEM', 'IDEA'] as const;
+export type ForumPostKindValue = (typeof FORUM_POST_KINDS)[number];
+
+export const forumKindLabel: Record<ForumPostKindValue, StaticTranslationString> = {
+  QUESTION: { de: 'Frage', en: 'Question', fr: 'Question' },
+  PROBLEM: { de: 'Problem', en: 'Problem', fr: 'Problème' },
+  IDEA: { de: 'Idee', en: 'Idea', fr: 'Idée' },
+};
+
+/** What the 👍 means on a post of each kind. */
+export const forumLikeLabel: Record<ForumPostKindValue, StaticTranslationString> = {
+  QUESTION: { de: 'Ich auch', en: 'Me too', fr: 'Moi aussi' },
+  PROBLEM: { de: 'Betrifft mich auch', en: 'Affects me too', fr: 'Moi aussi' },
+  IDEA: { de: 'Gute Idee', en: 'Good idea', fr: 'Bonne idée' },
+};
+
+export const FORUM_FLAG_REASONS = ['INAPPROPRIATE', 'PERSONAL_DATA', 'DUPLICATE', 'OTHER'] as const;
+export type ForumFlagReasonValue = (typeof FORUM_FLAG_REASONS)[number];
+
+export const forumFlagReasonLabel: Record<ForumFlagReasonValue, StaticTranslationString> = {
+  INAPPROPRIATE: {
+    de: 'Unangemessen oder gefährlich',
+    en: 'Inappropriate or dangerous',
+    fr: 'Inapproprié ou dangereux',
+  },
+  PERSONAL_DATA: { de: 'Persönliche Daten', en: 'Personal data', fr: 'Données personnelles' },
+  DUPLICATE: {
+    de: 'Doppelt oder falsches Thema',
+    en: 'Duplicate or wrong topic',
+    fr: 'En double ou mauvais thème',
+  },
+  OTHER: { de: 'Anderes', en: 'Other', fr: 'Autre' },
+};
+
+/**
+ * A post or a comment a moderator took away, as everyone else sees it; its author also reads
+ * why. Absent in a persisted cache from before removals.
+ */
+export interface ForumRemovalInfo {
+  kind: 'HIDDEN' | 'DELETED';
+  reason: ForumFlagReasonValue;
+  /** what the moderator wrote; only its author and the moderators get it */
+  note: string | null;
+  /** the capacity they acted in, null when flags hid it */
+  byCapacity: ForumCapacityValue | null;
+  at: Date;
+  /** the author revised it and asked for it to be shown again */
+  reviewRequested: boolean;
+}
+
 export const FORUM_POST_STATUSES = ['OPEN', 'IN_PROGRESS', 'DONE'] as const;
 export type ForumPostStatusValue = (typeof FORUM_POST_STATUSES)[number];
 
@@ -35,6 +91,10 @@ export interface ForumPostSummary {
   /** the start of the description, without line breaks */
   excerpt: string;
   status: ForumPostStatusValue;
+  /** absent in a persisted cache from before kinds, which only knew problems */
+  kind?: ForumPostKindValue;
+  /** a comment is marked as the answer, for a question */
+  answered?: boolean;
   createdAt: Date;
   author: { id: string; name: string } | null;
   /** written by an owner or admin of the topic, its Kernteam */
@@ -52,19 +112,38 @@ export interface ForumPostSummary {
   pinned: boolean;
   /** waits for a moderator's approval; absent in a persisted cache from before approvals */
   pending?: boolean;
-  /** a private report, seen only by its author and the Zentrale; absent in an older cache */
-  private?: boolean;
+  /** hidden by a moderator or by flags; only its author and the moderators see it */
+  hidden?: boolean;
+  /** open flags, for the moderators; absent for everyone else */
+  flagCount?: number;
   imageCount: number;
 }
 
-export type ForumCapacityValue = 'TOPIC_ADMIN' | 'PIKET' | 'ZENTRALE' | 'DELEGATE';
+export type ForumCapacityValue = 'TOPIC_ADMIN' | 'PIKET' | 'ZENTRALE' | 'DELEGATE' | 'AUTOMATIC';
 
 export const forumCapacityLabel: Record<ForumCapacityValue, StaticTranslationString> = {
   TOPIC_ADMIN: { de: 'Kernteam', en: 'Core team', fr: 'Équipe centrale' },
   PIKET: { de: 'Piket', en: 'On duty', fr: 'Piquet' },
   ZENTRALE: { de: 'Zentrale', en: 'Zentrale', fr: 'Zentrale' },
   DELEGATE: { de: 'Beauftragt', en: 'Assigned', fr: 'Mandaté' },
+  AUTOMATIC: { de: 'Meldungen', en: 'Flags', fr: 'Signalements' },
 };
+
+/** The icons editors can give a forum topic, by the name the CMS stores. */
+export const FORUM_TOPIC_ICONS = [
+  'message-circle',
+  'tent',
+  'wrench',
+  'utensils',
+  'star',
+  'calendar',
+  'bus',
+  'heart',
+  'shield',
+  'info',
+  'map',
+] as const;
+export type ForumTopicIcon = (typeof FORUM_TOPIC_ICONS)[number];
 
 /** The path of a post in the app, the target of its pushes. */
 export const forumPostPath = (postId: string): string => `/app/forum/${postId}`;

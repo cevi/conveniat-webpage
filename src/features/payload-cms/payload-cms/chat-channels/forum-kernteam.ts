@@ -1,6 +1,6 @@
 import { toFunktionIds } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import prisma from '@/lib/db/prisma';
-import { ChatMembershipPermission } from '@/lib/prisma/enums';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import type { Payload, PayloadRequest } from 'payload';
 
 /**
@@ -73,7 +73,66 @@ export const syncForumKernteam = async (
       data: { chatPermission: ChatMembershipPermission.MEMBER },
     });
   }
+  if (promoted.length > 0 || demoted.length > 0) await syncConversationKernteam(chatUuid);
   return demoted.length;
+};
+
+/**
+ * Makes the ADMINs of every open private conversation of a topic its Kernteam now: a new
+ * Kernteam member joins them, with the conversations muted if they switched those pushes off,
+ * and one who left the Kernteam leaves them, unless they wrote it. Closed conversations keep
+ * who answered them.
+ */
+export const syncConversationKernteam = async (topicChatId: string): Promise<void> => {
+  const [kernteam, conversations] = await Promise.all([
+    prisma.chatMembership.findMany({
+      where: {
+        chatId: topicChatId,
+        chatPermission: { in: [ChatMembershipPermission.OWNER, ChatMembershipPermission.ADMIN] },
+      },
+      select: { userId: true, forumConversationPushOff: true },
+    }),
+    prisma.chat.findMany({
+      where: { forumTopicId: topicChatId, type: ChatType.FORUM_CONVERSATION, status: 'OPEN' },
+      select: {
+        uuid: true,
+        chatMemberships: { select: { userId: true, chatPermission: true } },
+        forumPosts: { select: { message: { select: { senderId: true } } } },
+      },
+    }),
+  ]);
+  const kernteamIds = new Set(kernteam.map((member) => member.userId));
+  for (const conversation of conversations) {
+    const writer = conversation.forumPosts[0]?.message.senderId ?? null;
+    for (const member of kernteam) {
+      if (member.userId === writer) continue;
+      const current = conversation.chatMemberships.find((m) => m.userId === member.userId);
+      if (current?.chatPermission === ChatMembershipPermission.ADMIN) continue;
+      await prisma.chatMembership.upsert({
+        where: { userId_chatId: { userId: member.userId, chatId: conversation.uuid } },
+        create: {
+          userId: member.userId,
+          chatId: conversation.uuid,
+          chatPermission: ChatMembershipPermission.ADMIN,
+          mutedAt: member.forumConversationPushOff ? new Date() : null,
+        },
+        update: { chatPermission: ChatMembershipPermission.ADMIN },
+      });
+    }
+    const departed = conversation.chatMemberships
+      .filter(
+        (m) =>
+          m.chatPermission === ChatMembershipPermission.ADMIN &&
+          !kernteamIds.has(m.userId) &&
+          m.userId !== writer,
+      )
+      .map((m) => m.userId);
+    if (departed.length > 0) {
+      await prisma.chatMembership.deleteMany({
+        where: { chatId: conversation.uuid, userId: { in: departed } },
+      });
+    }
+  }
 };
 
 /**
@@ -112,11 +171,13 @@ export const syncForumKernteamOfUser = async (
         create: { userId, chatId: topic.chatUuid, ...KERNTEAM_MEMBERSHIP() },
         update: KERNTEAM_MEMBERSHIP(),
       });
+      await syncConversationKernteam(topic.chatUuid);
     } else if (!isKernteam && permission === ChatMembershipPermission.ADMIN) {
       await prisma.chatMembership.update({
         where: { userId_chatId: { userId, chatId: topic.chatUuid } },
         data: { chatPermission: ChatMembershipPermission.MEMBER },
       });
+      await syncConversationKernteam(topic.chatUuid);
     }
   }
 };

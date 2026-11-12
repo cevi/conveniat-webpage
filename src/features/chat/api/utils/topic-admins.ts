@@ -10,7 +10,7 @@ export const findTopicAdminIds = async (
   chat: { uuid: string; type: ChatType },
   senderIds: readonly (string | null | undefined)[],
 ): Promise<ReadonlySet<string>> => {
-  if (chat.type !== ChatType.FORUM) return new Set();
+  if (chat.type !== ChatType.FORUM && chat.type !== ChatType.FORUM_CONVERSATION) return new Set();
   const ids = [...new Set(senderIds.filter((id): id is string => typeof id === 'string'))];
   if (ids.length === 0) return new Set();
   const admins = await prisma.chatMembership.findMany({

@@ -65,11 +65,15 @@ export const getChatList = trpcBaseProcedure
     }
 
     const memberships = await prisma.chatMembership.findMany({
-      // a forum topic has its own pages; as a chat, every post would read as a message
+      // a forum topic has its own pages; as a chat, every post would read as a message. A
+      // private conversation is listed once its post is written, and opens on the forum's page
       where: {
         userId: prismaUser.uuid,
         hasDeleted: false,
-        chat: { type: { not: ChatType.FORUM } },
+        chat: {
+          type: { not: ChatType.FORUM },
+          OR: [{ type: { not: ChatType.FORUM_CONVERSATION } }, { forumPosts: { some: {} } }],
+        },
       },
       select: {
         lastReadSeq: true,
@@ -79,6 +83,7 @@ export const getChatList = trpcBaseProcedure
         markedUnread: true,
         chat: {
           include: {
+            forumPosts: { select: { messageId: true }, take: 1 },
             messages: {
               orderBy: { seq: 'desc' },
               take: 1,
@@ -246,6 +251,9 @@ export const getChatList = trpcBaseProcedure
         chatType: chat.type,
         caseNumber: formatCaseNumber(chat.caseNumber),
         id: chat.uuid,
+        ...(chat.type === ChatType.FORUM_CONVERSATION && chat.forumPosts[0] !== undefined
+          ? { forumPostId: chat.forumPosts[0].messageId }
+          : {}),
         messageCount: messageCountMap.get(chat.uuid) ?? 0,
         isLarge,
         isPinned: chat.pinned || isPinnedByMe,

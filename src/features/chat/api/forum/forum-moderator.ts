@@ -21,6 +21,7 @@ export interface ForumUser {
  * to chat membership.
  */
 export type ForumModerator =
+  | { capacity: 'AUTOMATIC' }
   | { capacity: 'TOPIC_ADMIN' }
   | { capacity: 'PIKET'; shift: PiketShift }
   | { capacity: 'ZENTRALE' }
@@ -32,8 +33,11 @@ export type ForumModerator =
 /** Everything but a helper: pin, answer, merge, delete, hand out and withdraw assignments. */
 export const isFullModerator = (
   moderator: ForumModerator | undefined,
-): moderator is Exclude<ForumModerator, { capacity: 'DELEGATE' }> =>
-  moderator !== undefined && moderator.capacity !== 'DELEGATE';
+): moderator is Exclude<ForumModerator, { capacity: 'DELEGATE' | 'AUTOMATIC' }> =>
+  moderator !== undefined && moderator.capacity !== 'DELEGATE' && moderator.capacity !== 'AUTOMATIC';
+
+/** The forum itself acting, e.g. hiding what enough participants flagged. */
+export const AUTOMATIC_MODERATOR: ForumModerator = { capacity: 'AUTOMATIC' };
 
 /** Whether someone staffs the Zentrale all year, see `FORUM_ZENTRALE_ROLES`. */
 export const isForumZentrale = (user: ForumUser): boolean =>
@@ -63,7 +67,8 @@ export const resolveForumModerator = async (
     membership?.chat ??
     (await prisma.chat.findUnique({ where: { uuid: chatId }, select: { type: true } }));
   const chatType = chat?.type;
-  if (chatType !== ChatType.FORUM) return undefined;
+  // a private conversation is moderated like its topic: its Kernteam are ADMINs of it too
+  if (chatType !== ChatType.FORUM && chatType !== ChatType.FORUM_CONVERSATION) return undefined;
   if (
     membership?.chatPermission === ChatMembershipPermission.OWNER ||
     membership?.chatPermission === ChatMembershipPermission.ADMIN

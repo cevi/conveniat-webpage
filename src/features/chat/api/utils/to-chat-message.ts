@@ -1,6 +1,7 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import { visiblePayloadOf, withoutDeletedQuote } from '@/features/chat/api/utils/deleted-messages';
 import type { MessageThread } from '@/features/chat/api/utils/thread-summaries';
+import type { ForumRemovalInfo } from '@/lib/forum-shared';
 import type { MessageEventType } from '@/lib/prisma/enums';
 
 /** A message as `getChatMessages` and `getMessage` read it, with what they include. */
@@ -12,6 +13,7 @@ export interface MessageRow {
   type: string;
   parentId: string | null;
   deletedAt?: Date | null;
+  editedAt?: Date | null;
   contentVersions: { payload: unknown }[];
   reactions: { emoji: string; userId: string; user: { name: string } }[];
   /** Replies of others the reader has not read yet, at most one is enough. */
@@ -33,13 +35,18 @@ export const toChatMessage = (
     topicAdminIds?: ReadonlySet<string>;
     /** the badge's text for each of those senders, by sender, see `findKernteamLabels` */
     kernteamLabels?: ReadonlyMap<string, string>;
+    /** what forum moderators hid or deleted, see `describeForumRemovals` */
+    forumRemovals?: ReadonlyMap<string, ForumRemovalInfo>;
+    /** the hidden forum messages the reader does not see, see `describeForumRemovals` */
+    hiddenIds?: ReadonlySet<string>;
   },
 ): ChatMessage => {
-  const isDeleted = message.deletedAt !== null && message.deletedAt !== undefined;
-  const { payload, quotedMessageDeleted } = withoutDeletedQuote(
-    visiblePayloadOf(message),
-    context.deletedQuotedIds,
-  );
+  const isHidden = context.hiddenIds?.has(message.uuid) === true;
+  const isDeleted = (message.deletedAt !== null && message.deletedAt !== undefined) || isHidden;
+  const removal = context.forumRemovals?.get(message.uuid);
+  const { payload, quotedMessageDeleted } = isHidden
+    ? { payload: {}, quotedMessageDeleted: false }
+    : withoutDeletedQuote(visiblePayloadOf(message), context.deletedQuotedIds);
   const thread = context.threads.get(message.uuid);
   return {
     id: message.uuid,
@@ -58,6 +65,8 @@ export const toChatMessage = (
     ...(thread === undefined ? {} : { threadSummary: thread.summary }),
     ...(message.deletedAt instanceof Date ? { deletedAt: message.deletedAt } : {}),
     ...(quotedMessageDeleted ? { quotedMessageDeleted } : {}),
+    ...(message.editedAt instanceof Date && !isHidden ? { editedAt: message.editedAt } : {}),
+    ...(removal === undefined ? {} : { forumRemoval: removal }),
     reactions: isDeleted
       ? []
       : message.reactions.map((reaction) => ({

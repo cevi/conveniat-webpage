@@ -10,8 +10,9 @@ import { toFunktionIds } from '@/features/payload-cms/payload-cms/utils/funktion
 import type { ForumTopic } from '@/features/payload-cms/payload-types';
 
 import { ChatCapability, ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
+import { FORUM_TOPIC_ICONS, type ForumTopicIcon } from '@/lib/forum-shared';
 import type { StaticTranslationString } from '@/types/types';
-import type { CheckboxFieldValidation, CollectionAfterChangeHook, CollectionConfig } from 'payload';
+import type { CollectionAfterChangeHook, CollectionConfig } from 'payload';
 
 /**
  * Everything a forum needs, always: posts and comments are messages and threads, a like is a
@@ -38,32 +39,18 @@ const chatHooks = createChannelChatHooks<ForumTopic>({
   },
 });
 
-const alreadyReceivingText: StaticTranslationString = {
-  en: 'The topic "{name}" already receives the private reports. Untick it there first.',
-  de: 'Das Thema «{name}» empfängt bereits die privaten Meldungen. Entferne dort zuerst das Häkchen.',
-  fr: 'Le thème « {name} » reçoit déjà les signalements privés. Décoche-le d’abord là-bas.',
-};
-
-/** Private reports go to one topic, so a second one cannot be ticked. */
-const onlyOneTopicReceivesPrivateReports: CheckboxFieldValidation = async (value, { req, id }) => {
-  if (value !== true) return true;
-  const others = await req.payload.find({
-    collection: 'forum-topics',
-    where: {
-      and: [
-        { receivesPrivateReports: { equals: true } },
-        ...(id === undefined ? [] : [{ id: { not_equals: id } }]),
-      ],
-    },
-    limit: 1,
-    depth: 0,
-    req,
-  });
-  const other = others.docs[0];
-  if (other === undefined) return true;
-  const language =
-    req.i18n.language === 'fr' || req.i18n.language === 'en' ? req.i18n.language : 'de';
-  return alreadyReceivingText[language].replace('{name}', other.name);
+const iconLabels: Record<ForumTopicIcon, StaticTranslationString> = {
+  'message-circle': { en: 'Speech bubble', de: 'Sprechblase', fr: 'Bulle' },
+  tent: { en: 'Tent', de: 'Zelt', fr: 'Tente' },
+  wrench: { en: 'Wrench', de: 'Werkzeug', fr: 'Outil' },
+  utensils: { en: 'Cutlery', de: 'Besteck', fr: 'Couverts' },
+  star: { en: 'Star', de: 'Stern', fr: 'Étoile' },
+  calendar: { en: 'Calendar', de: 'Kalender', fr: 'Calendrier' },
+  bus: { en: 'Bus', de: 'Bus', fr: 'Bus' },
+  heart: { en: 'Heart', de: 'Herz', fr: 'Cœur' },
+  shield: { en: 'Shield', de: 'Schild', fr: 'Bouclier' },
+  info: { en: 'Info', de: 'Info', fr: 'Info' },
+  map: { en: 'Map', de: 'Karte', fr: 'Carte' },
 };
 
 /**
@@ -178,22 +165,53 @@ export const ForumTopicsCollection: CollectionConfig = {
               },
             },
             {
-              name: 'receivesPrivateReports',
+              name: 'icon',
+              label: { en: 'Icon', de: 'Symbol', fr: 'Icône' },
+              type: 'select',
+              required: true,
+              defaultValue: 'message-circle',
+              options: FORUM_TOPIC_ICONS.map((icon) => ({ value: icon, label: iconLabels[icon] })),
+              admin: {
+                description: {
+                  en: 'Shown next to the topic in the list of topics in the app.',
+                  de: 'Steht in der App neben dem Thema in der Liste der Themen.',
+                  fr: 'Affichée à côté du thème dans la liste des thèmes de l’app.',
+                },
+              },
+            },
+            {
+              name: 'allowsPrivateConversations',
               label: {
-                en: 'Receives private reports',
-                de: 'Empfängt private Meldungen',
-                fr: 'Reçoit les signalements privés',
+                en: 'Allows private conversations',
+                de: 'Erlaubt private Gespräche',
+                fr: 'Permet les conversations privées',
+              },
+              type: 'checkbox',
+              defaultValue: true,
+              admin: {
+                description: {
+                  en: 'The topic offers "Write the core team privately": a conversation only its writer, the core team of this topic, the piket on duty and the Zentrale read.',
+                  de: 'Das Thema bietet «Kernteam privat schreiben»: ein Gespräch, das nur die schreibende Person, das Kernteam dieses Themas, das Piket im Dienst und die Zentrale lesen.',
+                  fr: 'Le thème propose « Écrire en privé à l’équipe centrale » : une conversation que seuls son auteur, l’équipe centrale de ce thème, le piquet de service et la Zentrale lisent.',
+                },
+              },
+            },
+            {
+              name: 'moderationRequired',
+              label: {
+                en: 'Approve posts before they are published',
+                de: 'Beiträge vor Veröffentlichung freigeben',
+                fr: 'Approuver les publications avant leur parution',
               },
               type: 'checkbox',
               defaultValue: false,
               admin: {
                 description: {
-                  en: 'A report sent "privately to the Zentrale" becomes a post in this topic that only its author, the Kernteam of this topic and the piket on duty see. One topic at most; whoever reports joins it for their own reports.',
-                  de: 'Eine Meldung «privat an die Zentrale» wird ein Beitrag in diesem Thema, den nur die meldende Person, das Kernteam dieses Themas und das Piket im Dienst sehen. Höchstens ein Thema; wer meldet, wird für die eigenen Meldungen Mitglied.',
-                  fr: 'Un signalement « en privé à la Zentrale » devient une publication de ce thème que seuls son auteur, l’équipe centrale de ce thème et le piquet de service voient. Un seul thème au plus ; qui signale en devient membre pour ses propres signalements.',
+                  en: 'A new post is seen only by its author and the moderators until one of them approves it. Posts by the core team need no approval, comments are never held back. The switch in App Features does this for every topic at once.',
+                  de: 'Einen neuen Beitrag sehen nur die Person, die ihn geschrieben hat, und die Moderation, bis jemand davon ihn freigibt. Beiträge des Kernteams brauchen keine Freigabe, Kommentare werden nie zurückgehalten. Der Schalter in den App-Funktionen tut das für alle Themen auf einmal.',
+                  fr: 'Une nouvelle publication n’est visible que par son auteur et la modération jusqu’à ce que quelqu’un l’approuve. Les publications de l’équipe centrale n’ont pas besoin d’approbation, les commentaires ne sont jamais retenus. L’interrupteur des fonctions de l’app le fait pour tous les thèmes à la fois.',
                 },
               },
-              validate: onlyOneTopicReceivesPrivateReports,
             },
           ],
         },

@@ -16,10 +16,15 @@ export const forumErrorTexts = {
     en: 'You cannot write in this topic.',
     fr: 'Tu ne peux pas écrire dans ce thème.',
   },
-  privateReportsUnavailable: {
-    de: 'Private Meldungen sind gerade nicht möglich. Wende dich an die Zentrale.',
-    en: 'Private reports are not possible right now. Please contact the Zentrale.',
-    fr: 'Les signalements privés ne sont pas possibles pour le moment. Adresse-toi à la Zentrale.',
+  conversationsUnavailable: {
+    de: 'In diesem Thema kannst du dem Kernteam nicht privat schreiben.',
+    en: 'You cannot write to the core team of this topic privately.',
+    fr: 'Tu ne peux pas écrire en privé à l’équipe centrale de ce thème.',
+  },
+  conversationClosed: {
+    de: 'Dieses Gespräch ist erledigt und geschlossen. Für eine neue Frage starte ein neues.',
+    en: 'This conversation is done and closed. Start a new one for a new question.',
+    fr: 'Cette conversation est réglée et fermée. Pour une nouvelle question, commence-en une nouvelle.',
   },
   postGone: {
     de: 'Diesen Beitrag gibt es nicht mehr.',
@@ -36,10 +41,35 @@ export const forumErrorTexts = {
     en: 'Nobody holds this function right now. Forward the post to a person.',
     fr: 'Personne n’occupe cette fonction pour le moment. Transfère la publication à une personne.',
   },
-  privateStays: {
-    de: 'Eine private Meldung bleibt im Thema für private Meldungen.',
-    en: 'A private report stays in the topic for private reports.',
-    fr: 'Un signalement privé reste dans le thème des signalements privés.',
+  notInConversation: {
+    de: 'Das geht in einem privaten Gespräch nicht.',
+    en: 'That is not possible in a private conversation.',
+    fr: 'Ce n’est pas possible dans une conversation privée.',
+  },
+  alreadyFlagged: {
+    de: 'Du hast das schon gemeldet. Das Kernteam schaut es an.',
+    en: 'You flagged this already. The core team is looking at it.',
+    fr: 'Tu l’as déjà signalé. L’équipe centrale s’en occupe.',
+  },
+  ownMessage: {
+    de: 'Deine eigenen Beiträge und Kommentare kannst du nicht melden.',
+    en: 'You cannot flag your own posts and comments.',
+    fr: 'Tu ne peux pas signaler tes propres publications et commentaires.',
+  },
+  notHidden: {
+    de: 'Dieser Beitrag ist nicht mehr ausgeblendet.',
+    en: 'This post is no longer hidden.',
+    fr: 'Cette publication n’est plus masquée.',
+  },
+  editWindowOver: {
+    de: 'Ändern geht nur in den ersten 24 Stunden nach dem Senden.',
+    en: 'You can only change it in the first 24 hours after sending.',
+    fr: 'La modification n’est possible que pendant les 24 heures qui suivent l’envoi.',
+  },
+  alreadyAnswered: {
+    de: 'Das Kernteam hat schon reagiert. Löschen kann es jetzt nur noch die Moderation; schreib ihr, wenn es weg soll.',
+    en: 'The core team has already reacted. Only the moderators can delete it now; write to them if it should go.',
+    fr: 'L’équipe centrale a déjà réagi. Seule la modération peut encore la supprimer ; écris-lui si elle doit disparaître.',
   },
   topicGone: {
     de: 'Dieses Thema gibt es nicht mehr.',

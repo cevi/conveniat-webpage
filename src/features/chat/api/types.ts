@@ -1,3 +1,4 @@
+import type { ForumRemovalInfo } from '@/lib/forum-shared';
 import type { ChatMembershipPermission, MessageEventType } from '@/lib/prisma/enums';
 import { type ChatStatus } from '@/lib/prisma/enums';
 import type { JsonArray, JsonObject } from '@prisma/client/runtime/client';
@@ -42,6 +43,13 @@ export interface ChatMessage {
   byTopicAdmin?: boolean | undefined;
   /** The function that makes the sender Kernteam of the topic, the badge's text; see `byTopicAdmin`. */
   kernteamLabel?: string | undefined;
+  /** When the sender last changed the text, shown as "Bearbeitet". Missing if never. */
+  editedAt?: Date | undefined;
+  /**
+   * A forum moderator or flags hid or deleted it. A hidden one comes without its content to
+   * everyone but its sender and the moderators. Missing elsewhere and in caches from before.
+   */
+  forumRemoval?: ForumRemovalInfo | undefined;
   reactions?: {
     emoji: string;
     userId: string;

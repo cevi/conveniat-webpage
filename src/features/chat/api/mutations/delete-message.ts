@@ -1,5 +1,7 @@
+import { forumError } from '@/features/chat/api/forum/forum-errors';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
-import { MessageEventType, MessageType } from '@/lib/prisma/enums';
+import poolPrisma from '@/lib/db/prisma';
+import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { createLogger } from '@/utils/server-logger';
@@ -42,6 +44,8 @@ export const deleteMessage = trpcBaseProcedure
         parentId: true,
         createdAt: true,
         deletedAt: true,
+        chat: { select: { type: true } },
+        forumPost: { select: { reactedAt: true } },
       },
     });
     if (message === null) {
@@ -58,6 +62,12 @@ export const deleteMessage = trpcBaseProcedure
     }
 
     if (message.deletedAt !== null) return { deletedAt: message.deletedAt };
+
+    // a forum post someone already answered or acted on stays, so the answer keeps its
+    // question; only a moderator removes it then, with a reason
+    if (message.forumPost?.reactedAt != null) throw forumError('CONFLICT', 'alreadyAnswered');
+    const isForum =
+      message.chat.type === ChatType.FORUM || message.chat.type === ChatType.FORUM_CONVERSATION;
 
     const deletedAt = new Date();
     // Conditional, so two deletes that cross announce it only once.
@@ -82,23 +92,36 @@ export const deleteMessage = trpcBaseProcedure
         'message.id': message.uuid,
         'message.type': message.type,
       });
-      chatPubSub
-        .publish({
-          type: 'message_deleted',
-          chatId: message.chatId,
+      const event = {
+        type: 'message_deleted' as const,
+        chatId: message.chatId,
+        senderId: user.uuid,
+        message: {
+          id: message.uuid,
+          createdAt: message.createdAt,
+          messagePayload: {},
           senderId: user.uuid,
-          message: {
-            id: message.uuid,
-            createdAt: message.createdAt,
-            messagePayload: {},
-            senderId: user.uuid,
-            status: MessageEventType.STORED,
-            type: message.type,
-            parentId: message.parentId ?? undefined,
-            deletedAt,
-          },
-        })
-        .catch((error: unknown) => {
+          status: MessageEventType.STORED,
+          type: message.type,
+          parentId: message.parentId ?? undefined,
+          deletedAt,
+        },
+      };
+      // in a forum thread only some may see, only they hear of it
+      const published = isForum
+        ? import('@/features/chat/api/forum/forum-visibility').then(
+            async ({ findForumPostVisibility, publishForumThreadEvent }) => {
+              const post = await findForumPostVisibility(
+                poolPrisma,
+                message.parentId ?? message.uuid,
+              );
+              await (post === undefined
+                ? chatPubSub.publish(event)
+                : publishForumThreadEvent(poolPrisma, post, event));
+            },
+          )
+        : chatPubSub.publish(event);
+      published.catch((error: unknown) => {
           logger.error('Failed to publish the message_deleted event', {
             error,
             'chat.id': message.chatId,

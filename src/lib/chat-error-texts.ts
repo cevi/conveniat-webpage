@@ -7,6 +7,16 @@ import type { StaticTranslationString } from '@/types/types';
  * procedures too.
  */
 export const chatErrorTexts = {
+  editWindowOver: {
+    de: 'Ändern geht nur in den ersten 24 Stunden nach dem Senden.',
+    en: 'You can only change a message in the first 24 hours after sending.',
+    fr: 'Un message ne peut être modifié que pendant les 24 heures qui suivent l’envoi.',
+  },
+  messageGone: {
+    de: 'Diese Nachricht gibt es nicht mehr.',
+    en: 'This message no longer exists.',
+    fr: "Ce message n'existe plus.",
+  },
   callsDisabled: {
     de: 'Anrufe sind gerade ausgeschaltet.',
     en: 'Calls are switched off right now.',

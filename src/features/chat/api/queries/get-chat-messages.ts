@@ -71,7 +71,10 @@ export const getChatMessages = trpcBaseProcedure
         where: {
           chatId: chat.uuid,
           parentId: parentId ?? null,
-          ...(chat.type === ChatType.FORUM && parentId === undefined ? { forumPost: null } : {}),
+          ...((chat.type === ChatType.FORUM || chat.type === ChatType.FORUM_CONVERSATION) &&
+          parentId === undefined
+            ? { forumPost: null }
+            : {}),
         },
         ...(cursor == undefined ? {} : { cursor: { uuid: cursor }, skip: 1 }),
         orderBy: { seq: 'desc' },
@@ -147,6 +150,16 @@ export const getChatMessages = trpcBaseProcedure
                 findKernteamLabelsOfTopic(prisma, chat.uuid, topicAdminIds, ctx.locale),
             );
 
+      // hidden and deleted comments of a forum thread: their placeholders, and their content
+      // only for their writer and the moderators
+      const forumRemovals =
+        chat.type === ChatType.FORUM || chat.type === ChatType.FORUM_CONVERSATION
+          ? await import('@/features/chat/api/forum/forum-visibility').then(
+              ({ describeForumRemovals }) =>
+                describeForumRemovals(prisma, ctx.user, chat.uuid, messages),
+            )
+          : undefined;
+
       const mappedMessages = messages.map((message) => {
         const isReadByAdmin = chat.adminReadAt !== null && message.createdAt <= chat.adminReadAt;
         return toChatMessage(message, {
@@ -157,6 +170,9 @@ export const getChatMessages = trpcBaseProcedure
           threads,
           topicAdminIds,
           ...(kernteamLabels === undefined ? {} : { kernteamLabels }),
+          ...(forumRemovals === undefined
+            ? {}
+            : { forumRemovals: forumRemovals.removals, hiddenIds: forumRemovals.hidden }),
         });
       });
 

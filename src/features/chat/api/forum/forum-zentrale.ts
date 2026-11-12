@@ -7,6 +7,7 @@ import {
 } from '@/features/chat/api/forum/forum-moderator';
 import {
   FORUM_POST_SUMMARY_SELECT,
+  type ForumPostSummaryRow,
   markForumPostReacted,
   type ModeratedTopics,
   toForumPostSummaries,
@@ -17,7 +18,7 @@ import type { ForumPostSummary } from '@/lib/forum-shared';
 import type { Prisma } from '@/lib/prisma/client';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
-import type { PrismaClientOrTransaction } from '@/types/types';
+import type { Locale, PrismaClientOrTransaction } from '@/types/types';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 import { z } from 'zod';
@@ -83,30 +84,253 @@ export const recordForumReaction = async (
   if (moderator !== undefined) await markForumPostReacted(prisma, post.messageId);
 };
 
-/** How many posts wait and how many are forwarded to the caller, for the forum's header. */
+/** Open flags or a request for review, on a post or on one of its comments. */
+const flaggedWhere: Prisma.ForumPostWhereInput = {
+  OR: [
+    { message: { forumFlags: { some: { resolvedAt: null } } } },
+    { message: { forumRemoval: { is: { kind: 'HIDDEN', reviewRequestedAt: { not: null } } } } },
+    {
+      message: {
+        replies: {
+          some: {
+            OR: [
+              { forumFlags: { some: { resolvedAt: null } } },
+              { forumRemoval: { is: { kind: 'HIDDEN', reviewRequestedAt: { not: null } } } },
+            ],
+          },
+        },
+      },
+    },
+  ],
+};
+
+/** The open private conversations of the topics someone moderates. */
+const conversationsWhere = (moderated: ModeratedTopics): Prisma.ForumPostWhereInput => ({
+  status: { not: 'DONE' },
+  message: { deletedAt: null },
+  chat: {
+    type: ChatType.FORUM_CONVERSATION,
+    status: 'OPEN',
+    ...(moderated === 'all' ? {} : { forumTopicId: { in: moderated } }),
+  },
+});
+
+/** What the "Zu tun" button counts: everything that waits for the caller to act. */
 export const countZentrale = async (
   prisma: PrismaClientOrTransaction,
   user: ForumUser,
   moderated: ModeratedTopics,
 ): Promise<{ waiting: number; mine: number } | null> => {
-  const count = (tab: ZentraleTab): Promise<number> =>
-    prisma.forumPost.count({
-      where: {
-        AND: [visibleForumPostsWhere(user.uuid, moderated), tabWhere(tab, user.uuid, moderated)],
-      },
-    });
-  const [waiting, mine] = await Promise.all([
-    moderated === 'all' || moderated.length > 0 ? count('waiting') : Promise.resolve(0),
-    count('mine'),
+  const moderates = moderated === 'all' || moderated.length > 0;
+  const visible = visibleForumPostsWhere(user.uuid, moderated);
+  const scope = moderated === 'all' ? {} : { chatId: { in: moderated } };
+  const [waiting, flagged, conversations, mine] = await Promise.all([
+    moderates
+      ? prisma.forumPost.count({ where: { AND: [visible, tabWhere('waiting', user.uuid, moderated)] } })
+      : 0,
+    moderates ? prisma.forumPost.count({ where: { AND: [visible, scope, flaggedWhere] } }) : 0,
+    moderates
+      ? prisma.forumPost.count({ where: { ...conversationsWhere(moderated), reactedAt: null } })
+      : 0,
+    prisma.forumPost.count({ where: { AND: [visible, tabWhere('mine', user.uuid, moderated)] } }),
   ]);
   // nothing to moderate and nothing forwarded: no Zentrale for this person
-  if (moderated !== 'all' && moderated.length === 0 && mine === 0) return null;
-  return { waiting, mine };
+  if (!moderates && mine === 0) return null;
+  return { waiting: waiting + flagged + conversations, mine };
+};
+
+/** A post in "Zu tun", with why it is there. */
+export interface ForumTodoPost extends ZentralePost {
+  /** open flags on the post and its comments together */
+  openFlags?: number;
+  /** the author revised a hidden post and asks to show it again */
+  reviewRequested?: boolean;
+  /** a private conversation, for the conversations' section */
+  conversation?: { topicName: string } | null;
+}
+
+export interface ForumTodoList {
+  flagged: ForumTodoPost[];
+  conversations: ForumTodoPost[];
+  waiting: ForumTodoPost[];
+  mine: ForumTodoPost[];
+  /** the caller moderates every topic, on piket duty or at the Zentrale, and can widen the list */
+  canSeeAll: boolean;
+}
+
+const TODO_SECTION_SIZE = 50;
+
+/**
+ * "Zu tun": what waits for the caller, by urgency: flags and requests for review, private
+ * conversations, posts without a reaction, and what was forwarded to them. `scope: 'mine'`
+ * keeps to the topics whose Kernteam the caller is, `all` takes every topic they moderate.
+ */
+export const getForumTodoList = trpcBaseProcedure
+  .input(z.object({ scope: z.enum(['mine', 'all']).default('mine') }))
+  .query(async ({ ctx, input }): Promise<ForumTodoList> => {
+    const userId = ctx.user.uuid;
+    const everything = await findModeratedTopicIds(ctx.prisma, ctx.user);
+    const kernteamTopics = (
+      await ctx.prisma.chatMembership.findMany({
+        where: {
+          userId,
+          chatPermission: { in: [ChatMembershipPermission.OWNER, ChatMembershipPermission.ADMIN] },
+          chat: { type: ChatType.FORUM, archivedAt: null },
+        },
+        select: { chatId: true },
+      })
+    ).map((membership) => membership.chatId);
+    const canSeeAll = everything === 'all';
+    const moderated: ModeratedTopics =
+      input.scope === 'all' || !canSeeAll ? everything : kernteamTopics;
+    const visible = visibleForumPostsWhere(userId, everything);
+    const scope = moderated === 'all' ? {} : { chatId: { in: moderated } };
+    const moderates = moderated === 'all' || moderated.length > 0;
+    const select = { ...FORUM_POST_SUMMARY_SELECT, reactedAt: true } as const;
+
+    const [flaggedRows, conversationRows, waitingRows, mineRows] = await Promise.all([
+      moderates
+        ? ctx.prisma.forumPost.findMany({
+            where: { AND: [visible, scope, flaggedWhere] },
+            select,
+            orderBy: { createdAt: 'asc' },
+            take: TODO_SECTION_SIZE,
+          })
+        : [],
+      moderates
+        ? ctx.prisma.forumPost.findMany({
+            where: conversationsWhere(moderated),
+            select,
+            // what waits for a first answer first, then the oldest
+            orderBy: [{ reactedAt: { sort: 'asc', nulls: 'first' } }, { createdAt: 'asc' }],
+            take: TODO_SECTION_SIZE,
+          })
+        : [],
+      moderates
+        ? ctx.prisma.forumPost.findMany({
+            where: { AND: [visible, tabWhere('waiting', userId, moderated)] },
+            select,
+            orderBy: { createdAt: 'asc' },
+            take: TODO_SECTION_SIZE,
+          })
+        : [],
+      ctx.prisma.forumPost.findMany({
+        where: { AND: [visible, tabWhere('mine', userId, moderated)] },
+        select,
+        orderBy: { createdAt: 'asc' },
+        take: TODO_SECTION_SIZE,
+      }),
+    ]);
+
+    const flaggedIds = flaggedRows.map((row) => row.messageId);
+    const [flagCounts, reviews] = await Promise.all([
+      flaggedIds.length === 0
+        ? []
+        : ctx.prisma.forumFlag.findMany({
+            where: {
+              resolvedAt: null,
+              message: { OR: [{ uuid: { in: flaggedIds } }, { parentId: { in: flaggedIds } }] },
+            },
+            select: { message: { select: { uuid: true, parentId: true } } },
+          }),
+      flaggedIds.length === 0
+        ? []
+        : ctx.prisma.forumRemoval.findMany({
+            where: {
+              kind: 'HIDDEN',
+              reviewRequestedAt: { not: null },
+              message: { OR: [{ uuid: { in: flaggedIds } }, { parentId: { in: flaggedIds } }] },
+            },
+            select: { message: { select: { uuid: true, parentId: true } } },
+          }),
+    ]);
+    const topicNames = new Map(
+      (
+        await ctx.prisma.chat.findMany({
+          where: { uuid: { in: conversationRows.map((row) => row.chatId) } },
+          select: { uuid: true, forumTopic: { select: { name: true } } },
+        })
+      ).map((chat) => [chat.uuid, chat.forumTopic?.name ?? '']),
+    );
+    const postOf = (message: { uuid: string; parentId: string | null }): string =>
+      message.parentId ?? message.uuid;
+
+    const toItems = async (
+      rows: (typeof waitingRows)[number][],
+      extra?: (row: (typeof waitingRows)[number]) => Partial<ForumTodoPost>,
+    ): Promise<ForumTodoPost[]> => {
+      const items = await describeQueue(ctx.prisma, userId, rows, ctx.locale, everything);
+      return items.map((item, index) => {
+        const row = rows[index];
+        return row === undefined || extra === undefined ? item : { ...item, ...extra(row) };
+      });
+    };
+
+    const [flagged, conversations, waiting, mine] = await Promise.all([
+      toItems(flaggedRows, (row) => ({
+        openFlags: flagCounts.filter((flag) => postOf(flag.message) === row.messageId).length,
+        reviewRequested: reviews.some((review) => postOf(review.message) === row.messageId),
+      })),
+      toItems(conversationRows, (row) => ({
+        conversation: { topicName: topicNames.get(row.chatId) ?? '' },
+      })),
+      toItems(waitingRows),
+      toItems(mineRows),
+    ]);
+    return { flagged, conversations, waiting, mine, canSeeAll };
+  });
+
+/** Queue rows as the queue shows them: the summary, who took it and where it was forwarded. */
+const describeQueue = async (
+  prisma: PrismaClientOrTransaction,
+  userId: string,
+  page: (ForumPostSummaryRow & { reactedAt: Date | null })[],
+  locale: Locale,
+  moderated: ModeratedTopics,
+): Promise<ZentralePost[]> => {
+  const [summaries, assignments] = await Promise.all([
+    toForumPostSummaries(prisma, userId, page, locale, moderated),
+    prisma.forumPostAssignment.findMany({
+      where: { messageId: { in: page.map((row) => row.messageId) }, endedAt: null },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        messageId: true,
+        kind: true,
+        funktionId: true,
+        assignee: { select: { uuid: true, name: true } },
+      },
+    }),
+  ]);
+  const labels = assignments.some((assignment) => assignment.funktionId !== null)
+    ? await getFunktionDirectory(await getPayload({ config }), locale)
+    : new Map<string, { label: string }>();
+
+  return summaries.map((summary): ZentralePost => {
+    const own = assignments.filter((assignment) => assignment.messageId === summary.id);
+    const claim = own.find((assignment) => assignment.kind === 'CLAIM');
+    const forwardedTo = [
+      ...new Set(
+        own
+          .filter((assignment) => assignment.kind === 'HELPER')
+          .map((assignment) =>
+            assignment.funktionId === null
+              ? assignment.assignee.name
+              : (labels.get(assignment.funktionId)?.label ?? assignment.assignee.name),
+          ),
+      ),
+    ];
+    return {
+      ...summary,
+      claimedBy: claim === undefined ? null : { id: claim.assignee.uuid, name: claim.assignee.name },
+      forwardedTo,
+      waiting: page.find((row) => row.messageId === summary.id)?.reactedAt === null,
+    };
+  });
 };
 
 /**
- * One tab of the queue, oldest first: what waits longest comes first. For whoever handles posts
- * in a topic, and for anyone something was forwarded to.
+ * One tab of the queue of the release before "Zu tun", oldest first, kept for its persisted
+ * pages. For whoever handles posts in a topic, and for anyone something was forwarded to.
  */
 export const getForumZentraleList = trpcBaseProcedure
   .input(
@@ -129,45 +353,7 @@ export const getForumZentraleList = trpcBaseProcedure
       take: QUEUE_PAGE_SIZE + 1,
     });
     const page = rows.slice(0, QUEUE_PAGE_SIZE);
-    const [summaries, assignments] = await Promise.all([
-      toForumPostSummaries(ctx.prisma, userId, page, ctx.locale),
-      ctx.prisma.forumPostAssignment.findMany({
-        where: { messageId: { in: page.map((row) => row.messageId) }, endedAt: null },
-        orderBy: { createdAt: 'asc' },
-        select: {
-          messageId: true,
-          kind: true,
-          funktionId: true,
-          assignee: { select: { uuid: true, name: true } },
-        },
-      }),
-    ]);
-    const labels = assignments.some((assignment) => assignment.funktionId !== null)
-      ? await getFunktionDirectory(await getPayload({ config }), ctx.locale)
-      : new Map<string, { label: string }>();
-
-    const items = summaries.map((summary): ZentralePost => {
-      const own = assignments.filter((assignment) => assignment.messageId === summary.id);
-      const claim = own.find((assignment) => assignment.kind === 'CLAIM');
-      const forwardedTo = [
-        ...new Set(
-          own
-            .filter((assignment) => assignment.kind === 'HELPER')
-            .map((assignment) =>
-              assignment.funktionId === null
-                ? assignment.assignee.name
-                : (labels.get(assignment.funktionId)?.label ?? assignment.assignee.name),
-            ),
-        ),
-      ];
-      return {
-        ...summary,
-        claimedBy:
-          claim === undefined ? null : { id: claim.assignee.uuid, name: claim.assignee.name },
-        forwardedTo,
-        waiting: page.find((row) => row.messageId === summary.id)?.reactedAt === null,
-      };
-    });
+    const items = await describeQueue(ctx.prisma, userId, page, ctx.locale, moderated);
     return { items, nextCursor: rows.length > QUEUE_PAGE_SIZE ? offset + QUEUE_PAGE_SIZE : null };
   });
 

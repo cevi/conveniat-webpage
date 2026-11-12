@@ -205,17 +205,17 @@ export const createMessage = trpcBaseProcedure
     assertMembershipCanWrite(chat, validatedMessage.chatId, user.uuid, validatedMessage.parentId);
 
     // A post needs its title and row, so it is written by `forum.createForumPost`; here a forum
-    // topic only takes comments. Our client never sends a post this way.
-    if (chat.type === ChatType.FORUM && validatedMessage.parentId === undefined) {
+    // topic or a private conversation only takes comments. Our client never sends a post this way.
+    const isForumChat = chat.type === ChatType.FORUM || chat.type === ChatType.FORUM_CONVERSATION;
+    if (isForumChat && validatedMessage.parentId === undefined) {
       throw invariantError('BAD_REQUEST', 'A forum post is written with forum.createForumPost.');
     }
     // A private report or a post waiting for approval takes comments only from those who see
     // it; to anyone else its thread does not exist. Loaded here, so a chat send does not pull
     // in the piket schedule the check reads.
-    const forumVisibility =
-      chat.type === ChatType.FORUM
-        ? await import('@/features/chat/api/forum/forum-visibility')
-        : undefined;
+    const forumVisibility = isForumChat
+      ? await import('@/features/chat/api/forum/forum-visibility')
+      : undefined;
     const forumThread =
       forumVisibility !== undefined && validatedMessage.parentId !== undefined
         ? await forumVisibility.findForumPostVisibility(prisma, validatedMessage.parentId)
@@ -313,7 +313,15 @@ export const createMessage = trpcBaseProcedure
         where: { uuid: quotedMessageId },
         include: { contentVersions: { take: 1, orderBy: { revision: 'desc' } } },
       });
-      if (quotedMessage && quotedMessage.chatId !== validatedMessage.chatId) {
+      // in a forum topic, a post or comment the sender may not see is quoted like another chat's
+      const hiddenFromSender =
+        quotedMessage !== null &&
+        forumVisibility !== undefined &&
+        (await forumVisibility.isForumMessageHiddenFrom(prisma, user, quotedMessage.uuid));
+      if (
+        (quotedMessage && quotedMessage.chatId !== validatedMessage.chatId) ||
+        hiddenFromSender
+      ) {
         quotedMessageId = undefined;
       } else if (quotedMessage && !quotedMessage.deletedAt) {
         quotedSnippet = quotedSnippetOf(quotedMessage.contentVersions[0]?.payload);
@@ -380,7 +388,7 @@ export const createMessage = trpcBaseProcedure
     // A comment on a forum post subscribes its author to the post, like writing the post does.
     // The comments of a post all answer the post itself, so the thread's parent is the post.
     const forumPost =
-      chat.type === ChatType.FORUM && validatedMessage.parentId !== undefined
+      isForumChat && validatedMessage.parentId !== undefined
         ? await prisma.forumPost.findUnique({
             where: { messageId: validatedMessage.parentId },
             select: { messageId: true, title: true },
@@ -440,8 +448,7 @@ export const createMessage = trpcBaseProcedure
 
     // a comment by the topic's Kernteam carries its badge, live as when it is read back
     const byTopicAdmin =
-      chat.type === ChatType.FORUM &&
-      isTopicAdminPermission(chat.chatMemberships[0]?.chatPermission);
+      isForumChat && isTopicAdminPermission(chat.chatMemberships[0]?.chatPermission);
     // the function behind the badge, for the live event, in the writer's language like a push;
     // the thread read back has it in the reader's. Loaded only then, as it reads Payload
     const kernteamLabel = byTopicAdmin
@@ -456,7 +463,7 @@ export const createMessage = trpcBaseProcedure
       : {};
 
     ctx.afterTransactionCommit(() => {
-      if (chat.type === ChatType.FORUM) {
+      if (isForumChat) {
         // the post's subscribers and the piket on duty, see `forum-push`
         // loaded here, so a chat send does not pull in the piket schedule it reads
         if (forumPost !== null) {
