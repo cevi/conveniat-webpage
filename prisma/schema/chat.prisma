@@ -20,6 +20,11 @@ enum ChatType {
   /// a topic of the forum: every top-level message is a post, its thread the comments, see
   /// `ForumPost`
   FORUM
+
+  /// a private conversation with the Kernteam of a forum topic (`Chat.forumTopicId`): one post,
+  /// its thread the answers. Its members are the writer, the topic's Kernteam, the piket on duty
+  /// and whoever at the Zentrale opened it, so it holds nothing the rest of the topic may not see
+  FORUM_CONVERSATION
 }
 
 enum ChatStatus {
@@ -72,12 +77,18 @@ model Chat {
   /// the position of a deleted message is never handed out again
   lastMessageSeq Int @default(0)
 
+  /// the forum topic a private conversation belongs to, for a `FORUM_CONVERSATION`
+  forumTopicId       String?
+  forumTopic         Chat?   @relation("ForumConversations", fields: [forumTopicId], references: [uuid], onDelete: Cascade)
+  forumConversations Chat[]  @relation("ForumConversations")
+
   messages        Message[]
   chatMemberships ChatMembership[]
   capabilities    ChatCapability[]
   forumPosts      ForumPost[]
 
   @@unique([courseId, courseType])
+  @@index([forumTopicId])
   @@index([name])
   @@index([description])
   @@index([lastUpdate])
@@ -161,8 +172,13 @@ model ChatMembership {
   markedUnread Boolean @default(false)
 
   /// when this person subscribed to every new post of a forum topic, null if not subscribed;
-  /// comments push to the subscribers of their post instead, see `ThreadSubscription`
+  /// comments push to the subscribers of their post instead, see `ThreadSubscription`. The
+  /// Kernteam is subscribed when it joins, see `forum-kernteam.ts`
   subscribedAt DateTime?
+
+  /// on a forum topic, for its Kernteam: new private conversations of the topic start muted for
+  /// this person, who switched their pushes off
+  forumConversationPushOff Boolean @default(false)
 
   @@id([userId, chatId])
   @@index([userId])
@@ -233,8 +249,16 @@ model Message {
   /// when the sender deleted the message for everyone, null while it stands; the row stays so
   /// its replies and the quotes of it keep their place, but its content is never served again
   deletedAt   DateTime?
-  /// who deleted it, so far always the sender
+  /// who deleted it, the sender or a forum moderator, see `ForumRemoval`
   deletedById String?
+
+  /// when its sender last changed its text, null if never; the text is the newest
+  /// `MessageContent` revision, the older ones stay for moderators
+  editedAt DateTime?
+
+  /// a forum moderator hid or deleted it, with the reason; see `forum.prisma`
+  forumRemoval ForumRemoval?
+  forumFlags   ForumFlag[]
 
   /// the target of the parent key
   @@unique([uuid, chatId])

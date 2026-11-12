@@ -6,6 +6,15 @@ enum ForumPostStatus {
   DONE
 }
 
+/// What a post is, chosen by its author and changed by a moderator. Only a problem has a status
+/// that matters to the reader; a question is answered once a comment is marked as its answer, and
+/// an idea collects likes as votes.
+enum ForumPostKind {
+  QUESTION
+  PROBLEM
+  IDEA
+}
+
 /// The forum part of a top-level message in a `FORUM` chat. The message is the post: its text is
 /// the description, its thread the comments, a 👍 reaction on it "betrifft mich auch". Everything
 /// the message cannot hold, because someone other than its sender changes it, lives here.
@@ -17,14 +26,16 @@ model ForumPost {
   chatId String
   chat   Chat   @relation(fields: [chatId], references: [uuid], onDelete: Cascade)
 
-  title String
+  title  String
   /// the description, a copy of the text of the post's message for the search; written with the
   /// post, since a post's text is never edited
-  body  String @default("")
+  body   String                   @default("")
   /// the title and the description as Postgres searches them, generated from both: German stems
   /// without accents, the title weighted above the description. See `forum-search.ts`
   search Unsupported("tsvector")? @default(dbgenerated())
 
+  /// posts from before kinds were reports, so they are problems
+  kind              ForumPostKind   @default(PROBLEM)
   status            ForumPostStatus @default(OPEN)
   statusChangedAt   DateTime?
   /// the first reaction of whoever handles posts: a comment or a status change by the Kernteam,
@@ -51,10 +62,6 @@ model ForumPost {
   approvedAt      DateTime?
   approvedById    String?
 
-  /// a private report to the Zentrale: only its author, the topic's Kernteam and the piket on
-  /// duty see it and its comments; it lives in the topic editors marked to receive them
-  private Boolean @default(false)
-
   /// the post this duplicate was merged into; a merged post leaves the lists, and its likes count
   /// for the post it was merged into
   mergedIntoId String?
@@ -69,7 +76,6 @@ model ForumPost {
   @@index([latitude, longitude])
   @@index([mergedIntoId])
   @@index([chatId, approvedAt])
-  @@index([chatId, private])
   @@index([chatId, reactedAt])
   @@index([search], type: Gin)
   // typos and spellings the stemmer does not join, e.g. "Toitoi" and "Toi Toi"
@@ -90,7 +96,7 @@ enum ForumAssignmentKind {
 model ForumPostAssignment {
   id String @id @default(uuid(7))
 
-  kind ForumAssignmentKind @default(HELPER)
+  kind       ForumAssignmentKind @default(HELPER)
   /// the function from Funktionen und Adressbuch the post was forwarded to, e.g. "Ressortleitung
   /// Infrastruktur": one assignment for each of its holders then, all with this id
   funktionId String?
@@ -149,6 +155,15 @@ enum ForumAuditAction {
   MOVED
   /// a post written while posts need approval, made public
   APPROVED
+  /// a post or a comment hidden from everyone but its author and the moderators, by a moderator
+  /// or by the flags of participants, see `ForumRemoval`
+  HIDDEN
+  /// a hidden post or comment shown again
+  RESTORED
+  /// the open flags of a post or a comment found unfounded
+  FLAGS_DISMISSED
+  /// a question, problem or idea made another of the three
+  KIND_CHANGED
 }
 
 /// Why someone was allowed to change a post.
@@ -161,6 +176,8 @@ enum ForumActorCapacity {
   DELEGATE
   /// the Forum-Zentrale role, which moderates every topic all year
   ZENTRALE
+  /// nobody: the forum itself, e.g. hiding what enough participants flagged
+  AUTOMATIC
 }
 
 /// Every change someone made to a post they did not write: who, in which capacity, what before
@@ -203,4 +220,64 @@ model ForumAuditEvent {
   @@index([chatId, createdAt])
   @@index([actorId, createdAt])
   @@index([messageId, createdAt])
+}
+
+/// Why a participant flagged a post or a comment, and why a moderator hid or deleted one.
+enum ForumFlagReason {
+  INAPPROPRIATE
+  PERSONAL_DATA
+  DUPLICATE
+  OTHER
+}
+
+/// A participant's flag on a post or a comment, for its moderators to decide. One per person and
+/// message; enough open flags hide the message, see `FORUM_FLAGS_TO_HIDE`. No foreign key to the
+/// user, so a flag outlives a merged account.
+model ForumFlag {
+  id String @id @default(uuid(7))
+
+  messageId String
+  message   Message @relation(fields: [messageId], references: [uuid], onDelete: Cascade)
+
+  userId String
+  reason ForumFlagReason
+  note   String?
+
+  createdAt  DateTime  @default(now())
+  /// a moderator decided: hid, deleted, restored or dismissed it
+  resolvedAt DateTime?
+
+  @@unique([messageId, userId])
+  @@index([resolvedAt])
+}
+
+enum ForumRemovalKind {
+  /// only its author and the moderators still see it; the author may revise it
+  HIDDEN
+  /// deleted for everyone, its author included; `Message.deletedAt` is set too
+  DELETED
+}
+
+/// A post or a comment a moderator hid or deleted, or that flags hid. Everyone else sees a
+/// placeholder in its place, and its author the reason. Restoring a hidden one removes the row;
+/// the protocol keeps what happened.
+model ForumRemoval {
+  messageId String  @id
+  message   Message @relation(fields: [messageId], references: [uuid], onDelete: Cascade)
+
+  kind   ForumRemovalKind
+  reason ForumFlagReason
+  /// what the moderator wrote to the author
+  note   String?
+
+  /// null when flags hid it
+  removedById   String?
+  removedByName String?
+  capacity      ForumActorCapacity
+
+  createdAt         DateTime  @default(now())
+  /// the author revised a hidden post and asked for it to be shown again
+  reviewRequestedAt DateTime?
+
+  @@index([kind, reviewRequestedAt])
 }
