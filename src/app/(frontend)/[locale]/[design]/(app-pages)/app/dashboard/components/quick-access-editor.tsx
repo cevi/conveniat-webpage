@@ -12,7 +12,6 @@ import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Switch } from '@/components/ui/switch';
 import type { QuickAccessTileId } from '@/features/settings/quick-access';
-import { DEFAULT_QUICK_ACCESS } from '@/features/settings/quick-access';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import type React from 'react';
@@ -85,6 +84,8 @@ export const QuickAccessEditor: React.FC<{
   shown: readonly QuickAccessTileId[];
   /** every tile available here, in the catalog's order */
   available: readonly QuickAccessTileId[];
+  /** what "Standard wiederherstellen" brings back */
+  defaultTiles: readonly QuickAccessTileId[];
   isCustomized: boolean;
   saveFailed: boolean;
   onChange: (next: readonly QuickAccessTileId[]) => void;
@@ -96,6 +97,7 @@ export const QuickAccessEditor: React.FC<{
   chosen,
   shown,
   available,
+  defaultTiles,
   isCustomized,
   saveFailed,
   onChange,
@@ -117,7 +119,7 @@ export const QuickAccessEditor: React.FC<{
             size="touch"
             className="flex-1"
             disabled={!isCustomized}
-            onClick={() => onChange(DEFAULT_QUICK_ACCESS)}
+            onClick={() => onChange(defaultTiles)}
           >
             {texts.reset[locale]}
           </Button>

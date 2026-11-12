@@ -13,6 +13,11 @@ jest.mock('@/utils/get-locale-from-cookies', () => ({
 jest.mock('@/utils/server-logger', () => ({
   createLogger: (): unknown => ({ debug: jest.fn(), info: jest.fn(), warn: jest.fn() }),
 }));
+// the default the editors configured on the App Landing Page global
+const getAppLandingPageCached = jest.fn();
+jest.mock('@/features/payload-cms/api/cached-globals', () => ({
+  getAppLandingPageCached: (...args: unknown[]): unknown => getAppLandingPageCached(...args),
+}));
 jest.mock('superjson', () => ({
   __esModule: true,
   default: {
@@ -40,6 +45,7 @@ describe('quickAccessRouter', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma.user.update.mockResolvedValue({});
+    getAppLandingPageCached.mockResolvedValue({ defaultQuickAccessTiles: null });
   });
 
   it('refuses a visitor who is not logged in', async () => {
@@ -77,7 +83,25 @@ describe('quickAccessRouter', () => {
     });
   });
 
-  it('stores the default as no choice, so a new default reaches the user', async () => {
+  it('stores the default the CMS configures as no choice, so a new default reaches the user', async () => {
+    getAppLandingPageCached.mockResolvedValue({ defaultQuickAccessTiles: ['map', 'chat'] });
+
+    await expect(callerAs('anna').updateQuickAccess({ tiles: ['map', 'chat'] })).resolves.toEqual({
+      tiles: null,
+    });
+    expect(prisma.user.update).toHaveBeenLastCalledWith({
+      where: { uuid: 'anna' },
+      data: { quickAccessTiles: 'DbNull' },
+    });
+
+    // the built-in default is a choice of its own once the CMS names another one
+    const builtIn = ['upload', 'qr', 'material', 'wristbands', 'support'];
+    await expect(callerAs('anna').updateQuickAccess({ tiles: builtIn })).resolves.toEqual({
+      tiles: builtIn,
+    });
+  });
+
+  it('stores the built-in default as no choice while the CMS names none', async () => {
     const result = await callerAs('anna').updateQuickAccess({
       tiles: ['upload', 'qr', 'material', 'wristbands', 'support'],
     });

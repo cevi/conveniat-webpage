@@ -50,6 +50,7 @@ const renderTiles = (access: unknown, wristbandsEnabled = true): TestTrpc => {
     <DashboardQuickAccess
       locale="de"
       supportEmail="support@example.test"
+      defaultTiles={['upload', 'qr', 'material', 'wristbands', 'support']}
       flags={{
         imageUploadEnabled: false,
         materialEnabled: false,

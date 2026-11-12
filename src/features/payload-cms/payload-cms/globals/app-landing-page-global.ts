@@ -11,6 +11,11 @@ import {
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { asLocalizedGlobal } from '@/features/payload-cms/payload-cms/utils/localized-global';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
+import {
+  DEFAULT_QUICK_ACCESS,
+  QUICK_ACCESS_TILE_IDS,
+  QUICK_ACCESS_TILE_LABELS,
+} from '@/features/settings/quick-access';
 import type { GlobalConfig } from 'payload';
 
 export const AppLandingPageGlobal: GlobalConfig = asLocalizedGlobal({
@@ -30,9 +35,9 @@ export const AppLandingPageGlobal: GlobalConfig = asLocalizedGlobal({
     group: AdminPanelDashboardGroups.AppContent.label,
     hidden: shouldHideInAdminPanelIfNotAdmin,
     description: {
-      en: 'Configure the app dashboard landing page: title, welcome content, and action card visibility.',
-      de: 'Konfiguriere die App-Dashboard-Startseite: Titel, Willkommensinhalt und Sichtbarkeit der Aktionskarten.',
-      fr: "Configurez la page d'accueil du tableau de bord de l'application : titre, contenu de bienvenue et visibilité des cartes d'action.",
+      en: 'Configure the app dashboard landing page: title, welcome content, and the action cards with their default selection.',
+      de: 'Konfiguriere die App-Dashboard-Startseite: Titel, Willkommensinhalt und die Aktionskarten mit ihrer Standardauswahl.',
+      fr: "Configurez la page d'accueil du tableau de bord de l'application : titre, contenu de bienvenue et les cartes d'action avec leur sélection par défaut.",
     },
     // The draft is previewed as Home of the app. The URL is a placeholder, `LivePreviewRestorer`
     // points it at the preview of the dashboard in the edited locale.
@@ -111,6 +116,31 @@ export const AppLandingPageGlobal: GlobalConfig = asLocalizedGlobal({
           en: 'When enabled, the action cards (quick links to app features) are shown on the dashboard.',
           de: 'Wenn aktiviert, werden die Aktionskarten (Schnelllinks zu App-Funktionen) auf dem Dashboard angezeigt.',
           fr: "Lorsqu'activé, les cartes d'action (liens rapides vers les fonctionnalités de l'application) sont affichées sur le tableau de bord.",
+        },
+      },
+    },
+    {
+      // not localized: Home shows the same tiles in every language
+      name: 'defaultQuickAccessTiles',
+      label: {
+        en: 'Default Action Cards',
+        de: 'Standardauswahl der Aktionskarten',
+        fr: "Cartes d'action par défaut",
+      },
+      type: 'select',
+      hasMany: true,
+      required: true,
+      options: QUICK_ACCESS_TILE_IDS.map((id) => ({
+        value: id,
+        label: QUICK_ACCESS_TILE_LABELS[id],
+      })),
+      defaultValue: [...DEFAULT_QUICK_ACCESS],
+      admin: {
+        condition: (data) => data['showActionCards'] !== false,
+        description: {
+          en: 'The cards and their order for everybody who has not arranged their own, and for guests. Drag a card to change the order. Whoever cannot use a card does not see it: participants, for example, see no wristbands. Whoever has arranged their own keeps it.',
+          de: 'Die Karten und ihre Reihenfolge für alle, die sich keine eigene Auswahl eingerichtet haben, und für Gäste. Ziehe eine Karte, um die Reihenfolge zu ändern. Wer eine Karte nicht nutzen kann, sieht sie nicht: Teilnehmende etwa sehen keine Armbänder. Wer eine eigene Auswahl eingerichtet hat, behält sie.',
+          fr: "Les cartes et leur ordre pour toutes les personnes qui n'ont pas choisi les leurs, et pour les invités. Fais glisser une carte pour changer l'ordre. Qui ne peut pas utiliser une carte ne la voit pas : les participants, par exemple, ne voient pas les bracelets. Qui a choisi ses propres cartes les garde.",
         },
       },
     },

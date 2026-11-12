@@ -2,6 +2,7 @@ import {
   getAppFeatureFlagsCached,
   getAppLandingPageCached,
 } from '@/features/payload-cms/api/cached-globals';
+import { defaultQuickAccessOf } from '@/features/settings/quick-access';
 import { createTRPCRouter, publicProcedure } from '@/trpc/init';
 import { z } from 'zod';
 
@@ -15,8 +16,9 @@ import { z } from 'zod';
  */
 export const appContentRouter = createTRPCRouter({
   /**
-   * Configuration of the app dashboard: whether the action cards are shown and
-   * the feature flags deciding which cards exist. The landing page title is read
+   * Configuration of the app dashboard: whether the action cards are shown, which
+   * of them in what order for a user without a choice of their own, and the
+   * feature flags deciding which cards exist. The landing page title is read
    * by the header on the server, see `PageTitle`.
    *
    * The welcome content blocks are intentionally not part of this payload:
@@ -38,6 +40,7 @@ export const appContentRouter = createTRPCRouter({
 
       return {
         showActionCards: landingPage.showActionCards ?? false,
+        defaultQuickAccess: [...defaultQuickAccessOf(landingPage.defaultQuickAccessTiles)],
         // a flag that has never been set explicitly counts as enabled
         featureFlags: {
           helperShiftsEnabled: featureFlags.helperShiftsEnabled !== false,
