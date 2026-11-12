@@ -1,6 +1,6 @@
 {
   "name": "conveniat27",
-  "version": "1.57.0",
+  "version": "1.57.1",
   "description": "The official website of conveniat27",
   "license": "MIT",
   "author": "Cyrill Püntener v/o JPG (cyrill.puentener@cevi.ch)",
@@ -123,7 +123,7 @@
     "lucide-react": "^0.540.0",
     "mailparser": "^3.14.2",
     "maplibre-gl": "^6.16.0",
-    "mongoose": "8.24.1",
+    "mongoose": "8.24.7",
     "next": "16.4.5",
     "next-auth": "5.0.0-beta.32",
     "next-i18n-router": "^5.5.8",
