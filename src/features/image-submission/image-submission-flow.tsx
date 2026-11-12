@@ -125,6 +125,7 @@ export const ImageSubmissionFlow: React.FC<{ texts: ImageSubmissionTexts }> = ({
         <UploadForm
           photoTips={texts.photoTips}
           termsFullText={texts.termsFullText}
+          termsVersion={texts.termsVersion}
           onUploaded={() => setChosenStep('success')}
         />
       )}

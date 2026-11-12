@@ -132,8 +132,10 @@ const readImageSize = (file: File): Promise<{ width: number; height: number }> =
 export const UploadForm: React.FC<{
   photoTips: string[];
   termsFullText: string;
+  /** the version of the terms shown, recorded with every image */
+  termsVersion: string;
   onUploaded: () => void;
-}> = ({ photoTips, termsFullText, onUploaded }) => {
+}> = ({ photoTips, termsFullText, termsVersion, onUploaded }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const [selectedFiles, setSelectedFiles] = useState<FileItem[]>([]);
@@ -213,7 +215,10 @@ export const UploadForm: React.FC<{
       const results = await Promise.all(
         validFiles.map(async (item) => {
           const description = fileDescriptions[item.file.name]?.trim() ?? '';
-          const response = await uploadImage(item.file, description);
+          const response = await uploadImage(item.file, description, {
+            locale,
+            version: termsVersion,
+          });
           return { file: item.file, response };
         }),
       );

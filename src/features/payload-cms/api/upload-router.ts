@@ -1,4 +1,8 @@
 import {
+  readCurrentTermsText,
+  termsVersionOf,
+} from '@/features/image-submission/api/image-submission-texts';
+import {
   temporaryUploadPrefixOf,
   USER_IMAGE_MAX_BYTES,
   USER_IMAGE_UPLOAD,
@@ -94,6 +98,10 @@ export const uploadRouter = createTRPCRouter({
         key: z.string(),
         description: z.string().max(1000),
         originalFilename: z.string(),
+        // optional only so that a page loaded before consent was recorded gets a reason, below
+        terms: z
+          .object({ locale: z.enum(['de', 'fr', 'en']), version: z.string().max(64) })
+          .optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -108,6 +116,20 @@ export const uploadRouter = createTRPCRouter({
       });
 
       try {
+        const payload = await getPayload({ config });
+
+        // The image is recorded with the terms the person agreed to, so they must still be the
+        // ones the page showed: an editor may have changed them since, or the page predates this.
+        const termsLocale = input.terms?.locale ?? 'de';
+        const termsText = await readCurrentTermsText(payload, termsLocale);
+        if (
+          input.terms === undefined ||
+          termsText === '' ||
+          termsVersionOf(termsText) !== input.terms.version
+        ) {
+          throw uploadError('PRECONDITION_FAILED', 'termsChanged');
+        }
+
         const s3Response = await s3Client.send(getCommand);
 
         if (s3Response.ContentLength && s3Response.ContentLength > USER_IMAGE_MAX_BYTES) {
@@ -169,8 +191,6 @@ export const uploadRouter = createTRPCRouter({
           });
         }
 
-        const payload = await getPayload({ config });
-
         // Check for duplicates; a withdrawn image may be submitted again
         const existingImages = await payload.find({
           collection: 'userSubmittedImages',
@@ -197,6 +217,11 @@ export const uploadRouter = createTRPCRouter({
             user_description: input.description,
             original_filename: input.originalFilename,
             content_hash: hash,
+            terms_consent: {
+              accepted_at: new Date().toISOString(),
+              locale: termsLocale,
+              terms_text: termsText,
+            },
           },
           file: {
             data: buffer,
