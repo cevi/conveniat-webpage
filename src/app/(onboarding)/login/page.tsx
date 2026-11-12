@@ -18,6 +18,14 @@ const loginButtonText: StaticTranslationString = {
   fr: 'Connexion avec Cevi.DB',
 };
 
+/**
+ * Where a link that needed a login, like a protected file under `/api`, wants to return to. It is
+ * read only when the button is pressed and goes to Auth.js unchanged, which follows it only on our
+ * own origin.
+ */
+const readCallbackUrl = (): string | undefined =>
+  new URLSearchParams(globalThis.location.search).get('callbackUrl') ?? undefined;
+
 const LoginScreen: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
@@ -28,7 +36,7 @@ const LoginScreen: React.FC = () => {
 
         <p className="mb-4 text-balance text-gray-700">{loginText[locale]}</p>
         <button
-          onClick={() => handleLogin()}
+          onClick={() => handleLogin(readCallbackUrl())}
           className="font-heading cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800"
         >
           {loginButtonText[locale]}
