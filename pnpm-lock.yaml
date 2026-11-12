@@ -241,8 +241,8 @@ importers:
         specifier: ^6.16.0
         version: 6.16.0
       mongoose:
-        specifier: 8.24.1
-        version: 8.24.1
+        specifier: 8.24.7
+        version: 8.24.7
       next:
         specifier: 16.4.5
         version: 16.4.5(@babel/core@7.29.13)(@opentelemetry/api@1.10.0)(@playwright/test@1.65.0)(@types/node@24.19.2)(babel-plugin-macros@3.1.0)(babel-plugin-react-compiler@19.1.0-rc.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.77.4)
@@ -2085,6 +2085,9 @@ packages:
 
   '@mongodb-js/saslprep@1.6.1':
     resolution: {integrity: sha512-D4CQtk9IwjCLAvCf1xvHEod3960q8XMUzfmdRU9qjUNlHnesGuTOvJcOTaPm9koZ1caUKA2aTbszZiAkcmSgmg==}
+
+  '@mongodb-js/saslprep@1.6.3':
+    resolution: {integrity: sha512-aHGFvT95c82CoQ7hb6qXpz8Hcc5PJb3ZtQ+P01QDBbyQday0mjcrJPeNJOHCgWe0pGX0zKmKP+1mWi/I/BCX9Q==}
 
   '@next/bundle-analyzer@16.4.5':
     resolution: {integrity: sha512-kIlb+9t1i/Zg7yuRXN7I9nhEb92UGbnMfIzpZPps7YoCgmneCMpmN6zG6mduUluhI+y00MGLytkDsccVCujrGw==}
@@ -6976,8 +6979,8 @@ packages:
       typescript:
         optional: true
 
-  lib0@0.2.119:
-    resolution: {integrity: sha512-vh+TiejVy8Xm+hCdnRfn9BthGNvNUZdEXltNjVZL3TzRIKP3s1lnQh8pWd/Q0wCgY0FPAGVVjFF4ZiHUV3LFgA==}
+  lib0@0.2.120:
+    resolution: {integrity: sha512-/a2eRImR8sZbmMVKe2we1/KukDQkuPyPf8yol6epvCu2PH6hurjcRI3mdGFFAi0uGoRJGyns99JquZgxwW1tQg==}
     engines: {node: '>=16'}
     hasBin: true
 
@@ -7533,6 +7536,10 @@ packages:
     resolution: {integrity: sha512-UpHBA0l5kHyKJQFjmBaFYQFo5sgz1DK0TRqDkOyBLYbqiIbKKhIvBpHWBXqeo0rgW4kGI1UhhAw+kTQZoj1BdA==}
     engines: {node: '>=16.20.1'}
 
+  mongoose@8.24.7:
+    resolution: {integrity: sha512-+hrEOLpLGPgOt7S/UrcBAKZ4gvB6+5qf16jspWH5xQ8WtQu9lRTzcqy04ZNQrlIox4Pl6Nh2RzlNDPSOFw9rng==}
+    engines: {node: '>=16.20.1'}
+
   motion-dom@12.43.0:
     resolution: {integrity: sha512-azKON4d9S65PEoFUiQTMTgPheEmzf2QngdRc50AKfJp9Q9mmcBVw22c8eMq9k8kxOFHdL7+WZY7N/5F/lwiDag==}
 
@@ -7549,6 +7556,10 @@ packages:
 
   mquery@5.0.0:
     resolution: {integrity: sha512-iQMncpmEK8R8ncT8HJGsGc9Dsp8xcgYMVSbs5jgnm1lFHTZqMJTUWTDx1LBO8+mK3tPNZWFLBghQEIOULSTHZg==}
+    engines: {node: '>=14.0.0'}
+
+  mquery@5.0.1:
+    resolution: {integrity: sha512-C99lWV0TFI34pS008jBsi3JrE2xZPnTgUw5yApQR71nRP0hxLy8D5m1Lbbk83c8AQWJwdJ0329HzFtZ1MRTUIw==}
     engines: {node: '>=14.0.0'}
 
   mrmime@2.0.1:
@@ -8678,12 +8689,12 @@ packages:
   scheduler@0.28.0:
     resolution: {integrity: sha512-juorfCmIkIw8tT+p5BXSm6PJjQF/ycEYmKyzURCIt/RaZIhL+PulbQ9Yu2z1HdOJDdqDTlxA1+xKBmHXJsczAw==}
 
-  schema-utils@4.8.2:
-    resolution: {integrity: sha512-iKlak3OFHF0dgD1nZRvgWQzG+P1TiEcMnLSBtIVBg937z5Jd6WE1c3SyZkXIyCfPHowL35yMsVvIjotm1c1qiw==}
+  schema-utils@4.8.3:
+    resolution: {integrity: sha512-qIfo3f+lRNqnMPgpXSKvUhsT3pY5U+ppmgGr4j8LanFP3W/Ze+xj8DY/dPb5qVu3m6qFIMyMWKVRLNKxrNhxWg==}
     engines: {node: '>= 10.13.0'}
     hasBin: true
     peerDependencies:
-      webpack: ^5.112.0
+      webpack: ^5.0.0
     peerDependenciesMeta:
       webpack:
         optional: true
@@ -9561,8 +9572,8 @@ packages:
     resolution: {integrity: sha512-o8qghlI8NZHU1lLPrpi2+Uq7abh4GGPpYANlalzWxyWteJOCsr/P+oPBA49TOLu5FTZO4d3F9MnWJfiMo4BkmA==}
     engines: {node: '>=18'}
 
-  watchpack@2.6.3:
-    resolution: {integrity: sha512-s3NZy0QpTY9qGqzc0wtz4qI28z3+5qKbbAec4MV4G9N3CfgZ9wgvQRr0cl2jh/tqkWG1NWHkmVMHZpCamev5Wg==}
+  watchpack@2.6.4:
+    resolution: {integrity: sha512-5H3Tce2GfzWbcr9VnSqyak2whFaONw4BdmI5BDnMXold4qSlCFd64XaMQESRh2vkDKmdUkv6rUo17UvZ9f9nXw==}
     engines: {node: '>=10.13.0'}
 
   web-push@3.6.7:
@@ -11657,6 +11668,10 @@ snapshots:
       react-dom: 19.3.1(react@19.3.1)
 
   '@mongodb-js/saslprep@1.6.1':
+    dependencies:
+      sparse-bitfield: 3.0.3
+
+  '@mongodb-js/saslprep@1.6.3':
     dependencies:
       sparse-bitfield: 3.0.3
 
@@ -17326,7 +17341,7 @@ snapshots:
     optionalDependencies:
       typescript: 5.7.2
 
-  lib0@0.2.119:
+  lib0@0.2.120:
     dependencies:
       isomorphic.js: 0.2.5
 
@@ -17914,7 +17929,7 @@ snapshots:
 
   mongodb@6.20.0:
     dependencies:
-      '@mongodb-js/saslprep': 1.6.1
+      '@mongodb-js/saslprep': 1.6.3
       bson: 6.10.4
       mongodb-connection-string-url: 3.0.2
 
@@ -17954,6 +17969,25 @@ snapshots:
       - socks
       - supports-color
 
+  mongoose@8.24.7:
+    dependencies:
+      bson: 6.10.4
+      kareem: 2.6.3
+      mongodb: 6.20.0
+      mpath: 0.9.0
+      mquery: 5.0.1
+      ms: 2.1.3
+      sift: 17.1.3
+    transitivePeerDependencies:
+      - '@aws-sdk/credential-providers'
+      - '@mongodb-js/zstd'
+      - gcp-metadata
+      - kerberos
+      - mongodb-client-encryption
+      - snappy
+      - socks
+      - supports-color
+
   motion-dom@12.43.0:
     dependencies:
       motion-utils: 12.39.0
@@ -17965,6 +17999,12 @@ snapshots:
   mpath@0.9.0: {}
 
   mquery@5.0.0:
+    dependencies:
+      debug: 4.4.3
+    transitivePeerDependencies:
+      - supports-color
+
+  mquery@5.0.1:
     dependencies:
       debug: 4.4.3
     transitivePeerDependencies:
@@ -19145,7 +19185,7 @@ snapshots:
 
   scheduler@0.28.0: {}
 
-  schema-utils@4.8.2(webpack@5.106.2(@swc/core@1.15.33(@swc/helpers@0.5.24))(esbuild@0.28.2)(postcss@8.5.32)):
+  schema-utils@4.8.3(webpack@5.106.2(@swc/core@1.15.33(@swc/helpers@0.5.24))(esbuild@0.28.2)(postcss@8.5.32)):
     dependencies:
       '@types/json-schema': 7.0.15
       ajv: 8.20.0
@@ -19692,7 +19732,7 @@ snapshots:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
-      schema-utils: 4.8.2(webpack@5.106.2(@swc/core@1.15.33(@swc/helpers@0.5.24))(esbuild@0.28.2)(postcss@8.5.32))
+      schema-utils: 4.8.3(webpack@5.106.2(@swc/core@1.15.33(@swc/helpers@0.5.24))(esbuild@0.28.2)(postcss@8.5.32))
       terser: 5.51.2
       webpack: 5.106.2(@swc/core@1.15.33(@swc/helpers@0.5.24))(esbuild@0.28.2)(postcss@8.5.32)
     optionalDependencies:
@@ -20076,7 +20116,7 @@ snapshots:
     dependencies:
       xml-name-validator: 5.0.0
 
-  watchpack@2.6.3:
+  watchpack@2.6.4:
     dependencies:
       graceful-fs: 4.2.11
 
@@ -20145,10 +20185,10 @@ snapshots:
       loader-runner: 4.3.2
       mime-db: 1.54.0
       neo-async: 2.6.2
-      schema-utils: 4.8.2(webpack@5.106.2(@swc/core@1.15.33(@swc/helpers@0.5.24))(esbuild@0.28.2)(postcss@8.5.32))
+      schema-utils: 4.8.3(webpack@5.106.2(@swc/core@1.15.33(@swc/helpers@0.5.24))(esbuild@0.28.2)(postcss@8.5.32))
       tapable: 2.3.3
       terser-webpack-plugin: 5.6.1(@swc/core@1.15.33(@swc/helpers@0.5.24))(esbuild@0.28.2)(postcss@8.5.32)(webpack@5.106.2(@swc/core@1.15.33(@swc/helpers@0.5.24))(esbuild@0.28.2)(postcss@8.5.32))
-      watchpack: 2.6.3
+      watchpack: 2.6.4
       webpack-sources: 3.7.0
     transitivePeerDependencies:
       - '@minify-html/node'
@@ -20329,7 +20369,7 @@ snapshots:
 
   yjs@13.6.30:
     dependencies:
-      lib0: 0.2.119
+      lib0: 0.2.120
 
   yocto-queue@0.1.0: {}
 
