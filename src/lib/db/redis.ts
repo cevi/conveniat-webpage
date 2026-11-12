@@ -74,6 +74,42 @@ export const getFeatureFlag = async (key: string): Promise<boolean> => {
 };
 
 /**
+ * Reads several feature flags in one round trip. A flag that was never set reads its default,
+ * like `getFeatureFlag`.
+ *
+ * While Redis cannot be read, each flag takes the value the caller names for that case instead
+ * of its default: a default that widens access would otherwise undo an admin's choice for the
+ * length of the outage.
+ *
+ * @param whenUnreadable - the flags to read, each with its value while Redis is unreachable
+ */
+export const getFeatureFlags = async <K extends string>(
+  whenUnreadable: Record<K, boolean>,
+): Promise<Record<K, boolean>> => {
+  const keys = Object.keys(whenUnreadable) as K[];
+  try {
+    // the build-time stand-in for Redis answers every call with undefined
+    const values = (await redis.mget(keys.map((key) => `${FEATURE_FLAG_PREFIX}${key}`))) as
+      (string | null)[] | undefined;
+    return Object.fromEntries(
+      keys.map((key, index) => {
+        const value = values?.[index] ?? undefined;
+        return [
+          key,
+          value === undefined ? (FEATURE_FLAG_DEFAULTS[key] ?? false) : value === 'true',
+        ];
+      }),
+    ) as Record<K, boolean>;
+  } catch (error) {
+    logger.warn('Feature flag fetch failed, returning the values for an outage', {
+      error,
+      'feature_flag.key': keys.join(','),
+    });
+    return { ...whenUnreadable };
+  }
+};
+
+/**
  * Stores a feature flag in Redis, where every replica reads it on its next call.
  */
 export const setFeatureFlag = async (key: string, value: boolean): Promise<void> => {

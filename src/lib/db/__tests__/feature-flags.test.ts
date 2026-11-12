@@ -1,4 +1,9 @@
-import { FEATURE_FLAG_PREFIX, getFeatureFlag, setFeatureFlag } from '@/lib/db/redis';
+import {
+  FEATURE_FLAG_PREFIX,
+  getFeatureFlag,
+  getFeatureFlags,
+  setFeatureFlag,
+} from '@/lib/db/redis';
 import { FEATURE_FLAG_FORUM_MODERATION, FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 
 jest.mock('@/config/environment-variables', () => ({
@@ -20,6 +25,11 @@ jest.mock('ioredis', () => {
     get(key: string): Promise<string | null> {
       if (sharedRedis.failing) return Promise.reject(new Error('connection refused'));
       return Promise.resolve(sharedRedis.values.get(key) ?? null);
+    }
+
+    mget(keys: string[]): Promise<(string | null)[]> {
+      if (sharedRedis.failing) return Promise.reject(new Error('connection refused'));
+      return Promise.resolve(keys.map((key) => sharedRedis.values.get(key) ?? null));
     }
 
     set(key: string, value: string): Promise<'OK'> {
@@ -60,5 +70,33 @@ describe('feature flags', () => {
     sharedRedis.values.set(`${FEATURE_FLAG_PREFIX}${FEATURE_FLAG_SEND_MESSAGES}`, 'false');
     sharedRedis.failing = true;
     await expect(getFeatureFlag(FEATURE_FLAG_SEND_MESSAGES)).resolves.toBe(true);
+  });
+
+  it('reads several flags at once, each set one or its default', async () => {
+    await setFeatureFlag(FEATURE_FLAG_SEND_MESSAGES, false);
+
+    await expect(
+      getFeatureFlags({
+        [FEATURE_FLAG_SEND_MESSAGES]: true,
+        [FEATURE_FLAG_FORUM_MODERATION]: true,
+      }),
+    ).resolves.toEqual({
+      [FEATURE_FLAG_SEND_MESSAGES]: false,
+      [FEATURE_FLAG_FORUM_MODERATION]: false,
+    });
+  });
+
+  it('reads the values named for an outage, not the defaults, while Redis is down', async () => {
+    sharedRedis.failing = true;
+
+    await expect(
+      getFeatureFlags({
+        [FEATURE_FLAG_SEND_MESSAGES]: false,
+        [FEATURE_FLAG_FORUM_MODERATION]: true,
+      }),
+    ).resolves.toEqual({
+      [FEATURE_FLAG_SEND_MESSAGES]: false,
+      [FEATURE_FLAG_FORUM_MODERATION]: true,
+    });
   });
 });

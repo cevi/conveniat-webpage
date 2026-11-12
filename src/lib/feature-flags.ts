@@ -10,6 +10,10 @@ export const FEATURE_FLAG_FORUM_ENABLED = 'forum_enabled';
 export const FEATURE_FLAG_FORUM_MODERATION = 'forum_moderation_required';
 export const FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS = 'hide_full_helper_shifts';
 export const FEATURE_FLAG_RESTRICT_CONTACT_LIST = 'restrict_contact_list';
+/** which groups the restricted contact list adds to the address book; ignored without it */
+export const FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF = 'contact_list_includes_hof';
+export const FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN = 'contact_list_includes_funktionen';
+export const FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP = 'contact_list_includes_avp';
 /** voice calls in one-to-one chats, a prototype: off until a deployment switches it on */
 export const FEATURE_FLAG_VOICE_CALLS_ENABLED = 'voice_calls_enabled';
 
@@ -25,5 +29,8 @@ export const FEATURE_FLAG_DEFAULTS: Record<string, boolean> = {
   [FEATURE_FLAG_FORUM_MODERATION]: false,
   [FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS]: true,
   [FEATURE_FLAG_RESTRICT_CONTACT_LIST]: true,
+  [FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF]: true,
+  [FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN]: true,
+  [FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP]: true,
   [FEATURE_FLAG_VOICE_CALLS_ENABLED]: false,
 };
