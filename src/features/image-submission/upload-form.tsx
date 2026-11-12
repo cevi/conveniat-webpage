@@ -11,14 +11,17 @@ import {
   MIN_IMAGE_LONG_SIDE,
   MIN_IMAGE_SHORT_SIDE,
 } from '@/features/image-submission/image-requirements';
+import { OwnImagesSection } from '@/features/image-submission/own-images-section';
 import { SubmitButton } from '@/features/image-submission/submit-button';
 import { TermsText } from '@/features/image-submission/terms-text';
 import { USER_IMAGE_MAX_BYTES } from '@/features/payload-cms/constants/user-image-upload';
 import { useUserUpload } from '@/features/payload-cms/hooks/use-user-upload';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, ShieldCheck } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
@@ -139,6 +142,8 @@ export const UploadForm: React.FC<{
   const [termsOpen, setTermsOpen] = useState(false);
 
   const { uploadImage, isUploading } = useUserUpload();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const files = event.target.files;
@@ -214,6 +219,10 @@ export const UploadForm: React.FC<{
       );
 
       const failedUploads = results.filter((r) => r.response.error);
+      if (failedUploads.length < results.length) {
+        // "Meine Bilder" lists what was just accepted
+        void queryClient.invalidateQueries(trpc.upload.getOwnSubmittedImageList.queryFilter());
+      }
 
       if (failedUploads.length === 0) {
         onUploaded();
@@ -359,6 +368,8 @@ export const UploadForm: React.FC<{
           {showTerms[locale]}
         </button>
       </div>
+
+      {selectedFiles.length === 0 && <OwnImagesSection />}
 
       <div
         className={cn(

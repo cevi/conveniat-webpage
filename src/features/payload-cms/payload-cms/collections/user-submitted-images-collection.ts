@@ -5,7 +5,19 @@ import {
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { generateImageName } from '@/features/payload-cms/payload-cms/collections/image-collection';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
-import type { CollectionConfig } from 'payload';
+import type { Access, CollectionConfig } from 'payload';
+
+/**
+ * Editors read every submitted image; a participant reads the ones they submitted and have not
+ * withdrawn, which is what lets "Meine Bilder" show their thumbnails.
+ */
+const readOwnOrAsEditor: Access = ({ req }) => {
+  if (hasAdminOrWebAccess({ req })) return true;
+  if (!req.user) return false;
+  return {
+    and: [{ uploaded_by: { equals: req.user.id } }, { withdrawn_at: { exists: false } }],
+  };
+};
 
 export const UserSubmittedImagesCollection: CollectionConfig = {
   slug: 'userSubmittedImages',
@@ -26,12 +38,12 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
     group: AdminPanelDashboardGroups.WebpageMedia.label,
     groupBy: true,
     disableCopyToLocale: true,
-    defaultColumns: ['filename', 'updatedAt', 'user'],
+    defaultColumns: ['filename', 'updatedAt', 'uploaded_by', 'withdrawn_at'],
     hidden: shouldHideInAdminPanel,
   },
   access: {
     admin: hasAdminOrWebAccess,
-    read: hasAdminOrWebAccess,
+    read: readOwnOrAsEditor,
     create: hasAdminOrWebAccess,
     delete: hasAdminOrWebAccess,
     update: hasAdminOrWebAccess,
@@ -84,6 +96,28 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
         en: 'Image Content Hash (SHA-256)',
         de: 'Bildinhalt-Hash (SHA-256)',
         fr: "Hash du contenu de l'image (SHA-256)",
+      },
+    },
+    {
+      name: 'withdrawn_at',
+      type: 'date',
+      required: false,
+      localized: false,
+      index: true,
+      label: {
+        en: 'Withdrawn on',
+        de: 'Zurückgezogen am',
+        fr: 'Retirée le',
+      },
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        date: { pickerAppearance: 'dayAndTime' },
+        description: {
+          en: 'Set when the person who submitted the image withdrew it in the app. Do not use the image any more, and remove it where it is already published.',
+          de: 'Gesetzt, wenn die Person das Bild in der App zurückgezogen hat. Das Bild nicht mehr verwenden und dort entfernen, wo es schon veröffentlicht ist.',
+          fr: "Renseigné quand la personne a retiré l'image dans l'app. Ne plus utiliser l'image et la retirer là où elle est déjà publiée.",
+        },
       },
     },
     LastEditedByUserField,

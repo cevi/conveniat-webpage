@@ -4079,6 +4079,10 @@ export interface UserSubmittedImage {
   original_filename?: string | null;
   user_description: string;
   content_hash?: string | null;
+  /**
+   * Set when the person who submitted the image withdrew it in the app. Do not use the image any more, and remove it where it is already published.
+   */
+  withdrawn_at?: string | null;
   lastEditedByUser?: (string | null) | User;
   _objectKey?: string | null;
   updatedAt: string;
@@ -7129,6 +7133,7 @@ export interface UserSubmittedImagesSelect<T extends boolean = true> {
   original_filename?: T;
   user_description?: T;
   content_hash?: T;
+  withdrawn_at?: T;
   lastEditedByUser?: T;
   _objectKey?: T;
   updatedAt?: T;

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import type { ImageSubmissionTexts } from '@/features/image-submission/api/image-submission-texts';
 import { IntroStep } from '@/features/image-submission/intro-step';
+import { OwnImagesSection } from '@/features/image-submission/own-images-section';
 import { TermsStep } from '@/features/image-submission/terms-step';
 import { UploadForm } from '@/features/image-submission/upload-form';
 import { useIntroSeen } from '@/features/image-submission/use-intro-seen';
@@ -129,19 +130,22 @@ export const ImageSubmissionFlow: React.FC<{ texts: ImageSubmissionTexts }> = ({
       )}
 
       {step === 'success' && (
-        <EmptyState
-          icon={CircleCheck}
-          title={successTitle[locale]}
-          {...(texts.successText === ''
-            ? {}
-            : { description: <span className="whitespace-pre-line">{texts.successText}</span> })}
-          action={
-            <Button variant="primary" size="touch" onClick={() => setChosenStep('upload')}>
-              <LucideImageIcon aria-hidden="true" />
-              {submitMoreButton[locale]}
-            </Button>
-          }
-        />
+        <div className="space-y-6">
+          <EmptyState
+            icon={CircleCheck}
+            title={successTitle[locale]}
+            {...(texts.successText === ''
+              ? {}
+              : { description: <span className="whitespace-pre-line">{texts.successText}</span> })}
+            action={
+              <Button variant="primary" size="touch" onClick={() => setChosenStep('upload')}>
+                <LucideImageIcon aria-hidden="true" />
+                {submitMoreButton[locale]}
+              </Button>
+            }
+          />
+          <OwnImagesSection />
+        </div>
       )}
     </>
   );
