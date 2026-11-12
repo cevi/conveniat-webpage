@@ -88,7 +88,7 @@ export const TermsStep: React.FC<{
             aria-expanded={showFullText}
             aria-controls={fullTextId}
             onClick={() => setShowFullText((shown) => !shown)}
-            className="focus-visible:focus-surface flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-xl px-1 text-left text-[15px] font-semibold text-green-900 underline underline-offset-2"
+            className="focus-visible:focus-surface flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-xl text-left text-[15px] font-semibold text-green-900 underline underline-offset-2"
           >
             {readFullTerms[locale]}
             <ChevronDown

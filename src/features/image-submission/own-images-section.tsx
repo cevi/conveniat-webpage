@@ -98,7 +98,7 @@ export const OwnImagesSection: React.FC = () => {
 
   return (
     <section className="space-y-3">
-      <SectionLabel className="px-1">{sectionTitle[locale]}</SectionLabel>
+      <SectionLabel>{sectionTitle[locale]}</SectionLabel>
       <Card as="ul" divided>
         {list.map((image) => (
           <li key={image.id} className="flex items-center gap-3 py-2.5 pr-2.5 pl-3">

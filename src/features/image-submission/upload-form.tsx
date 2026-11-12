@@ -312,7 +312,7 @@ export const UploadForm: React.FC<{
 
       {selectedFiles.length > 0 && (
         <section className="space-y-3">
-          <SectionLabel className="px-1">
+          <SectionLabel>
             {selectedImages[locale]} ({selectedFiles.length})
           </SectionLabel>
           {selectedFiles.map((fileItem, index) => (
@@ -346,7 +346,7 @@ export const UploadForm: React.FC<{
 
       {selectedFiles.length === 0 && photoTips.length > 0 && (
         <section className="space-y-3">
-          <SectionLabel className="px-1">{goodPhotos[locale]}</SectionLabel>
+          <SectionLabel>{goodPhotos[locale]}</SectionLabel>
           <Card as="ul" divided>
             {photoTips.map((tip, index) => (
               <li key={index} className="px-4 py-3 text-[15px] leading-normal text-green-700">
