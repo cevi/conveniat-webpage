@@ -9,7 +9,6 @@ import { LocationMessage } from '@/features/chat/components/chat-view/message/lo
 import { MessageActionsSheet } from '@/features/chat/components/chat-view/message/message-actions-sheet';
 import {
   bubbleColorClassName,
-  bubbleCornerClassName,
   MessageBubble,
   MessageBubbleContent,
   MessageRow,
@@ -17,9 +16,14 @@ import {
 import { MessageFrame } from '@/features/chat/components/chat-view/message/message-frame';
 import { ReactionBadge } from '@/features/chat/components/chat-view/message/message-reaction-menus';
 import { ReactionDetailsDialog } from '@/features/chat/components/chat-view/message/reaction-details-dialog';
+import {
+  ForumHiddenNotice,
+  RemovedMessageBubble,
+} from '@/features/chat/components/chat-view/message/removed-message';
 import { SenderAvatar } from '@/features/chat/components/chat-view/message/sender-avatar';
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
 import { ThreadSummary } from '@/features/chat/components/chat-view/message/thread-summary';
+import { messageTextOf } from '@/features/chat/components/chat-view/message/utils/message-editing';
 import { KernteamBadge } from '@/features/chat/components/forum/kernteam-badge';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { MessagePreviewIcon } from '@/features/chat/components/ui/message-preview-icon';
@@ -37,7 +41,7 @@ import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
-import { AlertCircle, Ban, Check, Clock, Ellipsis } from 'lucide-react';
+import { AlertCircle, Check, Clock, Ellipsis } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -46,12 +50,6 @@ const replyToMessageText: StaticTranslationString = {
   de: 'Antwort auf eine Nachricht',
   en: 'Replying to a message',
   fr: 'Répondre à un message',
-};
-
-const deletedMessageText: StaticTranslationString = {
-  de: 'Diese Nachricht wurde gelöscht',
-  en: 'This message was deleted',
-  fr: 'Ce message a été supprimé',
 };
 
 const deletedQuoteText: StaticTranslationString = {
@@ -84,13 +82,6 @@ const SWIPE_TO_QUOTE_PX = 60;
 const SWIPE_MAX_PX = 80;
 /** Past this, the finger is scrolling or swiping, and the bubble stops looking pressed. */
 const PRESS_TOLERANCE_PX = 10;
-
-/** The text of a message, for the clipboard; undefined where there is none, as on an image. */
-const textOf = (payload: ChatMessage['messagePayload']): string | undefined => {
-  const text: unknown =
-    typeof payload === 'string' ? payload : (payload as Record<string, unknown>)['text'];
-  return typeof text === 'string' && text.trim() !== '' ? text : undefined;
-};
 
 const pendingOfflineText: StaticTranslationString = {
   de: 'Wird gesendet, sobald du wieder online bist',
@@ -390,7 +381,8 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     );
 
   // A deleted message keeps its place, its sender, its time and its thread, and nothing else:
-  // no content, no reactions, and no actions.
+  // no content, no reactions, and no actions. So does one the forum's moderators removed, or
+  // hid from all but its author and themselves.
   if (isMessageDeleted(message)) {
     return (
       <MessageRow
@@ -413,20 +405,14 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         }
       >
         {senderNameLine}
-        <div
-          className={cn(
-            'border-line flex items-center gap-1.5 rounded-[16px] border bg-white px-3.5 py-2 text-[15px] leading-[21px] text-green-700',
-            bubbleCornerClassName(isCurrentUser, isFirstInGroup, isLastInGroup),
-          )}
-        >
-          <Ban className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span className="italic">{deletedMessageText[activeLocale]}</span>
-          {showMeta && (
-            <span className="ml-2 self-end text-[11px] leading-[19px] tabular-nums">
-              {formatMessageTimeOnlyRaw(message.createdAt, activeLocale)}
-            </span>
-          )}
-        </div>
+        <RemovedMessageBubble
+          message={message}
+          isCurrentUser={isCurrentUser}
+          locale={activeLocale}
+          isFirstInGroup={isFirstInGroup}
+          isLastInGroup={isLastInGroup}
+          showMeta={showMeta}
+        />
         {threadSummary}
       </MessageRow>
     );
@@ -639,6 +625,8 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           <FailedMessageActions message={message} locale={activeLocale} />
         )}
 
+        <ForumHiddenNotice message={message} locale={activeLocale} />
+
         {threadSummary}
       </MessageRow>
 
@@ -681,12 +669,18 @@ export const MessageComponent: React.FC<MessageProperties> = ({
               ? (): void => replyInThread(message.id)
               : undefined
           }
-          textToCopy={textOf(message.messagePayload)}
+          textToCopy={messageTextOf(message.messagePayload)}
           canDelete={
             isCurrentUser &&
             isSent &&
             currentUserParticipant !== undefined &&
             DELETABLE_TYPES.has(message.type)
+          }
+          // a forum post changes with its title, in the post's own form
+          canEdit={
+            canSendMessages &&
+            currentUserParticipant !== undefined &&
+            !(chatDetails?.type === 'FORUM' && message.parentId === undefined)
           }
         />
       )}

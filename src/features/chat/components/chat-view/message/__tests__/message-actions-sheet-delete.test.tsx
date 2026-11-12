@@ -24,6 +24,7 @@ jest.mock('@/features/chat/context/chat-id-context', () => ({
 
 import type { ChatMessage } from '@/features/chat/api/types';
 import { MessageActionsSheet } from '@/features/chat/components/chat-view/message/message-actions-sheet';
+import { ChatActionsProvider } from '@/features/chat/context/chat-actions-context';
 import { fireEvent, render, screen } from '@testing-library/react';
 
 const message = {
@@ -37,15 +38,17 @@ const message = {
 
 const renderSheet = (canDelete: boolean, onClose = jest.fn()): void => {
   render(
-    <MessageActionsSheet
-      message={message}
-      isCurrentUser
-      locale="de"
-      preview={<p>Treffpunkt beim Hof Cevi Uster</p>}
-      onClose={onClose}
-      textToCopy="Treffpunkt beim Hof Cevi Uster"
-      canDelete={canDelete}
-    />,
+    <ChatActionsProvider>
+      <MessageActionsSheet
+        message={message}
+        isCurrentUser
+        locale="de"
+        preview={<p>Treffpunkt beim Hof Cevi Uster</p>}
+        onClose={onClose}
+        textToCopy="Treffpunkt beim Hof Cevi Uster"
+        canDelete={canDelete}
+      />
+    </ChatActionsProvider>,
   );
 };
 

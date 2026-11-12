@@ -67,7 +67,7 @@ export const getForumProtocolList = trpcBaseProcedure
         membership?.chat.type === ChatType.FORUM &&
         (membership.chatPermission === ChatMembershipPermission.OWNER ||
           membership.chatPermission === ChatMembershipPermission.ADMIN);
-      if (!isKernteam && !isForumZentrale(ctx.user)) throw forumError('FORBIDDEN', 'notAllowed');
+      if (!isKernteam && !isForumZentrale(ctx.user)) throw forumError('FORBIDDEN', 'protocolKernteamOnly');
 
       const conversations = await ctx.prisma.chat.findMany({
         where: { forumTopicId: input.topicId, type: ChatType.FORUM_CONVERSATION },

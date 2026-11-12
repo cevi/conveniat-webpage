@@ -3,6 +3,10 @@ import { ChatImage } from '@/features/chat/components/chat-view/message/chat-ima
 import { ImageMessage } from '@/features/chat/components/chat-view/message/image-message';
 import { extractMessageImages } from '@/features/chat/components/chat-view/message/utils/extract-message-images';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
+import {
+  editedLabelText,
+  isMessageEdited,
+} from '@/features/chat/components/chat-view/message/utils/message-editing';
 import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date';
 import { MessageEventType, MessageType } from '@/lib/prisma/enums';
 import type { Locale } from '@/types/types';
@@ -115,6 +119,10 @@ export const MessageBubbleContent: React.FC<MessageBubbleContentProperties> = ({
   }
 
   const attachedImages = extractMessageImages(message.messagePayload, locale);
+  const isEdited = isMessageEdited(message);
+  let metaWidthClassName = isCurrentUser ? 'w-[66px]' : 'w-[40px]';
+  // "Bearbeitet" goes in front of the time
+  if (isEdited) metaWidthClassName = isCurrentUser ? 'w-[130px]' : 'w-[104px]';
   return (
     <>
       {quote}
@@ -130,10 +138,7 @@ export const MessageBubbleContent: React.FC<MessageBubbleContentProperties> = ({
         {/* keeps the end of the last line free for the time, which sits on it, or moves to a
             line of its own when the text runs to the edge */}
         {reserveMeta && (
-          <span
-            aria-hidden="true"
-            className={cn('inline-block h-px', isCurrentUser ? 'w-[66px]' : 'w-[40px]')}
-          />
+          <span aria-hidden="true" className={cn('inline-block h-px', metaWidthClassName)} />
         )}
       </div>
     </>
@@ -207,6 +212,7 @@ export const MessageBubble: React.FC<MessageBubbleProperties> = ({
           isCurrentUser ? 'text-white/85' : 'text-green-700',
         )}
       >
+        {isMessageEdited(message) && <span>{editedLabelText[locale]}</span>}
         {/* the browser's clock, which the server rendering a preview does not share */}
         <span className="tabular-nums" suppressHydrationWarning>
           {formatMessageTimeOnlyRaw(message.createdAt, locale)}

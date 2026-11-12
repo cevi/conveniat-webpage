@@ -41,6 +41,11 @@ export const forumErrorTexts = {
     en: 'Nobody holds this function right now. Forward the post to a person.',
     fr: 'Personne n’occupe cette fonction pour le moment. Transfère la publication à une personne.',
   },
+  protocolKernteamOnly: {
+    de: 'Das Protokoll eines Themas sieht nur sein Kernteam.',
+    en: 'Only the core team of a topic sees its protocol.',
+    fr: 'Seule l’équipe centrale d’un thème voit son protocole.',
+  },
   notInConversation: {
     de: 'Das geht in einem privaten Gespräch nicht.',
     en: 'That is not possible in a private conversation.',
