@@ -1,6 +1,6 @@
 /* THIS FILE WAS GENERATED AUTOMATICALLY BY PAYLOAD. */
-/* Customized: wraps REST_GET to return a user-friendly HTML error page on 403. */
-import { buildAccessDeniedHtml } from '@/features/payload-cms/utils/access-denied-page';
+/* Customized: wraps REST_GET to send a signed-out browser to the login on 403. */
+import { auth } from '@/utils/auth';
 import config from '@payload-config';
 import {
   REST_DELETE,
@@ -13,39 +13,30 @@ import {
 const payloadGet = REST_GET(config);
 
 /**
- * Wraps the Payload REST GET handler to intercept 403 (Forbidden) responses
- * for document/file requests. Instead of returning raw JSON like
- * `{"errors":[{"message":"..."}]}`, this serves a proper HTML error page
- * with a login button.
+ * Wraps the Payload REST GET handler so that a signed-out visitor who opens a
+ * protected document or file in the browser, like a link to a chat image, is
+ * sent to the login and back, instead of reading Payload's JSON error.
  *
- * @see https://github.com/.../issues/362
+ * The path travels as a query parameter to `/login`, which hands it to Auth.js;
+ * Auth.js only follows a callback on our own origin. A signed-in visitor keeps
+ * Payload's 403, because logging in again would not change it, and so does
+ * every request that does not ask for HTML.
+ *
+ * @see https://github.com/cevi/conveniat-webpage/issues/362
  */
 const GET: typeof payloadGet = async (request, context) => {
   const response = await payloadGet(request, context);
+  if (response.status !== 403) return response;
 
-  // Only intercept 403 responses that would return JSON to a browser
-  if (response.status === 403) {
-    const acceptHeader = request.headers.get('accept') ?? '';
-    const isApiCall =
-      acceptHeader.includes('application/json') && !acceptHeader.includes('text/html');
+  const wantsHtml = (request.headers.get('accept') ?? '').includes('text/html');
+  if (!wantsHtml || (await auth()) !== null) return response;
 
-    // If the client explicitly wants JSON (e.g. a fetch() call), don't intercept
-    if (!isApiCall) {
-      const cookieHeader = request.headers.get('cookie') ?? '';
-      const localeMatch = /(?:^|;\s*)next-locale=([^;]+)/.exec(cookieHeader);
-      const locale = localeMatch?.[1] ?? 'de';
-      const loginCallbackUrl = new URL(request.url).pathname;
-
-      return new Response(buildAccessDeniedHtml(locale, loginCallbackUrl), {
-        status: 403,
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-        },
-      });
-    }
-  }
-
-  return response;
+  const search = new URLSearchParams({ callbackUrl: new URL(request.url).pathname });
+  return new Response(undefined, {
+    status: 303,
+    // Relative, so it stays on the host the browser used, whatever proxy sits in front.
+    headers: { Location: `/login?${search.toString()}`, 'Cache-Control': 'no-store' },
+  });
 };
 
 export { GET };
