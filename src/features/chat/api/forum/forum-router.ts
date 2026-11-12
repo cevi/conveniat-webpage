@@ -2,6 +2,7 @@ import {
   getForumConversationList,
   openForumConversation,
 } from '@/features/chat/api/forum/forum-conversations';
+import { registerForumWaitingGauges } from '@/features/chat/api/forum/forum-metrics';
 import {
   createForumFlag,
   deleteForumMessage,
@@ -28,7 +29,6 @@ import {
   updateForumTopicConversationPush,
   updateForumTopicSubscription,
 } from '@/features/chat/api/forum/forum-mutations';
-import { registerForumWaitingGauges } from '@/features/chat/api/forum/forum-metrics';
 import { getForumProtocolList } from '@/features/chat/api/forum/forum-protocol';
 import {
   getForumAssigneeList,

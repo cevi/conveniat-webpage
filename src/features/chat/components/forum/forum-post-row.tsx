@@ -1,13 +1,15 @@
 import { ForumStatusPill } from '@/features/chat/components/forum/forum-status-pill';
 import { forumText, relativeTimeText } from '@/features/chat/components/forum/forum-texts';
 import { KernteamBadge } from '@/features/chat/components/forum/kernteam-badge';
-import type { ForumPostSummary } from '@/lib/forum-shared';
+import { forumKindLabel, type ForumPostSummary } from '@/lib/forum-shared';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import {
+  CheckCircle2,
   Clock,
+  EyeOff,
+  Flag,
   Image as ImageIcon,
-  Lock,
   MapPin,
   MessageCircle,
   Pin,
@@ -44,20 +46,40 @@ export const ForumPostRow: React.FC<{
             <span className="sr-only">{forumText.pinned[locale]}</span>
           </span>
         )}
-        {post.pending === true ? (
+        {/* what kind of post it is; a cache from before kinds only knew problems */}
+        {post.kind !== undefined && post.kind !== 'PROBLEM' && (
+          <span className="bg-chip inline-flex h-[22px] items-center rounded-md px-1.5 text-[12px] font-semibold text-green-900">
+            {forumKindLabel[post.kind][locale]}
+          </span>
+        )}
+        {post.pending === true && (
           <span className="border-line inline-flex h-[22px] items-center gap-1 rounded-full border border-dashed bg-white px-2 text-[12px] font-semibold text-green-700">
             <Clock className="h-3.5 w-3.5" aria-hidden="true" />
             {forumText.pendingPill[locale]}
           </span>
-        ) : (
+        )}
+        {/* a problem shows where it stands; a question whether it was answered */}
+        {post.pending !== true &&
+          (post.kind ?? 'PROBLEM') === 'PROBLEM' &&
           (!compact || post.status !== 'OPEN') && (
             <ForumStatusPill status={post.status} locale={locale} />
-          )
+          )}
+        {post.kind === 'QUESTION' && post.answered === true && (
+          <span className="bg-conveniat-green border-conveniat-green inline-flex h-[22px] items-center gap-1 rounded-full border px-2 text-[12px] font-semibold text-white">
+            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+            {forumText.answered[locale]}
+          </span>
         )}
-        {post.private === true && (
-          <span className="bg-chip inline-flex h-[22px] items-center gap-1 rounded-md px-1.5 text-[12px] font-semibold text-green-800">
-            <Lock className="h-3.5 w-3.5" aria-hidden="true" />
-            {forumText.privatePill[locale]}
+        {post.hidden === true && (
+          <span className="bg-quiet inline-flex h-[22px] items-center gap-1 rounded-md px-1.5 text-[12px] font-semibold text-green-800">
+            <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
+            {forumText.hiddenPill[locale]}
+          </span>
+        )}
+        {(post.flagCount ?? 0) > 0 && (
+          <span className="border-danger-line bg-danger-soft text-danger-text inline-flex h-[22px] items-center gap-1 rounded-md border px-1.5 text-[12px] font-semibold">
+            <Flag className="h-3.5 w-3.5" aria-hidden="true" />
+            {forumText.flagsPill[locale].replace('{n}', String(post.flagCount ?? 0))}
           </span>
         )}
         {post.byTopicAdmin && <KernteamBadge locale={locale} label={post.kernteamLabel} />}

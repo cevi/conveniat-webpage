@@ -92,7 +92,8 @@ export const openForumConversation = trpcBaseProcedure
     if (topic?.type !== ChatType.FORUM || topic.archivedAt !== null || caller === undefined) {
       throw forumError('FORBIDDEN', 'notInTopic');
     }
-    const settings = (await findForumTopicSettings([input.topicId])).get(input.topicId);
+    const allSettings = await findForumTopicSettings([input.topicId]);
+    const settings = allSettings.get(input.topicId);
     if (settings?.allowsPrivateConversations !== true) {
       throw forumError('FORBIDDEN', 'conversationsUnavailable');
     }

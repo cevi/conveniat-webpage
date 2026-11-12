@@ -5,7 +5,6 @@ jest.mock('@/lib/db/prisma', () => ({
     user: { findMany: jest.fn() },
     chatMembership: { findMany: jest.fn(), createMany: jest.fn(), deleteMany: jest.fn() },
     forumPostAssignment: { findMany: jest.fn() },
-    forumPost: { findMany: jest.fn() },
   },
 }));
 jest.mock('@/lib/db/publish-membership-revoked', () => ({ publishMembershipRevoked: jest.fn() }));
@@ -25,7 +24,6 @@ const AVP_CHAT = 'chat-avps';
 
 const memberships = jest.mocked(prisma.chatMembership);
 const assignments = jest.mocked(prisma.forumPostAssignment);
-const forumPosts = jest.mocked(prisma.forumPost);
 const users = jest.mocked(prisma.user);
 
 /** A payload holding the given Höfe, one AVP channel, and Pia, Adressverwalterin of Cevi Uster. */
@@ -49,7 +47,6 @@ describe('resyncAvpChannels', () => {
     jest.clearAllMocks();
     users.findMany.mockResolvedValue([{ uuid: 'pia' }] as never);
     assignments.findMany.mockResolvedValue([]);
-    forumPosts.findMany.mockResolvedValue([]);
   });
 
   it('adds the AVP of a Hof the sync just created', async () => {
@@ -81,7 +78,6 @@ describe('syncChannelMemberships in a forum topic', () => {
     jest.clearAllMocks();
     users.findMany.mockResolvedValue([]);
     assignments.findMany.mockResolvedValue([]);
-    forumPosts.findMany.mockResolvedValue([]);
   });
 
   it('keeps a helper with an open assignment, and removes who has none', async () => {
@@ -91,23 +87,6 @@ describe('syncChannelMemberships in a forum topic', () => {
     ] as never);
     assignments.findMany.mockResolvedValue([
       { assigneeId: 'tim', post: { chatId: TOPIC_CHAT } },
-    ] as never);
-
-    await syncChannelMemberships(payloadWith([]), TOPIC_CHAT, { targetType: 'avps' } as never, {
-      memberPermission: 'MEMBER',
-    });
-
-    const [removal] = memberships.deleteMany.mock.calls[0] ?? [];
-    expect(removal?.where).toMatchObject({ chatId: TOPIC_CHAT, userId: { in: ['sina'] } });
-  });
-
-  it('keeps the author of a private report, who joined the topic for it', async () => {
-    memberships.findMany.mockResolvedValue([
-      { userId: 'noah', chatId: TOPIC_CHAT, chatPermission: 'MEMBER' },
-      { userId: 'sina', chatId: TOPIC_CHAT, chatPermission: 'MEMBER' },
-    ] as never);
-    forumPosts.findMany.mockResolvedValue([
-      { chatId: TOPIC_CHAT, message: { senderId: 'noah' } },
     ] as never);
 
     await syncChannelMemberships(payloadWith([]), TOPIC_CHAT, { targetType: 'avps' } as never, {

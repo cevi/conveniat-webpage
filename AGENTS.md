@@ -322,7 +322,11 @@ the Forum-Zentrale in `roles.ts`; every change they allow is written to the foru
 `/admin/access-overview` lists them as their own rows. The Kernteam of a forum topic is its
 admins, and editors do not name them: they pick functions from "Funktionen und Adressbuch" on
 the topic, and whoever holds one is made admin by `forum-kernteam.ts`, so the Kernteam follows
-Cevi.DB. A new right outside the app is still a role in `roles.ts`.
+Cevi.DB. A private question to a topic's Kernteam is a chat of its own (`FORUM_CONVERSATION`),
+so who reads it is who is a member of it. Do not hide content inside a chat others belong to:
+the posts of a topic that wait for approval or that a moderator hid are the one exception, and
+every procedure that reads, counts, pushes or publishes them asks `forum-visibility.ts`. A new
+right outside the app is still a role in `roles.ts`.
 
 `admin.hidden` is not access control. It keeps an entry out of the sidebar and nothing more, so give
 the entry a real rule as well and keep the two saying the same thing.

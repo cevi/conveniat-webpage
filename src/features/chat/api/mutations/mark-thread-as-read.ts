@@ -27,9 +27,9 @@ export const markThreadAsRead = trpcBaseProcedure
     // so its count of replies tells nothing about it
     const hiddenForumThread =
       parentMessage?.chat.type === ChatType.FORUM &&
-      (await (
-        await import('@/features/chat/api/forum/forum-visibility')
-      ).isForumMessageHiddenFrom(prisma, user, threadId));
+      (await import('@/features/chat/api/forum/forum-visibility').then(
+        async ({ isForumMessageHiddenFrom }) => isForumMessageHiddenFrom(prisma, user, threadId),
+      ));
 
     if (!parentMessage || hiddenForumThread) {
       throw new TRPCError({

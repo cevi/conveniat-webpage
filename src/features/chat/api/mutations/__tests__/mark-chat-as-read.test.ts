@@ -55,9 +55,9 @@ let membershipRowsRead: number;
 /** The chat tables, with just enough of Prisma's behaviour for this procedure. */
 const prisma = {
   message: {
-    findFirst: ({ where }: { where: { uuid: string } }): Promise<{ seq: number } | null> => {
+    findFirst: ({ where }: { where: { uuid: string } }): Promise<unknown> => {
       const seq = positions.get(where.uuid);
-      return Promise.resolve(seq === undefined ? null : { seq });
+      return Promise.resolve(seq === undefined ? null : { seq, chat: { type: 'GROUP' } });
     },
   },
   chatMembership: {

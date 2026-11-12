@@ -73,7 +73,7 @@ export const signalTyping = trpcBaseProcedure
       typing: { name: user.name, parentId },
     };
     // in the thread of a forum post only some may see, only they hear who types there
-    if (chat?.type === ChatType.FORUM && parentId !== undefined) {
+    if (chat.type === ChatType.FORUM && parentId !== undefined) {
       const { canSeeForumPost, findForumPostVisibility, publishForumThreadEvent } =
         await import('@/features/chat/api/forum/forum-visibility');
       const post = await findForumPostVisibility(prisma, parentId);

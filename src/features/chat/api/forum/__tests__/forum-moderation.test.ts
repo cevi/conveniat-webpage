@@ -56,7 +56,11 @@ jest.mock('@/lib/push/send-notification', () => ({
   sendNotification: (...arguments_: unknown[]): unknown => sendNotification(...arguments_),
 }));
 
-import { approveForumPost, createForumPost } from '@/features/chat/api/forum/forum-mutations';
+import {
+  approveForumPost,
+  createForumPost,
+  updateForumPostSubscription,
+} from '@/features/chat/api/forum/forum-mutations';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import { getPayload } from 'payload';
 
@@ -68,9 +72,13 @@ let memberships: {
   chatPermission: ChatMembershipPermission;
   subscribed: boolean;
 }[];
-let posts: Map<string, { approvedAt: Date | null; approvedById?: string; private?: boolean }>;
-/** the topic editors marked "Erhält private Meldungen", if any */
-let privateReportTopic: string | undefined;
+let posts: Map<string, { approvedAt: Date | null; approvedById?: string }>;
+/** the topic's own checkbox "Beiträge vor Veröffentlichung freigeben" */
+let topicModerationRequired: boolean;
+/** posts a moderator or flags hid */
+let hiddenPosts: Set<string>;
+/** who follows which post, as `userId:postId` */
+let subscriptions: Set<string>;
 let audit: Record<string, unknown>[];
 
 const membershipOf = (userId: string): (typeof memberships)[number] | undefined =>
@@ -142,12 +150,8 @@ const prisma = {
       Promise.resolve({ uuid: data.uuid, createdAt: new Date() }),
   },
   forumPost: {
-    create: ({
-      data,
-    }: {
-      data: { messageId: string; approvedAt: Date | null; private: boolean };
-    }): Promise<void> => {
-      posts.set(data.messageId, { approvedAt: data.approvedAt, private: data.private });
+    create: ({ data }: { data: { messageId: string; approvedAt: Date | null } }): Promise<void> => {
+      posts.set(data.messageId, { approvedAt: data.approvedAt });
       return Promise.resolve();
     },
     findUnique: ({ where }: { where: { messageId: string } }): Promise<unknown> =>
@@ -160,9 +164,17 @@ const prisma = {
         mergedIntoId: null,
         pinnedAt: null,
         answerMessageId: null,
+        approvedAt: posts.get(where.messageId)?.approvedAt ?? null,
         chat: { name: 'Platz & Infrastruktur', type: ChatType.FORUM },
-        message: { senderId: 'noah', deletedAt: null },
+        message: {
+          senderId: 'noah',
+          deletedAt: null,
+          forumRemoval: hiddenPosts.has(where.messageId) ? { kind: 'HIDDEN' } : null,
+        },
       }),
+    // a post of a topic the caller is in
+    findFirst: ({ where }: { where: { messageId: string } }): Promise<unknown> =>
+      Promise.resolve(posts.has(where.messageId) ? { messageId: where.messageId } : null),
     findUniqueOrThrow: ({ where }: { where: { messageId: string } }): Promise<unknown> =>
       Promise.resolve({
         approvedAt: posts.get(where.messageId)?.approvedAt ?? null,
@@ -191,12 +203,18 @@ const prisma = {
     },
   },
   threadSubscription: {
-    create: (): Promise<void> => Promise.resolve(),
+    createMany: (): Promise<void> => Promise.resolve(),
+    upsert: ({ create }: { create: { userId: string; messageId: string } }): Promise<void> => {
+      subscriptions.add(`${create.userId}:${create.messageId}`);
+      return Promise.resolve();
+    },
     findMany: (): Promise<unknown[]> => Promise.resolve([]),
   },
 };
 
-const createCaller = createCallerFactory(createTRPCRouter({ createForumPost, approveForumPost }));
+const createCaller = createCallerFactory(
+  createTRPCRouter({ createForumPost, approveForumPost, updateForumPostSubscription }),
+);
 const as = (uuid: string): ReturnType<typeof createCaller> =>
   createCaller({
     user: { uuid, group_ids: [], name: `${uuid} v/o Test`, email: `${uuid}@example.test` },
@@ -227,11 +245,13 @@ beforeEach(() => {
   ];
   posts = new Map();
   audit = [];
-  privateReportTopic = TOPIC;
+  topicModerationRequired = false;
+  hiddenPosts = new Set();
+  subscriptions = new Set();
   jest.mocked(getPayload).mockResolvedValue({
     find: () =>
       Promise.resolve({
-        docs: privateReportTopic === undefined ? [] : [{ chatUuid: privateReportTopic }],
+        docs: [{ chatUuid: TOPIC, moderationRequired: topicModerationRequired }],
       }),
   } as never);
   shifts.clear();
@@ -305,32 +325,47 @@ describe('forum moderation', () => {
     expect(posts.get(POST)?.approvedAt).toBeNull();
   });
 
-  it('sends a private report to the topic editors chose, past the approval, to the Zentrale only', async () => {
-    moderationRequired = true;
-    const { pending } = await as('tim').createForumPost({
-      // whatever topic a client names, a private report goes where editors decided
-      topicId: '0193f1a0-0000-7000-8000-0000000000ff',
-      postId: POST,
-      title: 'Jemand hat mich bedrängt',
-      private: true,
-    });
-    await settle();
+  it('holds a post back in a topic whose editors ask for approval', async () => {
+    topicModerationRequired = true;
+    const { pending } = await write('noah');
 
-    expect(pending).toBe(false);
-    expect(posts.get(POST)).toEqual(expect.objectContaining({ private: true }));
-    // the reporter belongs to the topic now, so they can follow their report
-    expect(membershipOf('tim')?.chatPermission).toBe(ChatMembershipPermission.MEMBER);
-    // the Kernteam of the topic and the piket on duty; no subscriber, no live event
-    expect(pushedTo()).toEqual({ SUPPORT: ['mira', 'lea'] });
+    expect(pending).toBe(true);
+    expect(posts.get(POST)?.approvedAt).toBeNull();
+  });
+
+  it('refuses a private report, which conversations replaced, instead of publishing it', async () => {
+    await expect(
+      as('tim').createForumPost({ topicId: TOPIC, postId: POST, title: 'Etwas', private: true }),
+    ).rejects.toMatchObject({ reason: 'conversationsUnavailable' });
+    expect(posts.size).toBe(0);
     expect(publish).not.toHaveBeenCalled();
   });
 
-  it('refuses a private report while no topic receives them', async () => {
-    privateReportTopic = undefined;
+  it('lets another member of the topic follow a public post', async () => {
+    await write('noah');
+
+    await as('sina').updateForumPostSubscription({ postId: POST, subscribed: true });
+
+    expect(subscriptions.has(`sina:${POST}`)).toBe(true);
+  });
+
+  it('does not let another member follow a post waiting for approval', async () => {
+    moderationRequired = true;
+    await write('noah');
 
     await expect(
-      as('tim').createForumPost({ topicId: TOPIC, postId: POST, title: 'Etwas', private: true }),
-    ).rejects.toMatchObject({ reason: 'privateReportsUnavailable' });
-    expect(posts.size).toBe(0);
+      as('sina').updateForumPostSubscription({ postId: POST, subscribed: true }),
+    ).rejects.toMatchObject({ reason: 'postGone' });
+    expect(subscriptions.size).toBe(0);
+  });
+
+  it('does not let another member follow a hidden post', async () => {
+    await write('noah');
+    hiddenPosts.add(POST);
+
+    await expect(
+      as('sina').updateForumPostSubscription({ postId: POST, subscribed: true }),
+    ).rejects.toMatchObject({ reason: 'postGone' });
+    expect(subscriptions.size).toBe(0);
   });
 });

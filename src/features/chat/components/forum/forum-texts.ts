@@ -1,3 +1,4 @@
+import type { ForumPostKindValue } from '@/lib/forum-shared';
 import type { Locale, StaticTranslationString } from '@/types/types';
 
 /** The words of the forum pages. The status and capacity names live in `@/lib/forum-shared`. */
@@ -77,10 +78,10 @@ export const forumText = {
   },
   pendingPill: { de: 'Wartet auf Freigabe', en: 'Awaiting approval', fr: 'En attente' },
   filterPending: { de: 'Zur Freigabe', en: 'To approve', fr: 'À approuver' },
-  filterPrivate: {
-    de: 'Private Meldungen',
-    en: 'Private reports',
-    fr: 'Signalements privés',
+  filterFlagged: {
+    de: 'Gemeldet oder ausgeblendet',
+    en: 'Flagged or hidden',
+    fr: 'Signalé ou masqué',
   },
   privatePill: { de: 'Privat', en: 'Private', fr: 'Privé' },
   privateBanner: {
@@ -346,31 +347,187 @@ export const forumText = {
   public: { de: 'Öffentlich', en: 'Public', fr: 'Public' },
   private: { de: 'Privat', en: 'Private', fr: 'Privé' },
   publicExplain: {
-    de: 'Im Forum, für alle sichtbar. Andere können «Ich auch» sagen, die Zentrale wird benachrichtigt.',
-    en: 'In the forum, visible to everyone. Others can say "me too", the Zentrale is notified.',
-    fr: 'Dans le forum, visible par tous. D’autres peuvent dire « moi aussi », la Zentrale est notifiée.',
+    de: 'Im Forum, für alle im Thema sichtbar. Andere können «Ich auch» sagen, das Kernteam wird benachrichtigt.',
+    en: 'In the forum, visible to everyone in the topic. Others can say "me too", the core team is notified.',
+    fr: 'Dans le forum, visible par tout le thème. D’autres peuvent dire « moi aussi », l’équipe centrale est notifiée.',
   },
   privateExplain: {
-    de: 'Nur an die Zentrale, als privater Beitrag. Für alles, was nicht öffentlich sein soll.',
-    en: 'Only to the Zentrale, as a private post. For anything that should not be public.',
-    fr: 'Seulement à la Zentrale, comme publication privée. Pour tout ce qui ne doit pas être public.',
+    de: 'Ein Gespräch nur mit dem Kernteam von «{topic}». Mitlesen können auch das Piket im Dienst und die Zentrale, sonst niemand.',
+    en: 'A conversation with the core team of "{topic}" only. The piket on duty and the Zentrale can read along, nobody else.',
+    fr: 'Une conversation avec l’équipe centrale de « {topic} » seulement. Le piquet de service et la Zentrale peuvent la lire, personne d’autre.',
   },
   privateHint: {
-    de: 'Nur du und das OK sehen deine Nachricht.',
-    en: 'Only you and the OK see your message.',
-    fr: 'Seuls toi et l’OK voyez ton message.',
+    de: 'Nur du, das Kernteam, das Piket und die Zentrale lesen das.',
+    en: 'Only you, the core team, the piket and the Zentrale read this.',
+    fr: 'Seuls toi, l’équipe centrale, le piquet et la Zentrale lisez ceci.',
   },
   sendPrivately: {
-    de: 'An die Zentrale senden',
-    en: 'Send to the Zentrale',
-    fr: 'Envoyer à la Zentrale',
+    de: 'Privat ans Kernteam senden',
+    en: 'Send privately to the core team',
+    fr: 'Envoyer en privé à l’équipe centrale',
   },
   privateReport: {
-    de: 'Privat an die Zentrale melden',
-    en: 'Report privately to the Zentrale',
-    fr: 'Signaler en privé à la Zentrale',
+    de: 'Kernteam privat schreiben',
+    en: 'Write the core team privately',
+    fr: 'Écrire en privé à l’équipe centrale',
+  },
+  noPrivateTopic: {
+    de: 'Kein Thema nimmt gerade private Gespräche an.',
+    en: 'No topic takes private conversations right now.',
+    fr: 'Aucun thème n’accepte de conversations privées pour le moment.',
+  },
+  kind: { de: 'Art', en: 'Kind', fr: 'Type' },
+  answered: { de: 'Beantwortet', en: 'Answered', fr: 'Répondu' },
+  unanswered: { de: 'Unbeantwortet', en: 'Unanswered', fr: 'Sans réponse' },
+  hiddenPill: { de: 'Ausgeblendet', en: 'Hidden', fr: 'Masqué' },
+  flagsPill: { de: '{n} Meldungen', en: '{n} flags', fr: '{n} signalements' },
+  conversationBanner: {
+    de: 'Privates Gespräch mit dem Kernteam von «{topic}». Nur du, das Kernteam, das Piket im Dienst und die Zentrale lesen es.',
+    en: 'Private conversation with the core team of "{topic}". Only you, the core team, the piket on duty and the Zentrale read it.',
+    fr: 'Conversation privée avec l’équipe centrale de « {topic} ». Seuls toi, l’équipe centrale, le piquet de service et la Zentrale la lisent.',
+  },
+  conversationClosed: {
+    de: 'Erledigt und geschlossen. Für eine neue Frage starte ein neues Gespräch.',
+    en: 'Done and closed. Start a new conversation for a new question.',
+    fr: 'Réglée et fermée. Pour une nouvelle question, commence une nouvelle conversation.',
+  },
+  yourConversations: { de: 'Deine Gespräche', en: 'Your conversations', fr: 'Tes conversations' },
+  topics: { de: 'Themen', en: 'Topics', fr: 'Thèmes' },
+  openCount: { de: '{n} offen', en: '{n} open', fr: '{n} ouverts' },
+  closedConversation: { de: 'Geschlossen', en: 'Closed', fr: 'Fermée' },
+  todo: { de: 'Zu tun', en: 'To do', fr: 'À faire' },
+  protocol: { de: 'Protokoll', en: 'Protocol', fr: 'Protocole' },
+  topicSettings: { de: 'Einstellungen des Themas', en: 'Topic settings', fr: 'Réglages du thème' },
+  conversationPush: {
+    de: 'Push für neue private Gespräche',
+    en: 'Push for new private conversations',
+    fr: 'Push pour les nouvelles conversations privées',
+  },
+  conversationPushExplain: {
+    de: 'Als Kernteam bist du in jedem privaten Gespräch dieses Themas. Aus, beginnen neue stumm.',
+    en: 'As core team you are in every private conversation of this topic. Off, new ones start muted.',
+    fr: 'En tant qu’équipe centrale, tu es dans chaque conversation privée de ce thème. Désactivé, les nouvelles commencent en sourdine.',
+  },
+  newPostsPush: {
+    de: 'Push für neue Beiträge',
+    en: 'Push for new posts',
+    fr: 'Push pour les nouvelles publications',
+  },
+  flag: { de: 'Melden', en: 'Flag', fr: 'Signaler' },
+  flagTitle: { de: 'Beitrag melden', en: 'Flag post', fr: 'Signaler la publication' },
+  flagCommentTitle: { de: 'Kommentar melden', en: 'Flag comment', fr: 'Signaler le commentaire' },
+  flagExplain: {
+    de: 'Das Kernteam von «{topic}» schaut es an. Nur es sieht, wer gemeldet hat.',
+    en: 'The core team of "{topic}" looks at it. Only they see who flagged it.',
+    fr: 'L’équipe centrale de « {topic} » s’en occupe. Elle seule voit qui a signalé.',
+  },
+  flagEmergency: {
+    de: 'Bei einem Notfall nicht melden, sondern den Notfall-Tab nutzen.',
+    en: 'In an emergency, do not flag: use the emergency tab.',
+    fr: 'En cas d’urgence, ne signale pas : utilise l’onglet urgence.',
+  },
+  flagNote: {
+    de: 'Was stimmt nicht? (optional)',
+    en: 'What is wrong? (optional)',
+    fr: 'Qu’est-ce qui ne va pas ? (facultatif)',
+  },
+  flagged: {
+    de: 'Gemeldet. Danke, das Kernteam schaut es an.',
+    en: 'Flagged. Thank you, the core team is looking at it.',
+    fr: 'Signalé. Merci, l’équipe centrale s’en occupe.',
+  },
+  youFlagged: {
+    de: 'Du hast das gemeldet: {reason}',
+    en: 'You flagged this: {reason}',
+    fr: 'Tu as signalé ceci : {reason}',
+  },
+  hide: { de: 'Ausblenden', en: 'Hide', fr: 'Masquer' },
+  hideExplain: {
+    de: 'Nur wer es geschrieben hat und die Moderation sehen es noch. Die Person erfährt den Grund und kann es überarbeiten.',
+    en: 'Only its author and the moderators still see it. The author reads the reason and can revise it.',
+    fr: 'Seuls son auteur et la modération le voient encore. L’auteur lit la raison et peut le modifier.',
+  },
+  removeDelete: { de: 'Löschen', en: 'Delete', fr: 'Supprimer' },
+  removeDeleteExplain: {
+    de: 'Für alle weg, auch für die Person, die es schrieb. Sie erfährt den Grund. Der Text bleibt im Protokoll.',
+    en: 'Gone for everyone, its author included. The author reads the reason. The text stays in the protocol.',
+    fr: 'Disparu pour tous, son auteur compris. L’auteur lit la raison. Le texte reste dans le protocole.',
+  },
+  reason: { de: 'Grund', en: 'Reason', fr: 'Raison' },
+  reasonNote: {
+    de: 'Nachricht an die Person (optional)',
+    en: 'Message to the author (optional)',
+    fr: 'Message à l’auteur (facultatif)',
+  },
+  restore: { de: 'Wieder einblenden', en: 'Show again', fr: 'Réafficher' },
+  dismissFlags: { de: 'Meldungen verwerfen', en: 'Dismiss flags', fr: 'Rejeter les signalements' },
+  changeKind: { de: 'Art ändern', en: 'Change kind', fr: 'Changer le type' },
+  removedByModeration: {
+    de: 'Von der Moderation entfernt',
+    en: 'Removed by the moderators',
+    fr: 'Retiré par la modération',
+  },
+  hiddenForAuthor: {
+    de: 'Ausgeblendet, bis du ihn überarbeitest',
+    en: 'Hidden until you revise it',
+    fr: 'Masqué jusqu’à ce que tu le modifies',
+  },
+  hiddenForModerator: {
+    de: 'Ausgeblendet. Andere sehen nur einen Hinweis.',
+    en: 'Hidden. Others only see a notice.',
+    fr: 'Masqué. Les autres ne voient qu’un avis.',
+  },
+  hiddenForOthers: {
+    de: 'Von der Moderation ausgeblendet.',
+    en: 'Hidden by the moderators.',
+    fr: 'Masqué par la modération.',
+  },
+  reviewRequested: {
+    de: 'Überarbeitet, wartet auf die Prüfung.',
+    en: 'Revised, waiting for review.',
+    fr: 'Modifié, en attente de vérification.',
+  },
+  requestReview: {
+    de: 'Erneut prüfen lassen',
+    en: 'Ask for a review',
+    fr: 'Demander une vérification',
+  },
+  revise: { de: 'Überarbeiten', en: 'Revise', fr: 'Modifier' },
+  edit: { de: 'Bearbeiten', en: 'Edit', fr: 'Modifier' },
+  editPost: { de: 'Beitrag bearbeiten', en: 'Edit post', fr: 'Modifier la publication' },
+  edited: { de: 'Bearbeitet', en: 'Edited', fr: 'Modifié' },
+  save: { de: 'Speichern', en: 'Save', fr: 'Enregistrer' },
+  deleteOwn: { de: 'Beitrag löschen', en: 'Delete post', fr: 'Supprimer la publication' },
+  deleteOwnConfirm: {
+    de: 'Der Beitrag und seine Kommentare verschwinden für alle.',
+    en: 'The post and its comments disappear for everyone.',
+    fr: 'La publication et ses commentaires disparaissent pour tous.',
+  },
+  deleteOwnLocked: {
+    de: 'Das Kernteam hat schon reagiert. Löschen kann es nur noch die Moderation.',
+    en: 'The core team has already reacted. Only the moderators can delete it now.',
+    fr: 'L’équipe centrale a déjà réagi. Seule la modération peut encore la supprimer.',
   },
 } satisfies Record<string, StaticTranslationString>;
+
+/** What each kind of post is for, under the composer's choice. */
+export const forumKindExplain: Record<ForumPostKindValue, StaticTranslationString> = {
+  QUESTION: {
+    de: 'Du möchtest etwas wissen. Das Kernteam markiert die Antwort.',
+    en: 'You want to know something. The core team marks the answer.',
+    fr: 'Tu veux savoir quelque chose. L’équipe centrale marque la réponse.',
+  },
+  PROBLEM: {
+    de: 'Etwas ist kaputt, fehlt oder stört. Es wird bearbeitet und erledigt.',
+    en: 'Something is broken, missing or in the way. It gets worked on and done.',
+    fr: 'Quelque chose est cassé, manque ou gêne. C’est traité puis réglé.',
+  },
+  IDEA: {
+    de: 'Ein Vorschlag. Andere sagen mit «Gute Idee», was sie davon halten.',
+    en: 'A suggestion. Others say with "Good idea" what they think of it.',
+    fr: 'Une proposition. Les autres disent avec « Bonne idée » ce qu’ils en pensent.',
+  },
+};
 
 /** "vor 5 Min." and the like, relative to now; older than a day shows the date. */
 export const relativeTimeText = (date: Date, locale: Locale, now: Date = new Date()): string => {

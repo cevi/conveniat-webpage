@@ -126,7 +126,9 @@ export const countZentrale = async (
   const scope = moderated === 'all' ? {} : { chatId: { in: moderated } };
   const [waiting, flagged, conversations, mine] = await Promise.all([
     moderates
-      ? prisma.forumPost.count({ where: { AND: [visible, tabWhere('waiting', user.uuid, moderated)] } })
+      ? prisma.forumPost.count({
+          where: { AND: [visible, tabWhere('waiting', user.uuid, moderated)] },
+        })
       : 0,
     moderates ? prisma.forumPost.count({ where: { AND: [visible, scope, flaggedWhere] } }) : 0,
     moderates
@@ -138,6 +140,10 @@ export const countZentrale = async (
   if (!moderates && mine === 0) return null;
   return { waiting: waiting + flagged + conversations, mine };
 };
+
+/** The post a message belongs to: itself, or the post a comment answers. */
+const postOf = (message: { uuid: string; parentId: string | null }): string =>
+  message.parentId ?? message.uuid;
 
 /** A post in "Zu tun", with why it is there. */
 export interface ForumTodoPost extends ZentralePost {
@@ -170,16 +176,15 @@ export const getForumTodoList = trpcBaseProcedure
   .query(async ({ ctx, input }): Promise<ForumTodoList> => {
     const userId = ctx.user.uuid;
     const everything = await findModeratedTopicIds(ctx.prisma, ctx.user);
-    const kernteamTopics = (
-      await ctx.prisma.chatMembership.findMany({
-        where: {
-          userId,
-          chatPermission: { in: [ChatMembershipPermission.OWNER, ChatMembershipPermission.ADMIN] },
-          chat: { type: ChatType.FORUM, archivedAt: null },
-        },
-        select: { chatId: true },
-      })
-    ).map((membership) => membership.chatId);
+    const kernteamMemberships = await ctx.prisma.chatMembership.findMany({
+      where: {
+        userId,
+        chatPermission: { in: [ChatMembershipPermission.OWNER, ChatMembershipPermission.ADMIN] },
+        chat: { type: ChatType.FORUM, archivedAt: null },
+      },
+      select: { chatId: true },
+    });
+    const kernteamTopics = kernteamMemberships.map((membership) => membership.chatId);
     const canSeeAll = everything === 'all';
     const moderated: ModeratedTopics =
       input.scope === 'all' || !canSeeAll ? everything : kernteamTopics;
@@ -244,16 +249,13 @@ export const getForumTodoList = trpcBaseProcedure
             select: { message: { select: { uuid: true, parentId: true } } },
           }),
     ]);
+    const conversationChats = await ctx.prisma.chat.findMany({
+      where: { uuid: { in: conversationRows.map((row) => row.chatId) } },
+      select: { uuid: true, forumTopic: { select: { name: true } } },
+    });
     const topicNames = new Map(
-      (
-        await ctx.prisma.chat.findMany({
-          where: { uuid: { in: conversationRows.map((row) => row.chatId) } },
-          select: { uuid: true, forumTopic: { select: { name: true } } },
-        })
-      ).map((chat) => [chat.uuid, chat.forumTopic?.name ?? '']),
+      conversationChats.map((chat) => [chat.uuid, chat.forumTopic?.name ?? '']),
     );
-    const postOf = (message: { uuid: string; parentId: string | null }): string =>
-      message.parentId ?? message.uuid;
 
     const toItems = async (
       rows: (typeof waitingRows)[number][],
@@ -321,7 +323,8 @@ const describeQueue = async (
     ];
     return {
       ...summary,
-      claimedBy: claim === undefined ? null : { id: claim.assignee.uuid, name: claim.assignee.name },
+      claimedBy:
+        claim === undefined ? null : { id: claim.assignee.uuid, name: claim.assignee.name },
       forwardedTo,
       waiting: page.find((row) => row.messageId === summary.id)?.reactedAt === null,
     };

@@ -11,7 +11,7 @@ import type React from 'react';
 
 export type ForumStatusFilter = 'active' | 'done';
 export type ForumListFilter =
-  'all' | 'mine' | 'assignedToMe' | 'subscribed' | 'pending' | 'private';
+  'all' | 'mine' | 'assignedToMe' | 'subscribed' | 'pending' | 'flagged';
 export type ForumSort = 'new' | 'popular';
 
 export interface ForumFilters {
@@ -34,7 +34,7 @@ const listFilterText: Record<ForumListFilter, StaticTranslationString> = {
   subscribed: forumText.filterSubscribed,
   assignedToMe: forumText.filterAssigned,
   pending: forumText.filterPending,
-  private: forumText.filterPrivate,
+  flagged: forumText.filterFlagged,
 };
 
 /** The label above the list: what it shows, in a few words, e.g. "Meine · Erledigt · Beliebt". */
@@ -73,7 +73,7 @@ const Segmented = <T extends string>({
 
 /**
  * The feed's filters in the shared sheet, so the feed itself is the search, the topics and the
- * posts. "Meine Aufträge", "Zur Freigabe" and "Private Meldungen" are offered only to whom they
+ * posts. "Meine Aufträge", "Zur Freigabe" and "Gemeldet" are offered only to whom they
  * can show something.
  */
 export const ForumFilterSheet: React.FC<{

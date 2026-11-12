@@ -318,10 +318,7 @@ export const createMessage = trpcBaseProcedure
         quotedMessage !== null &&
         forumVisibility !== undefined &&
         (await forumVisibility.isForumMessageHiddenFrom(prisma, user, quotedMessage.uuid));
-      if (
-        (quotedMessage && quotedMessage.chatId !== validatedMessage.chatId) ||
-        hiddenFromSender
-      ) {
+      if ((quotedMessage && quotedMessage.chatId !== validatedMessage.chatId) || hiddenFromSender) {
         quotedMessageId = undefined;
       } else if (quotedMessage && !quotedMessage.deletedAt) {
         quotedSnippet = quotedSnippetOf(quotedMessage.contentVersions[0]?.payload);

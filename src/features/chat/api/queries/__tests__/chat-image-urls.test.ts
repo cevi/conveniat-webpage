@@ -60,6 +60,8 @@ let chatCapabilities: string[];
 
 /** Keys of images whose message its sender deleted. */
 const deletedImageKeys = new Set<string>();
+/** Keys in the list of photos of a forum post that was deleted. */
+const deletedPostImageKeys = new Set<string>();
 /** keys of images whose forum post was moved into `CHAT_ID`, carried by one of its messages */
 const movedImageKeys = new Set<string>();
 
@@ -78,16 +80,23 @@ const prisma = {
       ({
         where,
       }: {
-        where: { payload?: { equals: string }; OR?: { payload: { equals?: string } }[] };
+        where: {
+          OR: { payload: { equals?: string; array_contains?: string[] } }[];
+          message: { deletedAt?: unknown };
+        };
       }) => {
-        // the signer asks whether a message of the chat carries a moved post's key
-        if (where.OR !== undefined) {
-          const key = where.OR[0]?.payload.equals ?? '';
-          return Promise.resolve(movedImageKeys.has(key) ? { uuid: 'content-2' } : null);
+        const url = where.OR[0]?.payload.equals ?? '';
+        const inImages = where.OR[1]?.payload.array_contains?.[0] ?? '';
+        // the signer asks whether a deleted message carried the key
+        if (where.message.deletedAt !== undefined) {
+          return Promise.resolve(
+            deletedImageKeys.has(url) || deletedPostImageKeys.has(inImages)
+              ? { uuid: 'content-1' }
+              : null,
+          );
         }
-        return Promise.resolve(
-          deletedImageKeys.has(where.payload?.equals ?? '') ? { uuid: 'content-1' } : null,
-        );
+        // or whether a message of the chat carries a moved post's key
+        return Promise.resolve(movedImageKeys.has(url) ? { uuid: 'content-2' } : null);
       },
     ),
   },
@@ -206,6 +215,15 @@ describe('chat image downloads', () => {
     await expect(
       callerAs(member).getDownloadUrl({ chatId: CHAT_ID, key: ownImage }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('no longer signs a photo of a deleted forum post', async () => {
+    deletedPostImageKeys.add(ownImage);
+
+    await expect(
+      callerAs(member).getDownloadUrl({ chatId: CHAT_ID, key: ownImage }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    deletedPostImageKeys.delete(ownImage);
   });
 
   it('refuses an admin a key outside the chat as well', async () => {

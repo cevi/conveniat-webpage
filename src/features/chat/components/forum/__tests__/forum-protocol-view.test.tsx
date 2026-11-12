@@ -85,7 +85,7 @@ describe('the protocol of a topic', () => {
 
   it('tells someone outside the Kernteam that the protocol is not theirs', async () => {
     renderProtocol(() => {
-      throw testTrpcError('FORBIDDEN', { reason: 'notAllowed', params: {} });
+      throw testTrpcError('FORBIDDEN', { reason: 'protocolKernteamOnly', params: {} });
     });
 
     expect(

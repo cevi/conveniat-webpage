@@ -131,7 +131,10 @@ export interface LoadedPost {
  * The post a moderation call is about. A post deleted since is a reason, not an invariant: a
  * stale page or the offline outbox replays calls for it.
  */
-export const loadPost = async (prisma: PrismaClientOrTransaction, postId: string): Promise<LoadedPost> => {
+export const loadPost = async (
+  prisma: PrismaClientOrTransaction,
+  postId: string,
+): Promise<LoadedPost> => {
   const post = await prisma.forumPost.findUnique({
     where: { messageId: postId },
     select: {
@@ -393,10 +396,8 @@ export const createForumPost = trpcBaseProcedure
     // against spam, the admin panel can hold new posts of a topic back until a moderator
     // approves them; the Kernteam's own posts need no approval, and a conversation reaches only
     // the Kernteam anyway
-    const pending =
-      !isConversation &&
-      !byTopicAdmin &&
-      (await findForumTopicSettings([chat.uuid])).get(chat.uuid)?.moderationRequired === true;
+    const topicSettings = isConversation ? undefined : await findForumTopicSettings([chat.uuid]);
+    const pending = !byTopicAdmin && topicSettings?.get(chat.uuid)?.moderationRequired === true;
 
     await prisma.forumPost.create({
       data: {
@@ -499,6 +500,11 @@ export const updateForumPostStatus = trpcBaseProcedure
     const { prisma, user } = ctx;
     await prisma.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${input.postId}, 1))`;
     const post = await loadPost(prisma, input.postId);
+    // a replay of the own change, which tells nothing new: a helper's own DONE ended their
+    // assignment, and the offline outbox would otherwise hear it was withdrawn
+    if (post.status === input.status && post.statusChangedById === user.uuid) {
+      return { status: post.status };
+    }
     // asked first, so the answer tells nobody without the right where the post stands
     const moderator = await resolveForumModerator(prisma, user, post.chatId, post.messageId);
     if (moderator === undefined) {

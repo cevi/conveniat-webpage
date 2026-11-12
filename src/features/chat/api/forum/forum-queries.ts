@@ -606,8 +606,7 @@ export const getForumPost = trpcBaseProcedure
     // the author and the moderators read why; everyone else only that it was removed
     const seesReason = isAuthor || moderator !== undefined;
     const open = row.mergedIntoId === null && !deleted;
-    const withinEditWindow =
-      Date.now() - row.message.createdAt.getTime() <= MESSAGE_EDIT_WINDOW_MS;
+    const withinEditWindow = Date.now() - row.message.createdAt.getTime() <= MESSAGE_EDIT_WINDOW_MS;
     return {
       ...summary,
       ...(deleted ? { excerpt: '', imageCount: 0, likeCount: 0 } : {}),

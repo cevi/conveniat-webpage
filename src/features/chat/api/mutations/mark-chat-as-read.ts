@@ -1,5 +1,5 @@
-import { ChatType } from '@/lib/prisma/enums';
 import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
+import { ChatType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -27,9 +27,10 @@ export const markChatAsRead = trpcBaseProcedure
     // a post of a forum topic its reader may not see answers like one that does not exist
     const hiddenForumMessage =
       message?.chat.type === ChatType.FORUM &&
-      (await (
-        await import('@/features/chat/api/forum/forum-visibility')
-      ).isForumMessageHiddenFrom(prisma, user, lastMessageId));
+      (await import('@/features/chat/api/forum/forum-visibility').then(
+        async ({ isForumMessageHiddenFrom }) =>
+          isForumMessageHiddenFrom(prisma, user, lastMessageId),
+      ));
 
     if (!message || hiddenForumMessage) {
       throw new TRPCError({

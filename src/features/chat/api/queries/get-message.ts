@@ -1,4 +1,3 @@
-import type { ForumRemovalInfo } from '@/lib/forum-shared';
 import { USER_RELEVANT_MESSAGE_EVENTS } from '@/features/chat/api/definitions';
 import type { ChatMessage } from '@/features/chat/api/types';
 import { findDeletedQuotedMessageIds } from '@/features/chat/api/utils/deleted-messages';
@@ -6,6 +5,7 @@ import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status
 import { findThreadSummaries } from '@/features/chat/api/utils/thread-summaries';
 import { toChatMessage } from '@/features/chat/api/utils/to-chat-message';
 import { findTopicAdminIds } from '@/features/chat/api/utils/topic-admins';
+import type { ForumRemovalInfo } from '@/lib/forum-shared';
 import { ChatType, MessageEventType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { z } from 'zod';
@@ -71,10 +71,7 @@ export const getMessage = trpcBaseProcedure
     // a private report or a post waiting for approval, or one of its comments: only to whom
     // sees the post, see `getChatMessages`
     let forumRemovals: ForumRemovalsOfThread | undefined;
-    if (
-      message.chat.type === ChatType.FORUM ||
-      message.chat.type === ChatType.FORUM_CONVERSATION
-    ) {
+    if (message.chat.type === ChatType.FORUM || message.chat.type === ChatType.FORUM_CONVERSATION) {
       const { canSeeForumPost, describeForumRemovals, findForumPostVisibility } =
         await import('@/features/chat/api/forum/forum-visibility');
       const post = await findForumPostVisibility(prisma, message.parentId ?? message.uuid);

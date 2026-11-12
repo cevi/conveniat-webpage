@@ -9,9 +9,11 @@ jest.mock('@/config/environment-variables', () => ({
   },
 }));
 
-let memberships: { userId: string; subscribed: boolean }[];
+let memberships: { userId: string; subscribed: boolean; admin?: boolean }[];
 let threadSubscribers: string[];
 let piket: string[];
+/** the post the thread belongs to, as the database holds it */
+let storedPost: { approvedAt: Date | null; hidden: boolean };
 
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
@@ -20,11 +22,12 @@ jest.mock('@/lib/db/prisma', () => ({
       findMany: ({
         where,
       }: {
-        where: { subscribedAt?: unknown; userId?: { not: string } };
+        where: { subscribedAt?: unknown; userId?: { not: string }; chatPermission?: unknown };
       }): Promise<unknown[]> =>
         Promise.resolve(
           memberships
             .filter((m) => where.subscribedAt === undefined || m.subscribed)
+            .filter((m) => where.chatPermission === undefined || m.admin === true)
             .filter((m) => m.userId !== where.userId?.not)
             .map((m) => ({ userId: m.userId })),
         ),
@@ -32,6 +35,21 @@ jest.mock('@/lib/db/prisma', () => ({
     threadSubscription: {
       findMany: (): Promise<unknown[]> =>
         Promise.resolve(threadSubscribers.map((userId) => ({ userId }))),
+    },
+    forumPost: {
+      findUnique: (): Promise<unknown> =>
+        Promise.resolve({
+          messageId: 'post',
+          chatId: 'topic',
+          approvedAt: storedPost.approvedAt,
+          message: {
+            senderId: 'noah',
+            forumRemoval: storedPost.hidden ? { kind: 'HIDDEN' } : null,
+          },
+        }),
+    },
+    forumPostAssignment: {
+      findMany: (): Promise<unknown[]> => Promise.resolve([]),
     },
   },
 }));
@@ -77,6 +95,7 @@ beforeEach(() => {
   ];
   threadSubscribers = ['noah', 'sina'];
   piket = ['lea'];
+  storedPost = { approvedAt: new Date(), hidden: false };
   sendNotification.mockClear();
 });
 
@@ -121,4 +140,34 @@ describe('forum pushes', () => {
       expect.objectContaining({ path: '/app/forum/post', chatName: post.title }),
     );
   });
+
+  it.each([
+    ['waits for approval', { approvedAt: null, hidden: false }],
+    ['was hidden', { approvedAt: new Date(), hidden: true }],
+  ])(
+    'sends nothing about a post that %s to a subscriber who no longer sees it',
+    async (_, state) => {
+      storedPost = state;
+      threadSubscribers = ['noah', 'sina'];
+      pushForumThread({
+        chatId: 'topic',
+        postId: 'post',
+        messageId: 'comment',
+        postTitle: post.title,
+        text: 'Wir schauen es an.',
+        actorId: 'lea',
+        includePiket: false,
+      });
+      await settle();
+
+      // Noah wrote the post and still sees it; Sina, who only reads the topic, does not
+      expect(sendNotification).toHaveBeenCalledWith(
+        'Wir schauen es an.',
+        ['noah'],
+        'topic',
+        'comment',
+        expect.anything(),
+      );
+    },
+  );
 });

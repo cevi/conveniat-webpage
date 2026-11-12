@@ -9,8 +9,8 @@ import { membersTab } from '@/features/payload-cms/payload-cms/chat-channels/mem
 import { toFunktionIds } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import type { ForumTopic } from '@/features/payload-cms/payload-types';
 
-import { ChatCapability, ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import { FORUM_TOPIC_ICONS, type ForumTopicIcon } from '@/lib/forum-shared';
+import { ChatCapability, ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import type { StaticTranslationString } from '@/types/types';
 import type { CollectionAfterChangeHook, CollectionConfig } from 'payload';
 

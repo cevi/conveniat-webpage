@@ -1,10 +1,9 @@
-import { assertWriteAbilities } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { chatError } from '@/features/chat/api/chat-errors';
+import { assertWriteAbilities } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { chatMessageContentSchema } from '@/features/chat/limits';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import poolPrisma from '@/lib/db/prisma';
 import { MESSAGE_EDIT_WINDOW_MS } from '@/lib/forum-shared';
-import type { Prisma } from '@/lib/prisma/client';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/enums';
 import { invariantError } from '@/trpc/error-formatter';
 import { trpcBaseProcedure } from '@/trpc/init';
@@ -59,7 +58,7 @@ export const editMessage = trpcBaseProcedure
         },
       },
     });
-    if (message === null || message.deletedAt !== null) throw chatError('NOT_FOUND', 'messageGone');
+    if (message?.deletedAt !== null) throw chatError('NOT_FOUND', 'messageGone');
     if (message.senderId !== user.uuid || message.type !== MessageType.TEXT_MSG) {
       throw invariantError('FORBIDDEN', 'Only the sender changes the text of a message.');
     }
@@ -86,7 +85,7 @@ export const editMessage = trpcBaseProcedure
       data: {
         messageId: message.uuid,
         revision: (latest?.revision ?? 0) + 1,
-        payload: { ...record, text: input.text } as Prisma.InputJsonValue,
+        payload: { ...record, text: input.text },
       },
     });
     await prisma.message.update({ where: { uuid: message.uuid }, data: { editedAt } });

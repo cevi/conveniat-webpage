@@ -60,19 +60,22 @@ export const findForumTopicSettings = async (
     locale === undefined ? undefined : getFunktionDirectory(payload, locale),
   ]);
   const settings = new Map<string, ForumTopicSettings>(
-    chatUuids.map((uuid) => [uuid, { ...DEFAULT_SETTINGS, moderationRequired: approvalEverywhere }]),
+    chatUuids.map((uuid) => [
+      uuid,
+      { ...DEFAULT_SETTINGS, moderationRequired: approvalEverywhere },
+    ]),
   );
-  for (const doc of docs) {
-    if (typeof doc.chatUuid !== 'string') continue;
-    settings.set(doc.chatUuid, {
-      icon: toIcon(doc.icon),
+  for (const document_ of docs) {
+    if (typeof document_.chatUuid !== 'string') continue;
+    settings.set(document_.chatUuid, {
+      icon: toIcon(document_.icon),
       // a topic saved before the field existed has none, and the field's default is on
-      allowsPrivateConversations: doc.allowsPrivateConversations !== false,
-      moderationRequired: approvalEverywhere || doc.moderationRequired === true,
+      allowsPrivateConversations: document_.allowsPrivateConversations !== false,
+      moderationRequired: approvalEverywhere || document_.moderationRequired === true,
       kernteamLabels:
         directory === undefined
           ? []
-          : describeFunktionen(toFunktionIds(doc.kernteamFunktionen), directory),
+          : describeFunktionen(toFunktionIds(document_.kernteamFunktionen), directory),
     });
   }
   return settings;

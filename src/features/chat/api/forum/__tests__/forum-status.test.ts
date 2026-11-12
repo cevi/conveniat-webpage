@@ -80,9 +80,10 @@ const prisma = {
   chat: { findUnique: (): Promise<unknown> => Promise.resolve({ type: ChatType.FORUM }) },
   forumPost: {
     // the first reaction, which takes the post out of the Zentrale's queue
-    updateMany: ({ data }: { data: { reactedAt: Date } }): Promise<void> => {
-      reactedAt ??= data.reactedAt;
-      return Promise.resolve();
+    updateManyAndReturn: ({ data }: { data: { reactedAt: Date } }): Promise<unknown[]> => {
+      if (reactedAt !== undefined) return Promise.resolve([]);
+      reactedAt = data.reactedAt;
+      return Promise.resolve([{ createdAt: new Date(0), kind: 'PROBLEM', chatId: TOPIC }]);
     },
     findUnique: (): Promise<unknown> =>
       Promise.resolve({
@@ -286,6 +287,14 @@ describe('updateForumPostStatus', () => {
     expect(audit).toEqual([]);
   });
 
+  it('never tells someone without the right that the post is already done', async () => {
+    post = { status: 'DONE', statusChangedById: 'lea', mergedIntoId: null };
+
+    expect(await reasonOf(as('noah').updateForumPostStatus({ postId: POST, status: 'DONE' }))).toBe(
+      'notAllowed',
+    );
+  });
+
   it('refuses a piket member once the shift is over', async () => {
     shifts.delete('lea');
     expect(await reasonOf(as('lea').updateForumPostStatus({ postId: POST, status: 'DONE' }))).toBe(
@@ -300,10 +309,18 @@ describe('updateForumPostStatus', () => {
     expect(audit).toHaveLength(1);
   });
 
-  it('tells a helper when someone else reported the post as done first', async () => {
+  it('tells a helper their assignment ended when someone else reported the post as done first', async () => {
     await as('lea').updateForumPostStatus({ postId: POST, status: 'DONE' });
 
     expect(await reasonOf(as('tim').updateForumPostStatus({ postId: POST, status: 'DONE' }))).toBe(
+      'assignmentEnded',
+    );
+  });
+
+  it('tells a moderator when someone else reported the post as done first', async () => {
+    await as('lea').updateForumPostStatus({ postId: POST, status: 'DONE' });
+
+    expect(await reasonOf(as('mira').updateForumPostStatus({ postId: POST, status: 'DONE' }))).toBe(
       'postAlreadyDone',
     );
   });

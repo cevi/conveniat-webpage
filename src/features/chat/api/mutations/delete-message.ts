@@ -122,12 +122,12 @@ export const deleteMessage = trpcBaseProcedure
           )
         : chatPubSub.publish(event);
       published.catch((error: unknown) => {
-          logger.error('Failed to publish the message_deleted event', {
-            error,
-            'chat.id': message.chatId,
-            'message.id': message.uuid,
-          });
+        logger.error('Failed to publish the message_deleted event', {
+          error,
+          'chat.id': message.chatId,
+          'message.id': message.uuid,
         });
+      });
     });
 
     return { deletedAt };

@@ -1,17 +1,21 @@
 /**
  * @jest-environment jsdom
  */
+import type { ForumConversationSummary } from '@/features/chat/api/forum/forum-conversations';
+import type { ForumTopic } from '@/features/chat/api/forum/forum-queries';
 import { DEFAULT_FORUM_FILTERS } from '@/features/chat/components/forum/forum-filter-sheet';
 import { ForumOverview } from '@/features/chat/components/forum/forum-overview';
 import type { ForumPostSummary } from '@/lib/forum-shared';
 import { createTestTrpc } from '@/trpc/test-trpc';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type React from 'react';
 
-let topics: unknown[] | undefined;
+let topics: ForumTopic[] | undefined;
 let settings: object;
+let conversations: ForumConversationSummary[];
 let pinnedPosts: ForumPostSummary[];
 let feedPosts: ForumPostSummary[];
+let address = '';
 
 jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
 // the header's buttons render in place, as if the page had a header of its own
@@ -21,7 +25,7 @@ jest.mock('@/components/header/header-actions', () => ({
 jest.mock('@/components/offline-banner', () => ({ OfflineBanner: (): null => null }));
 jest.mock('next/navigation', () => ({
   useRouter: (): object => ({ replace: jest.fn() }),
-  useSearchParams: (): URLSearchParams => new URLSearchParams(),
+  useSearchParams: (): URLSearchParams => new URLSearchParams(address),
 }));
 jest.mock(
   '@/trpc/client',
@@ -29,45 +33,23 @@ jest.mock(
     jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
 );
 
-/**
- * Renders the feed with the forum as the phone has it: the topics (still loading while
- * undefined), the settings, the pinned posts and the first page of the feed.
- */
-const renderOverview = (): void => {
-  const feedPage = { items: feedPosts, nextCursor: null };
-  const { trpc, queryClient, wrapper } = createTestTrpc({
-    // topics that are not loaded yet stay on their way
-    'forum.getForumTopicList': () => topics ?? new Promise(() => {}),
-    'forum.getForumSettings': () => settings,
-    'forum.getForumPinnedPostList': () => pinnedPosts,
-    'forum.getForumPostList': () => feedPage,
-    'forum.getForumPostSuggestionList': () => [],
-  });
-  if (topics !== undefined) {
-    queryClient.setQueryData(trpc.forum.getForumTopicList.queryKey({}), topics as never);
-  }
-  queryClient.setQueryData(trpc.forum.getForumSettings.queryKey({}), settings as never);
-  queryClient.setQueryData(trpc.forum.getForumPinnedPostList.queryKey({}), pinnedPosts);
-  queryClient.setQueryData(trpc.forum.getForumPostList.infiniteQueryKey(DEFAULT_FORUM_FILTERS), {
-    pages: [feedPage],
-    pageParams: [null],
-  });
-  render(<ForumOverview />, { wrapper });
-};
+const TOPIC_ID = 'topic';
 
-const newPostLink = (): HTMLElement => screen.getByRole('link', { name: /Neuer Beitrag/ });
-/** The list filters the filter sheet offers; the feed itself shows none. */
-const filters = (): string[] => {
-  fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
-  return ['Alle', 'Meine', 'Abonniert', 'Meine Aufträge', 'Zur Freigabe'].filter(
-    (name) => screen.queryByRole('button', { name }) !== null,
-  );
-};
-const topic = { id: 'topic', name: 'Platz & Infrastruktur', subscribed: false };
+const topic = (overrides: Partial<ForumTopic> = {}): ForumTopic => ({
+  id: TOPIC_ID,
+  name: 'Platz & Infrastruktur',
+  description: null,
+  subscribed: false,
+  muted: false,
+  isAdmin: false,
+  openPostCount: 0,
+  ...overrides,
+});
+
 const post = (overrides: Partial<ForumPostSummary>): ForumPostSummary => ({
   id: 'post',
-  topicId: topic.id,
-  topicName: topic.name,
+  topicId: TOPIC_ID,
+  topicName: 'Platz & Infrastruktur',
   title: 'Zu heisses Wasser',
   excerpt: '',
   status: 'OPEN',
@@ -83,63 +65,268 @@ const post = (overrides: Partial<ForumPostSummary>): ForumPostSummary => ({
   ...overrides,
 });
 
+/**
+ * Renders the forum as the phone has it: the topics (still loading while undefined), the
+ * settings, the user's conversations, the pinned posts and the first page of the feed. With
+ * `address` set to `topic=…` it is the feed of that topic, without it the start page.
+ */
+const renderForum = (): { calls: { path: string; input: unknown }[] } => {
+  const feedPage = { items: feedPosts, nextCursor: null };
+  const { trpc, queryClient, wrapper, calls } = createTestTrpc({
+    // topics that are not loaded yet stay on their way
+    'forum.getForumTopicList': () => topics ?? new Promise(() => {}),
+    'forum.getForumSettings': () => settings,
+    'forum.getForumConversationList': () => conversations,
+    'forum.getForumPinnedPostList': () => pinnedPosts,
+    'forum.getForumPostList': (input) =>
+      // the kind chips narrow the feed on the server
+      (input as { kind?: string }).kind === undefined
+        ? feedPage
+        : {
+            items: feedPosts.filter(
+              (candidate) => candidate.kind === (input as { kind: string }).kind,
+            ),
+            nextCursor: null,
+          },
+    'forum.getForumPostSuggestionList': () => [],
+  });
+  if (topics !== undefined) {
+    queryClient.setQueryData(trpc.forum.getForumTopicList.queryKey({}), topics);
+  }
+  queryClient.setQueryData(trpc.forum.getForumSettings.queryKey({}), settings as never);
+  queryClient.setQueryData(trpc.forum.getForumConversationList.queryKey({}), conversations);
+  const topicId = new URLSearchParams(address).get('topic');
+  if (topicId === null) {
+    queryClient.setQueryData(trpc.forum.getForumPinnedPostList.queryKey({}), pinnedPosts);
+  } else {
+    queryClient.setQueryData(trpc.forum.getForumPinnedPostList.queryKey({ topicId }), pinnedPosts);
+    queryClient.setQueryData(
+      trpc.forum.getForumPostList.infiniteQueryKey({ topicId, ...DEFAULT_FORUM_FILTERS }),
+      { pages: [feedPage], pageParams: [null] },
+    );
+  }
+  render(<ForumOverview />, { wrapper });
+  return { calls };
+};
+
+const newPostLink = (): HTMLElement => screen.getByRole('link', { name: /Neuer Beitrag/ });
+
+/** The list filters the filter sheet offers; the feed itself shows none. */
+const filters = (): string[] => {
+  fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+  const sheet = screen.getByRole('dialog');
+  return [
+    'Alle',
+    'Meine',
+    'Abonniert',
+    'Meine Aufträge',
+    'Zur Freigabe',
+    'Gemeldet oder ausgeblendet',
+  ].filter((name) => within(sheet).queryByRole('button', { name }) !== null);
+};
+
 beforeEach(() => {
+  address = '';
+  topics = [topic()];
+  conversations = [];
   pinnedPosts = [];
   feedPosts = [];
   settings = { moderationRequired: false, canModerate: false, hasOpenAssignments: false };
 });
 
-describe('the forum feed', () => {
-  it('offers a new post in a topic the user belongs to', () => {
-    topics = [topic];
-    renderOverview();
+describe('the start page of the forum', () => {
+  it('lists the topics with their Kernteam and how much is open, each opening its feed', () => {
+    topics = [
+      topic({
+        openPostCount: 4,
+        kernteamLabels: ['Ressortleitung Infrastruktur', 'Platzchef'],
+      }),
+      topic({ id: 'essen', name: 'Essen', openPostCount: 0 }),
+    ];
+    renderForum();
+
+    const infrastructure = screen.getByRole('link', { name: /Platz & Infrastruktur/ });
+    expect(infrastructure.getAttribute('href')).toBe('/app/forum?topic=topic');
+    expect(
+      within(infrastructure).getByText('Ressortleitung Infrastruktur · Platzchef · 4 offen'),
+    ).toBeTruthy();
+    const food = screen.getByRole('link', { name: /Essen/ });
+    expect(food.getAttribute('href')).toBe('/app/forum?topic=essen');
+    expect(within(food).getByText('0 offen')).toBeTruthy();
+  });
+
+  it('puts the user’s own conversations on top, with their topic and what is unread', () => {
+    conversations = [
+      {
+        postId: 'conversation-post',
+        chatId: 'conversation-chat',
+        title: 'Frage zur Anreise',
+        topicName: 'Platz & Infrastruktur',
+        status: 'IN_PROGRESS',
+        closed: false,
+        unreadCount: 2,
+        lastActivity: new Date(),
+      },
+      {
+        postId: 'closed-post',
+        chatId: 'closed-chat',
+        title: 'Allergie beim Znacht',
+        topicName: 'Essen',
+        status: 'DONE',
+        closed: true,
+        unreadCount: 0,
+        lastActivity: new Date(),
+      },
+    ];
+    renderForum();
+
+    const section = screen.getByText('Deine Gespräche').closest('section') as HTMLElement;
+    const open = within(section).getByRole('link', { name: /Frage zur Anreise/ });
+    expect(open.getAttribute('href')).toBe('/app/forum/conversation-post');
+    expect(within(open).getByText(/Platz & Infrastruktur · In Arbeit/)).toBeTruthy();
+    expect(within(open).getByText('2')).toBeTruthy();
+    const closed = within(section).getByRole('link', { name: /Allergie beim Znacht/ });
+    expect(within(closed).getByText(/Essen · Geschlossen/)).toBeTruthy();
+  });
+
+  it('leaves out the conversations while the user has none', () => {
+    renderForum();
+
+    expect(screen.queryByText('Deine Gespräche')).toBeNull();
+    expect(screen.getByText('Themen')).toBeTruthy();
+  });
+
+  it('shows the pinned posts of every topic', () => {
+    pinnedPosts = [post({ id: 'pinned', pinned: true })];
+    renderForum();
+
+    expect(screen.getByRole('link', { name: /Zu heisses Wasser/ })).toBeTruthy();
+  });
+
+  it('offers a new post, also while the topics still load', () => {
+    topics = undefined;
+    renderForum();
 
     expect(newPostLink().getAttribute('href')).toBe('/app/forum/new');
   });
 
-  it('offers a new post while the topics still load', () => {
-    topics = undefined;
-    renderOverview();
+  it('tells someone in no topic that there is no forum for them, and offers nothing to write', () => {
+    topics = [];
+    renderForum();
 
-    expect(newPostLink()).toBeTruthy();
+    expect(screen.getByText('Noch kein Forum für dich')).toBeTruthy();
+    expect(screen.queryByPlaceholderText(/Suchen/)).toBeNull();
+    expect(screen.queryByRole('link', { name: /Neuer Beitrag/ })).toBeNull();
+  });
+});
+
+describe('the feed of a topic', () => {
+  beforeEach(() => {
+    address = `topic=${TOPIC_ID}`;
   });
 
-  it('shows someone in no topic only the way to the Zentrale', () => {
-    topics = [];
-    renderOverview();
+  it('shows the topic with its Kernteam above its posts', () => {
+    topics = [
+      topic({ description: 'Strom, Wasser, WC', kernteamLabels: ['Ressortleitung Infrastruktur'] }),
+    ];
+    renderForum();
 
-    expect(screen.getByRole('link', { name: 'An die Zentrale melden' }).getAttribute('href')).toBe(
-      '/app/forum/new',
+    expect(screen.getByRole('heading', { name: 'Platz & Infrastruktur' })).toBeTruthy();
+    expect(screen.getByText('Strom, Wasser, WC')).toBeTruthy();
+    expect(screen.getByText('Ressortleitung Infrastruktur')).toBeTruthy();
+  });
+
+  it('offers to write the Kernteam privately where the topic allows it', () => {
+    topics = [topic({ allowsPrivateConversations: true })];
+    renderForum();
+
+    expect(
+      screen.getByRole('link', { name: 'Kernteam privat schreiben' }).getAttribute('href'),
+    ).toBe('/app/forum/new?conversation=1&topic=topic');
+  });
+
+  it('offers no private conversation in a topic that does not take them', () => {
+    topics = [topic({ allowsPrivateConversations: false })];
+    renderForum();
+
+    expect(screen.queryByRole('link', { name: 'Kernteam privat schreiben' })).toBeNull();
+  });
+
+  it('writes a new post into the topic', () => {
+    renderForum();
+
+    expect(newPostLink().getAttribute('href')).toBe('/app/forum/new?topic=topic');
+  });
+
+  it('narrows the feed to one kind and back to all', async () => {
+    feedPosts = [
+      post({ id: 'question', title: 'Wo gibt es Strom?', kind: 'QUESTION' }),
+      post({ id: 'problem', title: 'WC beim Quartier 3 verstopft', kind: 'PROBLEM' }),
+    ];
+    const { calls } = renderForum();
+
+    expect(screen.getByRole('button', { name: 'Alle' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Problem' }));
+
+    expect(await screen.findByRole('link', { name: /WC beim Quartier 3/ })).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.queryByRole('link', { name: /Wo gibt es Strom/ })).toBeNull(),
     );
-    expect(screen.queryByRole('searchbox')).toBeNull();
-    expect(screen.queryByPlaceholderText(/Suchen/)).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Filter' })).toBeNull();
-    expect(screen.queryByRole('link', { name: /Neuer Beitrag/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Problem' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    expect(
+      calls.filter((call) => call.path === 'forum.getForumPostList').map((call) => call.input),
+    ).toContainEqual(expect.objectContaining({ topicId: TOPIC_ID, kind: 'PROBLEM' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Alle' }));
+    expect(await screen.findByRole('link', { name: /Wo gibt es Strom/ })).toBeTruthy();
   });
 
   it('keeps the filters in their sheet, and offers a participant only those that apply', () => {
-    topics = [topic];
-    renderOverview();
+    renderForum();
 
     expect(screen.queryByRole('button', { name: 'Meine' })).toBeNull();
-
     expect(filters()).toEqual(['Alle', 'Meine', 'Abonniert']);
   });
 
-  it('adds the assignments of a helper and the queue of a moderator', () => {
-    topics = [topic];
+  it('adds the assignments of a helper, and the queue and the flagged posts of a moderator', () => {
     settings = { moderationRequired: true, canModerate: true, hasOpenAssignments: true };
-    renderOverview();
+    renderForum();
 
-    expect(filters()).toEqual(['Alle', 'Meine', 'Abonniert', 'Meine Aufträge', 'Zur Freigabe']);
+    expect(filters()).toEqual([
+      'Alle',
+      'Meine',
+      'Abonniert',
+      'Meine Aufträge',
+      'Zur Freigabe',
+      'Gemeldet oder ausgeblendet',
+    ]);
+  });
+
+  it('offers its Kernteam the flagged posts and the settings of the topic instead of the bell', () => {
+    topics = [topic({ isAdmin: true })];
+    renderForum();
+
+    expect(screen.getByRole('button', { name: 'Einstellungen des Themas' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /abonnieren/ })).toBeNull();
+    expect(filters()).toContain('Gemeldet oder ausgeblendet');
+  });
+
+  it('gives a participant the bell of the topic', () => {
+    renderForum();
+
+    expect(
+      screen.getByRole('button', { name: 'Neue Beiträge in diesem Thema abonnieren' }),
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Einstellungen des Themas' })).toBeNull();
   });
 
   it('marks a pinned post by its pin, not by a section title', () => {
-    topics = [topic];
     const pinnedPost = post({ id: 'pinned', pinned: true });
     pinnedPosts = [pinnedPost];
     feedPosts = [pinnedPost, post({ id: 'other', title: 'WC beim Quartier 3 verstopft' })];
-    renderOverview();
+    renderForum();
 
     expect(screen.getByRole('link', { name: /Angeheftet.*Zu heisses Wasser/ })).toBeTruthy();
     expect(screen.queryByRole('link', { name: /Angeheftet.*WC beim Quartier 3/ })).toBeNull();
@@ -148,11 +335,10 @@ describe('the forum feed', () => {
   });
 
   it('says there is nothing besides the pinned posts instead of showing an empty list', () => {
-    topics = [topic];
     const pinnedPost = post({ id: 'pinned', pinned: true });
     pinnedPosts = [pinnedPost];
     feedPosts = [pinnedPost];
-    renderOverview();
+    renderForum();
 
     expect(screen.getByText('Noch keine weiteren Beiträge')).toBeTruthy();
     // one quiet line, not the empty state of an empty forum
@@ -160,20 +346,18 @@ describe('the forum feed', () => {
     expect(screen.queryByText(/Hier erscheinen Fragen/)).toBeNull();
   });
 
-  it('shows an empty forum its full empty state', () => {
-    topics = [topic];
-    renderOverview();
+  it('shows an empty topic its full empty state', () => {
+    renderForum();
 
     expect(screen.getByRole('heading', { name: 'Noch keine Beiträge' })).toBeTruthy();
     expect(screen.getByText(/Hier erscheinen Fragen/)).toBeTruthy();
   });
 
   it('leaves the pinned posts out of a filter that matches nothing, and leads back', async () => {
-    topics = [topic];
     pinnedPosts = [post({ id: 'pinned', pinned: true })];
-    renderOverview();
+    renderForum();
     fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Meine' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Meine' }));
     fireEvent.click(screen.getByRole('button', { name: 'Schliessen' }));
 
     expect(await screen.findByText('Kein Beitrag passt zu diesen Filtern.')).toBeTruthy();
@@ -183,24 +367,22 @@ describe('the forum feed', () => {
     expect(screen.getByRole('link', { name: /Zu heisses Wasser/ })).toBeTruthy();
   });
 
-  it('offers to write what the search found nothing for', async () => {
-    topics = [topic];
-    renderOverview();
+  it('offers to write what the search found nothing for, in this topic', async () => {
+    renderForum();
     fireEvent.change(screen.getByPlaceholderText(/Suchen/), { target: { value: 'Zeltheringe' } });
 
     expect(await screen.findByText('Noch kein Beitrag zu «Zeltheringe».')).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'Als neuen Beitrag schreiben' }).getAttribute('href'),
-    ).toBe('/app/forum/new?title=Zeltheringe');
+    ).toBe('/app/forum/new?title=Zeltheringe&topic=topic');
   });
 
   it('names the status of a post in the feed only where it is no longer open', () => {
-    topics = [topic];
     feedPosts = [
       post({ id: 'open', title: 'WC beim Quartier 3 verstopft', excerpt: 'Es riecht.' }),
       post({ id: 'working', title: 'Strom fällt aus', status: 'IN_PROGRESS' }),
     ];
-    renderOverview();
+    renderForum();
 
     const open = screen.getByRole('link', { name: /WC beim Quartier 3/ });
     expect(within(open).queryByText('Offen')).toBeNull();

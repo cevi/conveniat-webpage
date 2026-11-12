@@ -9913,7 +9913,7 @@ export interface AppFeatureFlag {
    */
   forumEnabled?: boolean | null;
   /**
-   * Against spam. While on, a new forum post is seen only by its author and the moderators (the Kernteam of its topic and the piket on duty) until one of them approves it. Posts by the Kernteam need no approval, comments are never held back.
+   * Against spam, for every topic at once. While on, a new forum post is seen only by its author and the moderators (the Kernteam of its topic and the piket on duty) until one of them approves it. Posts by the Kernteam need no approval, comments are never held back. A single topic is switched in its settings under Forum Topics.
    */
   forumModerationRequired?: boolean | null;
   /**

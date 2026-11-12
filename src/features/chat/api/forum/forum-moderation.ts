@@ -32,13 +32,12 @@ import {
   FORUM_POST_KINDS,
   FORUM_TEXT_MAX_LENGTH,
   FORUM_TITLE_MAX_LENGTH,
-  type ForumFlagReasonValue,
   forumFlagReasonLabel,
+  type ForumFlagReasonValue,
   forumKindLabel,
   type ForumPostKindValue,
   MESSAGE_EDIT_WINDOW_MS,
 } from '@/lib/forum-shared';
-import type { Prisma } from '@/lib/prisma/client';
 import { ChatType, MessageEventType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
@@ -344,8 +343,8 @@ export const createForumFlag = trpcBaseProcedure
       where: { messageId_userId: { messageId: message.uuid, userId: user.uuid } },
       select: { resolvedAt: true },
     });
-    // a replay of the same flag answers with what it did; a second flag after a moderator
-    // decided is a new one
+    // one open flag per person; a lost answer retried says it is there already. A flag after
+    // a moderator decided is a new one
     if (existing !== null && existing.resolvedAt === null) {
       throw forumError('CONFLICT', 'alreadyFlagged');
     }
@@ -357,7 +356,12 @@ export const createForumFlag = trpcBaseProcedure
         reason: input.reason,
         note: input.note ?? null,
       },
-      update: { reason: input.reason, note: input.note ?? null, resolvedAt: null, createdAt: new Date() },
+      update: {
+        reason: input.reason,
+        note: input.note ?? null,
+        resolvedAt: null,
+        createdAt: new Date(),
+      },
     });
 
     const open = await prisma.forumFlag.findMany({
@@ -722,7 +726,7 @@ export const updateForumPost = trpcBaseProcedure
       data: {
         messageId: post.messageId,
         revision: (latest?.revision ?? 0) + 1,
-        payload: { ...previous, text: input.text } as Prisma.InputJsonValue,
+        payload: { ...previous, text: input.text },
       },
     });
     await prisma.message.update({ where: { uuid: post.messageId }, data: { editedAt } });

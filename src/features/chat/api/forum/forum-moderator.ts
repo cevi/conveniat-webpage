@@ -34,7 +34,9 @@ export type ForumModerator =
 export const isFullModerator = (
   moderator: ForumModerator | undefined,
 ): moderator is Exclude<ForumModerator, { capacity: 'DELEGATE' | 'AUTOMATIC' }> =>
-  moderator !== undefined && moderator.capacity !== 'DELEGATE' && moderator.capacity !== 'AUTOMATIC';
+  moderator !== undefined &&
+  moderator.capacity !== 'DELEGATE' &&
+  moderator.capacity !== 'AUTOMATIC';
 
 /** The forum itself acting, e.g. hiding what enough participants flagged. */
 export const AUTOMATIC_MODERATOR: ForumModerator = { capacity: 'AUTOMATIC' };
