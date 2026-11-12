@@ -5,6 +5,8 @@ import { isBuildPhase } from '@/utils/build-phase';
 import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
 import { cacheLife, cacheTag } from 'next/cache';
+import { createHash } from 'node:crypto';
+import type { Payload } from 'payload';
 import { getPayload } from 'payload';
 
 export interface TitledPoint {
@@ -22,6 +24,8 @@ export interface ImageSubmissionTexts {
   termsLead: string;
   termsSummary: TitledPoint[];
   termsFullText: string;
+  /** names this exact wording of the terms, sent back with every upload, see {@link termsVersionOf} */
+  termsVersion: string;
   photoTips: string[];
   successText: string;
 }
@@ -33,11 +37,35 @@ const EMPTY_TEXTS: ImageSubmissionTexts = {
   termsLead: '',
   termsSummary: [],
   termsFullText: '',
+  termsVersion: '',
   photoTips: [],
   successText: '',
 };
 
 const text = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+
+/**
+ * A short fingerprint of the terms' full text. The page sends back the one it showed, so an
+ * upload is recorded against the wording the person actually agreed to, not one an editor
+ * saved after the page was loaded.
+ */
+export const termsVersionOf = (termsFullText: string): string =>
+  createHash('sha256').update(termsFullText.trim()).digest('hex').slice(0, 16);
+
+/**
+ * The full terms in `locale` as stored right now, German where they are not translated. Read
+ * past the cache: what is recorded on an image has to be what is current.
+ */
+export const readCurrentTermsText = async (payload: Payload, locale: Locale): Promise<string> => {
+  const global = await payload.findGlobal({
+    slug: 'image-submission',
+    locale,
+    fallbackLocale: LOCALE.DE,
+    depth: 0,
+    select: { termsFullText: true },
+  });
+  return text(global.termsFullText);
+};
 
 const titledPoints = (rows: ImageSubmission['introSteps']): TitledPoint[] =>
   (rows ?? [])
@@ -52,6 +80,7 @@ export const toImageSubmissionTexts = (global: Partial<ImageSubmission>): ImageS
   termsLead: text(global.termsLead),
   termsSummary: titledPoints(global.termsSummary),
   termsFullText: text(global.termsFullText),
+  termsVersion: termsVersionOf(text(global.termsFullText)),
   photoTips: (global.photoTips ?? []).map((row) => text(row.text)).filter((tip) => tip !== ''),
   successText: text(global.successText),
 });

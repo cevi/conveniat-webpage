@@ -6,7 +6,8 @@ import {
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import type { StaticTranslationString } from '@/types/types';
-import type { Field, GlobalConfig } from 'payload';
+import { revalidateTag } from 'next/cache';
+import type { Field, GlobalAfterChangeHook, GlobalConfig } from 'payload';
 
 /** A row of a short list: an icon, a bold title and a line under it. */
 const titledPoints = (
@@ -54,6 +55,20 @@ const titledPoints = (
 });
 
 /**
+ * Expires the cached texts at once instead of serving them stale one more time. An upload is
+ * checked against the terms as stored, so a page still showing the old wording would have its
+ * first upload after an edit turned away.
+ */
+const expireTextsAtOnce: GlobalAfterChangeHook = ({ req }): void => {
+  if (Boolean(req.context['disableRevalidation'])) return;
+  try {
+    revalidateTag('global:image-submission', { expire: 0 });
+  } catch (error: unknown) {
+    req.payload.logger.warn({ error }, 'Expiring the image upload texts failed');
+  }
+};
+
+/**
  * What the image upload in the app says in its editors' words: the introduction a first-time
  * visitor sees, the terms a participant agrees to before choosing images, the tips for good
  * photos and the thanks after an upload. Buttons, limits and errors stay in the code.
@@ -78,7 +93,7 @@ export const ImageSubmissionGlobal: GlobalConfig = {
     },
   },
   hooks: {
-    afterChange: [flushPageCacheOnChangeGlobal],
+    afterChange: [flushPageCacheOnChangeGlobal, expireTextsAtOnce],
   },
   fields: [
     {

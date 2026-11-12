@@ -15,4 +15,9 @@ export const uploadErrorTexts = {
     en: 'That was a lot of requests just now. Please try again in a few minutes.',
     fr: "C'étaient beaucoup de demandes d'un coup. Réessaie dans quelques minutes.",
   },
+  termsChanged: {
+    de: 'Die Bedingungen wurden in der Zwischenzeit geändert. Lade die Seite neu und bestätige sie nochmals.',
+    en: 'The terms have changed in the meantime. Reload the page and agree to them again.',
+    fr: 'Les conditions ont été modifiées entre-temps. Recharge la page et accepte-les à nouveau.',
+  },
 } satisfies Record<string, StaticTranslationString>;

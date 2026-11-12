@@ -4090,6 +4090,14 @@ export interface UserSubmittedImage {
    * Set when the person who submitted the image withdrew it in the app. Do not use the image any more, and remove it where it is already published.
    */
   withdrawn_at?: string | null;
+  /**
+   * What the person agreed to when submitting the image, as the terms read then. Empty for images submitted before this was recorded.
+   */
+  terms_consent?: {
+    accepted_at?: string | null;
+    locale?: string | null;
+    terms_text?: string | null;
+  };
   lastEditedByUser?: (string | null) | User;
   _objectKey?: string | null;
   updatedAt: string;
@@ -7141,6 +7149,13 @@ export interface UserSubmittedImagesSelect<T extends boolean = true> {
   user_description?: T;
   content_hash?: T;
   withdrawn_at?: T;
+  terms_consent?:
+    | T
+    | {
+        accepted_at?: T;
+        locale?: T;
+        terms_text?: T;
+      };
   lastEditedByUser?: T;
   _objectKey?: T;
   updatedAt?: T;

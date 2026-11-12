@@ -120,6 +120,42 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
         },
       },
     },
+    {
+      name: 'terms_consent',
+      type: 'group',
+      label: {
+        en: 'Agreement to the terms',
+        de: 'Zustimmung zu den Bedingungen',
+        fr: 'Accord aux conditions',
+      },
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        description: {
+          en: 'What the person agreed to when submitting the image, as the terms read then. Empty for images submitted before this was recorded.',
+          de: 'Was die Person beim Einreichen bestätigt hat, so wie die Bedingungen damals lauteten. Leer bei Bildern, die eingereicht wurden, bevor das aufgezeichnet wurde.',
+          fr: "Ce que la personne a accepté en envoyant l'image, tel que les conditions étaient rédigées alors. Vide pour les images envoyées avant cet enregistrement.",
+        },
+      },
+      fields: [
+        {
+          name: 'accepted_at',
+          type: 'date',
+          label: { en: 'Accepted on', de: 'Akzeptiert am', fr: 'Acceptées le' },
+          admin: { date: { pickerAppearance: 'dayAndTime' } },
+        },
+        {
+          name: 'locale',
+          type: 'text',
+          label: { en: 'Language', de: 'Sprache', fr: 'Langue' },
+        },
+        {
+          name: 'terms_text',
+          type: 'textarea',
+          label: { en: 'Terms text', de: 'Text der Bedingungen', fr: 'Texte des conditions' },
+        },
+      ],
+    },
     LastEditedByUserField,
   ],
   upload: {

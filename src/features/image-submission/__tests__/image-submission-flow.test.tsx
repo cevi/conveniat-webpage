@@ -31,6 +31,7 @@ const texts: ImageSubmissionTexts = {
   termsLead: 'Mit dem Einreichen erlaubst du conveniat27, deine Bilder zu verwenden.',
   termsSummary: [{ icon: '', title: 'Du hast das Foto gemacht', text: '' }],
   termsFullText: 'Der ganze Text der Bedingungen.',
+  termsVersion: 'v1',
   photoTips: ['Originalfoto statt Screenshot.'],
   successText: '',
 };

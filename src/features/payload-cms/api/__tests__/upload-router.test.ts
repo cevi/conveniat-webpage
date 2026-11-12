@@ -53,10 +53,12 @@ const find = jest.fn();
 const create = jest.fn();
 const findByID = jest.fn();
 const update = jest.fn();
+const findGlobal = jest.fn();
 jest.mock('payload', () => ({
-  getPayload: jest.fn(() => Promise.resolve({ find, create, findByID, update })),
+  getPayload: jest.fn(() => Promise.resolve({ find, create, findByID, update, findGlobal })),
 }));
 
+import { termsVersionOf } from '@/features/image-submission/api/image-submission-texts';
 import { uploadRouter } from '@/features/payload-cms/api/upload-router';
 import { s3Client } from '@/lib/s3';
 import sharp from 'sharp';
@@ -108,21 +110,27 @@ const deletedKeys = (): string[] =>
     .filter(([command]) => command.constructor.name === 'DeleteObjectCommand')
     .map(([command]) => command.input.Key);
 
+/** the terms as an editor saved them */
+const TERMS = 'Ich erlaube conveniat27, das Bild zu verwenden.';
+
 interface CompleteInput {
   key: string;
   description: string;
   originalFilename: string;
+  terms?: { locale: 'de' | 'fr' | 'en'; version: string };
 }
 const completeInput = (key: string): CompleteInput => ({
   key,
   description: 'Lagerfeuer am Abend',
   originalFilename: 'lagerfeuer.jpg',
+  terms: { locale: 'de', version: termsVersionOf(TERMS) },
 });
 
 beforeEach(() => {
   jest.clearAllMocks();
   rateLimitCounts.clear();
   find.mockResolvedValue({ totalDocs: 0 });
+  findGlobal.mockResolvedValue({ termsFullText: TERMS });
 });
 
 describe('the upload URL for a submitted image', () => {
@@ -285,5 +293,43 @@ describe('a withdrawn image', () => {
         where: expect.objectContaining({ withdrawn_at: { exists: false } }) as unknown,
       }),
     );
+  });
+});
+
+describe('the terms an image is submitted under', () => {
+  it('are recorded on the image as they read when it was submitted', async () => {
+    storeUpload(await photo(1920, 1080));
+
+    await as(ANNA).completeUserUpload(completeInput(`temp/${ANNA}/0190a5b2.jpg`));
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          terms_consent: {
+            accepted_at: expect.any(String) as unknown,
+            locale: 'de',
+            terms_text: TERMS,
+          },
+        }) as unknown,
+      }),
+    );
+  });
+
+  it.each([
+    [
+      'an editor changed them after the page was loaded',
+      { locale: 'de', version: termsVersionOf('Alte Fassung.') },
+    ],
+    ['the page predates recording them', undefined],
+  ] as const)('turn the image away when %s, and remove the upload', async (_case, terms) => {
+    storeUpload(await photo(1920, 1080));
+    const key = `temp/${ANNA}/0190a5b2.jpg`;
+
+    await expect(
+      as(ANNA).completeUserUpload({ ...completeInput(key), terms }),
+    ).rejects.toMatchObject({ code: 'PRECONDITION_FAILED', reason: 'termsChanged' });
+
+    expect(create).not.toHaveBeenCalled();
+    expect(deletedKeys()).toEqual([key]);
   });
 });
