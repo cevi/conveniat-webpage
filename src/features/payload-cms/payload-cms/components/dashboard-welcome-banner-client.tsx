@@ -1,7 +1,6 @@
 'use client';
 
 import build from '@/build';
-import { environmentVariables } from '@/config/environment-variables';
 import { FrontendModeLinks } from '@/features/payload-cms/payload-cms/components/frontend-mode-links';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import { resetServerData } from '@/features/payload-cms/payload-cms/initialization/deleting/reset-api';
@@ -117,11 +116,14 @@ interface DashboardWelcomeBannerClientProperties {
   locale: Locale;
   /** Whether the flush cache and reset buttons are rendered. Decided on the server by role. */
   showActions: boolean;
+  /** Whether the reset button is rendered. Only a development instance may reset. */
+  canResetInstance: boolean;
 }
 
 export const DashboardWelcomeBannerClient: React.FC<DashboardWelcomeBannerClientProperties> = ({
   locale,
   showActions,
+  canResetInstance,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<ModalType>('flush-cache');
@@ -164,8 +166,6 @@ export const DashboardWelcomeBannerClient: React.FC<DashboardWelcomeBannerClient
       }
     }
   }, [modalState, modalType]);
-
-  const isLocalhost = environmentVariables.NEXT_PUBLIC_APP_HOST_URL.includes('localhost');
 
   const getModalProperties = (): {
     title: string;
@@ -235,7 +235,7 @@ export const DashboardWelcomeBannerClient: React.FC<DashboardWelcomeBannerClient
           <FrontendModeLinks locale={locale} />
           {showActions && (
             <>
-              {isLocalhost && (
+              {canResetInstance && (
                 <button
                   type="button"
                   onClick={() => openModal('reset-instance')}
