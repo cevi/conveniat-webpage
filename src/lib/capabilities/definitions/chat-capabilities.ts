@@ -14,9 +14,8 @@ import {
   CapabilitySubject,
 } from '@/lib/capabilities/types';
 import { isChatArchived } from '@/lib/chat-shared';
-import { getFeatureFlag } from '@/lib/db/redis';
-import { FEATURE_FLAG_CREATE_CHATS_ENABLED, FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 import { ChatCapability, ChatStatus } from '@/lib/prisma/enums';
+import { readFeatureFlag } from '@/lib/read-feature-flags';
 
 /**
  * The chat a check decides on: the one the caller handed in, or else read once. Undefined
@@ -51,7 +50,7 @@ export class MessageCapabilities implements Capability {
   }
 
   private async canSend(context: CapabilityContext): Promise<boolean> {
-    const isGlobalEnabled = await getFeatureFlag(FEATURE_FLAG_SEND_MESSAGES);
+    const isGlobalEnabled = await readFeatureFlag('globalMessagingEnabled');
 
     if (!isGlobalEnabled) {
       return false;
@@ -112,7 +111,7 @@ export class ChatCreationCapabilities implements Capability {
   }
 
   private async canCreate(): Promise<boolean> {
-    const isCreateChatsEnabled = await getFeatureFlag(FEATURE_FLAG_CREATE_CHATS_ENABLED);
+    const isCreateChatsEnabled = await readFeatureFlag('createChatsEnabled');
     return isCreateChatsEnabled;
   }
 }

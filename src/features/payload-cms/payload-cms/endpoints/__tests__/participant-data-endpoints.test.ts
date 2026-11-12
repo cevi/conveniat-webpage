@@ -10,7 +10,7 @@ jest.mock('@/config/environment-variables', () => ({
   },
 }));
 
-jest.mock('@/lib/db/redis', () => ({ getFeatureFlag: jest.fn() }));
+jest.mock('@/lib/read-feature-flags', () => ({ readFeatureFlag: jest.fn() }));
 
 const mockEnrollment = {
   findMany: jest.fn(),

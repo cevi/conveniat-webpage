@@ -29,8 +29,10 @@ jest.mock('@/lib/db/prisma', () => ({
     return prisma;
   },
 }));
+jest.mock('@/lib/read-feature-flags', () => ({
+  readFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
+}));
 jest.mock('@/lib/db/redis', () => ({
-  getFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
   redis: { eval: (): Promise<number> => Promise.resolve(1) },
 }));
 jest.mock('@/lib/db/chat-pubsub', () => ({

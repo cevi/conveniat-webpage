@@ -1,8 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { chatError } from '@/features/chat/api/chat-errors';
 import type { CallIceServers } from '@/lib/chat-call-signal';
-import { getFeatureFlag } from '@/lib/db/redis';
-import { FEATURE_FLAG_VOICE_CALLS_ENABLED } from '@/lib/feature-flags';
+import { readFeatureFlag } from '@/lib/read-feature-flags';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { createHmac } from 'node:crypto';
 
@@ -16,7 +15,7 @@ const CREDENTIAL_LIFETIME_SECONDS = 6 * 60 * 60;
  */
 export const getCallIceServers = trpcBaseProcedure.query(
   async ({ ctx }): Promise<CallIceServers> => {
-    if (!(await getFeatureFlag(FEATURE_FLAG_VOICE_CALLS_ENABLED))) {
+    if (!(await readFeatureFlag('voiceCallsEnabled'))) {
       throw chatError('PRECONDITION_FAILED', 'callsDisabled');
     }
 

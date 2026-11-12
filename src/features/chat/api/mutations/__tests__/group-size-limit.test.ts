@@ -25,8 +25,8 @@ jest.mock('superjson', () => ({
 }));
 // `createNewChat` reads the enums from the package, which only the generated `@/lib/prisma`
 // client provides here.
-jest.mock('@/lib/db/redis', () => ({
-  getFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
+jest.mock('@/lib/read-feature-flags', () => ({
+  readFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
 }));
 // Who may be put into a chat has its own test, see `contact-restriction.test.ts`.
 jest.mock('@/features/chat/api/checks/assert-contactable', () => ({

@@ -42,8 +42,10 @@ jest.mock('@/features/chat/api/utils/piket-service', () => ({
 
 /** Calls counted so far per rate limit key; the window never ends within a test. */
 const rateLimitCounts = new Map<string, number>();
+jest.mock('@/lib/read-feature-flags', () => ({
+  readFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
+}));
 jest.mock('@/lib/db/redis', () => ({
-  getFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
   redis: {
     eval: (_script: string, _keys: number, key: string): Promise<number> => {
       const count = (rateLimitCounts.get(key) ?? 0) + 1;

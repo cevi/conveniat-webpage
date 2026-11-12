@@ -23,8 +23,6 @@ import {
 } from '@/features/chat/api/forum/forum-visibility';
 import { countZentrale, ensureZentraleMemberships } from '@/features/chat/api/forum/forum-zentrale';
 import { getFunktionDirectory } from '@/features/payload-cms/payload-cms/utils/funktionen';
-import { getFeatureFlag } from '@/lib/db/redis';
-import { FEATURE_FLAG_FORUM_MODERATION } from '@/lib/feature-flags';
 import {
   distanceInMetres,
   FORUM_LIKE_EMOJI,
@@ -35,6 +33,7 @@ import {
 } from '@/lib/forum-shared';
 import type { Prisma } from '@/lib/prisma/client';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
+import { readFeatureFlag } from '@/lib/read-feature-flags';
 import { trpcBaseProcedure } from '@/trpc/init';
 import type { Locale } from '@/types/types';
 import config from '@payload-config';
@@ -620,7 +619,7 @@ export const getForumSettings = trpcBaseProcedure
     await ensureZentraleMemberships(ctx.prisma, ctx.user);
     const [moderationRequired, moderated, openAssignments, privateReportTopicId] =
       await Promise.all([
-        getFeatureFlag(FEATURE_FLAG_FORUM_MODERATION),
+        readFeatureFlag('forumModerationRequired'),
         findModeratedTopicIds(ctx.prisma, ctx.user),
         ctx.prisma.forumPostAssignment.count({
           where: { assigneeId: ctx.user.uuid, endedAt: null, kind: 'HELPER' },

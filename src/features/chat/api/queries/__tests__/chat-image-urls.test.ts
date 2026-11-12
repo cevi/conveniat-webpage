@@ -24,7 +24,9 @@ jest.mock('@/utils/server-logger', () => ({
     debug: jest.fn(),
   }),
 }));
-jest.mock('@/lib/db/redis', () => ({ getFeatureFlag: jest.fn().mockResolvedValue(true) }));
+jest.mock('@/lib/read-feature-flags', () => ({
+  readFeatureFlag: jest.fn().mockResolvedValue(true),
+}));
 // Only the wire transformer; a direct caller never serializes anything.
 jest.mock('superjson', () => ({
   __esModule: true,

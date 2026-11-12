@@ -5,8 +5,7 @@ import {
 } from '@/features/payload-cms/payload-cms/utils/hof-directory';
 import { toHofIds } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import prisma from '@/lib/db/prisma';
-import { getFeatureFlag } from '@/lib/db/redis';
-import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
+import { readFeatureFlag } from '@/lib/read-feature-flags';
 import ExcelJS from 'exceljs';
 import type { PayloadHandler } from 'payload';
 
@@ -58,7 +57,7 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
 
     const payloadUsersById = new Map(payloadUsersResult.docs.map((u) => [u.id, u]));
 
-    const hideHofAndQuartier = await getFeatureFlag(FEATURE_HIDE_HOF_AND_QUARTIER);
+    const hideHofAndQuartier = await readFeatureFlag('hideHofAndQuartier');
     const hofDirectory = await getHofDirectory(request.payload);
 
     const participantData = enrollments.map((enrollment) => {

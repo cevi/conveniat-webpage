@@ -11,8 +11,7 @@ import {
   type HofLabel,
   type HofRole,
 } from '@/features/payload-cms/payload-cms/utils/hof-directory';
-import { getFeatureFlag } from '@/lib/db/redis';
-import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
+import { readFeatureFlag } from '@/lib/read-feature-flags';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { profilePictureUrlOrUndefined } from '@/utils/profile-picture-url';
@@ -63,7 +62,7 @@ export const listContacts = trpcBaseProcedure
       },
     });
 
-    const hideHofAndQuartier = await getFeatureFlag(FEATURE_HIDE_HOF_AND_QUARTIER);
+    const hideHofAndQuartier = await readFeatureFlag('hideHofAndQuartier');
     let hofDirectory = new Map<string, HofLabel>();
     let funktionDirectory = new Map<string, FunktionLabel>();
 

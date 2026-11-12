@@ -23,8 +23,10 @@ jest.mock('superjson', () => ({
 }));
 // `update-message-content` reads the enum from the package, which only the generated
 // `@/lib/prisma` client provides here.
+jest.mock('@/lib/read-feature-flags', () => ({
+  readFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
+}));
 jest.mock('@/lib/db/redis', () => ({
-  getFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
   // every rate limit counter at its first call
   redis: { eval: (): Promise<number> => Promise.resolve(1) },
 }));

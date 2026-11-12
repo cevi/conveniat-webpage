@@ -1,12 +1,6 @@
 import { chatError } from '@/features/chat/api/chat-errors';
-import { getFeatureFlags } from '@/lib/db/redis';
-import {
-  FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP,
-  FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN,
-  FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF,
-  FEATURE_FLAG_RESTRICT_CONTACT_LIST,
-} from '@/lib/feature-flags';
 import type { Prisma } from '@/lib/prisma/client';
+import { readFeatureFlags } from '@/lib/read-feature-flags';
 import type { PrismaClientOrTransaction } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
@@ -25,7 +19,8 @@ const logger = createLogger('chat:checks');
  * A test account, like the one for the App Store review, keeps only its Hof and its address
  * book, whatever the flags say: the review has to be able to reach someone.
  *
- * While Redis is unreachable, the list is the address book alone, as with all three groups off.
+ * Until the flags can be loaded once, the list is the address book alone, as with all three
+ * groups off; see `FeatureFlagDefinition.whenUnavailable`.
  */
 export const getContactFilter = async (
   prisma: PrismaClientOrTransaction,
@@ -37,16 +32,15 @@ export const getContactFilter = async (
       where: { uuid: userId },
       select: { hofIds: true, testAccount: true },
     }),
-    // Without Redis the list narrows to the address book rather than undo an admin's choice.
-    getFeatureFlags({
-      [FEATURE_FLAG_RESTRICT_CONTACT_LIST]: true,
-      [FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF]: false,
-      [FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN]: false,
-      [FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP]: false,
-    }),
+    readFeatureFlags([
+      'restrictContactList',
+      'contactListIncludesHof',
+      'contactListIncludesFunktionen',
+      'contactListIncludesAvp',
+    ]),
   ]);
   const isTestAccount = self?.testAccount === true;
-  if (!isTestAccount && !flags[FEATURE_FLAG_RESTRICT_CONTACT_LIST]) return everyone;
+  if (!isTestAccount && !flags.restrictContactList) return everyone;
 
   const addressBook: Prisma.UserWhereInput = { inAddressBooksOf: { some: { ownerId: userId } } };
   const ownHof: Prisma.UserWhereInput = { hofIds: { hasSome: self?.hofIds ?? [] } };
@@ -56,11 +50,9 @@ export const getContactFilter = async (
     ...everyone,
     OR: [
       addressBook,
-      ...(flags[FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF] ? [ownHof] : []),
-      ...(flags[FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN]
-        ? [{ funktionIds: { isEmpty: false } }]
-        : []),
-      ...(flags[FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP] ? [{ avpHofIds: { isEmpty: false } }] : []),
+      ...(flags.contactListIncludesHof ? [ownHof] : []),
+      ...(flags.contactListIncludesFunktionen ? [{ funktionIds: { isEmpty: false } }] : []),
+      ...(flags.contactListIncludesAvp ? [{ avpHofIds: { isEmpty: false } }] : []),
     ],
   };
 };

@@ -17,8 +17,10 @@ jest.mock('superjson', () => ({
   },
 }));
 const mockRedis = new Map<string, string>();
+jest.mock('@/lib/read-feature-flags', () => ({
+  readFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
+}));
 jest.mock('@/lib/db/redis', () => ({
-  getFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
   redis: {
     // every rate limit counter at its first call
     eval: (): Promise<number> => Promise.resolve(1),
