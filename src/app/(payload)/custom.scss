@@ -41,6 +41,26 @@ div#action-unpublish-popup {
 }
 
 /**
+ * Frame the previewed page as a card, so editors see where it ends: the app's own background is a
+ * light grey close to the admin's white. Payload's frame targets `.live-preview-iframe`, a class
+ * its iframe no longer carries. The frame sits on the iframe, not its container: below 100% zoom
+ * Payload enlarges the container and scales only the iframe down, so the frame scales with the
+ * page. Responsive mode gets the same inset as the device sizes, or the card would sit flush
+ * against the window.
+ */
+.live-preview-window .live-preview-window__main {
+  padding: var(--base);
+}
+
+.live-preview-window .iframe-loader__iframe {
+  outline: 1px solid var(--theme-elevation-150);
+  box-shadow:
+    0 8px 28px rgb(0 0 0 / 14%),
+    0 2px 6px rgb(0 0 0 / 8%);
+  border-radius: 12px;
+}
+
+/**
  * Hide the default Payload login branding because we provide our own
  * centered branding in the AdminPanelLoginPage component.
  */
