@@ -1369,7 +1369,14 @@ export interface FactListBlock {
       | 'mail'
       | 'phone'
       | 'shield'
-      | 'info';
+      | 'info'
+      | 'camera'
+      | 'image'
+      | 'size'
+      | 'pencil'
+      | 'check'
+      | 'globe'
+      | 'heart';
     /**
      * Short, e.g. "Public transport only".
      */
@@ -9604,10 +9611,39 @@ export interface ImageSubmission {
   introTitle?: string | null;
   introText?: string | null;
   /**
-   * Numbered in this order, e.g. "Own photos", "Good quality", "Describe briefly".
+   * In this order, e.g. "Own photos", "Good quality", "Describe briefly".
    */
   introSteps?:
     | {
+        /**
+         * Empty: the step number.
+         */
+        icon?:
+          | (
+              | 'users'
+              | 'calendar'
+              | 'clock'
+              | 'mapPin'
+              | 'train'
+              | 'car'
+              | 'ticket'
+              | 'wallet'
+              | 'utensils'
+              | 'backpack'
+              | 'tent'
+              | 'mail'
+              | 'phone'
+              | 'shield'
+              | 'info'
+              | 'camera'
+              | 'image'
+              | 'size'
+              | 'pencil'
+              | 'check'
+              | 'globe'
+              | 'heart'
+            )
+          | null;
         title: string;
         text?: string | null;
         id?: string | null;
@@ -9622,6 +9658,35 @@ export interface ImageSubmission {
    */
   termsSummary?:
     | {
+        /**
+         * Empty: a check mark.
+         */
+        icon?:
+          | (
+              | 'users'
+              | 'calendar'
+              | 'clock'
+              | 'mapPin'
+              | 'train'
+              | 'car'
+              | 'ticket'
+              | 'wallet'
+              | 'utensils'
+              | 'backpack'
+              | 'tent'
+              | 'mail'
+              | 'phone'
+              | 'shield'
+              | 'info'
+              | 'camera'
+              | 'image'
+              | 'size'
+              | 'pencil'
+              | 'check'
+              | 'globe'
+              | 'heart'
+            )
+          | null;
         title: string;
         text?: string | null;
         id?: string | null;
@@ -10512,6 +10577,7 @@ export interface ImageSubmissionSelect<T extends boolean = true> {
   introSteps?:
     | T
     | {
+        icon?: T;
         title?: T;
         text?: T;
         id?: T;
@@ -10520,6 +10586,7 @@ export interface ImageSubmissionSelect<T extends boolean = true> {
   termsSummary?:
     | T
     | {
+        icon?: T;
         title?: T;
         text?: T;
         id?: T;

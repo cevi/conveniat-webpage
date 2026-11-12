@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { IconTile } from '@/components/ui/icon-tile';
 import type { TitledPoint } from '@/features/image-submission/api/image-submission-texts';
 import { TermsText } from '@/features/image-submission/terms-text';
+import { contentIconOf } from '@/features/payload-cms/content-icons';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -65,7 +66,7 @@ export const TermsStep: React.FC<{
         <Card as="ul" divided>
           {summary.map((point, index) => (
             <li key={index} className="flex items-start gap-3 px-4 py-3">
-              <IconTile icon={Check} />
+              <IconTile icon={contentIconOf(point.icon) ?? Check} />
               <span className="min-w-0">
                 <span className="block text-[15px] font-semibold text-green-900">
                   {point.title}

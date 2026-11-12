@@ -1,23 +1,26 @@
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import type { ImageSubmission } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
 
 /** Local stand-in texts for the image upload; the real terms are written by the editors. */
-const IMAGE_SUBMISSION_DE = {
+const IMAGE_SUBMISSION_DE: Omit<ImageSubmission, 'id'> = {
   introTitle: 'Deine Fotos fürs conveniat27',
   introText: 'Wir sammeln Fotos vom Lager für Website, App und Social Media. So geht’s:',
   introSteps: [
-    { title: 'Eigene Fotos', text: 'Nur Bilder, die du selbst gemacht hast.' },
-    { title: 'Gute Qualität', text: 'Das Originalfoto in voller Grösse.' },
+    { icon: 'camera', title: 'Eigene Fotos', text: 'Nur Bilder, die du selbst gemacht hast.' },
+    { icon: 'size', title: 'Gute Qualität', text: 'Das Originalfoto in voller Grösse.' },
     {
+      icon: 'pencil',
       title: 'Kurz beschreiben',
       text: 'Was ist zu sehen, welcher Hof? Zum Beispiel «Cevi Uster beim Seilbrückenbau».',
     },
   ],
   termsLead: 'Mit dem Einreichen erlaubst du conveniat27, deine Bilder zu verwenden. Das heisst:',
   termsSummary: [
-    { title: 'Du hast das Foto gemacht', text: 'und darfst es weitergeben.' },
-    { title: 'Abgebildete sind einverstanden', text: 'Niemand wird blossgestellt.' },
+    { icon: 'check', title: 'Du hast das Foto gemacht', text: 'und darfst es weitergeben.' },
+    { icon: 'users', title: 'Abgebildete sind einverstanden', text: 'Niemand wird blossgestellt.' },
     {
+      icon: 'globe',
       title: 'conveniat27 darf es nutzen',
       text: 'auf Website, App, Social Media und in Drucksachen, auch zugeschnitten.',
     },

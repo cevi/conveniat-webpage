@@ -1,3 +1,4 @@
+import { contentIconOptions } from '@/features/payload-cms/content-icons';
 import {
   hasAdminOrWebAccess,
   shouldHideInAdminPanel,
@@ -7,11 +8,12 @@ import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms
 import type { StaticTranslationString } from '@/types/types';
 import type { Field, GlobalConfig } from 'payload';
 
-/** A row of a short list: a bold title and a line under it. */
+/** A row of a short list: an icon, a bold title and a line under it. */
 const titledPoints = (
   name: string,
   label: StaticTranslationString,
   description: StaticTranslationString,
+  withoutIcon: StaticTranslationString,
 ): Field => ({
   name,
   type: 'array',
@@ -25,10 +27,23 @@ const titledPoints = (
   admin: { description, initCollapsed: false },
   fields: [
     {
-      name: 'title',
-      type: 'text',
-      required: true,
-      label: { en: 'Title', de: 'Titel', fr: 'Titre' },
+      type: 'row',
+      fields: [
+        {
+          name: 'icon',
+          type: 'select',
+          label: { en: 'Icon', de: 'Icon', fr: 'Icône' },
+          options: contentIconOptions,
+          admin: { width: '30%', description: withoutIcon },
+        },
+        {
+          name: 'title',
+          type: 'text',
+          required: true,
+          label: { en: 'Title', de: 'Titel', fr: 'Titre' },
+          admin: { width: '70%' },
+        },
+      ],
     },
     {
       name: 'text',
@@ -93,9 +108,14 @@ export const ImageSubmissionGlobal: GlobalConfig = {
               'introSteps',
               { en: 'Steps', de: 'Schritte', fr: 'Étapes' },
               {
-                en: 'Numbered in this order, e.g. "Own photos", "Good quality", "Describe briefly".',
-                de: 'In dieser Reihenfolge nummeriert, z.B. «Eigene Fotos», «Gute Qualität», «Kurz beschreiben».',
-                fr: 'Numérotées dans cet ordre, p.ex. «Tes propres photos», «Bonne qualité», «Décris brièvement».',
+                en: 'In this order, e.g. "Own photos", "Good quality", "Describe briefly".',
+                de: 'In dieser Reihenfolge, z.B. «Eigene Fotos», «Gute Qualität», «Kurz beschreiben».',
+                fr: 'Dans cet ordre, p.ex. «Tes propres photos», «Bonne qualité», «Décris brièvement».',
+              },
+              {
+                en: 'Empty: the step number.',
+                de: 'Leer: die Nummer des Schritts.',
+                fr: "Vide : le numéro de l'étape.",
               },
             ),
           ],
@@ -129,6 +149,7 @@ export const ImageSubmissionGlobal: GlobalConfig = {
                 de: 'Die Bedingungen in Alltagssprache, ein Punkt pro Aussage.',
                 fr: 'Les conditions en mots simples, un point par affirmation.',
               },
+              { en: 'Empty: a check mark.', de: 'Leer: ein Häkchen.', fr: 'Vide : une coche.' },
             ),
             {
               name: 'termsFullText',

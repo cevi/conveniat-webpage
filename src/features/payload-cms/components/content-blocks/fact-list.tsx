@@ -1,44 +1,10 @@
 import { Card } from '@/components/ui/card';
 import { FactRow } from '@/components/ui/fact-row';
 import { SectionLabel } from '@/components/ui/section-label';
+import { contentIconOf } from '@/features/payload-cms/content-icons';
 import type { FactListBlock } from '@/features/payload-cms/payload-types';
-import type { LucideIcon } from 'lucide-react';
-import {
-  Backpack,
-  CalendarDays,
-  CarFront,
-  Clock,
-  Info,
-  Mail,
-  MapPin,
-  Phone,
-  ShieldCheck,
-  Tent,
-  Ticket,
-  TrainFront,
-  Users,
-  Utensils,
-  Wallet,
-} from 'lucide-react';
+import { Info } from 'lucide-react';
 import type React from 'react';
-
-const ICONS: Record<string, LucideIcon> = {
-  users: Users,
-  calendar: CalendarDays,
-  clock: Clock,
-  mapPin: MapPin,
-  train: TrainFront,
-  car: CarFront,
-  ticket: Ticket,
-  wallet: Wallet,
-  utensils: Utensils,
-  backpack: Backpack,
-  tent: Tent,
-  mail: Mail,
-  phone: Phone,
-  shield: ShieldCheck,
-  info: Info,
-};
 
 /**
  * Facts in one card, each a row behind an icon tile, under an optional small title. A draft
@@ -59,7 +25,7 @@ export const FactList: React.FC<FactListBlock> = ({ title, facts }) => {
         {shown.map((fact, index) => (
           <FactRow
             key={fact.id ?? index}
-            icon={ICONS[fact.icon] ?? Info}
+            icon={contentIconOf(fact.icon) ?? Info}
             title={fact.title}
             {...(typeof fact.description === 'string' && fact.description !== ''
               ? { sub: fact.description }

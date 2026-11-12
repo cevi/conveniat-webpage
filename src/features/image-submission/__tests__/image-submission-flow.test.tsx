@@ -25,9 +25,11 @@ jest.mock('@/features/payload-cms/hooks/use-user-upload', () => ({
 const texts: ImageSubmissionTexts = {
   introTitle: 'Deine Fotos fürs conveniat27',
   introText: '',
-  introSteps: [{ title: 'Eigene Fotos', text: 'Nur Bilder, die du selbst gemacht hast.' }],
+  introSteps: [
+    { icon: 'camera', title: 'Eigene Fotos', text: 'Nur Bilder, die du selbst gemacht hast.' },
+  ],
   termsLead: 'Mit dem Einreichen erlaubst du conveniat27, deine Bilder zu verwenden.',
-  termsSummary: [{ title: 'Du hast das Foto gemacht', text: '' }],
+  termsSummary: [{ icon: '', title: 'Du hast das Foto gemacht', text: '' }],
   termsFullText: 'Der ganze Text der Bedingungen.',
   photoTips: ['Originalfoto statt Screenshot.'],
   successText: '',
@@ -58,9 +60,11 @@ beforeEach(() => {
 });
 
 it('introduces the upload on the first visit, then asks for the terms before any image', () => {
-  render(<ImageSubmissionFlow texts={texts} />);
+  const { container } = render(<ImageSubmissionFlow texts={texts} />);
 
   expect(screen.getByRole('heading', { name: texts.introTitle })).toBeVisible();
+  // the step shows the icon the editors chose
+  expect(container.querySelector('svg.lucide-camera')).not.toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
 
   expect(screen.getByText('Du hast das Foto gemacht')).toBeVisible();
@@ -124,4 +128,21 @@ it('lists the images handed in so far and withdraws one after asking', async () 
   // the list sits inside the upload form, which must not be sent along
   expect(screen.queryByText('Bitte wähle mindestens ein Bild aus')).toBeNull();
   await waitFor(() => expect(screen.queryByText('Züri 11 beim Znacht am Feuer')).toBeNull());
+});
+
+it('numbers an introduction step without an icon, or with one no longer offered', () => {
+  render(
+    <ImageSubmissionFlow
+      texts={{
+        ...texts,
+        introSteps: [
+          { icon: '', title: 'Eigene Fotos', text: '' },
+          { icon: 'gone', title: 'Kurz beschreiben', text: '' },
+        ],
+      }}
+    />,
+  );
+
+  expect(screen.getByText('1')).toBeVisible();
+  expect(screen.getByText('2')).toBeVisible();
 });

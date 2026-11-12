@@ -8,6 +8,8 @@ import { cacheLife, cacheTag } from 'next/cache';
 import { getPayload } from 'payload';
 
 export interface TitledPoint {
+  /** a value of `CONTENT_ICONS`, or empty for the row's default */
+  icon: string;
   title: string;
   text: string;
 }
@@ -39,7 +41,7 @@ const text = (value: unknown): string => (typeof value === 'string' ? value.trim
 
 const titledPoints = (rows: ImageSubmission['introSteps']): TitledPoint[] =>
   (rows ?? [])
-    .map((row) => ({ title: text(row.title), text: text(row.text) }))
+    .map((row) => ({ icon: text(row.icon), title: text(row.title), text: text(row.text) }))
     .filter((row) => row.title !== '');
 
 /** Drops what an editor left empty, so the page only asks whether a text is there. */
