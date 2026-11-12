@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.57.1](https://github.com/cevi/conveniat-webpage/compare/v1.57.0...v1.57.1) (2026-11-12)
+
+
+### Dependencies
+
+* **deps:** bump mongoose ([725673d](https://github.com/cevi/conveniat-webpage/commit/725673ded3c1b16e329d83c20a5325b1759e059e))
+* **deps:** bump mongoose from 8.24.1 to 8.24.7 in the npm_and_yarn group across 1 directory ([7478175](https://github.com/cevi/conveniat-webpage/commit/747817517b578238151473fb4d388c63e4f13613))
+
 ## [1.57.0](https://github.com/cevi/conveniat-webpage/compare/v1.56.0...v1.57.0) (2026-11-11)
 
 
