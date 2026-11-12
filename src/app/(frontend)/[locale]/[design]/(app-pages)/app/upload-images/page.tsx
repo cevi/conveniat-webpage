@@ -1,3 +1,4 @@
+import { SetHideBackgroundLogo } from '@/components/ui/hide-background-logo-context';
 import { getImageSubmissionTexts } from '@/features/image-submission/api/image-submission-texts';
 import { ImageSubmissionFlow } from '@/features/image-submission/image-submission-flow';
 import type { Locale } from '@/types/types';
@@ -14,6 +15,8 @@ const ImageUploadPage: React.FC<{ params: Promise<{ locale: Locale }> }> = async
 
   return (
     <div className="mx-auto max-w-2xl px-4 pt-4 pb-6">
+      {/* an app screen has no background mark, also when opened in the website design */}
+      <SetHideBackgroundLogo value />
       {/* the build has no database, so the texts are read at runtime */}
       <ForceDynamicOnBuild>
         <ImageSubmission locale={locale} />
