@@ -1,26 +1,5 @@
+import { contentIconOptions } from '@/features/payload-cms/content-icons';
 import type { Block } from 'payload';
-
-/**
- * The icons a fact may carry, by the value stored in the CMS. The renderer maps each to its
- * lucide icon, see `fact-list.tsx`.
- */
-export const FACT_LIST_ICONS = [
-  { value: 'users', label: { de: 'Personen', en: 'People', fr: 'Personnes' } },
-  { value: 'calendar', label: { de: 'Kalender', en: 'Calendar', fr: 'Calendrier' } },
-  { value: 'clock', label: { de: 'Uhrzeit', en: 'Time', fr: 'Heure' } },
-  { value: 'mapPin', label: { de: 'Ort', en: 'Place', fr: 'Lieu' } },
-  { value: 'train', label: { de: 'Zug / ÖV', en: 'Train', fr: 'Train / TP' } },
-  { value: 'car', label: { de: 'Auto', en: 'Car', fr: 'Voiture' } },
-  { value: 'ticket', label: { de: 'Ticket', en: 'Ticket', fr: 'Billet' } },
-  { value: 'wallet', label: { de: 'Kosten', en: 'Costs', fr: 'Coûts' } },
-  { value: 'utensils', label: { de: 'Essen', en: 'Food', fr: 'Repas' } },
-  { value: 'backpack', label: { de: 'Gepäck', en: 'Luggage', fr: 'Bagages' } },
-  { value: 'tent', label: { de: 'Zelt', en: 'Tent', fr: 'Tente' } },
-  { value: 'mail', label: { de: 'E-Mail', en: 'Email', fr: 'E-mail' } },
-  { value: 'phone', label: { de: 'Telefon', en: 'Phone', fr: 'Téléphone' } },
-  { value: 'shield', label: { de: 'Sicherheit', en: 'Safety', fr: 'Sécurité' } },
-  { value: 'info', label: { de: 'Information', en: 'Information', fr: 'Information' } },
-] as const;
 
 /**
  * Facts in one card, each a row behind an icon tile: the rules of an event, what to bring, the
@@ -76,7 +55,7 @@ export const factListBlock: Block = {
               required: true,
               defaultValue: 'info',
               label: { de: 'Icon', en: 'Icon', fr: 'Icône' },
-              options: FACT_LIST_ICONS.map(({ value, label }) => ({ value, label })),
+              options: contentIconOptions,
               admin: { width: '30%' },
             },
             {

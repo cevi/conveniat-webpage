@@ -51,8 +51,10 @@ jest.mock('@/lib/s3', () => {
 
 const find = jest.fn();
 const create = jest.fn();
+const findByID = jest.fn();
+const update = jest.fn();
 jest.mock('payload', () => ({
-  getPayload: jest.fn(() => Promise.resolve({ find, create })),
+  getPayload: jest.fn(() => Promise.resolve({ find, create, findByID, update })),
 }));
 
 import { uploadRouter } from '@/features/payload-cms/api/upload-router';
@@ -198,4 +200,90 @@ describe('completing an upload', () => {
       expect(send).not.toHaveBeenCalled();
     },
   );
+});
+
+describe('my submitted images', () => {
+  it('lists only the caller’s images that are not withdrawn, newest first', async () => {
+    find.mockResolvedValue({
+      docs: [
+        {
+          id: 'img-1',
+          user_description: 'Züri 11 beim Znacht',
+          createdAt: '2027-07-25T18:42:00.000Z',
+          sizes: { tiny: { url: '/api/userSubmittedImages/file/img-1-140x140.webp' } },
+        },
+      ],
+    });
+
+    await expect(as(ANNA).getOwnSubmittedImageList()).resolves.toEqual([
+      {
+        id: 'img-1',
+        description: 'Züri 11 beim Znacht',
+        submittedAt: '2027-07-25T18:42:00.000Z',
+        thumbnailUrl: '/api/userSubmittedImages/file/img-1-140x140.webp',
+      },
+    ]);
+    expect(find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { uploaded_by: { equals: ANNA }, withdrawn_at: { exists: false } },
+        sort: '-createdAt',
+      }),
+    );
+  });
+
+  it('withdraws one of them by setting the date, and keeps the image', async () => {
+    findByID.mockResolvedValue({ id: 'img-1', uploaded_by: ANNA, withdrawn_at: null });
+
+    await expect(as(ANNA).withdrawSubmittedImage({ id: 'img-1' })).resolves.toEqual({
+      withdrawn: true,
+    });
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'userSubmittedImages',
+        id: 'img-1',
+        data: { withdrawn_at: expect.any(String) as unknown },
+      }),
+    );
+  });
+
+  it('changes nothing for an image withdrawn already or deleted since, as a stale list offers', async () => {
+    findByID.mockResolvedValueOnce({
+      id: 'img-1',
+      uploaded_by: ANNA,
+      withdrawn_at: '2027-07-26T08:00:00.000Z',
+    });
+    await expect(as(ANNA).withdrawSubmittedImage({ id: 'img-1' })).resolves.toEqual({
+      withdrawn: true,
+    });
+
+    findByID.mockResolvedValueOnce(null);
+    await expect(as(ANNA).withdrawSubmittedImage({ id: 'gone' })).resolves.toEqual({
+      withdrawn: true,
+    });
+
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('refuses to withdraw somebody else’s image', async () => {
+    findByID.mockResolvedValue({ id: 'img-2', uploaded_by: BEAT, withdrawn_at: null });
+
+    await expect(as(ANNA).withdrawSubmittedImage({ id: 'img-2' })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe('a withdrawn image', () => {
+  it('does not count as a duplicate, so it can be submitted again', async () => {
+    storeUpload(await photo(1920, 1080));
+
+    await as(ANNA).completeUserUpload(completeInput(`temp/${ANNA}/0190a5b2.jpg`));
+
+    expect(find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ withdrawn_at: { exists: false } }) as unknown,
+      }),
+    );
+  });
 });

@@ -10,4 +10,9 @@ export const uploadErrorTexts = {
     en: 'You have just uploaded a lot of images. Please try again in a few minutes.',
     fr: "Tu viens de téléverser beaucoup d'images. Réessaie dans quelques minutes.",
   },
+  tooManyRequests: {
+    de: 'Das waren gerade sehr viele Anfragen. Versuche es in ein paar Minuten nochmals.',
+    en: 'That was a lot of requests just now. Please try again in a few minutes.',
+    fr: "C'étaient beaucoup de demandes d'un coup. Réessaie dans quelques minutes.",
+  },
 } satisfies Record<string, StaticTranslationString>;

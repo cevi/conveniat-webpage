@@ -209,6 +209,7 @@ export interface Config {
     SEO: SEO;
     'donation-barometer': DonationBarometer;
     'app-landing-page': AppLandingPage;
+    'image-submission': ImageSubmission;
     'alert-management': AlertManagement;
     alert_settings: AlertSetting;
     'all-chats-management': AllChatsManagement;
@@ -229,6 +230,7 @@ export interface Config {
     SEO: SEOSelect<false> | SEOSelect<true>;
     'donation-barometer': DonationBarometerSelect<false> | DonationBarometerSelect<true>;
     'app-landing-page': AppLandingPageSelect<false> | AppLandingPageSelect<true>;
+    'image-submission': ImageSubmissionSelect<false> | ImageSubmissionSelect<true>;
     'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
     alert_settings: AlertSettingsSelect<false> | AlertSettingsSelect<true>;
     'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
@@ -1367,7 +1369,14 @@ export interface FactListBlock {
       | 'mail'
       | 'phone'
       | 'shield'
-      | 'info';
+      | 'info'
+      | 'camera'
+      | 'image'
+      | 'size'
+      | 'pencil'
+      | 'check'
+      | 'globe'
+      | 'heart';
     /**
      * Short, e.g. "Public transport only".
      */
@@ -4077,6 +4086,10 @@ export interface UserSubmittedImage {
   original_filename?: string | null;
   user_description: string;
   content_hash?: string | null;
+  /**
+   * Set when the person who submitted the image withdrew it in the app. Do not use the image any more, and remove it where it is already published.
+   */
+  withdrawn_at?: string | null;
   lastEditedByUser?: (string | null) | User;
   _objectKey?: string | null;
   updatedAt: string;
@@ -7127,6 +7140,7 @@ export interface UserSubmittedImagesSelect<T extends boolean = true> {
   original_filename?: T;
   user_description?: T;
   content_hash?: T;
+  withdrawn_at?: T;
   lastEditedByUser?: T;
   _objectKey?: T;
   updatedAt?: T;
@@ -9607,6 +9621,118 @@ export interface AppLandingPage {
   createdAt?: string | null;
 }
 /**
+ * The texts of the image upload in the app. Without terms the upload stays closed. French and English fall back to German.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "image-submission".
+ */
+export interface ImageSubmission {
+  id: string;
+  introTitle?: string | null;
+  introText?: string | null;
+  /**
+   * In this order, e.g. "Own photos", "Good quality", "Describe briefly".
+   */
+  introSteps?:
+    | {
+        /**
+         * Empty: the step number.
+         */
+        icon?:
+          | (
+              | 'users'
+              | 'calendar'
+              | 'clock'
+              | 'mapPin'
+              | 'train'
+              | 'car'
+              | 'ticket'
+              | 'wallet'
+              | 'utensils'
+              | 'backpack'
+              | 'tent'
+              | 'mail'
+              | 'phone'
+              | 'shield'
+              | 'info'
+              | 'camera'
+              | 'image'
+              | 'size'
+              | 'pencil'
+              | 'check'
+              | 'globe'
+              | 'heart'
+            )
+          | null;
+        title: string;
+        text?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * One sentence over the summary, e.g. "By submitting, you allow conveniat27 to use your images."
+   */
+  termsLead?: string | null;
+  /**
+   * The terms in plain words, one point each.
+   */
+  termsSummary?:
+    | {
+        /**
+         * Empty: a check mark.
+         */
+        icon?:
+          | (
+              | 'users'
+              | 'calendar'
+              | 'clock'
+              | 'mapPin'
+              | 'train'
+              | 'car'
+              | 'ticket'
+              | 'wallet'
+              | 'utensils'
+              | 'backpack'
+              | 'tent'
+              | 'mail'
+              | 'phone'
+              | 'shield'
+              | 'info'
+              | 'camera'
+              | 'image'
+              | 'size'
+              | 'pencil'
+              | 'check'
+              | 'globe'
+              | 'heart'
+            )
+          | null;
+        title: string;
+        text?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Readable behind "Read the full terms" and from the upload page. Empty lines separate paragraphs.
+   */
+  termsFullText?: string | null;
+  /**
+   * Shown under the image picker, e.g. "The original photo, not a screenshot."
+   */
+  photoTips?:
+    | {
+        text: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * What happens next, and whom to contact to withdraw an image.
+   */
+  successText?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "alert-management".
  */
@@ -10462,6 +10588,42 @@ export interface AppLandingPageSelect<T extends boolean = true> {
   showActionCards?: T;
   defaultQuickAccessTiles?: T;
   _status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "image-submission_select".
+ */
+export interface ImageSubmissionSelect<T extends boolean = true> {
+  introTitle?: T;
+  introText?: T;
+  introSteps?:
+    | T
+    | {
+        icon?: T;
+        title?: T;
+        text?: T;
+        id?: T;
+      };
+  termsLead?: T;
+  termsSummary?:
+    | T
+    | {
+        icon?: T;
+        title?: T;
+        text?: T;
+        id?: T;
+      };
+  termsFullText?: T;
+  photoTips?:
+    | T
+    | {
+        text?: T;
+        id?: T;
+      };
+  successText?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

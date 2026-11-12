@@ -29,6 +29,7 @@ import {
   seedRandomUserRegistrations,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hoefe';
 import { seedHofDashboard } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hof-dashboard';
+import { seedImageSubmission } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-image-submission';
 import { seedJobs } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-jobs';
 import { seedQuartiere } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-quartiere';
 import { seedStory } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-story';
@@ -575,6 +576,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   });
 
   await seedAlertSettings(payload);
+  await seedImageSubmission(payload);
 
   console.log('Seeding: Generic pages created.');
 
