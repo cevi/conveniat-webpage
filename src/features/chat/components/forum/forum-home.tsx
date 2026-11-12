@@ -19,7 +19,7 @@ import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight, Loader2, Lock, MessageCircleQuestion, Plus } from 'lucide-react';
+import { ChevronRight, Info, Loader2, Lock, MessageCircleQuestion, Plus } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
 import { useState } from 'react';
@@ -29,7 +29,10 @@ import { useState } from 'react';
  * topics, each with who answers there (its Kernteam) and how much is open, and the pinned posts
  * of all topics. A topic opens its feed. The search looks through every topic.
  */
-export const ForumHome: React.FC = () => {
+export const ForumHome: React.FC<{
+  /** opens the forum's intro again; absent while editors wrote none */
+  onShowIntro?: (() => void) | undefined;
+}> = ({ onShowIntro }) => {
   const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const [search, setSearch] = useState('');
@@ -63,6 +66,17 @@ export const ForumHome: React.FC = () => {
     <div className="bg-page min-h-dvh pb-28">
       <SetHeaderActions>
         <ZentraleLink counts={settings.data?.zentrale ?? null} locale={locale} />
+        {onShowIntro !== undefined && (
+          <button
+            type="button"
+            onClick={onShowIntro}
+            aria-label={forumText.howItWorks[locale]}
+            title={forumText.howItWorks[locale]}
+            className="focus-visible:focus-surface hover:bg-quiet flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-green-700"
+          >
+            <Info className="h-5 w-5" aria-hidden="true" />
+          </button>
+        )}
       </SetHeaderActions>
       <OfflineBanner locale={locale} />
       <div className="mx-auto flex max-w-2xl flex-col gap-3 px-4 pt-3">

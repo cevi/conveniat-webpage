@@ -14,11 +14,17 @@ import {
   type ForumFilters,
 } from '@/features/chat/components/forum/forum-filter-sheet';
 import { ForumHome } from '@/features/chat/components/forum/forum-home';
+import {
+  FORUM_INTRO_STORAGE_KEY,
+  ForumIntro,
+  hasForumIntro,
+} from '@/features/chat/components/forum/forum-intro';
 import { ForumPostRow } from '@/features/chat/components/forum/forum-post-row';
 import { forumText } from '@/features/chat/components/forum/forum-texts';
 import { TopicCard, TopicSettingsSheet } from '@/features/chat/components/forum/forum-topic-parts';
 import { ZentraleLink } from '@/features/chat/components/forum/zentrale-link';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { useIntroSeen } from '@/hooks/use-intro-seen';
 import { FORUM_POST_KINDS, forumKindLabel, type ForumPostKindValue } from '@/lib/forum-shared';
 import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
@@ -136,8 +142,44 @@ const FeedEmpty: React.FC<{
  * for both, so the app shell precaches one route for the forum.
  */
 export const ForumOverview: React.FC = () => {
+  const trpc = useTRPC();
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const topicId = useSearchParams().get('topic') ?? undefined;
-  return topicId === undefined ? <ForumHome /> : <ForumTopicFeed key={topicId} topicId={topicId} />;
+  const intro = useQuery(trpc.forum.getForumIntro.queryOptions({}));
+  const { introSeen, markIntroSeen } = useIntroSeen(FORUM_INTRO_STORAGE_KEY);
+  const [introAsked, setIntroAsked] = useState(false);
+
+  // the first visit on this device waits for the intro rather than flashing the forum first;
+  // without one written, or while offline without a cached one, the forum opens as it is
+  if (introSeen === false && intro.isPending) {
+    return (
+      <div className="bg-page flex min-h-dvh justify-center pt-24">
+        <Loader2 className="h-6 w-6 animate-spin text-green-700" aria-hidden="true" />
+      </div>
+    );
+  }
+  if (hasForumIntro(intro.data) && (introAsked || introSeen === false)) {
+    return (
+      <>
+        <SetHeaderActions />
+        <ForumIntro
+          intro={intro.data}
+          locale={locale}
+          onContinue={() => {
+            markIntroSeen();
+            setIntroAsked(false);
+            globalThis.scrollTo({ top: 0 });
+          }}
+        />
+      </>
+    );
+  }
+  const showIntro = hasForumIntro(intro.data) ? (): void => setIntroAsked(true) : undefined;
+  return topicId === undefined ? (
+    <ForumHome onShowIntro={showIntro} />
+  ) : (
+    <ForumTopicFeed key={topicId} topicId={topicId} />
+  );
 };
 
 /** The kinds a topic's feed narrows to, "Alle" first. */

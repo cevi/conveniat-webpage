@@ -210,6 +210,7 @@ export interface Config {
     'donation-barometer': DonationBarometer;
     'app-landing-page': AppLandingPage;
     'image-submission': ImageSubmission;
+    'forum-intro': ForumIntro;
     'alert-management': AlertManagement;
     alert_settings: AlertSetting;
     'all-chats-management': AllChatsManagement;
@@ -231,6 +232,7 @@ export interface Config {
     'donation-barometer': DonationBarometerSelect<false> | DonationBarometerSelect<true>;
     'app-landing-page': AppLandingPageSelect<false> | AppLandingPageSelect<true>;
     'image-submission': ImageSubmissionSelect<false> | ImageSubmissionSelect<true>;
+    'forum-intro': ForumIntroSelect<false> | ForumIntroSelect<true>;
     'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
     alert_settings: AlertSettingsSelect<false> | AlertSettingsSelect<true>;
     'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
@@ -1376,7 +1378,12 @@ export interface FactListBlock {
       | 'pencil'
       | 'check'
       | 'globe'
-      | 'heart';
+      | 'heart'
+      | 'message'
+      | 'search'
+      | 'lock'
+      | 'flag'
+      | 'siren';
     /**
      * Short, e.g. "Public transport only".
      */
@@ -9698,6 +9705,11 @@ export interface ImageSubmission {
               | 'check'
               | 'globe'
               | 'heart'
+              | 'message'
+              | 'search'
+              | 'lock'
+              | 'flag'
+              | 'siren'
             )
           | null;
         title: string;
@@ -9741,6 +9753,11 @@ export interface ImageSubmission {
               | 'check'
               | 'globe'
               | 'heart'
+              | 'message'
+              | 'search'
+              | 'lock'
+              | 'flag'
+              | 'siren'
             )
           | null;
         title: string;
@@ -9765,6 +9782,66 @@ export interface ImageSubmission {
    * What happens next, and whom to contact to withdraw an image.
    */
   successText?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Shown once on each device when someone opens the forum for the first time, and again from "How it works" in the forum. Leave the title empty to skip it. French and English fall back to German.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "forum-intro".
+ */
+export interface ForumIntro {
+  id: string;
+  /**
+   * e.g. "Ask the camp"
+   */
+  title?: string | null;
+  text?: string | null;
+  /**
+   * In this order, e.g. "Topics with a core team", "Search first", "Public or private", "Stay fair", "Emergency?". The emergency icon shows in red.
+   */
+  points?:
+    | {
+        /**
+         * Empty: a speech bubble.
+         */
+        icon?:
+          | (
+              | 'users'
+              | 'calendar'
+              | 'clock'
+              | 'mapPin'
+              | 'train'
+              | 'car'
+              | 'ticket'
+              | 'wallet'
+              | 'utensils'
+              | 'backpack'
+              | 'tent'
+              | 'mail'
+              | 'phone'
+              | 'shield'
+              | 'info'
+              | 'camera'
+              | 'image'
+              | 'size'
+              | 'pencil'
+              | 'check'
+              | 'globe'
+              | 'heart'
+              | 'message'
+              | 'search'
+              | 'lock'
+              | 'flag'
+              | 'siren'
+            )
+          | null;
+        title: string;
+        text?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -10660,6 +10737,25 @@ export interface ImageSubmissionSelect<T extends boolean = true> {
         id?: T;
       };
   successText?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "forum-intro_select".
+ */
+export interface ForumIntroSelect<T extends boolean = true> {
+  title?: T;
+  text?: T;
+  points?:
+    | T
+    | {
+        icon?: T;
+        title?: T;
+        text?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

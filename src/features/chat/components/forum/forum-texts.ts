@@ -396,6 +396,8 @@ export const forumText = {
   openCount: { de: '{n} offen', en: '{n} open', fr: '{n} ouverts' },
   closedConversation: { de: 'Geschlossen', en: 'Closed', fr: 'Fermée' },
   todo: { de: 'Zu tun', en: 'To do', fr: 'À faire' },
+  introContinue: { de: 'Los geht’s', en: 'Let’s go', fr: 'C’est parti' },
+  howItWorks: { de: 'So funktioniert’s', en: 'How it works', fr: 'Comment ça marche' },
   protocol: { de: 'Protokoll', en: 'Protocol', fr: 'Protocole' },
   topicSettings: { de: 'Einstellungen des Themas', en: 'Topic settings', fr: 'Réglages du thème' },
   conversationPush: {

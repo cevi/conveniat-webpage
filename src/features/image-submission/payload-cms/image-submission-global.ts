@@ -1,58 +1,12 @@
-import { contentIconOptions } from '@/features/payload-cms/content-icons';
 import {
   hasAdminOrWebAccess,
   shouldHideInAdminPanel,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { titledPointsField as titledPoints } from '@/features/payload-cms/payload-cms/shared-fields/titled-points-field';
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
-import type { StaticTranslationString } from '@/types/types';
 import { revalidateTag } from 'next/cache';
-import type { Field, GlobalAfterChangeHook, GlobalConfig } from 'payload';
-
-/** A row of a short list: an icon, a bold title and a line under it. */
-const titledPoints = (
-  name: string,
-  label: StaticTranslationString,
-  description: StaticTranslationString,
-  withoutIcon: StaticTranslationString,
-): Field => ({
-  name,
-  type: 'array',
-  localized: true,
-  maxRows: 5,
-  label,
-  labels: {
-    singular: { en: 'Point', de: 'Punkt', fr: 'Point' },
-    plural: { en: 'Points', de: 'Punkte', fr: 'Points' },
-  },
-  admin: { description, initCollapsed: false },
-  fields: [
-    {
-      type: 'row',
-      fields: [
-        {
-          name: 'icon',
-          type: 'select',
-          label: { en: 'Icon', de: 'Icon', fr: 'Icône' },
-          options: contentIconOptions,
-          admin: { width: '30%', description: withoutIcon },
-        },
-        {
-          name: 'title',
-          type: 'text',
-          required: true,
-          label: { en: 'Title', de: 'Titel', fr: 'Titre' },
-          admin: { width: '70%' },
-        },
-      ],
-    },
-    {
-      name: 'text',
-      type: 'textarea',
-      label: { en: 'Text', de: 'Text', fr: 'Texte' },
-    },
-  ],
-});
+import type { GlobalAfterChangeHook, GlobalConfig } from 'payload';
 
 /**
  * Expires the cached texts at once instead of serving them stale one more time. An upload is

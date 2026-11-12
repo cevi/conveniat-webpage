@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import type { ForumConversationSummary } from '@/features/chat/api/forum/forum-conversations';
+import type { ForumIntroTexts } from '@/features/chat/api/forum/forum-intro';
 import type { ForumTopic } from '@/features/chat/api/forum/forum-queries';
 import { DEFAULT_FORUM_FILTERS } from '@/features/chat/components/forum/forum-filter-sheet';
 import { ForumOverview } from '@/features/chat/components/forum/forum-overview';
@@ -15,6 +16,7 @@ let settings: object;
 let conversations: ForumConversationSummary[];
 let pinnedPosts: ForumPostSummary[];
 let feedPosts: ForumPostSummary[];
+let intro: ForumIntroTexts;
 let address = '';
 
 jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
@@ -76,6 +78,7 @@ const renderForum = (): { calls: { path: string; input: unknown }[] } => {
     // topics that are not loaded yet stay on their way
     'forum.getForumTopicList': () => topics ?? new Promise(() => {}),
     'forum.getForumSettings': () => settings,
+    'forum.getForumIntro': () => intro,
     'forum.getForumConversationList': () => conversations,
     'forum.getForumPinnedPostList': () => pinnedPosts,
     'forum.getForumPostList': (input) =>
@@ -94,6 +97,7 @@ const renderForum = (): { calls: { path: string; input: unknown }[] } => {
     queryClient.setQueryData(trpc.forum.getForumTopicList.queryKey({}), topics);
   }
   queryClient.setQueryData(trpc.forum.getForumSettings.queryKey({}), settings as never);
+  queryClient.setQueryData(trpc.forum.getForumIntro.queryKey({}), intro);
   queryClient.setQueryData(trpc.forum.getForumConversationList.queryKey({}), conversations);
   const topicId = new URLSearchParams(address).get('topic');
   if (topicId === null) {
@@ -126,6 +130,8 @@ const filters = (): string[] => {
 };
 
 beforeEach(() => {
+  localStorage.clear();
+  intro = { title: '', text: '', points: [] };
   address = '';
   topics = [topic()];
   conversations = [];
@@ -390,5 +396,47 @@ describe('the feed of a topic', () => {
     expect(within(open).queryByText('Es riecht.')).toBeNull();
     const working = screen.getByRole('link', { name: /Strom fällt aus/ });
     expect(within(working).getByText('In Arbeit')).toBeTruthy();
+  });
+});
+
+describe('the intro of the forum', () => {
+  const written: ForumIntroTexts = {
+    title: 'Frag das Lager',
+    text: 'Die Ressorts antworten.',
+    points: [
+      { icon: 'search', title: 'Erst suchen, dann schreiben', text: '' },
+      { icon: 'siren', title: 'Notfall?', text: 'Nicht ins Forum, sondern in den Notfall-Tab.' },
+    ],
+  };
+
+  it("greets a first visit on this device with the editors' intro instead of the forum", () => {
+    intro = written;
+    renderForum();
+    expect(screen.getByRole('heading', { name: 'Frag das Lager' })).toBeTruthy();
+    expect(screen.getByText('Erst suchen, dann schreiben')).toBeTruthy();
+    expect(screen.queryByText('Platz & Infrastruktur')).toBeNull();
+  });
+
+  it('opens the forum after "Los geht\u2019s" and does not greet again on this device', () => {
+    intro = written;
+    renderForum();
+    fireEvent.click(screen.getByRole('button', { name: 'Los geht\u2019s' }));
+    expect(screen.getByText('Platz & Infrastruktur')).toBeTruthy();
+    expect(localStorage.getItem('forum-intro-seen')).toBe('1');
+  });
+
+  it('shows it again from "So funktioniert\u2019s"', () => {
+    intro = written;
+    localStorage.setItem('forum-intro-seen', '1');
+    renderForum();
+    expect(screen.queryByRole('heading', { name: 'Frag das Lager' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'So funktioniert\u2019s' }));
+    expect(screen.getByRole('heading', { name: 'Frag das Lager' })).toBeTruthy();
+  });
+
+  it('opens the forum straight away while editors wrote none, without a way to it', () => {
+    renderForum();
+    expect(screen.getByText('Platz & Infrastruktur')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'So funktioniert\u2019s' })).toBeNull();
   });
 });

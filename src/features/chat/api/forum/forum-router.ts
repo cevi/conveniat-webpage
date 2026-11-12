@@ -2,6 +2,7 @@ import {
   getForumConversationList,
   openForumConversation,
 } from '@/features/chat/api/forum/forum-conversations';
+import { getForumIntro } from '@/features/chat/api/forum/forum-intro';
 import { registerForumWaitingGauges } from '@/features/chat/api/forum/forum-metrics';
 import {
   createForumFlag,
@@ -55,6 +56,7 @@ import { createTRPCRouter } from '@/trpc/init';
 registerForumWaitingGauges();
 
 export const forumRouter = createTRPCRouter({
+  getForumIntro,
   getForumTopicList,
   getForumPostList,
   getForumPinnedPostList,
