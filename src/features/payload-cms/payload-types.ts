@@ -9370,7 +9370,7 @@ export interface DonationBarometer {
   createdAt?: string | null;
 }
 /**
- * Configure the app dashboard landing page: title, welcome content, and action card visibility.
+ * Configure the app dashboard landing page: title, welcome content, and the action cards with their default selection.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "app-landing-page".
@@ -9582,6 +9582,26 @@ export interface AppLandingPage {
    * When enabled, the action cards (quick links to app features) are shown on the dashboard.
    */
   showActionCards?: boolean | null;
+  /**
+   * The cards and their order for everybody who has not arranged their own, and for guests. Drag a card to change the order. Whoever cannot use a card does not see it: participants, for example, see no wristbands. Whoever has arranged their own keeps it.
+   */
+  defaultQuickAccessTiles?:
+    | (
+        | 'upload'
+        | 'qr'
+        | 'material'
+        | 'wristbands'
+        | 'support'
+        | 'schedule'
+        | 'map'
+        | 'chat'
+        | 'helperShifts'
+        | 'photoContest'
+        | 'story'
+        | 'challenges'
+        | 'settings'
+      )[]
+    | null;
   _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
@@ -10436,6 +10456,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
         tabsBlock?: T | TabsBlockSelect<T>;
       };
   showActionCards?: T;
+  defaultQuickAccessTiles?: T;
   _status?: T;
   updatedAt?: T;
   createdAt?: T;

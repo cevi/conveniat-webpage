@@ -2,6 +2,8 @@
 import { DashboardQuickAccess } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-quick-access';
 import { QuickAccessSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
 import type { QuickAccessFlags } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/utils/quick-access-tiles';
+import type { QuickAccessTileId } from '@/features/settings/quick-access';
+import { defaultQuickAccessOf } from '@/features/settings/quick-access';
 import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import type React from 'react';
@@ -31,7 +33,8 @@ const quickAccessFlagsOf = (
 
 /**
  * Schnellzugriff of the dashboard. The CMS switch "Aktionskarten anzeigen" decides whether it is
- * shown, and its feature flags which tiles it has.
+ * shown, its "Standardauswahl" which tiles in what order a user starts with, and its feature
+ * flags which tiles it has.
  *
  * The data is fetched client side through the persisted react-query cache:
  * when navigating back to the dashboard the previously loaded content is
@@ -77,6 +80,8 @@ export const DashboardLandingSection: React.FC<{
     <DashboardLanding
       locale={locale}
       showActionCards={dashboardConfig.showActionCards}
+      // read defensively: a configuration cached before the default existed has none
+      defaultTiles={defaultQuickAccessOf(dashboardConfig.defaultQuickAccess)}
       flags={quickAccessFlagsOf(
         dashboardConfig.featureFlags,
         materialEnabled,
@@ -98,12 +103,21 @@ export const DashboardLandingSection: React.FC<{
 export const DashboardLanding: React.FC<{
   locale: Locale;
   showActionCards: boolean;
+  defaultTiles: readonly QuickAccessTileId[];
   flags: QuickAccessFlags;
   supportEmail: string;
   /** the CMS preview, which shows the default Schnellzugriff and not the editor's own */
   isPreview?: boolean;
   children?: React.ReactNode;
-}> = ({ locale, showActionCards, flags, supportEmail, isPreview = false, children }) => (
+}> = ({
+  locale,
+  showActionCards,
+  defaultTiles,
+  flags,
+  supportEmail,
+  isPreview = false,
+  children,
+}) => (
   <>
     {children}
     {showActionCards && (
@@ -111,6 +125,7 @@ export const DashboardLanding: React.FC<{
         locale={locale}
         supportEmail={supportEmail}
         flags={flags}
+        defaultTiles={defaultTiles}
         isPreview={isPreview}
       />
     )}

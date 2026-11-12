@@ -11,6 +11,7 @@ import {
 import { PageSectionsConverter } from '@/features/payload-cms/converters/page-sections';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import { resolvePreviewAccess } from '@/features/payload-cms/utils/preview/preview-utils';
+import { defaultQuickAccessOf } from '@/features/settings/quick-access';
 import type { Locale, SearchParameters } from '@/types/types';
 import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import { notFound } from 'next/navigation';
@@ -21,8 +22,8 @@ export const instant = false;
 
 /**
  * The live preview of the App Landing Page global: Home as the app shows it, with the draft's
- * title, welcome content and Schnellzugriff, the latter with the default tiles everybody starts
- * with. The greeting and "Jetzt" are the editor's own, as on the real dashboard. The proxy renders this route in the app's design.
+ * title, welcome content and Schnellzugriff, the latter with the draft's default tiles everybody
+ * starts with. The greeting and "Jetzt" are the editor's own, as on the real dashboard. The proxy renders this route in the app's design.
  */
 const DashboardPreview: React.FC<{
   params: Promise<{ locale: Locale }>;
@@ -54,6 +55,8 @@ const DashboardPreview: React.FC<{
         <DashboardLanding
           locale={locale}
           showActionCards={landingPage.showActionCards ?? false}
+          // a draft skips validation and may have no tiles at all
+          defaultTiles={defaultQuickAccessOf(landingPage.defaultQuickAccessTiles)}
           flags={{
             imageUploadEnabled: featureFlags.imageUploadEnabled !== false,
             helperShiftsEnabled: featureFlags.helperShiftsEnabled !== false,

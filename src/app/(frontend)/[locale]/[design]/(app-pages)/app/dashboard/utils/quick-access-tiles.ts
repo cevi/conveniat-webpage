@@ -1,4 +1,5 @@
 import type { QuickAccessTileId } from '@/features/settings/quick-access';
+import { QUICK_ACCESS_TILE_LABELS } from '@/features/settings/quick-access';
 import type { StaticTranslationString } from '@/types/types';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -52,7 +53,7 @@ export const QUICK_ACCESS_TILES = [
     id: 'upload',
     href: '/app/upload-images',
     icon: ImageUp,
-    label: { de: 'Bilder hochladen', en: 'Upload pictures', fr: 'Envoyer des photos' },
+    label: QUICK_ACCESS_TILE_LABELS.upload,
     needsAccount: true,
     flag: 'imageUploadEnabled',
   },
@@ -61,14 +62,14 @@ export const QUICK_ACCESS_TILES = [
     // the chat opens its QR sheet for this parameter
     href: '/app/chat?qr=mine',
     icon: QrCode,
-    label: { de: 'Mein QR-Code', en: 'My QR code', fr: 'Mon code QR' },
+    label: QUICK_ACCESS_TILE_LABELS.qr,
     needsAccount: true,
   },
   {
     id: 'material',
     href: '/app/material',
     icon: Package,
-    label: { de: 'Materialdepot', en: 'Material depot', fr: 'Dépôt de matériel' },
+    label: QUICK_ACCESS_TILE_LABELS.material,
     needsAccount: true,
     flag: 'materialEnabled',
   },
@@ -76,52 +77,52 @@ export const QUICK_ACCESS_TILES = [
     id: 'wristbands',
     href: '/app/wristbands',
     icon: Nfc,
-    label: { de: 'Armbänder', en: 'Wristbands', fr: 'Bracelets' },
+    label: QUICK_ACCESS_TILE_LABELS.wristbands,
     needsAccount: true,
     flag: 'wristbandsEnabled',
   },
   {
     id: 'support',
     icon: LifeBuoy,
-    label: { de: 'Hilfe & Support', en: 'Help & support', fr: 'Aide & support' },
+    label: QUICK_ACCESS_TILE_LABELS.support,
   },
   {
     id: 'schedule',
     href: '/app/schedule',
     icon: Calendar,
-    label: { de: 'Programm', en: 'Program', fr: 'Programme' },
+    label: QUICK_ACCESS_TILE_LABELS.schedule,
   },
   {
     id: 'map',
     href: '/app/map',
     icon: MapIcon,
-    label: { de: 'Karte', en: 'Map', fr: 'Carte' },
+    label: QUICK_ACCESS_TILE_LABELS.map,
   },
   {
     id: 'chat',
     href: '/app/chat',
     icon: MessageSquare,
-    label: { de: 'Chats', en: 'Chats', fr: 'Chats' },
+    label: QUICK_ACCESS_TILE_LABELS.chat,
   },
   {
     id: 'helperShifts',
     href: '/app/helper-portal',
     icon: CalendarCheck2,
-    label: { de: 'Schichteinsätze', en: 'Helper shifts', fr: 'Services de helpers' },
+    label: QUICK_ACCESS_TILE_LABELS.helperShifts,
     flag: 'helperShiftsEnabled',
   },
   {
     id: 'photoContest',
     href: '/app/photo-contest',
     icon: Trophy,
-    label: { de: 'Foto-Wettbewerb', en: 'Photo contest', fr: 'Concours photo' },
+    label: QUICK_ACCESS_TILE_LABELS.photoContest,
     flag: 'photoContestEnabled',
   },
   {
     id: 'story',
     href: '/app/story',
     icon: BookOpen,
-    label: { de: 'Story', en: 'Story', fr: 'Histoire' },
+    label: QUICK_ACCESS_TILE_LABELS.story,
     needsAccount: true,
     flag: 'storyEnabled',
   },
@@ -129,7 +130,7 @@ export const QUICK_ACCESS_TILES = [
     id: 'challenges',
     href: '/app/challenges',
     icon: Swords,
-    label: { de: 'Challenges', en: 'Challenges', fr: 'Défis' },
+    label: QUICK_ACCESS_TILE_LABELS.challenges,
     needsAccount: true,
     flag: 'storyEnabled',
   },
@@ -137,7 +138,7 @@ export const QUICK_ACCESS_TILES = [
     id: 'settings',
     href: '/app/settings',
     icon: Settings,
-    label: { de: 'Einstellungen', en: 'Settings', fr: 'Paramètres' },
+    label: QUICK_ACCESS_TILE_LABELS.settings,
   },
 ] as const satisfies readonly QuickAccessTile[];
 

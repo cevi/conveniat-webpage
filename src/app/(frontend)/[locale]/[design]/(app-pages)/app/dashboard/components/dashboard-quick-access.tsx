@@ -60,16 +60,19 @@ const TileContent: React.FC<{ icon: LucideIcon; label: string }> = ({ icon, labe
 /**
  * "Schnellzugriff" on Home: the few things somebody reaches for during the camp, as tiles. A
  * signed-in user chooses which and in what order for their account, see `useChosenQuickAccess`;
- * a tile whose feature is off stays hidden but keeps its place. A guest gets the default and the
- * way to log in first, and the preview of the landing page the default without the button.
+ * a tile whose feature is off stays hidden but keeps its place. Everybody else gets the default
+ * the CMS configures: a guest with the way to log in first, the preview of the landing page
+ * without the button.
  */
 export const DashboardQuickAccess: React.FC<{
   locale: Locale;
   flags: QuickAccessFlags;
+  /** the tiles and their order for whoever has no choice of their own */
+  defaultTiles: readonly QuickAccessTileId[];
   supportEmail: string;
   /** the CMS preview: shows what everybody starts with, not the editor's own choice */
   isPreview?: boolean;
-}> = ({ locale, flags, supportEmail, isPreview = false }) => {
+}> = ({ locale, flags, defaultTiles, supportEmail, isPreview = false }) => {
   const { data: session } = useSession();
   const status = useAuthStatus();
   const parsedUser = HitobitoNextAuthUserSchema.safeParse(session?.user);
@@ -77,8 +80,10 @@ export const DashboardQuickAccess: React.FC<{
   const isGuest = user === undefined;
   const isCustomizable = !isGuest && !isPreview;
 
-  const { chosen, isLoading, isCustomized, saveFailed, setChosen } =
-    useChosenQuickAccess(isCustomizable);
+  const { chosen, isLoading, isCustomized, saveFailed, setChosen } = useChosenQuickAccess(
+    isCustomizable,
+    defaultTiles,
+  );
   const [isEditing, setIsEditing] = useState(false);
   const customizeButton = useRef<HTMLButtonElement>(null);
   const wristbands = useWristbandAccess(flags.wristbandsEnabled);
@@ -169,6 +174,7 @@ export const DashboardQuickAccess: React.FC<{
           chosen={chosen}
           shown={shown}
           available={available}
+          defaultTiles={defaultTiles}
           isCustomized={isCustomized}
           saveFailed={saveFailed}
           onChange={setChosen}
