@@ -1,7 +1,6 @@
 import { getPendingCall as readPendingCall } from '@/features/chat/api/utils/pending-call';
 import type { CallSignal } from '@/lib/chat-call-signal';
-import { getFeatureFlag } from '@/lib/db/redis';
-import { FEATURE_FLAG_VOICE_CALLS_ENABLED } from '@/lib/feature-flags';
+import { readFeatureFlag } from '@/lib/read-feature-flags';
 import { trpcBaseProcedure } from '@/trpc/init';
 
 /**
@@ -10,7 +9,7 @@ import { trpcBaseProcedure } from '@/trpc/init';
  */
 export const getPendingCall = trpcBaseProcedure.query(
   async ({ ctx }): Promise<CallSignal | null> => {
-    if (!(await getFeatureFlag(FEATURE_FLAG_VOICE_CALLS_ENABLED))) return null;
+    if (!(await readFeatureFlag('voiceCallsEnabled'))) return null;
     return readPendingCall(ctx.user.uuid);
   },
 );

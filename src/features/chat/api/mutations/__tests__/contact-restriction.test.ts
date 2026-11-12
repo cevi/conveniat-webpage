@@ -5,9 +5,9 @@ import { TRPCError } from '@trpc/server';
 /** The people named as organiser on a program entry or a Schichteinsatz. */
 let organiserIds: string[];
 /** What an admin set in the app feature flags; a key missing here reads its default. */
-let flags: Record<string, boolean>;
-/** Redis cannot be read, so every flag takes the value its caller names for an outage. */
-let redisDown: boolean;
+let flags: Partial<Record<FeatureFlagName, boolean>>;
+/** No load of the flags has succeeded, so every flag takes its `whenUnavailable`. */
+let flagsUnavailable: boolean;
 
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('payload', () => ({
@@ -38,25 +38,24 @@ jest.mock('superjson', () => ({
 jest.mock('@/lib/capabilities', () => ({
   checkCapability: (): Promise<boolean> => Promise.resolve(true),
 }));
-jest.mock('@/lib/db/redis', () => {
-  const { FEATURE_FLAG_DEFAULTS } =
+jest.mock('@/lib/read-feature-flags', () => {
+  const { featureFlags } =
     jest.requireActual<typeof import('@/lib/feature-flags')>('@/lib/feature-flags');
-  const read = (key: string): boolean => flags[key] ?? FEATURE_FLAG_DEFAULTS[key] ?? false;
+  type Name = keyof typeof featureFlags;
+  const read = (name: Name): boolean =>
+    flagsUnavailable
+      ? featureFlags[name].whenUnavailable
+      : (flags[name] ?? featureFlags[name].default);
   return {
-    getFeatureFlag: (key: string): Promise<boolean> => Promise.resolve(read(key)),
-    getFeatureFlags: (whenUnreadable: Record<string, boolean>): Promise<Record<string, boolean>> =>
-      Promise.resolve(
-        Object.fromEntries(
-          Object.entries(whenUnreadable).map(([key, outage]) => [
-            key,
-            redisDown ? outage : read(key),
-          ]),
-        ),
-      ),
-    // every rate limit counter at its first call
-    redis: { eval: (): Promise<number> => Promise.resolve(1) },
+    readFeatureFlag: (name: Name): Promise<boolean> => Promise.resolve(read(name)),
+    readFeatureFlags: (names: Name[]): Promise<Record<string, boolean>> =>
+      Promise.resolve(Object.fromEntries(names.map((name) => [name, read(name)]))),
   };
 });
+// every rate limit counter at its first call
+jest.mock('@/lib/db/redis', () => ({
+  redis: { eval: (): Promise<number> => Promise.resolve(1) },
+}));
 jest.mock('@/lib/db/chat-pubsub', () => ({
   chatPubSub: { publish: (): Promise<void> => Promise.resolve() },
 }));
@@ -64,12 +63,7 @@ jest.mock('@/lib/db/chat-pubsub', () => ({
 import { addParticipants } from '@/features/chat/api/mutations/add-participants';
 import { createChat } from '@/features/chat/api/mutations/create-chat';
 import { listContacts } from '@/features/chat/api/queries/list-contacts';
-import {
-  FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP,
-  FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN,
-  FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF,
-  FEATURE_FLAG_RESTRICT_CONTACT_LIST,
-} from '@/lib/feature-flags';
+import type { FeatureFlagName } from '@/lib/feature-flags';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 
 interface Person {
@@ -211,7 +205,7 @@ const contactList = async (): Promise<string[]> => {
 beforeEach(() => {
   ANNA.testAccount = false;
   flags = {};
-  redisDown = false;
+  flagsUnavailable = false;
   organiserIds = [];
   writes = [];
 });
@@ -289,26 +283,24 @@ describe('choosing the groups of the restricted contact list', () => {
   });
 
   it.each([
-    ['the own Hof', FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF, HOF_MATE, ['c', 'd', 'e']],
-    [
-      'the functions',
-      FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN,
-      RESSORT_MEMBER,
-      ['b', 'c', 'd'],
-    ],
-    ['the AVP', FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP, AVP, ['b', 'c', 'e']],
-  ])('without %s, drops that group and refuses it', async (_group, flag, dropped, listed) => {
-    flags[flag] = false;
+    ['the own Hof', 'contactListIncludesHof', HOF_MATE, ['c', 'd', 'e']],
+    ['the functions', 'contactListIncludesFunktionen', RESSORT_MEMBER, ['b', 'c', 'd']],
+    ['the AVP', 'contactListIncludesAvp', AVP, ['b', 'c', 'e']],
+  ] as const)(
+    'without %s, drops that group and refuses it',
+    async (_group, flag, dropped, listed) => {
+      flags[flag] = false;
 
-    await expect(contactList()).resolves.toEqual(listed);
-    await expectRefused(startChat(dropped));
-  });
+      await expect(contactList()).resolves.toEqual(listed);
+      await expectRefused(startChat(dropped));
+    },
+  );
 
   describe('with all three groups off', () => {
     beforeEach(() => {
-      flags[FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF] = false;
-      flags[FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN] = false;
-      flags[FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP] = false;
+      flags.contactListIncludesHof = false;
+      flags.contactListIncludesFunktionen = false;
+      flags.contactListIncludesAvp = false;
     });
 
     it('lists only the address book', async () => {
@@ -341,9 +333,9 @@ describe('choosing the groups of the restricted contact list', () => {
   });
 });
 
-describe('while Redis is unreachable', () => {
+describe('before the flags could ever be loaded', () => {
   beforeEach(() => {
-    redisDown = true;
+    flagsUnavailable = true;
   });
 
   it('lists only the address book, whatever the admin chose', async () => {
@@ -363,7 +355,7 @@ describe('while Redis is unreachable', () => {
 
 describe('with the contact list open to everyone', () => {
   beforeEach(() => {
-    flags[FEATURE_FLAG_RESTRICT_CONTACT_LIST] = false;
+    flags.restrictContactList = false;
   });
 
   it('lists everyone who is not hidden', async () => {
@@ -371,9 +363,9 @@ describe('with the contact list open to everyone', () => {
   });
 
   it('ignores which groups the restricted list would include', async () => {
-    flags[FEATURE_FLAG_CONTACT_LIST_INCLUDES_HOF] = false;
-    flags[FEATURE_FLAG_CONTACT_LIST_INCLUDES_FUNKTIONEN] = false;
-    flags[FEATURE_FLAG_CONTACT_LIST_INCLUDES_AVP] = false;
+    flags.contactListIncludesHof = false;
+    flags.contactListIncludesFunktionen = false;
+    flags.contactListIncludesAvp = false;
 
     await expect(contactList()).resolves.toEqual(['b', 'c', 'd', 'e', 'f']);
     await startChat(STRANGER);
@@ -420,7 +412,7 @@ describe('as a test account', () => {
   });
 
   it('stays restricted with the contact list open to everyone', async () => {
-    flags[FEATURE_FLAG_RESTRICT_CONTACT_LIST] = false;
+    flags.restrictContactList = false;
 
     await expectRefused(startChat(STRANGER));
   });

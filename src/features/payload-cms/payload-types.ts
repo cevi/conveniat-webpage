@@ -9734,6 +9734,10 @@ export interface AppFeatureFlag {
    * Against spam. While on, a new forum post is seen only by its author and the moderators (the Kernteam of its topic and the piket on duty) until one of them approves it. Posts by the Kernteam need no approval, comments are never held back.
    */
   forumModerationRequired?: boolean | null;
+  /**
+   * A prototype: two people can call each other from their one-to-one chat.
+   */
+  voiceCallsEnabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -10528,6 +10532,7 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   reservationsEnabled?: T;
   forumEnabled?: T;
   forumModerationRequired?: T;
+  voiceCallsEnabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

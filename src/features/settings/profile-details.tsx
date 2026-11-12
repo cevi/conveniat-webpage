@@ -24,8 +24,7 @@ import {
 import { SettingsCard, SettingsFactRow } from '@/features/settings/components/settings-row';
 import { ProfileAvatar } from '@/features/settings/profile-avatar';
 import prisma from '@/lib/db/prisma';
-import { getFeatureFlag } from '@/lib/db/redis';
-import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
+import { readFeatureFlag } from '@/lib/read-feature-flags';
 import { profilePictureUrlOrUndefined } from '@/utils/profile-picture-url';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
@@ -166,12 +165,7 @@ const readHofRoles = async (
   hideHofAndQuartier: boolean;
   hofRoles: Awaited<ReturnType<typeof findHofRolesOfUser>>;
 }> => {
-  let hideHofAndQuartier = false;
-  try {
-    hideHofAndQuartier = await getFeatureFlag(FEATURE_HIDE_HOF_AND_QUARTIER);
-  } catch {
-    // Default to false if Redis is unreachable
-  }
+  const hideHofAndQuartier = await readFeatureFlag('hideHofAndQuartier');
   return {
     hideHofAndQuartier,
     hofRoles: hideHofAndQuartier ? undefined : await findHofRolesOfUser(userId),

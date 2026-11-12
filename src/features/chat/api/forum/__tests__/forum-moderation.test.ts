@@ -31,9 +31,11 @@ jest.mock('@/lib/db/prisma', () => ({
 
 /** the admin panel's switch, "Beiträge vor Veröffentlichung freigeben" */
 let moderationRequired = false;
+jest.mock('@/lib/read-feature-flags', () => ({
+  readFeatureFlag: (name: string): Promise<boolean> =>
+    Promise.resolve(name === 'forumModerationRequired' ? moderationRequired : true),
+}));
 jest.mock('@/lib/db/redis', () => ({
-  getFeatureFlag: (key: string): Promise<boolean> =>
-    Promise.resolve(key === 'forum_moderation_required' ? moderationRequired : true),
   redis: { eval: (): Promise<number> => Promise.resolve(1) },
 }));
 const publish = jest.fn<Promise<void>, unknown[]>(() => Promise.resolve());

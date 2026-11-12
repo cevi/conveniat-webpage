@@ -5,10 +5,9 @@ import type {
 } from '@/features/payload-cms/payload-types';
 import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import prisma from '@/lib/db/prisma';
-import { getFeatureFlag } from '@/lib/db/redis';
-import { FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS } from '@/lib/feature-flags';
 import type { PrismaClient } from '@/lib/prisma/client';
 import { CourseType } from '@/lib/prisma/enums';
+import { readFeatureFlag } from '@/lib/read-feature-flags';
 import type { Locale } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
@@ -149,7 +148,7 @@ export const getHelperShifts = async (
   const currentLocale = locale ?? (await getLocaleFromCookies());
   const shifts = await getHelperShiftsCached(where, currentLocale);
 
-  const isHideFullEnabled = await getFeatureFlag(FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS);
+  const isHideFullEnabled = await readFeatureFlag('hideFullHelperShifts');
   if (!isHideFullEnabled) {
     return shifts;
   }

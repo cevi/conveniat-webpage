@@ -18,8 +18,6 @@ import { findPrivateReportTopicId } from '@/features/chat/api/forum/forum-visibi
 import { getFunktionDirectory } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import { isImageKeyOfChat } from '@/lib/chat-images';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
-import { getFeatureFlag } from '@/lib/db/redis';
-import { FEATURE_FLAG_FORUM_ENABLED, FEATURE_FLAG_FORUM_MODERATION } from '@/lib/feature-flags';
 import {
   FORUM_NOTE_MAX_LENGTH,
   FORUM_POST_MAX_IMAGES,
@@ -36,6 +34,7 @@ import {
   MessageEventType,
   MessageType,
 } from '@/lib/prisma/enums';
+import { readFeatureFlag } from '@/lib/read-feature-flags';
 import { invariantError } from '@/trpc/error-formatter';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
@@ -282,7 +281,7 @@ export const getForumPrivateReportTopic = trpcBaseProcedure
   .input(z.object({}))
   .use(databaseTransactionWrapper)
   .mutation(async ({ ctx }): Promise<{ topicId: string }> => {
-    if (!(await getFeatureFlag(FEATURE_FLAG_FORUM_ENABLED))) {
+    if (!(await readFeatureFlag('forumEnabled'))) {
       throw forumError('FORBIDDEN', 'forumDisabled');
     }
     return { topicId: await joinPrivateReportTopic(ctx.prisma, ctx.user.uuid) };
@@ -323,7 +322,7 @@ export const createForumPost = trpcBaseProcedure
   .use(databaseTransactionWrapper)
   .mutation(async ({ ctx, input }): Promise<{ id: string; pending: boolean }> => {
     const { prisma, user } = ctx;
-    if (!(await getFeatureFlag(FEATURE_FLAG_FORUM_ENABLED))) {
+    if (!(await readFeatureFlag('forumEnabled'))) {
       throw forumError('FORBIDDEN', 'forumDisabled');
     }
 
@@ -394,7 +393,7 @@ export const createForumPost = trpcBaseProcedure
     // against spam, the admin panel can hold new posts back until a moderator approves them;
     // the Kernteam's own posts need no approval, and a private report reaches only them anyway
     const pending =
-      !input.private && !byTopicAdmin && (await getFeatureFlag(FEATURE_FLAG_FORUM_MODERATION));
+      !input.private && !byTopicAdmin && (await readFeatureFlag('forumModerationRequired'));
 
     await prisma.forumPost.create({
       data: {

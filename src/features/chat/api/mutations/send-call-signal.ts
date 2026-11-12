@@ -12,10 +12,9 @@ import {
   type CallSignalInput,
 } from '@/lib/chat-call-signal';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
-import { getFeatureFlag } from '@/lib/db/redis';
-import { FEATURE_FLAG_VOICE_CALLS_ENABLED } from '@/lib/feature-flags';
 import { ChatCapability, ChatType, PushNotificationKind } from '@/lib/prisma/enums';
 import { sendNotification } from '@/lib/push/send-notification';
+import { readFeatureFlag } from '@/lib/read-feature-flags';
 import { invariantError } from '@/trpc/error-formatter';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { rateLimit } from '@/trpc/middleware/rate-limit';
@@ -111,7 +110,7 @@ export const sendCallSignal = trpcBaseProcedure
     const { user, prisma } = ctx;
 
     // a `hangup` must still get through when calls were just switched off, or the partner rings on
-    if (input.kind !== 'hangup' && !(await getFeatureFlag(FEATURE_FLAG_VOICE_CALLS_ENABLED))) {
+    if (input.kind !== 'hangup' && !(await readFeatureFlag('voiceCallsEnabled'))) {
       throw chatError('PRECONDITION_FAILED', 'callsDisabled');
     }
 

@@ -4,7 +4,6 @@ import {
   SYSTEM_SENDER_ID,
   USER_RELEVANT_MESSAGE_EVENTS,
 } from '@/lib/chat-shared';
-import { FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 // eslint-disable-next-line import/no-restricted-paths
 import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
 // eslint-disable-next-line import/no-restricted-paths
@@ -31,7 +30,6 @@ import { canManageChatOfType, SUPPORT_DESK_CHAT_TYPES } from '@/lib/chat-admin-a
 import { createChatImageUploadUrl } from '@/lib/chat-image-upload';
 import { chatImageUploadInputSchema } from '@/lib/chat-images';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
-import { getFeatureFlag, setFeatureFlag } from '@/lib/db/redis';
 import type { Prisma } from '@/lib/prisma/client';
 import {
   ChatCapability,
@@ -101,19 +99,6 @@ const adminChatProcedure = adminProcedure
   });
 
 export const adminRouter = createTRPCRouter({
-  // Feature Flags
-  getFeatureFlags: adminProcedure.query(async () => {
-    // List of known flags
-    const flags = [FEATURE_FLAG_SEND_MESSAGES];
-    const result = await Promise.all(
-      flags.map(async (key) => ({
-        key,
-        isEnabled: await getFeatureFlag(key),
-      })),
-    );
-    return result;
-  }),
-
   // Generic Chat Management: every chat with its members, so for the chat oversight alone
   getChatList: trpcFullAdminProcedure
     .input(
@@ -206,13 +191,6 @@ export const adminRouter = createTRPCRouter({
         page,
         limit,
       };
-    }),
-
-  toggleFeatureFlag: adminProcedure
-    .input(z.object({ key: z.string(), isEnabled: z.boolean() }))
-    .mutation(async ({ input }) => {
-      await setFeatureFlag(input.key, input.isEnabled);
-      return { success: true };
     }),
 
   // Support Chats

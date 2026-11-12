@@ -77,10 +77,12 @@ jest.mock('superjson', () => ({
     deserialize: (value: { json: unknown }): unknown => value.json,
   },
 }));
+jest.mock('@/lib/read-feature-flags', () => ({
+  readFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
+}));
 jest.mock('@/lib/db/redis', () => ({
   // every rate limit counter at its first call
   redis: { eval: (): Promise<number> => Promise.resolve(1) },
-  getFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
 }));
 
 /** Whether the transaction had committed when each side effect fired. */
