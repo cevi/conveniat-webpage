@@ -1,6 +1,9 @@
 /* THIS FILE WAS GENERATED AUTOMATICALLY BY PAYLOAD. */
 /* Customized: wraps REST_GET to return a user-friendly HTML error page on 403. */
-import { buildAccessDeniedHtml } from '@/features/payload-cms/utils/access-denied-page';
+import {
+  accessDeniedContentSecurityPolicy,
+  buildAccessDeniedHtml,
+} from '@/features/payload-cms/utils/access-denied-page';
 import config from '@payload-config';
 import {
   REST_DELETE,
@@ -34,12 +37,12 @@ const GET: typeof payloadGet = async (request, context) => {
       const cookieHeader = request.headers.get('cookie') ?? '';
       const localeMatch = /(?:^|;\s*)next-locale=([^;]+)/.exec(cookieHeader);
       const locale = localeMatch?.[1] ?? 'de';
-      const loginCallbackUrl = new URL(request.url).pathname;
 
-      return new Response(buildAccessDeniedHtml(locale, loginCallbackUrl), {
+      return new Response(buildAccessDeniedHtml(locale), {
         status: 403,
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
+          'Content-Security-Policy': accessDeniedContentSecurityPolicy,
         },
       });
     }

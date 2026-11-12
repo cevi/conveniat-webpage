@@ -11,6 +11,8 @@
  * @see https://github.com/.../issues/362
  */
 
+import { createHash } from 'node:crypto';
+
 type SupportedLocale = 'de' | 'en' | 'fr';
 
 const translations: Record<
@@ -57,17 +59,66 @@ const resolveLocale = (raw: string): SupportedLocale => {
 };
 
 /**
- * Builds a self-contained HTML string for a 403 error page.
+ * Starts the Cevi.DB sign-in and returns to the current path afterwards.
+ *
+ * It reads the path from `location` rather than having the server write it in:
+ * the page answers any `/api/...` URL, so a path interpolated into the markup
+ * is attacker-controlled and was a reflected XSS. Keeping the script static
+ * also lets the CSP pin it by hash instead of allowing inline scripts.
+ */
+const loginScript = `
+    document.getElementById('login-btn').addEventListener('click', async function() {
+      var callbackUrl = window.location.pathname;
+      try {
+        var res = await fetch('/api/auth/csrf');
+        var data = await res.json();
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/api/auth/signin/cevi-db';
+        var csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfToken';
+        csrfInput.value = data.csrfToken;
+        form.appendChild(csrfInput);
+        var callbackInput = document.createElement('input');
+        callbackInput.type = 'hidden';
+        callbackInput.name = 'callbackUrl';
+        callbackInput.value = callbackUrl;
+        form.appendChild(callbackInput);
+        document.body.appendChild(form);
+        form.submit();
+      } catch (e) {
+        window.location.href = '/api/auth/signin?callbackUrl=' + encodeURIComponent(callbackUrl);
+      }
+    });
+  `;
+
+const loginScriptHash = createHash('sha256').update(loginScript).digest('base64');
+
+/**
+ * Content-Security-Policy for the page from {@link buildAccessDeniedHtml}. Only
+ * the login script runs. `form-action` stays open because the sign-in POST
+ * redirects to Cevi.DB, and Chrome checks `form-action` on that redirect too.
+ */
+export const accessDeniedContentSecurityPolicy = [
+  "default-src 'none'",
+  `script-src 'sha256-${loginScriptHash}'`,
+  "style-src 'unsafe-inline' https://fonts.googleapis.com",
+  'font-src https://fonts.gstatic.com',
+  "connect-src 'self'",
+  "base-uri 'none'",
+  "frame-ancestors 'none'",
+].join('; ');
+
+/**
+ * Builds a self-contained HTML string for a 403 error page. Serve it with
+ * {@link accessDeniedContentSecurityPolicy}.
  *
  * @param rawLocale - The locale string from the cookie (e.g. 'de', 'en', 'fr')
- * @param callbackUrl - The URL to redirect back to after login
  */
-export const buildAccessDeniedHtml = (rawLocale: string, callbackUrl: string): string => {
+export const buildAccessDeniedHtml = (rawLocale: string): string => {
   const locale = resolveLocale(rawLocale);
   const t = translations[locale];
-
-  // Encode the callback URL for safe embedding in the signin URL
-  const encodedCallback = encodeURIComponent(callbackUrl);
 
   return `<!DOCTYPE html>
 <html lang="${locale}">
@@ -188,31 +239,7 @@ export const buildAccessDeniedHtml = (rawLocale: string, callbackUrl: string): s
     </div>
   </div>
 
-  <script>
-    document.getElementById('login-btn').addEventListener('click', async function() {
-      try {
-        var res = await fetch('/api/auth/csrf');
-        var data = await res.json();
-        var form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/api/auth/signin/cevi-db';
-        var csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'csrfToken';
-        csrfInput.value = data.csrfToken;
-        form.appendChild(csrfInput);
-        var callbackInput = document.createElement('input');
-        callbackInput.type = 'hidden';
-        callbackInput.name = 'callbackUrl';
-        callbackInput.value = '${callbackUrl}';
-        form.appendChild(callbackInput);
-        document.body.appendChild(form);
-        form.submit();
-      } catch (e) {
-        window.location.href = '/api/auth/signin?callbackUrl=${encodedCallback}';
-      }
-    });
-  </script>
+  <script>${loginScript}</script>
 </body>
 </html>`;
 };
