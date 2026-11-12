@@ -41,6 +41,8 @@ interface FeatureFlagCache {
   failing: boolean;
   /** The load in flight, which every read waiting for one shares. */
   loading: Promise<void> | undefined;
+  /** How many saves this process applied, so a load that read the global before one is dropped. */
+  saves: number;
 }
 
 /**
@@ -57,6 +59,7 @@ const cache = (): FeatureFlagCache =>
     attemptedAt: 0,
     failing: false,
     loading: undefined,
+    saves: 0,
   });
 
 const valuesOf = (document: Record<string, unknown>): FeatureFlagValues =>
@@ -70,16 +73,20 @@ const valuesOf = (document: Record<string, unknown>): FeatureFlagValues =>
 const load = async (): Promise<void> => {
   const state = cache();
   state.attemptedAt = Date.now();
+  const savesBefore = state.saves;
   try {
     // imported here: the global that calls `rememberSavedFeatureFlags` is part of the config
     const { getPayload } = await import('payload');
     const { default: config } = await import('@payload-config');
     const payload = await getPayload({ config });
     const document = await payload.findGlobal({ slug: 'app-feature-flags', depth: 0 });
+    // an admin saved while this load ran, and the save is newer than what the load read
+    if (state.saves !== savesBefore) return;
     state.values = valuesOf(document as unknown as Record<string, unknown>);
     if (state.failing) logger.info('Feature flags load again');
     state.failing = false;
   } catch (error) {
+    if (state.saves !== savesBefore) return;
     if (!state.failing) {
       logger.warn('Feature flags could not be loaded, serving the last values loaded', {
         error,
@@ -155,6 +162,7 @@ export const readFeatureFlag = async (name: FeatureFlagName): Promise<boolean> =
 export const rememberSavedFeatureFlags = (document: Record<string, unknown>): void => {
   const state = cache();
   state.values = valuesOf(document);
+  state.saves += 1;
   state.attemptedAt = Date.now();
   state.failing = false;
 };

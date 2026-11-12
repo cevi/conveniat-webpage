@@ -1,6 +1,8 @@
 /** What the `app-feature-flags` global holds; `undefined` makes the next load fail. */
 let stored: Record<string, unknown> | undefined;
 let loads: number;
+/** Set to hold the next load open until the test calls it with what the load read. */
+let holdLoad: ((answer: (document: Record<string, unknown>) => void) => void) | undefined;
 const evaluations: { flag: string; source: string }[] = [];
 
 jest.mock('@payload-config', () => ({}), { virtual: true });
@@ -9,6 +11,11 @@ jest.mock('payload', () => ({
     Promise.resolve({
       findGlobal: (): Promise<unknown> => {
         loads += 1;
+        const hold = holdLoad;
+        if (hold !== undefined) {
+          holdLoad = undefined;
+          return new Promise((resolve) => hold(resolve));
+        }
         return stored === undefined
           ? Promise.reject(new Error('connection refused'))
           : Promise.resolve({ ...stored });
@@ -38,6 +45,7 @@ beforeEach(() => {
   (globalThis as { featureFlagCache?: unknown }).featureFlagCache = undefined;
   stored = { forumEnabled: false };
   loads = 0;
+  holdLoad = undefined;
   evaluations.length = 0;
   now = 1_000_000;
   jest.spyOn(Date, 'now').mockImplementation(() => now);
@@ -70,6 +78,26 @@ describe('reading feature flags', () => {
 
     await expect(readFeatureFlag('forumEnabled')).resolves.toBe(true);
     expect(loads).toBe(1);
+  });
+
+  it('keeps a save when a load that read the global before it finishes later', async () => {
+    await readFeatureFlag('forumEnabled');
+    let finishLoad: ((document: Record<string, unknown>) => void) | undefined;
+    holdLoad = (answer): void => {
+      finishLoad = answer;
+    };
+    now += 5000;
+    // starts the reload, which reads the global as it was before the save
+    await readFeatureFlag('forumEnabled');
+    await settle();
+    expect(finishLoad).toBeDefined();
+
+    rememberSavedFeatureFlags({ forumEnabled: true });
+    finishLoad?.({ forumEnabled: false });
+    await settle();
+
+    await expect(readFeatureFlag('forumEnabled')).resolves.toBe(true);
+    expect(loads).toBe(2);
   });
 
   it('picks up a change saved on another replica after five seconds', async () => {
