@@ -50,9 +50,9 @@ const offlineDescription: StaticTranslationString = {
 };
 
 const privateReportText: StaticTranslationString = {
-  de: 'Privat an die Zentrale melden',
-  en: 'Report privately to the Zentrale',
-  fr: 'Signaler en privé à la Zentrale',
+  de: 'Kernteam privat schreiben',
+  en: 'Write the core team privately',
+  fr: 'Écrire en privé à l’équipe centrale',
 };
 
 const rowClassName =
@@ -133,7 +133,7 @@ const OpenPostsHere: React.FC<{ annotationId: string; locale: Locale }> = ({
 
 /**
  * Reporting a problem at a place of the map, in the forum: what is already reported here comes
- * first, then a new post with the place filled in, and the private report to the Zentrale, the
+ * first, then a new post with the place filled in, and a private conversation with a Kernteam, the
  * same composer switched to "Privat", for what does not belong in public. Hidden while the forum
  * is off, since the forum is where every report goes.
  */
@@ -153,8 +153,8 @@ export const AnnotationForumAndReportSection: React.FC<{
     trpc.appContent.getDashboardConfig.queryOptions({ locale }, { enabled: isSignedIn }),
   );
   const forumEnabled = dashboard?.featureFlags.forumEnabled !== false;
-  const { data: settings } = useQuery(
-    trpc.forum.getForumSettings.queryOptions({}, { enabled: isSignedIn && forumEnabled }),
+  const { data: topics } = useQuery(
+    trpc.forum.getForumTopicList.queryOptions({}, { enabled: isSignedIn && forumEnabled }),
   );
 
   if (coordinates === undefined || (isSignedIn && !forumEnabled)) return <></>;
@@ -183,8 +183,8 @@ export const AnnotationForumAndReportSection: React.FC<{
             description={forumMapText.newPostHere[locale]}
           />
         </Link>
-        {/* absent in a persisted cache from before private reports */}
-        {settings?.privateReportsAvailable === true && (
+        {/* a topic takes private conversations; absent in a cache from before them */}
+        {topics?.some((topic) => topic.allowsPrivateConversations === true) === true && (
           <Link
             href={composerHrefFor(coordinates, annotation, undefined, { private: true })}
             className="focus-visible:focus-surface hover:bg-quiet flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl text-[13px] font-semibold text-green-800"

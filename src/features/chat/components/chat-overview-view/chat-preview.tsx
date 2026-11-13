@@ -12,6 +12,7 @@ import { formatChatListDate } from '@/features/chat/utils/format-chat-list-date'
 import { previewSenderPrefix } from '@/features/chat/utils/preview-sender-prefix';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import { forumPostPath } from '@/lib/forum-shared';
 import { ChatMembershipPermission, ChatType, MessageEventType } from '@/lib/prisma/enums';
 import { useTRPC } from '@/trpc/client';
 import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
@@ -151,7 +152,9 @@ export const ChatPreview: React.FC<{
       .catch(() => {});
   }, [chat.id, queryClient, trpc]);
 
-  let chatDetailLink = `/app/chat/${chat.id}`;
+  // a private conversation of the forum opens on its post's page, where its answers are
+  let chatDetailLink =
+    chat.forumPostId === undefined ? `/app/chat/${chat.id}` : forumPostPath(chat.forumPostId);
 
   // Forward share parameters if present
   const shareText = searchParameters.get('text');
@@ -169,6 +172,7 @@ export const ChatPreview: React.FC<{
   // Beside an open chat on a desktop, the tapped chat shows while the router still navigates.
   // The address is read on the tap, so a navigation does not re-render every row.
   const handleNavigate = (): void => {
+    if (chat.forumPostId !== undefined) return;
     if (isOpenChatPathname(globalThis.location.pathname)) openingChat?.showOpeningChat(chat.id);
   };
 

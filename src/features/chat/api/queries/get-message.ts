@@ -5,9 +5,17 @@ import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status
 import { findThreadSummaries } from '@/features/chat/api/utils/thread-summaries';
 import { toChatMessage } from '@/features/chat/api/utils/to-chat-message';
 import { findTopicAdminIds } from '@/features/chat/api/utils/topic-admins';
+import type { ForumOpenFlags, ForumRemovalInfo } from '@/lib/forum-shared';
 import { ChatType, MessageEventType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { z } from 'zod';
+
+/** What `describeForumRemovals` finds, without loading the forum for every chat. */
+interface ForumRemovalsOfThread {
+  removals: Map<string, ForumRemovalInfo>;
+  hidden: Set<string>;
+  flags: Map<string, ForumOpenFlags>;
+}
 
 /**
  * One message, for the root of a thread and the quote above the composer, with its sender's
@@ -25,7 +33,7 @@ export const getMessage = trpcBaseProcedure
         chat: { chatMemberships: { some: { userId: ctx.user.uuid } } },
       },
       include: {
-        chat: { select: { type: true } },
+        chat: { select: { type: true, forumTopicId: true } },
         messageEvents: {
           where: { type: { in: USER_RELEVANT_MESSAGE_EVENTS } },
           orderBy: { uuid: 'desc' },
@@ -63,11 +71,13 @@ export const getMessage = trpcBaseProcedure
 
     // a private report or a post waiting for approval, or one of its comments: only to whom
     // sees the post, see `getChatMessages`
-    if (message.chat.type === ChatType.FORUM) {
-      const { canSeeForumPost, findForumPostVisibility } =
+    let forumRemovals: ForumRemovalsOfThread | undefined;
+    if (message.chat.type === ChatType.FORUM || message.chat.type === ChatType.FORUM_CONVERSATION) {
+      const { canSeeForumPost, describeForumRemovals, findForumPostVisibility } =
         await import('@/features/chat/api/forum/forum-visibility');
       const post = await findForumPostVisibility(prisma, message.parentId ?? message.uuid);
       if (post !== undefined && !(await canSeeForumPost(prisma, ctx.user, post))) return;
+      forumRemovals = await describeForumRemovals(prisma, ctx.user, message.chatId, [message]);
     }
 
     const [deletedQuotedIds, threads, topicAdminIds] = await Promise.all([
@@ -84,7 +94,12 @@ export const getMessage = trpcBaseProcedure
         ? undefined
         : await import('@/features/chat/api/forum/forum-kernteam-labels').then(
             ({ findKernteamLabelsOfTopic }) =>
-              findKernteamLabelsOfTopic(prisma, message.chatId, topicAdminIds, ctx.locale),
+              findKernteamLabelsOfTopic(
+                prisma,
+                message.chat.forumTopicId ?? message.chatId,
+                topicAdminIds,
+                ctx.locale,
+              ),
           );
 
     return toChatMessage(message, {
@@ -93,5 +108,12 @@ export const getMessage = trpcBaseProcedure
       threads,
       topicAdminIds,
       ...(kernteamLabels === undefined ? {} : { kernteamLabels }),
+      ...(forumRemovals === undefined
+        ? {}
+        : {
+            forumRemovals: forumRemovals.removals,
+            hiddenIds: forumRemovals.hidden,
+            forumFlags: forumRemovals.flags,
+          }),
     });
   });

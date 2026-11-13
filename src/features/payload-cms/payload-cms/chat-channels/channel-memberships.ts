@@ -8,28 +8,18 @@ import type { Payload, PayloadRequest } from 'payload';
 
 /**
  * Members a channel's chat keeps although they are not in its audience: helpers with an open
- * assignment of a forum post, who belong to the topic for as long as the task is open, and the
- * authors of its private reports, who could not follow their report otherwise. The piket on duty is kept too, but by its own sync, which adds it again every minute.
+ * assignment of a forum post, who belong to the topic for as long as the task is open. The piket
+ * on duty is kept too, but by its own sync, which adds it again every minute.
  */
 export const findKeptMemberIds = async (chatUuids: string[]): Promise<Set<string>> => {
   if (chatUuids.length === 0) return new Set();
-  const [assignments, privateReports] = await Promise.all([
-    prisma.forumPostAssignment.findMany({
-      where: { endedAt: null, post: { chatId: { in: chatUuids } } },
-      select: { assigneeId: true, post: { select: { chatId: true } } },
-    }),
-    // the author of a private report joined the topic for it, see `getForumPrivateReportTopic`
-    prisma.forumPost.findMany({
-      where: { chatId: { in: chatUuids }, private: true, message: { deletedAt: null } },
-      select: { chatId: true, message: { select: { senderId: true } } },
-    }),
-  ]);
-  return new Set([
-    ...assignments.map((assignment) => `${assignment.post.chatId}:${assignment.assigneeId}`),
-    ...privateReports.flatMap((post) =>
-      post.message.senderId === null ? [] : [`${post.chatId}:${post.message.senderId}`],
-    ),
-  ]);
+  const assignments = await prisma.forumPostAssignment.findMany({
+    where: { endedAt: null, post: { chatId: { in: chatUuids } } },
+    select: { assigneeId: true, post: { select: { chatId: true } } },
+  });
+  return new Set(
+    assignments.map((assignment) => `${assignment.post.chatId}:${assignment.assigneeId}`),
+  );
 };
 
 /** Options of `syncChannelMemberships`. */

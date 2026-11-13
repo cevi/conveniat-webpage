@@ -28,6 +28,8 @@ interface UseMessageInputLogicResult {
   sendText: (text: string) => void;
   takeMessage: () => string;
   restoreMessage: (text: string) => void;
+  /** fits the field's height to what it holds */
+  resizeTextarea: () => void;
   isSendButtonDisabled: boolean;
   messageLength: number;
   isGlobalMessagingDisabled: boolean;
@@ -230,6 +232,7 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
     sendText,
     takeMessage,
     restoreMessage,
+    resizeTextarea,
     isSendButtonDisabled,
     messageLength: newMessage.length,
     isGlobalMessagingDisabled: !isGlobalMessagingEnabled,

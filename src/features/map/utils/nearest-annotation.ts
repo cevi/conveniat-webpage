@@ -65,7 +65,9 @@ export const composerHrefFor = (
     parameters.set('label', annotation.title);
   }
   if (topicId !== undefined && topicId !== null) parameters.set('topic', topicId);
-  // the composer opens on "Privat", a report to the Zentrale instead of a forum post
+  // a spot on the map is a problem there, whatever else the composer offers
+  parameters.set('kind', 'PROBLEM');
+  // the composer opens on "Privat", a conversation with a topic's Kernteam instead of a post
   if (options.private === true) parameters.set('private', '1');
   return `/app/forum/new?${parameters.toString()}`;
 };

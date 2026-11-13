@@ -748,6 +748,11 @@ export const adminRouter = createTRPCRouter({
           de: 'Dieses Forum-Thema wurde geschlossen.',
           fr: 'Ce thème du forum a été fermé.',
         },
+        [ChatType.FORUM_CONVERSATION]: {
+          en: 'This conversation has been closed.',
+          de: 'Dieses Gespräch wurde geschlossen.',
+          fr: 'Cette conversation a été fermée.',
+        },
       };
 
       // Add system message
@@ -874,6 +879,11 @@ export const adminRouter = createTRPCRouter({
           en: 'This forum topic has been reopened.',
           de: 'Dieses Forum-Thema wurde wieder geöffnet.',
           fr: 'Ce thème du forum a été rouvert.',
+        },
+        [ChatType.FORUM_CONVERSATION]: {
+          en: 'This conversation has been reopened.',
+          de: 'Dieses Gespräch wurde wieder geöffnet.',
+          fr: 'Cette conversation a été rouverte.',
         },
       };
 

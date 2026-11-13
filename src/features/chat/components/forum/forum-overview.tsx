@@ -7,15 +7,26 @@ import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SectionLabel } from '@/components/ui/section-label';
 import {
+  countFilters,
   DEFAULT_FORUM_FILTERS,
   describeFilters,
   ForumFilterSheet,
   isFiltered,
   type ForumFilters,
 } from '@/features/chat/components/forum/forum-filter-sheet';
+import { ForumHome } from '@/features/chat/components/forum/forum-home';
+import {
+  FORUM_INTRO_STORAGE_KEY,
+  ForumIntro,
+  hasForumIntro,
+} from '@/features/chat/components/forum/forum-intro';
 import { ForumPostRow } from '@/features/chat/components/forum/forum-post-row';
 import { forumText } from '@/features/chat/components/forum/forum-texts';
+import { TopicCard, TopicSettingsSheet } from '@/features/chat/components/forum/forum-topic-parts';
+import { ZentraleLink } from '@/features/chat/components/forum/zentrale-link';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { useIntroSeen } from '@/hooks/use-intro-seen';
+import { FORUM_POST_KINDS, forumKindLabel, type ForumPostKindValue } from '@/lib/forum-shared';
 import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -23,15 +34,16 @@ import { cn } from '@/utils/tailwindcss-override';
 import {
   Bell,
   BellOff,
-  Headset,
   Loader2,
   Megaphone,
   MessageCircleQuestion,
+  Pin,
   Plus,
+  Settings2,
   SlidersHorizontal,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import React, { useRef, useState } from 'react';
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -91,37 +103,6 @@ const TopicSubscriptionButton: React.FC<{
 };
 
 /**
- * The way into the Zentrale, for whoever handles posts or has one forwarded to them, with how
- * many wait for them. Nobody else sees it.
- */
-const ZentraleLink: React.FC<{
-  counts: { waiting: number; mine: number } | null;
-  locale: Locale;
-}> = ({ counts, locale }) => {
-  if (counts === null) return <></>;
-  const count = counts.waiting + counts.mine;
-  return (
-    <Link
-      href="/app/forum/zentrale"
-      aria-label={
-        count > 0 ? `${forumText.openZentrale[locale]} (${count})` : forumText.openZentrale[locale]
-      }
-      className="focus-visible:focus-surface hover:bg-quiet relative flex h-11 w-11 items-center justify-center rounded-full text-green-700"
-    >
-      <Headset className="h-5 w-5" aria-hidden="true" />
-      {count > 0 && (
-        <span
-          aria-hidden="true"
-          className="bg-conveniat-green absolute top-1 right-0.5 min-w-[18px] rounded-full px-1 text-center text-[10px] leading-[18px] font-bold text-white"
-        >
-          {count}
-        </span>
-      )}
-    </Link>
-  );
-};
-
-/**
  * What the feed says when it lists nothing. A filter that matches nothing says so and offers the
  * way back; below pinned posts one quiet line is enough, since the page is not empty; only an
  * empty forum gets the full empty state.
@@ -159,15 +140,64 @@ const FeedEmpty: React.FC<{
 };
 
 /**
- * The forum: the posts of every topic the user belongs to, newest first, the Kernteam's pinned
- * posts on top. Searching shows what already exists before anyone writes it a second time.
+ * The forum: its start page with the topics, or with `?topic=` the feed of one topic. One page
+ * for both, so the app shell precaches one route for the forum.
  */
 export const ForumOverview: React.FC = () => {
   const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const router = useRouter();
-  const searchParameters = useSearchParams();
-  const topicId = searchParameters.get('topic') ?? undefined;
+  const topicId = useSearchParams().get('topic') ?? undefined;
+  const intro = useQuery(trpc.forum.getForumIntro.queryOptions({}));
+  const { introSeen, markIntroSeen } = useIntroSeen(FORUM_INTRO_STORAGE_KEY);
+  const [introAsked, setIntroAsked] = useState(false);
+
+  // the first visit on this device waits for the intro rather than flashing the forum first;
+  // without one written, or while offline without a cached one, the forum opens as it is: a
+  // query paused for the network is pending but not loading
+  if (introSeen === false && intro.isLoading) {
+    return (
+      <div className="bg-page min-h-app-content flex justify-center pt-24">
+        <Loader2 className="h-6 w-6 animate-spin text-green-700" aria-hidden="true" />
+      </div>
+    );
+  }
+  if (hasForumIntro(intro.data) && (introAsked || introSeen === false)) {
+    return (
+      <>
+        <SetHeaderActions />
+        <ForumIntro
+          intro={intro.data}
+          locale={locale}
+          onContinue={() => {
+            markIntroSeen();
+            setIntroAsked(false);
+          }}
+        />
+      </>
+    );
+  }
+  const showIntro = hasForumIntro(intro.data) ? (): void => setIntroAsked(true) : undefined;
+  return topicId === undefined ? (
+    <ForumHome onShowIntro={showIntro} />
+  ) : (
+    <ForumTopicFeed key={topicId} topicId={topicId} />
+  );
+};
+
+/** The kinds a topic's feed narrows to, "Alle" first. */
+const KIND_FILTERS: (ForumPostKindValue | undefined)[] = [undefined, ...FORUM_POST_KINDS];
+
+/**
+ * One topic: who answers there, the way to write its Kernteam privately, its posts newest first
+ * with the Kernteam's pinned posts on top. Searching shows what already exists before anyone
+ * writes it a second time.
+ */
+const ForumTopicFeed: React.FC<{ topicId: string }> = ({ topicId }) => {
+  const trpc = useTRPC();
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+  const [kind, setKind] = useState<ForumPostKindValue | undefined>();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsButton = useRef<HTMLButtonElement>(null);
   const [filters, setFilters] = useState<ForumFilters>(DEFAULT_FORUM_FILTERS);
   const { status, filter, sort } = filters;
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -177,29 +207,24 @@ export const ForumOverview: React.FC = () => {
 
   const topics = useQuery(trpc.forum.getForumTopicList.queryOptions({}));
   const settings = useQuery(trpc.forum.getForumSettings.queryOptions({}));
-  const pinned = useQuery(
-    trpc.forum.getForumPinnedPostList.queryOptions(topicId === undefined ? {} : { topicId }),
-  );
+  const pinned = useQuery(trpc.forum.getForumPinnedPostList.queryOptions({ topicId }));
   const list = useInfiniteQuery(
     trpc.forum.getForumPostList.infiniteQueryOptions(
-      { ...(topicId === undefined ? {} : { topicId }), status, filter, sort },
+      { topicId, status, filter, sort, ...(kind === undefined ? {} : { kind }) },
       { getNextPageParam: (last) => last.nextCursor },
     ),
   );
   const isSearching = search.trim().length >= 3;
   const results = useQuery(
     trpc.forum.getForumPostSuggestionList.queryOptions(
-      { title: search, ...(topicId === undefined ? {} : { topicId }) },
+      { title: search, topicId },
       { enabled: isSearching },
     ),
   );
 
   const chosenTopic = topics.data?.find((topic) => topic.id === topicId);
-  const setTopic = (id: string | undefined): void => {
-    router.replace(id === undefined ? '/app/forum' : `/app/forum?topic=${id}`, { scroll: false });
-  };
   const posts = list.data?.pages.flatMap((page) => page.items) ?? [];
-  const filtered = isFiltered(filters);
+  const filtered = isFiltered(filters) || kind !== undefined;
   // A filter asks for its posts, and the pinned ones would only push them out of sight: they stand
   // on top of the unfiltered feed alone, and a filtered feed lists them where they match.
   const pinnedPosts = filtered ? [] : (pinned.data ?? []);
@@ -207,62 +232,12 @@ export const ForumOverview: React.FC = () => {
   // the pinned posts stand on top already, so the feed below leaves them out
   const feedPosts = posts.filter((post) => !pinnedIds.has(post.id));
 
-  // In no topic there is no forum to read: no search, no filters, only the way to the Zentrale,
-  // while editors chose a topic for private reports.
-  if (topics.data?.length === 0) {
-    const canReport = settings.data?.privateReportsAvailable !== false;
-    return (
-      <div className="bg-page min-h-app-content pb-28">
-        <SetHeaderActions />
-        <OfflineBanner locale={locale} />
-        <div className="mx-auto flex max-w-2xl flex-col px-4 pt-16">
-          <EmptyState
-            icon={MessageCircleQuestion}
-            title={forumText.noTopics[locale]}
-            description={canReport ? forumText.noTopicsPrivate[locale] : undefined}
-            action={
-              canReport && (
-                <Link
-                  href="/app/forum/new"
-                  className="bg-conveniat-green focus-visible:focus-surface-filled flex h-11 items-center rounded-xl px-5 text-[15px] font-semibold text-white hover:bg-green-700"
-                >
-                  {forumText.reportToZentrale[locale]}
-                </Link>
-              )
-            }
-          />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-page min-h-app-content pb-28">
+      {/* the header keeps "Zu tun" alone; what belongs to the topic sits in its card and
+          above its list, so the title keeps its room */}
       <SetHeaderActions>
         <ZentraleLink counts={settings.data?.zentrale ?? null} locale={locale} />
-        <button
-          ref={filterButton}
-          type="button"
-          onClick={() => setFiltersOpen(true)}
-          aria-label={forumText.filterTitle[locale]}
-          aria-pressed={filtered}
-          className={cn(
-            'focus-visible:focus-surface hover:bg-quiet relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full',
-            filtered ? 'text-conveniat-green' : 'text-green-700',
-          )}
-        >
-          <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
-          {filtered && (
-            <span className="bg-conveniat-green absolute top-2.5 right-2.5 h-2 w-2 rounded-full" />
-          )}
-        </button>
-        {chosenTopic !== undefined && (
-          <TopicSubscriptionButton
-            topicId={chosenTopic.id}
-            subscribed={chosenTopic.subscribed}
-            locale={locale}
-          />
-        )}
       </SetHeaderActions>
       <OfflineBanner locale={locale} />
       <div className="mx-auto flex max-w-2xl flex-col gap-3 px-4 pt-3">
@@ -275,18 +250,68 @@ export const ForumOverview: React.FC = () => {
           onPage
         />
 
-        {(topics.data?.length ?? 0) > 1 && (
-          <div className="-mx-4 flex [scrollbar-width:none] gap-1.5 overflow-x-auto px-4">
-            <Chip chosen={topicId === undefined} onClick={() => setTopic(undefined)}>
-              {forumText.allTopics[locale]}
-            </Chip>
-            {topics.data?.map((topic) => (
-              <Chip key={topic.id} chosen={topic.id === topicId} onClick={() => setTopic(topic.id)}>
-                {topic.name}
+        {chosenTopic !== undefined && (
+          <TopicCard
+            topic={chosenTopic}
+            locale={locale}
+            action={
+              chosenTopic.isAdmin ? (
+                <button
+                  ref={settingsButton}
+                  type="button"
+                  onClick={() => setSettingsOpen(true)}
+                  aria-label={forumText.topicSettings[locale]}
+                  className="focus-visible:focus-surface hover:bg-quiet -mt-1.5 -mr-1.5 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700"
+                >
+                  <Settings2 className="h-5 w-5" aria-hidden="true" />
+                </button>
+              ) : (
+                <TopicSubscriptionButton
+                  topicId={chosenTopic.id}
+                  subscribed={chosenTopic.subscribed}
+                  locale={locale}
+                />
+              )
+            }
+          />
+        )}
+
+        <div className="flex items-center gap-1">
+          <div className="-ml-4 flex min-w-0 flex-1 [scrollbar-width:none] gap-1.5 overflow-x-auto pl-4">
+            {KIND_FILTERS.map((value) => (
+              <Chip key={value ?? 'all'} chosen={kind === value} onClick={() => setKind(value)}>
+                {value === undefined ? forumText.allTopics[locale] : forumKindLabel[value][locale]}
               </Chip>
             ))}
           </div>
-        )}
+          <button
+            ref={filterButton}
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            aria-label={
+              isFiltered(filters)
+                ? `${forumText.filterTitle[locale]}: ${describeFilters(filters, locale)}`
+                : forumText.filterTitle[locale]
+            }
+            aria-pressed={isFiltered(filters)}
+            className={cn(
+              'focus-visible:focus-surface hover:bg-quiet relative -mr-2 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full',
+              isFiltered(filters) ? 'text-conveniat-green' : 'text-green-700',
+            )}
+          >
+            <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
+            {/* the count is the one sign of a filter: no line above the list, so the empty
+                state's reset is the only one outside the sheet */}
+            {isFiltered(filters) && (
+              <span
+                aria-hidden="true"
+                className="bg-conveniat-green absolute top-1 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] leading-none font-bold text-white"
+              >
+                {countFilters(filters)}
+              </span>
+            )}
+          </button>
+        </div>
 
         {isSearching ? (
           <Card as="ul" divided>
@@ -306,7 +331,7 @@ export const ForumOverview: React.FC = () => {
                   <Link
                     href={`/app/forum/new?${new URLSearchParams({
                       title: search.trim(),
-                      ...(topicId === undefined ? {} : { topic: topicId }),
+                      topic: topicId,
                     }).toString()}`}
                   >
                     <Plus aria-hidden="true" />
@@ -316,46 +341,32 @@ export const ForumOverview: React.FC = () => {
               </li>
             )}
             {results.data?.map((post) => (
-              <ForumPostRow
-                key={post.id}
-                post={post}
-                locale={locale}
-                showTopic={topicId === undefined}
-                now={now}
-              />
+              <ForumPostRow key={post.id} post={post} locale={locale} showTopic={false} now={now} />
             ))}
           </Card>
         ) : (
           <>
             {pinnedPosts.length > 0 && (
-              <Card as="ul" divided className="border-tint-line bg-tint mb-1">
-                {pinnedPosts.map((post) => (
-                  <ForumPostRow
-                    key={post.id}
-                    post={post}
-                    locale={locale}
-                    showTopic={topicId === undefined}
-                    now={now}
-                  />
-                ))}
-              </Card>
+              <section className="mb-1 flex flex-col gap-2">
+                <SectionLabel className="flex items-center gap-1.5">
+                  <Pin className="h-3.5 w-3.5 rotate-30" aria-hidden="true" />
+                  {forumText.pinned[locale]}
+                </SectionLabel>
+                <Card as="ul" divided className="border-tint-line bg-tint">
+                  {pinnedPosts.map((post) => (
+                    <ForumPostRow
+                      key={post.id}
+                      post={post}
+                      locale={locale}
+                      showTopic={false}
+                      now={now}
+                    />
+                  ))}
+                </Card>
+              </section>
             )}
 
             <section className="flex flex-col gap-2">
-              {/* the unfiltered feed needs no title: the pin marks what stands on top */}
-              {filtered && (
-                <div className="flex items-center justify-between">
-                  <SectionLabel>{describeFilters(filters, locale)}</SectionLabel>
-                  <button
-                    type="button"
-                    onClick={() => setFilters(DEFAULT_FORUM_FILTERS)}
-                    className="focus-visible:focus-surface hover:bg-quiet -mr-2 flex h-11 cursor-pointer items-center rounded-xl px-3 text-[13px] font-semibold text-green-800"
-                  >
-                    {forumText.resetFilters[locale]}
-                  </button>
-                </div>
-              )}
-
               {list.isLoading && (
                 <Card className="flex justify-center p-6">
                   <Loader2 className="h-6 w-6 animate-spin text-green-700" aria-hidden="true" />
@@ -372,7 +383,10 @@ export const ForumOverview: React.FC = () => {
                   <FeedEmpty
                     filtered={filtered}
                     besidesPinned={pinnedIds.size > 0}
-                    onResetFilters={() => setFilters(DEFAULT_FORUM_FILTERS)}
+                    onResetFilters={() => {
+                      setFilters(DEFAULT_FORUM_FILTERS);
+                      setKind(undefined);
+                    }}
                     locale={locale}
                   />
                 )}
@@ -383,7 +397,7 @@ export const ForumOverview: React.FC = () => {
                       key={post.id}
                       post={post}
                       locale={locale}
-                      showTopic={topicId === undefined}
+                      showTopic={false}
                       now={now}
                       compact
                     />
@@ -421,20 +435,32 @@ export const ForumOverview: React.FC = () => {
           'subscribed',
           // only the filters that can show something to this person
           ...(settings.data?.hasOpenAssignments === true ? (['assignedToMe'] as const) : []),
-          ...(settings.data?.moderationRequired === true && settings.data.canModerate
+          ...((settings.data?.moderationRequired === true ||
+            chosenTopic?.moderationRequired === true) &&
+          settings.data?.canModerate === true
             ? (['pending'] as const)
             : []),
-          ...(settings.data?.privateReportsAvailable === true && settings.data.canModerate
-            ? (['private'] as const)
+          ...(chosenTopic?.isAdmin === true || settings.data?.canModerate === true
+            ? (['flagged'] as const)
             : []),
         ]}
         locale={locale}
       />
 
-      {/* there before the topics load; without a topic, the page above leads to the Zentrale */}
+      {chosenTopic?.isAdmin === true && (
+        <TopicSettingsSheet
+          topic={chosenTopic}
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          anchor={settingsButton}
+          locale={locale}
+        />
+      )}
+
+      {/* there before the topics load */}
       <Link
-        href={topicId === undefined ? '/app/forum/new' : `/app/forum/new?topic=${topicId}`}
-        className="bg-conveniat-green focus-visible:focus-surface-filled fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 flex h-[52px] items-center gap-2 rounded-2xl px-5 text-[15px] font-bold text-white shadow-lg hover:bg-green-700 xl:bottom-8"
+        href={`/app/forum/new?topic=${topicId}`}
+        className="bg-conveniat-green focus-visible:focus-surface-filled fixed right-4 bottom-[calc(var(--app-tab-bar-height)+16px)] z-30 flex h-12 items-center gap-2 rounded-2xl px-5 text-[15px] font-semibold text-white shadow-lg hover:bg-green-700"
       >
         <Plus className="h-5 w-5" aria-hidden="true" />
         {forumText.newPost[locale]}

@@ -83,9 +83,9 @@ export const toggleReaction = trpcBaseProcedure
 
     assertChatNotArchived(chat);
 
-    // A private report or a post waiting for approval is seen, and liked, only by its author and
-    // its moderators, and so are its comments. Loaded here, so a reaction elsewhere does not pull
-    // in the piket schedule the check reads.
+    // A post waiting for approval or a hidden one is seen, and liked, only by its author and its
+    // moderators, and so are its comments, and so is a hidden comment. Loaded here, so a
+    // reaction elsewhere does not pull in the piket schedule the check reads.
     const forumVisibility =
       chat.type === ChatType.FORUM
         ? await import('@/features/chat/api/forum/forum-visibility')
@@ -97,7 +97,8 @@ export const toggleReaction = trpcBaseProcedure
     if (
       forumVisibility !== undefined &&
       forumThread !== undefined &&
-      !(await forumVisibility.canSeeForumPost(prisma, user, forumThread))
+      (!(await forumVisibility.canSeeForumPost(prisma, user, forumThread)) ||
+        (await forumVisibility.isForumMessageHiddenFrom(prisma, user, message.uuid)))
     ) {
       // answers like a message that does not exist
       throw new TRPCError({ code: 'NOT_FOUND', message: 'Message not found.' });

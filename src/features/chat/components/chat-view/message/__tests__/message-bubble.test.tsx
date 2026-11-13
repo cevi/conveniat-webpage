@@ -64,4 +64,20 @@ describe('MessageBubble', () => {
     expect(withoutMeta.queryByTestId('hidden-status')).toBeNull();
     expect(withoutMeta.container.textContent).not.toContain('18:42');
   });
+
+  it('says "Bearbeitet" next to the time once the sender changed the text', () => {
+    const own = { ...announcement, messagePayload: { text: 'Treffpunkt 07:45' } };
+    const edited = render(
+      <MessageBubble
+        message={{ ...own, editedAt: new Date(2027, 6, 26, 18, 50) }}
+        isCurrentUser
+        locale="de"
+        showMeta
+      />,
+    );
+    expect(edited.container.textContent).toContain('Bearbeitet18:42');
+
+    const unchanged = render(<MessageBubble message={own} isCurrentUser locale="de" showMeta />);
+    expect(unchanged.container.textContent).not.toContain('Bearbeitet');
+  });
 });

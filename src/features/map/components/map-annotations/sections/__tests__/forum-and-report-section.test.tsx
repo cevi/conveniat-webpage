@@ -8,7 +8,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 
 let forumEnabled = true;
-let privateReportsAvailable = true;
+// whether a topic of the user takes private conversations with its Kernteam
+let allowsPrivateConversations = true;
 let openPosts: unknown[] = [];
 
 jest.mock('next-auth/react', () => ({ useSession: jest.fn() }));
@@ -21,22 +22,24 @@ jest.mock(
     jest.requireActual<typeof import('@/trpc/test-trpc')>('@/trpc/test-trpc').mockTrpcClientModule,
 );
 
-/** opens the place's section, with the dashboard, the forum settings and its posts loaded */
+/** opens the place's section, with the dashboard, the user's topics and its posts loaded */
 const openAs = (status: 'authenticated' | 'unauthenticated'): void => {
   jest.mocked(useSession).mockReturnValue({ status } as ReturnType<typeof useSession>);
   const dashboard = { featureFlags: { forumEnabled } };
-  const settings = { privateReportsAvailable };
+  const topics = [
+    { id: 'topic', name: 'Platz & Infrastruktur', isAdmin: false, allowsPrivateConversations },
+  ];
   const postsHere = { items: openPosts };
   const { trpc, queryClient, wrapper } = createTestTrpc({
     'appContent.getDashboardConfig': () => dashboard,
-    'forum.getForumSettings': () => settings,
+    'forum.getForumTopicList': () => topics,
     'forum.getForumPostList': () => postsHere,
   });
   queryClient.setQueryData(
     trpc.appContent.getDashboardConfig.queryKey({ locale: 'de' }),
     dashboard as never,
   );
-  queryClient.setQueryData(trpc.forum.getForumSettings.queryKey({}), settings as never);
+  queryClient.setQueryData(trpc.forum.getForumTopicList.queryKey({}), topics as never);
   queryClient.setQueryData(
     trpc.forum.getForumPostList.queryKey({ annotationId: 'wc-nord', status: 'active', limit: 5 }),
     postsHere as never,
@@ -54,7 +57,7 @@ describe('reporting a problem from the map', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     forumEnabled = true;
-    privateReportsAvailable = true;
+    allowsPrivateConversations = true;
     openPosts = [];
   });
 
@@ -66,7 +69,7 @@ describe('reporting a problem from the map', () => {
     expect(handleLogin).toHaveBeenCalled();
   });
 
-  it('opens a new forum post with the place filled in', () => {
+  it('opens a new forum post about a problem, with the place filled in', () => {
     openAs('authenticated');
 
     const link = screen.getByRole('link', { name: /Problem melden/ });
@@ -74,6 +77,7 @@ describe('reporting a problem from the map', () => {
     expect(href.pathname).toBe('/app/forum/new');
     expect(href.searchParams.get('annotation')).toBe('wc-nord');
     expect(href.searchParams.get('label')).toBe('WC-Anlage Nord');
+    expect(href.searchParams.get('kind')).toBe('PROBLEM');
   });
 
   it('lists what is already reported here first', () => {
@@ -92,22 +96,23 @@ describe('reporting a problem from the map', () => {
     expect(screen.getByRole('button', { name: /Ich auch/ })).toBeTruthy();
   });
 
-  it('opens the same composer, switched to private, for a report to the Zentrale', () => {
+  it('opens the same composer, switched to private, to write a Kernteam', () => {
     openAs('authenticated');
 
-    const link = screen.getByRole('link', { name: /Privat an die Zentrale melden/ });
+    const link = screen.getByRole('link', { name: 'Kernteam privat schreiben' });
     const href = new URL(link.getAttribute('href') ?? '', 'http://localhost');
     expect(href.pathname).toBe('/app/forum/new');
     expect(href.searchParams.get('private')).toBe('1');
+    expect(href.searchParams.get('kind')).toBe('PROBLEM');
     expect(href.searchParams.get('annotation')).toBe('wc-nord');
   });
 
-  it('offers no private report while editors chose no topic for it', () => {
-    privateReportsAvailable = false;
+  it('offers no private conversation while none of the user’s topics takes one', () => {
+    allowsPrivateConversations = false;
     openAs('authenticated');
 
     expect(screen.getByRole('link', { name: /Problem melden/ })).toBeTruthy();
-    expect(screen.queryByRole('link', { name: /Privat an die Zentrale melden/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Kernteam privat schreiben' })).toBeNull();
   });
 
   it('offers no report while the forum is off, since every report goes there', () => {

@@ -69,7 +69,7 @@ const person = (uuid: string): { uuid: string; group_ids: number[] } => ({ uuid,
 const post = (overrides: Partial<ForumPostVisibility>): ForumPostVisibility => ({
   messageId: '0193f1a0-0000-7000-8000-0000000000aa',
   chatId: TOPIC,
-  private: false,
+  hidden: false,
   approvedAt: new Date(),
   authorId: 'noah',
   ...overrides,
@@ -101,8 +101,8 @@ describe('who sees a forum post', () => {
     await expect(canSeeForumPost(prisma, person('sina'), post({}))).resolves.toBe(true);
   });
 
-  it('shows a private report to its author, the Kernteam and the piket, and to nobody else', async () => {
-    const report = post({ private: true });
+  it('shows a hidden post to its author, the Kernteam and the piket, and to nobody else', async () => {
+    const report = post({ hidden: true });
 
     await expect(canSeeForumPost(prisma, person('noah'), report)).resolves.toBe(true);
     await expect(canSeeForumPost(prisma, person('mira'), report)).resolves.toBe(true);
@@ -124,8 +124,8 @@ describe('live events of a forum thread', () => {
     expect(publish).toHaveBeenCalledWith(comment);
   });
 
-  it('go only to the personal channels of those who see a private report', async () => {
-    await publishForumThreadEvent(prisma, post({ private: true }), comment);
+  it('go only to the personal channels of those who see a hidden post', async () => {
+    await publishForumThreadEvent(prisma, post({ hidden: true }), comment);
 
     const channels = publish.mock.calls.map((call) => call[0]);
     expect(channels).toEqual(expect.arrayContaining(['lea', 'mira', 'noah']));

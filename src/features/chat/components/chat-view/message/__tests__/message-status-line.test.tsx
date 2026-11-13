@@ -78,6 +78,16 @@ describe('MessageStatusLine', () => {
     ).toContain('sobald du online bist');
   });
 
+  it('says "Bearbeitet" after the time once the sender changed the text', () => {
+    const edited = message('READ', { editedAt: new Date(2026, 9, 7, 20, 40) });
+    expect(lineOf(<MessageStatusLine message={edited} isCurrentUser locale="de" />)).toBe(
+      'Gelesen·Mi, 7. Okt., 20:29·Bearbeitet',
+    );
+    expect(lineOf(<MessageStatusLine message={edited} isCurrentUser={false} locale="en" />)).toBe(
+      'Wed, Oct 7, 20:29·Edited',
+    );
+  });
+
   it('shows a status this build does not know as it is, rather than crash', () => {
     expect(
       lineOf(<MessageStatusLine message={message('SOME_NEW_EVENT')} isCurrentUser locale="de" />),

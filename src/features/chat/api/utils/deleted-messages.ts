@@ -28,8 +28,9 @@ export const quotedMessageIdOf = (payload: unknown): string | undefined => {
 };
 
 /**
- * Which of the messages quoted by `payloads` were deleted. One query for a whole page, and
- * none when nothing on it quotes anything.
+ * Which of the messages quoted by `payloads` were deleted, or hidden by a forum moderator: a
+ * quote must not carry on what the moderators took away. One query for a whole page, and none
+ * when nothing on it quotes anything.
  */
 export const findDeletedQuotedMessageIds = async (
   prisma: PrismaClientOrTransaction,
@@ -40,7 +41,10 @@ export const findDeletedQuotedMessageIds = async (
   ] as string[];
   if (quotedIds.length === 0) return new Set();
   const deleted = await prisma.message.findMany({
-    where: { uuid: { in: quotedIds }, deletedAt: { not: null } },
+    where: {
+      uuid: { in: quotedIds },
+      OR: [{ deletedAt: { not: null } }, { forumRemoval: { is: { kind: 'HIDDEN' } } }],
+    },
     select: { uuid: true },
   });
   return new Set(deleted.map((message) => message.uuid));

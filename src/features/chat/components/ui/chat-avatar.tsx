@@ -4,7 +4,7 @@ import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types
 import { ChatType } from '@/lib/prisma/enums';
 import { cn } from '@/utils/tailwindcss-override';
 import type { LucideIcon } from 'lucide-react';
-import { CalendarDays, LifeBuoy, Megaphone, Siren, Users } from 'lucide-react';
+import { CalendarDays, LifeBuoy, Lock, Megaphone, Siren, Users } from 'lucide-react';
 import type React from 'react';
 
 /** What the avatar needs of a chat: the chat list has it, so a chat's header shows it at once. */
@@ -56,6 +56,8 @@ export const ChatAvatar: React.FC<{ chat: ChatAvatarChat; size?: 'row' | 'header
     [ChatType.SUPPORT_GROUP]: LifeBuoy,
     [ChatType.ANNOUNCEMENT]: Megaphone,
     [ChatType.COURSE_GROUP]: CalendarDays,
+    // a private conversation with the Kernteam of a forum topic
+    [ChatType.FORUM_CONVERSATION]: Lock,
   };
   const Icon = icons[chat.chatType] ?? Users;
   return (

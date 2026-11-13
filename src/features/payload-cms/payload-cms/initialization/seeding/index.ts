@@ -23,6 +23,7 @@ import {
   generateScheduleEntries,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/schedule-entries';
 import { seedAlertSettings } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-alert-settings';
+import { seedForumIntro } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-forum-intro';
 import { seedFunktionen } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-funktionen';
 import {
   seedHoefe,
@@ -577,6 +578,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
 
   await seedAlertSettings(payload);
   await seedImageSubmission(payload);
+  await seedForumIntro(payload);
 
   console.log('Seeding: Generic pages created.');
 

@@ -1,7 +1,8 @@
 import { findKernteamLabels, kernteamKey } from '@/features/chat/api/forum/forum-kernteam-labels';
+import { recordForumFirstReaction } from '@/features/chat/api/forum/forum-metrics';
 import { FORUM_LIKE_EMOJI, type ForumPostSummary } from '@/lib/forum-shared';
 import type { Prisma } from '@/lib/prisma/client';
-import { ChatMembershipPermission } from '@/lib/prisma/enums';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import type { Locale, PrismaClientOrTransaction } from '@/types/types';
 
 export type { ForumPostSummary } from '@/lib/forum-shared';
@@ -14,17 +15,19 @@ export const FORUM_POST_SUMMARY_SELECT = {
   chatId: true,
   title: true,
   status: true,
+  kind: true,
+  answerMessageId: true,
   createdAt: true,
   longitude: true,
   latitude: true,
   annotationId: true,
   pinnedAt: true,
   approvedAt: true,
-  private: true,
   chat: { select: { name: true } },
   message: {
     select: {
       senderId: true,
+      forumRemoval: { select: { kind: true } },
       sender: { select: { name: true } },
       contentVersions: { take: 1, orderBy: { revision: 'desc' }, select: { payload: true } },
     },
@@ -66,9 +69,14 @@ export const toForumPostSummaries = async (
   userId: string,
   rows: ForumPostSummaryRow[],
   locale: Locale,
+  /** the topics the caller moderates, who then sees the open flags */
+  moderated: ModeratedTopics = [],
 ): Promise<ForumPostSummary[]> => {
   if (rows.length === 0) return [];
   const postIds = rows.map((row) => row.messageId);
+  const flaggable = rows
+    .filter((row) => moderated === 'all' || moderated.includes(row.chatId))
+    .map((row) => row.messageId);
 
   const merged = await prisma.forumPost.findMany({
     where: { mergedIntoId: { in: postIds } },
@@ -79,7 +87,7 @@ export const toForumPostSummaries = async (
     merged.map((post) => [post.messageId, post.mergedIntoId ?? post.messageId]),
   );
 
-  const [reactions, comments, adminMemberships] = await Promise.all([
+  const [reactions, comments, adminMemberships, flags] = await Promise.all([
     prisma.messageReaction.findMany({
       where: { messageId: { in: likedIds }, emoji: FORUM_LIKE_EMOJI },
       select: { messageId: true, userId: true },
@@ -99,7 +107,15 @@ export const toForumPostSummaries = async (
       },
       select: { chatId: true, userId: true },
     }),
+    flaggable.length === 0
+      ? []
+      : prisma.forumFlag.groupBy({
+          by: ['messageId'],
+          where: { messageId: { in: flaggable }, resolvedAt: null },
+          _count: { _all: true },
+        }),
   ]);
+  const flagCount = new Map(flags.map((group) => [group.messageId, group._count._all]));
 
   const likers = new Map<string, Set<string>>();
   for (const reaction of reactions) {
@@ -127,6 +143,8 @@ export const toForumPostSummaries = async (
       title: row.title,
       excerpt: excerptOf(content.text),
       status: row.status,
+      kind: row.kind,
+      answered: row.answerMessageId !== null,
       createdAt: row.createdAt,
       author: senderId === null ? null : { id: senderId, name: row.message.sender?.name ?? '' },
       byTopicAdmin: senderId !== null && admins.has(`${row.chatId}:${senderId}`),
@@ -142,17 +160,21 @@ export const toForumPostSummaries = async (
       commentCount: commentCount.get(row.messageId) ?? 0,
       pinned: row.pinnedAt !== null,
       pending: row.approvedAt === null,
-      private: row.private,
+      hidden: row.message.forumRemoval?.kind === 'HIDDEN',
+      ...(flaggable.includes(row.messageId)
+        ? { flagCount: flagCount.get(row.messageId) ?? 0 }
+        : {}),
       imageCount: content.images.length,
     };
   });
 };
 
 /**
- * The posts a user may see: those of the topics they belong to, and of those the public ones,
- * their own, and the ones of the topics they moderate. Private reports and posts waiting for
- * approval are restricted the same way, see `forum-visibility.ts`. A helper belongs to the topic
- * of their assignment for as long as it is open, see `createForumPostAssignment`.
+ * The posts a user may see in the topics' lists: those of the topics they belong to, and of
+ * those the public ones, their own, and the ones of the topics they moderate. Posts waiting for
+ * approval and hidden ones are restricted, see `forum-visibility.ts`. A helper belongs to the
+ * topic of their assignment for as long as it is open, see `createForumPostAssignment`. Private
+ * conversations are chats of another type and never in these lists.
  */
 export const visibleForumPostsWhere = (
   userId: string,
@@ -168,15 +190,18 @@ export const visibleForumPostsWhere = (
         chatMemberships: { some: { userId } },
       },
     },
-    // a private report or a post waiting for approval: only its author and its moderators
+    // a post waiting for approval or a hidden one: only its author and its moderators
     moderatedTopics === 'all'
       ? {}
       : {
           OR: [
-            { approvedAt: { not: null }, private: false },
+            {
+              approvedAt: { not: null },
+              message: { forumRemoval: { is: null } },
+            },
             { message: { senderId: userId } },
             { chatId: { in: moderatedTopics } },
-            // forwarded to them, a private report included
+            // forwarded to them, a hidden post included
             { assignments: { some: { assigneeId: userId, kind: 'HELPER', endedAt: null } } },
           ],
         },
@@ -191,9 +216,20 @@ export const markForumPostReacted = async (
   prisma: PrismaClientOrTransaction,
   postId: string,
 ): Promise<void> => {
-  await prisma.forumPost.updateMany({
+  const [reacted] = await prisma.forumPost.updateManyAndReturn({
     where: { messageId: postId, reactedAt: null },
     data: { reactedAt: new Date() },
+    select: { createdAt: true, kind: true, chatId: true },
+  });
+  if (reacted === undefined) return;
+  const chat = await prisma.chat.findUnique({
+    where: { uuid: reacted.chatId },
+    select: { type: true },
+  });
+  recordForumFirstReaction({
+    createdAt: reacted.createdAt,
+    kind: reacted.kind,
+    isConversation: chat?.type === ChatType.FORUM_CONVERSATION,
   });
 };
 

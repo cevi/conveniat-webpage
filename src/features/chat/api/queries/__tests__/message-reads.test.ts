@@ -105,6 +105,8 @@ const withIncludes = (message: StoredMessage, readerId: string): Row => ({
 });
 
 let reader = ANNA;
+/** the type of the chat the reader opened */
+let chatType: string;
 
 const prisma = {
   chat: {
@@ -115,6 +117,7 @@ const prisma = {
     findUnique: (): Promise<Row> =>
       Promise.resolve({
         lastReadSeq: messages.find((message) => message.uuid === lastReadMessageId)?.seq ?? null,
+        chat: { type: chatType },
       }),
   },
   user: {
@@ -213,6 +216,7 @@ beforeEach(() => {
   reactions = [];
   lastReadMessageId = null;
   minute = 0;
+  chatType = 'GROUP';
 });
 
 describe('getUnreadMarker', () => {
@@ -260,6 +264,18 @@ describe('getUnreadMarker', () => {
     await expect(as(ANNA).getUnreadMarker({ chatId: CHAT_ID })).resolves.toEqual({
       firstUnreadMessageId: firstUnread,
       unreadCount: 1,
+    });
+  });
+
+  it('points at no post of a forum topic, where a post may wait for approval', async () => {
+    chatType = 'FORUM';
+    lastReadMessageId = seed(BEN, { text: 'Toitoi in der Mitte ist voll' });
+    // a post of Clara that only she and the moderators see yet
+    seed(CLARA, { text: 'Jemand hat das Zelt beschädigt' });
+
+    await expect(as(ANNA).getUnreadMarker({ chatId: CHAT_ID })).resolves.toEqual({
+      firstUnreadMessageId: undefined,
+      unreadCount: 0,
     });
   });
 });

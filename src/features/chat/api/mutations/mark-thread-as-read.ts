@@ -1,3 +1,4 @@
+import { ChatType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -19,10 +20,18 @@ export const markThreadAsRead = trpcBaseProcedure
         uuid: threadId,
         chatId: chatId,
       },
-      select: { uuid: true },
+      select: { uuid: true, chat: { select: { type: true } } },
     });
 
-    if (!parentMessage) {
+    // the thread of a forum post its reader may not see answers like one that does not exist,
+    // so its count of replies tells nothing about it
+    const hiddenForumThread =
+      parentMessage?.chat.type === ChatType.FORUM &&
+      (await import('@/features/chat/api/forum/forum-visibility').then(
+        async ({ isForumMessageHiddenFrom }) => isForumMessageHiddenFrom(prisma, user, threadId),
+      ));
+
+    if (!parentMessage || hiddenForumThread) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
         message: 'Thread parent message does not exist in the specified chat.',

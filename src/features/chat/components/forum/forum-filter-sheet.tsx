@@ -11,7 +11,7 @@ import type React from 'react';
 
 export type ForumStatusFilter = 'active' | 'done';
 export type ForumListFilter =
-  'all' | 'mine' | 'assignedToMe' | 'subscribed' | 'pending' | 'private';
+  'all' | 'mine' | 'assignedToMe' | 'subscribed' | 'pending' | 'flagged';
 export type ForumSort = 'new' | 'popular';
 
 export interface ForumFilters {
@@ -22,11 +22,16 @@ export interface ForumFilters {
 
 export const DEFAULT_FORUM_FILTERS: ForumFilters = { status: 'active', filter: 'all', sort: 'new' };
 
-/** Whether the feed shows something else than its default: open posts, all of them, newest. */
-export const isFiltered = (filters: ForumFilters): boolean =>
-  filters.status !== DEFAULT_FORUM_FILTERS.status ||
-  filters.filter !== DEFAULT_FORUM_FILTERS.filter ||
-  filters.sort !== DEFAULT_FORUM_FILTERS.sort;
+/** How many settings differ from the feed's default of open posts, all of them, newest. */
+export const countFilters = (filters: ForumFilters): number =>
+  [
+    filters.status !== DEFAULT_FORUM_FILTERS.status,
+    filters.filter !== DEFAULT_FORUM_FILTERS.filter,
+    filters.sort !== DEFAULT_FORUM_FILTERS.sort,
+  ].filter(Boolean).length;
+
+/** Whether the feed shows something else than its default. */
+export const isFiltered = (filters: ForumFilters): boolean => countFilters(filters) > 0;
 
 const listFilterText: Record<ForumListFilter, StaticTranslationString> = {
   all: forumText.filterAll,
@@ -34,10 +39,10 @@ const listFilterText: Record<ForumListFilter, StaticTranslationString> = {
   subscribed: forumText.filterSubscribed,
   assignedToMe: forumText.filterAssigned,
   pending: forumText.filterPending,
-  private: forumText.filterPrivate,
+  flagged: forumText.filterFlagged,
 };
 
-/** The label above the list: what it shows, in a few words, e.g. "Meine · Erledigt · Beliebt". */
+/** What the feed shows, in a few words, e.g. "Meine · Erledigt · Beliebt", for the filter button's label. */
 export const describeFilters = (filters: ForumFilters, locale: Locale): string =>
   [
     filters.filter === 'all' ? undefined : listFilterText[filters.filter][locale],
@@ -73,7 +78,7 @@ const Segmented = <T extends string>({
 
 /**
  * The feed's filters in the shared sheet, so the feed itself is the search, the topics and the
- * posts. "Meine Aufträge", "Zur Freigabe" and "Private Meldungen" are offered only to whom they
+ * posts. "Meine Aufträge", "Zur Freigabe" and "Gemeldet" are offered only to whom they
  * can show something.
  */
 export const ForumFilterSheet: React.FC<{
@@ -90,16 +95,17 @@ export const ForumFilterSheet: React.FC<{
     onOpenChange={onOpenChange}
     title={forumText.filterTitle[locale]}
     anchor={anchor}
-    footer={
-      isFiltered(filters) ? (
-        <button
-          type="button"
-          onClick={() => onChange(DEFAULT_FORUM_FILTERS)}
-          className="bg-quiet hover:bg-chip focus-visible:focus-surface h-11 w-full cursor-pointer rounded-xl text-[15px] font-semibold text-green-900"
-        >
-          {forumText.resetFilters[locale]}
-        </button>
-      ) : undefined
+    // always there and greyed out while nothing is set, like Faire and LinkedIn do, so the
+    // sheet does not jump when the first filter is chosen
+    trailing={
+      <button
+        type="button"
+        disabled={!isFiltered(filters)}
+        onClick={() => onChange(DEFAULT_FORUM_FILTERS)}
+        className="focus-visible:focus-surface hover:bg-quiet flex h-11 shrink-0 cursor-pointer items-center rounded-xl px-2 text-[14px] font-semibold text-green-800 disabled:cursor-default disabled:text-green-500 disabled:hover:bg-transparent"
+      >
+        {forumText.resetFilters[locale]}
+      </button>
     }
   >
     <div className="flex flex-col gap-4 pb-2">

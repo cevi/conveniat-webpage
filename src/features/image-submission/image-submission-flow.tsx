@@ -8,8 +8,8 @@ import { IntroStep } from '@/features/image-submission/intro-step';
 import { OwnImagesSection } from '@/features/image-submission/own-images-section';
 import { TermsStep } from '@/features/image-submission/terms-step';
 import { UploadForm } from '@/features/image-submission/upload-form';
-import { useIntroSeen } from '@/features/image-submission/use-intro-seen';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { useIntroSeen } from '@/hooks/use-intro-seen';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { CircleCheck, ImageOff, Info, Image as LucideImageIcon } from 'lucide-react';
@@ -54,7 +54,7 @@ const submitMoreButton: StaticTranslationString = {
  */
 export const ImageSubmissionFlow: React.FC<{ texts: ImageSubmissionTexts }> = ({ texts }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { introSeen, markIntroSeen } = useIntroSeen();
+  const { introSeen, markIntroSeen } = useIntroSeen('image-submission-intro-seen');
   const [chosenStep, setChosenStep] = useState<Step | undefined>();
   const [agreed, setAgreed] = useState(false);
 

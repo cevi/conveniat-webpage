@@ -1,8 +1,8 @@
 'use client';
-import { SetHideHeader } from '@/components/header/hide-header-context';
 import { textInputClassName } from '@/components/ui/field';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
-import { forumText } from '@/features/chat/components/forum/forum-texts';
+import { ForumSubpageHeader } from '@/features/chat/components/forum/forum-subpage-header';
+import { forumKindExplain, forumText } from '@/features/chat/components/forum/forum-texts';
 import { prepareChatImage } from '@/features/chat/utils/prepare-chat-image';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
@@ -12,9 +12,12 @@ import { CHAT_IMAGE_MAX_BYTES, isChatImageContentType } from '@/lib/chat-images'
 import { forumErrorTexts } from '@/lib/forum-error-texts';
 import {
   FORUM_LIKE_EMOJI,
+  FORUM_POST_KINDS,
   FORUM_POST_MAX_IMAGES,
   FORUM_TEXT_MAX_LENGTH,
   FORUM_TITLE_MAX_LENGTH,
+  forumKindLabel,
+  type ForumPostKindValue,
   forumStatusLabel,
 } from '@/lib/forum-shared';
 import { useTRPC } from '@/trpc/client';
@@ -24,18 +27,7 @@ import { isHeicFile } from '@/utils/image-file';
 import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { keepPreviousData } from '@tanstack/react-query';
-import {
-  ArrowLeft,
-  Camera,
-  ImageIcon,
-  Loader2,
-  Lock,
-  MapPin,
-  Search,
-  ThumbsUp,
-  Users,
-  X,
-} from 'lucide-react';
+import { Camera, ImageIcon, Loader2, Lock, MapPin, Search, ThumbsUp, Users, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useState } from 'react';
@@ -120,47 +112,6 @@ interface PickedImage {
 }
 
 /**
- * The composer's own bar in place of the app header: writing is a task of its own, so the way
- * out is back to where it started, not the menu.
- */
-const ComposerHeader: React.FC<{ locale: Locale; topicId: string | undefined }> = ({
-  locale,
-  topicId,
-}) => {
-  const router = useRouter();
-  // opened straight from a link or a push, there is nothing in the app to go back to
-  const [isEntryPage] = useState(
-    () =>
-      typeof location !== 'undefined' &&
-      performance.getEntriesByType('navigation')[0]?.name === location.href,
-  );
-  const goBack = (): void => {
-    if (isEntryPage) {
-      router.replace(topicId === undefined ? '/app/forum' : `/app/forum?topic=${topicId}`);
-      return;
-    }
-    router.back();
-  };
-  return (
-    // in the place of the hidden app header, which the page below still leaves room for
-    <div className="border-line fixed inset-x-0 top-(--app-top-inset) z-[110] flex h-[62px] items-center gap-1 border-b bg-white pr-2 pl-1 xl:hidden">
-      <SetHideHeader value />
-      <button
-        type="button"
-        onClick={goBack}
-        aria-label={forumText.back[locale]}
-        className="focus-visible:focus-surface hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900"
-      >
-        <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
-      </button>
-      <h1 className="font-heading text-heading min-w-0 flex-1 truncate pl-1 text-[17px] font-bold">
-        {forumText.newPost[locale]}
-      </h1>
-    </div>
-  );
-};
-
-/**
  * Writes a post. While the title is typed, and as soon as a place is chosen, the posts that may
  * already say the same are shown first, each with "Ich auch": a like there is worth more than a
  * second post the Zentrale has to read.
@@ -179,8 +130,6 @@ export const ForumComposer: React.FC = () => {
   const [chosenTopicId, setChosenTopicId] = useState<string | undefined>(
     parameters.get('topic') ?? draft?.topicId,
   );
-  const topicId = chosenTopicId ?? topics.data?.[0]?.id;
-  const topic = topics.data?.find((candidate) => candidate.id === topicId);
 
   const [postId] = useState(() => crypto.randomUUID());
   // the search hands over what found nothing, see the forum's "Als neuen Beitrag schreiben"
@@ -208,18 +157,35 @@ export const ForumComposer: React.FC = () => {
   const [brokenPreviews, setBrokenPreviews] = useState<ReadonlySet<string>>(new Set());
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  // what the user chose on the toggle; until then the map's private link, or, for someone in no
-  // topic, private, since a public post needs a topic
-  const [choice, setChoice] = useState<'public' | 'private' | undefined>(
-    parameters.get('private') === '1' ? 'private' : undefined,
+  // "Kernteam privat schreiben" and the map's private link open the composer on "Privat"
+  const [isPrivate, setIsPrivate] = useState(
+    parameters.get('private') === '1' || parameters.get('conversation') === '1',
   );
-  // without a topic of their own, a report can only go privately to the Zentrale, and that only
-  // while editors chose a topic for it; assumed until the settings say otherwise, and in a
-  // persisted cache from before private reports the server's refusal says it
-  const canPostPublic = topics.data === undefined || topics.data.length > 0;
-  const canPostPrivate = settings.data?.privateReportsAvailable !== false;
-  const isPrivate =
-    canPostPrivate && (choice === undefined ? !canPostPublic : choice === 'private');
+  const [kind, setKind] = useState<ForumPostKindValue>(() => {
+    const asked = parameters.get('kind');
+    return FORUM_POST_KINDS.find((candidate) => candidate === asked) ?? 'QUESTION';
+  });
+  // one conversation per topic: a retry after a failed upload reuses the one opened for the
+  // same topic, and a topic changed in between opens its own
+  const [conversationIds] = useState(() => new Map<string, string>());
+  const conversationIdFor = (topic: string): string => {
+    const known = conversationIds.get(topic);
+    if (known !== undefined) return known;
+    const created = crypto.randomUUID();
+    conversationIds.set(topic, created);
+    return created;
+  };
+  // a private conversation goes to the Kernteam of a topic that takes them; a persisted list
+  // from before conversations knows none, and the server's refusal then says why
+  const offeredTopics = isPrivate
+    ? (topics.data ?? []).filter((candidate) => candidate.allowsPrivateConversations === true)
+    : (topics.data ?? []);
+  const canPostPrivate = (topics.data ?? []).some(
+    (candidate) => candidate.allowsPrivateConversations === true,
+  );
+  const topicId =
+    offeredTopics.find((candidate) => candidate.id === chosenTopicId)?.id ?? offeredTopics[0]?.id;
+  const topic = topics.data?.find((candidate) => candidate.id === topicId);
   // asked once the typing pauses, and the last answer stays up while the next one loads, so the
   // posts already reported do not vanish and come back with every key
   const searchedTitle = useDebouncedValue(title, SUGGESTION_DEBOUNCE_MS);
@@ -241,7 +207,7 @@ export const ForumComposer: React.FC = () => {
   const like = useToggleForumLike();
   const uploadUrl = useMutation(trpc.chat.getUploadUrl.mutationOptions());
   const create = useMutation(trpc.forum.createForumPost.mutationOptions());
-  const privateReportTopic = useMutation(trpc.forum.getForumPrivateReportTopic.mutationOptions());
+  const openConversation = useMutation(trpc.forum.openForumConversation.mutationOptions());
 
   const addImage = (file: File | undefined): void => {
     if (file === undefined) return;
@@ -284,22 +250,26 @@ export const ForumComposer: React.FC = () => {
   };
 
   /**
-   * A public post goes into its topic. A private report is a post too, in the topic editors
-   * chose for private reports, which the server joins the reporter to, and only the reporter
-   * and the Zentrale see it.
+   * A public post goes into its topic. A private one opens a conversation with the topic's
+   * Kernteam first, a chat of its own, and is its one post, so only its members ever read it.
    */
   const publish = async (): Promise<void> => {
     setError(undefined);
     setIsBusy(true);
     try {
-      const reportTopic = isPrivate ? await privateReportTopic.mutateAsync({}) : undefined;
-      const targetTopicId = reportTopic?.topicId ?? topicId;
-      if (targetTopicId === undefined) return;
-      const keys = await uploadImagesTo(targetTopicId);
+      if (topicId === undefined) return;
+      const conversation = isPrivate
+        ? await openConversation.mutateAsync({
+            topicId,
+            conversationId: conversationIdFor(topicId),
+          })
+        : undefined;
+      const targetChatId = conversation?.chatId ?? topicId;
+      const keys = await uploadImagesTo(targetChatId);
       const { id } = await create.mutateAsync({
-        topicId: targetTopicId,
+        topicId: targetChatId,
         postId,
-        private: isPrivate,
+        kind,
         title: title.trim(),
         text: text.trim(),
         images: keys,
@@ -337,21 +307,31 @@ export const ForumComposer: React.FC = () => {
       : { lng: location.longitude.toFixed(6), lat: location.latitude.toFixed(6) }),
   }).toString()}`;
   const keepDraft = (): void => saveDraft({ title, text, topicId });
-  const canPublish =
-    isOnline && title.trim() !== '' && !isBusy && (isPrivate || topicId !== undefined);
+  const canPublish = isOnline && title.trim() !== '' && !isBusy && topicId !== undefined;
   const matching = (suggestions.data ?? []).slice(0, 3);
   let publishHint = forumText.publishHint;
   if (!isOnline) publishHint = forumText.offlinePublish;
   else if (isPrivate) publishHint = forumText.privateHint;
   else if (topic?.isAdmin === true) publishHint = forumText.publishHintKernteam;
-  else if (settings.data?.moderationRequired === true) publishHint = forumText.moderationHint;
+  else if (topic?.moderationRequired === true || settings.data?.moderationRequired === true) {
+    publishHint = forumText.moderationHint;
+  }
 
   return (
     <div className="bg-page min-h-app-content pb-10">
-      <ComposerHeader locale={locale} topicId={parameters.get('topic') ?? undefined} />
+      <ForumSubpageHeader
+        title={forumText.newPost[locale]}
+        locale={locale}
+        fallbackHref={
+          parameters.get('topic') === null
+            ? '/app/forum'
+            : `/app/forum?topic=${parameters.get('topic') ?? ''}`
+        }
+      />
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-3">
-        {/* a choice only where both are possible; otherwise the composer is the one that is */}
-        {canPostPublic && canPostPrivate && (
+        {/* a choice only where a topic takes private conversations, and the way back to
+            Öffentlich for a link that opened it on "Privat" where none does */}
+        {(canPostPrivate || isPrivate) && (
           <div className="flex flex-col gap-1.5">
             <div className={segmentedTrackClassName}>
               {([false, true] as const).map((value) => (
@@ -359,7 +339,7 @@ export const ForumComposer: React.FC = () => {
                   key={String(value)}
                   type="button"
                   aria-pressed={isPrivate === value}
-                  onClick={() => setChoice(value ? 'private' : 'public')}
+                  onClick={() => setIsPrivate(value)}
                   className={cn(
                     segmentClassName(isPrivate === value),
                     'flex-1 gap-1.5 text-[14px] font-semibold',
@@ -375,18 +355,50 @@ export const ForumComposer: React.FC = () => {
               ))}
             </div>
             <p className="text-[13px] text-green-700">
-              {isPrivate ? forumText.privateExplain[locale] : forumText.publicExplain[locale]}
+              {isPrivate
+                ? forumText.privateExplain[locale].replace('{topic}', topic?.name ?? '')
+                : forumText.publicExplain[locale]}
             </p>
           </div>
         )}
+        {isPrivate && topics.data !== undefined && offeredTopics.length === 0 && (
+          <p className="bg-quiet rounded-xl px-3 py-2.5 text-[14px] text-green-900">
+            {forumText.noPrivateTopic[locale]}
+          </p>
+        )}
 
-        {!isPrivate && (topics.data?.length ?? 0) > 1 && (
+        {!isPrivate && (
+          <fieldset className="flex flex-col gap-1.5">
+            <legend className="mb-1.5 text-[13px] font-semibold text-green-800">
+              {forumText.kind[locale]}
+            </legend>
+            <div className={segmentedTrackClassName}>
+              {FORUM_POST_KINDS.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={kind === value}
+                  onClick={() => setKind(value)}
+                  className={cn(
+                    segmentClassName(kind === value),
+                    'flex-1 text-[14px] font-semibold',
+                  )}
+                >
+                  {forumKindLabel[value][locale]}
+                </button>
+              ))}
+            </div>
+            <p className="text-[13px] text-green-700">{forumKindExplain[kind][locale]}</p>
+          </fieldset>
+        )}
+
+        {offeredTopics.length > 1 && (
           <fieldset className="flex flex-col gap-1.5">
             <legend className="mb-1.5 text-[13px] font-semibold text-green-800">
               {forumText.topic[locale]}
             </legend>
             <div className="flex flex-wrap gap-1.5">
-              {topics.data?.map((candidate) => (
+              {offeredTopics.map((candidate) => (
                 <button
                   key={candidate.id}
                   type="button"

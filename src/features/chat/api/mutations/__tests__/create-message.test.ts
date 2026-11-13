@@ -65,7 +65,21 @@ jest.mock('@/lib/db/prisma', () => ({
     },
   },
 }));
-jest.mock('@/config/environment-variables', () => ({ environmentVariables: {} }));
+jest.mock('@/config/environment-variables', () => ({
+  environmentVariables: {
+    // the groups the forum's rights read, none of them held here
+    CEVIDB_GROUP_FULL_ADMIN: [],
+    CEVIDB_GROUP_WEB_CORE_TEAM: [],
+    CEVIDB_GROUP_FORUM_ZENTRALE: [],
+  },
+}));
+jest.mock('@payload-config', () => ({}), { virtual: true });
+jest.mock('payload', () => ({ getPayload: jest.fn() }));
+// nobody is on forum piket duty
+jest.mock('@/features/chat/api/utils/piket-service', () => ({
+  findActivePiketShift: (): Promise<void> => Promise.resolve(),
+  getActivePiketMembers: (): Promise<unknown[]> => Promise.resolve([]),
+}));
 jest.mock('@/utils/get-locale-from-cookies', () => ({
   getLocaleFromCookies: jest.fn().mockResolvedValue('de'),
 }));
@@ -180,7 +194,24 @@ const imageMessage: ExistingMessage = {
   deletedAt: null,
   payload: { url: `chat-images/${CHAT_ID}/1719830400000-k3j9x2.jpg` },
 };
-const existingMessages = [parent, otherChatMessage, reply, deletedMessage, imageMessage];
+/** A forum post of Ben's that waits for approval, or that a moderator hid. */
+const restrictedPost: ExistingMessage = {
+  uuid: '00000000-0000-4000-8000-000000000007',
+  chatId: CHAT_ID,
+  parentId: null,
+  deletedAt: null,
+  payload: { text: 'Jemand hat das Zelt von Cevi Uster beschädigt' },
+};
+const existingMessages = [
+  parent,
+  otherChatMessage,
+  reply,
+  deletedMessage,
+  imageMessage,
+  restrictedPost,
+];
+/** Why only Ben and the moderators see `restrictedPost`. */
+let restriction: 'held' | 'hidden';
 
 /** Prisma's `findFirst` over the existing messages, for the equality filters a send uses. */
 const findExistingMessage = ({
@@ -229,6 +260,14 @@ const prisma = {
     update: (): Promise<void> => Promise.resolve(),
   },
   chatMembership: {
+    findUnique: ({ where }: { where: { userId_chatId: { userId: string } } }): Promise<unknown> => {
+      const member = mockMembers.find((m) => m.userId === where.userId_chatId.userId);
+      return Promise.resolve(
+        member === undefined
+          ? null
+          : { chatPermission: member.chatPermission, chat: { type: chatType } },
+      );
+    },
     findMany: ({
       where,
       take,
@@ -266,6 +305,28 @@ const prisma = {
       return Promise.resolve({ uuid: 'stored', createdAt: new Date(), type: data.type });
     },
   },
+  // in a forum topic, `parent` is a public post of Ben's
+  forumPost: {
+    findUnique: ({ where }: { where: { messageId: string } }): Promise<unknown> => {
+      if (where.messageId !== PARENT_ID && where.messageId !== restrictedPost.uuid) {
+        return Promise.resolve(null);
+      }
+      const restricted = where.messageId === restrictedPost.uuid;
+      return Promise.resolve({
+        messageId: where.messageId,
+        chatId: CHAT_ID,
+        title: 'Wer kommt mit?',
+        approvedAt: restricted && restriction === 'held' ? null : new Date(0),
+        message: {
+          senderId: 'ben',
+          forumRemoval: restricted && restriction === 'hidden' ? { kind: 'HIDDEN' } : null,
+        },
+      });
+    },
+  },
+  forumPostAssignment: { findFirst: (): Promise<null> => Promise.resolve(null) },
+  forumRemoval: { findMany: (): Promise<unknown[]> => Promise.resolve([]) },
+  threadSubscription: { upsert: (): Promise<void> => Promise.resolve() },
   messageContent: {
     findFirst: ({
       where,
@@ -333,6 +394,7 @@ beforeEach(() => {
   mockPoolFails = false;
   mockLoggedErrors.length = 0;
   chatType = ChatType.GROUP;
+  restriction = 'held';
   chatCapabilities = [
     ChatCapability.CAN_SEND_MESSAGES,
     ChatCapability.PICTURE_UPLOAD,
@@ -504,6 +566,30 @@ describe('what a reply and a quote may point at', () => {
       messagePayload: { text: 'Ich!' },
     });
     expect(storedPayloads).toEqual([{ text: 'Ich!' }]);
+  });
+});
+
+describe.each([
+  ['waits for approval', 'held'],
+  ['was hidden', 'hidden'],
+] as const)('a quote in a forum topic of a post that %s', (_, kind) => {
+  beforeEach(() => {
+    chatType = ChatType.FORUM;
+    restriction = kind;
+  });
+
+  it('is dropped for a member who does not see the post, with nothing of its text', async () => {
+    await sendText({ parentId: PARENT_ID, quotedMessageId: restrictedPost.uuid });
+
+    expect(storedPayloads).toEqual([{ text: 'Ich!' }]);
+  });
+
+  it('keeps its snippet for a quote of a post the member sees', async () => {
+    await sendText({ parentId: PARENT_ID, quotedMessageId: PARENT_ID });
+
+    expect(storedPayloads).toEqual([
+      { text: 'Ich!', quotedMessageId: PARENT_ID, quotedSnippet: 'Wer kommt mit?' },
+    ]);
   });
 });
 

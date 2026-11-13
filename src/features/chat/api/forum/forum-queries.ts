@@ -1,3 +1,4 @@
+import { joinConversationAsZentrale } from '@/features/chat/api/forum/forum-conversations';
 import { forumError } from '@/features/chat/api/forum/forum-errors';
 import {
   findModeratedTopicIds,
@@ -7,6 +8,7 @@ import {
 import {
   FORUM_POST_SUMMARY_SELECT,
   type ForumPostSummary,
+  type ModeratedTopics,
   readForumPostContent,
   toForumPostSummaries,
   visibleForumPostsWhere,
@@ -17,19 +19,23 @@ import {
   rankForumSuggestions,
   searchWordsOf,
 } from '@/features/chat/api/forum/forum-search';
-import {
-  findPrivateReportTopicId,
-  isRestrictedForumPost,
-} from '@/features/chat/api/forum/forum-visibility';
+import { findForumTopicSettings } from '@/features/chat/api/forum/forum-topic-settings';
+import { groupOpenFlags, isRestrictedForumPost } from '@/features/chat/api/forum/forum-visibility';
 import { countZentrale, ensureZentraleMemberships } from '@/features/chat/api/forum/forum-zentrale';
 import { getFunktionDirectory } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import {
   distanceInMetres,
   FORUM_LIKE_EMOJI,
   FORUM_NEARBY_RADIUS_METRES,
+  FORUM_POST_KINDS,
   FORUM_POST_STATUSES,
   type ForumCapacityValue,
+  type ForumFlagReasonValue,
+  type ForumOpenFlags,
   type ForumPostStatusValue,
+  type ForumRemovalInfo,
+  type ForumTopicIcon,
+  MESSAGE_EDIT_WINDOW_MS,
 } from '@/lib/forum-shared';
 import type { Prisma } from '@/lib/prisma/client';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
@@ -68,6 +74,16 @@ export interface ForumTopic {
   /** the caller is one of the topic's admins, its Kernteam */
   isAdmin: boolean;
   openPostCount: number;
+  /** absent in a persisted cache from before topic icons */
+  icon?: ForumTopicIcon;
+  /** the labels of its Kernteam functions, e.g. "Ressortleitung Infrastruktur" */
+  kernteamLabels?: string[];
+  /** offers "Kernteam privat schreiben" */
+  allowsPrivateConversations?: boolean;
+  /** new posts wait for a moderator before others see them */
+  moderationRequired?: boolean;
+  /** for the Kernteam: new private conversations of the topic start muted for the caller */
+  conversationPushOff?: boolean;
 }
 
 /** The topics the caller belongs to, in the order the editors created them. */
@@ -80,20 +96,25 @@ export const getForumTopicList = trpcBaseProcedure
         subscribedAt: true,
         mutedAt: true,
         chatPermission: true,
+        forumConversationPushOff: true,
         chat: { select: { uuid: true, name: true, description: true, createdAt: true } },
       },
       orderBy: { chat: { createdAt: 'asc' } },
     });
-    const openCounts = await ctx.prisma.forumPost.groupBy({
-      by: ['chatId'],
-      where: {
-        chatId: { in: memberships.map((membership) => membership.chat.uuid) },
-        status: { not: 'DONE' },
-        mergedIntoId: null,
-        message: { deletedAt: null },
-      },
-      _count: { _all: true },
-    });
+    const chatIds = memberships.map((membership) => membership.chat.uuid);
+    const moderated = await findModeratedTopicIds(ctx.prisma, ctx.user);
+    const [openCounts, settings] = await Promise.all([
+      // what the caller sees: posts waiting for approval and hidden ones only where they moderate
+      ctx.prisma.forumPost.groupBy({
+        by: ['chatId'],
+        where: {
+          AND: [visibleForumPostsWhere(ctx.user.uuid, moderated), { chatId: { in: chatIds } }],
+          status: { not: 'DONE' },
+        },
+        _count: { _all: true },
+      }),
+      findForumTopicSettings(chatIds, ctx.locale),
+    ]);
     const openCountOf = new Map(openCounts.map((group) => [group.chatId, group._count._all]));
     return memberships.map((membership) => ({
       id: membership.chat.uuid,
@@ -105,6 +126,8 @@ export const getForumTopicList = trpcBaseProcedure
         membership.chatPermission === ChatMembershipPermission.OWNER ||
         membership.chatPermission === ChatMembershipPermission.ADMIN,
       openPostCount: openCountOf.get(membership.chat.uuid) ?? 0,
+      ...settings.get(membership.chat.uuid),
+      conversationPushOff: membership.forumConversationPushOff,
     }));
   });
 
@@ -120,8 +143,9 @@ export const getForumPostList = trpcBaseProcedure
       topicId: z.uuid().optional(),
       status: z.enum(['active', 'done', 'all']).default('active'),
       filter: z
-        .enum(['all', 'mine', 'assignedToMe', 'subscribed', 'pending', 'private'])
+        .enum(['all', 'mine', 'assignedToMe', 'subscribed', 'pending', 'flagged'])
         .default('all'),
+      kind: z.enum(FORUM_POST_KINDS).optional(),
       sort: z.enum(['new', 'popular']).default('new'),
       annotationId: z.string().max(64).optional(),
       cursor: z.number().int().min(0).nullish(),
@@ -137,8 +161,16 @@ export const getForumPostList = trpcBaseProcedure
         AND: [
           visibleForumPostsWhere(userId, moderated),
           input.filter === 'pending' ? { approvedAt: null } : {},
-          input.filter === 'private' ? { private: true } : {},
+          input.filter === 'flagged'
+            ? {
+                OR: [
+                  { message: { forumFlags: { some: { resolvedAt: null } } } },
+                  { message: { forumRemoval: { is: { kind: 'HIDDEN' } } } },
+                ],
+              }
+            : {},
         ],
+        ...(input.kind === undefined ? {} : { kind: input.kind }),
         ...(input.topicId === undefined ? {} : { chatId: input.topicId }),
         ...(input.annotationId === undefined ? {} : { annotationId: input.annotationId }),
         ...(input.status === 'active' ? { status: { not: 'DONE' } } : {}),
@@ -203,6 +235,7 @@ export const getForumPostList = trpcBaseProcedure
         userId,
         rows.slice(0, input.limit),
         ctx.locale,
+        moderated,
       );
       return { items, nextCursor: hasMore ? offset + input.limit : null };
     },
@@ -223,7 +256,7 @@ export const getForumPinnedPostList = trpcBaseProcedure
       orderBy: { pinnedAt: 'desc' },
       take: 5,
     });
-    return toForumPostSummaries(ctx.prisma, ctx.user.uuid, rows, ctx.locale);
+    return toForumPostSummaries(ctx.prisma, ctx.user.uuid, rows, ctx.locale, moderated);
   });
 
 /**
@@ -303,7 +336,7 @@ export const getForumPostMapList = trpcBaseProcedure
       orderBy: { createdAt: 'desc' },
       take: 300,
     });
-    return toForumPostSummaries(ctx.prisma, ctx.user.uuid, rows, ctx.locale);
+    return toForumPostSummaries(ctx.prisma, ctx.user.uuid, rows, ctx.locale, moderated);
   });
 
 export interface ForumStatusChange {
@@ -353,6 +386,22 @@ export interface ForumPostDetail extends ForumPostSummary {
     /** the Ressort it went to, for a forward to a Ressort */
     ressort: string | null;
   } | null;
+  /**
+   * a private conversation with the topic's Kernteam rather than a post of the topic; absent in
+   * a persisted cache from before conversations
+   */
+  conversation?: {
+    topicId: string;
+    topicName: string;
+    /** set to done, so nobody writes any more */
+    closed: boolean;
+  } | null;
+  /** hidden or deleted by a moderator or by flags; the reason and note are for the author */
+  removal?: ForumRemovalInfo | null;
+  /** the open flags of the post itself, for its moderators; null for everyone else */
+  openFlags?: ForumOpenFlags | null;
+  /** when the author last changed the title or the text */
+  editedAt?: Date | null;
   /** what the caller may do with the post */
   viewer: {
     capacity: ForumCapacityValue | null;
@@ -365,8 +414,18 @@ export interface ForumPostDetail extends ForumPostSummary {
     isAuthor: boolean;
     /** "Ich übernehme": whoever handles posts here, someone it was forwarded to included */
     canClaim?: boolean;
-    /** into another topic: a moderator, for a post that is no private report */
+    /** into another topic: a moderator, for a post of a topic */
     canMove?: boolean;
+    /** "Melden": anyone but its author and its moderators, once */
+    canFlag?: boolean;
+    /** the caller flagged it already, with this reason */
+    myFlag?: ForumFlagReasonValue | null;
+    /** the author, while the edit window is open or while the post is hidden */
+    canEdit?: boolean;
+    /** the author, until a moderator reacted; afterwards only a moderator removes it */
+    canDelete?: boolean;
+    /** change between question, problem and idea */
+    canChangeKind?: boolean;
   };
 }
 
@@ -436,20 +495,41 @@ export const getForumPost = trpcBaseProcedure
   .input(z.object({ postId: z.uuid() }))
   .query(async ({ ctx, input }): Promise<ForumPostDetail> => {
     const userId = ctx.user.uuid;
+    await joinConversationAsZentrale(ctx.prisma, ctx.user, input.postId);
     const row = await ctx.prisma.forumPost.findFirst({
       where: {
         messageId: input.postId,
-        message: { deletedAt: null },
-        chat: { type: ChatType.FORUM, chatMemberships: { some: { userId } } },
+        // a post its author deleted is gone; one a moderator deleted keeps its place
+        message: { OR: [{ deletedAt: null }, { forumRemoval: { is: { kind: 'DELETED' } } }] },
+        chat: {
+          type: { in: [ChatType.FORUM, ChatType.FORUM_CONVERSATION] },
+          chatMemberships: { some: { userId } },
+        },
       },
       select: {
         ...FORUM_POST_SUMMARY_SELECT,
         answerMessageId: true,
         mergedIntoId: true,
+        reactedAt: true,
         chat: {
           select: {
             name: true,
+            type: true,
+            status: true,
+            forumTopic: { select: { uuid: true, name: true } },
             chatMemberships: { where: { userId }, select: { subscribedAt: true } },
+          },
+        },
+        message: {
+          select: {
+            senderId: true,
+            deletedAt: true,
+            editedAt: true,
+            createdAt: true,
+            sender: { select: { name: true } },
+            forumRemoval: true,
+            forumFlags: { where: { userId }, select: { reason: true } },
+            contentVersions: { take: 1, orderBy: { revision: 'desc' }, select: { payload: true } },
           },
         },
       },
@@ -457,10 +537,29 @@ export const getForumPost = trpcBaseProcedure
     // a stale link or a persisted cache after the post was deleted or the caller left the topic
     if (row === null) throw forumError('NOT_FOUND', 'postGone');
 
-    const [summary] = await toForumPostSummaries(ctx.prisma, userId, [row], ctx.locale);
+    const isConversation = row.chat.type === ChatType.FORUM_CONVERSATION;
+    const moderated: ModeratedTopics = isConversation ? [] : [row.chatId];
+    const [moderator, summaries] = await Promise.all([
+      resolveForumModerator(ctx.prisma, ctx.user, row.chatId, row.messageId),
+      toForumPostSummaries(ctx.prisma, userId, [row], ctx.locale, moderated),
+    ]);
+    const summary = summaries[0];
     if (summary === undefined) throw forumError('NOT_FOUND', 'postGone');
+    if (!isFullModerator(moderator)) delete summary.flagCount;
 
-    const [mergedInto, mergedPostCount, subscription, history, assignments, moderator] =
+    const isAuthor = row.message.senderId === userId;
+    const removal = row.message.forumRemoval;
+    // a post waiting for approval or a hidden one answers like one that does not exist, but to
+    // its author, its moderators and whoever it was forwarded to
+    const restricted = isRestrictedForumPost({
+      approvedAt: row.approvedAt,
+      hidden: removal?.kind === 'HIDDEN',
+    });
+    if (restricted && !isAuthor && moderator === undefined) {
+      throw forumError('NOT_FOUND', 'postGone');
+    }
+
+    const [mergedInto, mergedPostCount, subscription, history, assignments, flagRows] =
       await Promise.all([
         row.mergedIntoId === null
           ? Promise.resolve(null)
@@ -498,29 +597,34 @@ export const getForumPost = trpcBaseProcedure
             assignedBy: { select: { name: true } },
           },
         }),
-        resolveForumModerator(ctx.prisma, ctx.user, row.chatId, row.messageId),
+        // who flagged it and why is for those who decide on the flags
+        isFullModerator(moderator)
+          ? ctx.prisma.forumFlag.findMany({
+              where: { messageId: row.messageId, resolvedAt: null },
+              select: { messageId: true, reason: true, note: true },
+            })
+          : Promise.resolve([]),
       ]);
 
-    // a private report or a post waiting for approval answers like one that does not exist, but
-    // to its author and its moderators
-    if (
-      isRestrictedForumPost(row) &&
-      row.message.senderId !== userId &&
-      !isFullModerator(moderator)
-    ) {
-      throw forumError('NOT_FOUND', 'postGone');
-    }
-
-    const content = readForumPostContent(row.message.contentVersions[0]?.payload);
+    const deleted = row.message.deletedAt !== null;
+    const content = deleted
+      ? { text: '', images: [] }
+      : readForumPostContent(row.message.contentVersions[0]?.payload);
     const claim = assignments.find((assignment) => assignment.kind === 'CLAIM');
     const helpers = assignments.filter((assignment) => assignment.kind === 'HELPER');
     const forwards = await describeForwards(helpers, ctx.locale);
     const myForward = helpers.find((assignment) => assignment.assignee.uuid === userId);
+    // the author and the moderators read why; everyone else only that it was removed
+    const seesReason = isAuthor || moderator !== undefined;
+    const open = row.mergedIntoId === null && !deleted;
+    const withinEditWindow = Date.now() - row.message.createdAt.getTime() <= MESSAGE_EDIT_WINDOW_MS;
     return {
       ...summary,
+      ...(deleted ? { excerpt: '', imageCount: 0, likeCount: 0 } : {}),
       text: content.text,
       images: content.images,
       answerCommentId: row.answerMessageId,
+      openFlags: groupOpenFlags(flagRows).get(row.messageId) ?? null,
       mergedInto:
         mergedInto === null ? null : { id: mergedInto.messageId, title: mergedInto.title },
       mergedPostCount,
@@ -563,14 +667,43 @@ export const getForumPost = trpcBaseProcedure
                   : (forwards.find((forward) => forward.assignee.id === myForward.funktionId)
                       ?.assignee.name ?? null),
             },
+      conversation:
+        isConversation && row.chat.forumTopic !== null
+          ? {
+              topicId: row.chat.forumTopic.uuid,
+              topicName: row.chat.forumTopic.name,
+              closed: row.chat.status === 'CLOSED',
+            }
+          : null,
+      removal:
+        removal === null
+          ? null
+          : {
+              kind: removal.kind,
+              reason: removal.reason,
+              note: seesReason ? removal.note : null,
+              byCapacity: removal.capacity === 'AUTOMATIC' ? null : removal.capacity,
+              at: removal.createdAt,
+              reviewRequested: removal.reviewRequestedAt !== null,
+            },
+      editedAt: row.message.editedAt,
       viewer: {
         capacity: moderator?.capacity ?? null,
-        canSetStatus: moderator !== undefined && row.mergedIntoId === null,
-        canModerate: isFullModerator(moderator),
+        canSetStatus: moderator !== undefined && open,
+        canModerate: isFullModerator(moderator) && !deleted,
         canApprove: row.approvedAt === null && isFullModerator(moderator),
-        isAuthor: summary.author?.id === userId,
-        canClaim: moderator !== undefined && row.mergedIntoId === null && row.status !== 'DONE',
-        canMove: isFullModerator(moderator) && row.mergedIntoId === null && row.private !== true,
+        isAuthor,
+        canClaim: moderator !== undefined && open && row.status !== 'DONE',
+        canMove: isFullModerator(moderator) && open && !isConversation,
+        canFlag: !isConversation && !isAuthor && moderator === undefined && !deleted,
+        myFlag: row.message.forumFlags[0]?.reason ?? null,
+        canEdit:
+          isAuthor &&
+          !deleted &&
+          !(isConversation && row.chat.status === 'CLOSED') &&
+          (withinEditWindow || removal?.kind === 'HIDDEN'),
+        canDelete: isAuthor && !deleted && row.reactedAt === null,
+        canChangeKind: isFullModerator(moderator) && open && !isConversation,
       },
     };
   });
@@ -595,14 +728,12 @@ export const getForumAssigneeList = trpcBaseProcedure
   });
 
 export interface ForumSettings {
-  /** the admin panel's switch: new posts wait for a moderator */
+  /** the admin panel's switch for every topic: new posts wait for a moderator */
   moderationRequired: boolean;
   /** the caller moderates at least one topic, as its Kernteam or on piket duty */
   canModerate: boolean;
   /** the caller holds an open assignment, so "Meine Aufträge" has something to show */
   hasOpenAssignments: boolean;
-  /** editors chose a topic for private reports, so the composer offers "Privat" */
-  privateReportsAvailable: boolean;
   /** the Zentrale's counts, for whoever handles posts or has one forwarded; null for others */
   zentrale?: { waiting: number; mine: number } | null;
 }
@@ -617,20 +748,17 @@ export const getForumSettings = trpcBaseProcedure
     // every page of the forum asks for these first, so the Zentrale's memberships are there
     // before it reads a topic
     await ensureZentraleMemberships(ctx.prisma, ctx.user);
-    const [moderationRequired, moderated, openAssignments, privateReportTopicId] =
-      await Promise.all([
-        readFeatureFlag('forumModerationRequired'),
-        findModeratedTopicIds(ctx.prisma, ctx.user),
-        ctx.prisma.forumPostAssignment.count({
-          where: { assigneeId: ctx.user.uuid, endedAt: null, kind: 'HELPER' },
-        }),
-        findPrivateReportTopicId(),
-      ]);
+    const [moderationRequired, moderated, openAssignments] = await Promise.all([
+      readFeatureFlag('forumModerationRequired'),
+      findModeratedTopicIds(ctx.prisma, ctx.user),
+      ctx.prisma.forumPostAssignment.count({
+        where: { assigneeId: ctx.user.uuid, endedAt: null, kind: 'HELPER' },
+      }),
+    ]);
     return {
       moderationRequired,
       canModerate: moderated === 'all' || moderated.length > 0,
       hasOpenAssignments: openAssignments > 0,
-      privateReportsAvailable: privateReportTopicId !== undefined,
       zentrale: await countZentrale(ctx.prisma, ctx.user, moderated),
     };
   });

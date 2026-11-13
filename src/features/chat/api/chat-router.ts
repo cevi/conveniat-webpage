@@ -4,6 +4,7 @@ import { createChat } from '@/features/chat/api/mutations/create-chat';
 import { createChatInvite } from '@/features/chat/api/mutations/create-chat-invite';
 import { createMessage } from '@/features/chat/api/mutations/create-message';
 import { deleteMessage } from '@/features/chat/api/mutations/delete-message';
+import { editMessage } from '@/features/chat/api/mutations/edit-message';
 import { getUploadUrl } from '@/features/chat/api/mutations/get-upload-url';
 import { leaveChat } from '@/features/chat/api/mutations/leave-chat';
 import { markChatAsRead } from '@/features/chat/api/mutations/mark-chat-as-read';
@@ -62,6 +63,7 @@ export const chatRouter = createTRPCRouter({
   getMessage: getMessage,
   getUnreadMarker,
   deleteMessage,
+  editMessage,
   updateMessageContent: updateMessageContent,
   getUploadUrl: getUploadUrl,
   getDownloadUrl: getDownloadUrl,

@@ -47,6 +47,13 @@ describe('the title in the header', () => {
     ],
     [['(app-pages)', 'app', 'wristbands'], 'Armbänder', 'Bracelets', 'Wristbands'],
     [['(app-pages)', 'app', 'forum', 'new'], 'Neuer Beitrag', 'Nouvelle publication', 'New post'],
+    [['(app-pages)', 'app', 'forum', 'zentrale'], 'Zu tun', 'À faire', 'To do'],
+    [
+      ['(app-pages)', 'app', 'forum', 'topic', '0f6c', 'protocol'],
+      'Protokoll',
+      'Protocole',
+      'Protocol',
+    ],
   ])('names the app page %j in all three locales', (route, de, fr, en) => {
     expect(titleAt(route, 'de')).toBe(de);
     expect(titleAt(route, 'fr')).toBe(fr);

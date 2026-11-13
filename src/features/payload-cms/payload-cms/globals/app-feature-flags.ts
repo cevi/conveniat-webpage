@@ -145,14 +145,14 @@ const flagFieldTexts: Record<FeatureFlagName, FlagFieldText> = {
   },
   forumModerationRequired: {
     label: {
-      en: 'Forum: approve posts before they are published',
-      de: 'Forum: Beiträge vor Veröffentlichung freigeben',
-      fr: 'Forum : approuver les publications avant leur parution',
+      en: 'Forum: approve posts before they are published, in every topic',
+      de: 'Forum: Beiträge vor Veröffentlichung freigeben, in allen Themen',
+      fr: 'Forum : approuver les publications avant leur parution, dans tous les thèmes',
     },
     description: {
-      en: 'Against spam. While on, a new forum post is seen only by its author and the moderators (the Kernteam of its topic and the piket on duty) until one of them approves it. Posts by the Kernteam need no approval, comments are never held back.',
-      de: 'Gegen Spam. Solange eingeschaltet, sehen einen neuen Beitrag nur die Person, die ihn geschrieben hat, und die Moderation (das Kernteam des Themas und das Piket im Dienst), bis jemand davon ihn freigibt. Beiträge des Kernteams brauchen keine Freigabe, Kommentare werden nie zurückgehalten.',
-      fr: 'Contre le spam. Tant que c’est activé, une nouvelle publication n’est visible que par son auteur et la modération (l’équipe centrale du thème et le piquet de service) jusqu’à ce que quelqu’un l’approuve. Les publications de l’équipe centrale n’ont pas besoin d’approbation, les commentaires ne sont jamais retenus.',
+      en: 'Against spam, for every topic at once. While on, a new forum post is seen only by its author and the moderators (the Kernteam of its topic and the piket on duty) until one of them approves it. Posts by the Kernteam need no approval, comments are never held back. A single topic is switched in its settings under Forum Topics.',
+      de: 'Gegen Spam, für alle Themen auf einmal. Solange eingeschaltet, sehen einen neuen Beitrag nur die Person, die ihn geschrieben hat, und die Moderation (das Kernteam des Themas und das Piket im Dienst), bis jemand davon ihn freigibt. Beiträge des Kernteams brauchen keine Freigabe, Kommentare werden nie zurückgehalten. Ein einzelnes Thema wird in seinen Einstellungen unter Forum-Themen geschaltet.',
+      fr: 'Contre le spam, pour tous les thèmes à la fois. Tant que c’est activé, une nouvelle publication n’est visible que par son auteur et la modération (l’équipe centrale du thème et le piquet de service) jusqu’à ce que quelqu’un l’approuve. Les publications de l’équipe centrale n’ont pas besoin d’approbation, les commentaires ne sont jamais retenus. Un thème seul se règle dans ses réglages sous Thèmes du forum.',
     },
   },
   voiceCallsEnabled: {

@@ -210,6 +210,7 @@ export interface Config {
     'donation-barometer': DonationBarometer;
     'app-landing-page': AppLandingPage;
     'image-submission': ImageSubmission;
+    'forum-intro': ForumIntro;
     'alert-management': AlertManagement;
     alert_settings: AlertSetting;
     'all-chats-management': AllChatsManagement;
@@ -231,6 +232,7 @@ export interface Config {
     'donation-barometer': DonationBarometerSelect<false> | DonationBarometerSelect<true>;
     'app-landing-page': AppLandingPageSelect<false> | AppLandingPageSelect<true>;
     'image-submission': ImageSubmissionSelect<false> | ImageSubmissionSelect<true>;
+    'forum-intro': ForumIntroSelect<false> | ForumIntroSelect<true>;
     'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
     alert_settings: AlertSettingsSelect<false> | AlertSettingsSelect<true>;
     'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
@@ -1376,7 +1378,12 @@ export interface FactListBlock {
       | 'pencil'
       | 'check'
       | 'globe'
-      | 'heart';
+      | 'heart'
+      | 'message'
+      | 'search'
+      | 'lock'
+      | 'flag'
+      | 'siren';
     /**
      * Short, e.g. "Public transport only".
      */
@@ -4228,9 +4235,28 @@ export interface ForumTopic {
    */
   kernteamFunktionen?: (string | Funktion)[] | null;
   /**
-   * A report sent "privately to the Zentrale" becomes a post in this topic that only its author, the Kernteam of this topic and the piket on duty see. One topic at most; whoever reports joins it for their own reports.
+   * Shown next to the topic in the list of topics in the app.
    */
-  receivesPrivateReports?: boolean | null;
+  icon:
+    | 'message-circle'
+    | 'tent'
+    | 'wrench'
+    | 'utensils'
+    | 'star'
+    | 'calendar'
+    | 'bus'
+    | 'heart'
+    | 'shield'
+    | 'info'
+    | 'map';
+  /**
+   * The topic offers "Write the core team privately": a conversation only its writer, the core team of this topic, the piket on duty and the Zentrale read.
+   */
+  allowsPrivateConversations?: boolean | null;
+  /**
+   * A new post is seen only by its author and the moderators until one of them approves it. Posts by the core team need no approval, comments are never held back. The switch in App Features does this for every topic at once.
+   */
+  moderationRequired?: boolean | null;
   targetType: 'all' | 'roles' | 'cevi_groups' | 'avps';
   targetRoles?:
     | (
@@ -7336,7 +7362,9 @@ export interface ForumTopicsSelect<T extends boolean = true> {
   name?: T;
   description?: T;
   kernteamFunktionen?: T;
-  receivesPrivateReports?: T;
+  icon?: T;
+  allowsPrivateConversations?: T;
+  moderationRequired?: T;
   targetType?: T;
   targetRoles?: T;
   targetCeviGroups?:
@@ -9677,6 +9705,11 @@ export interface ImageSubmission {
               | 'check'
               | 'globe'
               | 'heart'
+              | 'message'
+              | 'search'
+              | 'lock'
+              | 'flag'
+              | 'siren'
             )
           | null;
         title: string;
@@ -9720,6 +9753,11 @@ export interface ImageSubmission {
               | 'check'
               | 'globe'
               | 'heart'
+              | 'message'
+              | 'search'
+              | 'lock'
+              | 'flag'
+              | 'siren'
             )
           | null;
         title: string;
@@ -9744,6 +9782,66 @@ export interface ImageSubmission {
    * What happens next, and whom to contact to withdraw an image.
    */
   successText?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Shown once on each device when someone opens the forum for the first time, and again from "How it works" in the forum. Leave the title empty to skip it. French and English fall back to German.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "forum-intro".
+ */
+export interface ForumIntro {
+  id: string;
+  /**
+   * e.g. "Ask the camp"
+   */
+  title?: string | null;
+  text?: string | null;
+  /**
+   * In this order, e.g. "Topics with a core team", "Search first", "Public or private", "Stay fair", "Emergency?". The emergency icon shows in red.
+   */
+  points?:
+    | {
+        /**
+         * Empty: a speech bubble.
+         */
+        icon?:
+          | (
+              | 'users'
+              | 'calendar'
+              | 'clock'
+              | 'mapPin'
+              | 'train'
+              | 'car'
+              | 'ticket'
+              | 'wallet'
+              | 'utensils'
+              | 'backpack'
+              | 'tent'
+              | 'mail'
+              | 'phone'
+              | 'shield'
+              | 'info'
+              | 'camera'
+              | 'image'
+              | 'size'
+              | 'pencil'
+              | 'check'
+              | 'globe'
+              | 'heart'
+              | 'message'
+              | 'search'
+              | 'lock'
+              | 'flag'
+              | 'siren'
+            )
+          | null;
+        title: string;
+        text?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -9892,7 +9990,7 @@ export interface AppFeatureFlag {
    */
   forumEnabled?: boolean | null;
   /**
-   * Against spam. While on, a new forum post is seen only by its author and the moderators (the Kernteam of its topic and the piket on duty) until one of them approves it. Posts by the Kernteam need no approval, comments are never held back.
+   * Against spam, for every topic at once. While on, a new forum post is seen only by its author and the moderators (the Kernteam of its topic and the piket on duty) until one of them approves it. Posts by the Kernteam need no approval, comments are never held back. A single topic is switched in its settings under Forum Topics.
    */
   forumModerationRequired?: boolean | null;
   /**
@@ -10639,6 +10737,25 @@ export interface ImageSubmissionSelect<T extends boolean = true> {
         id?: T;
       };
   successText?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "forum-intro_select".
+ */
+export interface ForumIntroSelect<T extends boolean = true> {
+  title?: T;
+  text?: T;
+  points?:
+    | T
+    | {
+        icon?: T;
+        title?: T;
+        text?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

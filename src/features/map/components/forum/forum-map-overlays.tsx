@@ -12,7 +12,7 @@ import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { ChevronRight, Flag, X } from 'lucide-react';
+import { ChevronRight, MessageCircleQuestion, X } from 'lucide-react';
 import {
   Marker,
   type Map as MaplibreMap,
@@ -263,7 +263,7 @@ export const ForumMapOverlays: React.FC<{
             : 'hover:bg-quiet focus-visible:focus-surface bg-white text-green-900',
         )}
       >
-        <Flag className="h-5 w-5" aria-hidden="true" />
+        <MessageCircleQuestion className="h-5 w-5" aria-hidden="true" />
       </button>
 
       {pressed !== undefined && (
@@ -279,7 +279,10 @@ export const ForumMapOverlays: React.FC<{
             }}
             className="focus-visible:focus-surface hover:bg-quiet flex min-h-11 cursor-pointer items-center gap-2 rounded-xl px-3 text-left text-[14px] font-semibold text-green-900"
           >
-            <Flag className="text-conveniat-green h-4 w-4 shrink-0" aria-hidden="true" />
+            <MessageCircleQuestion
+              className="text-conveniat-green h-4 w-4 shrink-0"
+              aria-hidden="true"
+            />
             <span className="min-w-0">
               {forumMapText.reportHere[locale]}
               {pressedAnnotation !== undefined && (

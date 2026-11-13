@@ -39,12 +39,18 @@ interface StoredMessage {
   createdAt: Date;
   deletedAt: Date | null;
   deletedById: string | null;
+  chat: { type: string };
+  forumPost: { reactedAt: Date | null } | null;
 }
 
 let messages: StoredMessage[];
 let reactions: { messageId: string; userId: string; emoji: string }[];
 
-const seed = (senderId: string | null, type = 'TEXT_MSG'): string => {
+const seed = (
+  senderId: string | null,
+  type = 'TEXT_MSG',
+  forumPost: StoredMessage['forumPost'] = null,
+): string => {
   const uuid = `00000000-0000-4000-8000-${String(messages.length).padStart(12, '0')}`;
   messages.push({
     uuid,
@@ -55,6 +61,8 @@ const seed = (senderId: string | null, type = 'TEXT_MSG'): string => {
     createdAt: new Date(2027, 6, 25, 10, messages.length),
     deletedAt: null,
     deletedById: null,
+    chat: { type: forumPost === null ? 'GROUP' : 'FORUM' },
+    forumPost,
   });
   return uuid;
 };
@@ -179,5 +187,15 @@ describe('deleteMessage', () => {
 
     expect(second.deletedAt).toEqual(first.deletedAt);
     expect(mockPublish).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not let the author take back a forum post someone already answered', async () => {
+    const messageId = seed(ANNA, 'TEXT_MSG', { reactedAt: new Date(2027, 6, 25, 11) });
+
+    await expect(as(ANNA).deleteMessage({ messageId })).rejects.toMatchObject({
+      reason: 'alreadyAnswered',
+    });
+    expect(stored(messageId)?.deletedAt).toBeNull();
+    expect(mockPublish).not.toHaveBeenCalled();
   });
 });

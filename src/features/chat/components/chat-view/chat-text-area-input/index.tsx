@@ -1,6 +1,7 @@
 // hooks/use-message-input-logic.ts
 import { Button } from '@/components/ui/buttons/button';
 import { formFieldClassName } from '@/components/ui/field';
+import { useComposerEdit } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-composer-edit';
 import { useMessageInput } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-message-input';
 import { useStagedImage } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-staged-image';
 import { MessagePreviewIcon } from '@/features/chat/components/ui/message-preview-icon';
@@ -29,11 +30,13 @@ import { userErrorMessage } from '@/utils/user-error-message';
 import type { LucideIcon } from 'lucide-react';
 import {
   Archive,
+  Check,
   Image as ImageIcon,
   Lock,
   Megaphone,
   MessageSquareOff,
   Paperclip,
+  Pencil,
   Reply,
   Send,
   X,
@@ -65,6 +68,13 @@ const commentPlaceholder: StaticTranslationString = {
   de: 'Kommentieren …',
   en: 'Write a comment …',
   fr: 'Commenter …',
+};
+
+/** in a private conversation with a Kernteam, an answer to the question */
+const conversationPlaceholder: StaticTranslationString = {
+  de: 'Antworten …',
+  en: 'Reply …',
+  fr: 'Répondre …',
 };
 
 const enterToSendHint: StaticTranslationString = {
@@ -181,6 +191,30 @@ const emergencyLockedText: StaticTranslationString = {
   fr: "Cette alerte d'urgence a été marquée comme terminée. Plus aucun message ne peut être envoyé.",
 };
 
+const editingMessageText: StaticTranslationString = {
+  de: 'Nachricht bearbeiten',
+  en: 'Edit message',
+  fr: 'Modifier le message',
+};
+
+const cancelEditText: StaticTranslationString = {
+  de: 'Bearbeiten abbrechen',
+  en: 'Cancel editing',
+  fr: 'Annuler la modification',
+};
+
+const saveEditText: StaticTranslationString = {
+  de: 'Änderung speichern',
+  en: 'Save change',
+  fr: 'Enregistrer la modification',
+};
+
+const editOfflineHintText: StaticTranslationString = {
+  de: 'Zum Bearbeiten brauchst du eine Verbindung',
+  en: 'You need a connection to edit',
+  fr: 'Il te faut une connexion pour modifier',
+};
+
 const messagingDisabledErrorText: StaticTranslationString = {
   de: 'Nachrichten sind derzeit deaktiviert. Bitte versuche es später erneut.',
   en: 'Messaging is currently disabled. Please try again later.',
@@ -205,12 +239,23 @@ export const ChatTextAreaInput: React.FC = () => {
     sendText,
     takeMessage,
     restoreMessage,
+    resizeTextarea,
     isSendButtonDisabled,
     messageLength,
     isGlobalMessagingDisabled,
     sendError,
     reportSendRefusal,
   } = useMessageInput();
+
+  // the thread this composer writes in, as when it mounted, like its draft
+  const [composerThreadId] = React.useState(() => activeThreadId);
+  const edit = useComposerEdit({
+    composerThreadId,
+    locale,
+    textareaReference: textareaProps.ref,
+    resizeTextarea,
+  });
+  const isEditing = edit.editingMessage !== undefined;
 
   const getLocalizedError = (error: string | undefined): string | undefined => {
     if (error === undefined || error === '') return undefined;
@@ -313,8 +358,9 @@ export const ChatTextAreaInput: React.FC = () => {
     }
   };
 
-  const isTooLong = messageLength > CHAT_MESSAGE_MAX_LENGTH;
-  const isNearLimit = messageLength > CHAT_MESSAGE_MAX_LENGTH * 0.8;
+  const fieldLength = isEditing ? edit.text.length : messageLength;
+  const isTooLong = fieldLength > CHAT_MESSAGE_MAX_LENGTH;
+  const isNearLimit = fieldLength > CHAT_MESSAGE_MAX_LENGTH * 0.8;
 
   const handleSplitAndSend = async (): Promise<void> => {
     if (isSendingReference.current) return;
@@ -408,8 +454,9 @@ export const ChatTextAreaInput: React.FC = () => {
   const localizedError = getLocalizedError(sendError);
   let placeholder = messagePlaceholder[locale];
   if (activeThreadId !== undefined) {
-    placeholder =
-      chatDetails.type === 'FORUM' ? commentPlaceholder[locale] : threadReplyPlaceholder[locale];
+    placeholder = threadReplyPlaceholder[locale];
+    if (chatDetails.type === 'FORUM') placeholder = commentPlaceholder[locale];
+    if (chatDetails.type === 'FORUM_CONVERSATION') placeholder = conversationPlaceholder[locale];
   } else if (chatDetails.name !== '')
     placeholder = messageToPlaceholder[locale].replace('{name}', chatDetails.name);
 
@@ -425,9 +472,27 @@ export const ChatTextAreaInput: React.FC = () => {
         </div>
       )}
 
+      {isEditing && edit.editError !== undefined && (
+        <div
+          className="bg-danger-soft text-danger-text rounded-[12px] px-3 py-2 text-sm font-semibold"
+          role="alert"
+        >
+          {edit.editError}
+        </div>
+      )}
+
       {/* Quote Preview */}
-      {quotedMessageId !== undefined && quotedMessageId !== '' && (
+      {!isEditing && quotedMessageId !== undefined && quotedMessageId !== '' && (
         <QuotedMessagePreview messageId={quotedMessageId} onCancel={cancelQuote} />
+      )}
+
+      {edit.editingMessage !== undefined && (
+        <EditingMessageBar
+          text={edit.editingMessage.text}
+          offlineHint={edit.isOnline ? undefined : editOfflineHintText[locale]}
+          onCancel={edit.cancelEdit}
+          locale={locale}
+        />
       )}
 
       {/* Character count warning */}
@@ -439,7 +504,7 @@ export const ChatTextAreaInput: React.FC = () => {
             isTooLong ? 'text-danger-text font-semibold' : 'text-green-700',
           )}
         >
-          {messageLength}/{CHAT_MESSAGE_MAX_LENGTH}
+          {fieldLength}/{CHAT_MESSAGE_MAX_LENGTH}
           {isTooLong && ` - ${messageTooLongText[locale]}`}
         </div>
       )}
@@ -450,7 +515,8 @@ export const ChatTextAreaInput: React.FC = () => {
       <div className="flex items-end gap-2">
         <div className={cn(formFieldClassName, 'flex-1 flex-col items-stretch')}>
           {/* Staged attachment sits above the text it will be sent with */}
-          {stagedImage !== undefined && (
+          {/* an edit changes the text only; the staged image waits for the next message */}
+          {stagedImage !== undefined && !isEditing && (
             <div className="flex items-end gap-3 px-3 pt-3">
               {/* a reason over several lines must not squeeze the thumbnail */}
               <div className="relative shrink-0">
@@ -499,7 +565,7 @@ export const ChatTextAreaInput: React.FC = () => {
             </div>
           )}
           <div className="flex items-end">
-            {canUploadPictures && (
+            {canUploadPictures && !isEditing && (
               <div>
                 <input
                   type="file"
@@ -520,13 +586,20 @@ export const ChatTextAreaInput: React.FC = () => {
             )}
             <textarea
               {...textareaProps}
+              {...(isEditing && { value: edit.text, onChange: edit.onChange })}
               onKeyDown={(event) => {
+                if (isEditing && event.key === 'Escape') {
+                  event.preventDefault();
+                  edit.cancelEdit();
+                  return;
+                }
                 // only with a mouse or trackpad: a phone keyboard has no Shift+Enter, so there
                 // Enter writes a new line and the send button sends
                 const hasFinePointer = globalThis.matchMedia('(pointer: fine)').matches;
                 if (event.key === 'Enter' && !event.shiftKey && hasFinePointer) {
                   event.preventDefault();
-                  void sendWithAttachment();
+                  if (isEditing) edit.submitEdit();
+                  else void sendWithAttachment();
                 }
               }}
               placeholder={placeholder}
@@ -534,7 +607,7 @@ export const ChatTextAreaInput: React.FC = () => {
               // button, which is 44px everywhere
               className={cn(
                 'block min-w-0 flex-1 resize-none [scrollbar-width:thin] border-0 bg-transparent py-[9px] pr-[14px] text-[16px] leading-[24px] text-green-900 outline-hidden placeholder:truncate placeholder:text-green-500',
-                canUploadPictures ? 'pl-0' : 'pl-[14px]',
+                canUploadPictures && !isEditing ? 'pl-0' : 'pl-[14px]',
               )}
               rows={1}
               // five lines, then the textarea scrolls instead of eating the conversation
@@ -544,7 +617,20 @@ export const ChatTextAreaInput: React.FC = () => {
           </div>
         </div>
 
-        {isTooLong ? (
+        {/* too long, empty or offline: a change cannot be saved, and the count or the bar
+            says why */}
+        {isEditing && (
+          <Button
+            onClick={edit.submitEdit}
+            variant="primary"
+            aria-label={saveEditText[locale]}
+            className="disabled:bg-quiet h-[44px] w-[44px] shrink-0 rounded-[12px] p-0 disabled:text-green-500 disabled:opacity-100 [&_svg]:size-5"
+            disabled={!edit.canSubmit}
+          >
+            <Check aria-hidden="true" />
+          </Button>
+        )}
+        {!isEditing && isTooLong && (
           // the one way on from a message that is too long, so it takes the send button's place
           <Button
             onClick={() => void handleSplitAndSend()}
@@ -553,7 +639,8 @@ export const ChatTextAreaInput: React.FC = () => {
           >
             {splitAndSendText[locale]}
           </Button>
-        ) : (
+        )}
+        {!isEditing && !isTooLong && (
           <Button
             onClick={() => void sendWithAttachment()}
             variant="primary"
@@ -596,6 +683,41 @@ const ComposerNotice: React.FC<{ icon: LucideIcon; text: string; isEmergency?: b
   >
     <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
     <span>{text}</span>
+  </div>
+);
+
+/**
+ * Above the composer while it changes a message: what is being changed, the text as it was,
+ * and the way back to writing a new message.
+ */
+const EditingMessageBar: React.FC<{
+  text: string;
+  /** why the change cannot be saved right now */
+  offlineHint: string | undefined;
+  onCancel: () => void;
+  locale: Locale;
+}> = ({ text, offlineHint, onCancel, locale }) => (
+  <div className="bg-quiet flex items-center gap-3 rounded-[12px] py-1 pr-0.5 pl-3">
+    <Pencil className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
+    <div className="flex min-w-0 flex-1 flex-col">
+      <span className="truncate text-[13px] font-semibold text-green-900">
+        {editingMessageText[locale]}
+      </span>
+      <span className="truncate text-[13px] text-green-700">{text}</span>
+      {offlineHint !== undefined && (
+        <span className="text-[13px] text-green-700" role="status">
+          {offlineHint}
+        </span>
+      )}
+    </div>
+    <button
+      type="button"
+      onClick={onCancel}
+      aria-label={cancelEditText[locale]}
+      className="focus-visible:focus-surface hover:bg-chip flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700"
+    >
+      <X className="h-5 w-5" aria-hidden="true" />
+    </button>
   </div>
 );
 
