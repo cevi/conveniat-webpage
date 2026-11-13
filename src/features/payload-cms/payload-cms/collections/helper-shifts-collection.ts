@@ -4,7 +4,6 @@ import {
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
-import { makeInjectEnrollmentCount } from '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count';
 import { helperShiftOrganiserExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-organiser-export';
 import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
 import { handleParticipantMutation } from '@/features/payload-cms/payload-cms/endpoints/course-participants-manager';
@@ -22,7 +21,6 @@ import {
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import { DEFAULT_UNENROLLMENT_DEADLINE_MINUTES } from '@/features/schedule/utils/unenrollment-deadline';
-import { CourseType } from '@/lib/prisma/enums';
 import type { BlocksField, CollectionConfig, Field, TextFieldSingleValidation } from 'payload';
 
 export const HelperShiftsCollection: CollectionConfig = {
@@ -31,7 +29,6 @@ export const HelperShiftsCollection: CollectionConfig = {
   hooks: {
     afterChange: [flushPageCacheOnChange],
     afterDelete: [flushPageCacheOnDelete],
-    afterRead: [makeInjectEnrollmentCount(CourseType.SHIFT)],
   },
   endpoints: [
     {
@@ -456,14 +453,6 @@ export const HelperShiftsCollection: CollectionConfig = {
           de: 'Admininterne Notizen zu diesem Schichteinsatz (nicht für Helfende sichtbar).',
           fr: 'Notes internes sur ce service (non visibles par les helpers).',
         },
-      },
-    },
-    {
-      name: 'enrolledCount',
-      type: 'number',
-      virtual: true,
-      admin: {
-        hidden: true,
       },
     },
     {
