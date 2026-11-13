@@ -71,7 +71,6 @@ export const NavLink: React.FC<{
 }> = ({ href, icon, label, isCurrent, color, className }) => (
   <Link
     href={href}
-    prefetch
     aria-current={isCurrent ? 'page' : undefined}
     className={cn(
       // keyboard focus like a row: the quiet surface and a ring inside, which the bar would clip
