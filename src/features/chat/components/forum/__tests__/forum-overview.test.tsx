@@ -337,8 +337,8 @@ describe('the feed of a topic', () => {
     feedPosts = [pinnedPost, post({ id: 'other', title: 'WC beim Quartier 3 verstopft' })];
     renderForum();
 
-    expect(screen.getByRole('link', { name: /Zu heisses Wasser.*Angeheftet/ })).toBeTruthy();
-    expect(screen.queryByRole('link', { name: /WC beim Quartier 3.*Angeheftet/ })).toBeNull();
+    expect(screen.getByRole('link', { name: /Angeheftet.*Zu heisses Wasser/ })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /Angeheftet.*WC beim Quartier 3/ })).toBeNull();
     expect(screen.getAllByRole('link', { name: /Zu heisses Wasser/ })).toHaveLength(1);
     expect(screen.queryByText('Neueste')).toBeNull();
   });

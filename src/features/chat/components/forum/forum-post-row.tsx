@@ -1,7 +1,6 @@
 import { ForumStatusPill } from '@/features/chat/components/forum/forum-status-pill';
 import { forumText, relativeTimeText } from '@/features/chat/components/forum/forum-texts';
-import { KernteamBadge } from '@/features/chat/components/forum/kernteam-badge';
-import { forumKindLabel, type ForumPostSummary } from '@/lib/forum-shared';
+import type { ForumPostSummary } from '@/lib/forum-shared';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import {
@@ -13,15 +12,80 @@ import {
   MapPin,
   MessageCircle,
   Pin,
+  ShieldCheck,
   ThumbsUp,
 } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
 
+const pillClassName =
+  'inline-flex h-[22px] shrink-0 items-center gap-1 rounded-full border px-2 text-[12px] font-semibold';
+
 /**
- * One post in a list: the title first, where the eye starts, then two lines of text, and in the
- * last line what kind of post it is, where it stands, its place and the counts. The whole row is
- * the link.
+ * Where a post stands, if that is news: a problem being worked on or done, an answered question,
+ * a post waiting for approval or hidden, and for the moderators its open flags. An open problem
+ * in the feed and every idea say nothing here, the state nearly every post is in.
+ */
+const StatePills: React.FC<{ post: ForumPostSummary; locale: Locale; compact: boolean }> = ({
+  post,
+  locale,
+  compact,
+}) => (
+  <>
+    {post.pending === true && (
+      <span className={cn(pillClassName, 'border-line border-dashed bg-white text-green-700')}>
+        <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+        {forumText.pendingPill[locale]}
+      </span>
+    )}
+    {/* a cache from before kinds only knew problems */}
+    {post.pending !== true &&
+      (post.kind ?? 'PROBLEM') === 'PROBLEM' &&
+      (!compact || post.status !== 'OPEN') && (
+        <ForumStatusPill status={post.status} locale={locale} />
+      )}
+    {post.kind === 'QUESTION' && post.answered === true && (
+      <span className={cn(pillClassName, 'border-line bg-white text-green-800')}>
+        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+        {forumText.answered[locale]}
+      </span>
+    )}
+    {post.hidden === true && (
+      <span
+        title={forumText.hiddenPill[locale]}
+        className={cn(pillClassName, 'bg-quiet border-transparent text-green-800')}
+      >
+        <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
+        <span className={cn(compact && 'sr-only')}>{forumText.hiddenPill[locale]}</span>
+      </span>
+    )}
+    {(post.flagCount ?? 0) > 0 && (
+      <span className={cn(pillClassName, 'border-danger-line bg-danger-soft text-danger-text')}>
+        <Flag className="h-3.5 w-3.5" aria-hidden="true" />
+        {forumText.flagsPill[locale].replace('{n}', String(post.flagCount ?? 0))}
+      </span>
+    )}
+  </>
+);
+
+/** A count that only shows when there is something to count, like Discourse and GitHub do. */
+const Count: React.FC<{ icon: React.ReactNode; value: number; highlighted?: boolean }> = ({
+  icon,
+  value,
+  highlighted = false,
+}) =>
+  value > 0 || highlighted ? (
+    <span className={cn('flex items-center gap-1', highlighted && 'text-conveniat-green')}>
+      {icon}
+      {value}
+    </span>
+  ) : null;
+
+/**
+ * One post in a list, calm like a topic list on Discourse: the title, two lines of text, and one
+ * grey line with where it stands, who wrote it and when, and on the right the counts above zero.
+ * The Kernteam is told apart by a small shield, not a badge, and a pinned post by a pin before
+ * its title. The whole row is the link.
  */
 export const ForumPostRow: React.FC<{
   post: ForumPostSummary;
@@ -29,10 +93,7 @@ export const ForumPostRow: React.FC<{
   /** the topic's name, for a list of several topics */
   showTopic: boolean;
   now: Date;
-  /**
-   * for the feed below the pinned posts: title and counts without the text, the place as a pin
-   * only, and no pill for an open post, the state nearly every post in the feed is in
-   */
+  /** for the feed below the pinned posts: title and line without the text */
   compact?: boolean;
 }> = ({ post, locale, showTopic, now, compact = false }) => (
   <li>
@@ -41,6 +102,15 @@ export const ForumPostRow: React.FC<{
       className="focus-visible:focus-surface hover:bg-quiet/60 flex flex-col gap-1.5 px-4 py-3 transition-colors"
     >
       <span className="font-heading text-heading text-[15px] leading-snug font-bold">
+        {post.pinned && (
+          <>
+            <Pin
+              className="mr-1 mb-0.5 inline h-3.5 w-3.5 rotate-30 text-green-700"
+              aria-hidden="true"
+            />
+            <span className="sr-only">{forumText.pinned[locale]}: </span>
+          </>
+        )}
         {post.title}
       </span>
       {!compact && post.excerpt !== '' && (
@@ -48,93 +118,52 @@ export const ForumPostRow: React.FC<{
           {post.excerpt}
         </span>
       )}
-      {/* the title leads, the way lists are scanned; what kind of post it is and where it
-          stands joins the counts in the line below */}
-      <span className="flex items-center gap-3 text-[13px] font-semibold text-green-800">
-        <span className="flex shrink-0 items-center gap-1.5 text-[12px] font-normal text-green-700">
-          {post.pinned && (
-            <span className="bg-conveniat-green inline-flex h-[22px] w-[22px] items-center justify-center rounded-full text-white">
-              <Pin className="h-3 w-3 rotate-30" aria-hidden="true" />
-              <span className="sr-only">{forumText.pinned[locale]}</span>
-            </span>
+      <span className="flex min-w-0 items-center gap-1.5 text-[13px] text-green-700">
+        <StatePills post={post} locale={locale} compact={compact} />
+        <span className="flex min-w-0 items-center gap-1.5">
+          {showTopic && (
+            <>
+              <span className="shrink-0">{post.topicName}</span>
+              <span aria-hidden="true">·</span>
+            </>
           )}
-          {/* what kind of post it is; a cache from before kinds only knew problems */}
-          {post.kind !== undefined && post.kind !== 'PROBLEM' && (
-            <span className="bg-chip inline-flex h-[22px] items-center rounded-md px-1.5 text-[12px] font-semibold text-green-900">
-              {forumKindLabel[post.kind][locale]}
+          {/* the Kernteam signs with its function, others with their name */}
+          {post.byTopicAdmin ? (
+            <span className="flex min-w-0 items-center gap-1 font-semibold text-green-900">
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="sr-only">{forumText.kernteam[locale]}: </span>
+              <span className="truncate">{post.kernteamLabel ?? post.author?.name ?? ''}</span>
             </span>
+          ) : (
+            <span className="truncate">{post.author?.name ?? ''}</span>
           )}
-          {post.pending === true && (
-            <span className="border-line inline-flex h-[22px] items-center gap-1 rounded-full border border-dashed bg-white px-2 text-[12px] font-semibold text-green-700">
-              <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-              {forumText.pendingPill[locale]}
-            </span>
-          )}
-          {/* a problem shows where it stands; a question whether it was answered */}
-          {post.pending !== true &&
-            (post.kind ?? 'PROBLEM') === 'PROBLEM' &&
-            (!compact || post.status !== 'OPEN') && (
-              <ForumStatusPill status={post.status} locale={locale} />
-            )}
-          {post.kind === 'QUESTION' && post.answered === true && (
-            <span className="bg-conveniat-green border-conveniat-green inline-flex h-[22px] items-center gap-1 rounded-full border px-2 text-[12px] font-semibold text-white">
-              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-              {forumText.answered[locale]}
-            </span>
-          )}
-          {post.hidden === true && (
-            <span
-              title={forumText.hiddenPill[locale]}
-              className="bg-quiet inline-flex h-[22px] items-center gap-1 rounded-md px-1.5 text-[12px] font-semibold text-green-800"
-            >
-              <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
-              {/* the feed's line is narrow: the eye alone, the word for screen readers */}
-              <span className={cn(compact && 'sr-only')}>{forumText.hiddenPill[locale]}</span>
-            </span>
-          )}
-          {(post.flagCount ?? 0) > 0 && (
-            <span className="border-danger-line bg-danger-soft text-danger-text inline-flex h-[22px] items-center gap-1 rounded-md border px-1.5 text-[12px] font-semibold">
-              <Flag className="h-3.5 w-3.5" aria-hidden="true" />
-              {forumText.flagsPill[locale].replace('{n}', String(post.flagCount ?? 0))}
-            </span>
-          )}
-          {post.byTopicAdmin && <KernteamBadge locale={locale} label={post.kernteamLabel} />}
-          {post.location !== null && (
-            <span
-              className={cn(
-                'bg-tint inline-flex items-center gap-1 rounded-md py-px text-green-800',
-                compact ? 'px-1' : 'px-1.5',
-              )}
-            >
-              <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-              <span className={cn(compact && 'sr-only')}>{forumText.onMap[locale]}</span>
-            </span>
-          )}
-          {showTopic && <span className="truncate">{post.topicName}</span>}
-        </span>
-        <span className={cn('flex items-center gap-1', post.likedByMe && 'text-conveniat-green')}>
-          <ThumbsUp
-            className={cn('h-4 w-4', post.likedByMe && 'fill-current')}
-            aria-hidden="true"
-          />
-          {post.likeCount}
-        </span>
-        <span className="flex items-center gap-1">
-          <MessageCircle className="h-4 w-4" aria-hidden="true" />
-          {post.commentCount}
-        </span>
-        {post.imageCount > 0 && (
-          <span className="flex items-center gap-1">
-            <ImageIcon className="h-4 w-4" aria-hidden="true" />
-            {post.imageCount}
-          </span>
-        )}
-        {/* a long name gives way, the time does not: it tells how fresh the post is */}
-        <span className="ml-auto flex min-w-0 gap-1 font-normal text-green-600">
-          <span className="truncate">{post.author?.name ?? ''}</span>
+          {/* a long name gives way, the time does not: it tells how fresh the post is */}
           <span className="shrink-0">
             · {relativeTimeText(new Date(post.createdAt), locale, now)}
           </span>
+        </span>
+        <span className="ml-auto flex shrink-0 items-center gap-2.5 pl-1 font-semibold text-green-800">
+          {post.location !== null && (
+            <MapPin className="h-4 w-4" aria-label={forumText.onMap[locale]} />
+          )}
+          <Count
+            icon={
+              <ThumbsUp
+                className={cn('h-4 w-4', post.likedByMe && 'fill-current')}
+                aria-hidden="true"
+              />
+            }
+            value={post.likeCount}
+            highlighted={post.likedByMe}
+          />
+          <Count
+            icon={<MessageCircle className="h-4 w-4" aria-hidden="true" />}
+            value={post.commentCount}
+          />
+          <Count
+            icon={<ImageIcon className="h-4 w-4" aria-hidden="true" />}
+            value={post.imageCount}
+          />
         </span>
       </span>
     </Link>
