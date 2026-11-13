@@ -50,6 +50,11 @@ export const BottomSheet: React.FC<{
   footer?: React.ReactNode;
   /** before the title, e.g. the avatar of the chat a sheet of actions is about */
   leading?: React.ReactNode;
+  /**
+   * after the title, before the ✕: a quiet action on the whole sheet that is always there, like
+   * "Zurücksetzen" of a filter, so the sheet keeps its height whether it applies or not
+   */
+  trailing?: React.ReactNode;
   /** a smaller line under the title, e.g. "Gruppe · stummgeschaltet" */
   description?: string;
   /**
@@ -72,6 +77,7 @@ export const BottomSheet: React.FC<{
   showClose = true,
   footer,
   leading,
+  trailing,
   description,
   hideTitle = false,
   anchor,
@@ -203,6 +209,7 @@ export const BottomSheet: React.FC<{
                       </DialogPrimitive.Description>
                     )}
                   </div>
+                  {trailing}
                   {showClose && (
                     <DialogPrimitive.Close
                       aria-label={closeLabel[locale]}
