@@ -129,8 +129,9 @@ export const RemovalBanner: React.FC<{
 
       {awaitsDecision && (
         // as review queues do: approve it, or confirm what the flags did. Side by side, each as
-        // wide as its label and without icons, so "Ausgeblendet lassen" fits a phone uncut
-        <div className="flex gap-2">
+        // wide as its label and without icons, so "Ausgeblendet lassen" fits a phone uncut, and
+        // one under the other where even that does not fit
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outlined"
             size="touch"

@@ -80,7 +80,13 @@ export const ForumCommentFlags: React.FC<{
             >
               {forumText.keepFlagged[locale]}
             </Button>
-            <Button variant="danger" size="touch" disabled={busy} onClick={onHide}>
+            <Button
+              variant="danger"
+              size="touch"
+              className="flex-auto px-3"
+              disabled={busy}
+              onClick={onHide}
+            >
               {forumText.hide[locale]}
             </Button>
           </>
