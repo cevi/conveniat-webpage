@@ -501,6 +501,27 @@ export const forumText = {
   edited: { de: 'Bearbeitet', en: 'Edited', fr: 'Modifié' },
   save: { de: 'Speichern', en: 'Save', fr: 'Enregistrer' },
   deleteOwn: { de: 'Beitrag löschen', en: 'Delete post', fr: 'Supprimer la publication' },
+  deleteOwnConversation: {
+    de: 'Gespräch löschen',
+    en: 'Delete conversation',
+    fr: 'Supprimer la conversation',
+  },
+  deleteOwnConversationConfirm: {
+    de: 'Deine Nachricht an das Kernteam wird gelöscht, und das Gespräch verschwindet aus deinen Chats und denen des Kernteams.',
+    en: 'Your message to the Kernteam is deleted, and the conversation disappears from your chats and those of the Kernteam.',
+    fr: 'Ton message au Kernteam est supprimé, et la conversation disparaît de tes chats et de ceux du Kernteam.',
+  },
+  postNotFound: {
+    de: 'Beitrag nicht gefunden',
+    en: 'Post not found',
+    fr: 'Publication introuvable',
+  },
+  postNotFoundExplain: {
+    de: 'Er wurde gelöscht, oder du siehst ihn nicht mehr.',
+    en: 'It was deleted, or you can no longer see it.',
+    fr: 'Elle a été supprimée, ou tu ne peux plus la voir.',
+  },
+  toForum: { de: 'Zum Forum', en: 'To the forum', fr: 'Vers le forum' },
   deleteOwnConfirm: {
     de: 'Der Beitrag und seine Kommentare verschwinden für alle.',
     en: 'The post and its comments disappear for everyone.',

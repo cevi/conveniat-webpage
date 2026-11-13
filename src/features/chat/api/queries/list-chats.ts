@@ -66,13 +66,26 @@ export const getChatList = trpcBaseProcedure
 
     const memberships = await prisma.chatMembership.findMany({
       // a forum topic has its own pages; as a chat, every post would read as a message. A
-      // private conversation is listed once its post is written, and opens on the forum's page
+      // private conversation is listed once its post is written, and opens on the forum's page.
+      // Its author deleting the post, which they may only while nobody answered, takes the
+      // conversation with it; a post the Kernteam deleted stays, as its placeholder says why
       where: {
         userId: prismaUser.uuid,
         hasDeleted: false,
         chat: {
           type: { not: ChatType.FORUM },
-          OR: [{ type: { not: ChatType.FORUM_CONVERSATION } }, { forumPosts: { some: {} } }],
+          OR: [
+            { type: { not: ChatType.FORUM_CONVERSATION } },
+            {
+              forumPosts: {
+                some: {
+                  message: {
+                    OR: [{ deletedAt: null }, { forumRemoval: { is: { kind: 'DELETED' } } }],
+                  },
+                },
+              },
+            },
+          ],
         },
       },
       select: {

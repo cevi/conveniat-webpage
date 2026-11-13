@@ -175,7 +175,11 @@ export const ForumModerationSheet: React.FC<{
   const ownDelete = useMutation(
     trpc.chat.deleteMessage.mutationOptions({
       onSuccess: () => {
+        // the page of the post would come back from the cache, and with it the deleted text
+        queryClient.removeQueries(trpc.forum.getForumPost.queryFilter({ postId: post.id }));
         refresh();
+        // a deleted conversation leaves the chat list too, see `getChatList`
+        void queryClient.invalidateQueries(trpc.chat.chats.pathFilter());
         router.push('/app/forum');
       },
       onError: fail,
@@ -268,7 +272,10 @@ export const ForumModerationSheet: React.FC<{
     assign: forumText.assign[locale],
     merge: forumText.merge[locale],
     answer: forumText.markAnswer[locale],
-    delete: forumText.deleteOwn[locale],
+    delete:
+      post.conversation == null
+        ? forumText.deleteOwn[locale]
+        : forumText.deleteOwnConversation[locale],
     remove:
       removeTarget?.kind === 'DELETED' ? forumText.removeDelete[locale] : forumText.hide[locale],
   };
@@ -522,7 +529,11 @@ export const ForumModerationSheet: React.FC<{
     case 'delete': {
       content = (
         <div className="flex flex-col gap-3 pb-2">
-          <p className="text-[14px] text-green-800">{forumText.deleteOwnConfirm[locale]}</p>
+          <p className="text-[14px] text-green-800">
+            {post.conversation == null
+              ? forumText.deleteOwnConfirm[locale]
+              : forumText.deleteOwnConversationConfirm[locale]}
+          </p>
           <div className="flex gap-2">
             <button
               type="button"
@@ -752,7 +763,9 @@ export const ForumModerationSheet: React.FC<{
                 className="border-danger-line text-danger-text hover:bg-danger-soft focus-visible:focus-surface-danger flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border bg-white text-[15px] font-semibold"
               >
                 <Trash2 className="h-5 w-5" aria-hidden="true" />
-                {forumText.deleteOwn[locale]}
+                {post.conversation == null
+                  ? forumText.deleteOwn[locale]
+                  : forumText.deleteOwnConversation[locale]}
               </button>
             ))}
         </div>

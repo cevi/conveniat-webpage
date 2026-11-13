@@ -1,6 +1,7 @@
 'use client';
 import { AppFooterController } from '@/components/footer/hide-footer-context';
 import { OfflineBanner } from '@/components/offline-banner';
+import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { SectionLabel } from '@/components/ui/section-label';
@@ -45,7 +46,7 @@ import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { userErrorMessage } from '@/utils/user-error-message';
+import { errorReasonOf, userErrorMessage } from '@/utils/user-error-message';
 import {
   ArrowLeft,
   Bell,
@@ -842,14 +843,29 @@ const ForumPostContent: React.FC<{ postId: string | undefined }> = ({ postId }) 
         <AppFooterController hideAppFooter />
         <ScreenHeader title={forumText.title[locale]} locale={locale} />
         <div className="flex flex-1 items-center justify-center p-6">
-          <EmptyState
-            icon={MessageSquareOff}
-            title={
-              query.error === null
-                ? forumText.loadFailed[locale]
-                : userErrorMessage(query.error, locale, forumErrorTexts, forumText.loadFailed)
-            }
-          />
+          {errorReasonOf(query.error)?.reason === 'postGone' ? (
+            // a push from yesterday or a link in a chat: whether it was deleted or is no longer
+            // for this person stays unsaid, the way on is the forum
+            <EmptyState
+              icon={MessageSquareOff}
+              title={forumText.postNotFound[locale]}
+              description={forumText.postNotFoundExplain[locale]}
+              action={
+                <Button asChild variant="primary" size="touch">
+                  <Link href="/app/forum">{forumText.toForum[locale]}</Link>
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={MessageSquareOff}
+              title={
+                query.error === null
+                  ? forumText.loadFailed[locale]
+                  : userErrorMessage(query.error, locale, forumErrorTexts, forumText.loadFailed)
+              }
+            />
+          )}
         </div>
       </div>
     );
