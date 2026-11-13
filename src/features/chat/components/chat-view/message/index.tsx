@@ -150,8 +150,10 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     useChatActions();
   const isHighlighted = highlightedMessageId === message.id;
   const showMeta = isLastInGroup || message.sendFailed === true;
-  // a group and a forum topic name who wrote; a private chat and a channel need not
-  const showsSenders = chatType === 'GROUP' || chatType === 'FORUM';
+  // a group, a forum topic and a conversation with a Kernteam name who wrote, so the writer of
+  // a private question sees who of the Kernteam answers; a private chat and a channel need not
+  const showsSenders =
+    chatType === 'GROUP' || chatType === 'FORUM' || chatType === 'FORUM_CONVERSATION';
   const hasAvatarSlot = !isCurrentUser && showsSenders && typeof message.senderId === 'string';
 
   const [isHovered, setIsHovered] = useState(false);

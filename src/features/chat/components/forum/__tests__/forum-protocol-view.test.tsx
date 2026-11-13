@@ -10,8 +10,11 @@ const TOPIC_ID = '7f1c2a90-0000-4000-8000-000000000001';
 
 jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
 jest.mock('@/components/offline-banner', () => ({ OfflineBanner: (): null => null }));
+// the forum's own back bar stands in for the app header, which these tests do not render
+jest.mock('@/components/header/hide-header-context', () => ({ SetHideHeader: (): null => null }));
 jest.mock('next/navigation', () => ({
   useParams: (): object => ({ topicId: '7f1c2a90-0000-4000-8000-000000000001' }),
+  useRouter: (): object => ({ back: jest.fn(), replace: jest.fn() }),
 }));
 jest.mock(
   '@/trpc/client',

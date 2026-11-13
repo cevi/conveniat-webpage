@@ -14,6 +14,8 @@ jest.mock('@/components/offline-banner', () => ({ OfflineBanner: (): null => nul
 jest.mock('@/features/chat/components/forum/forum-post-view', () => ({
   ForumPostView: (): null => null,
 }));
+// the forum's own back bar stands in for the app header, which these tests do not render
+jest.mock('@/components/header/hide-header-context', () => ({ SetHideHeader: (): null => null }));
 jest.mock('next/navigation', () => ({
   useRouter: (): object => ({ replace: jest.fn() }),
   useSearchParams: (): URLSearchParams => searchParameters,

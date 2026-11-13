@@ -34,6 +34,11 @@ export const forumTodoText = {
   hidden: { de: 'ausgeblendet', en: 'hidden', fr: 'masqué' },
   privateConversation: { de: 'Privat', en: 'Private', fr: 'Privé' },
   protocol: { de: 'Protokoll', en: 'Protocol', fr: 'Protocole' },
+  automaticHide: {
+    de: 'Automatisch ausgeblendet nach {n} Meldungen',
+    en: 'Hidden automatically after {n} flags',
+    fr: 'Masqué automatiquement après {n} signalements',
+  },
   protocolEmpty: {
     de: 'Noch nichts protokolliert',
     en: 'Nothing logged yet',

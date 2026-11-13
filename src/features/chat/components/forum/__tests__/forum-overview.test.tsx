@@ -131,6 +131,8 @@ const filters = (): string[] => {
 
 beforeEach(() => {
   localStorage.clear();
+  // "Los geht's" scrolls the forum to its top, which jsdom does not implement
+  window.scrollTo = jest.fn();
   intro = { title: '', text: '', points: [] };
   address = '';
   topics = [topic()];
@@ -158,7 +160,8 @@ describe('the start page of the forum', () => {
     ).toBeTruthy();
     const food = screen.getByRole('link', { name: /Essen/ });
     expect(food.getAttribute('href')).toBe('/app/forum?topic=essen');
-    expect(within(food).getByText('0 offen')).toBeTruthy();
+    // nothing open is no news, so no "0 offen"
+    expect(within(food).queryByText('0 offen')).toBeNull();
   });
 
   it('puts the user’s own conversations on top, with their topic and what is unread', () => {

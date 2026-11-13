@@ -1,7 +1,7 @@
 'use client';
-import { SetHideHeader } from '@/components/header/hide-header-context';
 import { textInputClassName } from '@/components/ui/field';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
+import { ForumSubpageHeader } from '@/features/chat/components/forum/forum-subpage-header';
 import { forumKindExplain, forumText } from '@/features/chat/components/forum/forum-texts';
 import { prepareChatImage } from '@/features/chat/utils/prepare-chat-image';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
@@ -27,18 +27,7 @@ import { isHeicFile } from '@/utils/image-file';
 import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { keepPreviousData } from '@tanstack/react-query';
-import {
-  ArrowLeft,
-  Camera,
-  ImageIcon,
-  Loader2,
-  Lock,
-  MapPin,
-  Search,
-  ThumbsUp,
-  Users,
-  X,
-} from 'lucide-react';
+import { Camera, ImageIcon, Loader2, Lock, MapPin, Search, ThumbsUp, Users, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useState } from 'react';
@@ -121,47 +110,6 @@ interface PickedImage {
   file: File;
   preview: string;
 }
-
-/**
- * The composer's own bar in place of the app header: writing is a task of its own, so the way
- * out is back to where it started, not the menu.
- */
-const ComposerHeader: React.FC<{ locale: Locale; topicId: string | undefined }> = ({
-  locale,
-  topicId,
-}) => {
-  const router = useRouter();
-  // opened straight from a link or a push, there is nothing in the app to go back to
-  const [isEntryPage] = useState(
-    () =>
-      typeof location !== 'undefined' &&
-      performance.getEntriesByType('navigation')[0]?.name === location.href,
-  );
-  const goBack = (): void => {
-    if (isEntryPage) {
-      router.replace(topicId === undefined ? '/app/forum' : `/app/forum?topic=${topicId}`);
-      return;
-    }
-    router.back();
-  };
-  return (
-    // in the place of the hidden app header, which the page below still leaves room for
-    <div className="border-line fixed inset-x-0 top-(--app-top-inset) z-[110] flex h-[62px] items-center gap-1 border-b bg-white pr-2 pl-1 xl:hidden">
-      <SetHideHeader value />
-      <button
-        type="button"
-        onClick={goBack}
-        aria-label={forumText.back[locale]}
-        className="focus-visible:focus-surface hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900"
-      >
-        <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
-      </button>
-      <h1 className="font-heading text-heading min-w-0 flex-1 truncate pl-1 text-[17px] font-bold">
-        {forumText.newPost[locale]}
-      </h1>
-    </div>
-  );
-};
 
 /**
  * Writes a post. While the title is typed, and as soon as a place is chosen, the posts that may
@@ -359,7 +307,15 @@ export const ForumComposer: React.FC = () => {
 
   return (
     <div className="bg-page min-h-dvh pb-10">
-      <ComposerHeader locale={locale} topicId={parameters.get('topic') ?? undefined} />
+      <ForumSubpageHeader
+        title={forumText.newPost[locale]}
+        locale={locale}
+        fallbackHref={
+          parameters.get('topic') === null
+            ? '/app/forum'
+            : `/app/forum?topic=${parameters.get('topic') ?? ''}`
+        }
+      />
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-3">
         {/* a choice only where a topic takes private conversations, and the way back to
             Öffentlich for a link that opened it on "Privat" where none does */}

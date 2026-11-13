@@ -20,7 +20,12 @@ import type { RefObject } from 'react';
  * The head of a topic's feed: what it is for, who answers there, and the way to write its
  * Kernteam privately where editors allow it.
  */
-export const TopicCard: React.FC<{ topic: ForumTopic; locale: Locale }> = ({ topic, locale }) => {
+export const TopicCard: React.FC<{
+  topic: ForumTopic;
+  locale: Locale;
+  /** the bell of a participant or the settings of the Kernteam, top right */
+  action?: React.ReactNode;
+}> = ({ topic, locale, action }) => {
   const kernteam = topic.kernteamLabels ?? [];
   return (
     <Card className="flex flex-col gap-3 p-4">
@@ -40,6 +45,7 @@ export const TopicCard: React.FC<{ topic: ForumTopic; locale: Locale }> = ({ top
             </p>
           )}
         </div>
+        {action}
       </div>
       {topic.allowsPrivateConversations === true && (
         <Button asChild variant="outlined" size="touch">

@@ -232,42 +232,10 @@ const ForumTopicFeed: React.FC<{ topicId: string }> = ({ topicId }) => {
 
   return (
     <div className="bg-page min-h-dvh pb-28">
+      {/* the header keeps "Zu tun" alone; what belongs to the topic sits in its card and
+          above its list, so the title keeps its room */}
       <SetHeaderActions>
         <ZentraleLink counts={settings.data?.zentrale ?? null} locale={locale} />
-        <button
-          ref={filterButton}
-          type="button"
-          onClick={() => setFiltersOpen(true)}
-          aria-label={forumText.filterTitle[locale]}
-          aria-pressed={filtered}
-          className={cn(
-            'focus-visible:focus-surface hover:bg-quiet relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full',
-            filtered ? 'text-conveniat-green' : 'text-green-700',
-          )}
-        >
-          <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
-          {filtered && (
-            <span className="bg-conveniat-green absolute top-2.5 right-2.5 h-2 w-2 rounded-full" />
-          )}
-        </button>
-        {chosenTopic !== undefined &&
-          (chosenTopic.isAdmin ? (
-            <button
-              ref={settingsButton}
-              type="button"
-              onClick={() => setSettingsOpen(true)}
-              aria-label={forumText.topicSettings[locale]}
-              className="focus-visible:focus-surface hover:bg-quiet flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-green-700"
-            >
-              <Settings2 className="h-5 w-5" aria-hidden="true" />
-            </button>
-          ) : (
-            <TopicSubscriptionButton
-              topicId={chosenTopic.id}
-              subscribed={chosenTopic.subscribed}
-              locale={locale}
-            />
-          ))}
       </SetHeaderActions>
       <OfflineBanner locale={locale} />
       <div className="mx-auto flex max-w-2xl flex-col gap-3 px-4 pt-3">
@@ -280,14 +248,56 @@ const ForumTopicFeed: React.FC<{ topicId: string }> = ({ topicId }) => {
           onPage
         />
 
-        {chosenTopic !== undefined && <TopicCard topic={chosenTopic} locale={locale} />}
+        {chosenTopic !== undefined && (
+          <TopicCard
+            topic={chosenTopic}
+            locale={locale}
+            action={
+              chosenTopic.isAdmin ? (
+                <button
+                  ref={settingsButton}
+                  type="button"
+                  onClick={() => setSettingsOpen(true)}
+                  aria-label={forumText.topicSettings[locale]}
+                  className="focus-visible:focus-surface hover:bg-quiet -mt-1.5 -mr-1.5 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700"
+                >
+                  <Settings2 className="h-5 w-5" aria-hidden="true" />
+                </button>
+              ) : (
+                <TopicSubscriptionButton
+                  topicId={chosenTopic.id}
+                  subscribed={chosenTopic.subscribed}
+                  locale={locale}
+                />
+              )
+            }
+          />
+        )}
 
-        <div className="-mx-4 flex [scrollbar-width:none] gap-1.5 overflow-x-auto px-4">
-          {KIND_FILTERS.map((value) => (
-            <Chip key={value ?? 'all'} chosen={kind === value} onClick={() => setKind(value)}>
-              {value === undefined ? forumText.allTopics[locale] : forumKindLabel[value][locale]}
-            </Chip>
-          ))}
+        <div className="flex items-center gap-1">
+          <div className="-ml-4 flex min-w-0 flex-1 [scrollbar-width:none] gap-1.5 overflow-x-auto pl-4">
+            {KIND_FILTERS.map((value) => (
+              <Chip key={value ?? 'all'} chosen={kind === value} onClick={() => setKind(value)}>
+                {value === undefined ? forumText.allTopics[locale] : forumKindLabel[value][locale]}
+              </Chip>
+            ))}
+          </div>
+          <button
+            ref={filterButton}
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            aria-label={forumText.filterTitle[locale]}
+            aria-pressed={isFiltered(filters)}
+            className={cn(
+              'focus-visible:focus-surface hover:bg-quiet relative -mr-2 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full',
+              isFiltered(filters) ? 'text-conveniat-green' : 'text-green-700',
+            )}
+          >
+            <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
+            {isFiltered(filters) && (
+              <span className="bg-conveniat-green absolute top-2.5 right-2.5 h-2 w-2 rounded-full" />
+            )}
+          </button>
         </div>
 
         {isSearching ? (

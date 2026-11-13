@@ -31,7 +31,9 @@ export const RemovalBanner: React.FC<{
   post: ForumPostDetail;
   locale: Locale;
   onRevise: () => void;
-}> = ({ post, locale, onRevise }) => {
+  /** a moderator hides the flagged post, with a reason */
+  onHide?: () => void;
+}> = ({ post, locale, onRevise, onHide }) => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
@@ -89,9 +91,10 @@ export const RemovalBanner: React.FC<{
       </p>
 
       {removal?.kind === 'HIDDEN' && post.viewer.isAuthor && (
-        <div className="flex gap-2">
+        // one under the other on a phone, so neither label is cut
+        <div className="flex flex-col gap-2">
           {post.viewer.canEdit === true && (
-            <Button variant="outlined" size="touch" className="flex-1" onClick={onRevise}>
+            <Button variant="outlined" size="touch" className="w-full" onClick={onRevise}>
               <Pencil aria-hidden="true" />
               {forumText.revise[locale]}
             </Button>
@@ -100,7 +103,7 @@ export const RemovalBanner: React.FC<{
             <Button
               variant="outlined"
               size="touch"
-              className="flex-1"
+              className="w-full"
               disabled={review.isPending || !isOnline}
               onClick={() => review.mutate({ messageId: post.id })}
             >
@@ -111,12 +114,12 @@ export const RemovalBanner: React.FC<{
       )}
 
       {moderates && (removal?.kind === 'HIDDEN' || (removal === null && flags > 0)) && (
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2">
           {removal?.kind === 'HIDDEN' && (
             <Button
               variant="outlined"
               size="touch"
-              className="flex-1"
+              className="w-full"
               disabled={restore.isPending || !isOnline}
               onClick={() => restore.mutate({ messageId: post.id })}
             >
@@ -132,11 +135,18 @@ export const RemovalBanner: React.FC<{
             <Button
               variant="outlined"
               size="touch"
-              className="flex-1"
+              className="w-full"
               disabled={dismiss.isPending || !isOnline}
               onClick={() => dismiss.mutate({ messageId: post.id })}
             >
               {forumText.dismissFlags[locale]}
+            </Button>
+          )}
+          {/* the two decisions on a flag side by side: keep it, or hide it with a reason */}
+          {removal === null && flags > 0 && onHide !== undefined && (
+            <Button variant="danger" size="touch" className="w-full" onClick={onHide}>
+              <EyeOff aria-hidden="true" />
+              {forumText.hide[locale]}
             </Button>
           )}
         </div>

@@ -32,7 +32,7 @@ export const getMessage = trpcBaseProcedure
         chat: { chatMemberships: { some: { userId: ctx.user.uuid } } },
       },
       include: {
-        chat: { select: { type: true } },
+        chat: { select: { type: true, forumTopicId: true } },
         messageEvents: {
           where: { type: { in: USER_RELEVANT_MESSAGE_EVENTS } },
           orderBy: { uuid: 'desc' },
@@ -93,7 +93,12 @@ export const getMessage = trpcBaseProcedure
         ? undefined
         : await import('@/features/chat/api/forum/forum-kernteam-labels').then(
             ({ findKernteamLabelsOfTopic }) =>
-              findKernteamLabelsOfTopic(prisma, message.chatId, topicAdminIds, ctx.locale),
+              findKernteamLabelsOfTopic(
+                prisma,
+                message.chat.forumTopicId ?? message.chatId,
+                topicAdminIds,
+                ctx.locale,
+              ),
           );
 
     return toChatMessage(message, {

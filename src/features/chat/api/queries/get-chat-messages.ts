@@ -147,7 +147,13 @@ export const getChatMessages = trpcBaseProcedure
           ? undefined
           : await import('@/features/chat/api/forum/forum-kernteam-labels').then(
               ({ findKernteamLabelsOfTopic }) =>
-                findKernteamLabelsOfTopic(prisma, chat.uuid, topicAdminIds, ctx.locale),
+                findKernteamLabelsOfTopic(
+                  prisma,
+                  // a conversation's Kernteam is its topic's
+                  chat.forumTopicId ?? chat.uuid,
+                  topicAdminIds,
+                  ctx.locale,
+                ),
             );
 
       // hidden and deleted comments of a forum thread: their placeholders, and their content

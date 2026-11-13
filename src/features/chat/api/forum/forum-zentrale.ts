@@ -127,7 +127,9 @@ export const countZentrale = async (
   const [waiting, flagged, conversations, mine] = await Promise.all([
     moderates
       ? prisma.forumPost.count({
-          where: { AND: [visible, tabWhere('waiting', user.uuid, moderated)] },
+          where: {
+            AND: [visible, tabWhere('waiting', user.uuid, moderated), { NOT: flaggedWhere }],
+          },
         })
       : 0,
     moderates ? prisma.forumPost.count({ where: { AND: [visible, scope, flaggedWhere] } }) : 0,
@@ -213,7 +215,10 @@ export const getForumTodoList = trpcBaseProcedure
         : [],
       moderates
         ? ctx.prisma.forumPost.findMany({
-            where: { AND: [visible, tabWhere('waiting', userId, moderated)] },
+            // a flagged post stands under "Gemeldet" alone
+            where: {
+              AND: [visible, tabWhere('waiting', userId, moderated), { NOT: flaggedWhere }],
+            },
             select,
             orderBy: { createdAt: 'asc' },
             take: TODO_SECTION_SIZE,

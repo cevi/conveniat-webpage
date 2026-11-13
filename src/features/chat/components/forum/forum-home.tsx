@@ -158,10 +158,15 @@ export const ForumHome: React.FC<{
                           <span className="truncate text-[13px] text-green-700">
                             {[
                               ...(topic.kernteamLabels ?? []).slice(0, 2),
-                              forumText.openCount[locale].replace(
-                                '{n}',
-                                String(topic.openPostCount),
-                              ),
+                              // nothing open is no news, and "0 offen" reads like nobody cares
+                              ...(topic.openPostCount > 0
+                                ? [
+                                    forumText.openCount[locale].replace(
+                                      '{n}',
+                                      String(topic.openPostCount),
+                                    ),
+                                  ]
+                                : []),
                             ].join(' · ')}
                           </span>
                         </span>

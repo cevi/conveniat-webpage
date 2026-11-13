@@ -361,8 +361,9 @@ const PostHeader: React.FC<{
   onForward: () => void;
   onFlag: () => void;
   onRevise: () => void;
+  onHide: () => void;
   currentUserId: string | undefined;
-}> = ({ post, locale, onReportDone, onForward, onFlag, onRevise, currentUserId }) => {
+}> = ({ post, locale, onReportDone, onForward, onFlag, onRevise, onHide, currentUserId }) => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [now] = useState(() => new Date());
@@ -472,7 +473,7 @@ const PostHeader: React.FC<{
         </p>
       )}
       {post.pending === true && <PendingBanner post={post} locale={locale} />}
-      <RemovalBanner post={post} locale={locale} onRevise={onRevise} />
+      <RemovalBanner post={post} locale={locale} onRevise={onRevise} onHide={onHide} />
       {post.viewer.myFlag != null && (
         <p className="bg-quiet flex items-start gap-2 rounded-xl px-3 py-2.5 text-[13px] text-green-900">
           <Flag className="mt-0.5 h-4 w-4 shrink-0 text-green-700" aria-hidden="true" />
@@ -507,58 +508,61 @@ const PostHeader: React.FC<{
         </div>
       )}
 
-      <div className="flex gap-2">
-        {/* nobody else reads a private conversation, so nobody else is affected by it too */}
-        {post.conversation == null && post.removal?.kind !== 'DELETED' && (
+      {/* a closed conversation has nothing left to like, follow or flag */}
+      {post.conversation?.closed !== true && (
+        <div className="flex gap-2">
+          {/* nobody else reads a private conversation, so nobody else is affected by it too */}
+          {post.conversation == null && post.removal?.kind !== 'DELETED' && (
+            <button
+              type="button"
+              aria-pressed={post.likedByMe}
+              disabled={post.mergedInto !== null}
+              onClick={() => like.mutate({ messageId: post.id, emoji: FORUM_LIKE_EMOJI })}
+              className={cn(
+                'focus-visible:focus-surface flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border text-[14px] font-bold transition-colors disabled:opacity-50',
+                // liked is a state, not the view's primary action: the soft tint, so "Ich
+                // übernehme" stays the one filled button for whoever handles the post
+                post.likedByMe
+                  ? 'bg-tint border-tint-line text-green-800'
+                  : 'border-line hover:bg-quiet bg-white text-green-800',
+              )}
+            >
+              <ThumbsUp
+                className={cn('h-5 w-5', post.likedByMe && 'fill-current')}
+                aria-hidden="true"
+              />
+              {forumLikeLabel[post.kind ?? 'PROBLEM'][locale]} · {post.likeCount}
+            </button>
+          )}
           <button
             type="button"
-            aria-pressed={post.likedByMe}
-            disabled={post.mergedInto !== null}
-            onClick={() => like.mutate({ messageId: post.id, emoji: FORUM_LIKE_EMOJI })}
+            aria-pressed={post.subscribed}
+            aria-label={subscribeLabel}
+            title={subscribeLabel}
+            onClick={() => subscribe.mutate({ postId: post.id, subscribed: !post.subscribed })}
             className={cn(
-              'focus-visible:focus-surface flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border text-[14px] font-bold transition-colors disabled:opacity-50',
-              // liked is a state, not the view's primary action: the soft tint, so "Ich
-              // übernehme" stays the one filled button for whoever handles the post
-              post.likedByMe
-                ? 'bg-tint border-tint-line text-green-800'
-                : 'border-line hover:bg-quiet bg-white text-green-800',
+              'focus-visible:focus-surface border-line hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border bg-white',
+              post.subscribed ? 'text-conveniat-green' : 'text-green-700',
             )}
           >
-            <ThumbsUp
-              className={cn('h-5 w-5', post.likedByMe && 'fill-current')}
+            <SubscribeIcon
+              className={cn('h-5 w-5', post.subscribed && 'fill-current')}
               aria-hidden="true"
             />
-            {forumLikeLabel[post.kind ?? 'PROBLEM'][locale]} · {post.likeCount}
           </button>
-        )}
-        <button
-          type="button"
-          aria-pressed={post.subscribed}
-          aria-label={subscribeLabel}
-          title={subscribeLabel}
-          onClick={() => subscribe.mutate({ postId: post.id, subscribed: !post.subscribed })}
-          className={cn(
-            'focus-visible:focus-surface border-line hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border bg-white',
-            post.subscribed ? 'text-conveniat-green' : 'text-green-700',
+          {post.viewer.canFlag === true && post.viewer.myFlag == null && (
+            <button
+              type="button"
+              aria-label={forumText.flag[locale]}
+              title={forumText.flag[locale]}
+              onClick={onFlag}
+              className="focus-visible:focus-surface border-line hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border bg-white text-green-700"
+            >
+              <Flag className="h-5 w-5" aria-hidden="true" />
+            </button>
           )}
-        >
-          <SubscribeIcon
-            className={cn('h-5 w-5', post.subscribed && 'fill-current')}
-            aria-hidden="true"
-          />
-        </button>
-        {post.viewer.canFlag === true && post.viewer.myFlag == null && (
-          <button
-            type="button"
-            aria-label={forumText.flag[locale]}
-            title={forumText.flag[locale]}
-            onClick={onFlag}
-            className="focus-visible:focus-surface border-line hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border bg-white text-green-700"
-          >
-            <Flag className="h-5 w-5" aria-hidden="true" />
-          </button>
-        )}
-      </div>
+        </div>
+      )}
 
       <ZentraleActions
         post={post}
@@ -744,6 +748,7 @@ const ForumPostScreen: React.FC<{
               onForward={() => setSheet('forward')}
               onFlag={() => sheets.setFlagTarget({ messageId: post.id, isComment: false })}
               onRevise={() => setSheet('edit')}
+              onHide={() => sheets.setRemoveTarget({ messageId: post.id, kind: 'HIDDEN' })}
             />
           }
         />
@@ -883,7 +888,8 @@ const ForumPostLoaded: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ 
   );
 
   const messageActions = (message: ChatMessage): ExtraMessageAction[] => {
-    if (message.deletedAt !== undefined && message.forumRemoval?.kind !== 'HIDDEN') return [];
+    // a removed message, or one hidden from this reader; whoever may restore it reads it in full
+    if (message.deletedAt !== undefined) return [];
     if (message.senderId === currentUserId) return [];
     if (post.viewer.canModerate) {
       const hidden = message.forumRemoval?.kind === 'HIDDEN';

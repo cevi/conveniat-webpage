@@ -7,6 +7,7 @@ import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segme
 import type { ForumTodoPost } from '@/features/chat/api/forum/forum-zentrale';
 import { ForumPostView } from '@/features/chat/components/forum/forum-post-view';
 import { ForumStatusPill } from '@/features/chat/components/forum/forum-status-pill';
+import { ForumSubpageHeader } from '@/features/chat/components/forum/forum-subpage-header';
 import {
   durationText,
   forumText,
@@ -273,6 +274,11 @@ export const ForumZentraleView: React.FC = () => {
   if (!isDesktop) {
     return (
       <div className="bg-page min-h-dvh pb-28">
+        <ForumSubpageHeader
+          title={forumText.todo[locale]}
+          locale={locale}
+          fallbackHref="/app/forum"
+        />
         <OfflineBanner locale={locale} />
         {list}
       </div>

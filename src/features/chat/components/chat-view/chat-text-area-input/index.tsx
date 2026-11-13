@@ -70,6 +70,13 @@ const commentPlaceholder: StaticTranslationString = {
   fr: 'Commenter …',
 };
 
+/** in a private conversation with a Kernteam, an answer to the question */
+const conversationPlaceholder: StaticTranslationString = {
+  de: 'Antworten …',
+  en: 'Reply …',
+  fr: 'Répondre …',
+};
+
 const enterToSendHint: StaticTranslationString = {
   de: 'Enter zum Senden, Shift + Enter für eine neue Zeile',
   en: 'Enter to send, Shift + Enter for a new line',
@@ -447,8 +454,9 @@ export const ChatTextAreaInput: React.FC = () => {
   const localizedError = getLocalizedError(sendError);
   let placeholder = messagePlaceholder[locale];
   if (activeThreadId !== undefined) {
-    placeholder =
-      chatDetails.type === 'FORUM' ? commentPlaceholder[locale] : threadReplyPlaceholder[locale];
+    placeholder = threadReplyPlaceholder[locale];
+    if (chatDetails.type === 'FORUM') placeholder = commentPlaceholder[locale];
+    if (chatDetails.type === 'FORUM_CONVERSATION') placeholder = conversationPlaceholder[locale];
   } else if (chatDetails.name !== '')
     placeholder = messageToPlaceholder[locale].replace('{name}', chatDetails.name);
 

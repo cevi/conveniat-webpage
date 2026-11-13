@@ -64,6 +64,10 @@ export const toChatMessage = (
     hasUnreadReplies: message.replies.length > 0,
     ...(thread === undefined ? {} : { threadSummary: thread.summary }),
     ...(message.deletedAt instanceof Date ? { deletedAt: message.deletedAt } : {}),
+    // hidden from this reader: it reads like a removed message, with the placeholder of a hidden one
+    ...(isHidden && !(message.deletedAt instanceof Date)
+      ? { deletedAt: removal?.at ?? message.createdAt }
+      : {}),
     ...(quotedMessageDeleted ? { quotedMessageDeleted } : {}),
     ...(message.editedAt instanceof Date && !isHidden ? { editedAt: message.editedAt } : {}),
     ...(removal === undefined ? {} : { forumRemoval: removal }),

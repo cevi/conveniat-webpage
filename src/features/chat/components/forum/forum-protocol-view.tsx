@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
 import type { ForumProtocolEntry } from '@/features/chat/api/forum/forum-protocol';
+import { ForumSubpageHeader } from '@/features/chat/components/forum/forum-subpage-header';
 import { forumText } from '@/features/chat/components/forum/forum-texts';
 import {
   forumProtocolVerb,
@@ -14,6 +15,7 @@ import {
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { forumErrorTexts } from '@/lib/forum-error-texts';
 import {
+  FORUM_FLAGS_TO_HIDE,
   forumCapacityLabel,
   forumFlagReasonLabel,
   forumKindLabel,
@@ -153,8 +155,17 @@ const ProtocolRow: React.FC<{ entry: ForumProtocolEntry; locale: Locale }> = ({
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex items-baseline gap-2">
             <span className="min-w-0 flex-1 text-[15px] leading-snug text-green-900">
-              <b className="font-semibold">{entry.actorName}</b> ({role}){' '}
-              {forumProtocolVerb[entry.action][locale]}
+              {/* the flags acted, nobody in person */}
+              {entry.capacity === 'AUTOMATIC' ? (
+                <b className="font-semibold">
+                  {forumTodoText.automaticHide[locale].replace('{n}', String(FORUM_FLAGS_TO_HIDE))}
+                </b>
+              ) : (
+                <>
+                  <b className="font-semibold">{entry.actorName}</b> ({role}){' '}
+                  {forumProtocolVerb[entry.action][locale]}
+                </>
+              )}
             </span>
             <time
               dateTime={new Date(entry.at).toISOString()}
@@ -268,6 +279,11 @@ export const ForumProtocolView: React.FC = () => {
 
   return (
     <div className="bg-page min-h-dvh pb-28">
+      <ForumSubpageHeader
+        title={forumTodoText.protocol[locale]}
+        locale={locale}
+        fallbackHref={`/app/forum?topic=${topicId}`}
+      />
       <OfflineBanner locale={locale} />
       <div className="mx-auto flex max-w-2xl flex-col gap-5 px-4 pt-3">
         {topicName !== undefined && (

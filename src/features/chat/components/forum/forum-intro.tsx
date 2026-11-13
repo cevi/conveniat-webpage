@@ -8,7 +8,8 @@ import { forumText } from '@/features/chat/components/forum/forum-texts';
 import { contentIconOf } from '@/features/payload-cms/content-icons';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { MessageCircle } from 'lucide-react';
+import { ChevronRight, MessageCircle } from 'lucide-react';
+import Link from 'next/link';
 import type React from 'react';
 
 /** The storage key that remembers on this device that the forum's intro was seen. */
@@ -35,7 +36,7 @@ export const ForumIntro: React.FC<{
   onContinue: () => void;
   locale: Locale;
 }> = ({ intro, onContinue, locale }) => (
-  <div className="bg-page min-h-dvh pb-10">
+  <div className="bg-page min-h-dvh pb-28">
     <div className="mx-auto flex max-w-2xl flex-col gap-5 px-4 pt-5">
       <IconTile icon={MessageCircle} size="lg" />
       <h1 className="font-heading text-heading text-[28px] leading-tight font-extrabold text-balance">
@@ -46,21 +47,42 @@ export const ForumIntro: React.FC<{
       )}
       {intro.points.length > 0 && (
         <Card as="ul" divided>
-          {intro.points.map((point, index) => (
-            <li key={index} className={cn('flex items-start gap-3 px-4 py-3')}>
-              <PointTile icon={point.icon} />
-              <span className="min-w-0">
-                <span className="block text-[15px] font-semibold text-green-900">
-                  {point.title}
-                </span>
-                {point.text !== '' && (
-                  <span className="block text-[13px] leading-normal text-green-700">
-                    {point.text}
+          {intro.points.map((point, index) => {
+            const content = (
+              <>
+                <PointTile icon={point.icon} />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-semibold text-green-900">
+                    {point.title}
                   </span>
-                )}
-              </span>
-            </li>
-          ))}
+                  {point.text !== '' && (
+                    <span className="block text-[13px] leading-normal text-green-700">
+                      {point.text}
+                    </span>
+                  )}
+                </span>
+              </>
+            );
+            // the emergency point leads straight to the Notfall tab, the one place for it
+            return point.icon === 'siren' ? (
+              <li key={index}>
+                <Link
+                  href="/app/emergency"
+                  className="hover:bg-danger-soft focus-visible:focus-row-danger flex items-start gap-3 px-4 py-3"
+                >
+                  {content}
+                  <ChevronRight
+                    className="text-danger mt-2.5 h-5 w-5 shrink-0"
+                    aria-hidden="true"
+                  />
+                </Link>
+              </li>
+            ) : (
+              <li key={index} className="flex items-start gap-3 px-4 py-3">
+                {content}
+              </li>
+            );
+          })}
         </Card>
       )}
       <Button variant="primary" size="touch" className="w-full" onClick={onContinue}>
