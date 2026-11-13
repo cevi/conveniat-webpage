@@ -7,7 +7,7 @@ import { generateMessageId } from '@/features/chat/utils';
 import { isRateLimitError } from '@/features/chat/utils/send-errors';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { chatErrorTexts } from '@/lib/chat-error-texts';
-import { FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
+import { featureFlags as flagDefinitions } from '@/lib/feature-flags';
 import { useTRPC } from '@/trpc/client';
 import { i18nConfig, type Locale } from '@/types/types';
 import { errorReasonOf, userErrorMessage } from '@/utils/user-error-message';
@@ -28,6 +28,8 @@ interface UseMessageInputLogicResult {
   sendText: (text: string) => void;
   takeMessage: () => string;
   restoreMessage: (text: string) => void;
+  /** fits the field's height to what it holds */
+  resizeTextarea: () => void;
   isSendButtonDisabled: boolean;
   messageLength: number;
   isGlobalMessagingDisabled: boolean;
@@ -46,7 +48,9 @@ const DISABLED_MESSAGING_POLL_MS = 60_000;
 
 const isGlobalMessagingEnabledIn = (
   featureFlags: { key: string; isEnabled: boolean }[] | undefined,
-): boolean => featureFlags?.find((f) => f.key === FEATURE_FLAG_SEND_MESSAGES)?.isEnabled ?? true;
+): boolean =>
+  featureFlags?.find((f) => f.key === flagDefinitions.globalMessagingEnabled.key)?.isEnabled ??
+  true;
 
 export const useMessageInput = (): UseMessageInputLogicResult => {
   const trpc = useTRPC();
@@ -228,6 +232,7 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
     sendText,
     takeMessage,
     restoreMessage,
+    resizeTextarea,
     isSendButtonDisabled,
     messageLength: newMessage.length,
     isGlobalMessagingDisabled: !isGlobalMessagingEnabled,

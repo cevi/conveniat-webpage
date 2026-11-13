@@ -5,14 +5,18 @@ import { textInputClassName } from '@/components/ui/field';
 import { IconTile } from '@/components/ui/icon-tile';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import type { ForumPostDetail } from '@/features/chat/api/forum/forum-queries';
+import { ReasonPicker } from '@/features/chat/components/forum/forum-flag-sheet';
 import { forumText } from '@/features/chat/components/forum/forum-texts';
 import { useForumStatusChange } from '@/features/chat/components/forum/use-forum-status-outbox';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { forumErrorTexts } from '@/lib/forum-error-texts';
 import {
   FORUM_NOTE_MAX_LENGTH,
+  FORUM_POST_KINDS,
   FORUM_POST_STATUSES,
+  forumKindLabel,
   forumStatusLabel,
+  type ForumFlagReasonValue,
   type ForumPostStatusValue,
 } from '@/lib/forum-shared';
 import { useTRPC } from '@/trpc/client';
@@ -23,8 +27,10 @@ import {
   CheckCircle2,
   ChevronRight,
   Combine,
+  EyeOff,
   Forward,
   Loader2,
+  Pencil,
   Pin,
   PinOff,
   Trash2,
@@ -35,7 +41,13 @@ import React, { useState } from 'react';
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-type View = 'main' | 'assign' | 'merge' | 'answer' | 'delete';
+type View = 'main' | 'assign' | 'merge' | 'answer' | 'delete' | 'remove';
+
+/** What a moderator takes away: a post or one of its comments, hidden or deleted. */
+export interface RemoveTarget {
+  messageId: string;
+  kind: 'HIDDEN' | 'DELETED';
+}
 /** Where the forward view sends the post: a Ressort, a person, or another topic. */
 type ForwardTarget = 'ressort' | 'person' | 'topic';
 
@@ -60,11 +72,20 @@ export const ForumModerationSheet: React.FC<{
   onOpenChange: (open: boolean) => void;
   /** opened from "Weiterleiten", straight on the forward */
   startOnForward?: boolean;
-}> = ({ post, locale, open, onOpenChange, startOnForward = false }) => {
+  /** opened from a comment's "Ausblenden" or "Löschen", straight on the reason */
+  startOnRemove?: RemoveTarget | undefined;
+  /** the author's "Bearbeiten", which opens the edit sheet */
+  onEdit?: () => void;
+}> = ({ post, locale, open, onOpenChange, startOnForward = false, startOnRemove, onEdit }) => {
   const trpc = useTRPC();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [view, setView] = useState<View>(startOnForward ? 'assign' : 'main');
+  const [view, setView] = useState<View>(() => {
+    if (startOnRemove !== undefined) return 'remove';
+    return startOnForward ? 'assign' : 'main';
+  });
+  const [removeTarget, setRemoveTarget] = useState<RemoveTarget | undefined>(startOnRemove);
+  const [reason, setReason] = useState<ForumFlagReasonValue | undefined>();
   const [target, setTarget] = useState<ForwardTarget>('ressort');
   const [ressortId, setRessortId] = useState<string | undefined>();
   const [topicId, setTopicId] = useState<string | undefined>();
@@ -84,6 +105,8 @@ export const ForumModerationSheet: React.FC<{
     setError(userErrorMessage(caught, locale, forumErrorTexts, forumText.changeFailed));
   const close = (): void => {
     setView('main');
+    setReason(undefined);
+    setRemoveTarget(undefined);
     setQuery('');
     setNote('');
     setError(undefined);
@@ -137,19 +160,26 @@ export const ForumModerationSheet: React.FC<{
       onError: fail,
     }),
   );
-  const moderatorDelete = useMutation(
-    trpc.forum.deleteForumMessage.mutationOptions({
+  const remove = useMutation(
+    trpc.forum.removeForumMessage.mutationOptions({
       onSuccess: () => {
         refresh();
-        router.push('/app/forum');
+        close();
       },
       onError: fail,
     }),
   );
+  const setKind = useMutation(
+    trpc.forum.setForumPostKind.mutationOptions({ onSuccess: refresh, onError: fail }),
+  );
   const ownDelete = useMutation(
     trpc.chat.deleteMessage.mutationOptions({
       onSuccess: () => {
+        // the page of the post would come back from the cache, and with it the deleted text
+        queryClient.removeQueries(trpc.forum.getForumPost.queryFilter({ postId: post.id }));
         refresh();
+        // a deleted conversation leaves the chat list too, see `getChatList`
+        void queryClient.invalidateQueries(trpc.chat.chats.pathFilter());
         router.push('/app/forum');
       },
       onError: fail,
@@ -242,7 +272,12 @@ export const ForumModerationSheet: React.FC<{
     assign: forumText.assign[locale],
     merge: forumText.merge[locale],
     answer: forumText.markAnswer[locale],
-    delete: forumText.deletePost[locale],
+    delete:
+      post.conversation == null
+        ? forumText.deleteOwn[locale]
+        : forumText.deleteOwnConversation[locale],
+    remove:
+      removeTarget?.kind === 'DELETED' ? forumText.removeDelete[locale] : forumText.hide[locale],
   };
 
   let content: React.ReactNode;
@@ -440,10 +475,65 @@ export const ForumModerationSheet: React.FC<{
       );
       break;
     }
+    case 'remove': {
+      const kind = removeTarget?.kind ?? 'HIDDEN';
+      content = (
+        <div className="flex flex-col gap-3 pb-2">
+          <p className="text-[14px] text-green-800">
+            {kind === 'HIDDEN'
+              ? forumText.hideExplain[locale]
+              : forumText.removeDeleteExplain[locale]}
+          </p>
+          <ReasonPicker
+            reason={reason}
+            onReason={setReason}
+            note={note}
+            onNote={setNote}
+            noteLabel={forumText.reasonNote[locale]}
+            locale={locale}
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => (startOnRemove === undefined ? setView('main') : close())}
+              className="bg-quiet hover:bg-chip focus-visible:focus-surface h-11 flex-1 cursor-pointer rounded-xl text-[15px] font-semibold text-green-900"
+            >
+              {forumText.cancel[locale]}
+            </button>
+            <button
+              type="button"
+              disabled={reason === undefined || remove.isPending || removeTarget === undefined}
+              onClick={() => {
+                if (reason === undefined || removeTarget === undefined) return;
+                remove.mutate({
+                  messageId: removeTarget.messageId,
+                  kind,
+                  reason,
+                  ...(note.trim() === '' ? {} : { note: note.trim() }),
+                });
+              }}
+              className="border-danger-line text-danger-text hover:bg-danger-soft focus-visible:focus-surface-danger flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border bg-white text-[15px] font-semibold disabled:opacity-50"
+            >
+              {kind === 'HIDDEN' ? (
+                <EyeOff className="h-5 w-5" aria-hidden="true" />
+              ) : (
+                <Trash2 className="h-5 w-5" aria-hidden="true" />
+              )}
+              {kind === 'HIDDEN' ? forumText.hide[locale] : forumText.removeDelete[locale]}
+            </button>
+          </div>
+        </div>
+      );
+      break;
+    }
     case 'delete': {
       content = (
         <div className="flex flex-col gap-3 pb-2">
-          <p className="text-[14px] text-green-800">{forumText.deleteConfirm[locale]}</p>
+          <p className="text-[14px] text-green-800">
+            {post.conversation == null
+              ? forumText.deleteOwnConfirm[locale]
+              : forumText.deleteOwnConversationConfirm[locale]}
+          </p>
           <div className="flex gap-2">
             <button
               type="button"
@@ -454,12 +544,8 @@ export const ForumModerationSheet: React.FC<{
             </button>
             <button
               type="button"
-              disabled={moderatorDelete.isPending || ownDelete.isPending}
-              onClick={() =>
-                post.viewer.canModerate
-                  ? moderatorDelete.mutate({ messageId: post.id })
-                  : ownDelete.mutate({ messageId: post.id })
-              }
+              disabled={ownDelete.isPending}
+              onClick={() => ownDelete.mutate({ messageId: post.id })}
               className="border-danger-line text-danger-text hover:bg-danger-soft focus-visible:focus-surface-danger h-11 flex-1 cursor-pointer rounded-xl border bg-white text-[15px] font-semibold"
             >
               {forumText.deleteYes[locale]}
@@ -472,48 +558,94 @@ export const ForumModerationSheet: React.FC<{
     case 'main': {
       content = (
         <div className="flex flex-col gap-4 pb-2">
-          {post.viewer.canSetStatus && (
+          {post.viewer.canChangeKind === true && (
             <section className="flex flex-col gap-2">
               <h3 className="text-xs font-bold tracking-[0.08em] text-green-700 uppercase">
-                {forumText.status[locale]}
+                {forumText.kind[locale]}
               </h3>
               <div className={segmentedTrackClassName}>
-                {FORUM_POST_STATUSES.map((value) => (
+                {FORUM_POST_KINDS.map((value) => (
                   <button
                     key={value}
                     type="button"
-                    aria-pressed={status === value}
-                    onClick={() => setStatus(value)}
+                    aria-pressed={(post.kind ?? 'PROBLEM') === value}
+                    disabled={setKind.isPending}
+                    onClick={() => setKind.mutate({ postId: post.id, kind: value })}
                     className={cn(
-                      segmentClassName(status === value),
+                      segmentClassName((post.kind ?? 'PROBLEM') === value),
                       'flex-1 text-[14px] font-semibold',
                     )}
                   >
-                    {forumStatusLabel[value][locale]}
+                    {forumKindLabel[value][locale]}
                   </button>
                 ))}
               </div>
-              <textarea
-                value={note}
-                rows={2}
-                maxLength={FORUM_NOTE_MAX_LENGTH}
-                placeholder={forumText.statusNote[locale]}
-                aria-label={forumText.statusNote[locale]}
-                onChange={(event) => setNote(event.target.value)}
-                className={textInputClassName}
-              />
-              <button
-                type="button"
-                disabled={status === post.status && note.trim() === ''}
-                onClick={() => void saveStatus()}
-                className="bg-conveniat-green focus-visible:focus-surface-filled flex h-11 cursor-pointer items-center justify-center rounded-xl text-[15px] font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-              >
-                {forumText.saveStatus[locale]}
-              </button>
             </section>
           )}
 
-          {post.viewer.canModerate && (
+          {post.viewer.canSetStatus &&
+            ((post.kind ?? 'PROBLEM') === 'PROBLEM' || post.conversation != null) && (
+              <section className="flex flex-col gap-2">
+                <h3 className="text-xs font-bold tracking-[0.08em] text-green-700 uppercase">
+                  {forumText.status[locale]}
+                </h3>
+                <div className={segmentedTrackClassName}>
+                  {FORUM_POST_STATUSES.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={status === value}
+                      onClick={() => setStatus(value)}
+                      className={cn(
+                        segmentClassName(status === value),
+                        'flex-1 text-[14px] font-semibold',
+                      )}
+                    >
+                      {forumStatusLabel[value][locale]}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  value={note}
+                  rows={2}
+                  maxLength={FORUM_NOTE_MAX_LENGTH}
+                  placeholder={forumText.statusNote[locale]}
+                  aria-label={forumText.statusNote[locale]}
+                  onChange={(event) => setNote(event.target.value)}
+                  className={textInputClassName}
+                />
+                <button
+                  type="button"
+                  disabled={status === post.status && note.trim() === ''}
+                  onClick={() => void saveStatus()}
+                  className="bg-conveniat-green focus-visible:focus-surface-filled flex h-11 cursor-pointer items-center justify-center rounded-xl text-[15px] font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                >
+                  {forumText.saveStatus[locale]}
+                </button>
+              </section>
+            )}
+
+          {post.viewer.isAuthor && post.viewer.canEdit === true && onEdit !== undefined && (
+            <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    close();
+                    onEdit();
+                  }}
+                  className={rowClassName}
+                >
+                  <IconTile icon={Pencil} />
+                  <span className="flex-1 text-[15px] font-semibold text-green-900">
+                    {forumText.edit[locale]}
+                  </span>
+                </button>
+              </li>
+            </ul>
+          )}
+
+          {post.viewer.canModerate && post.conversation == null && (
             <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
               <li>
                 <button
@@ -591,16 +723,51 @@ export const ForumModerationSheet: React.FC<{
             </ul>
           )}
 
-          {(post.viewer.canModerate || post.viewer.isAuthor) && (
-            <button
-              type="button"
-              onClick={() => setView('delete')}
-              className="border-danger-line text-danger-text hover:bg-danger-soft focus-visible:focus-surface-danger flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border bg-white text-[15px] font-semibold"
-            >
-              <Trash2 className="h-5 w-5" aria-hidden="true" />
-              {forumText.deletePost[locale]}
-            </button>
+          {post.viewer.canModerate && !post.viewer.isAuthor && (
+            <div className="flex gap-2">
+              {post.removal?.kind !== 'HIDDEN' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRemoveTarget({ messageId: post.id, kind: 'HIDDEN' });
+                    setView('remove');
+                  }}
+                  className="border-danger-line text-danger-text hover:bg-danger-soft focus-visible:focus-surface-danger flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border bg-white text-[15px] font-semibold"
+                >
+                  <EyeOff className="h-5 w-5" aria-hidden="true" />
+                  {forumText.hide[locale]}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setRemoveTarget({ messageId: post.id, kind: 'DELETED' });
+                  setView('remove');
+                }}
+                className="border-danger-line text-danger-text hover:bg-danger-soft focus-visible:focus-surface-danger flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border bg-white text-[15px] font-semibold"
+              >
+                <Trash2 className="h-5 w-5" aria-hidden="true" />
+                {forumText.removeDelete[locale]}
+              </button>
+            </div>
           )}
+          {post.viewer.isAuthor &&
+            (post.viewer.canDelete === false ? (
+              <p className="bg-quiet rounded-xl px-3 py-2.5 text-[13px] text-green-900">
+                {forumText.deleteOwnLocked[locale]}
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setView('delete')}
+                className="border-danger-line text-danger-text hover:bg-danger-soft focus-visible:focus-surface-danger flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border bg-white text-[15px] font-semibold"
+              >
+                <Trash2 className="h-5 w-5" aria-hidden="true" />
+                {post.conversation == null
+                  ? forumText.deleteOwn[locale]
+                  : forumText.deleteOwnConversation[locale]}
+              </button>
+            ))}
         </div>
       );
       break;

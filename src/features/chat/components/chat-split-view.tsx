@@ -47,11 +47,13 @@ export const ChatSplitView: React.FC<{
             {/* relative so the overview page's empty box on a phone sits at the top, see NoChatSelected */}
             <div className="xl:h-app-content relative xl:flex">
               {/* The screen is white like the design, so the grey search contrasts, from the header
-          down to the tab bar however few chats there are. The bottom room keeps the last row
-          clear of the tab bar and the "Neuer Chat" button on a phone. */}
+          down to the tab bar however few chats there are, and not beyond: the app layout keeps
+          its own margin for the tab bar, so a list taller than this scrolls with nothing to see.
+          The bottom room keeps the last row clear of the tab bar and the "Neuer Chat" button on
+          a phone. */}
               <div
                 className={cn(
-                  'xl:border-line min-h-[calc(100dvh-var(--app-content-top))] bg-white xl:flex xl:min-h-0 xl:w-[400px] xl:shrink-0 xl:flex-col xl:border-r',
+                  'xl:border-line min-h-app-content bg-white xl:flex xl:min-h-0 xl:w-[400px] xl:shrink-0 xl:flex-col xl:border-r',
                   !isOverview && 'hidden',
                 )}
               >

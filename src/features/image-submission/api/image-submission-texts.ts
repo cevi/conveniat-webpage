@@ -1,0 +1,114 @@
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import type { ImageSubmission } from '@/features/payload-cms/payload-types';
+import type { Locale } from '@/types/types';
+import { isBuildPhase } from '@/utils/build-phase';
+import { withSpan } from '@/utils/tracing-helpers';
+import config from '@payload-config';
+import { cacheLife, cacheTag } from 'next/cache';
+import { createHash } from 'node:crypto';
+import type { Payload } from 'payload';
+import { getPayload } from 'payload';
+
+export interface TitledPoint {
+  /** a value of `CONTENT_ICONS`, or empty for the row's default */
+  icon: string;
+  title: string;
+  text: string;
+}
+
+/** The editors' texts of the image upload, with every missing value made empty. */
+export interface ImageSubmissionTexts {
+  introTitle: string;
+  introText: string;
+  introSteps: TitledPoint[];
+  termsLead: string;
+  termsSummary: TitledPoint[];
+  termsFullText: string;
+  /** names this exact wording of the terms, sent back with every upload, see {@link termsVersionOf} */
+  termsVersion: string;
+  photoTips: string[];
+  successText: string;
+}
+
+const EMPTY_TEXTS: ImageSubmissionTexts = {
+  introTitle: '',
+  introText: '',
+  introSteps: [],
+  termsLead: '',
+  termsSummary: [],
+  termsFullText: '',
+  termsVersion: '',
+  photoTips: [],
+  successText: '',
+};
+
+const text = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+
+/**
+ * A short fingerprint of the terms' full text. The page sends back the one it showed, so an
+ * upload is recorded against the wording the person actually agreed to, not one an editor
+ * saved after the page was loaded.
+ */
+export const termsVersionOf = (termsFullText: string): string =>
+  createHash('sha256').update(termsFullText.trim()).digest('hex').slice(0, 16);
+
+/**
+ * The full terms in `locale` as stored right now, German where they are not translated. Read
+ * past the cache: what is recorded on an image has to be what is current.
+ */
+export const readCurrentTermsText = async (payload: Payload, locale: Locale): Promise<string> => {
+  const global = await payload.findGlobal({
+    slug: 'image-submission',
+    locale,
+    fallbackLocale: LOCALE.DE,
+    depth: 0,
+    select: { termsFullText: true },
+  });
+  return text(global.termsFullText);
+};
+
+const titledPoints = (rows: ImageSubmission['introSteps']): TitledPoint[] =>
+  (rows ?? [])
+    .map((row) => ({ icon: text(row.icon), title: text(row.title), text: text(row.text) }))
+    .filter((row) => row.title !== '');
+
+/** Drops what an editor left empty, so the page only asks whether a text is there. */
+export const toImageSubmissionTexts = (global: Partial<ImageSubmission>): ImageSubmissionTexts => ({
+  introTitle: text(global.introTitle),
+  introText: text(global.introText),
+  introSteps: titledPoints(global.introSteps),
+  termsLead: text(global.termsLead),
+  termsSummary: titledPoints(global.termsSummary),
+  termsFullText: text(global.termsFullText),
+  termsVersion: termsVersionOf(text(global.termsFullText)),
+  photoTips: (global.photoTips ?? []).map((row) => text(row.text)).filter((tip) => tip !== ''),
+  successText: text(global.successText),
+});
+
+const readImageSubmissionTexts = async (locale: Locale): Promise<ImageSubmissionTexts> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'image-submission', 'global:image-submission');
+
+  return await withSpan('getImageSubmissionTexts', async () => {
+    const payload = await getPayload({ config });
+    const global = await payload.findGlobal({
+      slug: 'image-submission',
+      locale,
+      // the texts are written in German first; a missing translation shows the German one
+      fallbackLocale: LOCALE.DE,
+      depth: 0,
+    });
+    return toImageSubmissionTexts(global);
+  });
+};
+
+/**
+ * The texts of the image upload in one locale, cached across requests and expired by the
+ * global's `afterChange` hook.
+ */
+export const getImageSubmissionTexts = async (locale: Locale): Promise<ImageSubmissionTexts> => {
+  // during `next build` there is no database, and this must not reach the persistent cache
+  if (isBuildPhase()) return EMPTY_TEXTS;
+  return await readImageSubmissionTexts(locale);
+};

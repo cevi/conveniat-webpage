@@ -1,5 +1,5 @@
 import type { Prisma } from '@/lib/prisma/client';
-import { MessageType } from '@/lib/prisma/enums';
+import { ChatType, MessageType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -28,13 +28,18 @@ export const getUnreadMarker = trpcBaseProcedure
 
     const membership = await prisma.chatMembership.findUnique({
       where: { userId_chatId: { userId: user.uuid, chatId } },
-      select: { lastReadSeq: true },
+      select: { lastReadSeq: true, chat: { select: { type: true } } },
     });
     if (membership === null) {
       throw new TRPCError({
         code: 'NOT_FOUND',
         message: `Chat with ID ${chatId} not found or access denied`,
       });
+    }
+    // a forum topic has no conversation to mark: its top-level messages are posts, some of them
+    // restricted to their moderators, so their ids are not handed out here
+    if (membership.chat.type === ChatType.FORUM) {
+      return { firstUnreadMessageId: undefined, unreadCount: 0 };
     }
 
     const where: Prisma.MessageWhereInput = {

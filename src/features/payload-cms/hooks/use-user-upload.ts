@@ -13,8 +13,14 @@ import { useMutation } from '@tanstack/react-query';
 /** `isRetryable` marks a failure that says nothing about the image, like the rate limit. */
 export type UserUploadResult = UploadReturnType & { isRetryable: boolean };
 
+/** The terms the user agreed to on the page: the language they read them in and their version. */
+export interface AgreedTerms {
+  locale: Locale;
+  version: string;
+}
+
 interface UseUserUploadResult {
-  uploadImage: (file: File, description: string) => Promise<UserUploadResult>;
+  uploadImage: (file: File, description: string, terms: AgreedTerms) => Promise<UserUploadResult>;
   isUploading: boolean;
 }
 
@@ -38,7 +44,7 @@ export const useUserUpload = (): UseUserUploadResult => {
   const completeUploadMutation = useMutation(trpc.upload.completeUserUpload.mutationOptions());
 
   const uploadImage = useCallback(
-    async (file: File, description: string): Promise<UserUploadResult> => {
+    async (file: File, description: string, terms: AgreedTerms): Promise<UserUploadResult> => {
       try {
         setActiveUploads((previous) => previous + 1);
 
@@ -68,6 +74,7 @@ export const useUserUpload = (): UseUserUploadResult => {
           key,
           description,
           originalFilename: file.name,
+          terms,
         });
 
         return {
@@ -80,9 +87,11 @@ export const useUserUpload = (): UseUserUploadResult => {
         return {
           error: true,
           message: uploadFailureMessage(error, locale),
+          // neither says anything about the image itself
           isRetryable:
-            error instanceof TRPCClientError &&
-            (error.data as { code?: string } | undefined)?.code === 'TOO_MANY_REQUESTS',
+            errorReasonOf(error)?.reason === 'termsChanged' ||
+            (error instanceof TRPCClientError &&
+              (error.data as { code?: string } | undefined)?.code === 'TOO_MANY_REQUESTS'),
         };
       } finally {
         setActiveUploads((previous) => previous - 1);

@@ -7,8 +7,8 @@ import type { PrismaClientOrTransaction } from '@/types/types';
 jest.mock('@/utils/server-logger', () => ({
   createLogger: (): { warn: () => void } => ({ warn: jest.fn() }),
 }));
-jest.mock('@/lib/db/redis', () => ({
-  getFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
+jest.mock('@/lib/read-feature-flags', () => ({
+  readFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
 }));
 
 const CHAT_ID = 'chat-1';

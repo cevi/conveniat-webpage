@@ -37,8 +37,10 @@ jest.mock('@/lib/db/prisma', () => ({
     return prisma;
   },
 }));
+jest.mock('@/lib/read-feature-flags', () => ({
+  readFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
+}));
 jest.mock('@/lib/db/redis', () => ({
-  getFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
   redis: { eval: (): Promise<number> => Promise.resolve(1) },
 }));
 jest.mock('@/lib/db/chat-pubsub', () => ({ chatPubSub: { publish: jest.fn() } }));
@@ -87,7 +89,7 @@ interface Assignment {
 /** Mira is the Kernteam of both topics, Noah wrote the post, Eda and Alicia lead Infrastruktur. */
 let memberships: { userId: string; chatId: string; chatPermission: ChatMembershipPermission }[];
 let assignments: Assignment[];
-let post: { chatId: string; status: string; private: boolean };
+let post: { chatId: string; status: string; conversation: boolean };
 let movedMessagesTo: string | undefined;
 let audit: Record<string, unknown>[];
 let nextId = 0;
@@ -194,11 +196,10 @@ const prisma = {
         answerMessageId: null,
         chat: {
           name: post.chatId === PLATZ ? 'Platz & Infrastruktur' : 'Programm',
-          type: ChatType.FORUM,
+          type: post.conversation ? ChatType.FORUM_CONVERSATION : ChatType.FORUM,
         },
         message: { senderId: 'noah', deletedAt: null },
       }),
-    findUniqueOrThrow: (): Promise<unknown> => Promise.resolve({ private: post.private }),
     update: ({ data }: { data: { chatId?: string } }): Promise<void> => {
       if (data.chatId !== undefined) post = { ...post, chatId: data.chatId };
       return Promise.resolve();
@@ -302,7 +303,7 @@ beforeEach(() => {
     { userId: 'noah', chatId: PLATZ, chatPermission: ChatMembershipPermission.MEMBER },
   ];
   assignments = [];
-  post = { chatId: PLATZ, status: 'OPEN', private: false };
+  post = { chatId: PLATZ, status: 'OPEN', conversation: false };
   movedMessagesTo = undefined;
   audit = [];
   pushedTo.length = 0;
@@ -400,12 +401,13 @@ describe('moving a post', () => {
     expect(post.chatId).toBe(PLATZ);
   });
 
-  it('keeps a private report where private reports go', async () => {
-    post = { ...post, private: true };
+  it('keeps a private conversation a conversation', async () => {
+    post = { ...post, conversation: true };
     memberships.push({ userId: 'noah', chatId: PROGRAMM, chatPermission: 'MEMBER' });
 
     await expect(
       as('mira').moveForumPost({ postId: POST, topicId: PROGRAMM }),
-    ).rejects.toMatchObject({ reason: 'privateStays' });
+    ).rejects.toMatchObject({ reason: 'notInConversation' });
+    expect(post.chatId).toBe(PLATZ);
   });
 });

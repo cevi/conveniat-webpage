@@ -209,6 +209,8 @@ export interface Config {
     SEO: SEO;
     'donation-barometer': DonationBarometer;
     'app-landing-page': AppLandingPage;
+    'image-submission': ImageSubmission;
+    'forum-intro': ForumIntro;
     'alert-management': AlertManagement;
     alert_settings: AlertSetting;
     'all-chats-management': AllChatsManagement;
@@ -229,6 +231,8 @@ export interface Config {
     SEO: SEOSelect<false> | SEOSelect<true>;
     'donation-barometer': DonationBarometerSelect<false> | DonationBarometerSelect<true>;
     'app-landing-page': AppLandingPageSelect<false> | AppLandingPageSelect<true>;
+    'image-submission': ImageSubmissionSelect<false> | ImageSubmissionSelect<true>;
+    'forum-intro': ForumIntroSelect<false> | ForumIntroSelect<true>;
     'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
     alert_settings: AlertSettingsSelect<false> | AlertSettingsSelect<true>;
     'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
@@ -1367,7 +1371,19 @@ export interface FactListBlock {
       | 'mail'
       | 'phone'
       | 'shield'
-      | 'info';
+      | 'info'
+      | 'camera'
+      | 'image'
+      | 'size'
+      | 'pencil'
+      | 'check'
+      | 'globe'
+      | 'heart'
+      | 'message'
+      | 'search'
+      | 'lock'
+      | 'flag'
+      | 'siren';
     /**
      * Short, e.g. "Public transport only".
      */
@@ -4077,6 +4093,18 @@ export interface UserSubmittedImage {
   original_filename?: string | null;
   user_description: string;
   content_hash?: string | null;
+  /**
+   * Set when the person who submitted the image withdrew it in the app. Do not use the image any more, and remove it where it is already published.
+   */
+  withdrawn_at?: string | null;
+  /**
+   * What the person agreed to when submitting the image, as the terms read then. Empty for images submitted before this was recorded.
+   */
+  terms_consent?: {
+    accepted_at?: string | null;
+    locale?: string | null;
+    terms_text?: string | null;
+  };
   lastEditedByUser?: (string | null) | User;
   _objectKey?: string | null;
   updatedAt: string;
@@ -4207,9 +4235,28 @@ export interface ForumTopic {
    */
   kernteamFunktionen?: (string | Funktion)[] | null;
   /**
-   * A report sent "privately to the Zentrale" becomes a post in this topic that only its author, the Kernteam of this topic and the piket on duty see. One topic at most; whoever reports joins it for their own reports.
+   * Shown next to the topic in the list of topics in the app.
    */
-  receivesPrivateReports?: boolean | null;
+  icon:
+    | 'message-circle'
+    | 'tent'
+    | 'wrench'
+    | 'utensils'
+    | 'star'
+    | 'calendar'
+    | 'bus'
+    | 'heart'
+    | 'shield'
+    | 'info'
+    | 'map';
+  /**
+   * The topic offers "Write the core team privately": a conversation only its writer, the core team of this topic, the piket on duty and the Zentrale read.
+   */
+  allowsPrivateConversations?: boolean | null;
+  /**
+   * A new post is seen only by its author and the moderators until one of them approves it. Posts by the core team need no approval, comments are never held back. The switch in App Features does this for every topic at once.
+   */
+  moderationRequired?: boolean | null;
   targetType: 'all' | 'roles' | 'cevi_groups' | 'avps';
   targetRoles?:
     | (
@@ -7127,6 +7174,14 @@ export interface UserSubmittedImagesSelect<T extends boolean = true> {
   original_filename?: T;
   user_description?: T;
   content_hash?: T;
+  withdrawn_at?: T;
+  terms_consent?:
+    | T
+    | {
+        accepted_at?: T;
+        locale?: T;
+        terms_text?: T;
+      };
   lastEditedByUser?: T;
   _objectKey?: T;
   updatedAt?: T;
@@ -7307,7 +7362,9 @@ export interface ForumTopicsSelect<T extends boolean = true> {
   name?: T;
   description?: T;
   kernteamFunktionen?: T;
-  receivesPrivateReports?: T;
+  icon?: T;
+  allowsPrivateConversations?: T;
+  moderationRequired?: T;
   targetType?: T;
   targetRoles?: T;
   targetCeviGroups?:
@@ -9370,7 +9427,7 @@ export interface DonationBarometer {
   createdAt?: string | null;
 }
 /**
- * Configure the app dashboard landing page: title, welcome content, and action card visibility.
+ * Configure the app dashboard landing page: title, welcome content, and the action cards with their default selection.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "app-landing-page".
@@ -9582,7 +9639,209 @@ export interface AppLandingPage {
    * When enabled, the action cards (quick links to app features) are shown on the dashboard.
    */
   showActionCards?: boolean | null;
+  /**
+   * The cards and their order for everybody who has not arranged their own, and for guests. Drag a card to change the order. Whoever cannot use a card does not see it: participants, for example, see no wristbands. Whoever has arranged their own keeps it.
+   */
+  defaultQuickAccessTiles?:
+    | (
+        | 'upload'
+        | 'qr'
+        | 'material'
+        | 'wristbands'
+        | 'support'
+        | 'schedule'
+        | 'map'
+        | 'chat'
+        | 'helperShifts'
+        | 'photoContest'
+        | 'story'
+        | 'challenges'
+        | 'settings'
+      )[]
+    | null;
   _status?: ('draft' | 'published') | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * The texts of the image upload in the app. Without terms the upload stays closed. French and English fall back to German.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "image-submission".
+ */
+export interface ImageSubmission {
+  id: string;
+  introTitle?: string | null;
+  introText?: string | null;
+  /**
+   * In this order, e.g. "Own photos", "Good quality", "Describe briefly".
+   */
+  introSteps?:
+    | {
+        /**
+         * Empty: the step number.
+         */
+        icon?:
+          | (
+              | 'users'
+              | 'calendar'
+              | 'clock'
+              | 'mapPin'
+              | 'train'
+              | 'car'
+              | 'ticket'
+              | 'wallet'
+              | 'utensils'
+              | 'backpack'
+              | 'tent'
+              | 'mail'
+              | 'phone'
+              | 'shield'
+              | 'info'
+              | 'camera'
+              | 'image'
+              | 'size'
+              | 'pencil'
+              | 'check'
+              | 'globe'
+              | 'heart'
+              | 'message'
+              | 'search'
+              | 'lock'
+              | 'flag'
+              | 'siren'
+            )
+          | null;
+        title: string;
+        text?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * One sentence over the summary, e.g. "By submitting, you allow conveniat27 to use your images."
+   */
+  termsLead?: string | null;
+  /**
+   * The terms in plain words, one point each.
+   */
+  termsSummary?:
+    | {
+        /**
+         * Empty: a check mark.
+         */
+        icon?:
+          | (
+              | 'users'
+              | 'calendar'
+              | 'clock'
+              | 'mapPin'
+              | 'train'
+              | 'car'
+              | 'ticket'
+              | 'wallet'
+              | 'utensils'
+              | 'backpack'
+              | 'tent'
+              | 'mail'
+              | 'phone'
+              | 'shield'
+              | 'info'
+              | 'camera'
+              | 'image'
+              | 'size'
+              | 'pencil'
+              | 'check'
+              | 'globe'
+              | 'heart'
+              | 'message'
+              | 'search'
+              | 'lock'
+              | 'flag'
+              | 'siren'
+            )
+          | null;
+        title: string;
+        text?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Readable behind "Read the full terms" and from the upload page. Empty lines separate paragraphs.
+   */
+  termsFullText?: string | null;
+  /**
+   * Shown under the image picker, e.g. "The original photo, not a screenshot."
+   */
+  photoTips?:
+    | {
+        text: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * What happens next, and whom to contact to withdraw an image.
+   */
+  successText?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Shown once on each device when someone opens the forum for the first time, and again from "How it works" in the forum. Leave the title empty to skip it. French and English fall back to German.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "forum-intro".
+ */
+export interface ForumIntro {
+  id: string;
+  /**
+   * e.g. "Ask the camp"
+   */
+  title?: string | null;
+  text?: string | null;
+  /**
+   * In this order, e.g. "Topics with a core team", "Search first", "Public or private", "Stay fair", "Emergency?". The emergency icon shows in red.
+   */
+  points?:
+    | {
+        /**
+         * Empty: a speech bubble.
+         */
+        icon?:
+          | (
+              | 'users'
+              | 'calendar'
+              | 'clock'
+              | 'mapPin'
+              | 'train'
+              | 'car'
+              | 'ticket'
+              | 'wallet'
+              | 'utensils'
+              | 'backpack'
+              | 'tent'
+              | 'mail'
+              | 'phone'
+              | 'shield'
+              | 'info'
+              | 'camera'
+              | 'image'
+              | 'size'
+              | 'pencil'
+              | 'check'
+              | 'globe'
+              | 'heart'
+              | 'message'
+              | 'search'
+              | 'lock'
+              | 'flag'
+              | 'siren'
+            )
+          | null;
+        title: string;
+        text?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -9687,9 +9946,21 @@ export interface AppFeatureFlag {
    */
   createChatsEnabled?: boolean | null;
   /**
-   * When on, the contact list for new chats shows only people from the same Hof, people whose chat QR code was scanned (or who scanned yours), and people with a leader function or an AVP role. When off, it shows everyone.
+   * When on, the contact list for new chats shows only the people in the own address book, that is whose chat QR code or wristband was scanned (or who scanned one’s own), and the groups switched on below. Nobody is removed from an existing chat. When off, it shows everyone.
    */
   restrictContactList?: boolean | null;
+  /**
+   * Everyone registered at a Hof the user is registered at.
+   */
+  contactListIncludesHof?: boolean | null;
+  /**
+   * Everyone holding one of the functions listed under "Funktionen und Adressbuch", e.g. in the Kernteam or a Ressort.
+   */
+  contactListIncludesFunktionen?: boolean | null;
+  /**
+   * The AVP (Abteilungsverantwortliche Person) of each Hof, also for people from other Höfe.
+   */
+  contactListIncludesAvp?: boolean | null;
   /**
    * Hides the Hof and Quartier sections in the app. This is used for testing purposes.
    */
@@ -9719,9 +9990,13 @@ export interface AppFeatureFlag {
    */
   forumEnabled?: boolean | null;
   /**
-   * Against spam. While on, a new forum post is seen only by its author and the moderators (the Kernteam of its topic and the piket on duty) until one of them approves it. Posts by the Kernteam need no approval, comments are never held back.
+   * Against spam, for every topic at once. While on, a new forum post is seen only by its author and the moderators (the Kernteam of its topic and the piket on duty) until one of them approves it. Posts by the Kernteam need no approval, comments are never held back. A single topic is switched in its settings under Forum Topics.
    */
   forumModerationRequired?: boolean | null;
+  /**
+   * A prototype: two people can call each other from their one-to-one chat.
+   */
+  voiceCallsEnabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -10424,7 +10699,63 @@ export interface AppLandingPageSelect<T extends boolean = true> {
         tabsBlock?: T | TabsBlockSelect<T>;
       };
   showActionCards?: T;
+  defaultQuickAccessTiles?: T;
   _status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "image-submission_select".
+ */
+export interface ImageSubmissionSelect<T extends boolean = true> {
+  introTitle?: T;
+  introText?: T;
+  introSteps?:
+    | T
+    | {
+        icon?: T;
+        title?: T;
+        text?: T;
+        id?: T;
+      };
+  termsLead?: T;
+  termsSummary?:
+    | T
+    | {
+        icon?: T;
+        title?: T;
+        text?: T;
+        id?: T;
+      };
+  termsFullText?: T;
+  photoTips?:
+    | T
+    | {
+        text?: T;
+        id?: T;
+      };
+  successText?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "forum-intro_select".
+ */
+export interface ForumIntroSelect<T extends boolean = true> {
+  title?: T;
+  text?: T;
+  points?:
+    | T
+    | {
+        icon?: T;
+        title?: T;
+        text?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -10505,6 +10836,9 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   globalMessagingEnabled?: T;
   createChatsEnabled?: T;
   restrictContactList?: T;
+  contactListIncludesHof?: T;
+  contactListIncludesFunktionen?: T;
+  contactListIncludesAvp?: T;
   hideHofAndQuartier?: T;
   helperShiftsEnabled?: T;
   hideFullHelperShifts?: T;
@@ -10513,6 +10847,7 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   reservationsEnabled?: T;
   forumEnabled?: T;
   forumModerationRequired?: T;
+  voiceCallsEnabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

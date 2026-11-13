@@ -59,9 +59,10 @@ export const getChat = trpcBaseProcedure
     }
 
     const messages = chat.messages;
-    // a forum topic's chat has no messages of its own, only the threads of its posts, and the
-    // comment field of a post still reads the topic here
-    if (messages.length === 0 && chat.type !== ChatType.FORUM) {
+    // a forum topic's chat and a private conversation have no messages of their own, only the
+    // threads of their posts, and the comment field of a post still reads the chat here
+    const isForumChat = chat.type === ChatType.FORUM || chat.type === ChatType.FORUM_CONVERSATION;
+    if (messages.length === 0 && !isForumChat) {
       throw new TRPCError({
         code: 'NOT_FOUND',
         message: `No messages found in chat with ID ${chatId} `,

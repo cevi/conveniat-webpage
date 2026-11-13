@@ -4,6 +4,19 @@ type Permission = 'OWNER' | 'ADMIN' | 'MEMBER';
 /** who holds which function in Postgres, and the memberships of one topic chat */
 let functionsOf: Record<string, string[]>;
 let memberships: Map<string, Permission>;
+/** one open private conversation of the topic, which Tim wrote, and who is in it */
+let conversation: Map<string, Permission>;
+/** who follows the answers of that conversation, and whose open pages were told to leave it */
+let followers: Set<string>;
+let revoked: string[];
+const CONVERSATION = 'chat-conversation';
+
+jest.mock('@/lib/db/publish-membership-revoked', () => ({
+  publishMembershipRevoked: (userId: string): Promise<void> => {
+    revoked.push(userId);
+    return Promise.resolve();
+  },
+}));
 
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
@@ -16,10 +29,43 @@ jest.mock('@/lib/db/prisma', () => ({
             .map(([uuid]) => ({ uuid })),
         ),
     },
-    chatMembership: {
+    chat: {
       findMany: (): Promise<unknown> =>
+        Promise.resolve([
+          {
+            uuid: CONVERSATION,
+            chatMemberships: [...conversation].map(([userId, chatPermission]) => ({
+              userId,
+              chatPermission,
+            })),
+            forumPosts: [{ messageId: 'post-conversation', message: { senderId: 'tim' } }],
+          },
+        ]),
+    },
+    threadSubscription: {
+      createMany: ({ data }: { data: { userId: string }[] }): Promise<void> => {
+        for (const { userId } of data) followers.add(userId);
+        return Promise.resolve();
+      },
+      deleteMany: ({ where }: { where: { userId: { in: string[] } } }): Promise<void> => {
+        for (const id of where.userId.in) followers.delete(id);
+        return Promise.resolve();
+      },
+    },
+    chatMembership: {
+      findMany: ({
+        where,
+      }: {
+        where: { chatPermission?: { in: Permission[] } };
+      }): Promise<unknown> =>
         Promise.resolve(
-          [...memberships].map(([userId, chatPermission]) => ({ userId, chatPermission })),
+          [...memberships]
+            .filter(([, permission]) => where.chatPermission?.in.includes(permission) ?? true)
+            .map(([userId, chatPermission]) => ({
+              userId,
+              chatPermission,
+              forumConversationPushOff: false,
+            })),
         ),
       findUnique: ({
         where,
@@ -33,10 +79,20 @@ jest.mock('@/lib/db/prisma', () => ({
         where,
         create,
       }: {
-        where: { userId_chatId: { userId: string } };
+        where: { userId_chatId: { userId: string; chatId: string } };
         create: { chatPermission: Permission };
       }): Promise<void> => {
-        memberships.set(where.userId_chatId.userId, create.chatPermission);
+        const chat = where.userId_chatId.chatId === CONVERSATION ? conversation : memberships;
+        chat.set(where.userId_chatId.userId, create.chatPermission);
+        return Promise.resolve();
+      },
+      deleteMany: ({
+        where,
+      }: {
+        where: { chatId: string; userId: { in: string[] } };
+      }): Promise<void> => {
+        const chat = where.chatId === CONVERSATION ? conversation : memberships;
+        for (const id of where.userId.in) chat.delete(id);
         return Promise.resolve();
       },
       update: ({
@@ -81,6 +137,13 @@ beforeEach(() => {
     ['noah', 'ADMIN'],
     ['sina', 'MEMBER'],
   ]);
+  conversation = new Map<string, Permission>([
+    ['tim', 'MEMBER'],
+    ['webteam', 'ADMIN'],
+    ['noah', 'ADMIN'],
+  ]);
+  followers = new Set(['tim', 'webteam', 'noah']);
+  revoked = [];
 });
 
 describe('the Kernteam of a forum topic', () => {
@@ -110,5 +173,29 @@ describe('the Kernteam of a forum topic', () => {
 
     await syncForumKernteamOfUser(payload, 'sina', []);
     expect(memberships.get('sina')).toBe('MEMBER');
+  });
+
+  it('answers the open private conversations of the topic as it is now', async () => {
+    await syncForumKernteam(TOPIC, [RESSORTLEITUNG_INFRA]);
+
+    expect(Object.fromEntries(conversation)).toEqual({
+      // the writer stays, Noah left the Kernteam and the conversation, Mira joined it
+      tim: 'MEMBER',
+      webteam: 'ADMIN',
+      mira: 'ADMIN',
+    });
+    // the answers reach Mira now and no longer Noah, whose open pages let go of it at once
+    expect([...followers].toSorted()).toEqual(['mira', 'tim', 'webteam']);
+    expect(revoked).toEqual(['noah']);
+  });
+
+  it('keeps the writer of a conversation in it, even once they leave the Kernteam', async () => {
+    functionsOf['tim'] = [RESSORTLEITUNG_KOMA];
+    memberships.set('tim', 'ADMIN');
+    conversation.set('tim', 'ADMIN');
+
+    await syncForumKernteam(TOPIC, [RESSORTLEITUNG_INFRA]);
+
+    expect(conversation.has('tim')).toBe(true);
   });
 });

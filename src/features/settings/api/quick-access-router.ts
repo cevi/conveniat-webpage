@@ -1,5 +1,7 @@
+import { getAppLandingPageCached } from '@/features/payload-cms/api/cached-globals';
 import type { QuickAccessTileId } from '@/features/settings/quick-access';
 import {
+  defaultQuickAccessOf,
   isDefaultQuickAccess,
   knownQuickAccessTiles,
   QUICK_ACCESS_TILE_IDS,
@@ -26,15 +28,20 @@ export const quickAccessRouter = createTRPCRouter({
 
   /**
    * Stores the user's Schnellzugriff. Ids this release does not know are dropped rather than
-   * refused, so an app still running an older bundle can save; a choice equal to the default is
-   * stored as none, so it follows the default when a release changes it.
+   * refused, so an app still running an older bundle can save; a choice equal to the default the
+   * CMS configures is stored as none, so it follows the default when an editor changes it.
    */
   updateQuickAccess: trpcBaseProcedure
     .input(z.object({ tiles: z.array(z.string().max(32)).max(QUICK_ACCESS_TILE_IDS.length * 2) }))
     .use(ensureUserExistsMiddleware)
     .mutation(async ({ ctx, input }): Promise<QuickAccess> => {
       const tiles = knownQuickAccessTiles(input.tiles) ?? [];
-      const isDefault = isDefaultQuickAccess(tiles);
+      // the field is not localized, every locale reads the same default
+      const landingPage = await getAppLandingPageCached(ctx.locale);
+      const isDefault = isDefaultQuickAccess(
+        tiles,
+        defaultQuickAccessOf(landingPage.defaultQuickAccessTiles),
+      );
       await ctx.prisma.user.update({
         where: { uuid: ctx.user.uuid },
         data: { quickAccessTiles: isDefault ? Prisma.DbNull : tiles },

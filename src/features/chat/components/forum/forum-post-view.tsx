@@ -1,16 +1,25 @@
 'use client';
 import { AppFooterController } from '@/components/footer/hide-footer-context';
 import { OfflineBanner } from '@/components/offline-banner';
+import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { SectionLabel } from '@/components/ui/section-label';
 import type { ForumPostDetail } from '@/features/chat/api/forum/forum-queries';
+import type { ChatMessage } from '@/features/chat/api/types';
 import { ChatComposerBar } from '@/features/chat/components/chat-view/chat-client-component';
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
 import { ChatImage } from '@/features/chat/components/chat-view/message/chat-image';
+import { ForumCommentFlags } from '@/features/chat/components/forum/forum-comment-flags';
 import { ForumDoneSheet } from '@/features/chat/components/forum/forum-done-sheet';
+import { ForumFlagSheet } from '@/features/chat/components/forum/forum-flag-sheet';
+import type { RemoveTarget } from '@/features/chat/components/forum/forum-moderation-sheet';
 import { ForumModerationSheet } from '@/features/chat/components/forum/forum-moderation-sheet';
+import {
+  ForumEditPostSheet,
+  RemovalBanner,
+} from '@/features/chat/components/forum/forum-post-removal';
 import { ForumStatusPill } from '@/features/chat/components/forum/forum-status-pill';
 import {
   campTimeText,
@@ -19,18 +28,26 @@ import {
 } from '@/features/chat/components/forum/forum-texts';
 import { KernteamBadge } from '@/features/chat/components/forum/kernteam-badge';
 import { useForumStatusFailure } from '@/features/chat/components/forum/use-forum-status-outbox';
+import type { ExtraMessageAction } from '@/features/chat/context/chat-actions-context';
 import { ChatActionsProvider } from '@/features/chat/context/chat-actions-context';
 import { ChatIdProvider } from '@/features/chat/context/chat-id-context';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useToggleForumLike } from '@/hooks/use-toggle-forum-like';
 import { forumErrorTexts } from '@/lib/forum-error-texts';
-import { FORUM_LIKE_EMOJI, forumCapacityLabel, forumStatusLabel } from '@/lib/forum-shared';
+import {
+  FORUM_LIKE_EMOJI,
+  forumCapacityLabel,
+  forumFlagReasonLabel,
+  forumKindLabel,
+  forumLikeLabel,
+  forumStatusLabel,
+} from '@/lib/forum-shared';
 import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { userErrorMessage } from '@/utils/user-error-message';
+import { errorReasonOf, userErrorMessage } from '@/utils/user-error-message';
 import {
   ArrowLeft,
   Bell,
@@ -38,6 +55,9 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Clock,
+  Eye,
+  EyeOff,
+  Flag,
   Forward,
   Hand,
   Loader2,
@@ -46,6 +66,7 @@ import {
   MessageSquareOff,
   MoreVertical,
   ThumbsUp,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -130,7 +151,7 @@ const PendingBanner: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ po
     }),
   );
   const reject = useMutation(
-    trpc.forum.deleteForumMessage.mutationOptions({
+    trpc.forum.removeForumMessage.mutationOptions({
       onSuccess: () => {
         void queryClient.invalidateQueries(trpc.forum.pathFilter());
         router.push('/app/forum');
@@ -166,7 +187,9 @@ const PendingBanner: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ po
               <button
                 type="button"
                 disabled={reject.isPending}
-                onClick={() => reject.mutate({ messageId: post.id })}
+                onClick={() =>
+                  reject.mutate({ messageId: post.id, kind: 'DELETED', reason: 'OTHER' })
+                }
                 className="border-danger-line text-danger-text hover:bg-danger-soft focus-visible:focus-surface-danger h-11 flex-1 cursor-pointer rounded-xl border bg-white text-[15px] font-semibold"
               >
                 {forumText.reject[locale]}
@@ -338,8 +361,11 @@ const PostHeader: React.FC<{
   locale: Locale;
   onReportDone: () => void;
   onForward: () => void;
+  onFlag: () => void;
+  onRevise: () => void;
+  onHide: () => void;
   currentUserId: string | undefined;
-}> = ({ post, locale, onReportDone, onForward, currentUserId }) => {
+}> = ({ post, locale, onReportDone, onForward, onFlag, onRevise, onHide, currentUserId }) => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [now] = useState(() => new Date());
@@ -386,6 +412,7 @@ const PostHeader: React.FC<{
           </span>
           {/* the topic is the screen's title already */}
           {relativeTimeText(new Date(post.createdAt), locale, now)}
+          {post.editedAt != null && ` · ${forumText.edited[locale]}`}
         </p>
         {post.byTopicAdmin && (
           <KernteamBadge locale={locale} label={post.kernteamLabel} className="ml-auto" />
@@ -397,7 +424,32 @@ const PostHeader: React.FC<{
       </h2>
 
       <div className="flex flex-wrap items-center gap-1.5">
-        <ForumStatusPill status={post.status} locale={locale} />
+        {post.conversation == null && post.kind !== undefined && (
+          <span className="bg-chip inline-flex h-[22px] items-center rounded-md px-1.5 text-[12px] font-semibold text-green-900">
+            {forumKindLabel[post.kind][locale]}
+          </span>
+        )}
+        {/* a problem and a conversation show where they stand, a question whether it is answered */}
+        {((post.kind ?? 'PROBLEM') === 'PROBLEM' || post.conversation != null) && (
+          <ForumStatusPill status={post.status} locale={locale} />
+        )}
+        {post.kind === 'QUESTION' && (
+          <span
+            className={cn(
+              'inline-flex h-[22px] items-center gap-1 rounded-full border px-2 text-[12px] font-semibold',
+              post.answerCommentId === null
+                ? 'border-line bg-white text-green-700'
+                : 'bg-conveniat-green border-conveniat-green text-white',
+            )}
+          >
+            {post.answerCommentId !== null && (
+              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+            {post.answerCommentId === null
+              ? forumText.unanswered[locale]
+              : forumText.answered[locale]}
+          </span>
+        )}
         {post.location !== null && (
           <Link
             href={mapHrefOf(post)}
@@ -409,13 +461,30 @@ const PostHeader: React.FC<{
         )}
       </div>
 
-      {post.private === true && (
+      {post.conversation != null && (
         <p className="bg-quiet flex items-start gap-2 rounded-xl p-3 text-[14px] text-green-900">
           <Lock className="mt-0.5 h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
-          <span className="text-balance">{forumText.privateBanner[locale]}</span>
+          <span className="text-balance">
+            {post.conversation.closed
+              ? forumText.conversationClosed[locale]
+              : forumText.conversationBanner[locale].replace(
+                  '{topic}',
+                  post.conversation.topicName,
+                )}
+          </span>
         </p>
       )}
       {post.pending === true && <PendingBanner post={post} locale={locale} />}
+      <RemovalBanner post={post} locale={locale} onRevise={onRevise} onHide={onHide} />
+      {post.viewer.myFlag != null && (
+        <p className="bg-quiet flex items-start gap-2 rounded-xl px-3 py-2.5 text-[13px] text-green-900">
+          <Flag className="mt-0.5 h-4 w-4 shrink-0 text-green-700" aria-hidden="true" />
+          {forumText.youFlagged[locale].replace(
+            '{reason}',
+            forumFlagReasonLabel[post.viewer.myFlag][locale],
+          )}
+        </p>
+      )}
 
       {post.mergedInto !== null && (
         <Link
@@ -441,47 +510,61 @@ const PostHeader: React.FC<{
         </div>
       )}
 
-      <div className="flex gap-2">
-        {/* nobody else sees a private report, so nobody else is affected by it too */}
-        {post.private !== true && (
+      {/* a closed conversation has nothing left to like, follow or flag */}
+      {post.conversation?.closed !== true && (
+        <div className="flex gap-2">
+          {/* nobody else reads a private conversation, so nobody else is affected by it too */}
+          {post.conversation == null && post.removal?.kind !== 'DELETED' && (
+            <button
+              type="button"
+              aria-pressed={post.likedByMe}
+              disabled={post.mergedInto !== null}
+              onClick={() => like.mutate({ messageId: post.id, emoji: FORUM_LIKE_EMOJI })}
+              className={cn(
+                'focus-visible:focus-surface flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border text-[14px] font-bold transition-colors disabled:opacity-50',
+                // liked is a state, not the view's primary action: the soft tint, so "Ich
+                // übernehme" stays the one filled button for whoever handles the post
+                post.likedByMe
+                  ? 'bg-tint border-tint-line text-green-800'
+                  : 'border-line hover:bg-quiet bg-white text-green-800',
+              )}
+            >
+              <ThumbsUp
+                className={cn('h-5 w-5', post.likedByMe && 'fill-current')}
+                aria-hidden="true"
+              />
+              {forumLikeLabel[post.kind ?? 'PROBLEM'][locale]} · {post.likeCount}
+            </button>
+          )}
           <button
             type="button"
-            aria-pressed={post.likedByMe}
-            disabled={post.mergedInto !== null}
-            onClick={() => like.mutate({ messageId: post.id, emoji: FORUM_LIKE_EMOJI })}
+            aria-pressed={post.subscribed}
+            aria-label={subscribeLabel}
+            title={subscribeLabel}
+            onClick={() => subscribe.mutate({ postId: post.id, subscribed: !post.subscribed })}
             className={cn(
-              'focus-visible:focus-surface flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border text-[14px] font-bold transition-colors disabled:opacity-50',
-              // liked is a state, not the view's primary action: the soft tint, so "Ich
-              // übernehme" stays the one filled button for whoever handles the post
-              post.likedByMe
-                ? 'bg-tint border-tint-line text-green-800'
-                : 'border-line hover:bg-quiet bg-white text-green-800',
+              'focus-visible:focus-surface border-line hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border bg-white',
+              post.subscribed ? 'text-conveniat-green' : 'text-green-700',
             )}
           >
-            <ThumbsUp
-              className={cn('h-5 w-5', post.likedByMe && 'fill-current')}
+            <SubscribeIcon
+              className={cn('h-5 w-5', post.subscribed && 'fill-current')}
               aria-hidden="true"
             />
-            {forumText.likeAction[locale]} · {post.likeCount}
           </button>
-        )}
+        </div>
+      )}
+      {/* flagging is a secondary action, so it does not stand next to "Ich auch" */}
+      {post.viewer.canFlag === true && post.viewer.myFlag == null && (
         <button
           type="button"
-          aria-pressed={post.subscribed}
-          aria-label={subscribeLabel}
-          title={subscribeLabel}
-          onClick={() => subscribe.mutate({ postId: post.id, subscribed: !post.subscribed })}
-          className={cn(
-            'focus-visible:focus-surface border-line hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border bg-white',
-            post.subscribed ? 'text-conveniat-green' : 'text-green-700',
-          )}
+          onClick={onFlag}
+          className="focus-visible:focus-surface hover:bg-quiet -mt-1 -ml-2 flex h-11 cursor-pointer items-center gap-1.5 self-start rounded-xl px-2 text-[13px] font-semibold text-green-700"
         >
-          <SubscribeIcon
-            className={cn('h-5 w-5', post.subscribed && 'fill-current')}
-            aria-hidden="true"
-          />
+          <Flag className="h-4 w-4" aria-hidden="true" />
+          {forumText.flagTitle[locale]}
         </button>
-      </div>
+      )}
 
       <ZentraleActions
         post={post}
@@ -608,19 +691,36 @@ const PostHeader: React.FC<{
   );
 };
 
-const ForumPostScreen: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ post, locale }) => {
+/** What the post's page opens from a comment's actions: a flag, or a moderator's removal. */
+interface CommentSheets {
+  flagTarget: { messageId: string; isComment: boolean } | undefined;
+  setFlagTarget: (target: { messageId: string; isComment: boolean } | undefined) => void;
+  removeTarget: RemoveTarget | undefined;
+  setRemoveTarget: (target: RemoveTarget | undefined) => void;
+}
+
+const ForumPostScreen: React.FC<{
+  post: ForumPostDetail;
+  locale: Locale;
+  sheets: CommentSheets;
+}> = ({ post, locale, sheets }) => {
   const trpc = useTRPC();
-  const [sheet, setSheet] = useState<'moderate' | 'forward' | 'done' | undefined>();
+  const [sheet, setSheet] = useState<'moderate' | 'forward' | 'done' | 'edit' | undefined>();
   const { data: currentUserId } = useQuery(trpc.chat.user.queryOptions({}));
   useChatSSE([post.topicId]);
 
   const canOpenSheet = post.viewer.canModerate || post.viewer.canSetStatus || post.viewer.isAuthor;
+  // a closed conversation and a removed post take no more comments
+  const takesComments =
+    post.mergedInto === null &&
+    post.conversation?.closed !== true &&
+    post.removal?.kind !== 'DELETED';
 
   return (
     <div className={screenClassName}>
       <AppFooterController hideAppFooter />
       <ScreenHeader
-        title={post.topicName}
+        title={post.conversation?.topicName ?? post.topicName}
         locale={locale}
         actions={
           canOpenSheet && (
@@ -648,11 +748,14 @@ const ForumPostScreen: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ 
               currentUserId={currentUserId}
               onReportDone={() => setSheet('done')}
               onForward={() => setSheet('forward')}
+              onFlag={() => sheets.setFlagTarget({ messageId: post.id, isComment: false })}
+              onRevise={() => setSheet('edit')}
+              onHide={() => sheets.setRemoveTarget({ messageId: post.id, kind: 'HIDDEN' })}
             />
           }
         />
       </div>
-      {post.mergedInto === null && (
+      {takesComments && (
         <ChatComposerBar>
           <ChatTextAreaInput />
         </ChatComposerBar>
@@ -665,7 +768,36 @@ const ForumPostScreen: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ 
         startOnForward={sheet === 'forward'}
         open={sheet === 'moderate' || sheet === 'forward'}
         onOpenChange={(open) => setSheet(open ? (sheet ?? 'moderate') : undefined)}
+        onEdit={() => setSheet('edit')}
       />
+      {sheets.removeTarget !== undefined && (
+        <ForumModerationSheet
+          key={`remove-${sheets.removeTarget.messageId}-${sheets.removeTarget.kind}`}
+          post={post}
+          locale={locale}
+          startOnRemove={sheets.removeTarget}
+          open
+          onOpenChange={(open) => {
+            if (!open) sheets.setRemoveTarget(undefined);
+          }}
+        />
+      )}
+      <ForumFlagSheet
+        messageId={sheets.flagTarget?.messageId}
+        postId={post.id}
+        isComment={sheets.flagTarget?.isComment === true}
+        topicName={post.topicName}
+        onClose={() => sheets.setFlagTarget(undefined)}
+        locale={locale}
+      />
+      {sheet === 'edit' && (
+        <ForumEditPostSheet
+          post={post}
+          open
+          onOpenChange={(open) => setSheet(open ? 'edit' : undefined)}
+          locale={locale}
+        />
+      )}
       <ForumDoneSheet
         post={post}
         locale={locale}
@@ -712,14 +844,29 @@ const ForumPostContent: React.FC<{ postId: string | undefined }> = ({ postId }) 
         <AppFooterController hideAppFooter />
         <ScreenHeader title={forumText.title[locale]} locale={locale} />
         <div className="flex flex-1 items-center justify-center p-6">
-          <EmptyState
-            icon={MessageSquareOff}
-            title={
-              query.error === null
-                ? forumText.loadFailed[locale]
-                : userErrorMessage(query.error, locale, forumErrorTexts, forumText.loadFailed)
-            }
-          />
+          {errorReasonOf(query.error)?.reason === 'postGone' ? (
+            // a push from yesterday or a link in a chat: whether it was deleted or is no longer
+            // for this person stays unsaid, the way on is the forum
+            <EmptyState
+              icon={MessageSquareOff}
+              title={forumText.postNotFound[locale]}
+              description={forumText.postNotFoundExplain[locale]}
+              action={
+                <Button asChild variant="primary" size="touch">
+                  <Link href="/app/forum">{forumText.toForum[locale]}</Link>
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={MessageSquareOff}
+              title={
+                query.error === null
+                  ? forumText.loadFailed[locale]
+                  : userErrorMessage(query.error, locale, forumErrorTexts, forumText.loadFailed)
+              }
+            />
+          )}
         </div>
       </div>
     );
@@ -737,12 +884,90 @@ const ForumPostContent: React.FC<{ postId: string | undefined }> = ({ postId }) 
     );
   }
 
-  const post = query.data;
+  return <ForumPostLoaded post={query.data} locale={locale} />;
+};
+
+/**
+ * A loaded post with its thread. What a comment's long press offers besides the chat's own
+ * actions comes from here: "Melden" for others' comments, and for the moderators hide, show
+ * again and delete, each with a reason.
+ */
+const ForumPostLoaded: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ post, locale }) => {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const [flagTarget, setFlagTarget] = useState<CommentSheets['flagTarget']>();
+  const [removeTarget, setRemoveTarget] = useState<RemoveTarget | undefined>();
+  const { data: currentUserId } = useQuery(trpc.chat.user.queryOptions({}));
+  const restore = useMutation(
+    trpc.forum.restoreForumMessage.mutationOptions({
+      onSettled: () => void queryClient.invalidateQueries(trpc.chat.infiniteMessages.pathFilter()),
+    }),
+  );
+
+  const messageActions = (message: ChatMessage): ExtraMessageAction[] => {
+    // a removed message, or one hidden from this reader; whoever may restore it reads it in full
+    if (message.deletedAt !== undefined) return [];
+    if (message.senderId === currentUserId) return [];
+    if (post.viewer.canModerate) {
+      const hidden = message.forumRemoval?.kind === 'HIDDEN';
+      return [
+        hidden
+          ? {
+              key: 'restore',
+              label: forumText.restore[locale],
+              icon: Eye,
+              onSelect: () => restore.mutate({ messageId: message.id }),
+            }
+          : {
+              key: 'hide',
+              label: forumText.hide[locale],
+              icon: EyeOff,
+              destructive: true,
+              onSelect: () => setRemoveTarget({ messageId: message.id, kind: 'HIDDEN' }),
+            },
+        {
+          key: 'delete',
+          label: forumText.removeDelete[locale],
+          icon: Trash2,
+          destructive: true,
+          onSelect: () => setRemoveTarget({ messageId: message.id, kind: 'DELETED' }),
+        },
+      ];
+    }
+    // a private conversation has only its writer and its moderators to read it
+    if (post.conversation != null) return [];
+    return [
+      {
+        key: 'flag',
+        label: forumText.flag[locale],
+        icon: Flag,
+        onSelect: () => setFlagTarget({ messageId: message.id, isComment: true }),
+      },
+    ];
+  };
+
   return (
     <ChatIdProvider chatId={post.topicId}>
       {/* keyed: another post gets a fresh thread, draft and scroll */}
-      <ChatActionsProvider key={post.id} threadId={post.id}>
-        <ForumPostScreen post={post} locale={locale} />
+      <ChatActionsProvider
+        key={post.id}
+        threadId={post.id}
+        messageActions={messageActions}
+        renderMessageFooter={(message) =>
+          post.viewer.canModerate ? (
+            <ForumCommentFlags
+              message={message}
+              locale={locale}
+              onHide={() => setRemoveTarget({ messageId: message.id, kind: 'HIDDEN' })}
+            />
+          ) : null
+        }
+      >
+        <ForumPostScreen
+          post={post}
+          locale={locale}
+          sheets={{ flagTarget, setFlagTarget, removeTarget, setRemoveTarget }}
+        />
       </ChatActionsProvider>
     </ChatIdProvider>
   );

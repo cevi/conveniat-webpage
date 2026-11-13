@@ -23,12 +23,14 @@ import {
   generateScheduleEntries,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/schedule-entries';
 import { seedAlertSettings } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-alert-settings';
+import { seedForumIntro } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-forum-intro';
 import { seedFunktionen } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-funktionen';
 import {
   seedHoefe,
   seedRandomUserRegistrations,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hoefe';
 import { seedHofDashboard } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hof-dashboard';
+import { seedImageSubmission } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-image-submission';
 import { seedJobs } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-jobs';
 import { seedQuartiere } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-quartiere';
 import { seedStory } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-story';
@@ -575,6 +577,8 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   });
 
   await seedAlertSettings(payload);
+  await seedImageSubmission(payload);
+  await seedForumIntro(payload);
 
   console.log('Seeding: Generic pages created.');
 

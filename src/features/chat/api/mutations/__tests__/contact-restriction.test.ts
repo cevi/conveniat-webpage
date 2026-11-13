@@ -4,7 +4,10 @@ import { TRPCError } from '@trpc/server';
 
 /** The people named as organiser on a program entry or a Schichteinsatz. */
 let organiserIds: string[];
-let restrictContactList: boolean;
+/** What an admin set in the app feature flags; a key missing here reads its default. */
+let flags: Partial<Record<FeatureFlagName, boolean>>;
+/** No load of the flags has succeeded, so every flag takes its `whenUnavailable`. */
+let flagsUnavailable: boolean;
 
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('payload', () => ({
@@ -35,9 +38,22 @@ jest.mock('superjson', () => ({
 jest.mock('@/lib/capabilities', () => ({
   checkCapability: (): Promise<boolean> => Promise.resolve(true),
 }));
+jest.mock('@/lib/read-feature-flags', () => {
+  const { featureFlags } =
+    jest.requireActual<typeof import('@/lib/feature-flags')>('@/lib/feature-flags');
+  type Name = keyof typeof featureFlags;
+  const read = (name: Name): boolean =>
+    flagsUnavailable
+      ? featureFlags[name].whenUnavailable
+      : (flags[name] ?? featureFlags[name].default);
+  return {
+    readFeatureFlag: (name: Name): Promise<boolean> => Promise.resolve(read(name)),
+    readFeatureFlags: (names: Name[]): Promise<Record<string, boolean>> =>
+      Promise.resolve(Object.fromEntries(names.map((name) => [name, read(name)]))),
+  };
+});
+// every rate limit counter at its first call
 jest.mock('@/lib/db/redis', () => ({
-  getFeatureFlag: (): Promise<boolean> => Promise.resolve(restrictContactList),
-  // every rate limit counter at its first call
   redis: { eval: (): Promise<number> => Promise.resolve(1) },
 }));
 jest.mock('@/lib/db/chat-pubsub', () => ({
@@ -46,6 +62,8 @@ jest.mock('@/lib/db/chat-pubsub', () => ({
 
 import { addParticipants } from '@/features/chat/api/mutations/add-participants';
 import { createChat } from '@/features/chat/api/mutations/create-chat';
+import { listContacts } from '@/features/chat/api/queries/list-contacts';
+import type { FeatureFlagName } from '@/lib/feature-flags';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 
 interface Person {
@@ -146,11 +164,13 @@ const mockPrisma = {
   },
 };
 
-const caller = createCallerFactory(createTRPCRouter({ createChat, addParticipants }))({
-  user: { uuid: ANNA.uuid, group_ids: [], name: 'Anna', email: 'anna@example.test' },
-  prisma: mockPrisma,
-  locale: 'de',
-} as unknown as Context);
+const caller = createCallerFactory(createTRPCRouter({ createChat, addParticipants, listContacts }))(
+  {
+    user: { uuid: ANNA.uuid, group_ids: [], name: 'Anna', email: 'anna@example.test' },
+    prisma: mockPrisma,
+    locale: 'de',
+  } as unknown as Context,
+);
 
 const rejection = (call: Promise<unknown>): Promise<unknown> =>
   call.then(
@@ -176,9 +196,16 @@ const expectRefused = async (call: Promise<unknown>): Promise<void> => {
   expect(writes).toEqual([]);
 };
 
+/** Whom Anna's contact list shows, by the letter of each person. */
+const contactList = async (): Promise<string[]> => {
+  const contacts = await caller.listContacts({});
+  return contacts.map(({ userId }) => userId[0] ?? '?').toSorted();
+};
+
 beforeEach(() => {
   ANNA.testAccount = false;
-  restrictContactList = true;
+  flags = {};
+  flagsUnavailable = false;
   organiserIds = [];
   writes = [];
 });
@@ -250,9 +277,100 @@ describe('adding participants while the contact list is restricted', () => {
   });
 });
 
+describe('choosing the groups of the restricted contact list', () => {
+  it('lists the address book and all three groups by default', async () => {
+    await expect(contactList()).resolves.toEqual(['b', 'c', 'd', 'e']);
+  });
+
+  it.each([
+    ['the own Hof', 'contactListIncludesHof', HOF_MATE, ['c', 'd', 'e']],
+    ['the functions', 'contactListIncludesFunktionen', RESSORT_MEMBER, ['b', 'c', 'd']],
+    ['the AVP', 'contactListIncludesAvp', AVP, ['b', 'c', 'e']],
+  ] as const)(
+    'without %s, drops that group and refuses it',
+    async (_group, flag, dropped, listed) => {
+      flags[flag] = false;
+
+      await expect(contactList()).resolves.toEqual(listed);
+      await expectRefused(startChat(dropped));
+    },
+  );
+
+  describe('with all three groups off', () => {
+    beforeEach(() => {
+      flags.contactListIncludesHof = false;
+      flags.contactListIncludesFunktionen = false;
+      flags.contactListIncludesAvp = false;
+    });
+
+    it('lists only the address book', async () => {
+      await expect(contactList()).resolves.toEqual(['c']);
+    });
+
+    it('still opens a chat with someone from the address book', async () => {
+      await startChat(SCANNED);
+
+      expect(writes).toEqual(['chat.create']);
+    });
+
+    it('refuses everyone else, also when adding them to a group', async () => {
+      await expectRefused(add(HOF_MATE, AVP, RESSORT_MEMBER));
+    });
+
+    it('still opens a chat with an organiser, as the schedule offers it', async () => {
+      organiserIds = [AVP.uuid];
+
+      await startChat(AVP);
+
+      expect(writes).toEqual(['chat.create']);
+    });
+
+    it('leaves a test account its own Hof', async () => {
+      ANNA.testAccount = true;
+
+      await expect(contactList()).resolves.toEqual(['b', 'c']);
+    });
+  });
+});
+
+describe('before the flags could ever be loaded', () => {
+  beforeEach(() => {
+    flagsUnavailable = true;
+  });
+
+  it('lists only the address book, whatever the admin chose', async () => {
+    await expect(contactList()).resolves.toEqual(['c']);
+  });
+
+  it('refuses a group the admin may have switched off', async () => {
+    await expectRefused(startChat(HOF_MATE));
+  });
+
+  it('leaves a test account its own Hof', async () => {
+    ANNA.testAccount = true;
+
+    await expect(contactList()).resolves.toEqual(['b', 'c']);
+  });
+});
+
 describe('with the contact list open to everyone', () => {
   beforeEach(() => {
-    restrictContactList = false;
+    flags.restrictContactList = false;
+  });
+
+  it('lists everyone who is not hidden', async () => {
+    await expect(contactList()).resolves.toEqual(['b', 'c', 'd', 'e', 'f']);
+  });
+
+  it('ignores which groups the restricted list would include', async () => {
+    flags.contactListIncludesHof = false;
+    flags.contactListIncludesFunktionen = false;
+    flags.contactListIncludesAvp = false;
+
+    await expect(contactList()).resolves.toEqual(['b', 'c', 'd', 'e', 'f']);
+    await startChat(STRANGER);
+
+    expect(writes).toEqual(['chat.create']);
   });
 
   it('opens a private chat with anyone', async () => {
@@ -294,7 +412,7 @@ describe('as a test account', () => {
   });
 
   it('stays restricted with the contact list open to everyone', async () => {
-    restrictContactList = false;
+    flags.restrictContactList = false;
 
     await expectRefused(startChat(STRANGER));
   });

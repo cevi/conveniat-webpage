@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import {
   getUserGroups,
   hasAccessToThisUser,
@@ -18,7 +19,13 @@ const DashboardWelcomeBanner: React.FC<ServerProps> = ({ user, i18n }) => {
     requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
   });
 
-  return <DashboardWelcomeBannerClient locale={getAdminLocale(i18n)} showActions={showActions} />;
+  return (
+    <DashboardWelcomeBannerClient
+      locale={getAdminLocale(i18n)}
+      showActions={showActions}
+      canResetInstance={environmentVariables.NODE_ENV === 'development'}
+    />
+  );
 };
 
 export default DashboardWelcomeBanner;

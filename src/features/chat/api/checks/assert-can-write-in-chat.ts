@@ -18,7 +18,7 @@ const logger = createLogger('chat:mutations');
 export const assertWriteAbilities = async (
   prisma: PrismaClientOrTransaction,
   chatId: string,
-  parentId: string | undefined,
+  parentId?: string,
   chat?: CapabilityChat | null,
 ): Promise<void> => {
   const canSend = await Ability.can(

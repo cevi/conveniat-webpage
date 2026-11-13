@@ -1,4 +1,8 @@
 import {
+  readCurrentTermsText,
+  termsVersionOf,
+} from '@/features/image-submission/api/image-submission-texts';
+import {
   temporaryUploadPrefixOf,
   USER_IMAGE_MAX_BYTES,
   USER_IMAGE_UPLOAD,
@@ -7,7 +11,7 @@ import { uploadErrorTexts } from '@/features/payload-cms/upload-error-texts';
 import { createPresignedUploadUrl } from '@/lib/presigned-urls';
 import { S3_BUCKET_NAME, s3Client } from '@/lib/s3';
 import { uploadInputShape } from '@/lib/upload-policy';
-import { createErrorThrower } from '@/trpc/error-formatter';
+import { createErrorThrower, invariantError } from '@/trpc/error-formatter';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { rateLimit } from '@/trpc/middleware/rate-limit';
 import { createLogger } from '@/utils/server-logger';
@@ -39,8 +43,21 @@ const ALLOWED_EXTENSIONS = [
 /** A batch picked in one go passes at once; the window caps what one account can store. */
 const UPLOAD_RATE_LIMIT = { limit: 30, windowMs: 10 * 60 * 1000 };
 
+/** Looking at and withdrawing one's own images; far above what anyone does by hand. */
+const OWN_IMAGES_RATE_LIMIT = { limit: 60, windowMs: 10 * 60 * 1000 };
+
+/** One of the images a participant submitted and has not withdrawn, as "Meine Bilder" lists it. */
+export interface OwnSubmittedImage {
+  id: string;
+  description: string;
+  submittedAt: string;
+  /** the small square version, served through the collection's read access */
+  thumbnailUrl: string | undefined;
+}
+
 const uploadError = createErrorThrower(uploadErrorTexts);
 const refuseTooManyUploads = (): TRPCError => uploadError('TOO_MANY_REQUESTS', 'tooManyUploads');
+const refuseTooManyRequests = (): TRPCError => uploadError('TOO_MANY_REQUESTS', 'tooManyRequests');
 
 /**
  * Whether `key` names an upload directly under the user's own temporary prefix, so one user
@@ -81,6 +98,10 @@ export const uploadRouter = createTRPCRouter({
         key: z.string(),
         description: z.string().max(1000),
         originalFilename: z.string(),
+        // optional only so that a page loaded before consent was recorded gets a reason, below
+        terms: z
+          .object({ locale: z.enum(['de', 'fr', 'en']), version: z.string().max(64) })
+          .optional(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -95,6 +116,20 @@ export const uploadRouter = createTRPCRouter({
       });
 
       try {
+        const payload = await getPayload({ config });
+
+        // The image is recorded with the terms the person agreed to, so they must still be the
+        // ones the page showed: an editor may have changed them since, or the page predates this.
+        const termsLocale = input.terms?.locale ?? 'de';
+        const termsText = await readCurrentTermsText(payload, termsLocale);
+        if (
+          input.terms === undefined ||
+          termsText === '' ||
+          termsVersionOf(termsText) !== input.terms.version
+        ) {
+          throw uploadError('PRECONDITION_FAILED', 'termsChanged');
+        }
+
         const s3Response = await s3Client.send(getCommand);
 
         if (s3Response.ContentLength && s3Response.ContentLength > USER_IMAGE_MAX_BYTES) {
@@ -156,15 +191,12 @@ export const uploadRouter = createTRPCRouter({
           });
         }
 
-        const payload = await getPayload({ config });
-
-        // Check for duplicates
+        // Check for duplicates; a withdrawn image may be submitted again
         const existingImages = await payload.find({
           collection: 'userSubmittedImages',
           where: {
-            content_hash: {
-              equals: hash,
-            },
+            content_hash: { equals: hash },
+            withdrawn_at: { exists: false },
           },
           depth: 0,
           limit: 1,
@@ -185,6 +217,11 @@ export const uploadRouter = createTRPCRouter({
             user_description: input.description,
             original_filename: input.originalFilename,
             content_hash: hash,
+            terms_consent: {
+              accepted_at: new Date().toISOString(),
+              locale: termsLocale,
+              terms_text: termsText,
+            },
           },
           file: {
             data: buffer,
@@ -210,5 +247,85 @@ export const uploadRouter = createTRPCRouter({
             logger.warn('Could not delete a temporary upload', { error, 'user.id': ctx.user.uuid });
           });
       }
+    }),
+
+  getOwnSubmittedImageList: trpcBaseProcedure
+    .use(
+      rateLimit({
+        name: 'upload.getOwnSubmittedImageList',
+        refuse: refuseTooManyRequests,
+        ...OWN_IMAGES_RATE_LIMIT,
+      }),
+    )
+    .query(async ({ ctx }): Promise<OwnSubmittedImage[]> => {
+      const payload = await getPayload({ config });
+      const { docs } = await payload.find({
+        collection: 'userSubmittedImages',
+        where: {
+          uploaded_by: { equals: ctx.user.uuid },
+          withdrawn_at: { exists: false },
+        },
+        sort: '-createdAt',
+        depth: 0,
+        limit: 100,
+        pagination: false,
+        // the url is computed from the filename, so the whole size is read
+        select: { user_description: true, createdAt: true, sizes: { tiny: true } },
+      });
+      return docs.map((image) => ({
+        id: image.id,
+        description: image.user_description,
+        submittedAt: image.createdAt,
+        thumbnailUrl: image.sizes?.tiny?.url ?? undefined,
+      }));
+    }),
+
+  /**
+   * Withdraws one of the user's own images: it leaves their list, and editors see when it was
+   * withdrawn. Nothing is deleted, so editors can still find where they used it. Withdrawing it
+   * twice, as a replayed or doubled tap does, changes nothing.
+   */
+  withdrawSubmittedImage: trpcBaseProcedure
+    .use(
+      rateLimit({
+        name: 'upload.withdrawSubmittedImage',
+        refuse: refuseTooManyRequests,
+        ...OWN_IMAGES_RATE_LIMIT,
+      }),
+    )
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ input, ctx }): Promise<{ withdrawn: true }> => {
+      const payload = await getPayload({ config });
+      const image = await payload.findByID({
+        collection: 'userSubmittedImages',
+        id: input.id,
+        depth: 0,
+        disableErrors: true,
+      });
+      // An image editors have since deleted is as gone as a withdrawn one; a list restored from
+      // the persisted cache can still offer it.
+      if (image === null) return { withdrawn: true };
+
+      const uploadedBy =
+        typeof image.uploaded_by === 'object' ? image.uploaded_by.id : image.uploaded_by;
+      // our client only offers the user's own images
+      if (uploadedBy !== ctx.user.uuid) {
+        throw invariantError(
+          'FORBIDDEN',
+          'Only the person who submitted an image can withdraw it.',
+        );
+      }
+      if (typeof image.withdrawn_at === 'string') return { withdrawn: true };
+
+      await payload.update({
+        collection: 'userSubmittedImages',
+        id: input.id,
+        data: { withdrawn_at: new Date().toISOString() },
+      });
+      logger.info('A submitted image was withdrawn', {
+        'image.id': input.id,
+        'user.id': ctx.user.uuid,
+      });
+      return { withdrawn: true };
     }),
 });

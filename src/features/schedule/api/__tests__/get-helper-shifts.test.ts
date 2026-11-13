@@ -1,6 +1,6 @@
 import { getHelperShift, getHelperShifts } from '@/features/schedule/api/get-helper-shifts';
-import { getFeatureFlag } from '@/lib/db/redis';
 import type { PrismaClient } from '@/lib/prisma/client';
+import { readFeatureFlag } from '@/lib/read-feature-flags';
 
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('payload', () => ({
@@ -20,8 +20,8 @@ jest.mock('@/utils/get-locale-from-cookies', () => ({
   getLocaleFromCookies: jest.fn().mockResolvedValue('de'),
 }));
 
-jest.mock('@/lib/db/redis', () => ({
-  getFeatureFlag: jest.fn(),
+jest.mock('@/lib/read-feature-flags', () => ({
+  readFeatureFlag: jest.fn(),
 }));
 
 jest.mock('@/lib/db/prisma', () => ({
@@ -74,7 +74,7 @@ describe('getHelperShifts', () => {
   ];
 
   it('returns all shifts if hide_full_helper_shifts feature flag is disabled', async () => {
-    (getFeatureFlag as jest.Mock).mockResolvedValue(false);
+    (readFeatureFlag as jest.Mock).mockResolvedValue(false);
     mockFind.mockResolvedValue({ docs: sampleShifts });
 
     const result = await getHelperShifts({}, 'de');
@@ -88,7 +88,7 @@ describe('getHelperShifts', () => {
   });
 
   it('hides full shift for unenrolled user when feature flag is active', async () => {
-    (getFeatureFlag as jest.Mock).mockResolvedValue(true);
+    (readFeatureFlag as jest.Mock).mockResolvedValue(true);
     mockFind.mockResolvedValue({ docs: sampleShifts });
 
     const mockPrisma = {
@@ -112,7 +112,7 @@ describe('getHelperShifts', () => {
   });
 
   it('still opens a full shift the feed hides, by its id from a link', async () => {
-    (getFeatureFlag as jest.Mock).mockResolvedValue(true);
+    (readFeatureFlag as jest.Mock).mockResolvedValue(true);
     mockFind.mockResolvedValue({ docs: [sampleShifts[1]] });
 
     const shift = await getHelperShift('shift-full', 'de');
@@ -130,7 +130,7 @@ describe('getHelperShifts', () => {
   });
 
   it('includes full shift if user is enrolled in it', async () => {
-    (getFeatureFlag as jest.Mock).mockResolvedValue(true);
+    (readFeatureFlag as jest.Mock).mockResolvedValue(true);
     mockFind.mockResolvedValue({ docs: sampleShifts });
 
     const mockPrisma = {
@@ -184,7 +184,7 @@ describe('getHelperShifts', () => {
     ];
 
     beforeEach(() => {
-      (getFeatureFlag as jest.Mock).mockResolvedValue(true);
+      (readFeatureFlag as jest.Mock).mockResolvedValue(true);
       mockFind.mockResolvedValue({ docs: shiftsWithOrganiser });
     });
 
@@ -232,7 +232,7 @@ describe('getHelperShifts', () => {
    */
   describe('the organisers', () => {
     beforeEach(() => {
-      (getFeatureFlag as jest.Mock).mockResolvedValue(false);
+      (readFeatureFlag as jest.Mock).mockResolvedValue(false);
     });
 
     it('are narrowed to the fields the helper portal renders', async () => {

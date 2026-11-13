@@ -23,6 +23,11 @@ export interface PreviewMessage {
 
 export interface ChatWithMessagePreview {
   id: string;
+  /**
+   * The post of a private forum conversation, whose page shows it; set for those only, and
+   * missing in caches from before conversations
+   */
+  forumPostId?: string | undefined;
   name: string;
   description?: string | null | undefined;
   status: ChatStatus;

@@ -241,10 +241,13 @@ export const getAppFeatureFlagsCached = cache(async (): Promise<AppFeatureFlags>
 /**
  * Fetches the App Landing Page global, cached across requests.
  *
- * Returns the dashboard title, optional welcome content blocks, and the
- * showActionCards toggle.
+ * Returns the dashboard title, optional welcome content blocks, the
+ * showActionCards toggle and the default tiles of the Schnellzugriff.
  */
-type AppLandingPageContent = Pick<AppLandingPage, 'title' | 'pageContent' | 'showActionCards'>;
+type AppLandingPageContent = Pick<
+  AppLandingPage,
+  'title' | 'pageContent' | 'showActionCards' | 'defaultQuickAccessTiles'
+>;
 
 const queryAppLandingPage = async (
   locale: Locale,
@@ -259,6 +262,7 @@ const queryAppLandingPage = async (
       title: true,
       pageContent: true,
       showActionCards: true,
+      defaultQuickAccessTiles: true,
     },
   });
 };
@@ -277,7 +281,7 @@ const readAppLandingPage = async (locale: Locale): Promise<AppLandingPageContent
 export const getAppLandingPageCached = cache(
   async (locale: Locale, draft: boolean = false): Promise<AppLandingPageContent> => {
     if (isBuildPhase()) {
-      return { title: '', showActionCards: false };
+      return { title: '', showActionCards: false, defaultQuickAccessTiles: [] };
     }
     // Preview reads must reflect unpublished edits immediately, so they skip the persistent cache.
     if (draft) {

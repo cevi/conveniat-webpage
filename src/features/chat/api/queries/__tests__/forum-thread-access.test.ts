@@ -50,6 +50,7 @@ jest.mock('@/features/chat/api/forum/forum-kernteam-labels', () => ({
     ),
 }));
 
+import { markThreadAsRead } from '@/features/chat/api/mutations/mark-thread-as-read';
 import { getChatMessages } from '@/features/chat/api/queries/get-chat-messages';
 import { getMessage } from '@/features/chat/api/queries/get-message';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
@@ -58,8 +59,12 @@ const TOPIC = '0193f1a0-0000-7000-8000-000000000001';
 const REPORT = '0193f1a0-0000-7000-8000-0000000000aa';
 const COMMENT = '0193f1a0-0000-7000-8000-0000000000bb';
 
+/** Why only some see the post: it waits for approval, or a moderator or flags hid it. */
+let restriction: 'held' | 'hidden';
+let readEvents: { messageId: string; userId: string }[];
+
 /**
- * Noah wrote the private report, Lea is on piket duty, Sina is only a member of the topic, Mira
+ * Noah wrote the restricted post, Lea is on piket duty, Sina is only a member of the topic, Mira
  * is its Kernteam.
  */
 const memberships = [
@@ -135,15 +140,36 @@ const prisma = {
           ? {
               messageId: REPORT,
               chatId: TOPIC,
-              private: true,
-              approvedAt: new Date(0),
-              message: { senderId: 'noah' },
+              approvedAt: restriction === 'held' ? null : new Date(0),
+              message: {
+                senderId: 'noah',
+                forumRemoval: restriction === 'hidden' ? { kind: 'HIDDEN' } : null,
+              },
             }
           : null,
       ),
   },
   forumPostAssignment: { findFirst: (): Promise<null> => Promise.resolve(null) },
+  // only the post itself is hidden, its comments are not
+  forumRemoval: { findMany: (): Promise<unknown[]> => Promise.resolve([]) },
+  forumFlag: { findMany: (): Promise<unknown[]> => Promise.resolve([]) },
+  messageEvent: {
+    createMany: ({
+      data,
+    }: {
+      data: { messageId: string; userId: string }[];
+    }): Promise<{ count: number }> => {
+      readEvents.push(...data);
+      return Promise.resolve({ count: data.length });
+    },
+  },
   message: {
+    findUnique: ({ where }: { where: { uuid: string } }): Promise<unknown> =>
+      Promise.resolve(
+        where.uuid === REPORT
+          ? { uuid: REPORT, chatId: TOPIC, senderId: 'noah', parentId: null }
+          : { uuid: COMMENT, chatId: TOPIC, senderId: 'lea', parentId: REPORT },
+      ),
     findMany: (): Promise<unknown[]> => Promise.resolve([kernteamComment, comment]),
     findFirst: (): Promise<unknown> => Promise.resolve(comment),
     // the thread summaries of the comments, which have no replies of their own
@@ -151,7 +177,9 @@ const prisma = {
   },
 };
 
-const createCaller = createCallerFactory(createTRPCRouter({ getChatMessages, getMessage }));
+const createCaller = createCallerFactory(
+  createTRPCRouter({ getChatMessages, getMessage, markThreadAsRead }),
+);
 const as = (uuid: string): ReturnType<typeof createCaller> =>
   createCaller({
     user: { uuid, group_ids: [], name: uuid, email: `${uuid}@example.test` },
@@ -159,7 +187,19 @@ const as = (uuid: string): ReturnType<typeof createCaller> =>
     locale: 'de',
   } as unknown as Context);
 
-describe('the thread of a private report', () => {
+beforeEach(() => {
+  restriction = 'held';
+  readEvents = [];
+});
+
+describe.each([
+  ['waiting for approval', 'held'],
+  ['hidden', 'hidden'],
+] as const)('the thread of a post %s', (_, kind) => {
+  beforeEach(() => {
+    restriction = kind;
+  });
+
   it('is read by its author and by the piket on duty', async () => {
     for (const reader of ['noah', 'lea']) {
       const { items } = await as(reader).getChatMessages({ chatId: TOPIC, parentId: REPORT });
@@ -172,6 +212,16 @@ describe('the thread of a private report', () => {
       as('sina').getChatMessages({ chatId: TOPIC, parentId: REPORT }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await expect(as('sina').getMessage({ messageId: COMMENT })).resolves.toBeUndefined();
+  });
+
+  it('cannot be marked read by another member, as if it did not exist', async () => {
+    await expect(
+      as('sina').markThreadAsRead({ chatId: TOPIC, threadId: REPORT }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    expect(readEvents).toEqual([]);
+
+    await as('noah').markThreadAsRead({ chatId: TOPIC, threadId: REPORT });
+    expect(readEvents.map((event) => event.userId)).toContain('noah');
   });
 });
 

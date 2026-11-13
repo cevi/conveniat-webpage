@@ -7,7 +7,7 @@ import {
   getServerCallState,
   subscribeToCall,
 } from '@/features/chat/calls/call-engine';
-import { FEATURE_FLAG_VOICE_CALLS_ENABLED } from '@/lib/feature-flags';
+import { featureFlags as flagDefinitions } from '@/lib/feature-flags';
 import { useTRPC } from '@/trpc/client';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState, useSyncExternalStore } from 'react';
@@ -31,7 +31,8 @@ export const useCanMakeCalls = (): boolean => {
   );
   // read defensively: a cache persisted by the release before lacks the flag
   const isEnabled =
-    featureFlags?.find((flag) => flag.key === FEATURE_FLAG_VOICE_CALLS_ENABLED)?.isEnabled === true;
+    featureFlags?.find((flag) => flag.key === flagDefinitions.voiceCallsEnabled.key)?.isEnabled ===
+    true;
   const isSupported = useSyncExternalStore(
     subscribeToNothing,
     canMakeCalls,

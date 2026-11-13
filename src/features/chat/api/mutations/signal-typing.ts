@@ -3,6 +3,7 @@ import {
   assertWriteAbilities,
 } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
+import { ChatType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -41,6 +42,7 @@ export const signalTyping = trpcBaseProcedure
     const chat = await prisma.chat.findUnique({
       where: { uuid: chatId },
       select: {
+        type: true,
         capabilities: true,
         status: true,
         archivedAt: true,
@@ -64,11 +66,24 @@ export const signalTyping = trpcBaseProcedure
       }
     }
 
-    // publish logs its own failures, at debug for typing
-    await chatPubSub.publish({
-      type: 'typing',
+    const event = {
+      type: 'typing' as const,
       chatId,
       senderId: user.uuid,
       typing: { name: user.name, parentId },
-    });
+    };
+    // in the thread of a forum post only some may see, only they hear who types there
+    if (chat.type === ChatType.FORUM && parentId !== undefined) {
+      const { canSeeForumPost, findForumPostVisibility, publishForumThreadEvent } =
+        await import('@/features/chat/api/forum/forum-visibility');
+      const post = await findForumPostVisibility(prisma, parentId);
+      if (post !== undefined) {
+        if (!(await canSeeForumPost(prisma, user, post))) return;
+        await publishForumThreadEvent(prisma, post, event);
+        return;
+      }
+    }
+
+    // publish logs its own failures, at debug for typing
+    await chatPubSub.publish(event);
   });

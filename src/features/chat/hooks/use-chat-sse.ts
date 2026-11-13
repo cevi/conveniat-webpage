@@ -526,6 +526,12 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
         queryClient
           .invalidateQueries(trpc.chat.getMessage.queryFilter({ messageId: message.id }))
           .catch(console.error);
+        // a forum post that was edited, hidden or shown again; its page reads it from the forum
+        queryClient
+          .invalidateQueries(
+            trpc.forum.getForumPost.queryFilter({ postId: message.parentId ?? message.id }),
+          )
+          .catch(console.error);
       }
     };
 

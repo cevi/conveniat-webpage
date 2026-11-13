@@ -10,9 +10,9 @@ jest.mock('payload', () => ({
 }));
 jest.mock('@payload-config', () => ({}), { virtual: true });
 
-const getFeatureFlag = jest.fn();
-jest.mock('@/lib/db/redis', () => ({
-  getFeatureFlag: (key: string): unknown => getFeatureFlag(key),
+const readFeatureFlag = jest.fn();
+jest.mock('@/lib/read-feature-flags', () => ({
+  readFeatureFlag: (name: string): unknown => readFeatureFlag(name),
 }));
 
 const hasAccessToThisUser = jest.fn();
@@ -45,7 +45,7 @@ const registeredAs = (...roleTypes: (string | null)[]): void => {
 beforeEach(() => {
   jest.clearAllMocks();
   hasAccessToThisUser.mockReturnValue(false);
-  getFeatureFlag.mockResolvedValue(false);
+  readFeatureFlag.mockResolvedValue(false);
   findByID.mockImplementation(({ collection }: { collection: string }) =>
     Promise.resolve(
       collection === 'users' ? { cevi_db_uuid: 4711, hoefe: ['hof-1'] } : { leaders: notes },
@@ -105,7 +105,7 @@ describe('getQuartiereOfViewer', () => {
   });
 
   it('is empty while the camp keeps the allocation to itself', async () => {
-    getFeatureFlag.mockResolvedValue(true);
+    readFeatureFlag.mockResolvedValue(true);
 
     await expect(getQuartiereOfViewer(viewer)).resolves.toEqual([]);
   });

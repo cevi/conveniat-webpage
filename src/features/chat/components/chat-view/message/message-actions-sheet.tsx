@@ -8,8 +8,15 @@ import {
   emojiNames,
   QUICK_EMOJIS,
 } from '@/features/chat/components/chat-view/message/message-reaction-menus';
+import {
+  editedLabelText,
+  isMessageEdited,
+  isMessageTextEditable,
+  messageTextOf,
+} from '@/features/chat/components/chat-view/message/utils/message-editing';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { SheetActionRow } from '@/features/chat/components/ui/sheet-action-row';
+import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useDeleteMessage } from '@/features/chat/hooks/use-delete-message';
 import { getDateFnsLocale } from '@/features/chat/hooks/use-format-date';
@@ -25,6 +32,7 @@ import {
   Copy,
   Loader2,
   MessageSquare,
+  Pencil,
   Reply,
   Trash2,
 } from 'lucide-react';
@@ -91,6 +99,12 @@ const failedText: StaticTranslationString = {
   de: 'Nicht gesendet',
   en: 'Not sent',
   fr: 'Non envoyé',
+};
+
+const editText: StaticTranslationString = {
+  de: 'Bearbeiten',
+  en: 'Edit',
+  fr: 'Modifier',
 };
 
 const deleteText: StaticTranslationString = {
@@ -162,7 +176,20 @@ export const MessageStatusLine: React.FC<{
   locale: Locale;
 }> = ({ message, isCurrentUser, locale }) => {
   const sentAt = formatSentAt(message.createdAt, locale);
-  if (!isCurrentUser) return <p className="text-[13px] text-green-700">{sentAt}</p>;
+  const edited = isMessageEdited(message) && (
+    <>
+      <span aria-hidden="true">·</span>
+      <span>{editedLabelText[locale]}</span>
+    </>
+  );
+  if (!isCurrentUser) {
+    return (
+      <p className="flex items-center gap-1 text-[13px] text-green-700">
+        <span>{sentAt}</span>
+        {edited}
+      </p>
+    );
+  }
 
   let icon: React.ReactNode;
   let label: string;
@@ -200,6 +227,7 @@ export const MessageStatusLine: React.FC<{
       <span>{label}</span>
       <span aria-hidden="true">·</span>
       <span>{sentAt}</span>
+      {edited}
     </p>
   );
 };
@@ -219,6 +247,11 @@ interface MessageActionsSheetProperties {
   textToCopy?: string | undefined;
   /** Offers "Löschen": only on the user's own messages the server has stored. */
   canDelete?: boolean;
+  /**
+   * The user may write in this chat, so "Bearbeiten" shows on their own stored texts of the
+   * last 24 hours.
+   */
+  canEdit?: boolean;
 }
 
 /**
@@ -237,7 +270,9 @@ export const MessageActionsSheet: React.FC<MessageActionsSheetProperties> = ({
   onReplyInThread,
   textToCopy,
   canDelete = false,
+  canEdit = false,
 }) => {
+  const { startEditing, extraMessageActions } = useChatActions();
   const [copyState, setCopyState] = useState<'copied' | 'failed'>();
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const isOnline = useOnlineStatus();
@@ -264,8 +299,19 @@ export const MessageActionsSheet: React.FC<MessageActionsSheetProperties> = ({
   if (copyState === 'copied') copyLabel = copiedText[locale];
   if (copyState === 'failed') copyLabel = copyFailedText[locale];
 
+  const editableText =
+    canEdit && isMessageTextEditable(message, isCurrentUser)
+      ? messageTextOf(message.messagePayload)
+      : undefined;
+  const extraActions = extraMessageActions(message);
+
   const hasActions =
-    onReply !== undefined || onReplyInThread !== undefined || textToCopy !== undefined || canDelete;
+    onReply !== undefined ||
+    onReplyInThread !== undefined ||
+    textToCopy !== undefined ||
+    editableText !== undefined ||
+    canDelete ||
+    extraActions.length > 0;
 
   return (
     <BottomSheet
@@ -367,6 +413,19 @@ export const MessageActionsSheet: React.FC<MessageActionsSheetProperties> = ({
                   liveLabel
                 />
               )}
+              {editableText !== undefined && (
+                <SheetActionRow
+                  icon={Pencil}
+                  label={editText[locale]}
+                  onClick={then(() =>
+                    startEditing({
+                      id: message.id,
+                      text: editableText,
+                      parentId: message.parentId,
+                    }),
+                  )}
+                />
+              )}
               {canDelete && (
                 <SheetActionRow
                   icon={Trash2}
@@ -377,6 +436,15 @@ export const MessageActionsSheet: React.FC<MessageActionsSheetProperties> = ({
                   onClick={() => setIsConfirmingDelete(true)}
                 />
               )}
+              {extraActions.map((action) => (
+                <SheetActionRow
+                  key={action.key}
+                  icon={action.icon}
+                  label={action.label}
+                  destructive={action.destructive === true}
+                  onClick={then(action.onSelect)}
+                />
+              ))}
             </ul>
           )}
         </>

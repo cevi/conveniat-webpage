@@ -56,10 +56,9 @@ import {
   type HofLabel,
   type HofRole,
 } from '@/features/payload-cms/payload-cms/utils/hof-directory';
-import { getFeatureFlag } from '@/lib/db/redis';
-import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
 import { createPresignedDownloadUrl } from '@/lib/presigned-urls';
 import type { Prisma } from '@/lib/prisma/client';
+import { readFeatureFlag } from '@/lib/read-feature-flags';
 import { createTRPCRouter } from '@/trpc/init';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
@@ -371,7 +370,7 @@ export const materialRouter = createTRPCRouter({
       try {
         const [payload, hideHofAndQuartier] = await Promise.all([
           getPayload({ config }),
-          getFeatureFlag(FEATURE_HIDE_HOF_AND_QUARTIER),
+          readFeatureFlag('hideHofAndQuartier'),
         ]);
         const [hofDirectory, funktionDirectory] = await Promise.all([
           hideHofAndQuartier ? new Map<string, HofLabel>() : getHofDirectory(payload),

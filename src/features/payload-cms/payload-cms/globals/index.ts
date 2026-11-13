@@ -1,5 +1,7 @@
 import { BillSettingsGlobal } from '@/features/billing/collections/bill-settings';
+import { ForumIntroGlobal } from '@/features/chat/payload-cms/forum-intro-global';
 import { HofDashboardSettingsGlobal } from '@/features/hof-dashboard/payload-cms/hof-dashboard-settings-global';
+import { ImageSubmissionGlobal } from '@/features/image-submission/payload-cms/image-submission-global';
 import { AlertManagement } from '@/features/payload-cms/payload-cms/globals/alert-management';
 import { AlertSettingsGlobal } from '@/features/payload-cms/payload-cms/globals/alert-settings-global';
 import { AllChatsManagement } from '@/features/payload-cms/payload-cms/globals/all-chats-management';
@@ -30,6 +32,8 @@ export const globalConfig: GlobalConfig[] = [
 
   // App
   AppLandingPageGlobal,
+  ImageSubmissionGlobal,
+  ForumIntroGlobal,
   AlertManagement,
   AlertSettingsGlobal,
   AllChatsManagement,

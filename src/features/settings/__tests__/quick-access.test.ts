@@ -1,5 +1,6 @@
 import {
   DEFAULT_QUICK_ACCESS,
+  defaultQuickAccessOf,
   isDefaultQuickAccess,
   knownQuickAccessTiles,
 } from '@/features/settings/quick-access';
@@ -16,10 +17,25 @@ describe('knownQuickAccessTiles', () => {
   });
 });
 
+describe('defaultQuickAccessOf', () => {
+  it('is the default the CMS configures, in its order', () => {
+    expect(defaultQuickAccessOf(['map', 'schedule', 'chat'])).toEqual(['map', 'schedule', 'chat']);
+  });
+
+  it('falls back to the built-in default where the CMS names none', () => {
+    // a global saved before the field existed, a draft emptied, an older cached configuration
+    expect(defaultQuickAccessOf(null)).toEqual(DEFAULT_QUICK_ACCESS);
+    expect(defaultQuickAccessOf([])).toEqual(DEFAULT_QUICK_ACCESS);
+    expect(defaultQuickAccessOf(['forum'])).toEqual(DEFAULT_QUICK_ACCESS);
+  });
+});
+
 describe('isDefaultQuickAccess', () => {
   it('is the default only in the default order', () => {
-    expect(isDefaultQuickAccess(DEFAULT_QUICK_ACCESS)).toBe(true);
-    expect(isDefaultQuickAccess(['qr', 'upload', 'material', 'support'])).toBe(false);
-    expect(isDefaultQuickAccess([])).toBe(false);
+    const defaults = ['map', 'schedule', 'chat'] as const;
+    expect(isDefaultQuickAccess(['map', 'schedule', 'chat'], defaults)).toBe(true);
+    expect(isDefaultQuickAccess(['schedule', 'map', 'chat'], defaults)).toBe(false);
+    expect(isDefaultQuickAccess(DEFAULT_QUICK_ACCESS, defaults)).toBe(false);
+    expect(isDefaultQuickAccess([], defaults)).toBe(false);
   });
 });

@@ -4,8 +4,7 @@ import { getHofDirectory } from '@/features/payload-cms/payload-cms/utils/hof-di
 import { toHofIds } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import { isLeader as isLeaderIn } from '@/features/payload-cms/payload-cms/utils/is-leader';
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
-import { getFeatureFlag } from '@/lib/db/redis';
-import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
+import { readFeatureFlag } from '@/lib/read-feature-flags';
 import type { Locale } from '@/types/types';
 import config from '@payload-config';
 import { getPayload } from 'payload';
@@ -24,7 +23,7 @@ export type ViewerQuartier = HofQuartier;
  */
 export const getQuartiereOfViewer = async (viewer?: Viewer): Promise<ViewerQuartier[]> => {
   if (viewer === undefined) return [];
-  if (await getFeatureFlag(FEATURE_HIDE_HOF_AND_QUARTIER)) return [];
+  if (await readFeatureFlag('hideHofAndQuartier')) return [];
 
   const payload = await getPayload({ config });
   const [user, directory] = await Promise.all([
