@@ -1,5 +1,48 @@
 # Changelog
 
+## [1.58.0](https://github.com/cevi/conveniat-webpage/compare/v1.57.1...v1.58.0) (2026-11-13)
+
+
+### Features
+
+* **chat:** edit messages for a day; forum: Zu tun and the topic protocol ([ebadeb4](https://github.com/cevi/conveniat-webpage/commit/ebadeb4a62cbb0681a6e2465458bd08fa7e71191))
+* **forum:** an intro on the first visit, written in the CMS ([521f56b](https://github.com/cevi/conveniat-webpage/commit/521f56b18a4796d786d0d8cd30725e8f262db221))
+* **forum:** balanced titles, and pinned posts under their own label ([8e5655b](https://github.com/cevi/conveniat-webpage/commit/8e5655b323546c9599ae34dc2601ebf51b1cd74d))
+* **forum:** calmer list rows, like a Discourse topic list ([2ab4be9](https://github.com/cevi/conveniat-webpage/commit/2ab4be92a1909faab25481d25adca9e5fcec134f))
+* **forum:** compact topic head, title-first rows and a quiet flag link ([32220d9](https://github.com/cevi/conveniat-webpage/commit/32220d9cd8343fcd81323712978a3323e34d99ed))
+* **forum:** conversations, kinds, flags, removals and edits on the server ([c301e3f](https://github.com/cevi/conveniat-webpage/commit/c301e3fd9b79ba8caa9170141d6006a2dd092843))
+* **forum:** list rows name the author by their Cevi name ([17d82fb](https://github.com/cevi/conveniat-webpage/commit/17d82fba77538a032f6676a504c509239a034fe5))
+* **forum:** moderators decide on flagged replies in place, and on what flags hid ([c241309](https://github.com/cevi/conveniat-webpage/commit/c241309b2350cbd0d91748d58f9c85a0c749a39c))
+* **forum:** private conversations, post kinds, flags and moderation with reasons ([2da5e49](https://github.com/cevi/conveniat-webpage/commit/2da5e491cfd44b8054452c74d4471718d318d5ac))
+* **forum:** schema for conversations, kinds, flags and removals ([15caaa2](https://github.com/cevi/conveniat-webpage/commit/15caaa253c4efdc12c5e541091e461c857cf4fdb))
+* **forum:** the intro as a full-screen layer with the button fixed at the bottom ([d5cfe76](https://github.com/cevi/conveniat-webpage/commit/d5cfe76986f743ebee664a35cac86ce1e318c0df))
+* **forum:** topics first, post kinds, flags, removals and private conversations in the app ([a26c707](https://github.com/cevi/conveniat-webpage/commit/a26c7074ec799486057d23292331e9970429335f))
+
+
+### Bug Fixes
+
+* **app:** forum, story, challenges and wristband screens no longer scroll past their end ([92c432d](https://github.com/cevi/conveniat-webpage/commit/92c432db33204748d289a52cb5724b06648a388b))
+* **app:** screens no longer scroll past their end ([2668dfb](https://github.com/cevi/conveniat-webpage/commit/2668dfb228badfa5fb93de3e6e99f7bf38e27e35))
+* **app:** tab bar uses the default prefetch ([6da81df](https://github.com/cevi/conveniat-webpage/commit/6da81df836c8233eb3940a4bc97a324248b191e6))
+* **app:** tab bar uses the default prefetch ([4c52ffc](https://github.com/cevi/conveniat-webpage/commit/4c52ffc3a5daa8d614f8748b86a178dab1f07445))
+* **chat:** the chat list no longer scrolls past its end on a phone ([16ff053](https://github.com/cevi/conveniat-webpage/commit/16ff05392a5fb1b13ccd0fb209842dd71f5b89d8)), closes [#2802](https://github.com/cevi/conveniat-webpage/issues/2802)
+* **forum:** access follows the Kernteam and moderation everywhere a message reaches ([572a0b1](https://github.com/cevi/conveniat-webpage/commit/572a0b17a8f835eb59849c5b60076523c8b2f6fc))
+* **forum:** deleting a private conversation removes it from the chat list ([e42c99b](https://github.com/cevi/conveniat-webpage/commit/e42c99b6830bee52a87ef68bcfa6066ebd6211b2))
+* **forum:** every flag decision pair sizes to its labels and wraps instead of cutting ([8d1d467](https://github.com/cevi/conveniat-webpage/commit/8d1d4676aef60f6667ee5e5fb2dfb604705b3a35))
+* **forum:** Freigeben and Ausgeblendet lassen fit side by side on a phone ([052e786](https://github.com/cevi/conveniat-webpage/commit/052e786148c4115aef815f99172177ee47c55a53))
+* **forum:** offline, the start page shows its saved topics without waiting for conversations it cannot load ([ab902dd](https://github.com/cevi/conveniat-webpage/commit/ab902ddb2daaee6176157d3ef783201b99e5bf8e))
+* **forum:** one reset for a filtered list, a count on the filter button ([0de6123](https://github.com/cevi/conveniat-webpage/commit/0de6123dfa7d8564afb7542bd9c71a1b39e0f03f))
+* **forum:** pages scroll only as far as their content, and the header covers the status bar ([9c87745](https://github.com/cevi/conveniat-webpage/commit/9c8774507ee99f8c5e4315a62e99cf0694d5a3e9)), closes [#2803](https://github.com/cevi/conveniat-webpage/issues/2803)
+* **forum:** the filter sheet keeps its height, reset sits in its header ([9c00658](https://github.com/cevi/conveniat-webpage/commit/9c00658c9cc3d949974cc754b2e253411ae76460))
+* **forum:** the map shows forum posts with the forum's icon, not a flag ([ccebe83](https://github.com/cevi/conveniat-webpage/commit/ccebe83a6bfd0b84f5deb0568c249e248f0c49f5))
+* **forum:** the new-post button stays above the tab bar on wide screens ([17fbca5](https://github.com/cevi/conveniat-webpage/commit/17fbca51b52a3ff060f6d9813dc90c5bcffc7119))
+* **forum:** the protocol filters by the Zentrale too ([a7c9556](https://github.com/cevi/conveniat-webpage/commit/a7c95568330404b8268d6d56eef57f7d61021bf9))
+* **forum:** the start page shows a skeleton of its topics instead of a page it then swaps ([04b3027](https://github.com/cevi/conveniat-webpage/commit/04b30277c69ed79eeaf5e8fb6c6898a3e5c12a7b))
+* **forum:** the start page shows a skeleton of its topics instead of a page it then swaps ([b89594a](https://github.com/cevi/conveniat-webpage/commit/b89594a352846a7c21ccaa9ea95a99c5acbb78a8))
+* **forum:** what the review in the running app found ([5170f43](https://github.com/cevi/conveniat-webpage/commit/5170f4335ba02c21c05bea19b4e5e8cbc636b7f6))
+* **ui:** filter sheets put Zurücksetzen beside their title ([85527c0](https://github.com/cevi/conveniat-webpage/commit/85527c0fff80153690f0547308d988bba950743d))
+* **ui:** filter sheets put Zurücksetzen beside their title ([3f30f32](https://github.com/cevi/conveniat-webpage/commit/3f30f3256e930f2e96a4e65ad6faeea48eddbeae))
+
 ## [1.57.1](https://github.com/cevi/conveniat-webpage/compare/v1.57.0...v1.57.1) (2026-11-12)
 
 
