@@ -168,7 +168,6 @@ export const ForumOverview: React.FC = () => {
           onContinue={() => {
             markIntroSeen();
             setIntroAsked(false);
-            globalThis.scrollTo({ top: 0 });
           }}
         />
       </>

@@ -131,8 +131,6 @@ const filters = (): string[] => {
 
 beforeEach(() => {
   localStorage.clear();
-  // "Los geht's" scrolls the forum to its top, which jsdom does not implement
-  window.scrollTo = jest.fn();
   intro = { title: '', text: '', points: [] };
   address = '';
   topics = [topic()];
@@ -425,6 +423,15 @@ describe('the intro of the forum', () => {
     renderForum();
     fireEvent.click(screen.getByRole('button', { name: 'Los geht\u2019s' }));
     expect(screen.getByText('Platz & Infrastruktur')).toBeTruthy();
+    expect(localStorage.getItem('forum-intro-seen')).toBe('1');
+  });
+
+  it('lets the ✕ skip it like "Los geht\u2019s" does', () => {
+    intro = written;
+    renderForum();
+    expect(screen.getByRole('dialog', { name: 'Frag das Lager' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Schliessen' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(localStorage.getItem('forum-intro-seen')).toBe('1');
   });
 
