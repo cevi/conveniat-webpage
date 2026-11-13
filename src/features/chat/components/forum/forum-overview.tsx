@@ -212,7 +212,7 @@ export const ForumOverview: React.FC = () => {
   if (topics.data?.length === 0) {
     const canReport = settings.data?.privateReportsAvailable !== false;
     return (
-      <div className="bg-page min-h-dvh pb-28">
+      <div className="bg-page min-h-app-content pb-28">
         <SetHeaderActions />
         <OfflineBanner locale={locale} />
         <div className="mx-auto flex max-w-2xl flex-col px-4 pt-16">
@@ -237,7 +237,7 @@ export const ForumOverview: React.FC = () => {
   }
 
   return (
-    <div className="bg-page min-h-dvh pb-28">
+    <div className="bg-page min-h-app-content pb-28">
       <SetHeaderActions>
         <ZentraleLink counts={settings.data?.zentrale ?? null} locale={locale} />
         <button

@@ -347,7 +347,7 @@ export const ForumComposer: React.FC = () => {
   else if (settings.data?.moderationRequired === true) publishHint = forumText.moderationHint;
 
   return (
-    <div className="bg-page min-h-dvh pb-10">
+    <div className="bg-page min-h-app-content pb-10">
       <ComposerHeader locale={locale} topicId={parameters.get('topic') ?? undefined} />
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-3">
         {/* a choice only where both are possible; otherwise the composer is the one that is */}
