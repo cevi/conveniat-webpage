@@ -197,7 +197,7 @@ export const ForumHome: React.FC<{
 
       <Link
         href="/app/forum/new"
-        className="bg-conveniat-green focus-visible:focus-surface-filled fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 flex h-[52px] items-center gap-2 rounded-2xl px-5 text-[15px] font-bold text-white shadow-lg hover:bg-green-700 xl:bottom-8"
+        className="bg-conveniat-green focus-visible:focus-surface-filled fixed right-4 bottom-[calc(var(--app-tab-bar-height)+16px)] z-30 flex h-12 items-center gap-2 rounded-2xl px-5 text-[15px] font-semibold text-white shadow-lg hover:bg-green-700"
       >
         <Plus className="h-5 w-5" aria-hidden="true" />
         {forumText.newPost[locale]}
