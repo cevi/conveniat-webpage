@@ -1,19 +1,10 @@
 'use client';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/buttons/button';
 import { useAuthStatus } from '@/hooks/use-auth-status';
 
 import { EnrolmentFailure, isFullRefusal } from '@/features/schedule/components/enrolment-failure';
 import { ShiftConflictDialog } from '@/features/schedule/components/shift-conflict-dialog';
+import { ShiftEnrolSheet } from '@/features/schedule/components/shift-enrol-sheet';
 import { useShiftStatus } from '@/features/schedule/hooks/use-shift-status';
 import { useIsUnenrollmentClosed } from '@/features/schedule/hooks/use-unenrollment-window';
 import { isDeadlinePassed, timeConflictOf } from '@/features/schedule/utils/time-conflict';
@@ -27,7 +18,7 @@ import { errorReasonOf } from '@/utils/user-error-message';
 import { AlertTriangle, CheckCircle, Loader2, Lock, RefreshCw, WifiOff } from 'lucide-react';
 import React, { useState } from 'react';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const localizedEnroll: StaticTranslationString = {
   de: 'Einschreiben',
@@ -77,12 +68,6 @@ const localizedRetry: StaticTranslationString = {
   fr: 'Réessayer',
 };
 
-const localizedCancel: StaticTranslationString = {
-  de: 'Abbrechen',
-  en: 'Cancel',
-  fr: 'Annuler',
-};
-
 const localizedUnenrollClosed: StaticTranslationString = {
   de: 'Abmeldefrist abgelaufen',
   en: 'Withdrawal deadline passed',
@@ -102,19 +87,6 @@ const localizedUnenrollClosedHint: StaticTranslationString = {
   fr: 'Contacte directement les responsables du service si tu ne peux pas venir.',
 };
 
-/** The warning a helper gets when the shift they are joining can no longer be left. */
-const localizedEnrolWithoutExitWarning: StaticTranslationString = {
-  de: 'Die Abmeldefrist für diesen Schichteinsatz ist bereits abgelaufen. Wenn du dich jetzt anmeldest, kannst du dich nicht mehr selbst abmelden.',
-  en: 'The withdrawal deadline for this shift has already passed. If you enrol now, you will not be able to withdraw on your own.',
-  fr: 'Le délai de désinscription de ce service est déjà dépassé. Si tu t’inscris maintenant, tu ne pourras plus te désinscrire toi-même.',
-};
-
-const localizedEnrolAnyway: StaticTranslationString = {
-  de: 'Trotzdem anmelden',
-  en: 'Enrol anyway',
-  fr: 'S’inscrire quand même',
-};
-
 export const ShiftEnrollmentAction: React.FC<{
   shiftId: string;
   enableEnrolment?: boolean | null | undefined;
@@ -127,7 +99,16 @@ export const ShiftEnrollmentAction: React.FC<{
   /** Title and timeslot of this shift, so the conflict dialog can show what it is offering. */
   shiftTitle?: string;
   shiftTimeslot?: { date: string; time: string };
-}> = ({ shiftId, enableEnrolment, variant = 'detail', shiftTitle, shiftTimeslot }) => {
+  /** shown in the enrol sheet, with the time and the withdrawal deadline */
+  shiftMeetingPoint?: string | undefined;
+}> = ({
+  shiftId,
+  enableEnrolment,
+  variant = 'detail',
+  shiftTitle,
+  shiftTimeslot,
+  shiftMeetingPoint,
+}) => {
   const trpc = useTRPC();
   const isCard = variant === 'card';
   const authStatus = useAuthStatus();
@@ -157,7 +138,20 @@ export const ShiftEnrollmentAction: React.FC<{
    * hour - but it is a one-way door at that point, and the button gives no hint of that. The
    * confirmation is the only place the helper finds out before rather than after.
    */
-  const [noWithdrawalDialogOpen, setNoWithdrawalDialogOpen] = useState(false);
+  const [enrolSheetOpen, setEnrolSheetOpen] = useState(false);
+  const [chosenHofId, setChosenHofId] = useState<string | undefined>();
+
+  /**
+   * The Höfe the shift may count for. Read defensively: a persisted cache written before this
+   * query existed, or by a build where it answered differently, hands back something else.
+   */
+  const { data: hoefeData } = useQuery({
+    ...trpc.shifts.getMyEnrolmentHoefe.queryOptions(),
+    enabled: isAuthorized && enrolSheetOpen,
+  });
+  const hoefe = Array.isArray(hoefeData) ? hoefeData : [];
+  /** only a person in several Höfe is asked; the server takes the only one by itself */
+  const hofIdToSend = hoefe.length > 1 ? chosenHofId : undefined;
 
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
   const [conflictType, setConflictType] = useState<'workshop' | 'shift'>('workshop');
@@ -200,10 +194,14 @@ export const ShiftEnrollmentAction: React.FC<{
         void queryClient.invalidateQueries(trpc.shifts.getMyShiftEnrollments.pathFilter());
         void queryClient.invalidateQueries(trpc.schedule.getHelperShifts.pathFilter());
         void queryClient.invalidateQueries(trpc.shifts.getShifts.pathFilter());
+        setEnrolSheetOpen(false);
         setConflictDialogOpen(false);
         setConflictInfo(undefined);
       },
       onError: (error) => {
+        // the sheet closes either way: a conflict opens its own dialog, a refusal shows under
+        // the button the helper came from
+        setEnrolSheetOpen(false);
         const conflict = timeConflictOf(error);
         if (conflict === undefined) {
           refreshAfterRefusal(error, () => enroll.reset());
@@ -335,11 +333,8 @@ export const ShiftEnrollmentAction: React.FC<{
   const isSwitchBlocked = wasRejectedAsTooLate || isConflictingWindowClosed;
 
   const handleEnrolClick = (): void => {
-    if (isUnenrollmentWindowClosed) {
-      setNoWithdrawalDialogOpen(true);
-      return;
-    }
-    enroll.mutate({ shiftId });
+    enroll.reset();
+    setEnrolSheetOpen(true);
   };
   const isFull = maxParticipants !== undefined && enrolledCount >= maxParticipants;
 
@@ -487,43 +482,26 @@ export const ShiftEnrollmentAction: React.FC<{
       )}
       {failedLine}
 
-      <AlertDialog open={noWithdrawalDialogOpen} onOpenChange={setNoWithdrawalDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{localizedUnenrollClosed[locale]}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {localizedEnrolWithoutExitWarning[locale]}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="border-danger-line bg-danger-soft text-danger-text flex w-full items-start gap-2 rounded-xl border p-3 text-left text-sm">
-            <Lock className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            <p>{localizedUnenrollClosedHint[locale]}</p>
-          </div>
-          <AlertDialogFooter className="gap-3 sm:gap-0">
-            <AlertDialogAction
-              className="bg-conveniat-green w-full text-white hover:bg-green-700"
-              onClick={(event: React.MouseEvent) => {
-                event.preventDefault();
-                enroll.mutate({ shiftId });
-                setNoWithdrawalDialogOpen(false);
-              }}
-              disabled={enroll.isPending}
-            >
-              {enroll.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {localizedEnroll[locale]}...
-                </>
-              ) : (
-                localizedEnrolAnyway[locale]
-              )}
-            </AlertDialogAction>
-            <AlertDialogCancel disabled={enroll.isPending} className="w-full">
-              {localizedCancel[locale]}
-            </AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ShiftEnrolSheet
+        open={enrolSheetOpen}
+        onOpenChange={setEnrolSheetOpen}
+        title={shiftTitle ?? ''}
+        timeslot={shiftTimeslot}
+        meetingPoint={shiftMeetingPoint}
+        unenrollmentDeadline={status.unenrollmentDeadline}
+        isWithdrawalClosed={isUnenrollmentWindowClosed}
+        hoefe={hoefe}
+        chosenHofId={chosenHofId}
+        onChooseHof={setChosenHofId}
+        onConfirm={() =>
+          enroll.mutate({
+            shiftId,
+            ...(hofIdToSend === undefined ? {} : { hofId: hofIdToSend }),
+          })
+        }
+        isPending={enroll.isPending}
+        locale={locale}
+      />
 
       <ShiftConflictDialog
         open={conflictDialogOpen}
@@ -540,6 +518,7 @@ export const ShiftEnrollmentAction: React.FC<{
           switchEnrollment.mutate({
             fromCourseId: conflictInfo.conflictingCourseId,
             toShiftId: shiftId,
+            ...(hofIdToSend === undefined ? {} : { hofId: hofIdToSend }),
           });
         }}
         locale={locale}

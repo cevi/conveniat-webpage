@@ -152,6 +152,7 @@ export const ShiftCard: React.FC<{
                 variant="card"
                 shiftTitle={shift.title}
                 shiftTimeslot={shift.timeslot}
+                shiftMeetingPoint={shift.meetingPoint}
               />
             )}
           </div>

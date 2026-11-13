@@ -52,6 +52,16 @@ export const scheduleErrorTexts = {
     en: 'The maximum number of participants cannot be lower than the number already enrolled.',
     fr: 'Le nombre maximum de participants ne peut pas être inférieur au nombre d’inscrits.',
   },
+  hofChoiceRequired: {
+    de: 'Wähle, für welchen deiner Höfe dieser Schichteinsatz zählt.',
+    en: 'Choose which of your Höfe this shift counts for.',
+    fr: 'Choisis pour lequel de tes Höfe ce service compte.',
+  },
+  notInThisHof: {
+    de: 'Du bist nicht (mehr) in diesem Hof angemeldet. Lade die Seite neu und wähle nochmals.',
+    en: 'You are not (or no longer) registered in this Hof. Reload the page and choose again.',
+    fr: 'Tu n’es pas (ou plus) inscrit dans ce Hof. Recharge la page et choisis à nouveau.',
+  },
   onlyOrganisersChat: {
     de: 'Nur Organisatoren können den Gruppenchat erstellen.',
     en: 'Only organisers can create the group chat.',

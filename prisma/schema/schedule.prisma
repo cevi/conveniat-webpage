@@ -18,10 +18,20 @@ model Enrollment {
   /// discriminates between program schedule entries and helper shifts
   courseType CourseType @default(PROGRAM)
 
+  /// when the person enrolled; the AVP sees it in the view of their Hof
+  createdAt DateTime @default(now())
+
+  /// the Hof in Payload's `hoefe` collection a shift counts for, taken from the person's Cevi.DB
+  /// registration when they enrolled and kept when it changes later, so a past enrolment keeps
+  /// counting where it did; empty for a person without a Hof and for a programme enrolment.
+  /// No foreign key, the Hof lives in MongoDB.
+  hofId String?
+
   @@unique([courseId, courseType, userId]) // every user can only be enrolled once per course and course type
   @@index([courseId])
   @@index([userId])
   @@index([courseType])
+  @@index([hofId])
 }
 
 model Star {
