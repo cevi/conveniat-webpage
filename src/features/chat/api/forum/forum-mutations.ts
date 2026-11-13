@@ -19,6 +19,7 @@ import {
   canSeeForumPost,
   findForumPostVisibility,
 } from '@/features/chat/api/forum/forum-visibility';
+import { syncConversationKernteam } from '@/features/payload-cms/payload-cms/chat-channels/forum-kernteam';
 import { getFunktionDirectory } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import { isImageKeyOfChat } from '@/lib/chat-images';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
@@ -125,6 +126,8 @@ export interface LoadedPost {
   topicName: string;
   /** a private conversation rather than a post of a topic */
   isConversation: boolean;
+  /** the topic a private conversation belongs to; absent for a post of a topic */
+  topicChatId?: string;
 }
 
 /**
@@ -147,7 +150,11 @@ export const loadPost = async (
       pinnedAt: true,
       answerMessageId: true,
       chat: {
-        select: { name: true, type: true, forumTopic: { select: { name: true } } },
+        select: {
+          name: true,
+          type: true,
+          forumTopic: { select: { uuid: true, name: true } },
+        },
       },
       message: { select: { senderId: true, deletedAt: true } },
     },
@@ -171,6 +178,7 @@ export const loadPost = async (
     // the protocol files a conversation under its topic
     topicName: post.chat.forumTopic?.name ?? post.chat.name,
     isConversation: post.chat.type === ChatType.FORUM_CONVERSATION,
+    ...(post.chat.forumTopic == null ? {} : { topicChatId: post.chat.forumTopic.uuid }),
   };
 };
 
@@ -550,6 +558,15 @@ export const updateForumPostStatus = trpcBaseProcedure
     }
 
     ctx.afterTransactionCommit(() => {
+      // a closed conversation kept the Kernteam that answered it; open again, it gets today's
+      if (post.isConversation && input.status !== 'DONE' && post.topicChatId !== undefined) {
+        syncConversationKernteam(post.topicChatId, post.chatId).catch((error: unknown) => {
+          logger.error('Failed to sync the Kernteam of a reopened conversation', {
+            error,
+            'chat.id': post.chatId,
+          });
+        });
+      }
       logger.info('Forum post status changed', {
         'chat.id': post.chatId,
         'forum.post.id': post.messageId,

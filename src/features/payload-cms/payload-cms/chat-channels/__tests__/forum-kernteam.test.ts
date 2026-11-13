@@ -6,7 +6,17 @@ let functionsOf: Record<string, string[]>;
 let memberships: Map<string, Permission>;
 /** one open private conversation of the topic, which Tim wrote, and who is in it */
 let conversation: Map<string, Permission>;
+/** who follows the answers of that conversation, and whose open pages were told to leave it */
+let followers: Set<string>;
+let revoked: string[];
 const CONVERSATION = 'chat-conversation';
+
+jest.mock('@/lib/db/publish-membership-revoked', () => ({
+  publishMembershipRevoked: (userId: string): Promise<void> => {
+    revoked.push(userId);
+    return Promise.resolve();
+  },
+}));
 
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
@@ -28,9 +38,19 @@ jest.mock('@/lib/db/prisma', () => ({
               userId,
               chatPermission,
             })),
-            forumPosts: [{ message: { senderId: 'tim' } }],
+            forumPosts: [{ messageId: 'post-conversation', message: { senderId: 'tim' } }],
           },
         ]),
+    },
+    threadSubscription: {
+      createMany: ({ data }: { data: { userId: string }[] }): Promise<void> => {
+        for (const { userId } of data) followers.add(userId);
+        return Promise.resolve();
+      },
+      deleteMany: ({ where }: { where: { userId: { in: string[] } } }): Promise<void> => {
+        for (const id of where.userId.in) followers.delete(id);
+        return Promise.resolve();
+      },
     },
     chatMembership: {
       findMany: ({
@@ -122,6 +142,8 @@ beforeEach(() => {
     ['webteam', 'ADMIN'],
     ['noah', 'ADMIN'],
   ]);
+  followers = new Set(['tim', 'webteam', 'noah']);
+  revoked = [];
 });
 
 describe('the Kernteam of a forum topic', () => {
@@ -162,6 +184,9 @@ describe('the Kernteam of a forum topic', () => {
       webteam: 'ADMIN',
       mira: 'ADMIN',
     });
+    // the answers reach Mira now and no longer Noah, whose open pages let go of it at once
+    expect([...followers].toSorted()).toEqual(['mira', 'tim', 'webteam']);
+    expect(revoked).toEqual(['noah']);
   });
 
   it('keeps the writer of a conversation in it, even once they leave the Kernteam', async () => {

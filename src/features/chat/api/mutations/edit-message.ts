@@ -34,6 +34,8 @@ export const editMessage = trpcBaseProcedure
   .use(databaseTransactionWrapper)
   .mutation(async ({ ctx, input }): Promise<{ editedAt: Date }> => {
     const { prisma, user } = ctx;
+    // edits of one message one after the other, so each gets a revision of its own
+    await prisma.$executeRaw`SELECT 1 FROM "Message" WHERE uuid = ${input.messageId} FOR UPDATE`;
     // someone outside the chat learns nothing, not even that the message exists
     const message = await prisma.message.findFirst({
       where: {

@@ -46,6 +46,7 @@ let editedAt: Date | null;
 
 const prisma = {
   $transaction: <T>(callback: (tx: unknown) => Promise<T>): Promise<T> => callback(prisma),
+  $executeRaw: (): Promise<number> => Promise.resolve(1),
   message: {
     findFirst: (): Promise<unknown> =>
       Promise.resolve({

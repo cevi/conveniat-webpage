@@ -152,8 +152,9 @@ export const ForumOverview: React.FC = () => {
   const [introAsked, setIntroAsked] = useState(false);
 
   // the first visit on this device waits for the intro rather than flashing the forum first;
-  // without one written, or while offline without a cached one, the forum opens as it is
-  if (introSeen === false && intro.isPending) {
+  // without one written, or while offline without a cached one, the forum opens as it is: a
+  // query paused for the network is pending but not loading
+  if (introSeen === false && intro.isLoading) {
     return (
       <div className="bg-page flex justify-center pt-24">
         <Loader2 className="h-6 w-6 animate-spin text-green-700" aria-hidden="true" />

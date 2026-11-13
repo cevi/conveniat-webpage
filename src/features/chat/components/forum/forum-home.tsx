@@ -47,7 +47,8 @@ export const ForumHome: React.FC<{
     trpc.forum.getForumPostSuggestionList.queryOptions({ title: search }, { enabled: isSearching }),
   );
 
-  if (topics.data?.length === 0) {
+  // someone in no topic can still have written a private conversation of one
+  if (topics.data?.length === 0 && (conversations.data?.length ?? 0) === 0) {
     return (
       <div className="bg-page pb-28">
         <SetHeaderActions />

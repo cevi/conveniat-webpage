@@ -1,3 +1,4 @@
+import { assertWriteAbilities } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { forumError } from '@/features/chat/api/forum/forum-errors';
 import { recordForumFlag, recordForumRemoval } from '@/features/chat/api/forum/forum-metrics';
 import {
@@ -24,7 +25,6 @@ import {
   findForumPostVisibility,
   publishForumThreadEvent,
 } from '@/features/chat/api/forum/forum-visibility';
-import { chatPubSub } from '@/lib/db/chat-pubsub';
 import poolPrisma from '@/lib/db/prisma';
 import {
   FORUM_FLAG_REASONS,
@@ -148,14 +148,20 @@ const loadMessage = async (
   };
 };
 
-/** Tells open pages that a message changed, on the channel that may know about it. */
+/**
+ * Tells open pages that a message changed, on the channel that may know about it. A post just
+ * hidden is told to the readers it had before, so their pages drop it; the event carries no
+ * content, and what they fetch then is what they may still see.
+ */
 const announceChange = async (
   prisma: PrismaClientOrTransaction,
   message: LoadedMessage,
   actorId: string,
+  postJustHidden = false,
 ): Promise<void> => {
-  const visibility = await findForumPostVisibility(prisma, message.post.messageId);
-  if (visibility === undefined) return;
+  const found = await findForumPostVisibility(prisma, message.post.messageId);
+  if (found === undefined) return;
+  const visibility = postJustHidden ? { ...found, hidden: false } : found;
   await publishForumThreadEvent(prisma, visibility, {
     type: 'message_updated',
     chatId: message.chatId,
@@ -203,10 +209,14 @@ const removeMessage = async (
     create: { messageId: message.uuid, ...removal },
     update: removal,
   });
-  await prisma.forumFlag.updateMany({
-    where: { messageId: message.uuid, resolvedAt: null },
-    data: { resolvedAt: new Date() },
-  });
+  // a moderator's removal decides on the flags; one the flags did themselves waits for that
+  // decision, in "Zu tun", until a moderator shows the message again or leaves it hidden
+  if (!automatic || details.kind === 'DELETED') {
+    await prisma.forumFlag.updateMany({
+      where: { messageId: message.uuid, resolvedAt: null },
+      data: { resolvedAt: new Date() },
+    });
+  }
   if (details.kind === 'DELETED') {
     await prisma.message.update({
       where: { uuid: message.uuid },
@@ -272,24 +282,30 @@ const afterRemoval = (
       recipientId: message.senderId,
     });
   }
+  // a deleted post or comment goes out like an edit: on the topic's channel only while its
+  // post is public, so a post waiting for approval stays unknown to the topic
   const event =
     details.kind === 'DELETED'
-      ? chatPubSub.publish({
-          type: 'message_deleted',
-          chatId: message.chatId,
-          senderId: details.actorId,
-          message: {
-            id: message.uuid,
-            createdAt: message.createdAt,
-            messagePayload: {},
-            senderId: message.senderId ?? details.actorId,
-            status: MessageEventType.STORED,
-            type: message.type,
-            parentId: message.parentId ?? undefined,
-            deletedAt: new Date(),
-          },
-        })
-      : announceChange(prisma, message, details.actorId);
+      ? findForumPostVisibility(prisma, message.post.messageId).then((visibility) =>
+          visibility === undefined
+            ? undefined
+            : publishForumThreadEvent(prisma, visibility, {
+                type: 'message_deleted',
+                chatId: message.chatId,
+                senderId: details.actorId,
+                message: {
+                  id: message.uuid,
+                  createdAt: message.createdAt,
+                  messagePayload: {},
+                  senderId: message.senderId ?? details.actorId,
+                  status: MessageEventType.STORED,
+                  type: message.type,
+                  parentId: message.parentId ?? undefined,
+                  deletedAt: new Date(),
+                },
+              }),
+        )
+      : announceChange(prisma, message, details.actorId, !message.isComment);
   event.catch((error: unknown) => {
     logger.error('Failed to publish a forum removal', {
       error,
@@ -339,6 +355,9 @@ export const createForumFlag = trpcBaseProcedure
       throw forumError('NOT_FOUND', 'postGone');
     }
 
+    // flags on one message one after the other, so two that cross both count the other one
+    // and the one that reaches the threshold hides the message
+    await prisma.$executeRaw`SELECT 1 FROM "Message" WHERE uuid = ${message.uuid} FOR UPDATE`;
     const existing = await prisma.forumFlag.findUnique({
       where: { messageId_userId: { messageId: message.uuid, userId: user.uuid } },
       select: { resolvedAt: true },
@@ -698,6 +717,14 @@ export const updateForumPost = trpcBaseProcedure
     const { prisma, user } = ctx;
     const post = await loadPost(prisma, input.postId);
     if (post.senderId !== user.uuid) throw forumError('FORBIDDEN', 'notAllowed');
+    // an author who left the topic since changes nothing in it, and a topic closed for writing
+    // keeps its posts as they are
+    const member = await prisma.chatMembership.count({
+      where: { chatId: post.chatId, userId: user.uuid },
+    });
+    if (member === 0) throw forumError('NOT_FOUND', 'postGone');
+    // edits of one post one after the other, so each gets a revision of its own
+    await prisma.$executeRaw`SELECT 1 FROM "Message" WHERE uuid = ${post.messageId} FOR UPDATE`;
     const row = await prisma.message.findUniqueOrThrow({
       where: { uuid: post.messageId },
       select: {
@@ -719,6 +746,7 @@ export const updateForumPost = trpcBaseProcedure
     if (row.chat.type === ChatType.FORUM_CONVERSATION && row.chat.status === 'CLOSED') {
       throw forumError('CONFLICT', 'conversationClosed');
     }
+    await assertWriteAbilities(prisma, post.chatId);
     const latest = row.contentVersions[0];
     const previous = (latest?.payload ?? {}) as Record<string, unknown>;
     const editedAt = new Date();

@@ -191,8 +191,12 @@ export const pushForumThread = (event: {
 }): void => {
   const run = async (): Promise<void> => {
     const [subscriptions, piketIds] = await Promise.all([
+      // a subscriber who has since left the topic or the conversation reads it no more
       prisma.threadSubscription.findMany({
-        where: { messageId: event.postId },
+        where: {
+          messageId: event.postId,
+          user: { chatMemberships: { some: { chatId: event.chatId } } },
+        },
         select: { userId: true },
       }),
       event.includePiket ? activePiketIds() : Promise.resolve([]),

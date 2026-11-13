@@ -64,6 +64,17 @@ const deletedImageKeys = new Set<string>();
 const deletedPostImageKeys = new Set<string>();
 /** keys of images whose forum post was moved into `CHAT_ID`, carried by one of its messages */
 const movedImageKeys = new Set<string>();
+/** keys of photos of a forum post a moderator hid, which ordinary readers do not see */
+const hiddenPostImageKeys = new Set<string>();
+const HIDDEN_POST_ID = 'hidden-post';
+
+jest.mock('@/features/chat/api/forum/forum-visibility', () => ({
+  isForumMessageHiddenFrom: (
+    _prisma: unknown,
+    _user: unknown,
+    messageId: string,
+  ): Promise<boolean> => Promise.resolve(messageId === HIDDEN_POST_ID),
+}));
 
 /** One chat with one member; the capability lookup reads the chat through the shared client. */
 const prisma = {
@@ -76,6 +87,24 @@ const prisma = {
     ),
   },
   messageContent: {
+    // the messages that carry a key, with whether they were deleted
+    findMany: jest.fn(
+      ({
+        where,
+      }: {
+        where: { OR: { payload: { equals?: string; array_contains?: string[] } }[] };
+      }) => {
+        const url = where.OR[0]?.payload.equals ?? '';
+        const inImages = where.OR[1]?.payload.array_contains?.[0] ?? '';
+        if (deletedImageKeys.has(url) || deletedPostImageKeys.has(inImages)) {
+          return Promise.resolve([{ message: { uuid: 'deleted-message', deletedAt: new Date() } }]);
+        }
+        if (hiddenPostImageKeys.has(url)) {
+          return Promise.resolve([{ message: { uuid: HIDDEN_POST_ID, deletedAt: null } }]);
+        }
+        return Promise.resolve([{ message: { uuid: 'some-message', deletedAt: null } }]);
+      },
+    ),
     findFirst: jest.fn(
       ({
         where,
@@ -148,6 +177,7 @@ const pngUpload = { chatId: CHAT_ID, contentType: 'image/png', contentLength: 20
 beforeEach(() => {
   chatCapabilities = ['PICTURE_UPLOAD'];
   deletedImageKeys.clear();
+  hiddenPostImageKeys.clear();
 });
 
 describe('chat image downloads', () => {
@@ -224,6 +254,14 @@ describe('chat image downloads', () => {
       callerAs(member).getDownloadUrl({ chatId: CHAT_ID, key: ownImage }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     deletedPostImageKeys.delete(ownImage);
+  });
+
+  it('does not sign a photo of a hidden forum post for a reader who no longer sees the post', async () => {
+    hiddenPostImageKeys.add(ownImage);
+
+    await expect(
+      callerAs(member).getDownloadUrl({ chatId: CHAT_ID, key: ownImage }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('refuses an admin a key outside the chat as well', async () => {

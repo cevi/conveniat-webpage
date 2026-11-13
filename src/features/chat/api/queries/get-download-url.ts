@@ -51,9 +51,8 @@ export const getDownloadUrl = trpcBaseProcedure
 
     // The admin chat management renders images through this procedure too, for chats the
     // admin is not a member of; it grants what the admin router grants for the chat.
-    if (!(await canManageChat(ctx.prisma, ctx.user, chatId))) {
-      await assertChatMember(ctx.prisma, ctx.user.uuid, chatId);
-    }
+    const manages = await canManageChat(ctx.prisma, ctx.user, chatId);
+    if (!manages) await assertChatMember(ctx.prisma, ctx.user.uuid, chatId);
 
     // The bucket is shared with form uploads, exports and bill PDFs.
     if (
@@ -70,19 +69,30 @@ export const getDownloadUrl = trpcBaseProcedure
     // The object stays in the bucket, but a deleted image is not signed again for anyone who
     // still holds its key, see `deleteMessage`. A key names a single message, see
     // `createMessage`, so only the image's own sender can take it away.
-    // A forum post's photos go with it too, when its author or a moderator deletes it.
-    const deletedImage = await ctx.prisma.messageContent.findFirst({
+    // A forum post's photos go with it too, when its author or a moderator deletes it, and are
+    // not signed for anyone who may not read it: a post waiting for approval, or a post or a
+    // comment a moderator hid.
+    const carriers = await ctx.prisma.messageContent.findMany({
       where: {
         OR: [
           { payload: { path: ['url'], equals: key } },
           { payload: { path: ['images'], array_contains: [key] } },
         ],
-        message: { chatId, deletedAt: { not: null } },
+        message: { chatId },
       },
-      select: { uuid: true },
+      select: { message: { select: { uuid: true, deletedAt: true } } },
     });
-    if (deletedImage !== null) {
+    if (carriers.some(({ message }) => message !== null && message.deletedAt !== null)) {
       throw new TRPCError({ code: 'NOT_FOUND', message: 'This image was deleted.' });
+    }
+    const carrierId = carriers.find(({ message }) => message !== null)?.message?.uuid;
+    // the admin chat management sees what it manages, as the admin router does
+    if (carrierId !== undefined && !manages) {
+      const { isForumMessageHiddenFrom } =
+        await import('@/features/chat/api/forum/forum-visibility');
+      if (await isForumMessageHiddenFrom(ctx.prisma, ctx.user, carrierId)) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'This image was deleted.' });
+      }
     }
 
     return {

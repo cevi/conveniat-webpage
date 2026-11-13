@@ -1,5 +1,6 @@
 import { toFunktionIds } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import prisma from '@/lib/db/prisma';
+import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import type { Payload, PayloadRequest } from 'payload';
 
@@ -78,12 +79,17 @@ export const syncForumKernteam = async (
 };
 
 /**
- * Makes the ADMINs of every open private conversation of a topic its Kernteam now: a new
- * Kernteam member joins them, with the conversations muted if they switched those pushes off,
- * and one who left the Kernteam leaves them, unless they wrote it. Closed conversations keep
- * who answered them.
+ * Makes the ADMINs of every open private conversation of a topic its Kernteam now, or of one
+ * conversation with `conversationId`, e.g. when it opens again: a new Kernteam member joins it
+ * and follows its answers, unless they switched those pushes off, and one who left the Kernteam
+ * leaves it and stops following it, unless they wrote it. Their open pages are told at once,
+ * since the stream checks a membership only when it connects. Closed conversations keep who
+ * answered them, until they open again.
  */
-export const syncConversationKernteam = async (topicChatId: string): Promise<void> => {
+export const syncConversationKernteam = async (
+  topicChatId: string,
+  conversationId?: string,
+): Promise<void> => {
   const [kernteam, conversations] = await Promise.all([
     prisma.chatMembership.findMany({
       where: {
@@ -93,17 +99,24 @@ export const syncConversationKernteam = async (topicChatId: string): Promise<voi
       select: { userId: true, forumConversationPushOff: true },
     }),
     prisma.chat.findMany({
-      where: { forumTopicId: topicChatId, type: ChatType.FORUM_CONVERSATION, status: 'OPEN' },
+      where: {
+        forumTopicId: topicChatId,
+        type: ChatType.FORUM_CONVERSATION,
+        status: 'OPEN',
+        ...(conversationId === undefined ? {} : { uuid: conversationId }),
+      },
       select: {
         uuid: true,
         chatMemberships: { select: { userId: true, chatPermission: true } },
-        forumPosts: { select: { message: { select: { senderId: true } } } },
+        forumPosts: { select: { messageId: true, message: { select: { senderId: true } } } },
       },
     }),
   ]);
   const kernteamIds = new Set(kernteam.map((member) => member.userId));
   for (const conversation of conversations) {
-    const writer = conversation.forumPosts[0]?.message.senderId ?? null;
+    const post = conversation.forumPosts[0];
+    const writer = post?.message.senderId ?? null;
+    const joined: string[] = [];
     for (const member of kernteam) {
       if (member.userId === writer) continue;
       const current = conversation.chatMemberships.find((m) => m.userId === member.userId);
@@ -118,6 +131,14 @@ export const syncConversationKernteam = async (topicChatId: string): Promise<voi
         },
         update: { chatPermission: ChatMembershipPermission.ADMIN },
       });
+      if (!member.forumConversationPushOff) joined.push(member.userId);
+    }
+    // the answers reach the Kernteam through the post's subscriptions, as they did at its start
+    if (post !== undefined && joined.length > 0) {
+      await prisma.threadSubscription.createMany({
+        data: joined.map((userId) => ({ userId, messageId: post.messageId })),
+        skipDuplicates: true,
+      });
     }
     const departed = conversation.chatMemberships
       .filter(
@@ -127,11 +148,18 @@ export const syncConversationKernteam = async (topicChatId: string): Promise<voi
           m.userId !== writer,
       )
       .map((m) => m.userId);
-    if (departed.length > 0) {
-      await prisma.chatMembership.deleteMany({
-        where: { chatId: conversation.uuid, userId: { in: departed } },
+    if (departed.length === 0) continue;
+    await prisma.chatMembership.deleteMany({
+      where: { chatId: conversation.uuid, userId: { in: departed } },
+    });
+    if (post !== undefined) {
+      await prisma.threadSubscription.deleteMany({
+        where: { messageId: post.messageId, userId: { in: departed } },
       });
     }
+    await Promise.all(
+      departed.map((userId) => publishMembershipRevoked(userId, conversation.uuid, userId)),
+    );
   }
 };
 

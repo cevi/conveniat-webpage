@@ -165,7 +165,16 @@ export const ForumComposer: React.FC = () => {
     const asked = parameters.get('kind');
     return FORUM_POST_KINDS.find((candidate) => candidate === asked) ?? 'QUESTION';
   });
-  const [conversationId] = useState(() => crypto.randomUUID());
+  // one conversation per topic: a retry after a failed upload reuses the one opened for the
+  // same topic, and a topic changed in between opens its own
+  const [conversationIds] = useState(() => new Map<string, string>());
+  const conversationIdFor = (topic: string): string => {
+    const known = conversationIds.get(topic);
+    if (known !== undefined) return known;
+    const created = crypto.randomUUID();
+    conversationIds.set(topic, created);
+    return created;
+  };
   // a private conversation goes to the Kernteam of a topic that takes them; a persisted list
   // from before conversations knows none, and the server's refusal then says why
   const offeredTopics = isPrivate
@@ -250,7 +259,10 @@ export const ForumComposer: React.FC = () => {
     try {
       if (topicId === undefined) return;
       const conversation = isPrivate
-        ? await openConversation.mutateAsync({ topicId, conversationId })
+        ? await openConversation.mutateAsync({
+            topicId,
+            conversationId: conversationIdFor(topicId),
+          })
         : undefined;
       const targetChatId = conversation?.chatId ?? topicId;
       const keys = await uploadImagesTo(targetChatId);
