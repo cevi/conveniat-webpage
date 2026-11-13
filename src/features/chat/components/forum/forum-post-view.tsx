@@ -550,18 +550,18 @@ const PostHeader: React.FC<{
               aria-hidden="true"
             />
           </button>
-          {post.viewer.canFlag === true && post.viewer.myFlag == null && (
-            <button
-              type="button"
-              aria-label={forumText.flag[locale]}
-              title={forumText.flag[locale]}
-              onClick={onFlag}
-              className="focus-visible:focus-surface border-line hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border bg-white text-green-700"
-            >
-              <Flag className="h-5 w-5" aria-hidden="true" />
-            </button>
-          )}
         </div>
+      )}
+      {/* flagging is a secondary action, so it does not stand next to "Ich auch" */}
+      {post.viewer.canFlag === true && post.viewer.myFlag == null && (
+        <button
+          type="button"
+          onClick={onFlag}
+          className="focus-visible:focus-surface hover:bg-quiet -mt-1 -ml-2 flex h-11 cursor-pointer items-center gap-1.5 self-start rounded-xl px-2 text-[13px] font-semibold text-green-700"
+        >
+          <Flag className="h-4 w-4" aria-hidden="true" />
+          {forumText.flagTitle[locale]}
+        </button>
       )}
 
       <ZentraleActions

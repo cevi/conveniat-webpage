@@ -156,7 +156,7 @@ describe('flagging a post', () => {
   it('offers "Melden" to whoever may flag it, and opens the flag sheet for the post', () => {
     renderPost(post({}, { canFlag: true }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Melden' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Beitrag melden' }));
 
     expect(screen.getByText(`Melden: ${POST_ID}`)).toBeTruthy();
   });
@@ -164,13 +164,13 @@ describe('flagging a post', () => {
   it('offers no "Melden" to someone who may not flag it, like its author', () => {
     renderPost(post({}, { isAuthor: true, canFlag: false }));
 
-    expect(screen.queryByRole('button', { name: 'Melden' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Beitrag melden' })).toBeNull();
   });
 
   it('says what the user flagged it for instead of offering it twice', () => {
     renderPost(post({}, { canFlag: true, myFlag: 'PERSONAL_DATA' }));
 
-    expect(screen.queryByRole('button', { name: 'Melden' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Beitrag melden' })).toBeNull();
     expect(screen.getByText(/Persönliche Daten/)).toBeTruthy();
   });
 });

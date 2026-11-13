@@ -1,7 +1,6 @@
 'use client';
 
 import { BottomSheet } from '@/components/ui/bottom-sheet';
-import { Button } from '@/components/ui/buttons/button';
 import { Card } from '@/components/ui/card';
 import { ListRow } from '@/components/ui/list-row';
 import { Switch } from '@/components/ui/switch';
@@ -12,7 +11,6 @@ import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ChevronRight, History, Lock } from 'lucide-react';
-import Link from 'next/link';
 import type React from 'react';
 import type { RefObject } from 'react';
 
@@ -28,32 +26,36 @@ export const TopicCard: React.FC<{
 }> = ({ topic, locale, action }) => {
   const kernteam = topic.kernteamLabels ?? [];
   return (
-    <Card className="flex flex-col gap-3 p-4">
-      <div className="flex items-start gap-3">
+    // compact, so the first posts show without scrolling: name, who answers, and the editors'
+    // description in one line
+    <Card className="flex flex-col">
+      <div className="flex items-center gap-3 px-4 py-3">
         <ForumTopicIconView icon={topic.icon} />
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <h1 className="font-heading text-heading text-[20px] leading-tight font-extrabold">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <h1 className="font-heading text-heading text-[17px] leading-tight font-extrabold">
             {topic.name}
           </h1>
-          {topic.description !== null && topic.description !== '' && (
-            <p className="text-[14px] text-green-700">{topic.description}</p>
-          )}
           {kernteam.length > 0 && (
             <p className="text-[13px] text-green-700">
               <span className="font-semibold text-green-800">{forumText.kernteam[locale]}:</span>{' '}
               {kernteam.join(', ')}
             </p>
           )}
+          {topic.description !== null && topic.description !== '' && (
+            <p className="truncate text-[13px] text-green-700">{topic.description}</p>
+          )}
         </div>
         {action}
       </div>
       {topic.allowsPrivateConversations === true && (
-        <Button asChild variant="outlined" size="touch">
-          <Link href={`/app/forum/new?conversation=1&topic=${topic.id}`}>
-            <Lock aria-hidden="true" />
-            {forumText.privateReport[locale]}
-          </Link>
-        </Button>
+        <ListRow
+          href={`/app/forum/new?conversation=1&topic=${topic.id}`}
+          className="border-line min-h-12 border-t py-0 text-[15px] font-semibold text-green-900"
+        >
+          <Lock className="h-[18px] w-[18px] text-green-700" aria-hidden="true" />
+          <span className="flex-1">{forumText.privateReport[locale]}</span>
+          <ChevronRight className="h-5 w-5 text-green-600" aria-hidden="true" />
+        </ListRow>
       )}
     </Card>
   );
