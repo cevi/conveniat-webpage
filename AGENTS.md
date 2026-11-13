@@ -495,8 +495,9 @@ done
 `Conveniat27App/src/config/appConfig.ts`. Point `testing` at the local instance and allow cleartext
 in the `screengrab` build type (bundled JS, debug signed, debuggable, so its WebView is open to
 DevTools). Never commit these two edits. `@cevi/app-core` resolves over SSH, so the build rewrites
-GitHub URLs to HTTPS with the `gh` token, and it needs Node 22.18 or newer, which the build image
-does not ship.
+GitHub URLs to HTTPS with the `gh` token. Since React Native 0.88 the app needs Node 24.12 or
+newer, which the build image does not ship. Yarn fetches one package at a time: the nested install
+that builds `@cevi/app-core` shares yarn's cache, and in parallel the two corrupted `firebase` in it.
 
 ```bash
 gh repo clone cevi/conveniat27-app /tmp/c27app -- --depth 1
@@ -506,9 +507,11 @@ sed -i 's#usesCleartextTraffic: "false"#usesCleartextTraffic: "true"#' android/a
 docker run --rm -e GH_TOKEN="$(gh auth token)" -v /tmp/c27app:/work -v c27-gradle-cache:/root/.gradle \
   reactnativecommunity/react-native-android:latest bash -euc '
     git config --global url."https://x-access-token:$GH_TOKEN@github.com/".insteadOf ssh://git@github.com/
-    curl -fsSL https://nodejs.org/dist/v22.20.0/node-v22.20.0-linux-x64.tar.gz | tar -xz -C /opt
-    export PATH=/opt/node-v22.20.0-linux-x64/bin:$PATH && npm i -g yarn@1.22.22 >/dev/null
-    cd /work/Conveniat27App && yarn install --frozen-lockfile && yarn generate:app-info
+    curl -fsSL https://nodejs.org/dist/v24.12.0/node-v24.12.0-linux-x64.tar.gz | tar -xz -C /opt
+    export PATH=/opt/node-v24.12.0-linux-x64/bin:$PATH && npm i -g yarn@1.22.22 >/dev/null
+    cd /work/Conveniat27App
+    yarn install --frozen-lockfile --network-concurrency 1 --mutex file:/tmp/yarn-mutex
+    yarn generate:app-info
     cd android && ./gradlew assembleScreengrab -PreactNativeArchitectures=x86_64 --no-daemon'
 docker cp android/app/build/outputs/apk/screengrab/app-screengrab.apk c27-android-emu:/tmp/app.apk
 docker exec c27-android-emu adb install -r /tmp/app.apk
