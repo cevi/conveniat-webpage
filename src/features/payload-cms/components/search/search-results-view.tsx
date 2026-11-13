@@ -5,6 +5,7 @@ import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button, buttonVariants } from '@/components/ui/buttons/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { SheetResetButton } from '@/components/ui/sheet-reset-button';
 import { rememberSearch } from '@/features/payload-cms/components/search/recent-searches';
 import type { SearchFilters } from '@/features/payload-cms/components/search/search-filter-panel';
 import {
@@ -34,6 +35,7 @@ import {
   pageOfLabel,
   previousPageLabel,
   resetFiltersLabel,
+  resetLabel,
   resultCountLabel,
   retryLabel,
   searchingLabel,
@@ -476,6 +478,13 @@ export const SearchResultsView: React.FC<{
         onOpenChange={setIsFilterSheetOpen}
         title={filterLabel[locale]}
         anchor={filterButtonReference}
+        trailing={
+          <SheetResetButton
+            label={resetLabel[locale]}
+            disabled={!hasFilters}
+            onClick={() => search.setFilters(DEFAULT_FILTERS)}
+          />
+        }
         footer={
           <Button
             variant="primary"

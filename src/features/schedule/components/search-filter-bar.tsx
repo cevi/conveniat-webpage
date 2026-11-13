@@ -7,6 +7,7 @@ import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/buttons/button';
 import { SectionLabel } from '@/components/ui/section-label';
+import { SheetResetButton } from '@/components/ui/sheet-reset-button';
 import { Switch } from '@/components/ui/switch';
 import type { CampCategory, CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import { headerButtonClassName } from '@/features/schedule/components/schedule-loading-skeleton';
@@ -271,24 +272,14 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   ].filter((part): part is string => part !== undefined && part !== '');
 
   const footer = (
-    <div className="flex items-center gap-4">
-      <button
-        type="button"
-        disabled={activeCount === 0}
-        onClick={() => onFiltersChange({ ...noFilters, searchText: filters.searchText })}
-        className="min-h-11 shrink-0 cursor-pointer px-1 text-[15px] font-semibold text-green-900 underline underline-offset-4 disabled:cursor-default disabled:text-green-500 disabled:no-underline"
-      >
-        {labels.reset[locale]}
-      </button>
-      <Button
-        variant="primary"
-        size="touch"
-        className="min-w-0 flex-1"
-        onClick={() => onFilterOpenChange(false)}
-      >
-        {showEntriesLabel(shownCount, locale)}
-      </Button>
-    </div>
+    <Button
+      variant="primary"
+      size="touch"
+      className="w-full"
+      onClick={() => onFilterOpenChange(false)}
+    >
+      {showEntriesLabel(shownCount, locale)}
+    </Button>
   );
 
   const isSearchShown = isSearchOpen || filters.searchText !== '';
@@ -341,6 +332,13 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
         open={isFilterOpen}
         onOpenChange={onFilterOpenChange}
         title={labels.filter[locale]}
+        trailing={
+          <SheetResetButton
+            label={labels.reset[locale]}
+            disabled={activeCount === 0}
+            onClick={() => onFiltersChange({ ...noFilters, searchText: filters.searchText })}
+          />
+        }
         footer={footer}
       >
         {view !== undefined && (
