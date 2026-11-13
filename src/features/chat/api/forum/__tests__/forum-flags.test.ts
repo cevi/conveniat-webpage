@@ -48,7 +48,11 @@ jest.mock('@/lib/push/send-notification', () => ({
   sendNotification: (): Promise<unknown> => Promise.resolve({}),
 }));
 
-import { createForumFlag, removeForumMessage } from '@/features/chat/api/forum/forum-moderation';
+import {
+  createForumFlag,
+  dismissForumFlags,
+  removeForumMessage,
+} from '@/features/chat/api/forum/forum-moderation';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 
 const TOPIC = '0193f1a0-0000-7000-8000-000000000001';
@@ -154,11 +158,15 @@ const prisma = {
       Promise.resolve(
         flags.filter((flag) => flag.messageId === where.messageId && flag.resolvedAt === null),
       ),
-    updateMany: ({ where }: { where: { messageId: string } }): Promise<void> => {
+    updateMany: ({ where }: { where: { messageId: string } }): Promise<{ count: number }> => {
+      let count = 0;
       for (const flag of flags) {
-        if (flag.messageId === where.messageId) flag.resolvedAt = new Date();
+        if (flag.messageId === where.messageId && flag.resolvedAt === null) {
+          flag.resolvedAt = new Date();
+          count += 1;
+        }
       }
-      return Promise.resolve();
+      return Promise.resolve({ count });
     },
   },
   forumRemoval: {
@@ -183,7 +191,9 @@ const prisma = {
   },
 };
 
-const createCaller = createCallerFactory(createTRPCRouter({ createForumFlag, removeForumMessage }));
+const createCaller = createCallerFactory(
+  createTRPCRouter({ createForumFlag, dismissForumFlags, removeForumMessage }),
+);
 const as = (uuid: string): ReturnType<typeof createCaller> =>
   createCaller({
     user: { uuid, group_ids: [], name: `${uuid} v/o Test`, email: `${uuid}@example.test` },
@@ -216,6 +226,19 @@ describe('flagging a forum post', () => {
       expect.objectContaining({ kind: 'HIDDEN', reason: 'INAPPROPRIATE', capacity: 'AUTOMATIC' }),
     );
     expect(audit).toEqual([expect.objectContaining({ action: 'HIDDEN', capacity: 'AUTOMATIC' })]);
+    // the flags stay open, so the post waits in "Zu tun" for a moderator to decide on it
+    expect(flags.filter((flag) => flag.resolvedAt === null)).toHaveLength(3);
+  });
+
+  it('closes the flags when a moderator leaves the hidden post hidden', async () => {
+    for (const userId of ['sina', 'tim', 'lou']) {
+      await as(userId).createForumFlag({ messageId: POST, reason: 'INAPPROPRIATE' });
+    }
+
+    await as('mira').dismissForumFlags({ messageId: POST });
+
+    expect(removals.get(POST)).toEqual(expect.objectContaining({ kind: 'HIDDEN' }));
+    expect(flags.filter((flag) => flag.resolvedAt === null)).toEqual([]);
   });
 
   it('refuses a flag on one’s own post', async () => {

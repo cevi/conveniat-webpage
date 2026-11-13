@@ -4,6 +4,7 @@ import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/buttons/button';
 import { textInputClassName } from '@/components/ui/field';
 import type { ForumPostDetail } from '@/features/chat/api/forum/forum-queries';
+import { ForumFlagReasons, openFlagsOf } from '@/features/chat/components/forum/forum-flag-reasons';
 import { forumText } from '@/features/chat/components/forum/forum-texts';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { forumErrorTexts } from '@/lib/forum-error-texts';
@@ -48,7 +49,12 @@ export const RemovalBanner: React.FC<{
   const removal = post.removal ?? null;
   const moderates = post.viewer.canModerate;
   const flags = post.flagCount ?? 0;
+  // absent in a persisted cache from before, and for everyone but the moderators
+  const openFlags = openFlagsOf(post.openFlags);
   if (removal === null && !(moderates && flags > 0)) return <></>;
+  // hidden by the flags themselves and not decided on yet: approve it, or leave it hidden
+  const awaitsDecision =
+    moderates && removal?.kind === 'HIDDEN' && removal.byCapacity === null && flags > 0;
 
   const reasonLine =
     removal === null
@@ -61,6 +67,7 @@ export const RemovalBanner: React.FC<{
   if (removal === null) heading = forumText.flagsPill[locale].replace('{n}', String(flags));
   else if (removal.kind === 'DELETED') heading = forumText.removedByModeration[locale];
   else if (post.viewer.isAuthor) heading = forumText.hiddenForAuthor[locale];
+  else if (awaitsDecision) heading = forumText.hiddenAutomatically[locale];
   else if (moderates) heading = forumText.hiddenForModerator[locale];
   else heading = forumText.hiddenForOthers[locale];
 
@@ -78,9 +85,11 @@ export const RemovalBanner: React.FC<{
         <Icon className="mt-0.5 h-5 w-5 shrink-0 text-green-800" aria-hidden="true" />
         <span className="flex flex-col gap-0.5">
           <span className="font-semibold">{heading}</span>
-          {reasonLine !== undefined && (post.viewer.isAuthor || moderates) && (
-            <span className="text-[13px] text-green-800">{reasonLine}</span>
-          )}
+          {reasonLine !== undefined &&
+            (post.viewer.isAuthor || moderates) &&
+            !(moderates && openFlags !== undefined) && (
+              <span className="text-[13px] text-green-800">{reasonLine}</span>
+            )}
           {removal?.note != null && removal.note !== '' && (
             <span className="text-[13px] text-green-800">«{removal.note}»</span>
           )}
@@ -89,6 +98,11 @@ export const RemovalBanner: React.FC<{
           )}
         </span>
       </p>
+      {moderates && openFlags !== undefined && (
+        <div className="pl-7">
+          <ForumFlagReasons flags={openFlags} locale={locale} />
+        </div>
+      )}
 
       {removal?.kind === 'HIDDEN' && post.viewer.isAuthor && (
         // one under the other on a phone, so neither label is cut
@@ -113,44 +127,77 @@ export const RemovalBanner: React.FC<{
         </div>
       )}
 
-      {moderates && (removal?.kind === 'HIDDEN' || (removal === null && flags > 0)) && (
+      {awaitsDecision && (
+        // as review queues do: approve it, or confirm what the flags did; one under the other
+        // on a phone, so neither label is cut
         <div className="flex flex-col gap-2">
-          {removal?.kind === 'HIDDEN' && (
-            <Button
-              variant="outlined"
-              size="touch"
-              className="w-full"
-              disabled={restore.isPending || !isOnline}
-              onClick={() => restore.mutate({ messageId: post.id })}
-            >
-              {restore.isPending ? (
-                <Loader2 className="animate-spin" aria-hidden="true" />
-              ) : (
-                <Eye aria-hidden="true" />
-              )}
-              {forumText.restore[locale]}
-            </Button>
-          )}
-          {flags > 0 && (
-            <Button
-              variant="outlined"
-              size="touch"
-              className="w-full"
-              disabled={dismiss.isPending || !isOnline}
-              onClick={() => dismiss.mutate({ messageId: post.id })}
-            >
-              {forumText.dismissFlags[locale]}
-            </Button>
-          )}
-          {/* the two decisions on a flag side by side: keep it, or hide it with a reason */}
-          {removal === null && flags > 0 && onHide !== undefined && (
-            <Button variant="danger" size="touch" className="w-full" onClick={onHide}>
-              <EyeOff aria-hidden="true" />
-              {forumText.hide[locale]}
-            </Button>
-          )}
+          <Button
+            variant="outlined"
+            size="touch"
+            className="w-full"
+            disabled={restore.isPending || !isOnline}
+            onClick={() => restore.mutate({ messageId: post.id })}
+          >
+            {restore.isPending ? (
+              <Loader2 className="animate-spin" aria-hidden="true" />
+            ) : (
+              <Eye aria-hidden="true" />
+            )}
+            {forumText.approveHidden[locale]}
+          </Button>
+          <Button
+            variant="danger"
+            size="touch"
+            className="w-full"
+            disabled={dismiss.isPending || !isOnline}
+            onClick={() => dismiss.mutate({ messageId: post.id })}
+          >
+            <EyeOff aria-hidden="true" />
+            {forumText.keepHidden[locale]}
+          </Button>
         </div>
       )}
+
+      {!awaitsDecision &&
+        moderates &&
+        (removal?.kind === 'HIDDEN' || (removal === null && flags > 0)) && (
+          <div className="flex flex-col gap-2">
+            {removal?.kind === 'HIDDEN' && (
+              <Button
+                variant="outlined"
+                size="touch"
+                className="w-full"
+                disabled={restore.isPending || !isOnline}
+                onClick={() => restore.mutate({ messageId: post.id })}
+              >
+                {restore.isPending ? (
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                ) : (
+                  <Eye aria-hidden="true" />
+                )}
+                {forumText.restore[locale]}
+              </Button>
+            )}
+            {flags > 0 && (
+              <Button
+                variant="outlined"
+                size="touch"
+                className="w-full"
+                disabled={dismiss.isPending || !isOnline}
+                onClick={() => dismiss.mutate({ messageId: post.id })}
+              >
+                {forumText.dismissFlags[locale]}
+              </Button>
+            )}
+            {/* the two decisions on a flag side by side: keep it, or hide it with a reason */}
+            {removal === null && flags > 0 && onHide !== undefined && (
+              <Button variant="danger" size="touch" className="w-full" onClick={onHide}>
+                <EyeOff aria-hidden="true" />
+                {forumText.hide[locale]}
+              </Button>
+            )}
+          </div>
+        )}
 
       {error !== null && (
         <p role="alert" className="text-danger-text text-[13px] font-semibold">

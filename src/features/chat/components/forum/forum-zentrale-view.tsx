@@ -1,5 +1,6 @@
 'use client';
 import { OfflineBanner } from '@/components/offline-banner';
+import { Button } from '@/components/ui/buttons/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SectionLabel } from '@/components/ui/section-label';
@@ -17,13 +18,13 @@ import { forumTodoText } from '@/features/chat/components/forum/forum-todo-texts
 import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useIsDesktop } from '@/hooks/use-is-desktop';
 import { forumErrorTexts } from '@/lib/forum-error-texts';
-import { forumKindLabel } from '@/lib/forum-shared';
+import { FORUM_TODO_SECTION_SIZE, forumKindLabel } from '@/lib/forum-shared';
 import { useTRPC } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { userErrorMessage } from '@/utils/user-error-message';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
   CircleAlert,
   Flag,
@@ -178,7 +179,20 @@ export const ForumZentraleView: React.FC = () => {
   const scope: TodoScope = parameters.get('scope') === 'all' ? 'all' : 'mine';
   const selectedId = parameters.get('post') ?? undefined;
 
-  const todo = useQuery(trpc.forum.getForumTodoList.queryOptions({ scope }));
+  // how many posts each section shows; "Mehr laden" adds the next batch to its section
+  const [limits, setLimits] = useState<Partial<Record<TodoSection, number>>>({});
+  const todo = useQuery(
+    trpc.forum.getForumTodoList.queryOptions(
+      { scope, limits },
+      // a section that grows keeps showing what it had until the longer list arrives
+      { placeholderData: keepPreviousData },
+    ),
+  );
+  const loadMore = (section: TodoSection): void =>
+    setLimits((previous) => ({
+      ...previous,
+      [section]: (previous[section] ?? FORUM_TODO_SECTION_SIZE) + FORUM_TODO_SECTION_SIZE,
+    }));
 
   const go = (next: { scope?: TodoScope; post?: string | undefined }): void => {
     const query = new URLSearchParams();
@@ -214,6 +228,9 @@ export const ForumZentraleView: React.FC = () => {
   } else {
     content = SECTIONS.map((section) => {
       const posts = todo.data[section];
+      // absent in a persisted cache from before the totals
+      const total = todo.data.totals?.[section] ?? posts.length;
+      const more = total - posts.length;
       return (
         <section key={section} className="flex flex-col gap-2">
           <SectionLabel
@@ -223,7 +240,7 @@ export const ForumZentraleView: React.FC = () => {
             )}
           >
             {sectionText[section][locale]}
-            <span className="font-semibold tracking-normal">{posts.length}</span>
+            <span className="font-semibold tracking-normal">{total}</span>
           </SectionLabel>
           {posts.length === 0 ? (
             <p className="px-1 text-[15px] text-green-500">{forumTodoText.nothing[locale]}</p>
@@ -241,6 +258,18 @@ export const ForumZentraleView: React.FC = () => {
                 />
               ))}
             </Card>
+          )}
+          {more > 0 && (
+            <Button
+              variant="quiet"
+              size="touch"
+              className="self-center"
+              disabled={todo.isPlaceholderData}
+              onClick={() => loadMore(section)}
+            >
+              {todo.isPlaceholderData && <Loader2 className="animate-spin" aria-hidden="true" />}
+              {forumTodoText.loadMore[locale].replace('{n}', String(more))}
+            </Button>
           )}
         </section>
       );

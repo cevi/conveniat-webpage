@@ -5,7 +5,7 @@ import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status
 import { findThreadSummaries } from '@/features/chat/api/utils/thread-summaries';
 import { toChatMessage } from '@/features/chat/api/utils/to-chat-message';
 import { findTopicAdminIds } from '@/features/chat/api/utils/topic-admins';
-import type { ForumRemovalInfo } from '@/lib/forum-shared';
+import type { ForumOpenFlags, ForumRemovalInfo } from '@/lib/forum-shared';
 import { ChatType, MessageEventType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { z } from 'zod';
@@ -14,6 +14,7 @@ import { z } from 'zod';
 interface ForumRemovalsOfThread {
   removals: Map<string, ForumRemovalInfo>;
   hidden: Set<string>;
+  flags: Map<string, ForumOpenFlags>;
 }
 
 /**
@@ -109,6 +110,10 @@ export const getMessage = trpcBaseProcedure
       ...(kernteamLabels === undefined ? {} : { kernteamLabels }),
       ...(forumRemovals === undefined
         ? {}
-        : { forumRemovals: forumRemovals.removals, hiddenIds: forumRemovals.hidden }),
+        : {
+            forumRemovals: forumRemovals.removals,
+            hiddenIds: forumRemovals.hidden,
+            forumFlags: forumRemovals.flags,
+          }),
     });
   });

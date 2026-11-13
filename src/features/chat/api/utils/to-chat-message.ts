@@ -1,7 +1,7 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import { visiblePayloadOf, withoutDeletedQuote } from '@/features/chat/api/utils/deleted-messages';
 import type { MessageThread } from '@/features/chat/api/utils/thread-summaries';
-import type { ForumRemovalInfo } from '@/lib/forum-shared';
+import type { ForumOpenFlags, ForumRemovalInfo } from '@/lib/forum-shared';
 import type { MessageEventType } from '@/lib/prisma/enums';
 
 /** A message as `getChatMessages` and `getMessage` read it, with what they include. */
@@ -39,11 +39,14 @@ export const toChatMessage = (
     forumRemovals?: ReadonlyMap<string, ForumRemovalInfo>;
     /** the hidden forum messages the reader does not see, see `describeForumRemovals` */
     hiddenIds?: ReadonlySet<string>;
+    /** the open flags of forum messages, for their moderators, see `describeForumRemovals` */
+    forumFlags?: ReadonlyMap<string, ForumOpenFlags>;
   },
 ): ChatMessage => {
   const isHidden = context.hiddenIds?.has(message.uuid) === true;
   const isDeleted = (message.deletedAt !== null && message.deletedAt !== undefined) || isHidden;
   const removal = context.forumRemovals?.get(message.uuid);
+  const flags = context.forumFlags?.get(message.uuid);
   const { payload, quotedMessageDeleted } = isHidden
     ? { payload: {}, quotedMessageDeleted: false }
     : withoutDeletedQuote(visiblePayloadOf(message), context.deletedQuotedIds);
@@ -71,6 +74,7 @@ export const toChatMessage = (
     ...(quotedMessageDeleted ? { quotedMessageDeleted } : {}),
     ...(message.editedAt instanceof Date && !isHidden ? { editedAt: message.editedAt } : {}),
     ...(removal === undefined ? {} : { forumRemoval: removal }),
+    ...(flags === undefined || isDeleted ? {} : { forumFlags: flags }),
     reactions: isDeleted
       ? []
       : message.reactions.map((reaction) => ({

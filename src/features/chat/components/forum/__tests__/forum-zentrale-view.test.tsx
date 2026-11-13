@@ -4,7 +4,7 @@
 import type { ForumTodoList, ForumTodoPost } from '@/features/chat/api/forum/forum-zentrale';
 import { ForumZentraleView } from '@/features/chat/components/forum/forum-zentrale-view';
 import { createTestTrpc } from '@/trpc/test-trpc';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 
 let searchParameters = new URLSearchParams();
 
@@ -54,6 +54,7 @@ const emptyList: ForumTodoList = {
   conversations: [],
   waiting: [],
   mine: [],
+  totals: { flagged: 0, conversations: 0, waiting: 0, mine: 0 },
   canSeeAll: false,
 };
 
@@ -141,12 +142,39 @@ describe('Zu tun', () => {
     expect(screen.queryByRole('button', { name: 'Alle' })).toBeNull();
   });
 
+  it('says how many more a section holds and loads the next ones on request', async () => {
+    const { wrapper, calls } = createTestTrpc({
+      'forum.getForumTodoList': (input) => {
+        const limit = (input as { limits: { waiting?: number } }).limits.waiting ?? 1;
+        return {
+          ...emptyList,
+          waiting: Array.from({ length: Math.min(limit, 3) }, (_, index) =>
+            post({ id: `waiting-${String(index)}`, title: `Frage ${String(index)}` }),
+          ),
+          totals: { ...emptyList.totals, waiting: 3 },
+        };
+      },
+    });
+    render(<ForumZentraleView />, { wrapper });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Mehr laden (2 weitere)' }));
+
+    expect(await screen.findByText('Frage 2')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Mehr laden/ })).toBeNull();
+    expect(calls.at(-1)).toEqual({
+      path: 'forum.getForumTodoList',
+      input: { scope: 'mine', limits: { waiting: 100 } },
+    });
+  });
+
   it('shows the topics of the caller first and all of them on request', async () => {
     const { calls } = renderTodo({ ...emptyList, canSeeAll: true });
 
     const mine = await screen.findByRole('button', { name: 'Meine Themen' });
     expect(mine.getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByRole('button', { name: 'Alle' }).getAttribute('aria-pressed')).toBe('false');
-    expect(calls).toEqual([{ path: 'forum.getForumTodoList', input: { scope: 'mine' } }]);
+    expect(calls).toEqual([
+      { path: 'forum.getForumTodoList', input: { scope: 'mine', limits: {} } },
+    ]);
   });
 });

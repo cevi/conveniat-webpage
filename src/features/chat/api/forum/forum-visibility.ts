@@ -5,7 +5,7 @@ import {
 } from '@/features/chat/api/forum/forum-moderator';
 import { getActivePiketMembers } from '@/features/chat/api/utils/piket-service';
 import { type ChatRealtimeEvent, chatPubSub } from '@/lib/db/chat-pubsub';
-import type { ForumRemovalInfo } from '@/lib/forum-shared';
+import type { ForumFlagReasonValue, ForumOpenFlags, ForumRemovalInfo } from '@/lib/forum-shared';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import type { PrismaClientOrTransaction } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
@@ -205,12 +205,27 @@ export const describeForumRemovals = async (
   user: ForumUser,
   chatId: string,
   messages: { uuid: string; senderId: string | null; parentId: string | null }[],
-): Promise<{ removals: Map<string, ForumRemovalInfo>; hidden: Set<string> }> => {
-  const rows = await prisma.forumRemoval.findMany({
-    where: { messageId: { in: messages.map((message) => message.uuid) } },
-  });
-  if (rows.length === 0) return { removals: new Map(), hidden: new Set() };
-  const first = messages.find((message) => rows.some((row) => row.messageId === message.uuid));
+): Promise<{
+  removals: Map<string, ForumRemovalInfo>;
+  hidden: Set<string>;
+  flags: Map<string, ForumOpenFlags>;
+}> => {
+  const ids = messages.map((message) => message.uuid);
+  const [rows, flagRows] = await Promise.all([
+    prisma.forumRemoval.findMany({ where: { messageId: { in: ids } } }),
+    prisma.forumFlag.findMany({
+      where: { messageId: { in: ids }, resolvedAt: null },
+      select: { messageId: true, reason: true, note: true },
+    }),
+  ]);
+  if (rows.length === 0 && flagRows.length === 0) {
+    return { removals: new Map(), hidden: new Set(), flags: new Map() };
+  }
+  const first = messages.find(
+    (message) =>
+      rows.some((row) => row.messageId === message.uuid) ||
+      flagRows.some((flag) => flag.messageId === message.uuid),
+  );
   const moderator = await resolveForumModerator(
     prisma,
     user,
@@ -233,5 +248,31 @@ export const describeForumRemovals = async (
     });
     if (row.kind === 'HIDDEN' && !own && !moderates) hidden.add(row.messageId);
   }
-  return { removals, hidden };
+  // who flagged what is for the moderators to decide on, nobody else
+  const flags = moderates ? groupOpenFlags(flagRows) : new Map<string, ForumOpenFlags>();
+  return { removals, hidden, flags };
+};
+
+/** Open flags by message, each with its reasons, the most common first. */
+export const groupOpenFlags = (
+  flagRows: { messageId: string; reason: ForumFlagReasonValue; note: string | null }[],
+): Map<string, ForumOpenFlags> => {
+  const byMessage = new Map<string, ForumOpenFlags['reasons']>();
+  for (const flag of flagRows) {
+    const reasons = byMessage.get(flag.messageId) ?? [];
+    reasons.push({ reason: flag.reason, note: flag.note });
+    byMessage.set(flag.messageId, reasons);
+  }
+  const flags = new Map<string, ForumOpenFlags>();
+  for (const [messageId, reasons] of byMessage) {
+    const counts = new Map<string, number>();
+    for (const { reason } of reasons) counts.set(reason, (counts.get(reason) ?? 0) + 1);
+    flags.set(messageId, {
+      count: reasons.length,
+      reasons: reasons.toSorted(
+        (a, b) => (counts.get(b.reason) ?? 0) - (counts.get(a.reason) ?? 0),
+      ),
+    });
+  }
+  return flags;
 };

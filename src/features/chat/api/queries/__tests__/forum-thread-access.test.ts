@@ -152,6 +152,7 @@ const prisma = {
   forumPostAssignment: { findFirst: (): Promise<null> => Promise.resolve(null) },
   // only the post itself is hidden, its comments are not
   forumRemoval: { findMany: (): Promise<unknown[]> => Promise.resolve([]) },
+  forumFlag: { findMany: (): Promise<unknown[]> => Promise.resolve([]) },
   messageEvent: {
     createMany: ({
       data,

@@ -11,6 +11,7 @@ import { ChatComposerBar } from '@/features/chat/components/chat-view/chat-clien
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
 import { ChatImage } from '@/features/chat/components/chat-view/message/chat-image';
+import { ForumCommentFlags } from '@/features/chat/components/forum/forum-comment-flags';
 import { ForumDoneSheet } from '@/features/chat/components/forum/forum-done-sheet';
 import { ForumFlagSheet } from '@/features/chat/components/forum/forum-flag-sheet';
 import type { RemoveTarget } from '@/features/chat/components/forum/forum-moderation-sheet';
@@ -948,7 +949,20 @@ const ForumPostLoaded: React.FC<{ post: ForumPostDetail; locale: Locale }> = ({ 
   return (
     <ChatIdProvider chatId={post.topicId}>
       {/* keyed: another post gets a fresh thread, draft and scroll */}
-      <ChatActionsProvider key={post.id} threadId={post.id} messageActions={messageActions}>
+      <ChatActionsProvider
+        key={post.id}
+        threadId={post.id}
+        messageActions={messageActions}
+        renderMessageFooter={(message) =>
+          post.viewer.canModerate ? (
+            <ForumCommentFlags
+              message={message}
+              locale={locale}
+              onHide={() => setRemoveTarget({ messageId: message.id, kind: 'HIDDEN' })}
+            />
+          ) : null
+        }
+      >
         <ForumPostScreen
           post={post}
           locale={locale}

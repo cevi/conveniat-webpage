@@ -18,6 +18,11 @@ export const forumTodoText = {
   },
   sectionMine: { de: 'An dich weitergeleitet', en: 'Forwarded to you', fr: 'Transmis à toi' },
   nothing: { de: 'Nichts', en: 'Nothing', fr: 'Rien' },
+  loadMore: {
+    de: 'Mehr laden ({n} weitere)',
+    en: 'Load more ({n} more)',
+    fr: 'Charger plus ({n} de plus)',
+  },
   nothingToDo: { de: 'Nichts zu tun', en: 'Nothing to do', fr: 'Rien à faire' },
   nothingToDoDescription: {
     de: 'Keine Meldungen, keine offenen Gespräche und nichts, das auf eine Antwort wartet.',

@@ -146,8 +146,14 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   const swipeStart = useRef<{ x: number; y: number } | undefined>(undefined);
   const bubbleReference = useRef<HTMLDivElement>(null);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
-  const { replyInThread, quoteMessage, scrollToMessage, highlightedMessageId, activeThreadId } =
-    useChatActions();
+  const {
+    replyInThread,
+    quoteMessage,
+    scrollToMessage,
+    highlightedMessageId,
+    activeThreadId,
+    renderMessageFooter,
+  } = useChatActions();
   const isHighlighted = highlightedMessageId === message.id;
   const showMeta = isLastInGroup || message.sendFailed === true;
   // a group, a forum topic and a conversation with a Kernteam name who wrote, so the writer of
@@ -628,6 +634,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         )}
 
         <ForumHiddenNotice message={message} locale={activeLocale} />
+        {renderMessageFooter(message)}
 
         {threadSummary}
       </MessageRow>

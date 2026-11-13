@@ -464,6 +464,21 @@ export const forumText = {
   },
   restore: { de: 'Wieder einblenden', en: 'Show again', fr: 'Réafficher' },
   dismissFlags: { de: 'Meldungen verwerfen', en: 'Dismiss flags', fr: 'Rejeter les signalements' },
+  keepFlagged: { de: 'Behalten', en: 'Keep', fr: 'Garder' },
+  approveHidden: { de: 'Freigeben', en: 'Approve', fr: 'Approuver' },
+  keepHidden: { de: 'Ausgeblendet lassen', en: 'Keep hidden', fr: 'Laisser masqué' },
+  hiddenAutomatically: {
+    de: 'Automatisch ausgeblendet',
+    en: 'Hidden automatically',
+    fr: 'Masqué automatiquement',
+  },
+  flaggedChip: {
+    de: 'Gemeldet · {reason} · {n}',
+    en: 'Flagged · {reason} · {n}',
+    fr: 'Signalé · {reason} · {n}',
+  },
+  showFlagReasons: { de: 'Meldungen ansehen', en: 'Show flags', fr: 'Voir les signalements' },
+  hideFlagReasons: { de: 'Meldungen zuklappen', en: 'Hide flags', fr: 'Masquer les signalements' },
   changeKind: { de: 'Art ändern', en: 'Change kind', fr: 'Changer le type' },
   removedByModeration: {
     de: 'Von der Moderation entfernt',

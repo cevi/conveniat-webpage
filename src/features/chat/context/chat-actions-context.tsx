@@ -42,6 +42,8 @@ interface ChatActionsContextType {
   cancelEditing: () => void;
   /** The rows the screen adds to the actions sheet of this message. */
   extraMessageActions: (message: ChatMessage) => ExtraMessageAction[];
+  /** What the screen shows under this message, like the forum's flags for its moderators. */
+  renderMessageFooter: (message: ChatMessage) => React.ReactNode;
   highlightedMessageId: string | undefined;
   scrollToMessage: (messageId: string) => void;
 }
@@ -49,6 +51,7 @@ interface ChatActionsContextType {
 const ChatActionsContext = createContext<ChatActionsContextType | undefined>(undefined);
 
 const noExtraActions = (): ExtraMessageAction[] => [];
+const noFooter = (): React.ReactNode => null;
 
 export const ChatActionsProvider: React.FC<{
   children: React.ReactNode;
@@ -56,7 +59,9 @@ export const ChatActionsProvider: React.FC<{
   threadId?: string;
   /** rows this screen adds to the actions sheet of a message, e.g. the forum's moderation */
   messageActions?: (message: ChatMessage) => ExtraMessageAction[];
-}> = ({ children, threadId, messageActions }) => {
+  /** what this screen shows under a message, e.g. the forum's flags for its moderators */
+  renderMessageFooter?: (message: ChatMessage) => React.ReactNode;
+}> = ({ children, threadId, messageActions, renderMessageFooter }) => {
   const [threadHistory, setThreadHistory] = useState<string[]>(
     threadId === undefined ? [] : [threadId],
   );
@@ -118,6 +123,7 @@ export const ChatActionsProvider: React.FC<{
         startEditing,
         cancelEditing,
         extraMessageActions: messageActions ?? noExtraActions,
+        renderMessageFooter: renderMessageFooter ?? noFooter,
         highlightedMessageId,
         scrollToMessage,
       }}

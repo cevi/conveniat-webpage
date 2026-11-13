@@ -20,7 +20,7 @@ import {
   searchWordsOf,
 } from '@/features/chat/api/forum/forum-search';
 import { findForumTopicSettings } from '@/features/chat/api/forum/forum-topic-settings';
-import { isRestrictedForumPost } from '@/features/chat/api/forum/forum-visibility';
+import { groupOpenFlags, isRestrictedForumPost } from '@/features/chat/api/forum/forum-visibility';
 import { countZentrale, ensureZentraleMemberships } from '@/features/chat/api/forum/forum-zentrale';
 import { getFunktionDirectory } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import {
@@ -31,6 +31,7 @@ import {
   FORUM_POST_STATUSES,
   type ForumCapacityValue,
   type ForumFlagReasonValue,
+  type ForumOpenFlags,
   type ForumPostStatusValue,
   type ForumRemovalInfo,
   type ForumTopicIcon,
@@ -397,6 +398,8 @@ export interface ForumPostDetail extends ForumPostSummary {
   } | null;
   /** hidden or deleted by a moderator or by flags; the reason and note are for the author */
   removal?: ForumRemovalInfo | null;
+  /** the open flags of the post itself, for its moderators; null for everyone else */
+  openFlags?: ForumOpenFlags | null;
   /** when the author last changed the title or the text */
   editedAt?: Date | null;
   /** what the caller may do with the post */
@@ -556,44 +559,52 @@ export const getForumPost = trpcBaseProcedure
       throw forumError('NOT_FOUND', 'postGone');
     }
 
-    const [mergedInto, mergedPostCount, subscription, history, assignments] = await Promise.all([
-      row.mergedIntoId === null
-        ? Promise.resolve(null)
-        : ctx.prisma.forumPost.findUnique({
-            where: { messageId: row.mergedIntoId },
-            select: { messageId: true, title: true },
-          }),
-      ctx.prisma.forumPost.count({ where: { mergedIntoId: row.messageId } }),
-      ctx.prisma.threadSubscription.findUnique({
-        where: { userId_messageId: { userId, messageId: row.messageId } },
-      }),
-      ctx.prisma.forumAuditEvent.findMany({
-        where: { messageId: row.messageId, action: 'STATUS_CHANGED' },
-        orderBy: { createdAt: 'desc' },
-        take: 20,
-        select: {
-          createdAt: true,
-          actorName: true,
-          capacity: true,
-          delegatedByName: true,
-          after: true,
-          note: true,
-        },
-      }),
-      ctx.prisma.forumPostAssignment.findMany({
-        where: { messageId: row.messageId, endedAt: null },
-        orderBy: { createdAt: 'asc' },
-        select: {
-          id: true,
-          kind: true,
-          funktionId: true,
-          note: true,
-          createdAt: true,
-          assignee: { select: { uuid: true, name: true } },
-          assignedBy: { select: { name: true } },
-        },
-      }),
-    ]);
+    const [mergedInto, mergedPostCount, subscription, history, assignments, flagRows] =
+      await Promise.all([
+        row.mergedIntoId === null
+          ? Promise.resolve(null)
+          : ctx.prisma.forumPost.findUnique({
+              where: { messageId: row.mergedIntoId },
+              select: { messageId: true, title: true },
+            }),
+        ctx.prisma.forumPost.count({ where: { mergedIntoId: row.messageId } }),
+        ctx.prisma.threadSubscription.findUnique({
+          where: { userId_messageId: { userId, messageId: row.messageId } },
+        }),
+        ctx.prisma.forumAuditEvent.findMany({
+          where: { messageId: row.messageId, action: 'STATUS_CHANGED' },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+          select: {
+            createdAt: true,
+            actorName: true,
+            capacity: true,
+            delegatedByName: true,
+            after: true,
+            note: true,
+          },
+        }),
+        ctx.prisma.forumPostAssignment.findMany({
+          where: { messageId: row.messageId, endedAt: null },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            id: true,
+            kind: true,
+            funktionId: true,
+            note: true,
+            createdAt: true,
+            assignee: { select: { uuid: true, name: true } },
+            assignedBy: { select: { name: true } },
+          },
+        }),
+        // who flagged it and why is for those who decide on the flags
+        isFullModerator(moderator)
+          ? ctx.prisma.forumFlag.findMany({
+              where: { messageId: row.messageId, resolvedAt: null },
+              select: { messageId: true, reason: true, note: true },
+            })
+          : Promise.resolve([]),
+      ]);
 
     const deleted = row.message.deletedAt !== null;
     const content = deleted
@@ -613,6 +624,7 @@ export const getForumPost = trpcBaseProcedure
       text: content.text,
       images: content.images,
       answerCommentId: row.answerMessageId,
+      openFlags: groupOpenFlags(flagRows).get(row.messageId) ?? null,
       mergedInto:
         mergedInto === null ? null : { id: mergedInto.messageId, title: mergedInto.title },
       mergedPostCount,

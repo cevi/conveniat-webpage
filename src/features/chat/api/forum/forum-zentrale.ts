@@ -15,6 +15,7 @@ import {
 } from '@/features/chat/api/forum/forum-posts';
 import { getFunktionDirectory } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import type { ForumPostSummary } from '@/lib/forum-shared';
+import { FORUM_TODO_SECTION_SIZE } from '@/lib/forum-shared';
 import type { Prisma } from '@/lib/prisma/client';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/enums';
 import { trpcBaseProcedure } from '@/trpc/init';
@@ -162,11 +163,19 @@ export interface ForumTodoList {
   conversations: ForumTodoPost[];
   waiting: ForumTodoPost[];
   mine: ForumTodoPost[];
+  /**
+   * how many each section holds in all; a section shows the first `limits` of them. Absent in a
+   * persisted cache from before
+   */
+  totals?: Record<ForumTodoSection, number>;
   /** the caller moderates every topic, on piket duty or at the Zentrale, and can widen the list */
   canSeeAll: boolean;
 }
 
-const TODO_SECTION_SIZE = 50;
+export type ForumTodoSection = 'flagged' | 'conversations' | 'waiting' | 'mine';
+
+const TODO_SECTION_MAX = 1000;
+const sectionLimit = z.number().int().min(1).max(TODO_SECTION_MAX).optional();
 
 /**
  * "Zu tun": what waits for the caller, by urgency: flags and requests for review, private
@@ -174,7 +183,20 @@ const TODO_SECTION_SIZE = 50;
  * keeps to the topics whose Kernteam the caller is, `all` takes every topic they moderate.
  */
 export const getForumTodoList = trpcBaseProcedure
-  .input(z.object({ scope: z.enum(['mine', 'all']).default('mine') }))
+  .input(
+    z.object({
+      scope: z.enum(['mine', 'all']).default('mine'),
+      /** how many posts each section shows, raised by its "Mehr laden" */
+      limits: z
+        .object({
+          flagged: sectionLimit,
+          conversations: sectionLimit,
+          waiting: sectionLimit,
+          mine: sectionLimit,
+        })
+        .default({}),
+    }),
+  )
   .query(async ({ ctx, input }): Promise<ForumTodoList> => {
     const userId = ctx.user.uuid;
     const everything = await findModeratedTopicIds(ctx.prisma, ctx.user);
@@ -195,40 +217,55 @@ export const getForumTodoList = trpcBaseProcedure
     const moderates = moderated === 'all' || moderated.length > 0;
     const select = { ...FORUM_POST_SUMMARY_SELECT, reactedAt: true } as const;
 
+    const where: Record<ForumTodoSection, Prisma.ForumPostWhereInput> = {
+      flagged: { AND: [visible, scope, flaggedWhere] },
+      conversations: conversationsWhere(moderated),
+      // a flagged post stands under "Gemeldet" alone
+      waiting: { AND: [visible, tabWhere('waiting', userId, moderated), { NOT: flaggedWhere }] },
+      mine: { AND: [visible, tabWhere('mine', userId, moderated)] },
+    };
+    const countOf = (section: ForumTodoSection): Promise<number> =>
+      moderates || section === 'mine'
+        ? ctx.prisma.forumPost.count({ where: where[section] })
+        : Promise.resolve(0);
+    const totalsPromise = Promise.all([
+      countOf('flagged'),
+      countOf('conversations'),
+      countOf('waiting'),
+      countOf('mine'),
+    ]);
+
     const [flaggedRows, conversationRows, waitingRows, mineRows] = await Promise.all([
       moderates
         ? ctx.prisma.forumPost.findMany({
-            where: { AND: [visible, scope, flaggedWhere] },
+            where: where.flagged,
             select,
             orderBy: { createdAt: 'asc' },
-            take: TODO_SECTION_SIZE,
+            take: input.limits.flagged ?? FORUM_TODO_SECTION_SIZE,
           })
         : [],
       moderates
         ? ctx.prisma.forumPost.findMany({
-            where: conversationsWhere(moderated),
+            where: where.conversations,
             select,
             // what waits for a first answer first, then the oldest
             orderBy: [{ reactedAt: { sort: 'asc', nulls: 'first' } }, { createdAt: 'asc' }],
-            take: TODO_SECTION_SIZE,
+            take: input.limits.conversations ?? FORUM_TODO_SECTION_SIZE,
           })
         : [],
       moderates
         ? ctx.prisma.forumPost.findMany({
-            // a flagged post stands under "Gemeldet" alone
-            where: {
-              AND: [visible, tabWhere('waiting', userId, moderated), { NOT: flaggedWhere }],
-            },
+            where: where.waiting,
             select,
             orderBy: { createdAt: 'asc' },
-            take: TODO_SECTION_SIZE,
+            take: input.limits.waiting ?? FORUM_TODO_SECTION_SIZE,
           })
         : [],
       ctx.prisma.forumPost.findMany({
-        where: { AND: [visible, tabWhere('mine', userId, moderated)] },
+        where: where.mine,
         select,
         orderBy: { createdAt: 'asc' },
-        take: TODO_SECTION_SIZE,
+        take: input.limits.mine ?? FORUM_TODO_SECTION_SIZE,
       }),
     ]);
 
@@ -284,7 +321,20 @@ export const getForumTodoList = trpcBaseProcedure
       toItems(waitingRows),
       toItems(mineRows),
     ]);
-    return { flagged, conversations, waiting, mine, canSeeAll };
+    const [flaggedTotal, conversationsTotal, waitingTotal, mineTotal] = await totalsPromise;
+    return {
+      flagged,
+      conversations,
+      waiting,
+      mine,
+      totals: {
+        flagged: flaggedTotal,
+        conversations: conversationsTotal,
+        waiting: waitingTotal,
+        mine: mineTotal,
+      },
+      canSeeAll,
+    };
   });
 
 /** Queue rows as the queue shows them: the summary, who took it and where it was forwarded. */

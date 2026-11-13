@@ -178,7 +178,11 @@ export const getChatMessages = trpcBaseProcedure
           ...(kernteamLabels === undefined ? {} : { kernteamLabels }),
           ...(forumRemovals === undefined
             ? {}
-            : { forumRemovals: forumRemovals.removals, hiddenIds: forumRemovals.hidden }),
+            : {
+                forumRemovals: forumRemovals.removals,
+                hiddenIds: forumRemovals.hidden,
+                forumFlags: forumRemovals.flags,
+              }),
         });
       });
 

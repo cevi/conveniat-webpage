@@ -13,6 +13,8 @@ export const FORUM_TITLE_MAX_LENGTH = 120;
 export const FORUM_TEXT_MAX_LENGTH = 2000;
 export const FORUM_NOTE_MAX_LENGTH = 500;
 export const FORUM_POST_MAX_IMAGES = 4;
+/** How many posts a section of "Zu tun" shows at first, and how many more "Mehr laden" adds. */
+export const FORUM_TODO_SECTION_SIZE = 50;
 
 /** How far around a place the composer looks for posts about the same thing, in metres. */
 export const FORUM_NEARBY_RADIUS_METRES = 50;
@@ -71,6 +73,13 @@ export interface ForumRemovalInfo {
   at: Date;
   /** the author revised it and asked for it to be shown again */
   reviewRequested: boolean;
+}
+
+/** The open flags of a post or a comment, for its moderators: how many, and what each says. */
+export interface ForumOpenFlags {
+  count: number;
+  /** most common first */
+  reasons: { reason: ForumFlagReasonValue; note: string | null }[];
 }
 
 export const FORUM_POST_STATUSES = ['OPEN', 'IN_PROGRESS', 'DONE'] as const;
