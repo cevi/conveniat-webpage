@@ -22,11 +22,16 @@ export interface ForumFilters {
 
 export const DEFAULT_FORUM_FILTERS: ForumFilters = { status: 'active', filter: 'all', sort: 'new' };
 
-/** Whether the feed shows something else than its default: open posts, all of them, newest. */
-export const isFiltered = (filters: ForumFilters): boolean =>
-  filters.status !== DEFAULT_FORUM_FILTERS.status ||
-  filters.filter !== DEFAULT_FORUM_FILTERS.filter ||
-  filters.sort !== DEFAULT_FORUM_FILTERS.sort;
+/** How many settings differ from the feed's default of open posts, all of them, newest. */
+export const countFilters = (filters: ForumFilters): number =>
+  [
+    filters.status !== DEFAULT_FORUM_FILTERS.status,
+    filters.filter !== DEFAULT_FORUM_FILTERS.filter,
+    filters.sort !== DEFAULT_FORUM_FILTERS.sort,
+  ].filter(Boolean).length;
+
+/** Whether the feed shows something else than its default. */
+export const isFiltered = (filters: ForumFilters): boolean => countFilters(filters) > 0;
 
 const listFilterText: Record<ForumListFilter, StaticTranslationString> = {
   all: forumText.filterAll,
@@ -37,7 +42,7 @@ const listFilterText: Record<ForumListFilter, StaticTranslationString> = {
   flagged: forumText.filterFlagged,
 };
 
-/** The label above the list: what it shows, in a few words, e.g. "Meine · Erledigt · Beliebt". */
+/** What the feed shows, in a few words, e.g. "Meine · Erledigt · Beliebt", for the filter button's label. */
 export const describeFilters = (filters: ForumFilters, locale: Locale): string =>
   [
     filters.filter === 'all' ? undefined : listFilterText[filters.filter][locale],

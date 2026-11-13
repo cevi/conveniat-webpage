@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SectionLabel } from '@/components/ui/section-label';
 import {
+  countFilters,
   DEFAULT_FORUM_FILTERS,
   describeFilters,
   ForumFilterSheet,
@@ -286,7 +287,11 @@ const ForumTopicFeed: React.FC<{ topicId: string }> = ({ topicId }) => {
             ref={filterButton}
             type="button"
             onClick={() => setFiltersOpen(true)}
-            aria-label={forumText.filterTitle[locale]}
+            aria-label={
+              isFiltered(filters)
+                ? `${forumText.filterTitle[locale]}: ${describeFilters(filters, locale)}`
+                : forumText.filterTitle[locale]
+            }
             aria-pressed={isFiltered(filters)}
             className={cn(
               'focus-visible:focus-surface hover:bg-quiet relative -mr-2 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full',
@@ -294,8 +299,15 @@ const ForumTopicFeed: React.FC<{ topicId: string }> = ({ topicId }) => {
             )}
           >
             <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
+            {/* the count is the one sign of a filter: no line above the list, so the empty
+                state's reset is the only one outside the sheet */}
             {isFiltered(filters) && (
-              <span className="bg-conveniat-green absolute top-2.5 right-2.5 h-2 w-2 rounded-full" />
+              <span
+                aria-hidden="true"
+                className="bg-conveniat-green absolute top-1 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[11px] leading-none font-bold text-white"
+              >
+                {countFilters(filters)}
+              </span>
             )}
           </button>
         </div>
@@ -354,20 +366,6 @@ const ForumTopicFeed: React.FC<{ topicId: string }> = ({ topicId }) => {
             )}
 
             <section className="flex flex-col gap-2">
-              {/* the unfiltered feed needs no title: the pinned posts above have theirs */}
-              {isFiltered(filters) && (
-                <div className="flex items-center justify-between">
-                  <SectionLabel>{describeFilters(filters, locale)}</SectionLabel>
-                  <button
-                    type="button"
-                    onClick={() => setFilters(DEFAULT_FORUM_FILTERS)}
-                    className="focus-visible:focus-surface hover:bg-quiet -mr-2 flex h-11 cursor-pointer items-center rounded-xl px-3 text-[13px] font-semibold text-green-800"
-                  >
-                    {forumText.resetFilters[locale]}
-                  </button>
-                </div>
-              )}
-
               {list.isLoading && (
                 <Card className="flex justify-center p-6">
                   <Loader2 className="h-6 w-6 animate-spin text-green-700" aria-hidden="true" />
