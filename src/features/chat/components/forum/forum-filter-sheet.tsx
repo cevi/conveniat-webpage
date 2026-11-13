@@ -90,16 +90,17 @@ export const ForumFilterSheet: React.FC<{
     onOpenChange={onOpenChange}
     title={forumText.filterTitle[locale]}
     anchor={anchor}
-    footer={
-      isFiltered(filters) ? (
-        <button
-          type="button"
-          onClick={() => onChange(DEFAULT_FORUM_FILTERS)}
-          className="bg-quiet hover:bg-chip focus-visible:focus-surface h-11 w-full cursor-pointer rounded-xl text-[15px] font-semibold text-green-900"
-        >
-          {forumText.resetFilters[locale]}
-        </button>
-      ) : undefined
+    // always there and greyed out while nothing is set, like Faire and LinkedIn do, so the
+    // sheet does not jump when the first filter is chosen
+    trailing={
+      <button
+        type="button"
+        disabled={!isFiltered(filters)}
+        onClick={() => onChange(DEFAULT_FORUM_FILTERS)}
+        className="focus-visible:focus-surface hover:bg-quiet flex h-11 shrink-0 cursor-pointer items-center rounded-xl px-2 text-[14px] font-semibold text-green-800 disabled:cursor-default disabled:text-green-500 disabled:hover:bg-transparent"
+      >
+        {forumText.resetFilters[locale]}
+      </button>
     }
   >
     <div className="flex flex-col gap-4 pb-2">
