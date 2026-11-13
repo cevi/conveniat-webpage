@@ -97,9 +97,9 @@ const localizedUnenrollClosedShort: StaticTranslationString = {
 };
 
 const localizedUnenrollClosedHint: StaticTranslationString = {
-  de: 'Melde dich direkt bei den Organisatoren, wenn du nicht kommen kannst.',
-  en: 'Contact the organisers directly if you cannot make it.',
-  fr: 'Contacte directement les organisateurs si tu ne peux pas venir.',
+  de: 'Melde dich direkt bei der Schichtleitung, wenn du nicht kommen kannst.',
+  en: 'Contact the shift leads directly if you cannot make it.',
+  fr: 'Contacte directement les responsables du service si tu ne peux pas venir.',
 };
 
 /** The warning a helper gets when the shift they are joining can no longer be left. */

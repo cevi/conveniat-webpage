@@ -152,6 +152,7 @@ jest.mock('@/config/environment-variables', () => ({
     NFC_ALLOW_UNSIGNED_TAGS: false,
     CEVIDB_GROUP_FULL_ADMIN: [541],
     CEVIDB_GROUP_WEB_CORE_TEAM: [542],
+    CEVIDB_GROUP_HELPER_POOL: [],
     CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS: [4087],
     CEVIDB_GROUP_SAFETY_TEAM: [110],
   },

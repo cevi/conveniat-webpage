@@ -4,6 +4,7 @@ jest.mock('@/config/environment-variables', () => ({
     CEVIDB_GROUP_WEB_CORE_TEAM: [105],
     CEVIDB_GROUP_TRANSLATION_TEAM: [106],
     CEVIDB_GROUP_PROGRAM_TEAM: [107],
+    CEVIDB_GROUP_HELPER_POOL: [112],
     BILLING_ADMIN_GROUP_ID: [900],
     CEVIDB_GROUP_MATERIAL_TEAM: [108],
     CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS: [109],
@@ -44,6 +45,7 @@ const WEB_CORE_TEAM = 105;
 const TRANSLATION_TEAM = 106;
 const PROGRAM_TEAM = 107;
 const BILLING = 900;
+const HELPER_POOL = 112;
 /** A camp participant: logged in through Cevi.DB, in no group that reaches the admin panel. */
 const PARTICIPANT = 4242;
 
@@ -185,5 +187,34 @@ describe('the endpoints that hand out participant data', () => {
     expect(response.status).toBe(200);
     expect(mockEnrollment.findMany).toHaveBeenCalled();
     expect(find).toHaveBeenCalledWith(expect.objectContaining({ collection: 'users' }));
+  });
+
+  it('lets the Helferpool remove a participant of a Schichteinsatz', async () => {
+    const { request } = createRequest({
+      groupId: HELPER_POOL,
+      url: 'http://localhost/api/helper-shifts/c1/participants?userId=u2',
+      method: 'DELETE',
+      id: 'c1',
+    });
+
+    const response = await handleParticipantMutation(request);
+
+    expect(response.status).toBe(200);
+    expect(mockEnrollment.deleteMany).toHaveBeenCalledWith({
+      where: { courseId: 'c1', userId: 'u2', courseType: 'SHIFT' },
+    });
+  });
+
+  it('keeps the Helferpool out of the participants of a Programmblock', async () => {
+    const { request } = createRequest({
+      groupId: HELPER_POOL,
+      url: 'http://localhost/api/camp-schedule-entry/c1/participants-export?format=json',
+      id: 'c1',
+    });
+
+    const response = await courseParticipantsExportHandler(request);
+
+    expect(response.status).toBe(401);
+    expect(mockEnrollment.findMany).not.toHaveBeenCalled();
   });
 });

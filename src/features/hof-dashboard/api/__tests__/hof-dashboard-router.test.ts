@@ -48,6 +48,7 @@ jest.mock('@/config/environment-variables', () => ({
     CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS: [],
     CEVIDB_GROUP_TRANSLATION_TEAM: [543],
     CEVIDB_GROUP_PROGRAM_TEAM: [544],
+    CEVIDB_GROUP_HELPER_POOL: [],
   },
 }));
 jest.mock('@/features/hof-dashboard/api/hof-dashboard-data', () => ({

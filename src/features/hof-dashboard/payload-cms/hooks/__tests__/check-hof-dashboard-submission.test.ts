@@ -6,6 +6,7 @@ jest.mock('@/config/environment-variables', () => ({
     CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS: [],
     CEVIDB_GROUP_TRANSLATION_TEAM: [106],
     CEVIDB_GROUP_PROGRAM_TEAM: [107],
+    CEVIDB_GROUP_HELPER_POOL: [],
     CEVIDB_GROUP_MATERIAL_TEAM: [108],
   },
 }));

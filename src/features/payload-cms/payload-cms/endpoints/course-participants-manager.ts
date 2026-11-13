@@ -1,4 +1,7 @@
-import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  canManageCourseEnrolments,
+  courseCollectionOf,
+} from '@/features/payload-cms/payload-cms/endpoints/course-access';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import prisma from '@/lib/db/prisma';
 import { formatUserFullName } from '@/utils/format-user-name';
@@ -6,7 +9,7 @@ import type { PayloadHandler } from 'payload';
 
 export const handleParticipantMutation: PayloadHandler = async (request) => {
   try {
-    const hasAccess = hasAdminOrWebAccess({ req: request });
+    const hasAccess = canManageCourseEnrolments(request, courseCollectionOf(request.url));
     if (!hasAccess) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }

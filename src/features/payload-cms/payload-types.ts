@@ -4201,6 +4201,7 @@ export interface AnnouncementChannel {
         | 'hof-dashboard-reviewer'
         | 'safety-team'
         | 'forum-zentrale'
+        | 'helper-pool'
       )[]
     | null;
   /**
@@ -4269,6 +4270,7 @@ export interface ForumTopic {
         | 'hof-dashboard-reviewer'
         | 'safety-team'
         | 'forum-zentrale'
+        | 'helper-pool'
       )[]
     | null;
   /**
@@ -4514,7 +4516,7 @@ export interface HelperShift {
       )[]
     | null;
   /**
-   * Organisers of this shift. The shift shows up in their daily program automatically, they are shown to helpers as contacts, and they are the only ones who see the list of enrolled helpers in the app.
+   * Who leads this shift on site. The shift shows up in their daily program automatically, they are shown to helpers as contacts, and they are the only ones who see the list of enrolled helpers in the app.
    */
   organiser?: (string | User)[] | null;
   /**

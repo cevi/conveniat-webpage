@@ -108,9 +108,9 @@ const localizedSwitchQuestionShift: StaticTranslationString = {
 };
 
 const localizedSwitchBlockedShift: StaticTranslationString = {
-  de: 'Die Abmeldefrist dieses Schichteinsatzes ist abgelaufen. Wechsel nicht möglich. Melde dich bei den Organisatoren.',
-  en: 'The withdrawal deadline of this shift has passed. Switching is not possible. Contact the organisers.',
-  fr: 'Le délai de désinscription de ce service est écoulé. Changement impossible. Contacte les organisateurs.',
+  de: 'Die Abmeldefrist dieses Schichteinsatzes ist abgelaufen. Wechsel nicht möglich. Melde dich bei der Schichtleitung.',
+  en: 'The withdrawal deadline of this shift has passed. Switching is not possible. Contact the shift leads.',
+  fr: 'Le délai de désinscription de ce service est écoulé. Changement impossible. Contacte les responsables du service.',
 };
 
 const localizedSpotsOf: StaticTranslationString = {
