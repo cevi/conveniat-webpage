@@ -65,6 +65,13 @@ export const periodLabels: Record<Exclude<SearchPeriod, 'year'>, StaticTranslati
 
 export const filterLabel: StaticTranslationString = { de: 'Filter', en: 'Filters', fr: 'Filtres' };
 
+/** The short reset beside the filter sheet's title; the empty state says "Filter zurücksetzen". */
+export const resetLabel: StaticTranslationString = {
+  de: 'Zurücksetzen',
+  en: 'Reset',
+  fr: 'Réinitialiser',
+};
+
 export const resetFiltersLabel: StaticTranslationString = {
   de: 'Filter zurücksetzen',
   en: 'Reset filters',

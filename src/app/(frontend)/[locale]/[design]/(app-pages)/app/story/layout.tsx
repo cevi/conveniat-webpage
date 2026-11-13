@@ -16,7 +16,7 @@ const StoryFeatureGate: React.FC<{ children: React.ReactNode }> = async ({ child
 };
 
 const StoryLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="bg-page min-h-dvh">
+  <div className="bg-page min-h-app-content">
     <div className="mx-auto max-w-xl px-4 pt-4 pb-10">
       <Suspense>
         <StoryFeatureGate>{children}</StoryFeatureGate>

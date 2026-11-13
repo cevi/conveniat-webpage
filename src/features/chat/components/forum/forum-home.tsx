@@ -50,7 +50,7 @@ export const ForumHome: React.FC<{
   // someone in no topic can still have written a private conversation of one
   if (topics.data?.length === 0 && (conversations.data?.length ?? 0) === 0) {
     return (
-      <div className="bg-page pb-28">
+      <div className="bg-page min-h-app-content pb-28">
         <SetHeaderActions />
         <OfflineBanner locale={locale} />
         <div className="mx-auto flex max-w-2xl flex-col px-4 pt-16">
@@ -64,7 +64,7 @@ export const ForumHome: React.FC<{
   const pinnedPosts = pinned.data ?? [];
 
   return (
-    <div className="bg-page pb-28">
+    <div className="bg-page min-h-app-content pb-28">
       <SetHeaderActions>
         <ZentraleLink counts={settings.data?.zentrale ?? null} locale={locale} />
         {onShowIntro !== undefined && (

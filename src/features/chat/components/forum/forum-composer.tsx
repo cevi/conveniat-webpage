@@ -318,7 +318,7 @@ export const ForumComposer: React.FC = () => {
   }
 
   return (
-    <div className="bg-page pb-10">
+    <div className="bg-page min-h-app-content pb-10">
       <ForumSubpageHeader
         title={forumText.newPost[locale]}
         locale={locale}

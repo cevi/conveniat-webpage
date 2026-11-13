@@ -156,7 +156,7 @@ export const ForumOverview: React.FC = () => {
   // query paused for the network is pending but not loading
   if (introSeen === false && intro.isLoading) {
     return (
-      <div className="bg-page flex justify-center pt-24">
+      <div className="bg-page min-h-app-content flex justify-center pt-24">
         <Loader2 className="h-6 w-6 animate-spin text-green-700" aria-hidden="true" />
       </div>
     );
@@ -233,7 +233,7 @@ const ForumTopicFeed: React.FC<{ topicId: string }> = ({ topicId }) => {
   const feedPosts = posts.filter((post) => !pinnedIds.has(post.id));
 
   return (
-    <div className="bg-page pb-28">
+    <div className="bg-page min-h-app-content pb-28">
       {/* the header keeps "Zu tun" alone; what belongs to the topic sits in its card and
           above its list, so the title keeps its room */}
       <SetHeaderActions>

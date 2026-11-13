@@ -26,7 +26,7 @@ const MaterialLayout: React.FC<{
   const { design } = await params;
 
   return (
-    <div className="bg-page min-h-dvh">
+    <div className="bg-page min-h-app-content">
       <div className="mx-auto max-w-6xl px-4">
         <Suspense>
           <MaterialFeatureGate>

@@ -278,7 +278,7 @@ export const ForumProtocolView: React.FC = () => {
   }
 
   return (
-    <div className="bg-page pb-28">
+    <div className="bg-page min-h-app-content pb-28">
       <ForumSubpageHeader
         title={forumTodoText.protocol[locale]}
         locale={locale}
