@@ -128,31 +128,26 @@ export const RemovalBanner: React.FC<{
       )}
 
       {awaitsDecision && (
-        // as review queues do: approve it, or confirm what the flags did; one under the other
-        // on a phone, so neither label is cut
-        <div className="flex flex-col gap-2">
+        // as review queues do: approve it, or confirm what the flags did. Side by side, each as
+        // wide as its label and without icons, so "Ausgeblendet lassen" fits a phone uncut
+        <div className="flex gap-2">
           <Button
             variant="outlined"
             size="touch"
-            className="w-full"
+            className="flex-auto px-3"
             disabled={restore.isPending || !isOnline}
             onClick={() => restore.mutate({ messageId: post.id })}
           >
-            {restore.isPending ? (
-              <Loader2 className="animate-spin" aria-hidden="true" />
-            ) : (
-              <Eye aria-hidden="true" />
-            )}
+            {restore.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
             {forumText.approveHidden[locale]}
           </Button>
           <Button
             variant="danger"
             size="touch"
-            className="w-full"
+            className="flex-auto px-3"
             disabled={dismiss.isPending || !isOnline}
             onClick={() => dismiss.mutate({ messageId: post.id })}
           >
-            <EyeOff aria-hidden="true" />
             {forumText.keepHidden[locale]}
           </Button>
         </div>

@@ -10,7 +10,6 @@ import { useTRPC } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { userErrorMessage } from '@/utils/user-error-message';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Eye, EyeOff } from 'lucide-react';
 import type React from 'react';
 
 /**
@@ -46,26 +45,27 @@ export const ForumCommentFlags: React.FC<{
   return (
     <div className="mt-1 flex max-w-full flex-col gap-1.5">
       <ForumFlagReasons flags={flags} locale={locale} />
-      {/* side by side while they fit next to each other, one under the other when not */}
+      {/* side by side, each as wide as its label and without icons, so the pair fits under a
+          reply on a phone; one under the other only where even that does not fit */}
       <div className="flex flex-wrap gap-2">
         {hidden ? (
           <>
             <Button
               variant="outlined"
               size="touch"
+              className="flex-auto px-3"
               disabled={busy}
               onClick={() => restore.mutate({ messageId: message.id })}
             >
-              <Eye aria-hidden="true" />
               {forumText.approveHidden[locale]}
             </Button>
             <Button
               variant="danger"
               size="touch"
+              className="flex-auto px-3"
               disabled={busy}
               onClick={() => dismiss.mutate({ messageId: message.id })}
             >
-              <EyeOff aria-hidden="true" />
               {forumText.keepHidden[locale]}
             </Button>
           </>
@@ -74,13 +74,13 @@ export const ForumCommentFlags: React.FC<{
             <Button
               variant="outlined"
               size="touch"
+              className="flex-auto px-3"
               disabled={busy}
               onClick={() => dismiss.mutate({ messageId: message.id })}
             >
               {forumText.keepFlagged[locale]}
             </Button>
             <Button variant="danger" size="touch" disabled={busy} onClick={onHide}>
-              <EyeOff aria-hidden="true" />
               {forumText.hide[locale]}
             </Button>
           </>
