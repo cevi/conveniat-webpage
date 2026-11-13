@@ -8,12 +8,13 @@ import { DEFAULT_FORUM_FILTERS } from '@/features/chat/components/forum/forum-fi
 import { ForumOverview } from '@/features/chat/components/forum/forum-overview';
 import type { ForumPostSummary } from '@/lib/forum-shared';
 import { createTestTrpc } from '@/trpc/test-trpc';
+import { onlineManager } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type React from 'react';
 
 let topics: ForumTopic[] | undefined;
 let settings: object;
-let conversations: ForumConversationSummary[];
+let conversations: ForumConversationSummary[] | undefined;
 let pinnedPosts: ForumPostSummary[];
 let feedPosts: ForumPostSummary[];
 let intro: ForumIntroTexts;
@@ -79,7 +80,7 @@ const renderForum = (): { calls: { path: string; input: unknown }[] } => {
     'forum.getForumTopicList': () => topics ?? new Promise(() => {}),
     'forum.getForumSettings': () => settings,
     'forum.getForumIntro': () => intro,
-    'forum.getForumConversationList': () => conversations,
+    'forum.getForumConversationList': () => conversations ?? new Promise(() => {}),
     'forum.getForumPinnedPostList': () => pinnedPosts,
     'forum.getForumPostList': (input) =>
       // the kind chips narrow the feed on the server
@@ -98,7 +99,9 @@ const renderForum = (): { calls: { path: string; input: unknown }[] } => {
   }
   queryClient.setQueryData(trpc.forum.getForumSettings.queryKey({}), settings as never);
   queryClient.setQueryData(trpc.forum.getForumIntro.queryKey({}), intro);
-  queryClient.setQueryData(trpc.forum.getForumConversationList.queryKey({}), conversations);
+  if (conversations !== undefined) {
+    queryClient.setQueryData(trpc.forum.getForumConversationList.queryKey({}), conversations);
+  }
   const topicId = new URLSearchParams(address).get('topic');
   if (topicId === null) {
     queryClient.setQueryData(trpc.forum.getForumPinnedPostList.queryKey({}), pinnedPosts);
@@ -254,6 +257,27 @@ describe('the start page of the forum', () => {
     expect(skeleton()).toBeNull();
     await waitFor(() => expect(skeleton()).not.toBeNull());
     expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
+  it('waits for the conversations too, so no topic list jumps once they arrive', () => {
+    conversations = undefined;
+    renderForum();
+
+    expect(screen.queryByText('Themen')).toBeNull();
+  });
+
+  it('shows the saved topics offline though the conversations were never loaded', () => {
+    conversations = undefined;
+    onlineManager.setOnline(false);
+    try {
+      renderForum();
+
+      // offline the conversations would never come, and the skeleton would stay for good
+      expect(screen.getByText('Themen')).toBeTruthy();
+      expect(screen.getByRole('link', { name: /Platz & Infrastruktur/ })).toBeTruthy();
+    } finally {
+      onlineManager.setOnline(true);
+    }
   });
 
   it('offers a new post once the topics are there', () => {

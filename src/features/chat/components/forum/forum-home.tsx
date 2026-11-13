@@ -28,6 +28,10 @@ import Link from 'next/link';
 import type React from 'react';
 import { useState } from 'react';
 
+/** Still on its way: pending, and not waiting offline for a network that may not come. */
+const isAwaited = (query: { isPending: boolean; fetchStatus: string }): boolean =>
+  query.isPending && query.fetchStatus !== 'paused';
+
 /**
  * The forum's start page, topics first: the user's own private conversations on top, then the
  * topics, each with who answers there (its Kernteam) and how much is open, and the pinned posts
@@ -54,8 +58,9 @@ export const ForumHome: React.FC<{
 
   // Which page this is, the topics or the empty state, is only known once both lists are.
   // Pending, not loading: while the persisted cache is restored the queries wait without
-  // fetching. A short wait shows nothing, a longer one the skeleton of the topics.
-  if (topics.isPending || conversations.isPending) {
+  // fetching. A short wait shows nothing, a longer one the skeleton of the topics. A list that
+  // waits for the network offline will not come, so what is cached shows without it.
+  if (isAwaited(topics) || isAwaited(conversations)) {
     return (
       <div className="bg-page min-h-app-content pb-28">
         <SetHeaderActions />
