@@ -234,7 +234,7 @@ export const ForumZentraleView: React.FC = () => {
 
   if (!isDesktop) {
     return (
-      <div className="bg-page min-h-dvh pb-28">
+      <div className="bg-page min-h-app-content pb-28">
         <OfflineBanner locale={locale} />
         {queue}
       </div>
@@ -242,7 +242,7 @@ export const ForumZentraleView: React.FC = () => {
   }
 
   return (
-    <div className="bg-page grid h-[calc(100dvh-var(--app-top-inset))] grid-cols-[minmax(320px,400px)_1fr]">
+    <div className="bg-page h-app-content grid grid-cols-[minmax(320px,400px)_1fr]">
       <div className="border-line overflow-y-auto border-r">
         <OfflineBanner locale={locale} />
         {queue}
