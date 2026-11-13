@@ -155,7 +155,7 @@ export const ForumOverview: React.FC = () => {
   // without one written, or while offline without a cached one, the forum opens as it is
   if (introSeen === false && intro.isPending) {
     return (
-      <div className="bg-page flex min-h-dvh justify-center pt-24">
+      <div className="bg-page flex justify-center pt-24">
         <Loader2 className="h-6 w-6 animate-spin text-green-700" aria-hidden="true" />
       </div>
     );
@@ -232,7 +232,7 @@ const ForumTopicFeed: React.FC<{ topicId: string }> = ({ topicId }) => {
   const feedPosts = posts.filter((post) => !pinnedIds.has(post.id));
 
   return (
-    <div className="bg-page min-h-dvh pb-28">
+    <div className="bg-page pb-28">
       {/* the header keeps "Zu tun" alone; what belongs to the topic sits in its card and
           above its list, so the title keeps its room */}
       <SetHeaderActions>

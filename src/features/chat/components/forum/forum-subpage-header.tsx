@@ -36,8 +36,10 @@ export const ForumSubpageHeader: React.FC<{
     router.back();
   };
   return (
-    // in the place of the hidden app header, which the page below still leaves room for
-    <div className="border-line fixed inset-x-0 top-(--app-top-inset) z-[110] flex h-[62px] items-center gap-1 border-b bg-white pr-2 pl-1 xl:hidden">
+    // in the place of the hidden app header, which the page below still leaves room for, and
+    // like it from the very top: its white reaches under the status bar, or the page scrolls
+    // into view there
+    <div className="border-line fixed inset-x-0 top-0 z-[110] flex h-[calc(62px+var(--app-top-inset))] items-center gap-1 border-b bg-white pt-(--app-top-inset) pr-2 pl-1 xl:hidden">
       <SetHideHeader value />
       <button
         type="button"

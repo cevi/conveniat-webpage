@@ -273,7 +273,7 @@ export const ForumZentraleView: React.FC = () => {
 
   if (!isDesktop) {
     return (
-      <div className="bg-page min-h-dvh pb-28">
+      <div className="bg-page pb-28">
         <ForumSubpageHeader
           title={forumText.todo[locale]}
           locale={locale}

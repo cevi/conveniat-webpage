@@ -49,7 +49,7 @@ export const ForumHome: React.FC<{
 
   if (topics.data?.length === 0) {
     return (
-      <div className="bg-page min-h-dvh pb-28">
+      <div className="bg-page pb-28">
         <SetHeaderActions />
         <OfflineBanner locale={locale} />
         <div className="mx-auto flex max-w-2xl flex-col px-4 pt-16">
@@ -63,7 +63,7 @@ export const ForumHome: React.FC<{
   const pinnedPosts = pinned.data ?? [];
 
   return (
-    <div className="bg-page min-h-dvh pb-28">
+    <div className="bg-page pb-28">
       <SetHeaderActions>
         <ZentraleLink counts={settings.data?.zentrale ?? null} locale={locale} />
         {onShowIntro !== undefined && (
