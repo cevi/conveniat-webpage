@@ -8,12 +8,13 @@ import { DEFAULT_FORUM_FILTERS } from '@/features/chat/components/forum/forum-fi
 import { ForumOverview } from '@/features/chat/components/forum/forum-overview';
 import type { ForumPostSummary } from '@/lib/forum-shared';
 import { createTestTrpc } from '@/trpc/test-trpc';
+import { onlineManager } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type React from 'react';
 
 let topics: ForumTopic[] | undefined;
 let settings: object;
-let conversations: ForumConversationSummary[];
+let conversations: ForumConversationSummary[] | undefined;
 let pinnedPosts: ForumPostSummary[];
 let feedPosts: ForumPostSummary[];
 let intro: ForumIntroTexts;
@@ -79,7 +80,7 @@ const renderForum = (): { calls: { path: string; input: unknown }[] } => {
     'forum.getForumTopicList': () => topics ?? new Promise(() => {}),
     'forum.getForumSettings': () => settings,
     'forum.getForumIntro': () => intro,
-    'forum.getForumConversationList': () => conversations,
+    'forum.getForumConversationList': () => conversations ?? new Promise(() => {}),
     'forum.getForumPinnedPostList': () => pinnedPosts,
     'forum.getForumPostList': (input) =>
       // the kind chips narrow the feed on the server
@@ -98,7 +99,9 @@ const renderForum = (): { calls: { path: string; input: unknown }[] } => {
   }
   queryClient.setQueryData(trpc.forum.getForumSettings.queryKey({}), settings as never);
   queryClient.setQueryData(trpc.forum.getForumIntro.queryKey({}), intro);
-  queryClient.setQueryData(trpc.forum.getForumConversationList.queryKey({}), conversations);
+  if (conversations !== undefined) {
+    queryClient.setQueryData(trpc.forum.getForumConversationList.queryKey({}), conversations);
+  }
   const topicId = new URLSearchParams(address).get('topic');
   if (topicId === null) {
     queryClient.setQueryData(trpc.forum.getForumPinnedPostList.queryKey({}), pinnedPosts);
@@ -112,6 +115,10 @@ const renderForum = (): { calls: { path: string; input: unknown }[] } => {
   render(<ForumOverview />, { wrapper });
   return { calls };
 };
+
+/** The pulsing placeholders of the start page, hidden from assistive technology. */
+const skeleton = (): Element | null =>
+  document.querySelector('[aria-hidden="true"] .animate-pulse');
 
 const newPostLink = (): HTMLElement => screen.getByRole('link', { name: /Neuer Beitrag/ });
 
@@ -196,6 +203,27 @@ describe('the start page of the forum', () => {
     expect(within(closed).getByText(/Essen · Geschlossen/)).toBeTruthy();
   });
 
+  it('keeps the conversations of someone no longer in any topic, without an empty topic list', () => {
+    topics = [];
+    conversations = [
+      {
+        postId: 'conversation-post',
+        chatId: 'conversation-chat',
+        title: 'Frage zur Anreise',
+        topicName: 'Platz & Infrastruktur',
+        status: 'OPEN',
+        closed: false,
+        unreadCount: 0,
+        lastActivity: new Date(),
+      },
+    ];
+    renderForum();
+
+    expect(screen.getByRole('link', { name: /Frage zur Anreise/ })).toBeTruthy();
+    expect(screen.queryByText('Themen')).toBeNull();
+    expect(screen.queryByText('Noch kein Forum für dich')).toBeNull();
+  });
+
   it('leaves out the conversations while the user has none', () => {
     renderForum();
 
@@ -210,8 +238,49 @@ describe('the start page of the forum', () => {
     expect(screen.getByRole('link', { name: /Zu heisses Wasser/ })).toBeTruthy();
   });
 
-  it('offers a new post, also while the topics still load', () => {
+  it('draws neither the topics nor the empty state while the topics still load', () => {
     topics = undefined;
+    renderForum();
+
+    // a page drawn now would jump once it turns out there is no forum for this person
+    expect(screen.queryByPlaceholderText(/Suchen/)).toBeNull();
+    expect(screen.queryByText('Themen')).toBeNull();
+    expect(screen.queryByRole('link', { name: /Neuer Beitrag/ })).toBeNull();
+    expect(screen.queryByText('Noch kein Forum für dich')).toBeNull();
+  });
+
+  it('shows the skeleton of the topics only once the wait is no longer short', async () => {
+    topics = undefined;
+    renderForum();
+
+    // a quick answer would have shown nothing at all
+    expect(skeleton()).toBeNull();
+    await waitFor(() => expect(skeleton()).not.toBeNull());
+    expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
+  it('waits for the conversations too, so no topic list jumps once they arrive', () => {
+    conversations = undefined;
+    renderForum();
+
+    expect(screen.queryByText('Themen')).toBeNull();
+  });
+
+  it('shows the saved topics offline though the conversations were never loaded', () => {
+    conversations = undefined;
+    onlineManager.setOnline(false);
+    try {
+      renderForum();
+
+      // offline the conversations would never come, and the skeleton would stay for good
+      expect(screen.getByText('Themen')).toBeTruthy();
+      expect(screen.getByRole('link', { name: /Platz & Infrastruktur/ })).toBeTruthy();
+    } finally {
+      onlineManager.setOnline(true);
+    }
+  });
+
+  it('offers a new post once the topics are there', () => {
     renderForum();
 
     expect(newPostLink().getAttribute('href')).toBe('/app/forum/new');
