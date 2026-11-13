@@ -545,6 +545,26 @@ export const relativeTimeText = (date: Date, locale: Locale, now: Date = new Dat
   });
 };
 
+/**
+ * How old something is, for a narrow line of a list: "5 Min.", "16 Std.", and from a day on the
+ * date. Shorter than `relativeTimeText`, which says "vor 16 Std.".
+ */
+export const shortAgeText = (date: Date, locale: Locale, now: Date = new Date()): string => {
+  const minutes = Math.max(Math.round((now.getTime() - date.getTime()) / 60_000), 0);
+  if (minutes >= 24 * 60) return relativeTimeText(date, locale, now);
+  return durationText(date, locale, now);
+};
+
+/**
+ * The name someone goes by at camp, for a narrow line of a list: the Cevi name after "v/o",
+ * else the first name. The post itself shows the full name.
+ */
+export const campNameOf = (fullName: string): string => {
+  const vulgo = fullName.split(' v/o ')[1]?.trim();
+  if (vulgo !== undefined && vulgo !== '') return vulgo;
+  return fullName.trim().split(/\s+/)[0] ?? fullName;
+};
+
 /** How long something has waited, e.g. "3 Std", for the Zentrale's queue. */
 export const durationText = (since: Date, locale: Locale, now: Date = new Date()): string => {
   const minutes = Math.max(Math.round((now.getTime() - since.getTime()) / 60_000), 0);

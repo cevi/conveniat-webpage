@@ -1,5 +1,5 @@
 import { ForumStatusPill } from '@/features/chat/components/forum/forum-status-pill';
-import { forumText, relativeTimeText } from '@/features/chat/components/forum/forum-texts';
+import { campNameOf, forumText, shortAgeText } from '@/features/chat/components/forum/forum-texts';
 import type { ForumPostSummary } from '@/lib/forum-shared';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -127,12 +127,13 @@ export const ForumPostRow: React.FC<{
               <span className="truncate">{post.kernteamLabel ?? post.author?.name ?? ''}</span>
             </span>
           ) : (
-            <span className="truncate">{post.author?.name ?? ''}</span>
+            // the name the camp knows them by; the post shows the full one
+            <span className="truncate" title={post.author?.name}>
+              {campNameOf(post.author?.name ?? '')}
+            </span>
           )}
           {/* a long name gives way, the time does not: it tells how fresh the post is */}
-          <span className="shrink-0">
-            · {relativeTimeText(new Date(post.createdAt), locale, now)}
-          </span>
+          <span className="shrink-0">· {shortAgeText(new Date(post.createdAt), locale, now)}</span>
         </span>
         <span className="ml-auto flex shrink-0 items-center gap-2.5 pl-1 font-semibold text-green-800">
           {post.location !== null && (

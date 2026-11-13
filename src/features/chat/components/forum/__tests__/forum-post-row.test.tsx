@@ -61,6 +61,20 @@ describe('a post in a list', () => {
     expect(row.textContent).toContain('Programm');
   });
 
+  it('names the author by the name the camp knows them by, with a short age', () => {
+    const row = renderRow(post());
+    expect(row.textContent).toContain('Luchs');
+    expect(row.textContent).not.toContain('Mia Keller');
+    expect(row.textContent).toContain('2 Std.');
+    expect(row.textContent).not.toContain('vor');
+  });
+
+  it('falls back to the first name when someone has no Cevi name', () => {
+    expect(renderRow(post({ author: { id: 'lou', name: 'Lou Meier' } })).textContent).toContain(
+      'Lou',
+    );
+  });
+
   it('leaves the pin to the section label, so the title reads on its own', () => {
     expect(renderRow(post({ pinned: true })).textContent).toMatch(/^Regenprogramm/);
   });
