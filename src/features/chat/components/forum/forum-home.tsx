@@ -8,6 +8,10 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { IconTile } from '@/components/ui/icon-tile';
 import { ListRow } from '@/components/ui/list-row';
 import { SectionLabel } from '@/components/ui/section-label';
+import {
+  ForumHomeSkeleton,
+  useSkeletonDelayPassed,
+} from '@/features/chat/components/forum/forum-home-skeleton';
 import { ForumPostRow } from '@/features/chat/components/forum/forum-post-row';
 import { forumText, relativeTimeText } from '@/features/chat/components/forum/forum-texts';
 import { ForumTopicIconView } from '@/features/chat/components/forum/forum-topic-icon';
@@ -38,6 +42,7 @@ export const ForumHome: React.FC<{
   const [search, setSearch] = useState('');
   const [now] = useState(() => new Date());
 
+  const skeletonDelayPassed = useSkeletonDelayPassed();
   const topics = useQuery(trpc.forum.getForumTopicList.queryOptions({}));
   const settings = useQuery(trpc.forum.getForumSettings.queryOptions({}));
   const conversations = useQuery(trpc.forum.getForumConversationList.queryOptions({}));
@@ -46,6 +51,19 @@ export const ForumHome: React.FC<{
   const results = useQuery(
     trpc.forum.getForumPostSuggestionList.queryOptions({ title: search }, { enabled: isSearching }),
   );
+
+  // Which page this is, the topics or the empty state, is only known once both lists are.
+  // Pending, not loading: while the persisted cache is restored the queries wait without
+  // fetching. A short wait shows nothing, a longer one the skeleton of the topics.
+  if (topics.isPending || conversations.isPending) {
+    return (
+      <div className="bg-page min-h-app-content pb-28">
+        <SetHeaderActions />
+        <OfflineBanner locale={locale} />
+        {skeletonDelayPassed && <ForumHomeSkeleton />}
+      </div>
+    );
+  }
 
   // someone in no topic can still have written a private conversation of one
   if (topics.data?.length === 0 && (conversations.data?.length ?? 0) === 0) {
@@ -140,13 +158,10 @@ export const ForumHome: React.FC<{
               </section>
             )}
 
-            <section className="flex flex-col gap-2">
-              <SectionLabel>{forumText.topics[locale]}</SectionLabel>
-              {topics.isLoading ? (
-                <Card className="flex justify-center p-6">
-                  <Loader2 className="h-6 w-6 animate-spin text-green-700" aria-hidden="true" />
-                </Card>
-              ) : (
+            {/* without a topic, only the conversations above, and no empty card */}
+            {(topics.data?.length ?? 0) > 0 && (
+              <section className="flex flex-col gap-2">
+                <SectionLabel>{forumText.topics[locale]}</SectionLabel>
                 <Card as="ul" divided>
                   {topics.data?.map((topic) => (
                     <li key={topic.id}>
@@ -179,8 +194,8 @@ export const ForumHome: React.FC<{
                     </li>
                   ))}
                 </Card>
-              )}
-            </section>
+              </section>
+            )}
 
             {pinnedPosts.length > 0 && (
               <section className="flex flex-col gap-2">

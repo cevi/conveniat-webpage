@@ -113,6 +113,10 @@ const renderForum = (): { calls: { path: string; input: unknown }[] } => {
   return { calls };
 };
 
+/** The pulsing placeholders of the start page, hidden from assistive technology. */
+const skeleton = (): Element | null =>
+  document.querySelector('[aria-hidden="true"] .animate-pulse');
+
 const newPostLink = (): HTMLElement => screen.getByRole('link', { name: /Neuer Beitrag/ });
 
 /** The list filters the filter sheet offers; the feed itself shows none. */
@@ -196,6 +200,27 @@ describe('the start page of the forum', () => {
     expect(within(closed).getByText(/Essen · Geschlossen/)).toBeTruthy();
   });
 
+  it('keeps the conversations of someone no longer in any topic, without an empty topic list', () => {
+    topics = [];
+    conversations = [
+      {
+        postId: 'conversation-post',
+        chatId: 'conversation-chat',
+        title: 'Frage zur Anreise',
+        topicName: 'Platz & Infrastruktur',
+        status: 'OPEN',
+        closed: false,
+        unreadCount: 0,
+        lastActivity: new Date(),
+      },
+    ];
+    renderForum();
+
+    expect(screen.getByRole('link', { name: /Frage zur Anreise/ })).toBeTruthy();
+    expect(screen.queryByText('Themen')).toBeNull();
+    expect(screen.queryByText('Noch kein Forum für dich')).toBeNull();
+  });
+
   it('leaves out the conversations while the user has none', () => {
     renderForum();
 
@@ -210,8 +235,28 @@ describe('the start page of the forum', () => {
     expect(screen.getByRole('link', { name: /Zu heisses Wasser/ })).toBeTruthy();
   });
 
-  it('offers a new post, also while the topics still load', () => {
+  it('draws neither the topics nor the empty state while the topics still load', () => {
     topics = undefined;
+    renderForum();
+
+    // a page drawn now would jump once it turns out there is no forum for this person
+    expect(screen.queryByPlaceholderText(/Suchen/)).toBeNull();
+    expect(screen.queryByText('Themen')).toBeNull();
+    expect(screen.queryByRole('link', { name: /Neuer Beitrag/ })).toBeNull();
+    expect(screen.queryByText('Noch kein Forum für dich')).toBeNull();
+  });
+
+  it('shows the skeleton of the topics only once the wait is no longer short', async () => {
+    topics = undefined;
+    renderForum();
+
+    // a quick answer would have shown nothing at all
+    expect(skeleton()).toBeNull();
+    await waitFor(() => expect(skeleton()).not.toBeNull());
+    expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
+  it('offers a new post once the topics are there', () => {
     renderForum();
 
     expect(newPostLink().getAttribute('href')).toBe('/app/forum/new');
