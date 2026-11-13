@@ -11,7 +11,6 @@ import {
   Image as ImageIcon,
   MapPin,
   MessageCircle,
-  Pin,
   ShieldCheck,
   ThumbsUp,
 } from 'lucide-react';
@@ -84,8 +83,8 @@ const Count: React.FC<{ icon: React.ReactNode; value: number; highlighted?: bool
 /**
  * One post in a list, calm like a topic list on Discourse: the title, two lines of text, and one
  * grey line with where it stands, who wrote it and when, and on the right the counts above zero.
- * The Kernteam is told apart by a small shield, not a badge, and a pinned post by a pin before
- * its title. The whole row is the link.
+ * The Kernteam is told apart by a small shield, not a badge. Pinned posts stand under their own
+ * section label, so the row carries no pin. The whole row is the link.
  */
 export const ForumPostRow: React.FC<{
   post: ForumPostSummary;
@@ -101,16 +100,9 @@ export const ForumPostRow: React.FC<{
       href={`/app/forum/${post.id}`}
       className="focus-visible:focus-surface hover:bg-quiet/60 flex flex-col gap-1.5 px-4 py-3 transition-colors"
     >
-      <span className="font-heading text-heading text-[15px] leading-snug font-bold">
-        {post.pinned && (
-          <>
-            <Pin
-              className="mr-1 mb-0.5 inline h-3.5 w-3.5 rotate-30 text-green-700"
-              aria-hidden="true"
-            />
-            <span className="sr-only">{forumText.pinned[locale]}: </span>
-          </>
-        )}
+      {/* balanced, so a two-line title breaks evenly; whether it is pinned says the section
+          label "Angeheftet" above it, like Raycast and Digg do */}
+      <span className="font-heading text-heading text-[15px] leading-snug font-bold text-balance">
         {post.title}
       </span>
       {!compact && post.excerpt !== '' && (

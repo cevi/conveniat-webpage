@@ -19,7 +19,7 @@ import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight, Info, Loader2, Lock, MessageCircleQuestion, Plus } from 'lucide-react';
+import { ChevronRight, Info, Loader2, Lock, MessageCircleQuestion, Pin, Plus } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
 import { useState } from 'react';
@@ -183,7 +183,10 @@ export const ForumHome: React.FC<{
 
             {pinnedPosts.length > 0 && (
               <section className="flex flex-col gap-2">
-                <SectionLabel>{forumText.pinned[locale]}</SectionLabel>
+                <SectionLabel className="flex items-center gap-1.5">
+                  <Pin className="h-3.5 w-3.5 rotate-30" aria-hidden="true" />
+                  {forumText.pinned[locale]}
+                </SectionLabel>
                 <Card as="ul" divided className="border-tint-line bg-tint">
                   {pinnedPosts.map((post) => (
                     <ForumPostRow key={post.id} post={post} locale={locale} showTopic now={now} />

@@ -61,7 +61,7 @@ describe('a post in a list', () => {
     expect(row.textContent).toContain('Programm');
   });
 
-  it('marks a pinned post before its title', () => {
-    expect(renderRow(post({ pinned: true })).textContent).toMatch(/^Angeheftet: Regenprogramm/);
+  it('leaves the pin to the section label, so the title reads on its own', () => {
+    expect(renderRow(post({ pinned: true })).textContent).toMatch(/^Regenprogramm/);
   });
 });

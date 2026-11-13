@@ -329,14 +329,20 @@ describe('the feed of a topic', () => {
     expect(screen.queryByRole('button', { name: 'Einstellungen des Themas' })).toBeNull();
   });
 
-  it('marks a pinned post by its pin, not by a section title', () => {
+  it('puts the pinned posts under their own section label, each post once', () => {
     const pinnedPost = post({ id: 'pinned', pinned: true });
     pinnedPosts = [pinnedPost];
     feedPosts = [pinnedPost, post({ id: 'other', title: 'WC beim Quartier 3 verstopft' })];
     renderForum();
 
-    expect(screen.getByRole('link', { name: /Angeheftet.*Zu heisses Wasser/ })).toBeTruthy();
-    expect(screen.queryByRole('link', { name: /Angeheftet.*WC beim Quartier 3/ })).toBeNull();
+    const pinned = screen.getByRole('heading', { name: 'Angeheftet' }).closest('section');
+    expect(pinned).not.toBeNull();
+    expect(
+      within(pinned as HTMLElement).getByRole('link', { name: /Zu heisses Wasser/ }),
+    ).toBeTruthy();
+    expect(
+      within(pinned as HTMLElement).queryByRole('link', { name: /WC beim Quartier 3/ }),
+    ).toBeNull();
     expect(screen.getAllByRole('link', { name: /Zu heisses Wasser/ })).toHaveLength(1);
     expect(screen.queryByText('Neueste')).toBeNull();
   });

@@ -36,6 +36,7 @@ import {
   Loader2,
   Megaphone,
   MessageCircleQuestion,
+  Pin,
   Plus,
   Settings2,
   SlidersHorizontal,
@@ -333,21 +334,27 @@ const ForumTopicFeed: React.FC<{ topicId: string }> = ({ topicId }) => {
         ) : (
           <>
             {pinnedPosts.length > 0 && (
-              <Card as="ul" divided className="border-tint-line bg-tint mb-1">
-                {pinnedPosts.map((post) => (
-                  <ForumPostRow
-                    key={post.id}
-                    post={post}
-                    locale={locale}
-                    showTopic={false}
-                    now={now}
-                  />
-                ))}
-              </Card>
+              <section className="mb-1 flex flex-col gap-2">
+                <SectionLabel className="flex items-center gap-1.5">
+                  <Pin className="h-3.5 w-3.5 rotate-30" aria-hidden="true" />
+                  {forumText.pinned[locale]}
+                </SectionLabel>
+                <Card as="ul" divided className="border-tint-line bg-tint">
+                  {pinnedPosts.map((post) => (
+                    <ForumPostRow
+                      key={post.id}
+                      post={post}
+                      locale={locale}
+                      showTopic={false}
+                      now={now}
+                    />
+                  ))}
+                </Card>
+              </section>
             )}
 
             <section className="flex flex-col gap-2">
-              {/* the unfiltered feed needs no title: the pin marks what stands on top */}
+              {/* the unfiltered feed needs no title: the pinned posts above have theirs */}
               {isFiltered(filters) && (
                 <div className="flex items-center justify-between">
                   <SectionLabel>{describeFilters(filters, locale)}</SectionLabel>
