@@ -99,3 +99,25 @@ model ScheduleReminderDelivery {
   @@id([userId, entryId, kind, scheduledFor])
   @@index([sentAt])
 }
+
+/// How many Schichteinsätze a Hof takes on on one camp day, set by the Helferpool. A target,
+/// never a limit: enrolments count towards it, and going over it is fine. The AVP sees it next
+/// to what the people of the Hof enrolled for.
+model HofShiftQuota {
+  /// the Hof in Payload's `hoefe` collection; no foreign key, the Hof lives in MongoDB
+  hofId String
+
+  /// the camp day, in Zurich
+  day DateTime @db.Date
+
+  /// shift slots the Hof fills that day; two shifts of one person count twice
+  slots Int
+
+  updatedAt DateTime @updatedAt
+
+  /// the Payload user who last set it
+  updatedBy String?
+
+  @@id([hofId, day])
+  @@index([day])
+}

@@ -169,6 +169,20 @@ export const shiftsRouter = createTRPCRouter({
     return listEnrolmentHoefe(prisma, user.uuid);
   }),
 
+  /**
+   * The Schichteinsätze of the Hof the user is AVP of, for "Mein Hof": the quota per day, how
+   * far its people got, and who enrolled when. Everybody who is AVP of no Hof gets no Höfe and
+   * sees no "Mein Hof".
+   */
+  getHofShiftOverview: publicProcedure
+    .input(z.object({ hofId: z.string().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const { user } = ctx;
+      if (!user) return { hoefe: [], days: [] };
+      const { getHofShiftOverview } = await import('./hof-shift-overview');
+      return getHofShiftOverview(user, input?.hofId);
+    }),
+
   getMyOrganisedShifts: publicProcedure.query(async ({ ctx }) => {
     const { user } = ctx;
     if (!user) return [];

@@ -4,6 +4,7 @@ import {
   FORUM_ZENTRALE_ROLES,
   getUserGroups,
   hasAccessToThisUser,
+  HELPER_SHIFT_ROLES,
   MATERIAL_DEPOT_ROLES,
   Roles,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
@@ -90,6 +91,17 @@ const ADMIN_VIEW_LINKS: AdminViewLink[] = [
     label: { de: 'Forum-Zentrale', en: 'Forum Zentrale', fr: 'Zentrale du forum' },
     group: 'AppOperations',
     requiredRoles: FORUM_ZENTRALE_ROLES,
+  },
+  {
+    // with the Schichteinsätze, whose planners set what each Hof takes on
+    path: '/schicht-kontingente',
+    label: {
+      de: 'Schicht-Kontingente',
+      en: 'Shift quotas',
+      fr: 'Quotas de services',
+    },
+    group: 'AppHelpers',
+    requiredRoles: HELPER_SHIFT_ROLES,
   },
   {
     // Listed whether or not the app has the feature on yet, so the depot can be set up before it
