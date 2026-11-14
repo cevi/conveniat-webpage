@@ -7,13 +7,13 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { FactRow } from '@/components/ui/fact-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import { OrganiserContacts } from '@/features/schedule/components/organiser-contacts';
-import { ParticipantList } from '@/features/schedule/components/participant-list';
 import { ReminderButton, ReminderHint } from '@/features/schedule/components/reminder-button';
 import { ScheduleDetailSkeleton } from '@/features/schedule/components/schedule-detail-skeleton';
 import { mapCenterOf, ScheduleMiniMap } from '@/features/schedule/components/schedule-mini-map';
 import { formatSpotsFilled, ShiftCapacity } from '@/features/schedule/components/shift-capacity';
 import { ShiftEnrollmentAction } from '@/features/schedule/components/shift-enrollment-action';
 import { ShiftMainContent } from '@/features/schedule/components/shift-main-content';
+import { ShiftRoster } from '@/features/schedule/components/shift-roster';
 import { ShiftShareButton } from '@/features/schedule/components/shift-share-button';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import { useShiftStatus } from '@/features/schedule/hooks/use-shift-status';
@@ -128,6 +128,9 @@ export const ShiftDetailView: React.FC<{
     !status.isEnrolled &&
     status.maxParticipants !== undefined &&
     status.enrolledCount >= status.maxParticipants;
+  // the Schichtleitung leads the shift and does not take one of its places; their actions are
+  // the roster's, and an "Einschreiben" here was the one primary button competing with them
+  const isLeadOfShift = status?.isOrganiser === true && status.isEnrolled !== true;
 
   // read from the deadline rather than from a flag, so a view left open past it corrects itself
   const isWithdrawalClosed = useIsUnenrollmentClosed(status?.unenrollmentDeadline);
@@ -345,11 +348,10 @@ export const ShiftDetailView: React.FC<{
               </div>
 
               {/*
-                Who signed up, for the organisers of this shift only. The component renders
-                nothing for everyone else - the decision is the server's, `getShiftStatus` leaves
-                `participants` empty unless the caller organises the shift.
+                Who comes and who came, for the Schichtleitung of this shift only. The component
+                renders nothing for everyone else, and the server refuses them the roster.
               */}
-              <ParticipantList courseId={shift.id} courseType="shift" />
+              <ShiftRoster shift={{ id: shift.id, title: shift.title }} locale={locale} />
 
               {hasShiftMainContent(shift.mainContent) && (
                 <section>
@@ -371,7 +373,7 @@ export const ShiftDetailView: React.FC<{
           thing this screen exists for below the fold.
         */}
         {/* a full shift the user is not on has nothing to do here: the capacity says it */}
-        {shift.enable_enrolment !== false && !isFullForMe && (
+        {shift.enable_enrolment !== false && !isFullForMe && !isLeadOfShift && (
           <div className="border-line shrink-0 border-t bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <div className="mx-auto w-full max-w-xl">
               <ShiftEnrollmentAction
