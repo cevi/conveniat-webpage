@@ -4528,9 +4528,9 @@ export interface HelperShift {
    */
   category?: (string | null) | CampCategory;
   /**
-   * Maximum number of helpers for this shift. Leave empty for unlimited.
+   * How many helpers this shift takes. The Schicht-Kontingente spread these places over the Höfe.
    */
-  participants_max?: number | null;
+  participants_max: number;
   enable_enrolment?: boolean | null;
   /**
    * How many minutes before the shift starts helpers can no longer withdraw from it. Set to 0 to allow withdrawing until the shift begins.
