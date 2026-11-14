@@ -16,9 +16,9 @@ const title: StaticTranslationString = {
 };
 
 const intro: StaticTranslationString = {
-  de: 'Wie viele Schichteinsätze jeder Hof pro Tag übernimmt. Es zählen alle Anmeldungen von Personen des Hofs, zwei Einsätze einer Person zählen doppelt. Leer heisst: kein Kontingent an diesem Tag. Das Kontingent ist ein Ziel, keine Grenze. Die AVP sieht es und den Stand ihres Hofs in der App.',
-  en: 'How many shifts each Hof takes on per day. Every enrolment of a person of the Hof counts, two shifts of one person count twice. Empty means no quota that day. The quota is a target, not a limit. The AVP sees it and where their Hof stands in the app.',
-  fr: 'Combien de services chaque Hof assure par jour. Chaque inscription d’une personne du Hof compte, deux services d’une même personne comptent deux fois. Vide signifie pas de quota ce jour-là. Le quota est un objectif, pas une limite. L’AVP le voit dans l’app, avec l’avancement de son Hof.',
+  de: 'Wie viele Schichteinsätze jeder Hof pro Tag übernimmt, verteilt nach der Zahl seiner Leitenden. Zwei Einsätze einer Person zählen doppelt. Das Kontingent ist ein Ziel, keine Grenze: die AVP sieht es und den Stand ihres Hofs in der App.',
+  en: 'How many shifts each Hof takes on per day, spread by the number of its leaders. Two shifts of one person count twice. The quota is a target, not a limit: the AVP sees it and where their Hof stands in the app.',
+  fr: 'Combien de services chaque Hof assure par jour, répartis selon le nombre de ses responsables. Deux services d’une même personne comptent deux fois. Le quota est un objectif, pas une limite : l’AVP le voit dans l’app, avec l’avancement de son Hof.',
 };
 
 /**
