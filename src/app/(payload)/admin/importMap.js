@@ -145,6 +145,7 @@ import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d
 import { default as default_1e4b7ed358a9b39713ba1bd44bbcc1f1 } from '@/features/payload-cms/payload-cms/views/access-overview-view'
 import { default as default_817448654e157f5910ed2cdc349d2477 } from '@/features/payload-cms/payload-cms/views/forum-protocol-view'
 import { default as default_dbd7fa7f7e394074f3d89896acb3145a } from '@/features/payload-cms/payload-cms/views/merge-users-view'
+import { default as default_bddf5124e0a255102b491a3f76a08f03 } from '@/features/payload-cms/payload-cms/views/hof-shift-quota-view'
 import { default as default_1301ab5d76cd2e924cf1719e5409e3b4 } from '@/features/material/payload-cms/material-setup-view'
 import { default as default_f20cab4b24ace06c3fe23b393b527f59 } from '@/features/story/payload-cms/story-board-view'
 import { default as default_e7ca4c1ba39ad98f5b6b68aa103e80ee } from '@/features/payload-cms/payload-cms/widgets/emergency-widget'
@@ -304,6 +305,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/views/access-overview-view#default": default_1e4b7ed358a9b39713ba1bd44bbcc1f1,
   "@/features/payload-cms/payload-cms/views/forum-protocol-view#default": default_817448654e157f5910ed2cdc349d2477,
   "@/features/payload-cms/payload-cms/views/merge-users-view#default": default_dbd7fa7f7e394074f3d89896acb3145a,
+  "@/features/payload-cms/payload-cms/views/hof-shift-quota-view#default": default_bddf5124e0a255102b491a3f76a08f03,
   "@/features/material/payload-cms/material-setup-view#default": default_1301ab5d76cd2e924cf1719e5409e3b4,
   "@/features/story/payload-cms/story-board-view#default": default_f20cab4b24ace06c3fe23b393b527f59,
   "@/features/payload-cms/payload-cms/widgets/emergency-widget#default": default_e7ca4c1ba39ad98f5b6b68aa103e80ee,

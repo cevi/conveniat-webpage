@@ -9,6 +9,7 @@ import {
   WRISTBAND_ADMIN_ROLES,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { ACTIVE_REGISTRATION } from '@/features/payload-cms/payload-cms/utils/hof-membership';
+import type { User } from '@/features/payload-cms/payload-types';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { createLogger } from '@/utils/server-logger';
 import type { Payload } from 'payload';
@@ -133,6 +134,49 @@ const findHelperHoefe = async (
     .map(({ id, name }) => ({ id, name }));
 };
 
+/** The fields of the Payload user that say which Höfe they are AVP of. */
+const findAvpUser = async (
+  payload: Pick<Payload, 'findByID'>,
+  user: HitobitoNextAuthUser,
+): Promise<Partial<Pick<User, 'groups' | 'cevi_db_uuid' | 'avpHoefe'>> | null> =>
+  await payload.findByID({
+    collection: 'users',
+    id: user.uuid,
+    depth: 0,
+    overrideAccess: true,
+    disableErrors: true,
+    select: { groups: true, cevi_db_uuid: true, avpHoefe: true },
+  });
+
+/**
+ * The Höfe a user is AVP of: those of the Cevi.DB groups they are address administrator of, and
+ * those whose camp they lead, the Hauptleitung, see the glossary in AGENTS.md.
+ */
+const avpHoefeOf = async (
+  payload: Pick<Payload, 'find'>,
+  payloadUser: Awaited<ReturnType<typeof findAvpUser>>,
+): Promise<HofName[]> => {
+  const groupIds = getAdministeredGroupIds(payloadUser?.groups);
+  const [byGroup, byLeadership] = await Promise.all([
+    groupIds.length === 0 ? Promise.resolve([]) : findHoefe(payload, groupIds),
+    findHoefeByIds(
+      payload,
+      (payloadUser?.avpHoefe ?? []).map((hof) => idOfHof(hof)),
+    ),
+  ]);
+  return [
+    ...new Map(
+      [...byGroup, ...byLeadership].map(({ id, name }) => [id, { id, name }] as const),
+    ).values(),
+  ].toSorted((a, b) => a.name.localeCompare(b.name, 'de'));
+};
+
+/** The Höfe the user is AVP of, sorted by name, see `avpHoefeOf`. */
+export const listAvpHoefe = async (
+  payload: Pick<Payload, 'find' | 'findByID'>,
+  user: HitobitoNextAuthUser,
+): Promise<HofName[]> => await avpHoefeOf(payload, await findAvpUser(payload, user));
+
 /**
  * The Höfe whose NFC wristbands the user programs and hands out, sorted by name: every Hof for
  * a full admin (`WRISTBAND_ADMIN_ROLES`), else the Höfe of the Cevi.DB groups the user is
@@ -157,29 +201,11 @@ export const listWristbandHoefe = async (
     return hoefe.map((hof) => ({ ...hof, role: 'avp' }));
   }
 
-  const payloadUser = await payload.findByID({
-    collection: 'users',
-    id: user.uuid,
-    depth: 0,
-    overrideAccess: true,
-    disableErrors: true,
-    select: { groups: true, cevi_db_uuid: true, avpHoefe: true },
-  });
-  const groupIds = getAdministeredGroupIds(payloadUser?.groups);
-  const [byGroup, byLeadership, helping] = await Promise.all([
-    groupIds.length === 0 ? Promise.resolve([]) : findHoefe(payload, groupIds),
-    // the Hauptleitung of the Hof's camp is its AVP too, see the glossary in AGENTS.md
-    findHoefeByIds(
-      payload,
-      (payloadUser?.avpHoefe ?? []).map((hof) => idOfHof(hof)),
-    ),
+  const payloadUser = await findAvpUser(payload, user);
+  const [administered, helping] = await Promise.all([
+    avpHoefeOf(payload, payloadUser),
     findHelperHoefe(payload, payloadUser?.cevi_db_uuid),
   ]);
-  const administered = [
-    ...new Map(
-      [...byGroup, ...byLeadership].map(({ id, name }) => [id, { id, name }] as const),
-    ).values(),
-  ];
   const avpIds = new Set(administered.map((hof) => hof.id));
   const hoefe: WristbandHof[] = [
     ...administered.map((hof): WristbandHof => ({ ...hof, role: 'avp' })),

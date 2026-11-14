@@ -10,6 +10,12 @@ import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-
 import { handleParticipantMutation } from '@/features/payload-cms/payload-cms/endpoints/course-participants-manager';
 import { helperShiftCopyHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-shift-copy';
 import { helperShiftParticipationExportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-shift-participation-export';
+import {
+  exportQuotaGridHandler,
+  getQuotaGridHandler,
+  importQuotaGridHandler,
+  saveQuotaGridHandler,
+} from '@/features/payload-cms/payload-cms/endpoints/hof-shift-quota-endpoints';
 import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
@@ -35,6 +41,11 @@ export const HelperShiftsCollection: CollectionConfig = {
     afterRead: [makeInjectEnrollmentCount(CourseType.SHIFT)],
   },
   endpoints: [
+    // the quotas of the Höfe, edited at /admin/schicht-kontingente
+    { path: '/quotas', method: 'get', handler: getQuotaGridHandler },
+    { path: '/quotas', method: 'patch', handler: saveQuotaGridHandler },
+    { path: '/quotas/export', method: 'get', handler: exportQuotaGridHandler },
+    { path: '/quotas/import', method: 'post', handler: importQuotaGridHandler },
     {
       path: '/participation-export',
       method: 'get',
@@ -369,12 +380,15 @@ export const HelperShiftsCollection: CollectionConfig = {
         fr: 'Nombre maximum de helpers',
       },
       type: 'number',
-      required: false,
+      // the Schicht-Kontingente spread the places of a day over the Höfe, so every shift says
+      // how many it takes; a shift saved before stays readable without one, as unlimited
+      required: true,
+      min: 1,
       admin: {
         description: {
-          en: 'Maximum number of helpers for this shift. Leave empty for unlimited.',
-          de: 'Maximale Anzahl Helfende für diesen Schichteinsatz. Leer = unbegrenzt.',
-          fr: 'Nombre maximum de helpers. Vide = illimité.',
+          en: 'How many helpers this shift takes. The Schicht-Kontingente spread these places over the Höfe.',
+          de: 'Wie viele Helfende dieser Schichteinsatz braucht. Die Schicht-Kontingente verteilen diese Plätze auf die Höfe.',
+          fr: 'Combien de helpers ce service accueille. Les quotas de services répartissent ces places entre les Höfe.',
         },
         position: 'sidebar',
       },

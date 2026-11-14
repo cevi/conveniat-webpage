@@ -1,5 +1,12 @@
 import type { HelperShift } from '@/features/payload-cms/payload-types';
 import { legacyTimeConflict, scheduleError } from '@/features/schedule/api/schedule-errors';
+import { listEnrolmentHoefe, resolveEnrolmentHof } from '@/features/schedule/api/shift-hof';
+import {
+  addShiftWalkIn,
+  getShiftRoster,
+  searchWalkInCandidates,
+  setShiftAttendance,
+} from '@/features/schedule/api/shift-roster';
 import {
   assertUnenrollmentIsOpen,
   getShiftUnenrollmentDeadline,
@@ -10,18 +17,28 @@ import { CourseType } from '@/lib/prisma/enums';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';
+import { rateLimit } from '@/trpc/middleware/rate-limit';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
 import { getPayload, NotFound } from 'payload';
 import { z } from 'zod';
 
-const enrollInShiftSchema = z.object({
+const shiftIdSchema = z.object({
   shiftId: z.string(),
+});
+
+/**
+ * `hofId` names the Hof the shift counts for, which the enrol sheet asks only a person in
+ * several Höfe about; see `resolveEnrolmentHof`.
+ */
+const enrollInShiftSchema = shiftIdSchema.extend({
+  hofId: z.string().optional(),
 });
 
 const switchIntoShiftSchema = z.object({
   fromCourseId: z.string(),
   toShiftId: z.string(),
+  hofId: z.string().optional(),
 });
 
 /**
@@ -47,6 +64,22 @@ const findShiftOrUndefined = async (
   }
 };
 
+/** The roster changes of one Schichtleitung: a whole shift marked in a minute is ~20. */
+const rosterRateLimit = rateLimit({
+  name: 'shifts.roster',
+  limit: 120,
+  windowMs: 60_000,
+  refuse: () => scheduleError('TOO_MANY_REQUESTS', 'tooManyRosterChanges'),
+});
+
+/** The shift a roster call is about, or a refusal for one that is gone. */
+const loadRosterShift = async (shiftId: string): Promise<HelperShift> => {
+  const payload = await getPayload({ config });
+  const shift = await findShiftOrUndefined(payload, shiftId);
+  if (shift === undefined) throw scheduleError('NOT_FOUND', 'notOnRoster');
+  return shift;
+};
+
 export const shiftsRouter = createTRPCRouter({
   getShifts: publicProcedure.query(async ({ ctx }) => {
     const { locale, prisma, user } = ctx;
@@ -54,7 +87,7 @@ export const shiftsRouter = createTRPCRouter({
     return getHelperShifts({}, locale, { prisma, user });
   }),
 
-  getShiftStatus: publicProcedure.input(enrollInShiftSchema).query(async ({ input, ctx }) => {
+  getShiftStatus: publicProcedure.input(shiftIdSchema).query(async ({ input, ctx }) => {
     const { prisma, user } = ctx;
     const { shiftId } = input;
 
@@ -152,6 +185,77 @@ export const shiftsRouter = createTRPCRouter({
    * helper slots, so - unlike workshops, where organiser-ship is materialised as a star - shift
    * organiser-ship is reported separately and merged with the enrolments on the dashboard.
    */
+  /** The Höfe the user may count a shift for, which the enrol sheet offers to choose from. */
+  getMyEnrolmentHoefe: publicProcedure.query(async ({ ctx }) => {
+    const { user, prisma } = ctx;
+    if (!user) return [];
+    return listEnrolmentHoefe(prisma, user.uuid);
+  }),
+
+  /**
+   * The Schichteinsätze of the Hof the user is AVP of, for "Mein Hof": the quota per day, how
+   * far its people got, and who enrolled when. Everybody who is AVP of no Hof gets no Höfe and
+   * sees no "Mein Hof".
+   */
+  getHofShiftOverview: publicProcedure
+    .input(z.object({ hofId: z.string().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const { user } = ctx;
+      if (!user) return { hoefe: [], days: [] };
+      const { getHofShiftOverview } = await import('./hof-shift-overview');
+      return getHofShiftOverview(user, input?.hofId);
+    }),
+
+  /** Who comes to the shift and who came, for its Schichtleitung and the Helferpool. */
+  getShiftRoster: trpcBaseProcedure
+    .input(shiftIdSchema)
+    .use(rosterRateLimit)
+    .query(async ({ ctx, input }) => {
+      const shift = await loadRosterShift(input.shiftId);
+      return getShiftRoster(ctx.prisma, await getPayload({ config }), ctx.user, shift);
+    }),
+
+  /** Marks a person on the roster as there or not there, or clears the mark. */
+  setShiftAttendance: trpcBaseProcedure
+    .input(
+      shiftIdSchema.extend({
+        userId: z.string(),
+        attendance: z.enum(['PRESENT', 'ABSENT']).nullable(),
+      }),
+    )
+    .use(rosterRateLimit)
+    .mutation(async ({ ctx, input }) => {
+      const shift = await loadRosterShift(input.shiftId);
+      await setShiftAttendance(
+        ctx.prisma,
+        ctx.user,
+        shift,
+        input.userId,
+        input.attendance,
+        new Date(),
+      );
+      return { success: true };
+    }),
+
+  /** Adds someone who came without being enrolled, as present. */
+  addShiftWalkIn: trpcBaseProcedure
+    .input(shiftIdSchema.extend({ userId: z.string() }))
+    .use(rosterRateLimit)
+    .mutation(async ({ ctx, input }) => {
+      const shift = await loadRosterShift(input.shiftId);
+      await addShiftWalkIn(ctx.prisma, ctx.user, shift, input.userId, new Date());
+      return { success: true };
+    }),
+
+  /** People the Schichtleitung can add on site, by name. */
+  searchWalkInCandidates: trpcBaseProcedure
+    .input(shiftIdSchema.extend({ query: z.string().max(100) }))
+    .use(rosterRateLimit)
+    .query(async ({ ctx, input }) => {
+      const shift = await loadRosterShift(input.shiftId);
+      return searchWalkInCandidates(ctx.prisma, ctx.user, shift, input.query);
+    }),
+
   getMyOrganisedShifts: publicProcedure.query(async ({ ctx }) => {
     const { user } = ctx;
     if (!user) return [];
@@ -262,11 +366,14 @@ export const shiftsRouter = createTRPCRouter({
         }
       }
 
+      const hofId = await resolveEnrolmentHof(prisma, user.uuid, input.hofId);
+
       await prisma.enrollment.create({
         data: {
           userId: user.uuid,
           courseId: shiftId,
           courseType: CourseType.SHIFT,
+          hofId,
         },
       });
 
@@ -274,7 +381,7 @@ export const shiftsRouter = createTRPCRouter({
     }),
 
   unenrollFromShift: trpcBaseProcedure
-    .input(enrollInShiftSchema)
+    .input(shiftIdSchema)
     .use(ensureUserExistsMiddleware)
     .use(databaseTransactionWrapper)
     .mutation(async ({ input, ctx }) => {
@@ -423,6 +530,8 @@ export const shiftsRouter = createTRPCRouter({
         }
       }
 
+      const hofId = await resolveEnrolmentHof(prisma, user.uuid, input.hofId);
+
       // Atomic Unenroll & Enroll
       await prisma.enrollment.delete({
         where: {
@@ -439,6 +548,7 @@ export const shiftsRouter = createTRPCRouter({
           userId: user.uuid,
           courseId: toShiftId,
           courseType: CourseType.SHIFT,
+          hofId,
         },
       });
 

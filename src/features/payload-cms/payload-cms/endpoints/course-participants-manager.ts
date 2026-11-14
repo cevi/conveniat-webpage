@@ -157,6 +157,14 @@ export const handleParticipantMutation: PayloadHandler = async (request) => {
           }
         }
 
+        // a shift counts for the person's Hof when they are in exactly one; nobody asked a person
+        // in several which one, so theirs counts for none
+        const mirroredUser =
+          courseType === 'SHIFT'
+            ? await tx.user.findUnique({ where: { uuid: userId }, select: { hofIds: true } })
+            : null;
+        const hofIds = mirroredUser?.hofIds ?? [];
+
         await tx.enrollment.upsert({
           where: {
             courseId_courseType_userId: {
@@ -170,6 +178,7 @@ export const handleParticipantMutation: PayloadHandler = async (request) => {
             courseId,
             userId,
             courseType,
+            hofId: hofIds.length === 1 ? (hofIds[0] ?? null) : null,
           },
         });
 

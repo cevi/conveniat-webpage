@@ -956,6 +956,90 @@ export const scheduleRouter = createTRPCRouter({
       return { chatId: chat.uuid };
     }),
 
+  /**
+   * Opens the group chat of a Schichteinsatz for its Schichtleitung, creating it the first time.
+   * Each time it brings the members in line with the roster: the Schichtleitung as admins, whoever
+   * is enrolled as guests, and a guest who withdrew since leaves. The roster changes all through
+   * the shift's planning, and keeping the chat in step on every enrolment would tie three routers
+   * to it; the Schichtleitung opens it when they want to write to everybody, which is when it has
+   * to be right.
+   */
+  openShiftChat: trpcBaseProcedure
+    .input(z.object({ shiftId: z.string(), chatName: z.string().max(200) }))
+    .use(databaseTransactionWrapper)
+    .mutation(async ({ input, ctx }) => {
+      const { user, prisma, locale } = ctx;
+      const payload = await getPayload({ config });
+      const shift = await payload.findByID({
+        collection: 'helper-shifts',
+        id: input.shiftId,
+        depth: 0,
+      });
+      const organisers = (shift.organiser ?? []).map((entry) =>
+        typeof entry === 'string' ? entry : entry.id,
+      );
+      if (!organisers.includes(user.uuid)) {
+        throw scheduleError('FORBIDDEN', 'onlyOrganisersChat');
+      }
+
+      const existing = await prisma.chat.findFirst({
+        where: { courseId: input.shiftId, courseType: CourseType.SHIFT },
+        select: { uuid: true },
+      });
+      let chatId = existing?.uuid;
+      if (chatId === undefined) {
+        const created = await createNewChat(input.chatName, locale, user, [], prisma, {
+          courseId: input.shiftId,
+          courseType: CourseType.SHIFT,
+          chatType: ChatType.COURSE_GROUP,
+          afterCommit: ctx.afterTransactionCommit,
+        });
+        chatId = created.uuid;
+      }
+
+      const [enrolments, memberships] = await Promise.all([
+        prisma.enrollment.findMany({
+          where: { courseId: input.shiftId, courseType: CourseType.SHIFT },
+          select: { userId: true },
+        }),
+        prisma.chatMembership.findMany({
+          where: { chatId },
+          select: { userId: true, chatPermission: true },
+        }),
+      ]);
+      const enrolled = new Set(enrolments.map((enrolment) => enrolment.userId));
+      const members = new Set(memberships.map((membership) => membership.userId));
+
+      await prisma.chatMembership.createMany({
+        data: [
+          ...organisers
+            .filter((id) => !members.has(id))
+            .map((id) => ({ userId: id, chatId, chatPermission: ChatMembershipPermission.ADMIN })),
+          ...[...enrolled]
+            .filter((id) => !members.has(id) && !organisers.includes(id))
+            .map((id) => ({ userId: id, chatId, chatPermission: ChatMembershipPermission.GUEST })),
+        ],
+        skipDuplicates: true,
+      });
+      const gone = memberships.filter(
+        (membership) =>
+          membership.chatPermission === ChatMembershipPermission.GUEST &&
+          !enrolled.has(membership.userId),
+      );
+      if (gone.length > 0) {
+        await prisma.chatMembership.deleteMany({
+          where: { chatId, userId: { in: gone.map((membership) => membership.userId) } },
+        });
+        ctx.afterTransactionCommit(() => {
+          for (const membership of gone) {
+            void publishMembershipRevoked(membership.userId, chatId, user.uuid);
+          }
+        });
+      }
+
+      return { chatId };
+    }),
+
   reminders: remindersRouter,
 
   star: createTRPCRouter({
