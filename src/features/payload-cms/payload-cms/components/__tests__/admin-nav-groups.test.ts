@@ -10,7 +10,10 @@ jest.mock('@/config/environment-variables', () => ({
 }));
 
 import type { AdminEntityGroup } from '@/features/payload-cms/payload-cms/components/admin-nav/admin-nav-groups';
-import { buildAdminNavGroups } from '@/features/payload-cms/payload-cms/components/admin-nav/admin-nav-groups';
+import {
+  buildAdminNavGroups,
+  listAdminViewEntries,
+} from '@/features/payload-cms/payload-cms/components/admin-nav/admin-nav-groups';
 import type { TypedUser } from 'payload';
 
 const FULL_ADMIN = 541;
@@ -158,5 +161,25 @@ describe('buildAdminNavGroups', () => {
     expect(linksByGroup(groups)).toEqual({
       'Backoffice · Höfe & Material': ['/admin/material-setup'],
     });
+  });
+});
+
+describe('listAdminViewEntries', () => {
+  it('gives the dashboard the same views the sidebar shows, in their groups', () => {
+    const entries = listAdminViewEntries({
+      user: userIn(MATERIAL_TEAM),
+      locale: 'de',
+      adminRoute: '/admin',
+    });
+
+    expect(entries.map(({ group, link }) => [group, link.href])).toEqual([
+      ['BackofficeHoefeAndMaterial', '/admin/material-setup'],
+    ]);
+  });
+
+  it('gives nobody without a role any view', () => {
+    expect(listAdminViewEntries({ user: userIn(), locale: 'de', adminRoute: '/admin' })).toEqual(
+      [],
+    );
   });
 });
