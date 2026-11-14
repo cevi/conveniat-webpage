@@ -180,12 +180,13 @@ export const canManageHelperShifts: ({ req }: { req: PayloadRequest }) => boolea
   hasAccessToThis({ req, requiredRoles: HELPER_SHIFT_ROLES });
 
 /**
- * Who reads what a Schichteinsatz or a Programmblock points at, the places on the map and the
- * camp categories: the editors, and the Helferpool, which picks them for its Schichteinsätze.
+ * Who reads the camp's reference data, the places on the map, the camp categories and the
+ * Quartiere: the editors, and the Helferpool, which picks places and categories for its
+ * Schichteinsätze and sees the Quartier of each Hof.
  */
 export const CAMP_REFERENCE_ROLES: Roles[] = [...EDITOR_ROLES, Roles.HelperPool];
 
-/** Whether the user reads the places on the map and the categories, see `CAMP_REFERENCE_ROLES`. */
+/** Whether the user reads the camp's reference data, see `CAMP_REFERENCE_ROLES`. */
 export const canReadCampReferences: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) =>
   hasAccessToThis({ req, requiredRoles: CAMP_REFERENCE_ROLES });
 
