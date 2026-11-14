@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.59.0](https://github.com/cevi/conveniat-webpage/compare/v1.58.0...v1.59.0) (2026-11-14)
+
+
+### Features
+
+* **helper-jobs:** export the helpers of a helper form by day as Excel ([85b8f37](https://github.com/cevi/conveniat-webpage/commit/85b8f37eef96ea364c1bae9019926c6316dd1866))
+* **helper-jobs:** export the helpers of a helper form by day as Excel ([15915f8](https://github.com/cevi/conveniat-webpage/commit/15915f8be2062be5719ea1b1bbb3f85af224f6e5))
+* **helper-jobs:** filter the availability export by Ressort ([5b48df1](https://github.com/cevi/conveniat-webpage/commit/5b48df168ee6e3d25f567769d20f42a8a0c6cf6a))
+
 ## [1.58.0](https://github.com/cevi/conveniat-webpage/compare/v1.57.1...v1.58.0) (2026-11-13)
 
 
