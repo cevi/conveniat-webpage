@@ -290,11 +290,9 @@ export const shiftsRouter = createTRPCRouter({
       const currentCount = await prisma.enrollment.count({
         where: { courseId: shiftId, courseType: CourseType.SHIFT },
       });
-      if (
-        shift.participants_max !== null &&
-        shift.participants_max !== undefined &&
-        currentCount >= shift.participants_max
-      ) {
+      // required since the quotas, but a Schichteinsatz saved before may have none and takes
+      // anyone; the type no longer says so
+      if (Number.isFinite(shift.participants_max) && currentCount >= shift.participants_max) {
         throw scheduleError('BAD_REQUEST', 'shiftFull');
       }
 
@@ -451,11 +449,9 @@ export const shiftsRouter = createTRPCRouter({
         where: { courseId: toShiftId, courseType: CourseType.SHIFT },
       });
 
-      if (
-        toShift.participants_max !== null &&
-        toShift.participants_max !== undefined &&
-        currentCount >= toShift.participants_max
-      ) {
+      // required since the quotas, but a Schichteinsatz saved before may have none and takes
+      // anyone; the type no longer says so
+      if (Number.isFinite(toShift.participants_max) && currentCount >= toShift.participants_max) {
         throw scheduleError('BAD_REQUEST', 'shiftFull');
       }
 
