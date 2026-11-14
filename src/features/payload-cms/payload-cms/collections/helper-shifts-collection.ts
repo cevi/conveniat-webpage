@@ -81,7 +81,7 @@ export const HelperShiftsCollection: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: AdminPanelDashboardGroups.AppCampsite.label,
+    group: AdminPanelDashboardGroups.AppHelpers.label,
     hidden: shouldHideHelperShifts,
     defaultColumns: [
       'title',

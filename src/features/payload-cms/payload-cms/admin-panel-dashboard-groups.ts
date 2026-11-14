@@ -49,17 +49,14 @@ const defineGroup = (
 export const AdminPanelDashboardGroups = {
   WebpageContent: defineGroup('webpage', { de: 'Inhalte', en: 'Content', fr: 'Contenu' }),
   WebpageMedia: defineGroup('webpage', { de: 'Medien', en: 'Media', fr: 'Médias' }),
-  WebpageHelpers: defineGroup('webpage', {
-    de: 'Helferanmeldung',
-    en: 'Helper Registration',
-    fr: 'Inscription des helpers',
-  }),
   AppContent: defineGroup('app', { de: 'Inhalte', en: 'Content', fr: 'Contenu' }),
   AppCampsite: defineGroup('app', {
     de: 'Lagerplatz & Programm',
     en: 'Campsite & Programme',
     fr: 'Terrain de camp et programme',
   }),
+  // the helpers' registration and the Schichteinsätze of the Abteilungen, which the Helferpool plans
+  AppHelpers: defineGroup('app', { de: 'Helfende', en: 'Helpers', fr: 'Helpers' }),
   AppStory: defineGroup('app', { de: 'Story', en: 'Story', fr: 'Histoire' }),
   AppOperations: defineGroup('app', { de: 'Betrieb', en: 'Operations', fr: 'Exploitation' }),
   BackofficePeople: defineGroup('backoffice', {

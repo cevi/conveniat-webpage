@@ -59,7 +59,6 @@ export interface Config {
     documents: Document;
     permissions: Permission;
     form_collection: FormCollection;
-    'helper-jobs': HelperJob;
     'announcement-channels': AnnouncementChannel;
     'forum-topics': ForumTopic;
     announcements: Announcement;
@@ -69,6 +68,7 @@ export interface Config {
     quartiere: Quartier;
     'camp-categories': CampCategory;
     'camp-schedule-entry': CampScheduleEntry;
+    'helper-jobs': HelperJob;
     'helper-shifts': HelperShift;
     'story-events': StoryEvent;
     'story-figures': StoryFigure;
@@ -111,11 +111,11 @@ export interface Config {
     timelineCategory: {
       relatedTimelineEntries: 'timeline';
     };
-    'helper-jobs': {
-      submissions: 'form-submissions';
-    };
     quartiere: {
       hoefe: 'hoefe';
+    };
+    'helper-jobs': {
+      submissions: 'form-submissions';
     };
     users: {
       presenceLogs: 'presence-logs';
@@ -151,7 +151,6 @@ export interface Config {
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
     permissions: PermissionsSelect<false> | PermissionsSelect<true>;
     form_collection: FormCollectionSelect<false> | FormCollectionSelect<true>;
-    'helper-jobs': HelperJobsSelect<false> | HelperJobsSelect<true>;
     'announcement-channels': AnnouncementChannelsSelect<false> | AnnouncementChannelsSelect<true>;
     'forum-topics': ForumTopicsSelect<false> | ForumTopicsSelect<true>;
     announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
@@ -161,6 +160,7 @@ export interface Config {
     quartiere: QuartiereSelect<false> | QuartiereSelect<true>;
     'camp-categories': CampCategoriesSelect<false> | CampCategoriesSelect<true>;
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
+    'helper-jobs': HelperJobsSelect<false> | HelperJobsSelect<true>;
     'helper-shifts': HelperShiftsSelect<false> | HelperShiftsSelect<true>;
     'story-events': StoryEventsSelect<false> | StoryEventsSelect<true>;
     'story-figures': StoryFiguresSelect<false> | StoryFiguresSelect<true>;
@@ -5795,10 +5795,6 @@ export interface PayloadLockedDocument {
         value: string | FormCollection;
       } | null)
     | ({
-        relationTo: 'helper-jobs';
-        value: string | HelperJob;
-      } | null)
-    | ({
         relationTo: 'announcement-channels';
         value: string | AnnouncementChannel;
       } | null)
@@ -5833,6 +5829,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'camp-schedule-entry';
         value: string | CampScheduleEntry;
+      } | null)
+    | ({
+        relationTo: 'helper-jobs';
+        value: string | HelperJob;
       } | null)
     | ({
         relationTo: 'helper-shifts';
@@ -7304,34 +7304,6 @@ export interface FormCollectionSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "helper-jobs_select".
- */
-export interface HelperJobsSelect<T extends boolean = true> {
-  publishingStatus?: T;
-  _publishing_status_cache?: T;
-  _localized_status?: T;
-  _disable_unpublishing?: T;
-  _locale?: T;
-  title?: T;
-  description?: T;
-  category?: T;
-  maxQuota?: T;
-  dateRange?:
-    | T
-    | {
-        startDate?: T;
-        endDate?: T;
-      };
-  minDays?: T;
-  dateRangeCategory?: T;
-  prerequisites?: T;
-  submissions?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  _status?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "announcement-channels_select".
  */
 export interface AnnouncementChannelsSelect<T extends boolean = true> {
@@ -7572,6 +7544,34 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "helper-jobs_select".
+ */
+export interface HelperJobsSelect<T extends boolean = true> {
+  publishingStatus?: T;
+  _publishing_status_cache?: T;
+  _localized_status?: T;
+  _disable_unpublishing?: T;
+  _locale?: T;
+  title?: T;
+  description?: T;
+  category?: T;
+  maxQuota?: T;
+  dateRange?:
+    | T
+    | {
+        startDate?: T;
+        endDate?: T;
+      };
+  minDays?: T;
+  dateRangeCategory?: T;
+  prerequisites?: T;
+  submissions?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -11357,7 +11357,6 @@ export interface TaskCreateCollectionExport {
       | 'documents'
       | 'permissions'
       | 'form_collection'
-      | 'helper-jobs'
       | 'announcement-channels'
       | 'forum-topics'
       | 'announcements'
@@ -11367,6 +11366,7 @@ export interface TaskCreateCollectionExport {
       | 'quartiere'
       | 'camp-categories'
       | 'camp-schedule-entry'
+      | 'helper-jobs'
       | 'helper-shifts'
       | 'story-events'
       | 'story-figures'
