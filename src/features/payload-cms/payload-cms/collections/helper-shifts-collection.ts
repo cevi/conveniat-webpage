@@ -10,6 +10,12 @@ import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-
 import { handleParticipantMutation } from '@/features/payload-cms/payload-cms/endpoints/course-participants-manager';
 import { helperShiftCopyHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-shift-copy';
 import { helperShiftParticipationExportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-shift-participation-export';
+import {
+  exportQuotaGridHandler,
+  getQuotaGridHandler,
+  importQuotaGridHandler,
+  saveQuotaGridHandler,
+} from '@/features/payload-cms/payload-cms/endpoints/hof-shift-quota-endpoints';
 import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
@@ -35,6 +41,11 @@ export const HelperShiftsCollection: CollectionConfig = {
     afterRead: [makeInjectEnrollmentCount(CourseType.SHIFT)],
   },
   endpoints: [
+    // the quotas of the Höfe, edited at /admin/schicht-kontingente
+    { path: '/quotas', method: 'get', handler: getQuotaGridHandler },
+    { path: '/quotas', method: 'patch', handler: saveQuotaGridHandler },
+    { path: '/quotas/export', method: 'get', handler: exportQuotaGridHandler },
+    { path: '/quotas/import', method: 'post', handler: importQuotaGridHandler },
     {
       path: '/participation-export',
       method: 'get',
