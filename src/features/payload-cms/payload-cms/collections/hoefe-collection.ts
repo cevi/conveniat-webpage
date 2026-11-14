@@ -1,6 +1,7 @@
 import { decodeStoredEventName } from '@/features/billing/collections/decode-stored-event-name';
 import {
   canAccessBillingField,
+  canReadHoefe,
   hasAdminOrWebAccess,
   hasBillingOrAdminOrWebAccess,
   isFullAdmin,
@@ -164,7 +165,7 @@ export const HoefeCollection: CollectionConfig = {
   access: {
     // Name, group and events are not confidential, and other areas build on them. The two
     // address fields below are narrowed to the billing team on the field.
-    read: hasBillingOrAdminOrWebAccess,
+    read: canReadHoefe,
     // only the sync creates a Hof. What stays writable is narrowed on the field: the reminder
     // override to the billing team, the Quartier to admin and web as well.
     create: (): boolean => false,

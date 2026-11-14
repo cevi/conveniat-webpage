@@ -19,6 +19,7 @@ import {
   canManageHelperShifts,
   canOpenAdminPanel,
   canReadCampReferences,
+  canReadHoefe,
   canReadOutgoingEmail,
   canReadUser,
   getRolesOfGroups,
@@ -211,6 +212,9 @@ describe('hasBillingOrAdminOrWebAccess', () => {
   });
 });
 
+const readsHoefe = (groupId: number): unknown =>
+  canReadHoefe({ req: requestFor(groupId) } as never);
+
 describe('canReadUser', () => {
   it('lets the admins, the web core team and the Helferpool read every user', () => {
     expect(canReadUser({ req: requestFor(FULL_ADMIN) })).toBe(true);
@@ -248,6 +252,15 @@ describe('canManageHelperShifts', () => {
   it('lets the Helferpool into the admin panel without making it an editor, who writes the story', () => {
     expect(canOpenAdminPanel({ req: requestFor(HELPER_POOL) })).toBe(true);
     expect(isEditor({ req: requestFor(HELPER_POOL) })).toBe(false);
+  });
+
+  it('lets the Helferpool read the list of Höfe, which billing, admin and web maintain', () => {
+    for (const groupId of [HELPER_POOL, BILLING, FULL_ADMIN, WEB_CORE_TEAM]) {
+      expect(readsHoefe(groupId)).toBe(true);
+    }
+    for (const groupId of [PROGRAM_TEAM, TRANSLATION_TEAM, MATERIAL_TEAM, PARTICIPANT]) {
+      expect(readsHoefe(groupId)).toBe(false);
+    }
   });
 
   it('lets the Helferpool read the places and categories its Schichteinsätze point at', () => {

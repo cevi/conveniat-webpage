@@ -335,6 +335,16 @@ export const hasBillingOrAdminOrWebAccess: Access = (args) => {
 };
 
 /**
+ * Who reads the list of Höfe: whoever maintains it, the billing, admin and web, and the
+ * Helferpool, which sets what each Hof takes on and looks a Hof up. The Helferpool only reads:
+ * the sync writes the Höfe, and the AVP addresses stay narrowed to the billing on the field.
+ */
+export const canReadHoefe: Access = (args) => {
+  if (canManageHelperShifts({ req: args.req })) return true;
+  return hasBillingOrAdminOrWebAccess(args);
+};
+
+/**
  * Who reads a user: the full admins, the web core team and the Helferpool read everyone, every
  * other person their own user document and nobody else's. The Helferpool picks the
  * Schichtleitung and enrols helpers by hand, both from the list of every user.
