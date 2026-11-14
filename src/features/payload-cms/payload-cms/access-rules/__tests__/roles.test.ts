@@ -18,6 +18,7 @@ import {
   canAccessBilling,
   canManageHelperShifts,
   canOpenAdminPanel,
+  canReadCampReferences,
   canReadOutgoingEmail,
   canReadUser,
   getRolesOfGroups,
@@ -138,16 +139,16 @@ describe('opening the admin panel', () => {
 
 describe('isEditor', () => {
   it('covers the content roles and neither of the single-purpose teams', () => {
-    for (const groupId of [
-      FULL_ADMIN,
-      WEB_CORE_TEAM,
-      TRANSLATION_TEAM,
-      PROGRAM_TEAM,
-      HELPER_POOL,
-    ]) {
+    for (const groupId of [FULL_ADMIN, WEB_CORE_TEAM, TRANSLATION_TEAM, PROGRAM_TEAM]) {
       expect(isEditor({ req: requestFor(groupId) })).toBe(true);
     }
-    for (const groupId of [BILLING, MATERIAL_TEAM, HOF_DASHBOARD_REVIEWER, PARTICIPANT]) {
+    for (const groupId of [
+      BILLING,
+      MATERIAL_TEAM,
+      HOF_DASHBOARD_REVIEWER,
+      HELPER_POOL,
+      PARTICIPANT,
+    ]) {
       expect(isEditor({ req: requestFor(groupId) })).toBe(false);
     }
   });
@@ -242,6 +243,20 @@ describe('canManageHelperShifts', () => {
   it('gives the Helferpool none of the other rights of the web team', () => {
     expect(hasAdminOrWebAccess({ req: requestFor(HELPER_POOL) })).toBe(false);
     expect(hasEditorialAccess({ req: requestFor(HELPER_POOL) })).toBe(false);
+  });
+
+  it('lets the Helferpool into the admin panel without making it an editor, who writes the story', () => {
+    expect(canOpenAdminPanel({ req: requestFor(HELPER_POOL) })).toBe(true);
+    expect(isEditor({ req: requestFor(HELPER_POOL) })).toBe(false);
+  });
+
+  it('lets the Helferpool read the places and categories its Schichteinsätze point at', () => {
+    for (const groupId of [HELPER_POOL, PROGRAM_TEAM, TRANSLATION_TEAM]) {
+      expect(canReadCampReferences({ req: requestFor(groupId) })).toBe(true);
+    }
+    for (const groupId of [BILLING, MATERIAL_TEAM, PARTICIPANT]) {
+      expect(canReadCampReferences({ req: requestFor(groupId) })).toBe(false);
+    }
   });
 });
 

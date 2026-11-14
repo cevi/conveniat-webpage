@@ -159,14 +159,13 @@ export const hasEditorialAccess: ({ req }: { req: PayloadRequest }) => boolean =
  * the content points at, like the Quartiere, the Funktionen and the places on the map. What an
  * editor may write is up to the rule of each collection. Being an editor opens no data about
  * people: the participant exports and the enrolments follow the rule of the collection they
- * belong to. The Helferpool is one, for the texts of the Schichteinsätze it writes.
+ * belong to. The Helferpool is not one: it would write the story and read the Programmblöcke.
  */
 export const EDITOR_ROLES: Roles[] = [
   Roles.FullAdmin,
   Roles.WebCoreTeam,
   Roles.TranslationTeam,
   Roles.ProgramTeam,
-  Roles.HelperPool,
 ];
 
 /**
@@ -181,11 +180,27 @@ export const canManageHelperShifts: ({ req }: { req: PayloadRequest }) => boolea
   hasAccessToThis({ req, requiredRoles: HELPER_SHIFT_ROLES });
 
 /**
- * Who may open the admin panel at all: the editors, and the two teams that come for one thing,
- * the billing team for the billing and the material team for the depot setup. Opening it grants
- * nothing by itself; every collection still decides with its own rule.
+ * Who reads what a Schichteinsatz or a Programmblock points at, the places on the map and the
+ * camp categories: the editors, and the Helferpool, which picks them for its Schichteinsätze.
  */
-export const ADMIN_PANEL_ROLES: Roles[] = [...EDITOR_ROLES, Roles.BillingTeam, Roles.MaterialTeam];
+export const CAMP_REFERENCE_ROLES: Roles[] = [...EDITOR_ROLES, Roles.HelperPool];
+
+/** Whether the user reads the places on the map and the categories, see `CAMP_REFERENCE_ROLES`. */
+export const canReadCampReferences: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) =>
+  hasAccessToThis({ req, requiredRoles: CAMP_REFERENCE_ROLES });
+
+/**
+ * Who may open the admin panel at all: the editors, and the teams that come for one thing, the
+ * billing team for the billing, the material team for the depot setup and the Helferpool for
+ * the Schichteinsätze. Opening it grants nothing by itself; every collection still decides with
+ * its own rule.
+ */
+export const ADMIN_PANEL_ROLES: Roles[] = [
+  ...EDITOR_ROLES,
+  Roles.BillingTeam,
+  Roles.MaterialTeam,
+  Roles.HelperPool,
+];
 
 /**
  * Who reaches the billing: the billing team alone. Full admins are left out on purpose; one who
