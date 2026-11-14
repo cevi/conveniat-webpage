@@ -10,6 +10,10 @@ import {
   getJobSelectableDays,
   getJobWindow,
 } from '@/features/payload-cms/components/form/utils/job-period';
+import {
+  RESSORT_OPTIONS,
+  RESSORT_WISH_OPTIONS,
+} from '@/features/payload-cms/constants/ressort-options';
 import { getFormBlocks } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
 import type { HelperJob } from '@/features/payload-cms/payload-types';
 
@@ -24,8 +28,11 @@ export type JobFieldsByPhase = Map<string, string[]>;
 
 /** The day selections and job selections of a form, read from its sections. */
 export interface HelperFormBlocks {
-  /** Names of the `dateSlotSelection` blocks, the "Nach Verfügbarkeit" answers. */
-  dateSlotFields: string[];
+  /**
+   * The `dateSlotSelection` blocks, the "Nach Verfügbarkeit" answers, with the name of the
+   * Ressort wish they ask next to the days, if they ask for one.
+   */
+  dateSlotFields: { name: string; ressortName: string | undefined }[];
   /** The windows the `dateSlotSelection` blocks offer, so empty days still get a column. */
   dateSlotWindows: DateRange[];
   jobFieldsByPhase: JobFieldsByPhase;
@@ -36,9 +43,23 @@ export interface HelperDays {
   /** The answers the export shows for the person, in the order asked for. */
   person: string[];
   days: Set<string>;
+  /**
+   * The Ressort the row belongs to, in German as the Ressorts read it: the wish of a helper by
+   * availability, the Ressort of the jobs of a job helper. Empty when the helper named none.
+   */
+  ressort: string;
   /** The titles of the jobs the helper signed up for; empty for a helper by availability. */
   jobTitles: string[];
 }
+
+/**
+ * The German name of a Ressort or Ressort wish, so both sheets filter by the same names. An
+ * unknown value, from an option removed since, is shown as stored.
+ */
+const ressortLabel = (value: string): string =>
+  RESSORT_OPTIONS.find((option) => option.value === value)?.label.de ??
+  RESSORT_WISH_OPTIONS.find((option) => option.value === value)?.label.de ??
+  value;
 
 /** Every day from the first to the last, inclusive; nothing for a malformed range. */
 const enumerateDays = ({ startDate, endDate }: DateRange): string[] => {
@@ -75,7 +96,13 @@ export const getHelperFormBlocks = (
   }
 
   return {
-    dateSlotFields: dateSlotBlocks.map((block) => String(block['name'])),
+    dateSlotFields: dateSlotBlocks.map((block) => ({
+      name: String(block['name']),
+      ressortName:
+        typeof block['ressortName'] === 'string' && block['ressortName'] !== ''
+          ? block['ressortName']
+          : undefined,
+    })),
     dateSlotWindows,
     jobFieldsByPhase,
   };
@@ -126,7 +153,8 @@ const getJobDays = (
  * days, without gaps.
  *
  * A submission can hold both, when the form lets a helper do both; it then appears in both
- * lists.
+ * lists. A job helper whose jobs belong to several Ressorts gets a row per Ressort, with the
+ * days of that Ressort's jobs, so that each Ressort finds its helpers by filtering.
  */
 export const buildHelperAvailability = ({
   blocks,
@@ -147,22 +175,35 @@ export const buildHelperAvailability = ({
       (field) => answers.find((answer) => answer.field === field)?.value ?? '',
     );
 
-    const availableDays = blocks.dateSlotFields.flatMap((field) => {
-      const ranges = parseDateRangesValue(answers.find((answer) => answer.field === field)?.value);
-      return (ranges ?? []).flatMap((range) => enumerateDays(range));
-    });
+    const answerOf = (field: string): string =>
+      answers.find((answer) => answer.field === field)?.value ?? '';
+
+    const availableDays = blocks.dateSlotFields.flatMap(({ name }) =>
+      (parseDateRangesValue(answerOf(name)) ?? []).flatMap((range) => enumerateDays(range)),
+    );
     if (availableDays.length > 0) {
-      byAvailability.push({ person, days: new Set(availableDays), jobTitles: [] });
+      const wish = blocks.dateSlotFields
+        .map(({ ressortName }) => (ressortName === undefined ? '' : answerOf(ressortName)))
+        .find((value) => value !== '');
+      byAvailability.push({
+        person,
+        days: new Set(availableDays),
+        ressort: wish === undefined ? '' : ressortLabel(wish),
+        jobTitles: [],
+      });
     }
 
-    const jobs = jobIds.flatMap((id) => {
+    const jobsByRessort = new Map<string, HelperJob[]>();
+    for (const id of jobIds) {
       const job = jobsById.get(id);
-      return job === undefined ? [] : [job];
-    });
-    if (jobs.length > 0) {
+      if (job === undefined) continue;
+      jobsByRessort.set(job.category, [...(jobsByRessort.get(job.category) ?? []), job]);
+    }
+    for (const [ressort, jobs] of jobsByRessort) {
       byJob.push({
         person,
         days: new Set(jobs.flatMap((job) => getJobDays(job, blocks.jobFieldsByPhase, answers))),
+        ressort: ressortLabel(ressort),
         jobTitles: jobs.map((job) => job.title),
       });
     }

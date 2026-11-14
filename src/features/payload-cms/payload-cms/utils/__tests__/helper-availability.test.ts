@@ -12,6 +12,7 @@ const sections = [
         {
           blockType: 'dateSlotSelection',
           name: 'zeitfenster',
+          ressortName: 'ressortwunsch',
           startDate: '2027-07-11T22:00:00.000Z',
           endDate: '2027-07-19T22:00:00.000Z',
         },
@@ -41,6 +42,7 @@ const job = (overrides: Partial<HelperJob>): HelperJob =>
     id: 'job',
     title: 'Job',
     dateRangeCategory: 'main',
+    category: 'verpflegung',
     dateRange: { startDate: '2027-07-24T10:00:00.000Z', endDate: '2027-07-26T10:00:00.000Z' },
     ...overrides,
   }) as HelperJob;
@@ -53,7 +55,13 @@ const teardown = job({
   dateRange: { startDate: '2027-08-03T10:00:00.000Z', endDate: '2027-08-10T10:00:00.000Z' },
   minDays: 2,
 });
-const jobsById = new Map([kitchen, teardown].map((entry) => [entry.id, entry]));
+const power = job({
+  id: 'power',
+  title: 'Strom',
+  category: 'infrastruktur',
+  dateRange: { startDate: '2027-07-27T10:00:00.000Z', endDate: '2027-07-28T10:00:00.000Z' },
+});
+const jobsById = new Map([kitchen, teardown, power].map((entry) => [entry.id, entry]));
 
 const build = (
   submissions: Parameters<typeof buildHelperAvailability>[0]['submissions'],
@@ -73,6 +81,7 @@ describe('buildHelperAvailability', () => {
           { field: 'vorname', value: 'Anna' },
           { field: 'ceviname', value: 'Pirat' },
           { field: 'zeitfenster', value: '2027-07-12 – 2027-07-13, 2027-07-17 – 2027-07-18' },
+          { field: 'ressortwunsch', value: 'infrastruktur' },
         ],
         jobIds: [],
       },
@@ -83,6 +92,7 @@ describe('buildHelperAvailability', () => {
       {
         person: ['Anna', 'Pirat'],
         days: new Set(['2027-07-12', '2027-07-13', '2027-07-17', '2027-07-18']),
+        ressort: 'Ressort Infrastruktur',
         jobTitles: [],
       },
     ]);
@@ -106,9 +116,37 @@ describe('buildHelperAvailability', () => {
       {
         person: ['Beat', ''],
         days: new Set(['2027-07-24', '2027-07-25', '2027-07-26', '2027-08-05', '2027-08-06']),
+        ressort: 'Ressort Verpflegung',
         jobTitles: ['Küche', 'Abbau Bühne'],
       },
     ]);
+  });
+
+  it('gives a job helper a row per Ressort, with the days of the jobs of that Ressort', () => {
+    const { byJob } = build([
+      { answers: [{ field: 'vorname', value: 'Carla' }], jobIds: ['kitchen', 'power'] },
+    ]);
+
+    expect(byJob.map(({ ressort, jobTitles, days }) => ({ ressort, jobTitles, days }))).toEqual([
+      {
+        ressort: 'Ressort Verpflegung',
+        jobTitles: ['Küche'],
+        days: new Set(['2027-07-24', '2027-07-25', '2027-07-26']),
+      },
+      {
+        ressort: 'Ressort Infrastruktur',
+        jobTitles: ['Strom'],
+        days: new Set(['2027-07-27', '2027-07-28']),
+      },
+    ]);
+  });
+
+  it('leaves the Ressort empty when a helper by availability named none', () => {
+    const { byAvailability } = build([
+      { answers: [{ field: 'zeitfenster', value: '2027-07-12 – 2027-07-14' }], jobIds: [] },
+    ]);
+
+    expect(byAvailability[0]?.ressort).toBe('');
   });
 
   it('spans the columns over the whole form window and every helper day, without gaps', () => {

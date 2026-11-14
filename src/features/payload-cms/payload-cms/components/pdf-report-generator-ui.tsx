@@ -26,9 +26,9 @@ const excelButtonLabel: StaticTranslationString = {
 };
 
 const excelDescription: StaticTranslationString = {
-  en: 'One row per helper and one column per day, with an x on the days they are on site and a total per day. One sheet for the helpers by availability, one for those with a job.',
-  de: 'Eine Zeile pro Helfende:r und eine Spalte pro Tag, mit einem x an den Tagen auf dem Platz und einem Total pro Tag. Ein Blatt für die Helfenden nach Verfügbarkeit, eines für jene mit festem Job.',
-  fr: 'Une ligne par helper et une colonne par jour, avec un x les jours sur place et un total par jour. Une feuille pour les helpers selon leur disponibilité, une pour ceux avec un job fixe.',
+  en: 'One row per helper and one column per day, with an x on the days they are on site and a total per day. Filter by the Ressort column to see the helpers and totals of one Ressort. One sheet for the helpers by availability, one for those with a job.',
+  de: 'Eine Zeile pro Helfende:r und eine Spalte pro Tag, mit einem x an den Tagen auf dem Platz und einem Total pro Tag. Mit dem Filter in der Spalte Ressort zeigt es die Helfenden und Totale eines Ressorts. Ein Blatt für die Helfenden nach Verfügbarkeit, eines für jene mit festem Job.',
+  fr: 'Une ligne par helper et une colonne par jour, avec un x les jours sur place et un total par jour. Le filtre de la colonne Ressort montre les helpers et les totaux d’un Ressort. Une feuille pour les helpers selon leur disponibilité, une pour ceux avec un job fixe.',
 };
 
 export default function PdfReportGeneratorUI(): React.ReactNode {

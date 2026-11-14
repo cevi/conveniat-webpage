@@ -17,7 +17,7 @@ const toExcelDate = (isoDay: string): Date => new Date(`${isoDay}T00:00:00.000Z`
 /**
  * One sheet in the layout the Ressorts plan with: a row per helper, a narrow column per camp
  * day with an `x` where the helper is on the Platz, and a `TOTAL` row counting the helpers of
- * each day.
+ * each day. The header carries a filter, so a Ressort narrows the sheet to its own helpers.
  */
 const addDaysSheet = (
   workbook: ExcelJS.Workbook,
@@ -29,11 +29,11 @@ const addDaysSheet = (
   }: { days: string[]; helpers: HelperDays[]; personHeaders: string[] },
   withJobs: boolean,
 ): void => {
-  const worksheet = workbook.addWorksheet(name, {
-    views: [{ state: 'frozen', xSplit: personHeaders.length + (withJobs ? 1 : 0), ySplit: 1 }],
-  });
-  const leadingHeaders = withJobs ? [...personHeaders, 'Jobs'] : personHeaders;
+  const leadingHeaders = [...personHeaders, 'Ressort', ...(withJobs ? ['Jobs'] : [])];
   const firstDayColumn = leadingHeaders.length + 1;
+  const worksheet = workbook.addWorksheet(name, {
+    views: [{ state: 'frozen', xSplit: leadingHeaders.length, ySplit: 1 }],
+  });
 
   // Widths and alignment first: setting them on a column restyles the cells already in it.
   for (const [index] of leadingHeaders.entries()) {
@@ -58,14 +58,25 @@ const addDaysSheet = (
   for (const helper of helpers) {
     worksheet.addRow([
       ...helper.person,
+      helper.ressort,
       ...(withJobs ? [helper.jobTitles.join(', ')] : []),
-      ...days.map((day) => (helper.days.has(day) ? MARK : '')),
+      // A day off stays an empty cell, not an empty string, which the total would count.
+      ...days.map((day) => (helper.days.has(day) ? MARK : null)),
     ]);
   }
 
-  // A formula, as in the sheets the Ressorts keep by hand, so a row they add is counted too.
-  // Without helpers the range would be the total row itself.
+  // The filter covers the helpers but not the total, which stays visible under any filter.
   const lastHelperRow = helpers.length + 1;
+  if (helpers.length > 0) {
+    worksheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: lastHelperRow, column: firstDayColumn + days.length - 1 },
+    };
+  }
+
+  // SUBTOTAL(103, …) counts the marked cells of the rows the filter shows, so filtering by a
+  // Ressort gives that Ressort's helpers per day. A formula also counts rows added by hand.
+  // Without helpers the range would be the total row itself.
   const total = worksheet.addRow([
     'TOTAL',
     ...Array.from({ length: leadingHeaders.length - 1 }, () => ''),
@@ -73,7 +84,7 @@ const addDaysSheet = (
       if (helpers.length === 0) return 0;
       const column = worksheet.getColumn(firstDayColumn + index).letter;
       return {
-        formula: `COUNTIF(${column}2:${column}${lastHelperRow},"${MARK}")`,
+        formula: `SUBTOTAL(103,${column}2:${column}${lastHelperRow})`,
         result: helpers.filter((helper) => helper.days.has(day)).length,
       };
     }),
