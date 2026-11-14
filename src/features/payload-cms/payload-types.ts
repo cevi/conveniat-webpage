@@ -1304,7 +1304,6 @@ export interface CampScheduleEntry {
   furtherPage?: (string | null) | GenericPage;
   furtherPageLabel?: string | null;
   lastEditedByUser?: (string | null) | User;
-  enrolledCount?: number | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -4559,7 +4558,6 @@ export interface HelperShift {
     };
     [k: string]: unknown;
   } | null;
-  enrolledCount?: number | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -7540,7 +7538,6 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
   furtherPage?: T;
   furtherPageLabel?: T;
   lastEditedByUser?: T;
-  enrolledCount?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -7623,7 +7620,6 @@ export interface HelperShiftsSelect<T extends boolean = true> {
   hide_participant_list?: T;
   hide_when_full?: T;
   notes?: T;
-  enrolledCount?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;

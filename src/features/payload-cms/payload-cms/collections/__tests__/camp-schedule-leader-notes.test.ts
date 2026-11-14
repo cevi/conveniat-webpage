@@ -9,12 +9,6 @@ const hasAdminOrWebAccess = jest.fn();
 jest.mock('@/features/payload-cms/payload-cms/access-rules/roles', () => ({
   hasAdminOrWebAccess: (arguments_: unknown): unknown => hasAdminOrWebAccess(arguments_),
 }));
-jest.mock(
-  '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count',
-  () => ({
-    makeInjectEnrollmentCount: (): unknown => jest.fn(),
-  }),
-);
 jest.mock('@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change', () => ({
   flushPageCacheOnChange: jest.fn(),
 }));
