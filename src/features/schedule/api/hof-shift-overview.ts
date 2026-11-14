@@ -20,6 +20,8 @@ export interface HofShiftPerson {
   time: string;
   /** ISO timestamp of the enrolment */
   enrolledAt: string;
+  /** what the Schichtleitung marked, `null` until they did */
+  attendance: 'PRESENT' | 'ABSENT' | null;
 }
 
 /** One camp day of a Hof: what it should take on and who of it enrolled. */
@@ -27,6 +29,7 @@ export interface HofShiftDay {
   day: CampDay;
   /** absent on a day the Helferpool set no quota for */
   quota?: number;
+  /** the enrolments that count: everyone enrolled, less those marked absent */
   enrolled: number;
   people: HofShiftPerson[];
 }
@@ -81,13 +84,16 @@ export const getHofShiftOverview = async (
     // an enrolment of a shift deleted since counts for nothing
     if (shift === undefined) continue;
     const entry = dayEntry(shift.day);
-    entry.enrolled += 1;
+    // a no-show the Schichtleitung marked no longer counts for the Hof; an unmarked enrolment
+    // still does, so a Schichtleitung that never marks does not empty the Hof's day
+    if (enrolment.attendance !== 'ABSENT') entry.enrolled += 1;
     entry.people.push({
       name: enrolment.userName,
       shiftId: shift.id,
       shiftTitle: shift.title,
       time: shift.time,
       enrolledAt: enrolment.createdAt.toISOString(),
+      attendance: enrolment.attendance,
     });
   }
   for (const entry of days.values()) {

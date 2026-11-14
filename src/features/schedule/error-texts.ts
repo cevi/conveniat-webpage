@@ -62,6 +62,21 @@ export const scheduleErrorTexts = {
     en: 'You are not (or no longer) registered in this Hof. Reload the page and choose again.',
     fr: 'Tu n’es pas (ou plus) inscrit dans ce Hof. Recharge la page et choisis à nouveau.',
   },
+  attendanceWindowClosed: {
+    de: 'Wer da war, lässt sich nur von 30 Minuten vor Beginn bis 24 Stunden nach Ende des Einsatzes eintragen. Melde dich beim Helferpool für eine Korrektur.',
+    en: 'Attendance can only be marked from 30 minutes before the start until 24 hours after the end of the shift. Ask the Helferpool to correct it.',
+    fr: 'La présence ne peut être notée que de 30 minutes avant le début jusqu’à 24 heures après la fin du service. Demande une correction au Helferpool.',
+  },
+  notOnRoster: {
+    de: 'Diese Person ist nicht mehr für den Einsatz angemeldet.',
+    en: 'This person is no longer enrolled in the shift.',
+    fr: 'Cette personne n’est plus inscrite à ce service.',
+  },
+  tooManyRosterChanges: {
+    de: 'Zu viele Änderungen auf einmal. Warte einen Moment.',
+    en: 'Too many changes at once. Wait a moment.',
+    fr: 'Trop de modifications à la fois. Attends un instant.',
+  },
   onlyOrganisersChat: {
     de: 'Nur Organisatoren können den Gruppenchat erstellen.',
     en: 'Only organisers can create the group chat.',

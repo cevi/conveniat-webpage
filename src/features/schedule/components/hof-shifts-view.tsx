@@ -29,6 +29,8 @@ const texts = {
   ofQuota: { de: '{done} von {quota}', en: '{done} of {quota}', fr: '{done} sur {quota}' },
   enrolledOnly: { de: '{done} angemeldet', en: '{done} enrolled', fr: '{done} inscrits' },
   reached: { de: 'erreicht', en: 'reached', fr: 'atteint' },
+  present: { de: 'Da', en: 'There', fr: 'Présent' },
+  absent: { de: 'Fehlt', en: 'Missing', fr: 'Absent' },
   missing: { de: 'noch {n} gesucht', en: '{n} more needed', fr: 'encore {n}' },
   noOne: {
     de: 'Noch niemand aus deinem Hof angemeldet.',
@@ -128,6 +130,29 @@ const NeedPill: React.FC<{ done: number; quota: number; locale: Locale }> = ({
     </span>
   );
 
+/** Whether the person came, once the Schichtleitung marked it; nothing before. */
+const AttendanceChip: React.FC<{
+  attendance: 'PRESENT' | 'ABSENT' | null | undefined;
+  locale: Locale;
+}> = ({ attendance, locale }) => {
+  if (attendance === 'PRESENT') {
+    return (
+      <span className="border-tint-line bg-tint inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-[12px] font-semibold text-green-800">
+        <Check className="h-3 w-3" aria-hidden="true" />
+        {texts.present[locale]}
+      </span>
+    );
+  }
+  if (attendance === 'ABSENT') {
+    return (
+      <span className="border-danger-line bg-danger-soft text-danger-text inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[12px] font-semibold">
+        {texts.absent[locale]}
+      </span>
+    );
+  }
+  return <></>;
+};
+
 const DayRow: React.FC<{ day: HofShiftDay; locale: Locale; isLast: boolean }> = ({
   day,
   locale,
@@ -186,7 +211,10 @@ const DayRow: React.FC<{ day: HofShiftDay; locale: Locale; isLast: boolean }> = 
             <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
               {people.map((person) => (
                 <li key={`${person.shiftId} ${person.name}`} className="px-3.5 py-2.5">
-                  <p className="text-heading text-[15px] font-semibold">{person.name}</p>
+                  <p className="flex items-center justify-between gap-2">
+                    <span className="text-heading text-[15px] font-semibold">{person.name}</span>
+                    <AttendanceChip attendance={person.attendance} locale={locale} />
+                  </p>
                   <p className="text-[13.5px] text-green-700">
                     {person.shiftTitle} · {person.time.replace(' - ', '–')}
                   </p>

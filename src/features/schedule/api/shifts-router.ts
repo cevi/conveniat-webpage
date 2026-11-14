@@ -2,6 +2,12 @@ import type { HelperShift } from '@/features/payload-cms/payload-types';
 import { legacyTimeConflict, scheduleError } from '@/features/schedule/api/schedule-errors';
 import { listEnrolmentHoefe, resolveEnrolmentHof } from '@/features/schedule/api/shift-hof';
 import {
+  addShiftWalkIn,
+  getShiftRoster,
+  searchWalkInCandidates,
+  setShiftAttendance,
+} from '@/features/schedule/api/shift-roster';
+import {
   assertUnenrollmentIsOpen,
   getShiftUnenrollmentDeadline,
 } from '@/features/schedule/api/shift-withdrawal-guard';
@@ -11,6 +17,7 @@ import { CourseType } from '@/lib/prisma/enums';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';
+import { rateLimit } from '@/trpc/middleware/rate-limit';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
 import { getPayload, NotFound } from 'payload';
@@ -55,6 +62,22 @@ const findShiftOrUndefined = async (
       cause: error,
     });
   }
+};
+
+/** The roster changes of one Schichtleitung: a whole shift marked in a minute is ~20. */
+const rosterRateLimit = rateLimit({
+  name: 'shifts.roster',
+  limit: 120,
+  windowMs: 60_000,
+  refuse: () => scheduleError('TOO_MANY_REQUESTS', 'tooManyRosterChanges'),
+});
+
+/** The shift a roster call is about, or a refusal for one that is gone. */
+const loadRosterShift = async (shiftId: string): Promise<HelperShift> => {
+  const payload = await getPayload({ config });
+  const shift = await findShiftOrUndefined(payload, shiftId);
+  if (shift === undefined) throw scheduleError('NOT_FOUND', 'notOnRoster');
+  return shift;
 };
 
 export const shiftsRouter = createTRPCRouter({
@@ -181,6 +204,56 @@ export const shiftsRouter = createTRPCRouter({
       if (!user) return { hoefe: [], days: [] };
       const { getHofShiftOverview } = await import('./hof-shift-overview');
       return getHofShiftOverview(user, input?.hofId);
+    }),
+
+  /** Who comes to the shift and who came, for its Schichtleitung and the Helferpool. */
+  getShiftRoster: trpcBaseProcedure
+    .input(shiftIdSchema)
+    .use(rosterRateLimit)
+    .query(async ({ ctx, input }) => {
+      const shift = await loadRosterShift(input.shiftId);
+      return getShiftRoster(ctx.prisma, await getPayload({ config }), ctx.user, shift);
+    }),
+
+  /** Marks a person on the roster as there or not there, or clears the mark. */
+  setShiftAttendance: trpcBaseProcedure
+    .input(
+      shiftIdSchema.extend({
+        userId: z.string(),
+        attendance: z.enum(['PRESENT', 'ABSENT']).nullable(),
+      }),
+    )
+    .use(rosterRateLimit)
+    .mutation(async ({ ctx, input }) => {
+      const shift = await loadRosterShift(input.shiftId);
+      await setShiftAttendance(
+        ctx.prisma,
+        ctx.user,
+        shift,
+        input.userId,
+        input.attendance,
+        new Date(),
+      );
+      return { success: true };
+    }),
+
+  /** Adds someone who came without being enrolled, as present. */
+  addShiftWalkIn: trpcBaseProcedure
+    .input(shiftIdSchema.extend({ userId: z.string() }))
+    .use(rosterRateLimit)
+    .mutation(async ({ ctx, input }) => {
+      const shift = await loadRosterShift(input.shiftId);
+      await addShiftWalkIn(ctx.prisma, ctx.user, shift, input.userId, new Date());
+      return { success: true };
+    }),
+
+  /** People the Schichtleitung can add on site, by name. */
+  searchWalkInCandidates: trpcBaseProcedure
+    .input(shiftIdSchema.extend({ query: z.string().max(100) }))
+    .use(rosterRateLimit)
+    .query(async ({ ctx, input }) => {
+      const shift = await loadRosterShift(input.shiftId);
+      return searchWalkInCandidates(ctx.prisma, ctx.user, shift, input.query);
     }),
 
   getMyOrganisedShifts: publicProcedure.query(async ({ ctx }) => {
