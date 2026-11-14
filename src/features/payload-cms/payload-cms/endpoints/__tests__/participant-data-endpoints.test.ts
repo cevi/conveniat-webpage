@@ -35,6 +35,7 @@ import {
 } from '@/features/payload-cms/payload-cms/endpoints/course-organiser-export';
 import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
 import { handleParticipantMutation } from '@/features/payload-cms/payload-cms/endpoints/course-participants-manager';
+import { helperAvailabilityExportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-availability-export';
 import { helperJobsPdfReportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-jobs-pdf-report';
 import { helperShiftParticipationExportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-shift-participation-export';
 import type { PayloadHandler, PayloadRequest } from 'payload';
@@ -122,6 +123,11 @@ const endpoints: {
     name: 'helper jobs PDF report',
     handler: helperJobsPdfReportHandler,
     request: { url: 'http://localhost/api/helper-jobs/report/pdf?formId=f1' },
+  },
+  {
+    name: 'helper availability export',
+    handler: helperAvailabilityExportHandler,
+    request: { url: 'http://localhost/api/helper-jobs/report/availability?formId=f1' },
   },
 ];
 
