@@ -1,13 +1,18 @@
 import { canManageHelperShifts } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import type { QuotaDistributionSettings } from '@/features/payload-cms/payload-cms/utils/hof-shift-quota-formula';
 import type {
   CampDay,
   QuotaChange,
 } from '@/features/payload-cms/payload-cms/utils/hof-shift-quotas';
 import {
+  countHofLeaders,
   listHofEnrolments,
   listQuotaShifts,
+  loadPinnedQuotas,
   loadQuotas,
+  loadQuotaSettings,
   saveQuotas,
+  saveQuotaSettings,
 } from '@/features/payload-cms/payload-cms/utils/hof-shift-quotas';
 import ExcelJS from 'exceljs';
 import type { PayloadHandler, PayloadRequest } from 'payload';
@@ -21,6 +26,16 @@ export interface QuotaGridHof {
   id: string;
   name: string;
   quartier: string | undefined;
+  /** the Leitende of the Hof in Cevi.DB, which its share of the places follows */
+  leaders: number;
+}
+
+/** A Schichteinsatz without a number of helpers, whose places the quotas cannot count. */
+export interface ShiftWithoutPlaces {
+  id: string;
+  title: string;
+  day: CampDay;
+  time: string;
 }
 
 /** What the quota grid in the admin panel shows. */
@@ -30,8 +45,14 @@ export interface QuotaGrid {
   hoefe: QuotaGridHof[];
   /** `hofId → day → slots` */
   quotas: Record<string, Record<CampDay, number>>;
-  /** the places of all shifts of a day, `null` when one of them takes any number */
-  placesPerDay: Record<CampDay, number | null>;
+  /** the cells typed in by hand, `hofId → day → slots` */
+  pinned: Record<string, Record<CampDay, number>>;
+  /** the places of the shifts of a day that name their number of helpers */
+  placesPerDay: Record<CampDay, number>;
+  /** the shifts that name none yet, which the places leave out */
+  shiftsWithoutPlaces: ShiftWithoutPlaces[];
+  /** what "Neu verteilen" ran with last */
+  settings: QuotaDistributionSettings;
   /** the enrolments that count for some Hof, per day */
   enrolledPerDay: Record<CampDay, number>;
 }
@@ -44,31 +65,49 @@ const listGridHoefe = async (request: PayloadRequest): Promise<QuotaGridHof[]> =
     depth: 1,
     pagination: false,
     overrideAccess: true,
-    select: { name: true, quartier: true },
+    select: { name: true, quartier: true, events: true },
     sort: 'name',
   });
-  return docs.map((hof) => ({
+  const hoefe = docs.map((hof) => ({
     id: String(hof.id),
     name: String(hof.name),
     quartier:
       typeof hof.quartier === 'object' && hof.quartier !== null ? hof.quartier.name : undefined,
+    eventIds: (hof.events ?? []).map((event) => String(event.eventId)),
+  }));
+  const leaders = await countHofLeaders(request.payload, hoefe);
+  return hoefe.map((hof) => ({
+    id: hof.id,
+    name: hof.name,
+    quartier: hof.quartier,
+    leaders: leaders.get(hof.id) ?? 0,
   }));
 };
 
 /** The grid of every Hof and every shift day. */
 export const loadQuotaGrid = async (request: PayloadRequest): Promise<QuotaGrid> => {
-  const [shifts, hoefe, quotas, enrolments] = await Promise.all([
+  const [shifts, hoefe, quotas, pinned, settings, enrolments] = await Promise.all([
     listQuotaShifts(request.payload),
     listGridHoefe(request),
     loadQuotas(),
+    loadPinnedQuotas(),
+    loadQuotaSettings(),
     listHofEnrolments(),
   ]);
   const days = [...new Set(shifts.map((shift) => shift.day))].toSorted();
-  const placesPerDay: Record<CampDay, number | null> = {};
+  const placesPerDay: Record<CampDay, number> = Object.fromEntries(days.map((day) => [day, 0]));
+  const shiftsWithoutPlaces: ShiftWithoutPlaces[] = [];
   for (const shift of shifts) {
-    const sum = placesPerDay[shift.day];
-    placesPerDay[shift.day] =
-      sum === null || shift.places === undefined ? null : (sum ?? 0) + shift.places;
+    if (shift.places === undefined) {
+      shiftsWithoutPlaces.push({
+        id: shift.id,
+        title: shift.title,
+        day: shift.day,
+        time: shift.time,
+      });
+    } else {
+      placesPerDay[shift.day] = (placesPerDay[shift.day] ?? 0) + shift.places;
+    }
   }
   const dayOfShift = new Map(shifts.map((shift) => [shift.id, shift.day]));
   const enrolledPerDay: Record<CampDay, number> = {};
@@ -85,7 +124,12 @@ export const loadQuotaGrid = async (request: PayloadRequest): Promise<QuotaGrid>
     quotas: Object.fromEntries(
       [...quotas].map(([hofId, ofHof]) => [hofId, Object.fromEntries(ofHof)]),
     ),
+    pinned,
     placesPerDay,
+    shiftsWithoutPlaces: shiftsWithoutPlaces.toSorted((a, b) =>
+      `${a.day} ${a.time}`.localeCompare(`${b.day} ${b.time}`),
+    ),
+    settings,
     enrolledPerDay,
   };
 };
@@ -103,9 +147,18 @@ const changesSchema = z.object({
         hofId: z.string().min(1),
         day: z.string().regex(CAMP_DAY),
         slots: z.number().int().min(0).max(MAX_SLOTS).nullable(),
+        pinned: z.boolean(),
       }),
     )
     .max(5000),
+  /** present when the changes come from "Neu verteilen", which ran with these */
+  settings: z
+    .object({
+      coveragePercent: z.number().int().min(10).max(300),
+      weightingPercent: z.number().int().min(0).max(100),
+      maxPerDayPercent: z.number().int().min(1).max(100),
+    })
+    .optional(),
 });
 
 /** `PATCH /api/helper-shifts/quotas`: writes the changed cells. */
@@ -113,10 +166,13 @@ export const saveQuotaGridHandler: PayloadHandler = async (request) => {
   if (!canManageHelperShifts({ req: request })) return unauthorized();
   const parsed = changesSchema.safeParse(request.json ? await request.json() : undefined);
   if (!parsed.success) return Response.json({ error: 'Invalid quotas' }, { status: 400 });
-  await saveQuotas(parsed.data.changes, request.user?.id);
+  const { changes, settings } = parsed.data;
+  await saveQuotas(changes, request.user?.id);
+  if (settings !== undefined) await saveQuotaSettings(settings, request.user?.id);
   request.payload.logger.info({
     msg: 'Saved Hof shift quotas',
-    changes: parsed.data.changes.length,
+    changes: changes.length,
+    distributed: settings !== undefined,
   });
   return Response.json(await loadQuotaGrid(request));
 };
@@ -239,7 +295,7 @@ export const importQuotaGridHandler: PayloadHandler = async (request) => {
     for (const { column, day } of dayColumns) {
       const text = cellText(row.getCell(column).value).trim();
       if (text === '') {
-        result.changes.push({ hofId, day, slots: null });
+        result.changes.push({ hofId, day, slots: null, pinned: false });
         continue;
       }
       const slots = Number(text);
@@ -247,7 +303,8 @@ export const importQuotaGridHandler: PayloadHandler = async (request) => {
         result.invalidCells.push(`${name}, ${dayHeader(day)}: ${text}`);
         continue;
       }
-      result.changes.push({ hofId, day, slots });
+      // a number from the workbook was set by hand, like one typed into the grid
+      result.changes.push({ hofId, day, slots, pinned: true });
     }
   });
 
