@@ -1,4 +1,7 @@
-import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  canReadCampReferences,
+  hasAdminOrWebAccess,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import {
   flushPageCacheOnChange,
@@ -30,7 +33,9 @@ export const CampCategoryCollection: CollectionConfig = {
     },
   },
   access: {
-    read: hasAdminOrWebAccess,
+    // reference data, as the places on the map: whoever plans a Schichteinsatz or a
+    // Programmblock picks its category
+    read: canReadCampReferences,
     create: hasAdminOrWebAccess,
     update: hasAdminOrWebAccess,
     delete: hasAdminOrWebAccess,

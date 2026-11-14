@@ -10,6 +10,7 @@ jest.mock('@/config/environment-variables', () => ({
     CEVIDB_GROUP_FULL_ADMIN: [],
     CEVIDB_GROUP_WEB_CORE_TEAM: [],
     CEVIDB_GROUP_FORUM_ZENTRALE: [],
+    CEVIDB_GROUP_HELPER_POOL: [],
   },
 }));
 jest.mock('@/utils/get-locale-from-cookies', () => ({

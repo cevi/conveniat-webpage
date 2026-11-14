@@ -1,6 +1,6 @@
 import {
-  hasAdminOrWebAccess,
-  shouldHideInAdminPanel,
+  canManageHelperShifts,
+  shouldHideHelperShifts,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
@@ -8,6 +8,7 @@ import { makeInjectEnrollmentCount } from '@/features/payload-cms/payload-cms/co
 import { helperShiftOrganiserExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-organiser-export';
 import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
 import { handleParticipantMutation } from '@/features/payload-cms/payload-cms/endpoints/course-participants-manager';
+import { helperShiftCopyHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-shift-copy';
 import { helperShiftParticipationExportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-shift-participation-export';
 import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
@@ -50,6 +51,11 @@ export const HelperShiftsCollection: CollectionConfig = {
       handler: courseParticipantsExportHandler,
     },
     {
+      path: '/:id/copy',
+      method: 'post',
+      handler: helperShiftCopyHandler,
+    },
+    {
       path: '/:id/participants',
       method: 'post',
       handler: handleParticipantMutation,
@@ -75,11 +81,11 @@ export const HelperShiftsCollection: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: AdminPanelDashboardGroups.AppCampsite.label,
-    hidden: shouldHideInAdminPanel,
+    group: AdminPanelDashboardGroups.AppHelpers.label,
+    hidden: shouldHideHelperShifts,
     defaultColumns: [
       'title',
-      'timeslot',
+      'timeslotSummary',
       'location',
       'category',
       'participants_max',
@@ -88,17 +94,24 @@ export const HelperShiftsCollection: CollectionConfig = {
     groupBy: true,
     disableCopyToLocale: true,
     components: {
+      edit: {
+        editMenuItems: [
+          '@/features/payload-cms/payload-cms/components/helper-shift-copy-drawer#HelperShiftCopyMenuItem',
+        ],
+      },
       beforeListTable: [
         '@/features/payload-cms/payload-cms/components/helper-shift-participation-export#HelperShiftParticipationExport',
         '@/features/payload-cms/payload-cms/components/helper-shift-organiser-export#HelperShiftOrganiserExport',
       ],
     },
   },
+  // by day, then by start: the time slot is text, "07:00 - 10:00" sorts before "18:30 - 21:00"
+  defaultSort: ['timeslot.date', 'timeslot.time'],
   access: {
     read: () => true,
-    create: hasAdminOrWebAccess,
-    update: hasAdminOrWebAccess,
-    delete: hasAdminOrWebAccess,
+    create: canManageHelperShifts,
+    update: canManageHelperShifts,
+    delete: canManageHelperShifts,
   },
   fields: [
     {
@@ -274,9 +287,9 @@ export const HelperShiftsCollection: CollectionConfig = {
     {
       name: 'organiser',
       label: {
-        en: 'Organiser',
-        de: 'Organisator',
-        fr: 'Organisateur',
+        en: 'Shift leads',
+        de: 'Schichtleitung',
+        fr: 'Responsables du service',
       },
       type: 'relationship',
       relationTo: 'users',
@@ -284,9 +297,9 @@ export const HelperShiftsCollection: CollectionConfig = {
       required: false,
       admin: {
         description: {
-          en: 'Organisers of this shift. The shift shows up in their daily program automatically, they are shown to helpers as contacts, and they are the only ones who see the list of enrolled helpers in the app.',
-          de: 'Organisatoren dieses Schichteinsatzes. Der Einsatz erscheint automatisch in ihrem Tagesprogramm, sie werden den Helfenden als Kontakt angezeigt und sehen als Einzige die Liste der angemeldeten Helfenden in der App.',
-          fr: 'Organisateurs de ce service. Le service apparaît automatiquement dans leur programme du jour, ils sont affichés aux helpers comme contacts et sont les seuls à voir la liste des helpers inscrits dans l’app.',
+          en: 'Who leads this shift on site. The shift shows up in their daily program automatically, they are shown to helpers as contacts, and they are the only ones who see the list of enrolled helpers in the app.',
+          de: 'Wer diesen Schichteinsatz vor Ort leitet. Der Einsatz erscheint automatisch in ihrem Tagesprogramm, sie werden den Helfenden als Kontakt angezeigt und sehen als Einzige die Liste der angemeldeten Helfenden in der App.',
+          fr: 'Qui dirige ce service sur place. Le service apparaît automatiquement dans leur programme du jour, ils sont affichés aux helpers comme contacts et sont les seuls à voir la liste des helpers inscrits dans l’app.',
         },
         position: 'sidebar',
       },
@@ -447,7 +460,7 @@ export const HelperShiftsCollection: CollectionConfig = {
       // The collection is readable by everyone over REST, so the notes need their own rule
       // to stay with the people who edit shifts.
       access: {
-        read: hasAdminOrWebAccess,
+        read: canManageHelperShifts,
       },
       admin: {
         position: 'sidebar',
@@ -464,6 +477,33 @@ export const HelperShiftsCollection: CollectionConfig = {
       virtual: true,
       admin: {
         hidden: true,
+      },
+    },
+    {
+      name: 'timeslotSummary',
+      type: 'ui',
+      label: {
+        en: 'Time slot',
+        de: 'Zeitfenster',
+        fr: 'Créneau horaire',
+      },
+      admin: {
+        components: {
+          Cell: '@/features/payload-cms/payload-cms/components/helper-shift-timeslot-cell',
+        },
+      },
+    },
+    {
+      // mounts the drawer of "Auf weitere Tage kopieren", which the entry in the ⋮ menu opens;
+      // the menu unmounts its entries when it closes, the drawer has to outlive it
+      name: 'copyToDaysDrawer',
+      type: 'ui',
+      admin: {
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/helper-shift-copy-drawer#HelperShiftCopyDrawer',
+        },
+        disableListColumn: true,
       },
     },
     {

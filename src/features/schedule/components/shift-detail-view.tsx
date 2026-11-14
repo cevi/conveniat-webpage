@@ -360,7 +360,7 @@ export const ShiftDetailView: React.FC<{
                 </section>
               )}
 
-              <OrganiserContacts organisers={shift.organiser} locale={locale} />
+              <OrganiserContacts organisers={shift.organiser} locale={locale} isShift />
             </div>
           </article>
         </div>

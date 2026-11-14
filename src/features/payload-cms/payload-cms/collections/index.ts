@@ -63,7 +63,6 @@ const rawCollectionsConfig: CollectionConfig[] = [
   DocumentsCollection,
   PermissionsCollection,
   FormCollection,
-  JobCollection,
 
   // App
   AnnouncementChannelsCollection,
@@ -75,6 +74,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   QuartiereCollection,
   CampCategoryCollection,
   CampScheduleEntryCollection,
+  JobCollection,
   HelperShiftsCollection,
   StoryEventsCollection,
   StoryFiguresCollection,
