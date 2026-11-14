@@ -1,3 +1,5 @@
+import type { QuotaDistributionSettings } from '@/features/payload-cms/payload-cms/utils/hof-shift-quota-formula';
+import { DEFAULT_DISTRIBUTION_SETTINGS } from '@/features/payload-cms/payload-cms/utils/hof-shift-quota-formula';
 import prisma from '@/lib/db/prisma';
 import { CourseType } from '@/lib/prisma/enums';
 import type { Payload } from 'payload';
@@ -64,7 +66,46 @@ export interface QuotaChange {
   hofId: string;
   day: CampDay;
   slots: number | null;
+  /** typed in by hand rather than spread by "Neu verteilen" */
+  pinned: boolean;
 }
+
+/** The cells typed in by hand, `hofId → day → slots`, which "Neu verteilen" keeps. */
+export const loadPinnedQuotas = async (): Promise<Record<string, Record<CampDay, number>>> => {
+  const rows = await prisma.hofShiftQuota.findMany({
+    where: { pinned: true },
+    select: { hofId: true, day: true, slots: true },
+  });
+  const pinned: Record<string, Record<CampDay, number>> = {};
+  for (const row of rows) (pinned[row.hofId] ??= {})[dayOfDate(row.day)] = row.slots;
+  return pinned;
+};
+
+const SETTINGS_ID = 1;
+
+/** How "Neu verteilen" spreads the places, the defaults until the Helferpool changed them. */
+export const loadQuotaSettings = async (): Promise<QuotaDistributionSettings> => {
+  const row = await prisma.hofShiftQuotaSettings.findUnique({ where: { id: SETTINGS_ID } });
+  return row === null
+    ? DEFAULT_DISTRIBUTION_SETTINGS
+    : {
+        coveragePercent: row.coveragePercent,
+        weightingPercent: row.weightingPercent,
+        maxPerDayPercent: row.maxPerDayPercent,
+      };
+};
+
+/** Keeps the settings the last "Neu verteilen" ran with. */
+export const saveQuotaSettings = async (
+  settings: QuotaDistributionSettings,
+  updatedBy: string | undefined,
+): Promise<void> => {
+  await prisma.hofShiftQuotaSettings.upsert({
+    where: { id: SETTINGS_ID },
+    update: { ...settings, updatedBy: updatedBy ?? null },
+    create: { id: SETTINGS_ID, ...settings, updatedBy: updatedBy ?? null },
+  });
+};
 
 /** Writes the changed cells of the grid in one transaction. */
 export const saveQuotas = async (
@@ -80,11 +121,12 @@ export const saveQuotas = async (
           })
         : prisma.hofShiftQuota.upsert({
             where: key,
-            update: { slots: change.slots, updatedBy: updatedBy ?? null },
+            update: { slots: change.slots, pinned: change.pinned, updatedBy: updatedBy ?? null },
             create: {
               hofId: change.hofId,
               day: dateOfDay(change.day),
               slots: change.slots,
+              pinned: change.pinned,
               updatedBy: updatedBy ?? null,
             },
           });
@@ -134,4 +176,43 @@ export const listHofEnrolments = async (hofIds?: readonly string[]): Promise<Hof
           },
         ],
   );
+};
+
+/** The role a person holds in a Hof-Lager event as a child, which is no Leitende/r. */
+const isParticipantRole = (roleType: string): boolean => roleType.endsWith('::Participant');
+
+/**
+ * The Leitende of each Hof, `hofId → count`: everyone the billing synced from the Hof's
+ * Hof-Lager events with any role but Teilnehmende, and not since removed. Only the counts leave
+ * the billing data.
+ */
+export const countHofLeaders = async (
+  payload: Pick<Payload, 'find'>,
+  hoefe: readonly { id: string; eventIds: readonly string[] }[],
+): Promise<Map<string, number>> => {
+  const hofOfEvent = new Map(
+    hoefe.flatMap((hof) => hof.eventIds.map((eventId) => [eventId, hof.id] as const)),
+  );
+  const counts = new Map(hoefe.map((hof) => [hof.id, 0]));
+  if (hofOfEvent.size === 0) return counts;
+  const { docs } = await payload.find({
+    collection: 'bill-participants',
+    where: { eventId: { in: [...hofOfEvent.keys()] } },
+    depth: 0,
+    pagination: false,
+    overrideAccess: true,
+    select: { eventId: true, roleType: true, active: true, userId: true },
+  });
+  // a person in two events of one Hof counts once
+  const seen = new Set<string>();
+  for (const participant of docs) {
+    const hofId = hofOfEvent.get(participant.eventId);
+    if (hofId === undefined || participant.active === false) continue;
+    if (isParticipantRole(participant.roleType ?? '')) continue;
+    const key = `${hofId} ${participant.userId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    counts.set(hofId, (counts.get(hofId) ?? 0) + 1);
+  }
+  return counts;
 };

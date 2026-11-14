@@ -130,6 +130,9 @@ model HofShiftQuota {
   /// shift slots the Hof fills that day; two shifts of one person count twice
   slots Int
 
+  /// typed in by hand: "Neu verteilen" keeps it and spreads the rest of the day around it
+  pinned Boolean @default(false)
+
   updatedAt DateTime @updatedAt
 
   /// the Payload user who last set it
@@ -137,4 +140,23 @@ model HofShiftQuota {
 
   @@id([hofId, day])
   @@index([day])
+}
+
+/// How "Neu verteilen" spreads the places of a day over the Höfe, by the Leitende of each.
+/// One row, id 1, which the Helferpool changes on the quota page.
+model HofShiftQuotaSettings {
+  id Int @id @default(1)
+
+  /// percent of the places of a day the quotas cover; above 100 plans a reserve for no-shows
+  coveragePercent Int @default(100)
+
+  /// the weight of a Hof is its Leitende to this power, in hundredths: 100 is strictly
+  /// proportional, lower evens the Höfe out so a big one gives a smaller share of its Leitende
+  weightingPercent Int @default(80)
+
+  /// at most this percent of the Leitende of a Hof on one day; the rest goes to the others
+  maxPerDayPercent Int @default(30)
+
+  updatedAt DateTime @updatedAt
+  updatedBy String?
 }
