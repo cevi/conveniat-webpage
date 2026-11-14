@@ -1,8 +1,69 @@
 'use client';
 
-import { useDocumentInfo } from '@payloadcms/ui';
+import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
+import type { StaticTranslationString } from '@/types/types';
+import { useDocumentInfo, useTranslation } from '@payloadcms/ui';
 import React, { useCallback, useEffect, useState } from 'react';
 import Select from 'react-select';
+
+const texts = {
+  title: { de: 'Angemeldete Personen', en: 'Enrolled participants', fr: 'Personnes inscrites' },
+  description: {
+    de: 'Wer sich für diesen Eintrag angemeldet hat.',
+    en: 'Who has enrolled for this entry.',
+    fr: 'Qui s’est inscrit à cette entrée.',
+  },
+  downloadCsv: { de: 'CSV herunterladen', en: 'Download CSV', fr: 'Télécharger CSV' },
+  downloadExcel: { de: 'Excel herunterladen', en: 'Download Excel', fr: 'Télécharger Excel' },
+  downloadPdf: { de: 'PDF herunterladen', en: 'Download PDF', fr: 'Télécharger PDF' },
+  loading: {
+    de: 'Angemeldete Personen werden geladen…',
+    en: 'Loading participants…',
+    fr: 'Chargement des personnes inscrites…',
+  },
+  empty: {
+    de: 'Noch niemand angemeldet.',
+    en: 'No participants enrolled yet.',
+    fr: 'Personne n’est encore inscrit.',
+  },
+  name: { de: 'Name', en: 'Name', fr: 'Nom' },
+  nickname: { de: 'Ceviname', en: 'Ceviname', fr: 'Nom Cevi' },
+  email: { de: 'E-Mail', en: 'Email', fr: 'E-mail' },
+  hof: { de: 'Hof', en: 'Hof', fr: 'Hof' },
+  quartier: { de: 'Quartier', en: 'Quartier', fr: 'Quartier' },
+  actions: { de: 'Aktionen', en: 'Actions', fr: 'Actions' },
+  remove: { de: 'Entfernen', en: 'Remove', fr: 'Retirer' },
+  removeTitle: {
+    de: 'Person abmelden',
+    en: 'Unenroll this person',
+    fr: 'Désinscrire cette personne',
+  },
+  confirmRemove: {
+    de: 'Diese Person wirklich abmelden?',
+    en: 'Really unenroll this person?',
+    fr: 'Vraiment désinscrire cette personne ?',
+  },
+  manualTitle: { de: 'Von Hand anmelden', en: 'Enroll by hand', fr: 'Inscrire manuellement' },
+  searchUser: { de: 'Person suchen…', en: 'Search person…', fr: 'Chercher une personne…' },
+  enroll: { de: 'Anmelden', en: 'Enroll', fr: 'Inscrire' },
+  enrolling: { de: 'Wird angemeldet…', en: 'Enrolling…', fr: 'Inscription…' },
+  unknownName: { de: 'Unbekannt', en: 'Unknown', fr: 'Inconnu' },
+  loadFailed: {
+    de: 'Die angemeldeten Personen konnten nicht geladen werden.',
+    en: 'The participants could not be loaded.',
+    fr: 'Les personnes inscrites n’ont pas pu être chargées.',
+  },
+  enrollFailed: {
+    de: 'Die Person konnte nicht angemeldet werden.',
+    en: 'The person could not be enrolled.',
+    fr: 'La personne n’a pas pu être inscrite.',
+  },
+  unenrollFailed: {
+    de: 'Die Person konnte nicht abgemeldet werden.',
+    en: 'The person could not be unenrolled.',
+    fr: 'La personne n’a pas pu être désinscrite.',
+  },
+} satisfies Record<string, StaticTranslationString>;
 
 interface Participant {
   uuid: string;
@@ -26,6 +87,8 @@ interface PayloadUserResponse {
 
 export const ParticipantsAdminUI: React.FC = () => {
   const { id, collectionSlug } = useDocumentInfo();
+  const { i18n } = useTranslation();
+  const locale = resolveAdminLocale(i18n.language);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState<boolean>(id !== undefined && collectionSlug !== undefined);
   const [error, setError] = useState<string | undefined>();
@@ -42,7 +105,7 @@ export const ParticipantsAdminUI: React.FC = () => {
     try {
       const response = await fetch(`/api/${collectionSlug}/${id}/participants-export?format=json`);
       if (!response.ok) {
-        throw new Error('Failed to fetch participants');
+        throw new Error(texts.loadFailed[locale]);
       }
       const data = (await response.json()) as { participants?: Participant[] };
       setParticipants(data.participants ?? []);
@@ -51,7 +114,7 @@ export const ParticipantsAdminUI: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, collectionSlug]);
+  }, [id, collectionSlug, locale]);
 
   const fetchUsers = useCallback(async (): Promise<void> => {
     try {
@@ -62,7 +125,7 @@ export const ParticipantsAdminUI: React.FC = () => {
 
       const data = (await response.json()) as { docs?: PayloadUserResponse[] };
       const options = (data.docs ?? []).map((u) => {
-        const namePart = u.fullName ?? 'Unbekannt';
+        const namePart = u.fullName ?? texts.unknownName[locale];
         const nickPart = u.nickname !== undefined && u.nickname !== '' ? `(${u.nickname})` : '';
         return {
           value: u.id,
@@ -73,7 +136,7 @@ export const ParticipantsAdminUI: React.FC = () => {
     } catch (error_) {
       console.warn('Could not load user list for manual enrollment.', error_);
     }
-  }, []);
+  }, [locale]);
 
   const fetchFeatureFlag = useCallback(async (): Promise<void> => {
     try {
@@ -114,7 +177,7 @@ export const ParticipantsAdminUI: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to enroll user');
+        throw new Error(texts.enrollFailed[locale]);
       }
 
       await fetchParticipants();
@@ -128,7 +191,7 @@ export const ParticipantsAdminUI: React.FC = () => {
 
   const handleUnenroll = async (userId: string): Promise<void> => {
     if (id === undefined || collectionSlug === undefined) return;
-    if (!confirm('Wirklich abmelden?')) return;
+    if (!confirm(texts.confirmRemove[locale])) return;
 
     setMutating(true);
     try {
@@ -137,7 +200,7 @@ export const ParticipantsAdminUI: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to unenroll user');
+        throw new Error(texts.unenrollFailed[locale]);
       }
 
       await fetchParticipants();
@@ -165,10 +228,10 @@ export const ParticipantsAdminUI: React.FC = () => {
       >
         <div>
           <h3 className="field-type__label" style={{ fontSize: '1.25rem', margin: 0 }}>
-            Enrolled Participants
+            {texts.title[locale]}
           </h3>
           <p style={{ margin: 0, opacity: 0.7, fontSize: '0.875rem' }}>
-            Users who have enrolled for this module.
+            {texts.description[locale]}
           </p>
         </div>
 
@@ -179,7 +242,7 @@ export const ParticipantsAdminUI: React.FC = () => {
             rel="noopener noreferrer"
             className="btn btn--style-secondary btn--size-small"
           >
-            Download CSV
+            {texts.downloadCsv[locale]}
           </a>
           <a
             href={`/api/${collectionSlug}/${id}/participants-export?format=xlsx`}
@@ -187,7 +250,7 @@ export const ParticipantsAdminUI: React.FC = () => {
             rel="noopener noreferrer"
             className="btn btn--style-secondary btn--size-small"
           >
-            Download Excel
+            {texts.downloadExcel[locale]}
           </a>
           <a
             href={`/api/${collectionSlug}/${id}/participants-export?format=pdf`}
@@ -195,7 +258,7 @@ export const ParticipantsAdminUI: React.FC = () => {
             rel="noopener noreferrer"
             className="btn btn--style-primary btn--size-small"
           >
-            Download PDF
+            {texts.downloadPdf[locale]}
           </a>
         </div>
       </header>
@@ -208,26 +271,26 @@ export const ParticipantsAdminUI: React.FC = () => {
           border: '1px solid var(--theme-elevation-150)',
         }}
       >
-        {loading === true && <p>Loading participants...</p>}
+        {loading === true && <p>{texts.loading[locale]}</p>}
         {error !== undefined && <p style={{ color: 'var(--theme-error-500)' }}>{error}</p>}
         {loading === false && error === undefined && participants.length === 0 && (
-          <p style={{ margin: 0, marginBottom: '1rem' }}>No participants enrolled yet.</p>
+          <p style={{ margin: 0, marginBottom: '1rem' }}>{texts.empty[locale]}</p>
         )}
         {loading === false && error === undefined && participants.length > 0 && (
           <div style={{ overflowX: 'auto', marginBottom: '2rem' }}>
             <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--theme-elevation-150)' }}>
-                  <th style={{ padding: '0.5rem' }}>Name</th>
-                  <th style={{ padding: '0.5rem' }}>Ceviname</th>
-                  <th style={{ padding: '0.5rem' }}>Email</th>
+                  <th style={{ padding: '0.5rem' }}>{texts.name[locale]}</th>
+                  <th style={{ padding: '0.5rem' }}>{texts.nickname[locale]}</th>
+                  <th style={{ padding: '0.5rem' }}>{texts.email[locale]}</th>
                   {hideHofAndQuartier ? undefined : (
                     <>
-                      <th style={{ padding: '0.5rem' }}>Hof</th>
-                      <th style={{ padding: '0.5rem' }}>Quartier</th>
+                      <th style={{ padding: '0.5rem' }}>{texts.hof[locale]}</th>
+                      <th style={{ padding: '0.5rem' }}>{texts.quartier[locale]}</th>
                     </>
                   )}
-                  <th style={{ padding: '0.5rem', width: '80px' }}>Actions</th>
+                  <th style={{ padding: '0.5rem', width: '80px' }}>{texts.actions[locale]}</th>
                 </tr>
               </thead>
               <tbody>
@@ -256,9 +319,9 @@ export const ParticipantsAdminUI: React.FC = () => {
                           cursor: mutating ? 'not-allowed' : 'pointer',
                           fontWeight: 'bold',
                         }}
-                        title="Un-enroll Participant"
+                        title={texts.removeTitle[locale]}
                       >
-                        ✕ Remove
+                        ✕ {texts.remove[locale]}
                       </button>
                     </td>
                   </tr>
@@ -269,7 +332,7 @@ export const ParticipantsAdminUI: React.FC = () => {
         )}
 
         <div style={{ borderTop: '1px solid var(--theme-elevation-150)', paddingTop: '1rem' }}>
-          <h4 style={{ fontSize: '1rem', margin: '0 0 0.5rem 0' }}>Manual Enrollment</h4>
+          <h4 style={{ fontSize: '1rem', margin: '0 0 0.5rem 0' }}>{texts.manualTitle[locale]}</h4>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <div style={{ flex: 1, maxWidth: '400px' }}>
               <Select
@@ -280,7 +343,7 @@ export const ParticipantsAdminUI: React.FC = () => {
                 }}
                 isClearable
                 isSearchable
-                placeholder="Search user..."
+                placeholder={texts.searchUser[locale]}
                 isDisabled={loading || mutating}
                 styles={{
                   control: (base, state) => ({
@@ -360,7 +423,7 @@ export const ParticipantsAdminUI: React.FC = () => {
               disabled={selectedUser === undefined || mutating}
               style={{ minHeight: '40px' }}
             >
-              {mutating ? 'Enrolling...' : 'Enroll User'}
+              {mutating ? texts.enrolling[locale] : texts.enroll[locale]}
             </button>
           </div>
         </div>
