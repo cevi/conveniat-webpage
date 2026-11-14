@@ -1,12 +1,39 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 'use client';
 
-import { useAuth } from '@payloadcms/ui';
+import type { Config } from '@/features/payload-cms/payload-types';
+import type { StaticTranslationString } from '@/types/types';
+import { useAuth, useLocale } from '@payloadcms/ui';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useEffect, useState } from 'react';
 
+const triggerLabel: StaticTranslationString = {
+  en: 'Helper report (PDF or Excel)',
+  de: 'Helfenden-Report (PDF oder Excel)',
+  fr: 'Rapport des helpers (PDF ou Excel)',
+};
+
+const fieldsLabel: StaticTranslationString = {
+  en: 'Answers that describe the person: contact details in the PDF, columns in the Excel',
+  de: 'Angaben zur Person: Kontakt Details im PDF, Spalten im Excel',
+  fr: 'Réponses qui décrivent la personne : coordonnées dans le PDF, colonnes dans l’Excel',
+};
+
+const excelButtonLabel: StaticTranslationString = {
+  en: 'Excel by availability',
+  de: 'Excel nach Verfügbarkeit',
+  fr: 'Excel par disponibilité',
+};
+
+const excelDescription: StaticTranslationString = {
+  en: 'One row per helper and one column per day, with an x on the days they are on site and a total per day. Filter by the Ressort column to see the helpers and totals of one Ressort. One sheet for the helpers by availability, one for those with a job.',
+  de: 'Eine Zeile pro Helfende:r und eine Spalte pro Tag, mit einem x an den Tagen auf dem Platz und einem Total pro Tag. Mit dem Filter in der Spalte Ressort zeigt es die Helfenden und Totale eines Ressorts. Ein Blatt für die Helfenden nach Verfügbarkeit, eines für jene mit festem Job.',
+  fr: 'Une ligne par helper et une colonne par jour, avec un x les jours sur place et un total par jour. Le filtre de la colonne Ressort montre les helpers et les totaux d’un Ressort. Une feuille pour les helpers selon leur disponibilité, une pour ceux avec un job fixe.',
+};
+
 export default function PdfReportGeneratorUI(): React.ReactNode {
   const { permissions } = useAuth();
+  const { code: locale } = useLocale() as { code: Config['locale'] };
   const [open, setOpen] = useState(false);
   const [forms, setForms] = useState<any[]>([]);
   const [selectedFormId, setSelectedFormId] = useState<string>('');
@@ -69,15 +96,26 @@ export default function PdfReportGeneratorUI(): React.ReactNode {
     }
   }, [selectedFormId]);
 
-  const handleGenerate = (): void => {
-    if (selectedFormId.length === 0) return;
+  const reportQuery = (): URLSearchParams => {
     const query = new URLSearchParams();
     query.set('formId', selectedFormId);
-    query.set('includeDetails', includeDetails ? 'true' : 'false');
     if (selectedFields.length > 0) {
       query.set('fields', selectedFields.join(','));
     }
+    return query;
+  };
+
+  const handleGenerate = (): void => {
+    if (selectedFormId.length === 0) return;
+    const query = reportQuery();
+    query.set('includeDetails', includeDetails ? 'true' : 'false');
     window.open(`/api/helper-jobs/report/pdf?${query.toString()}`, '_blank');
+    setOpen(false);
+  };
+
+  const handleExcelExport = (): void => {
+    if (selectedFormId.length === 0) return;
+    window.open(`/api/helper-jobs/report/availability?${reportQuery().toString()}`, '_blank');
     setOpen(false);
   };
 
@@ -100,7 +138,7 @@ export default function PdfReportGeneratorUI(): React.ReactNode {
             className="btn btn--style-primary btn--size-medium"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
           >
-            PDF Report Generieren
+            {triggerLabel[locale]}
           </button>
         </Dialog.Trigger>
         <Dialog.Portal>
@@ -200,10 +238,10 @@ export default function PdfReportGeneratorUI(): React.ReactNode {
               </div>
             )}
 
-            {includeDetails && selectedFormId.length > 0 && (
+            {selectedFormId.length > 0 && (
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-                  Felder für &apos;Kontakt Details&apos; auswählen
+                  {fieldsLabel[locale]}
                 </label>
                 {loadingFields && <p>Lade Felder...</p>}
                 {!loadingFields && availableFields.length === 0 && (
@@ -239,6 +277,9 @@ export default function PdfReportGeneratorUI(): React.ReactNode {
               </div>
             )}
 
+            <p style={{ fontSize: '0.875rem', opacity: 0.7, margin: 0 }}>
+              {excelDescription[locale]}
+            </p>
             <div
               style={{
                 display: 'flex',
@@ -263,6 +304,23 @@ export default function PdfReportGeneratorUI(): React.ReactNode {
                   Abbrechen
                 </button>
               </Dialog.Close>
+              <button
+                type="button"
+                onClick={handleExcelExport}
+                disabled={selectedFormId.length === 0}
+                className="btn btn--style-secondary"
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '4px',
+                  cursor: selectedFormId.length > 0 ? 'pointer' : 'not-allowed',
+                  opacity: selectedFormId.length > 0 ? 1 : 0.5,
+                  border: '1px solid var(--theme-elevation-150)',
+                  background: 'transparent',
+                  color: 'var(--theme-text)',
+                }}
+              >
+                {excelButtonLabel[locale]}
+              </button>
               <button
                 type="button"
                 onClick={handleGenerate}

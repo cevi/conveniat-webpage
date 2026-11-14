@@ -5,6 +5,7 @@ import {
   hasEditorialAccess,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { helperAvailabilityExportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-availability-export';
 import { helperJobsPdfReportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-jobs-pdf-report';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
@@ -79,6 +80,11 @@ export const JobCollection: CollectionConfig = asLocalizedCollection({
       path: '/report/pdf',
       method: 'get',
       handler: helperJobsPdfReportHandler,
+    },
+    {
+      path: '/report/availability',
+      method: 'get',
+      handler: helperAvailabilityExportHandler,
     },
   ],
   access: {
