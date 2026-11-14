@@ -99,6 +99,8 @@ export interface HofEnrolment {
   userId: string;
   userName: string;
   createdAt: Date;
+  /** what the Schichtleitung marked, `null` until they did */
+  attendance: 'PRESENT' | 'ABSENT' | null;
 }
 
 /** The shift enrolments that count for the given Höfe, or for any Hof without a filter. */
@@ -113,6 +115,7 @@ export const listHofEnrolments = async (hofIds?: readonly string[]): Promise<Hof
       courseId: true,
       userId: true,
       createdAt: true,
+      attendance: true,
       user: { select: { name: true } },
     },
     orderBy: { createdAt: 'asc' },
@@ -127,6 +130,7 @@ export const listHofEnrolments = async (hofIds?: readonly string[]): Promise<Hof
             userId: row.userId,
             userName: row.user.name,
             createdAt: row.createdAt,
+            attendance: row.attendance,
           },
         ],
   );

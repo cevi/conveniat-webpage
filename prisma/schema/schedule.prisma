@@ -6,6 +6,12 @@ enum CourseType {
   SHIFT
 }
 
+/// what the Schichtleitung marked for a person enrolled in a shift
+enum ShiftAttendance {
+  PRESENT
+  ABSENT
+}
+
 model Enrollment {
   id String @id @default(uuid(7))
 
@@ -26,6 +32,17 @@ model Enrollment {
   /// counting where it did; empty for a person without a Hof and for a programme enrolment.
   /// No foreign key, the Hof lives in MongoDB.
   hofId String?
+
+  /// whether the person came to the shift, as its Schichtleitung marked it on site; empty until
+  /// someone marks it. A shift enrolment marked ABSENT no longer counts for the Hof's quota.
+  attendance   ShiftAttendance?
+  /// when and by whom (a Payload user id) the attendance was last set
+  attendanceAt DateTime?
+  attendanceBy String?
+
+  /// added by the Schichtleitung on site, for someone who came without being enrolled, e.g. in
+  /// the place of someone of their Hof
+  addedOnSite Boolean @default(false)
 
   @@unique([courseId, courseType, userId]) // every user can only be enrolled once per course and course type
   @@index([courseId])

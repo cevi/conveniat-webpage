@@ -74,7 +74,10 @@ export const loadQuotaGrid = async (request: PayloadRequest): Promise<QuotaGrid>
   const enrolledPerDay: Record<CampDay, number> = {};
   for (const enrolment of enrolments) {
     const day = dayOfShift.get(enrolment.shiftId);
-    if (day !== undefined) enrolledPerDay[day] = (enrolledPerDay[day] ?? 0) + 1;
+    // as for the AVP: a marked no-show no longer counts
+    if (day !== undefined && enrolment.attendance !== 'ABSENT') {
+      enrolledPerDay[day] = (enrolledPerDay[day] ?? 0) + 1;
+    }
   }
   return {
     days,

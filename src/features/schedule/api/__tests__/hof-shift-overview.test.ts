@@ -26,12 +26,14 @@ const enrolment = (
   shiftId: string,
   userName: string,
   createdAt: string,
+  attendance: 'PRESENT' | 'ABSENT' | null = null,
 ): Record<string, unknown> => ({
   hofId: 'uster',
   shiftId,
   userId: userName,
   userName,
   createdAt: new Date(createdAt),
+  attendance,
 });
 
 beforeEach(() => {
@@ -97,5 +99,25 @@ describe('what the AVP sees of their Hof', () => {
     expect(chosen.hofId).toBe('zueri');
     expect(foreign.hofId).toBe('uster');
     expect(mockEnrolments).not.toHaveBeenCalledWith(['cevi-bern']);
+  });
+
+  it('stops counting someone the Schichtleitung marked as missing, and shows who came', async () => {
+    mockListAvpHoefe.mockResolvedValue([USTER]);
+    mockEnrolments.mockResolvedValue([
+      enrolment('abwasch', 'Mira v/o Pixel', '2027-06-12T12:32:00Z', 'PRESENT'),
+      enrolment('verkehr', 'Lucas v/o Fuchs', '2027-06-20T08:00:00Z', 'ABSENT'),
+    ]);
+
+    const overview = await getHofShiftOverview(avp);
+
+    expect(overview.days[0]).toEqual(
+      expect.objectContaining({
+        enrolled: 1,
+        people: [
+          expect.objectContaining({ name: 'Lucas v/o Fuchs', attendance: 'ABSENT' }),
+          expect.objectContaining({ name: 'Mira v/o Pixel', attendance: 'PRESENT' }),
+        ],
+      }),
+    );
   });
 });
