@@ -143,6 +143,11 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
         path: '/merge-users',
         exact: true,
       },
+      hofShiftQuotas: {
+        Component: '@/features/payload-cms/payload-cms/views/hof-shift-quota-view#default',
+        path: '/schicht-kontingente',
+        exact: true,
+      },
       materialSetup: {
         Component: '@/features/material/payload-cms/material-setup-view#default',
         path: '/material-setup',

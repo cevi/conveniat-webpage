@@ -70,6 +70,7 @@ describe('buildAdminNavGroups', () => {
       // the Zentrale is a page of the app
       'App · Betrieb': ['/admin/forum-protocol', '/app/forum/zentrale'],
       'App · Story': ['/admin/story-board'],
+      'App · Helfende': ['/admin/schicht-kontingente'],
     });
     expect(groups.flatMap((group) => group.links.map((link) => link.label))).toEqual([
       'Benutzer',
@@ -80,6 +81,7 @@ describe('buildAdminNavGroups', () => {
       'Story-Board',
       'Forum-Protokoll',
       'Forum-Zentrale',
+      'Schicht-Kontingente',
     ]);
   });
 
@@ -96,10 +98,11 @@ describe('buildAdminNavGroups', () => {
       ['Paramètres du tableau de bord des Hofs', 'Configurer le dépôt de matériel'],
       ['Story-Board'],
       ['Protocole du forum', 'Zentrale du forum'],
+      ['Quotas de services'],
     ]);
   });
 
-  it('shows the web core team the forum protocol and the Zentrale, and no other custom view', () => {
+  it('shows the web core team the forum protocol, the Zentrale and the shift quotas, and no other custom view', () => {
     const groups = buildAdminNavGroups({
       entityGroups: entityGroups(),
       user: userIn(WEB_CORE_TEAM),
@@ -112,6 +115,7 @@ describe('buildAdminNavGroups', () => {
       'Backoffice · Höfe & Material': ['/admin/globals/hof-dashboard-settings'],
       'App · Betrieb': ['/admin/forum-protocol', '/app/forum/zentrale'],
       'App · Story': ['/admin/story-board'],
+      'App · Helfende': ['/admin/schicht-kontingente'],
     });
   });
 

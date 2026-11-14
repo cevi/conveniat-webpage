@@ -1,7 +1,13 @@
 'use client';
 
+import { HofShiftsView } from '@/features/schedule/components/hof-shifts-view';
 import { ShiftDetailView } from '@/features/schedule/components/shift-detail-view';
 import { ShiftsComponent } from '@/features/schedule/components/shifts-component';
+import {
+  HOF_VIEW_PARAMETER,
+  HOF_VIEW_VALUE,
+  ShiftsViewSwitch,
+} from '@/features/schedule/components/shifts-view-switch';
 import type { Locale } from '@/types/types';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
@@ -15,11 +21,19 @@ import type React from 'react';
  * not something a component is allowed to do.
  */
 export const ShiftsPageContent: React.FC<{ locale: Locale }> = ({ locale }) => {
-  const shiftId = useSearchParams().get('id');
+  const searchParameters = useSearchParams();
+  const shiftId = searchParameters.get('id');
 
   if (shiftId !== null && shiftId !== '') {
     return <ShiftDetailView shiftId={shiftId} locale={locale} />;
   }
 
-  return <ShiftsComponent locale={locale} />;
+  // the AVP of a Hof switches between the shifts of a day and what their Hof stands at
+  const isHofView = searchParameters.get(HOF_VIEW_PARAMETER) === HOF_VIEW_VALUE;
+  return (
+    <>
+      <ShiftsViewSwitch locale={locale} />
+      {isHofView ? <HofShiftsView locale={locale} /> : <ShiftsComponent locale={locale} />}
+    </>
+  );
 };
