@@ -1,5 +1,6 @@
 import type { HelperShift } from '@/features/payload-cms/payload-types';
 import { legacyTimeConflict, scheduleError } from '@/features/schedule/api/schedule-errors';
+import { listEnrolmentHoefe, resolveEnrolmentHof } from '@/features/schedule/api/shift-hof';
 import {
   assertUnenrollmentIsOpen,
   getShiftUnenrollmentDeadline,
@@ -15,13 +16,22 @@ import { TRPCError } from '@trpc/server';
 import { getPayload, NotFound } from 'payload';
 import { z } from 'zod';
 
-const enrollInShiftSchema = z.object({
+const shiftIdSchema = z.object({
   shiftId: z.string(),
+});
+
+/**
+ * `hofId` names the Hof the shift counts for, which the enrol sheet asks only a person in
+ * several Höfe about; see `resolveEnrolmentHof`.
+ */
+const enrollInShiftSchema = shiftIdSchema.extend({
+  hofId: z.string().optional(),
 });
 
 const switchIntoShiftSchema = z.object({
   fromCourseId: z.string(),
   toShiftId: z.string(),
+  hofId: z.string().optional(),
 });
 
 /**
@@ -54,7 +64,7 @@ export const shiftsRouter = createTRPCRouter({
     return getHelperShifts({}, locale, { prisma, user });
   }),
 
-  getShiftStatus: publicProcedure.input(enrollInShiftSchema).query(async ({ input, ctx }) => {
+  getShiftStatus: publicProcedure.input(shiftIdSchema).query(async ({ input, ctx }) => {
     const { prisma, user } = ctx;
     const { shiftId } = input;
 
@@ -152,6 +162,13 @@ export const shiftsRouter = createTRPCRouter({
    * helper slots, so - unlike workshops, where organiser-ship is materialised as a star - shift
    * organiser-ship is reported separately and merged with the enrolments on the dashboard.
    */
+  /** The Höfe the user may count a shift for, which the enrol sheet offers to choose from. */
+  getMyEnrolmentHoefe: publicProcedure.query(async ({ ctx }) => {
+    const { user, prisma } = ctx;
+    if (!user) return [];
+    return listEnrolmentHoefe(prisma, user.uuid);
+  }),
+
   getMyOrganisedShifts: publicProcedure.query(async ({ ctx }) => {
     const { user } = ctx;
     if (!user) return [];
@@ -262,11 +279,14 @@ export const shiftsRouter = createTRPCRouter({
         }
       }
 
+      const hofId = await resolveEnrolmentHof(prisma, user.uuid, input.hofId);
+
       await prisma.enrollment.create({
         data: {
           userId: user.uuid,
           courseId: shiftId,
           courseType: CourseType.SHIFT,
+          hofId,
         },
       });
 
@@ -274,7 +294,7 @@ export const shiftsRouter = createTRPCRouter({
     }),
 
   unenrollFromShift: trpcBaseProcedure
-    .input(enrollInShiftSchema)
+    .input(shiftIdSchema)
     .use(ensureUserExistsMiddleware)
     .use(databaseTransactionWrapper)
     .mutation(async ({ input, ctx }) => {
@@ -423,6 +443,8 @@ export const shiftsRouter = createTRPCRouter({
         }
       }
 
+      const hofId = await resolveEnrolmentHof(prisma, user.uuid, input.hofId);
+
       // Atomic Unenroll & Enroll
       await prisma.enrollment.delete({
         where: {
@@ -439,6 +461,7 @@ export const shiftsRouter = createTRPCRouter({
           userId: user.uuid,
           courseId: toShiftId,
           courseType: CourseType.SHIFT,
+          hofId,
         },
       });
 

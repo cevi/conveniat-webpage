@@ -379,6 +379,7 @@ export const ShiftDetailView: React.FC<{
                 enableEnrolment={shift.enable_enrolment}
                 shiftTitle={shift.title}
                 shiftTimeslot={shift.timeslot}
+                shiftMeetingPoint={shift.meetingPoint}
               />
             </div>
           </div>
