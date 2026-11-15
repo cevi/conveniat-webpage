@@ -102,9 +102,6 @@ const SummaryRow: React.FC<{
   );
 };
 
-/** The two persons a registration may name at most when the field sets no maximum. */
-const DEFAULT_MAX_PERSONS = 2;
-
 /**
  * What the Besuchstag registration costs, next to the form while it is filled in, like the order
  * summary of a shop. Once the persons are chosen it shows the whole package, lunch and SBB day pass
@@ -116,19 +113,11 @@ export const VisitDayPriceSummary: React.FC<{ field: VisitDaySelectionBlock }> =
   const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const prices = useQuery(trpc.visitDay.getVisitDayPrices.queryOptions());
-  const maxPersons = field.maxPersons ?? DEFAULT_MAX_PERSONS;
-  const travelPassNames = Array.from({ length: maxPersons }, (_, index) =>
-    isFieldName(field.travelPassField)
-      ? `${field.travelPassField}_${String(index + 1)}`
-      : field.personCountField,
-  );
-  const [personsAnswer, lunchAnswer, ...travelPassAnswers] = useWatch({
-    name: [
-      field.personCountField,
-      isFieldName(field.lunchField) ? field.lunchField : field.personCountField,
-      ...travelPassNames,
-    ],
-  }) as unknown[];
+  // a form without a maximum asks for the persons in a field of its own, without a limit here
+  const maxPersons = field.maxPersons ?? Number.POSITIVE_INFINITY;
+  const answers = useWatch() as Record<string, unknown>;
+  const personsAnswer = answers[field.personCountField];
+  const lunchAnswer = isFieldName(field.lunchField) ? answers[field.lunchField] : undefined;
 
   // a client restoring a cache from before the prices were split has no entry fee
   const data = prices.data as Partial<VisitDayPrices> | null | undefined;
@@ -152,10 +141,12 @@ export const VisitDayPriceSummary: React.FC<{ field: VisitDaySelectionBlock }> =
   // until they say they bring their own lunch, and until a travel pass spares the day pass,
   // everybody counts with both
   const withLunch = !isFieldName(field.lunchField) || lunchAnswer !== WITHOUT_LUNCH;
-  const passes = isFieldName(field.travelPassField)
-    ? travelPassAnswers
-        .slice(0, persons)
-        .map((answer) => (typeof answer === 'string' ? answer : ''))
+  const travelPassField = field.travelPassField;
+  const passes = isFieldName(travelPassField)
+    ? Array.from({ length: persons }, (_, index) => {
+        const answer = answers[`${travelPassField}_${String(index + 1)}`];
+        return typeof answer === 'string' ? answer : '';
+      })
     : [];
   const fullPackage = calculateVisitDayBill(
     { persons, withLunch, travelPasses: [] },

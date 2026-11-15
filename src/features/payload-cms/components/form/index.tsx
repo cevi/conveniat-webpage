@@ -38,7 +38,10 @@ import type {
 } from '@/features/payload-cms/components/form/types';
 import { getEffectivePlacement } from '@/features/payload-cms/components/form/utils/field-placement';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
-import { getFormBlockNames } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
+import {
+  getFormBlockNames,
+  getFormBlocks,
+} from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
 import { VisitDayPriceSummary } from '@/features/visit-day/components/visit-day-price-summary';
 import { LayoutList } from 'lucide-react';
 export type { FormBlockType } from '@/features/payload-cms/components/form/types';
@@ -194,12 +197,11 @@ export const FormBlock: React.FC<
   // summary
   const billedVisitDay = useMemo(
     () =>
-      formSections
-        .flatMap((section) => section.fields)
-        .find(
-          (field): field is VisitDaySelectionBlock =>
-            field.blockType === 'visitDaySelection' && field.issuesBill === true,
-        ),
+      (
+        formSections.flatMap((section) =>
+          getFormBlocks(section.fields, 'visitDaySelection'),
+        ) as unknown as VisitDaySelectionBlock[]
+      ).find((field) => field.issuesBill === true),
     [formSections],
   );
 

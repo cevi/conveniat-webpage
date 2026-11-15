@@ -215,7 +215,7 @@ export const VisitDaySelection: React.FC<
 }) => {
   const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { setValue, getValues } = useFormContext();
+  const { setValue, getValues, formState } = useFormContext();
   const hoefe = useQuery(
     trpc.visitDay.getVisitDayHofList.queryOptions(undefined, { refetchOnMount: true }),
   );
@@ -390,6 +390,9 @@ export const VisitDaySelection: React.FC<
           name={childNameField}
           label={childNameLabel[locale]}
           required
+          {...(formState.errors[childNameField] === undefined
+            ? {}
+            : { error: formState.errors[childNameField] })}
           placeholder={childNamePlaceholder[locale]}
           registerAction={registerAction}
         />
