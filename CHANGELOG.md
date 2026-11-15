@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.60.0](https://github.com/cevi/conveniat-webpage/compare/v1.59.0...v1.60.0) (2026-11-15)
+
+
+### Features
+
+* **helper-shifts:** the Helferpool plans Schichteinsätze with Hof quotas, the AVP sees the Stand, the Schichtleitung marks attendance ([cff0416](https://github.com/cevi/conveniat-webpage/commit/cff0416202025cb058de0e6098d85dcbf14b9bdd))
+
+
+### Bug Fixes
+
+* **helper-shifts:** address review: shift chat roles and hidden rosters, quota rounding, roster for the Helferpool ([cf1a589](https://github.com/cevi/conveniat-webpage/commit/cf1a58951eaa214daf69602a3fc2931852b69243))
+
 ## [1.59.0](https://github.com/cevi/conveniat-webpage/compare/v1.58.0...v1.59.0) (2026-11-14)
 
 
