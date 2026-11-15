@@ -122,6 +122,7 @@ import { default as default_d37e91e5b9afb343d4dc268d1c9ab212 } from '@/features/
 import { default as default_b88029698d058420c6ac4a1d03de1941 } from '@/features/payload-cms/payload-cms/components/jobs-summary-banner'
 import { FolderTypeField as FolderTypeField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { MainEntryRowLabel as MainEntryRowLabel_576220226adef27d36922a63f8de9abd } from '@/features/payload-cms/payload-cms/components/main-menu-row-label'
+import { FieldsRowLabel as FieldsRowLabel_04168ac8bf4910d397e133871dbdd84a } from '@/features/payload-cms/payload-cms/components/fields-row-label'
 import { default as default_ab019a1f47fb69008664ade9a2845503 } from '@/features/payload-cms/payload-cms/views/alert-management'
 import { default as default_72094444c4748ea6819cf00010baebe6 } from '@/features/payload-cms/payload-cms/components/alert-settings-key-component'
 import { default as default_f72329dca34ac878c275d9291e68c35c } from '@/features/payload-cms/components/chat-manager/chat-list-manager-field'
@@ -134,7 +135,6 @@ import { DoublePaymentsDownloadButton as DoublePaymentsDownloadButton_41d9ab8795
 import { ReferenceNumberExplainer as ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64 } from '@/features/billing/components/reference-number-explainer'
 import { BillPreviewComponent as BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236 } from '@/features/billing/components/bill-preview-component'
 import { VisitDayBillPreview as VisitDayBillPreview_d7132ee6d016c3f798f1f9f8c73224e3 } from '@/features/visit-day/billing/components/visit-day-bill-preview'
-import { FieldsRowLabel as FieldsRowLabel_ca3224a51f3b058ed80bfbc2a7b266ae } from '@/features/hof-dashboard/payload-cms/components/fields-row-label'
 import { VisitDayExportButton as VisitDayExportButton_4b6e952f6d29976647b1e0579eb03e30 } from '@/features/visit-day/components/visit-day-export-button'
 import { default as default_ca24980ef56b9b5023ff164dd084145b } from '@/features/payload-cms/payload-cms/components/admin-nav/admin-nav'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
@@ -282,6 +282,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/jobs-summary-banner#default": default_b88029698d058420c6ac4a1d03de1941,
   "@payloadcms/next/client#FolderTypeField": FolderTypeField_2b8867833a34864a02ddf429b0728a40,
   "@/features/payload-cms/payload-cms/components/main-menu-row-label#MainEntryRowLabel": MainEntryRowLabel_576220226adef27d36922a63f8de9abd,
+  "@/features/payload-cms/payload-cms/components/fields-row-label#FieldsRowLabel": FieldsRowLabel_04168ac8bf4910d397e133871dbdd84a,
   "@/features/payload-cms/payload-cms/views/alert-management#default": default_ab019a1f47fb69008664ade9a2845503,
   "@/features/payload-cms/payload-cms/components/alert-settings-key-component#default": default_72094444c4748ea6819cf00010baebe6,
   "@/features/payload-cms/components/chat-manager/chat-list-manager-field#default": default_f72329dca34ac878c275d9291e68c35c,
@@ -294,7 +295,6 @@ export const importMap = {
   "@/features/billing/components/reference-number-explainer#ReferenceNumberExplainer": ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64,
   "@/features/billing/components/bill-preview-component#BillPreviewComponent": BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236,
   "@/features/visit-day/billing/components/visit-day-bill-preview#VisitDayBillPreview": VisitDayBillPreview_d7132ee6d016c3f798f1f9f8c73224e3,
-  "@/features/hof-dashboard/payload-cms/components/fields-row-label#FieldsRowLabel": FieldsRowLabel_ca3224a51f3b058ed80bfbc2a7b266ae,
   "@/features/visit-day/components/visit-day-export-button#VisitDayExportButton": VisitDayExportButton_4b6e952f6d29976647b1e0579eb03e30,
   "@/features/payload-cms/payload-cms/components/admin-nav/admin-nav#default": default_ca24980ef56b9b5023ff164dd084145b,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,

@@ -13,7 +13,7 @@ const NOT_TRANSLATED: StaticTranslationString = {
 /** How Payload hands over a date field: an ISO date and time. */
 const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T/;
 
-/** A date field's value as the Höfe read it, any other value as it is. */
+/** A date field's value as a Swiss reader reads it, any other value as it is. */
 const show = (value: unknown): string | undefined => {
   if (typeof value === 'number') return String(value);
   if (typeof value !== 'string' || value === '') return undefined;
@@ -22,8 +22,9 @@ const show = (value: unknown): string | undefined => {
 };
 
 /**
- * Names an array row of the Hof dashboard after its own fields, e.g. "31.1.2027 · 1. Abgabe
- * Grobkonzept", so a list of collapsed rows still says what each one is.
+ * Names an array row after its own fields, e.g. "31.1.2027 · 1. Abgabe Grobkonzept" on the Hof
+ * dashboard or "Themen mit Kernteam" in the forum's introduction, so a list of collapsed rows
+ * still says what each one is. Pass the field names as `clientProps: { fields }`.
  */
 export const FieldsRowLabel: React.FC<{ fields: string[] }> = ({ fields }) => {
   const { data, rowNumber } = useRowLabel<Record<string, unknown>>();
