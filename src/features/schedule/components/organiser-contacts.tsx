@@ -14,6 +14,13 @@ const contactOrganisersText: StaticTranslationString = {
   fr: 'Contacter les organisateurs',
 };
 
+/** A shift is led on site, so its organisers are called by what they do there. */
+const shiftLeadText: StaticTranslationString = {
+  en: 'Shift leads',
+  de: 'Schichtleitung',
+  fr: 'Responsables du service',
+};
+
 /**
  * The organisers of a block or a helper shift, one row each with a shortcut into a direct chat:
  * a section of the block's and of the shift's page.
@@ -28,12 +35,14 @@ export const OrganiserContacts: React.FC<{
    */
   organisers: HelperShiftOrganiser[] | undefined;
   locale: Locale;
-}> = ({ organisers, locale }) => {
+  /** Whether the organisers lead a Schichteinsatz rather than a Programmblock. */
+  isShift?: boolean;
+}> = ({ organisers, locale, isShift = false }) => {
   if (organisers === undefined || organisers.length === 0) return <></>;
 
   return (
     <section>
-      <SectionLabel>{contactOrganisersText[locale]}</SectionLabel>
+      <SectionLabel>{(isShift ? shiftLeadText : contactOrganisersText)[locale]}</SectionLabel>
       <ul className="border-line divide-line mt-2 divide-y overflow-hidden rounded-[14px] border bg-white">
         {organisers.map((organiser) => {
           const displayName = formatUserFullName(organiser.fullName, organiser.nickname);

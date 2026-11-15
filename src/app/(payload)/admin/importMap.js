@@ -43,7 +43,6 @@ import { DocumentUsageCell as DocumentUsageCell_f47b3a62171ac873c428999a5b0d9583
 import { FolderTableCell as FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { FolderField as FolderField_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { DocumentUsageFilter as DocumentUsageFilter_681da369ca73cb04d87ca9256f8f38db } from '@/features/payload-cms/payload-cms/components/document-usage-filter'
-import { default as default_1e95e18ff98032b69bda4bd8327a52ac } from '@/features/payload-cms/payload-cms/components/pdf-report-generator-ui'
 import { CeviGroupPicker as CeviGroupPicker_284df5311270166d7e64a0e780f6a244 } from '@/features/payload-cms/payload-cms/components/chat-channel/cevi-group-picker'
 import { CeviGroupRowLabel as CeviGroupRowLabel_33b19abb2f046c4eafe465547a5eff27 } from '@/features/payload-cms/payload-cms/components/chat-channel/cevi-group-row-label'
 import { AudiencePreview as AudiencePreview_9314fea594b35516aba8d382181f2172 } from '@/features/payload-cms/payload-cms/components/chat-channel/audience-preview'
@@ -58,8 +57,12 @@ import { ParticipantsAdminUI as ParticipantsAdminUI_6073fbd2f4ec389b3079bf8bb78b
 import { StoryLinksField as StoryLinksField_073dd66750933fe145f6d6173c913e10 } from '@/features/story/payload-cms/components/story-links-field'
 import { default as default_9a47e1efa5ebe7e17cc6bea1c1b3bad9 } from '@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell'
 import { CampScheduleOrganiserExport as CampScheduleOrganiserExport_2f5bf8d677cca7cfe25e44ae3a73b945 } from '@/features/payload-cms/payload-cms/components/camp-schedule-organiser-export'
+import { default as default_1e95e18ff98032b69bda4bd8327a52ac } from '@/features/payload-cms/payload-cms/components/pdf-report-generator-ui'
+import { default as default_d32dc4f5fcc719a055bce4da07e10d47 } from '@/features/payload-cms/payload-cms/components/helper-shift-timeslot-cell'
+import { HelperShiftCopyDrawer as HelperShiftCopyDrawer_de17d464a146566851b994a48e3927cb } from '@/features/payload-cms/payload-cms/components/helper-shift-copy-drawer'
 import { HelperShiftParticipationExport as HelperShiftParticipationExport_89d83a7906586cd6985566aeea8b4a8d } from '@/features/payload-cms/payload-cms/components/helper-shift-participation-export'
 import { HelperShiftOrganiserExport as HelperShiftOrganiserExport_706abe738905a3a68008c96f8846494b } from '@/features/payload-cms/payload-cms/components/helper-shift-organiser-export'
+import { HelperShiftCopyMenuItem as HelperShiftCopyMenuItem_de17d464a146566851b994a48e3927cb } from '@/features/payload-cms/payload-cms/components/helper-shift-copy-drawer'
 import { ExportListMenuItem as ExportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { ImportListMenuItem as ImportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_de57a7a0310123dd259a53c03db574b9 } from '@/features/payload-cms/components/push-notification/push-notification-panel'
@@ -142,6 +145,7 @@ import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d
 import { default as default_1e4b7ed358a9b39713ba1bd44bbcc1f1 } from '@/features/payload-cms/payload-cms/views/access-overview-view'
 import { default as default_817448654e157f5910ed2cdc349d2477 } from '@/features/payload-cms/payload-cms/views/forum-protocol-view'
 import { default as default_dbd7fa7f7e394074f3d89896acb3145a } from '@/features/payload-cms/payload-cms/views/merge-users-view'
+import { default as default_bddf5124e0a255102b491a3f76a08f03 } from '@/features/payload-cms/payload-cms/views/hof-shift-quota-view'
 import { default as default_1301ab5d76cd2e924cf1719e5409e3b4 } from '@/features/material/payload-cms/material-setup-view'
 import { default as default_f20cab4b24ace06c3fe23b393b527f59 } from '@/features/story/payload-cms/story-board-view'
 import { default as default_e7ca4c1ba39ad98f5b6b68aa103e80ee } from '@/features/payload-cms/payload-cms/widgets/emergency-widget'
@@ -199,7 +203,6 @@ export const importMap = {
   "@payloadcms/next/rsc#FolderTableCell": FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/next/rsc#FolderField": FolderField_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@/features/payload-cms/payload-cms/components/document-usage-filter#DocumentUsageFilter": DocumentUsageFilter_681da369ca73cb04d87ca9256f8f38db,
-  "@/features/payload-cms/payload-cms/components/pdf-report-generator-ui#default": default_1e95e18ff98032b69bda4bd8327a52ac,
   "@/features/payload-cms/payload-cms/components/chat-channel/cevi-group-picker#CeviGroupPicker": CeviGroupPicker_284df5311270166d7e64a0e780f6a244,
   "@/features/payload-cms/payload-cms/components/chat-channel/cevi-group-row-label#CeviGroupRowLabel": CeviGroupRowLabel_33b19abb2f046c4eafe465547a5eff27,
   "@/features/payload-cms/payload-cms/components/chat-channel/audience-preview#AudiencePreview": AudiencePreview_9314fea594b35516aba8d382181f2172,
@@ -214,8 +217,12 @@ export const importMap = {
   "@/features/story/payload-cms/components/story-links-field#StoryLinksField": StoryLinksField_073dd66750933fe145f6d6173c913e10,
   "@/features/payload-cms/payload-cms/components/filled-status/filled-status-cell#default": default_9a47e1efa5ebe7e17cc6bea1c1b3bad9,
   "@/features/payload-cms/payload-cms/components/camp-schedule-organiser-export#CampScheduleOrganiserExport": CampScheduleOrganiserExport_2f5bf8d677cca7cfe25e44ae3a73b945,
+  "@/features/payload-cms/payload-cms/components/pdf-report-generator-ui#default": default_1e95e18ff98032b69bda4bd8327a52ac,
+  "@/features/payload-cms/payload-cms/components/helper-shift-timeslot-cell#default": default_d32dc4f5fcc719a055bce4da07e10d47,
+  "@/features/payload-cms/payload-cms/components/helper-shift-copy-drawer#HelperShiftCopyDrawer": HelperShiftCopyDrawer_de17d464a146566851b994a48e3927cb,
   "@/features/payload-cms/payload-cms/components/helper-shift-participation-export#HelperShiftParticipationExport": HelperShiftParticipationExport_89d83a7906586cd6985566aeea8b4a8d,
   "@/features/payload-cms/payload-cms/components/helper-shift-organiser-export#HelperShiftOrganiserExport": HelperShiftOrganiserExport_706abe738905a3a68008c96f8846494b,
+  "@/features/payload-cms/payload-cms/components/helper-shift-copy-drawer#HelperShiftCopyMenuItem": HelperShiftCopyMenuItem_de17d464a146566851b994a48e3927cb,
   "@payloadcms/plugin-import-export/rsc#ExportListMenuItem": ExportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@payloadcms/plugin-import-export/rsc#ImportListMenuItem": ImportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/components/push-notification/push-notification-panel#default": default_de57a7a0310123dd259a53c03db574b9,
@@ -298,6 +305,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/views/access-overview-view#default": default_1e4b7ed358a9b39713ba1bd44bbcc1f1,
   "@/features/payload-cms/payload-cms/views/forum-protocol-view#default": default_817448654e157f5910ed2cdc349d2477,
   "@/features/payload-cms/payload-cms/views/merge-users-view#default": default_dbd7fa7f7e394074f3d89896acb3145a,
+  "@/features/payload-cms/payload-cms/views/hof-shift-quota-view#default": default_bddf5124e0a255102b491a3f76a08f03,
   "@/features/material/payload-cms/material-setup-view#default": default_1301ab5d76cd2e924cf1719e5409e3b4,
   "@/features/story/payload-cms/story-board-view#default": default_f20cab4b24ace06c3fe23b393b527f59,
   "@/features/payload-cms/payload-cms/widgets/emergency-widget#default": default_e7ca4c1ba39ad98f5b6b68aa103e80ee,

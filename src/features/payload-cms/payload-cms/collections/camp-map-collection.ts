@@ -1,6 +1,6 @@
 import {
+  canReadCampReferences,
   hasAdminOrWebAccess,
-  isEditor,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
@@ -72,9 +72,9 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
     },
   },
   access: {
-    // reference data the story points at, which every editor reads, as the Quartiere; the app
+    // reference data the story and the Schichteinsätze point at, as the Quartiere; the app
     // reads it server-side for everybody
-    read: isEditor,
+    read: canReadCampReferences,
     create: hasAdminOrWebAccess,
     update: hasAdminOrWebAccess,
     delete: hasAdminOrWebAccess,

@@ -73,6 +73,12 @@ export const environmentVariables = createEnv({
     CEVIDB_GROUP_FORUM_ZENTRALE: optionalGroupIds,
 
     /**
+     * optional: Cevi.DB groups of the Helferpool, who plan the Schichteinsätze and the quota of
+     * each Hof. Without it, the full admins and the web core team do.
+     */
+    CEVIDB_GROUP_HELPER_POOL: optionalGroupIds,
+
+    /**
      * optional: the Cevi.DB group whose tree the camp functions are synced from, e.g. the
      * Projektleitung. Without it, nobody gets a function.
      */

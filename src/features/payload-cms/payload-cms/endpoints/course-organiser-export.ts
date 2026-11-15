@@ -1,4 +1,4 @@
-import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { canManageCourseEnrolments } from '@/features/payload-cms/payload-cms/endpoints/course-access';
 import type { ParticipationExportLabels } from '@/features/payload-cms/payload-cms/endpoints/participation-export';
 import {
   QUERY_LIMIT,
@@ -33,7 +33,7 @@ export const makeCourseOrganiserExportHandler = ({
 }): PayloadHandler => {
   return async (request) => {
     try {
-      const hasAccess = hasAdminOrWebAccess({ req: request });
+      const hasAccess = canManageCourseEnrolments(request, collection);
       if (!hasAccess) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 });
       }
@@ -69,8 +69,8 @@ export const makeCourseOrganiserExportHandler = ({
 export const helperShiftOrganiserExportHandler = makeCourseOrganiserExportHandler({
   collection: 'helper-shifts',
   labels: {
-    worksheetName: 'Organisatoren',
-    fileName: 'Schichteinsaetze_Organisatoren.xlsx',
+    worksheetName: 'Schichtleitung',
+    fileName: 'Schichteinsaetze_Schichtleitung.xlsx',
     countHeader: 'Anzahl Schichteinsätze',
     titlesHeader: 'Schichteinsätze',
   },

@@ -4,6 +4,7 @@ import {
   FORUM_ZENTRALE_ROLES,
   getUserGroups,
   hasAccessToThisUser,
+  HELPER_SHIFT_ROLES,
   MATERIAL_DEPOT_ROLES,
   Roles,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
@@ -92,6 +93,17 @@ const ADMIN_VIEW_LINKS: AdminViewLink[] = [
     requiredRoles: FORUM_ZENTRALE_ROLES,
   },
   {
+    // with the Schichteinsätze, whose planners set what each Hof takes on
+    path: '/schicht-kontingente',
+    label: {
+      de: 'Schicht-Kontingente',
+      en: 'Shift quotas',
+      fr: 'Quotas de services',
+    },
+    group: 'AppHelpers',
+    requiredRoles: HELPER_SHIFT_ROLES,
+  },
+  {
     // Listed whether or not the app has the feature on yet, so the depot can be set up before it
     // goes live; the page says which it is.
     path: '/material-setup',
@@ -107,6 +119,42 @@ const ADMIN_VIEW_LINKS: AdminViewLink[] = [
 
 const translateLabel = (label: StaticLabel, locale: Locale): string =>
   typeof label === 'string' ? label : (label[locale] ?? label['de'] ?? '');
+
+/** A custom view the user may open, with the sidebar group it joins. */
+export interface AdminViewEntry {
+  group: AdminPanelDashboardGroupKey;
+  link: AdminNavLink;
+  /** listed before the collections of its group instead of after them */
+  first: boolean;
+}
+
+/**
+ * The custom views the user's roles open, as links. The sidebar and the dashboard both list them
+ * from here, so an admin finds a page in the same group in either place.
+ */
+export const listAdminViewEntries = ({
+  user,
+  locale,
+  adminRoute,
+}: {
+  user: ClientUser | TypedUser | null | undefined;
+  locale: Locale;
+  adminRoute: string;
+}): AdminViewEntry[] => {
+  const userGroups = getUserGroups(user);
+  return ADMIN_VIEW_LINKS.filter((view) =>
+    hasAccessToThisUser({ user: { groups: userGroups }, requiredRoles: view.requiredRoles }),
+  ).map((view) => ({
+    group: view.group,
+    first: view.first === true,
+    link: {
+      id: `nav-view-${view.path.slice(1).replaceAll('/', '-')}`,
+      href: view.inApp === true ? view.path : `${adminRoute}${view.path}`,
+      label: view.label[locale],
+      ...(view.inApp === true ? { external: true } : {}),
+    },
+  }));
+};
 
 /**
  * Turns Payload's sidebar groups into the links the admin nav renders and adds the custom views
@@ -134,25 +182,15 @@ export const buildAdminNavGroups = ({
     })),
   }));
 
-  const userGroups = getUserGroups(user);
-  for (const view of ADMIN_VIEW_LINKS) {
-    if (!hasAccessToThisUser({ user: { groups: userGroups }, requiredRoles: view.requiredRoles })) {
-      continue;
-    }
+  for (const view of listAdminViewEntries({ user, locale, adminRoute })) {
     const groupLabel = AdminPanelDashboardGroups[view.group].label[locale];
     let group = groups.find((candidate) => candidate.label === groupLabel);
     if (group === undefined) {
       group = { label: groupLabel, links: [] };
       groups.push(group);
     }
-    const link: AdminNavLink = {
-      id: `nav-view-${view.path.slice(1).replaceAll('/', '-')}`,
-      href: view.inApp === true ? view.path : `${adminRoute}${view.path}`,
-      label: view.label[locale],
-      ...(view.inApp === true ? { external: true } : {}),
-    };
-    if (view.first === true) group.links.unshift(link);
-    else group.links.push(link);
+    if (view.first) group.links.unshift(view.link);
+    else group.links.push(view.link);
   }
 
   return groups;

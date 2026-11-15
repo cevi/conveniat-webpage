@@ -335,7 +335,11 @@ export const ChatDetails: React.FC = () => {
             chatDetails.courseId !== null &&
             chatDetails.courseId !== undefined &&
             chatDetails.courseId !== '' && (
-              <ChatCourseSection courseId={chatDetails.courseId} locale={locale} />
+              <ChatCourseSection
+                courseId={chatDetails.courseId}
+                isShift={chatDetails.courseType === 'SHIFT'}
+                locale={locale}
+              />
             )}
 
           {!isAnnouncement && (
