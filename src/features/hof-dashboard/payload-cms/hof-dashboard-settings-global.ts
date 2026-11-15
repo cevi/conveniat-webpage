@@ -88,7 +88,7 @@ const arrayAdmin = (
     ...(description === undefined ? {} : { description }),
     components: {
       RowLabel: {
-        path: '@/features/hof-dashboard/payload-cms/components/fields-row-label#FieldsRowLabel',
+        path: '@/features/payload-cms/payload-cms/components/fields-row-label#FieldsRowLabel',
         clientProps: { fields },
       },
     },
