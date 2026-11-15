@@ -1,4 +1,7 @@
-import type { SelectableDays } from '@/features/payload-cms/components/form/utils/date-slots';
+import type {
+  DateRange,
+  SelectableDays,
+} from '@/features/payload-cms/components/form/utils/date-slots';
 import { getSelectableDays } from '@/features/payload-cms/components/form/utils/date-slots';
 
 /**
@@ -34,6 +37,17 @@ const toCampDay = (value: string | null | undefined): string | undefined => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return undefined;
   return date.toLocaleDateString('sv-SE', { timeZone: 'Europe/Zurich' });
+};
+
+/**
+ * The whole window of a job, first and last camp day inclusive, or undefined for a draft
+ * that lacks either day.
+ */
+export const getJobWindow = (job: JobWithPeriod): DateRange | undefined => {
+  const startDate = toCampDay(job.dateRange?.startDate);
+  const endDate = toCampDay(job.dateRange?.endDate);
+  if (startDate === undefined || endDate === undefined || endDate < startDate) return undefined;
+  return { startDate, endDate };
 };
 
 /**

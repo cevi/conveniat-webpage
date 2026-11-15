@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/prefer-promise-reject-errors, unicorn/prefer-logical-operator-over-ternary, @typescript-eslint/strict-boolean-expressions */
-import {
-  getJobPeriodFieldName,
-  getJobSelectableDays,
-} from '@/features/payload-cms/components/form/utils/job-period';
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
-import { getFormBlocks } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
+import {
+  getHelperFormBlocks,
+  getPickedJobDays,
+} from '@/features/payload-cms/payload-cms/utils/helper-availability';
 import type { HelperJob } from '@/features/payload-cms/payload-types';
 import type { PayloadHandler } from 'payload';
 interface PDFDocumentWithTables extends Omit<InstanceType<typeof import('pdfkit')>, 'table'> {
@@ -56,19 +55,8 @@ export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
 
     const jobsById = new Map<string, HelperJob>(allJobs.docs.map((job) => [job.id, job]));
 
-    /*
-     * The job selections of the form by the phase they offer jobs of. A submission holds one
-     * job per selection, so a job of a phase with a single selection finds its answer and
-     * the helper's days under that selection's name, whatever the job is called today.
-     */
     const form = await request.payload.findByID({ collection: 'forms', id: formId, depth: 0 });
-    const jobFieldsByPhase = new Map<string, string[]>();
-    for (const block of form.sections.flatMap((section) =>
-      getFormBlocks(section.formSection.fields, 'jobSelection'),
-    )) {
-      const phase = String(block['dateRangeCategory']);
-      jobFieldsByPhase.set(phase, [...(jobFieldsByPhase.get(phase) ?? []), String(block['name'])]);
-    }
+    const { jobFieldsByPhase } = getHelperFormBlocks(form.sections);
 
     const counts = new Map<string, number>();
     const ressortGroups = new Map<string, Array<[string, string, string]>>();
@@ -106,23 +94,8 @@ export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
           teardown: 'Abbaulager Infrastruktur',
         };
         const phase = zeitraumMap[jobObject.dateRangeCategory] ?? jobObject.dateRangeCategory;
-        // A job with a minimum duration lists the days the helper picked. With several job
-        // selections for one phase, the answer naming the job's title tells them apart.
-        const jobFields = jobFieldsByPhase.get(jobObject.dateRangeCategory) ?? [];
-        const jobField =
-          jobFields.length === 1
-            ? jobFields[0]
-            : jobFields.find((field) =>
-                subData.some((entry) => entry.field === field && entry.value === jobObject.title),
-              );
-        const pickedDaysValue =
-          getJobSelectableDays(jobObject) === undefined || jobField === undefined
-            ? undefined
-            : subData.find((entry) => entry.field === getJobPeriodFieldName(jobField))?.value;
-        const pickedDays =
-          typeof pickedDaysValue === 'string' && pickedDaysValue !== ''
-            ? pickedDaysValue
-            : undefined;
+        // A job with a minimum duration lists the days the helper picked.
+        const pickedDays = getPickedJobDays(jobObject, jobFieldsByPhase, subData);
         const zeitraum = pickedDays === undefined ? phase : `${phase} (${pickedDays})`;
 
         const currentGroup = ressortGroups.get(categoryLabelDe);
