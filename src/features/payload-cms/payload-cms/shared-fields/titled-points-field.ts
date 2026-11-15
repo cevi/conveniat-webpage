@@ -21,7 +21,16 @@ export const titledPointsField = (
     singular: { en: 'Point', de: 'Punkt', fr: 'Point' },
     plural: { en: 'Points', de: 'Punkte', fr: 'Points' },
   },
-  admin: { description, initCollapsed: false },
+  admin: {
+    description,
+    initCollapsed: false,
+    components: {
+      RowLabel: {
+        path: '@/features/payload-cms/payload-cms/components/fields-row-label#FieldsRowLabel',
+        clientProps: { fields: ['title'] },
+      },
+    },
+  },
   fields: [
     {
       type: 'row',

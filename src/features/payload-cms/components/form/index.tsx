@@ -31,10 +31,18 @@ import {
 } from '@/features/payload-cms/components/form/hooks/use-form-steps';
 import { useFormSubmission } from '@/features/payload-cms/components/form/hooks/use-form-submission';
 import { JobSelectionProvider } from '@/features/payload-cms/components/form/job-selection';
-import type { ConditionedBlock, FormBlockType } from '@/features/payload-cms/components/form/types';
+import type {
+  ConditionedBlock,
+  FormBlockType,
+  VisitDaySelectionBlock,
+} from '@/features/payload-cms/components/form/types';
 import { getEffectivePlacement } from '@/features/payload-cms/components/form/utils/field-placement';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
-import { getFormBlockNames } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
+import {
+  getFormBlockNames,
+  getFormBlocks,
+} from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
+import { VisitDayPriceSummary } from '@/features/visit-day/components/visit-day-price-summary';
 import { LayoutList } from 'lucide-react';
 export type { FormBlockType } from '@/features/payload-cms/components/form/types';
 
@@ -185,6 +193,18 @@ export const FormBlock: React.FC<
 
   const isSplit = currentActualStep?.layout === 'split';
 
+  // a billed Besuchstag registration shows what it costs beside every step, like a shop's order
+  // summary
+  const billedVisitDay = useMemo(
+    () =>
+      (
+        formSections.flatMap((section) =>
+          getFormBlocks(section.fields, 'visitDaySelection'),
+        ) as unknown as VisitDaySelectionBlock[]
+      ).find((field) => field.issuesBill === true),
+    [formSections],
+  );
+
   // Calculate if the main column has any content to display
   const mainPlacementFields = useMemo(() => {
     if (!currentActualStep) return [];
@@ -266,6 +286,7 @@ export const FormBlock: React.FC<
         className={cn(
           'relative w-full',
           isDualCardLayout ? 'max-w-2xl @[1600px]:max-w-full' : 'max-w-2xl',
+          billedVisitDay !== undefined && !isDualCardLayout && '@[640px]:max-w-[64rem]',
           'min-h-[100px] bg-transparent p-0 shadow-none',
         )}
       >
@@ -294,7 +315,16 @@ export const FormBlock: React.FC<
           <JobSelectionProvider initialRessorts={linkPreset.jobArea}>
             <FormProvider {...formMethods}>
               <HiddenFieldsContext.Provider value={hiddenFields}>
-                <form id={config.id} onSubmit={handleSubmit} noValidate>
+                <form
+                  id={config.id}
+                  onSubmit={handleSubmit}
+                  noValidate
+                  className={cn(
+                    billedVisitDay !== undefined &&
+                      !isDualCardLayout &&
+                      'grid grid-cols-1 items-start gap-6 @[640px]:grid-cols-[minmax(0,1fr)_14rem] @[1000px]:grid-cols-[minmax(0,42rem)_20rem]',
+                  )}
+                >
                   <div
                     className={cn(
                       '',
@@ -382,6 +412,11 @@ export const FormBlock: React.FC<
                       </div>
                     )}
                   </div>
+                  {billedVisitDay !== undefined && !isDualCardLayout && (
+                    <div className="@[640px]:sticky @[640px]:top-24">
+                      <VisitDayPriceSummary field={billedVisitDay} />
+                    </div>
+                  )}
                 </form>
               </HiddenFieldsContext.Provider>
             </FormProvider>

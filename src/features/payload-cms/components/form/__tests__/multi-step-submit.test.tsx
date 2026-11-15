@@ -73,6 +73,11 @@ jest.mock('@/features/payload-cms/components/form/components/submission-message'
 }));
 
 // reaches for @payload-config (server-only) at import time
+// the price summary reads the prices over tRPC, which these tests have no client for
+jest.mock('@/features/visit-day/components/visit-day-price-summary', () => ({
+  VisitDayPriceSummary: (): null => null,
+}));
+
 jest.mock('@/features/payload-cms/components/form/job-selection', () => ({
   JobSelectionProvider: ({ children }: { children: React.ReactNode }): React.ReactNode => children,
 }));

@@ -5,32 +5,75 @@ import {
   visitDayInvoiceNumber,
 } from '@/features/visit-day/billing/visit-day-bill-reference';
 
-const prices = { withLunch: 25, withoutLunch: 10, vatRate: 8.1 };
+const prices = { entryFee: 15, lunchFee: 5, railTicket: 69, vatRate: 8.1 };
+
+const totalFor = (travelPass: string, withLunch: boolean): number =>
+  calculateVisitDayBill({ persons: 1, withLunch, travelPasses: [travelPass] }, prices, 'de').total;
 
 describe('calculateVisitDayBill', () => {
-  it('charges one ticket per person at the price of their lunch choice', () => {
-    expect(calculateVisitDayBill({ persons: 2, withLunch: true }, prices, 'de')).toEqual({
-      lines: [{ label: 'Besuchstag mit Mittagessen', quantity: 2, unitPrice: 25, amount: 50 }],
-      total: 50,
-      vatAmount: 3.75,
+  it('prices one person as the price list of the Besuchstag says, with VAT on top', () => {
+    expect(totalFor('kein_abo', true)).toBe(96.21); // 89 + 8.1 %
+    expect(totalFor('halbtax', true)).toBe(96.21);
+    expect(totalFor('ga', true)).toBe(21.62); // 20 + 8.1 %
+    expect(totalFor('kein_abo', false)).toBe(90.8); // 84 + 8.1 %
+    expect(totalFor('ga', false)).toBe(16.22); // 15 + 8.1 %
+    expect(totalFor('unter_6', true)).toBe(21.62);
+    expect(totalFor('unter_6', false)).toBe(16.22);
+  });
+
+  it('bills each part on a line of its own, the day pass only for who needs one', () => {
+    expect(
+      calculateVisitDayBill(
+        { persons: 2, withLunch: true, travelPasses: ['halbtax', 'ga'] },
+        prices,
+        'de',
+      ),
+    ).toEqual({
+      lines: [
+        { label: 'Eintritt Lagerplatz', quantity: 2, unitPrice: 15, amount: 30 },
+        { label: 'Mittagessen im Lager', quantity: 2, unitPrice: 5, amount: 10 },
+        {
+          label: 'SBB-Tageskarte (vergünstigt, ganze Schweiz)',
+          quantity: 1,
+          unitPrice: 69,
+          amount: 69,
+        },
+      ],
+      netTotal: 109,
+      total: 117.83,
+      vatAmount: 8.83,
       vatRate: 8.1,
     });
-    expect(calculateVisitDayBill({ persons: 1, withLunch: false }, prices, 'fr').lines).toEqual([
-      { label: 'Journée des visites sans repas de midi', quantity: 1, unitPrice: 10, amount: 10 },
-    ]);
+  });
+
+  it('leaves out the lines nobody takes', () => {
+    expect(
+      calculateVisitDayBill({ persons: 1, withLunch: false, travelPasses: ['ga'] }, prices, 'fr')
+        .lines,
+    ).toEqual([{ label: 'Entrée sur le terrain du camp', quantity: 1, unitPrice: 15, amount: 15 }]);
+  });
+
+  it('bills the day pass for a person whose travel pass is not known', () => {
+    expect(
+      calculateVisitDayBill({ persons: 2, withLunch: false, travelPasses: ['ga'] }, prices, 'de')
+        .total,
+    ).toBe(99 + 8.02);
   });
 
   it('prints no VAT at a rate of 0', () => {
     expect(
-      calculateVisitDayBill({ persons: 2, withLunch: true }, { ...prices, vatRate: 0 }, 'de')
-        .vatAmount,
+      calculateVisitDayBill(
+        { persons: 2, withLunch: true, travelPasses: [] },
+        { ...prices, vatRate: 0 },
+        'de',
+      ).vatAmount,
     ).toBe(0);
   });
 
   it('counts in Rappen, so prices with cents add up exactly', () => {
     const bill = calculateVisitDayBill(
-      { persons: 3, withLunch: true },
-      { ...prices, withLunch: 0.1 },
+      { persons: 3, withLunch: false, travelPasses: ['ga', 'ga', 'ga'] },
+      { ...prices, entryFee: 0.1, vatRate: 0 },
       'de',
     );
     expect(bill.total).toBe(0.3);
