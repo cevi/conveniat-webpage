@@ -1,5 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { countTakenPlaces } from '@/features/visit-day/api/visit-day-places';
+import type { VisitDayPrices } from '@/features/visit-day/billing/visit-day-bill-amount';
+import { visitDayPricesOf } from '@/features/visit-day/billing/visit-day-bill-amount';
 import type { VisitDayHof } from '@/features/visit-day/visit-day-settings';
 import { listVisitDayHoefe, loadVisitDaySettings } from '@/features/visit-day/visit-day-settings';
 import { createTRPCRouter, publicProcedure } from '@/trpc/init';
@@ -27,7 +29,7 @@ export interface VisitDayPlaces {
  * The Besuchstag registration, for the relatives filling it in. Public: they have no Cevi.DB
  * login. It tells nothing a visitor of the website may not know: the names of the Höfe, the day
  * each Hof's relatives visit and how many places of each kind a day has left, for visitors
- * without a Hof too.
+ * without a Hof too, and what a ticket costs.
  */
 export const visitDayRouter = createTRPCRouter({
   getVisitDayHofList: publicProcedure.query(async (): Promise<VisitDayHof[]> => {
@@ -59,5 +61,16 @@ export const visitDayRouter = createTRPCRouter({
         freeExternal,
       };
     });
+  }),
+
+  getVisitDayPrices: publicProcedure.query(async (): Promise<VisitDayPrices | null> => {
+    if (!environmentVariables.FEATURE_ENABLE_VISIT_DAY) return null;
+    const payload = await getPayload({ config });
+    const settings = await payload.findGlobal({
+      slug: 'visit-day-bill-settings',
+      depth: 0,
+      overrideAccess: true,
+    });
+    return visitDayPricesOf(settings);
   }),
 });

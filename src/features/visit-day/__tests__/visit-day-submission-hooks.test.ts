@@ -243,6 +243,21 @@ describe('a Besuchstag registration', () => {
     await expect(register(request, '2')).rejects.toThrow('nicht mehr genug Plätze mit Mittagessen');
   });
 
+  it('is refused without the name of the relative, where the form asks for it', async () => {
+    visitorRows.count.mockResolvedValue(0);
+    const { request } = fakeRequest({ childNameField: 'teilnehmende_person' });
+
+    await expect(register(request, '1')).rejects.toThrow('Vor- und Nachnamen des Angehörigen');
+    await expect(
+      submit(request, [
+        { field: 'hof', value: 'uster' },
+        { field: 'teilnehmende_person', value: 'Lea Muster' },
+        { field: 'anzahl_personen', value: '1' },
+        { field: 'mittagessen', value: 'ja' },
+      ]),
+    ).resolves.toContainEqual({ field: 'teilnehmende_person', value: 'Lea Muster' });
+  });
+
   it('takes places without lunch from their own capacity', async () => {
     // all places with lunch are taken, but only 298 of the 300 without
     visitorRows.count.mockImplementation(

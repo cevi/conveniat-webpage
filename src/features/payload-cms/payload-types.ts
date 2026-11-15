@@ -10221,15 +10221,19 @@ export interface BillSetting {
 export interface VisitDayBillSetting {
   id: string;
   /**
-   * Per person, VAT included.
+   * Per person, without VAT. Paid by everybody.
    */
-  priceWithLunch: number;
+  entryFee: number;
   /**
-   * Per person, VAT included.
+   * Per person, without VAT. Only with lunch at the camp.
    */
-  priceWithoutLunch: number;
+  lunchFee: number;
   /**
-   * One rate for every Besuchstag bill. 0 prints no VAT. Changed prices and rates apply to bills issued from now on.
+   * Per person, without VAT. Not for GA holders and children under 6.
+   */
+  railTicketPrice: number;
+  /**
+   * Added on top of the prices, one rate for every Besuchstag bill. 0 adds no VAT. Changed prices and rates apply to bills issued from now on.
    */
   vatRate: number;
   /**
@@ -10957,8 +10961,9 @@ export interface BillSettingsSelect<T extends boolean = true> {
  * via the `definition` "visit-day-bill-settings_select".
  */
 export interface VisitDayBillSettingsSelect<T extends boolean = true> {
-  priceWithLunch?: T;
-  priceWithoutLunch?: T;
+  entryFee?: T;
+  lunchFee?: T;
+  railTicketPrice?: T;
   vatRate?: T;
   invoiceNumberPrefix?: T;
   paymentDeadlineDays?: T;

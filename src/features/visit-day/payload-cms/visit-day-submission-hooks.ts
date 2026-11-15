@@ -71,6 +71,8 @@ interface VisitDayBlock extends BillAnswerFields {
   visitorTypeField?: string | null;
   /** the most persons per registration, where the field asks for them itself */
   maxPersons?: number | null;
+  /** the answer with the name of the relative at the camp, required of who visits one */
+  childNameField?: string | null;
 }
 
 /**
@@ -139,6 +141,12 @@ const hofNotOfferedMessage: StaticTranslationString = {
   de: 'Für diese Abteilung ist keine Anmeldung zum Besuchstag möglich.',
   en: 'This local group cannot be registered for the visiting day.',
   fr: 'Ce groupe local ne peut pas être inscrit à la journée des visites.',
+};
+
+const missingRelativeNameMessage: StaticTranslationString = {
+  de: 'Bitte gib den Vor- und Nachnamen des Angehörigen an.',
+  en: 'Please enter the first and last name of your relative.',
+  fr: 'Indique le prénom et le nom de la personne de ta famille.',
 };
 
 const invalidPersonCountMessage: StaticTranslationString = {
@@ -239,6 +247,14 @@ export const resolveVisitDay: CollectionBeforeChangeHook<FormSubmission> = async
     const hof = offeredHoefe.find((offered) => offered.id === hofId);
     const day = settings.days.find((candidate) => candidate.date === hof?.date);
     if (hof === undefined || day === undefined) return refuse(hofNotOfferedMessage, locale);
+    const relativeName = answers.find((answer) => answer.field === block.childNameField)?.value;
+    if (
+      typeof block.childNameField === 'string' &&
+      block.childNameField !== '' &&
+      (typeof relativeName !== 'string' || relativeName.trim() === '')
+    ) {
+      return refuse(missingRelativeNameMessage, locale);
+    }
     const hofDocument = await req.payload.findByID({
       collection: 'hoefe',
       id: hof.id,

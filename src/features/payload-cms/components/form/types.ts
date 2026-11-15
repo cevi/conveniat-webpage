@@ -49,6 +49,10 @@ export interface VisitDaySelectionBlock {
   childNameField?: string | null;
   /** the most persons per registration; without it the form asks for them in its own field */
   maxPersons?: number | null;
+  /** whether the registration is billed, which shows the price next to the form */
+  issuesBill?: boolean | null;
+  /** read as `<name>_1`, `<name>_2` for each person; a GA or a child under 6 needs no day pass */
+  travelPassField?: string | null;
   placement?: 'sidebar' | 'main';
 }
 
