@@ -14,6 +14,12 @@
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
 
+/* Payload wraps every list and join table in `<div class="table">` and gives it `overflow: auto`
+   in a layer declared before ours. The word "table" appears all over src, so Tailwind emitted
+   its `table` utility, whose `display: table` won, sized the wrapper to its columns and pushed
+   join tables under the sidebar. Nothing in the admin uses the utility. */
+@source not inline('table');
+
 @theme {
   --color-gray-50: #f5f5f6;
   --color-gray-100: #e6e6e7;
