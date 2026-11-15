@@ -97,15 +97,15 @@ const localizedOverlapLabel: StaticTranslationString = {
 };
 
 const localizedContactOrganiser: StaticTranslationString = {
-  de: 'Organisator kontaktieren',
-  en: 'Contact the organiser',
-  fr: 'Contacter l’organisateur',
+  de: 'Schichtleitung kontaktieren',
+  en: 'Contact the shift lead',
+  fr: 'Contacter le ou la responsable du service',
 };
 
 const localizedSwitchBlockedHint: StaticTranslationString = {
-  de: 'Wechsel nicht möglich. Melde dich bei den Organisatoren.',
-  en: 'Switching is not possible. Contact the organisers.',
-  fr: 'Changement impossible. Contacte les organisateurs.',
+  de: 'Wechsel nicht möglich. Melde dich bei der Schichtleitung.',
+  en: 'Switching is not possible. Contact the shift leads.',
+  fr: 'Changement impossible. Contacte les responsables du service.',
 };
 
 export interface ConflictParty {

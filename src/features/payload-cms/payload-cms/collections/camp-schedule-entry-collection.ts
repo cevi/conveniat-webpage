@@ -1,6 +1,5 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
-import { makeInjectEnrollmentCount } from '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { youtubeEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/youtube-embed-block';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
@@ -11,7 +10,6 @@ import {
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
-import { CourseType } from '@/lib/prisma/enums';
 import {
   BlocksFeature,
   defaultEditorLexicalConfig,
@@ -93,7 +91,7 @@ export const CampScheduleEntryCollection: CollectionConfig = {
   hooks: {
     afterChange: [flushPageCacheOnChange, syncOrganisers],
     afterDelete: [flushPageCacheOnDelete],
-    afterRead: [hideLeaderNotes, makeInjectEnrollmentCount(CourseType.PROGRAM)],
+    afterRead: [hideLeaderNotes],
   },
   endpoints: [
     {
@@ -778,14 +776,6 @@ export const CampScheduleEntryCollection: CollectionConfig = {
       },
     },
     LastEditedByUserField,
-    {
-      name: 'enrolledCount',
-      type: 'number',
-      virtual: true,
-      admin: {
-        hidden: true,
-      },
-    },
     {
       name: 'enrolledStatus',
       type: 'ui',

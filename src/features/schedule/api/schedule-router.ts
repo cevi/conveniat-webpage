@@ -18,9 +18,11 @@ import {
   MessageType,
 } from '@/lib/prisma/enums';
 import { MAX_STAR_CHANGES_PER_SYNC } from '@/lib/star-sync';
+import { invariantError } from '@/trpc/error-formatter';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';
+import { rateLimit } from '@/trpc/middleware/rate-limit';
 import { convertLexicalToMarkdown, convertMarkdownToLexical } from '@/utils/markdown-to-lexical';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
@@ -34,6 +36,18 @@ const MAX_COURSE_IDS_PER_STATUS_REQUEST = 100;
 
 const enrollInCourseSchema = z.object({
   courseId: z.string(),
+});
+
+/** Whether a chat membership manages the chat, as the Schichtleitung does in a shift chat. */
+const isLeadPermission = (permission: ChatMembershipPermission): boolean =>
+  permission === ChatMembershipPermission.ADMIN || permission === ChatMembershipPermission.OWNER;
+
+/** A Schichtleitung opens the chat of their shift a few times a day, not dozens a minute. */
+const shiftChatRateLimit = rateLimit({
+  name: 'schedule.openShiftChat',
+  limit: 20,
+  windowMs: 60_000,
+  refuse: () => scheduleError('TOO_MANY_REQUESTS', 'tooManyRosterChanges'),
 });
 
 export const scheduleRouter = createTRPCRouter({
@@ -954,6 +968,121 @@ export const scheduleRouter = createTRPCRouter({
       });
 
       return { chatId: chat.uuid };
+    }),
+
+  /**
+   * Opens the group chat of a Schichteinsatz for its Schichtleitung, creating it the first time.
+   * Each time it brings the members in line with the roster: the Schichtleitung as admins, whoever
+   * is enrolled as guests, and a guest who withdrew since leaves. The roster changes all through
+   * the shift's planning, and keeping the chat in step on every enrolment would tie three routers
+   * to it; the Schichtleitung opens it when they want to write to everybody, which is when it has
+   * to be right.
+   */
+  openShiftChat: trpcBaseProcedure
+    .input(z.object({ shiftId: z.string(), chatName: z.string().max(200) }))
+    .use(shiftChatRateLimit)
+    .use(databaseTransactionWrapper)
+    .mutation(async ({ input, ctx }) => {
+      const { user, prisma, locale } = ctx;
+      const payload = await getPayload({ config });
+      const shift = await payload.findByID({
+        collection: 'helper-shifts',
+        id: input.shiftId,
+        depth: 0,
+      });
+      const organisers = (shift.organiser ?? []).map((entry) =>
+        typeof entry === 'string' ? entry : entry.id,
+      );
+      if (!organisers.includes(user.uuid)) {
+        throw scheduleError('FORBIDDEN', 'onlyOrganisersChat');
+      }
+      if (shift.hide_participant_list === true) {
+        // a hidden roster offers no chat in our client, and its members would read the list
+        throw invariantError('FORBIDDEN', 'The roster of this shift is hidden');
+      }
+
+      const existing = await prisma.chat.findFirst({
+        where: { courseId: input.shiftId, courseType: CourseType.SHIFT },
+        select: { uuid: true },
+      });
+      let chatId = existing?.uuid;
+      if (chatId === undefined) {
+        const created = await createNewChat(input.chatName, locale, user, [], prisma, {
+          courseId: input.shiftId,
+          courseType: CourseType.SHIFT,
+          chatType: ChatType.COURSE_GROUP,
+          afterCommit: ctx.afterTransactionCommit,
+        });
+        chatId = created.uuid;
+      }
+
+      const [enrolments, memberships] = await Promise.all([
+        prisma.enrollment.findMany({
+          where: { courseId: input.shiftId, courseType: CourseType.SHIFT },
+          select: { userId: true },
+        }),
+        prisma.chatMembership.findMany({
+          where: { chatId },
+          select: { userId: true, chatPermission: true },
+        }),
+      ]);
+      const enrolled = new Set(enrolments.map((enrolment) => enrolment.userId));
+      const leads = new Set(organisers);
+      const members = new Set(memberships.map((membership) => membership.userId));
+
+      await prisma.chatMembership.createMany({
+        data: [
+          ...organisers
+            .filter((id) => !members.has(id))
+            .map((id) => ({ userId: id, chatId, chatPermission: ChatMembershipPermission.ADMIN })),
+          ...[...enrolled]
+            .filter((id) => !members.has(id) && !leads.has(id))
+            .map((id) => ({ userId: id, chatId, chatPermission: ChatMembershipPermission.GUEST })),
+        ],
+        skipDuplicates: true,
+      });
+      // the planners change the Schichtleitung: a new one who was a helper leads now, a former
+      // one still enrolled is a helper again, and one who is neither leaves
+      const promoted = memberships.filter(
+        (membership) =>
+          leads.has(membership.userId) && !isLeadPermission(membership.chatPermission),
+      );
+      const demoted = memberships.filter(
+        (membership) =>
+          !leads.has(membership.userId) &&
+          isLeadPermission(membership.chatPermission) &&
+          enrolled.has(membership.userId),
+      );
+      if (promoted.length > 0) {
+        await prisma.chatMembership.updateMany({
+          where: { chatId, userId: { in: promoted.map((membership) => membership.userId) } },
+          data: { chatPermission: ChatMembershipPermission.ADMIN },
+        });
+      }
+      if (demoted.length > 0) {
+        await prisma.chatMembership.updateMany({
+          where: { chatId, userId: { in: demoted.map((membership) => membership.userId) } },
+          data: { chatPermission: ChatMembershipPermission.GUEST },
+        });
+      }
+      const gone = memberships.filter(
+        (membership) =>
+          !leads.has(membership.userId) &&
+          !enrolled.has(membership.userId) &&
+          membership.chatPermission !== ChatMembershipPermission.MEMBER,
+      );
+      if (gone.length > 0) {
+        await prisma.chatMembership.deleteMany({
+          where: { chatId, userId: { in: gone.map((membership) => membership.userId) } },
+        });
+        ctx.afterTransactionCommit(() => {
+          for (const membership of gone) {
+            void publishMembershipRevoked(membership.userId, chatId, user.uuid);
+          }
+        });
+      }
+
+      return { chatId };
     }),
 
   reminders: remindersRouter,

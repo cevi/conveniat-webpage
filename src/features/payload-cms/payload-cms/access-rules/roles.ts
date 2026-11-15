@@ -14,6 +14,7 @@ group may hold several roles.
   admin panel
 - safety team: security and first aid, who read the NFC wristbands in the app
 - Forum-Zentrale: moderates every topic of the forum in the app all year, from its Zentrale
+- Helferpool: plans the Schichteinsätze, their Schichtleitung and what each Hof owes
 
 `/admin/access-overview` renders these roles against every collection and global.
 */
@@ -32,6 +33,7 @@ export enum Roles {
   HofDashboardReviewer = 'hof-dashboard-reviewer',
   SafetyTeam = 'safety-team',
   ForumZentrale = 'forum-zentrale',
+  HelperPool = 'helper-pool',
 }
 
 /** The setting that names the Cevi.DB groups of a role, so the access overview can point at it. */
@@ -45,6 +47,7 @@ export const ROLE_ENVIRONMENT_VARIABLES = {
   [Roles.HofDashboardReviewer]: 'CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS',
   [Roles.SafetyTeam]: 'CEVIDB_GROUP_SAFETY_TEAM',
   [Roles.ForumZentrale]: 'CEVIDB_GROUP_FORUM_ZENTRALE',
+  [Roles.HelperPool]: 'CEVIDB_GROUP_HELPER_POOL',
 } as const satisfies Record<Roles, keyof typeof environmentVariables>;
 
 /** The Cevi.DB groups whose members hold a role. A role without a group has no holder. */
@@ -153,9 +156,10 @@ export const hasEditorialAccess: ({ req }: { req: PayloadRequest }) => boolean =
 /**
  * The editors: everyone who works on content in the admin panel. An editor sees drafts and the
  * preview on the public site, may run the automatic translation, and reads the reference data
- * the content points at, like the Quartiere and the Funktionen. What an editor may write is up
- * to the rule of each collection. Being an editor opens no data about people: the participant
- * exports and the enrolments follow the rule of the collection they belong to.
+ * the content points at, like the Quartiere, the Funktionen and the places on the map. What an
+ * editor may write is up to the rule of each collection. Being an editor opens no data about
+ * people: the participant exports and the enrolments follow the rule of the collection they
+ * belong to. The Helferpool is not one: it would write the story and read the Programmblöcke.
  */
 export const EDITOR_ROLES: Roles[] = [
   Roles.FullAdmin,
@@ -165,11 +169,39 @@ export const EDITOR_ROLES: Roles[] = [
 ];
 
 /**
- * Who may open the admin panel at all: the editors, and the two teams that come for one thing,
- * the billing team for the billing and the material team for the depot setup. Opening it grants
- * nothing by itself; every collection still decides with its own rule.
+ * Who plans the Schichteinsätze: creates, changes and deletes them, names their Schichtleitung,
+ * enrols and removes helpers by hand and exports who did how many hours. The full admins, the
+ * web core team, and the Helferpool, which gets this without the web team's other rights.
  */
-export const ADMIN_PANEL_ROLES: Roles[] = [...EDITOR_ROLES, Roles.BillingTeam, Roles.MaterialTeam];
+export const HELPER_SHIFT_ROLES: Roles[] = [Roles.FullAdmin, Roles.WebCoreTeam, Roles.HelperPool];
+
+/** Whether the user plans the Schichteinsätze, see `HELPER_SHIFT_ROLES`. */
+export const canManageHelperShifts: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) =>
+  hasAccessToThis({ req, requiredRoles: HELPER_SHIFT_ROLES });
+
+/**
+ * Who reads the camp's reference data, the places on the map, the camp categories and the
+ * Quartiere: the editors, and the Helferpool, which picks places and categories for its
+ * Schichteinsätze and sees the Quartier of each Hof.
+ */
+export const CAMP_REFERENCE_ROLES: Roles[] = [...EDITOR_ROLES, Roles.HelperPool];
+
+/** Whether the user reads the camp's reference data, see `CAMP_REFERENCE_ROLES`. */
+export const canReadCampReferences: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) =>
+  hasAccessToThis({ req, requiredRoles: CAMP_REFERENCE_ROLES });
+
+/**
+ * Who may open the admin panel at all: the editors, and the teams that come for one thing, the
+ * billing team for the billing, the material team for the depot setup and the Helferpool for
+ * the Schichteinsätze. Opening it grants nothing by itself; every collection still decides with
+ * its own rule.
+ */
+export const ADMIN_PANEL_ROLES: Roles[] = [
+  ...EDITOR_ROLES,
+  Roles.BillingTeam,
+  Roles.MaterialTeam,
+  Roles.HelperPool,
+];
 
 /**
  * Who reaches the billing: the billing team alone. Full admins are left out on purpose; one who
@@ -304,8 +336,19 @@ export const hasBillingOrAdminOrWebAccess: Access = (args) => {
 };
 
 /**
- * Who reads a user: the full admins and the web core team read everyone, every other person
- * their own user document and nobody else's.
+ * Who reads the list of Höfe: whoever maintains it, the billing, admin and web, and the
+ * Helferpool, which sets what each Hof takes on and looks a Hof up. The Helferpool only reads:
+ * the sync writes the Höfe, and the AVP addresses stay narrowed to the billing on the field.
+ */
+export const canReadHoefe: Access = (args) => {
+  if (canManageHelperShifts({ req: args.req })) return true;
+  return hasBillingOrAdminOrWebAccess(args);
+};
+
+/**
+ * Who reads a user: the full admins, the web core team and the Helferpool read everyone, every
+ * other person their own user document and nobody else's. The Helferpool picks the
+ * Schichtleitung and enrols helpers by hand, both from the list of every user.
  *
  * Payload's account page in the admin panel and `/api/users/me` both load the signed-in
  * person's own document. Without the second half the billing and material teams, who may open
@@ -313,7 +356,7 @@ export const hasBillingOrAdminOrWebAccess: Access = (args) => {
  * `/api/users/me`.
  */
 export const canReadUser = ({ req }: { req: PayloadRequest }): boolean | Where => {
-  if (hasAdminOrWebAccess({ req })) return true;
+  if (canManageHelperShifts({ req })) return true;
   const userId = req.user?.id;
   if (userId === undefined) return false;
   return { id: { equals: userId } };
@@ -362,6 +405,18 @@ export const shouldHideInAdminPanel: ({
   });
   return !hasAccess;
 };
+
+/** Keeps the Schichteinsätze out of the sidebar of everyone who may not plan them. */
+export const shouldHideHelperShifts: ({
+  user,
+}: {
+  user: ClientUser | TypedUser | null;
+}) => boolean = ({ user }) =>
+  !user ||
+  !hasAccessToThisUser({
+    user: { groups: getUserGroups(user) },
+    requiredRoles: HELPER_SHIFT_ROLES,
+  });
 
 export const shouldHideInAdminPanelIfNotAdmin: ({
   user,

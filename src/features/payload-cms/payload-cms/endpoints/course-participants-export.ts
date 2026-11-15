@@ -1,4 +1,7 @@
-import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  canManageCourseEnrolments,
+  courseCollectionOf,
+} from '@/features/payload-cms/payload-cms/endpoints/course-access';
 import {
   describeHoefe,
   getHofDirectory,
@@ -18,7 +21,7 @@ interface PDFDocumentConstructor {
 
 export const courseParticipantsExportHandler: PayloadHandler = async (request) => {
   try {
-    const hasAccess = hasAdminOrWebAccess({ req: request });
+    const hasAccess = canManageCourseEnrolments(request, courseCollectionOf(request.url));
     if (!hasAccess) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }

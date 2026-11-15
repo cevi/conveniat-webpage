@@ -49,7 +49,11 @@ const renderAction = (
   properties: Partial<React.ComponentProps<typeof ShiftEnrollmentAction>> = {},
   seed?: (testTrpc: TestTrpc) => void,
 ): RenderResult & TestTrpc => {
-  const testTrpc = createTestTrpc(handlers);
+  // a person in one Hof unless a test says otherwise: the sheet then asks nothing about it
+  const testTrpc = createTestTrpc({
+    'shifts.getMyEnrolmentHoefe': () => [{ id: 'hof-uster', name: 'Cevi Uster' }],
+    ...handlers,
+  });
   seed?.(testTrpc);
   return Object.assign(
     render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment {...properties} />, {
@@ -57,6 +61,14 @@ const renderAction = (
     }),
     testTrpc,
   );
+};
+
+/** Taps "Einschreiben" and confirms in the sheet that opens, the way a helper enrols. */
+const enrol = async (): Promise<void> => {
+  fireEvent.click(await screen.findByRole('button', { name: /Einschreiben/ }));
+  const confirm = await screen.findByRole('button', { name: /Verbindlich anmelden/ });
+  await waitFor(() => expect(confirm).toBeEnabled());
+  fireEvent.click(confirm);
 };
 
 const statusCalls = (testTrpc: TestTrpc): TestTrpc['calls'] =>
@@ -220,7 +232,7 @@ describe('ShiftEnrollmentAction after a failed enrolment', () => {
       { variant },
     );
 
-    fireEvent.click(await screen.findByRole('button', { name: /Einschreiben/ }));
+    await enrol();
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Dieser Schichteinsatz ist bereits ausgebucht.',
@@ -243,7 +255,7 @@ describe('ShiftEnrollmentAction after a failed enrolment', () => {
       },
     });
 
-    fireEvent.click(await screen.findByRole('button', { name: /Einschreiben/ }));
+    await enrol();
 
     // the refusal refetches the status, which now says the shift is full
     await waitFor(() => expect(getShiftStatus).toHaveBeenCalledTimes(2));
@@ -260,8 +272,66 @@ describe('ShiftEnrollmentAction after a failed enrolment', () => {
       },
     });
 
-    fireEvent.click(await screen.findByRole('button', { name: /Einschreiben/ }));
+    await enrol();
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Keine Verbindung.');
+  });
+});
+
+describe('ShiftEnrollmentAction enrol sheet', () => {
+  const openStatus = { ...enrolledStatus('2100-01-01T00:00:00.000Z'), isEnrolled: false };
+
+  beforeEach(() => {
+    mockIsOffline = false;
+  });
+
+  it('asks before it enrols, and enrols nobody on the first tap', async () => {
+    const testTrpc = renderAction({
+      'shifts.getShiftStatus': () => openStatus,
+      'shifts.enrollInShift': () => ({ success: true }),
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: /Einschreiben/ }));
+
+    expect(await screen.findByRole('button', { name: /Verbindlich anmelden/ })).toBeVisible();
+    expect(testTrpc.calls.some((call) => call.path === 'shifts.enrollInShift')).toBe(false);
+  });
+
+  it('lets a person in two Höfe choose which one the shift counts for', async () => {
+    const testTrpc = renderAction({
+      'shifts.getShiftStatus': () => openStatus,
+      'shifts.getMyEnrolmentHoefe': () => [
+        { id: 'hof-uster', name: 'Cevi Uster' },
+        { id: 'hof-zueri', name: 'Züri 11' },
+      ],
+      'shifts.enrollInShift': () => ({ success: true }),
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: /Einschreiben/ }));
+    const confirm = await screen.findByRole('button', { name: /Verbindlich anmelden/ });
+    fireEvent.click(await screen.findByRole('button', { name: 'Züri 11' }));
+    fireEvent.click(confirm);
+
+    await waitFor(() =>
+      expect(testTrpc.calls).toContainEqual({
+        path: 'shifts.enrollInShift',
+        input: { shiftId: 'shift-1', hofId: 'hof-zueri' },
+      }),
+    );
+  });
+
+  it('holds back a person in two Höfe until they chose one', async () => {
+    renderAction({
+      'shifts.getShiftStatus': () => openStatus,
+      'shifts.getMyEnrolmentHoefe': () => [
+        { id: 'hof-uster', name: 'Cevi Uster' },
+        { id: 'hof-zueri', name: 'Züri 11' },
+      ],
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: /Einschreiben/ }));
+    await screen.findByRole('button', { name: 'Züri 11' });
+
+    expect(screen.getByRole('button', { name: /Verbindlich anmelden/ })).toBeDisabled();
   });
 });

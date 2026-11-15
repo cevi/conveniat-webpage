@@ -6,6 +6,12 @@ enum CourseType {
   SHIFT
 }
 
+/// what the Schichtleitung marked for a person enrolled in a shift
+enum ShiftAttendance {
+  PRESENT
+  ABSENT
+}
+
 model Enrollment {
   id String @id @default(uuid(7))
 
@@ -18,10 +24,31 @@ model Enrollment {
   /// discriminates between program schedule entries and helper shifts
   courseType CourseType @default(PROGRAM)
 
+  /// when the person enrolled; the AVP sees it in the view of their Hof
+  createdAt DateTime @default(now())
+
+  /// the Hof in Payload's `hoefe` collection a shift counts for, taken from the person's Cevi.DB
+  /// registration when they enrolled and kept when it changes later, so a past enrolment keeps
+  /// counting where it did; empty for a person without a Hof and for a programme enrolment.
+  /// No foreign key, the Hof lives in MongoDB.
+  hofId String?
+
+  /// whether the person came to the shift, as its Schichtleitung marked it on site; empty until
+  /// someone marks it. A shift enrolment marked ABSENT no longer counts for the Hof's quota.
+  attendance   ShiftAttendance?
+  /// when and by whom (a Payload user id) the attendance was last set
+  attendanceAt DateTime?
+  attendanceBy String?
+
+  /// added by the Schichtleitung on site, for someone who came without being enrolled, e.g. in
+  /// the place of someone of their Hof
+  addedOnSite Boolean @default(false)
+
   @@unique([courseId, courseType, userId]) // every user can only be enrolled once per course and course type
   @@index([courseId])
   @@index([userId])
   @@index([courseType])
+  @@index([hofId])
 }
 
 model Star {
@@ -88,4 +115,48 @@ model ScheduleReminderDelivery {
 
   @@id([userId, entryId, kind, scheduledFor])
   @@index([sentAt])
+}
+
+/// How many Schichteinsätze a Hof takes on on one camp day, set by the Helferpool. A target,
+/// never a limit: enrolments count towards it, and going over it is fine. The AVP sees it next
+/// to what the people of the Hof enrolled for.
+model HofShiftQuota {
+  /// the Hof in Payload's `hoefe` collection; no foreign key, the Hof lives in MongoDB
+  hofId String
+
+  /// the camp day, in Zurich
+  day DateTime @db.Date
+
+  /// shift slots the Hof fills that day; two shifts of one person count twice
+  slots Int
+
+  /// typed in by hand: "Neu verteilen" keeps it and spreads the rest of the day around it
+  pinned Boolean @default(false)
+
+  updatedAt DateTime @updatedAt
+
+  /// the Payload user who last set it
+  updatedBy String?
+
+  @@id([hofId, day])
+  @@index([day])
+}
+
+/// How "Neu verteilen" spreads the places of a day over the Höfe, by the Leitende of each.
+/// One row, id 1, which the Helferpool changes on the quota page.
+model HofShiftQuotaSettings {
+  id Int @id @default(1)
+
+  /// percent of the places of a day the quotas cover; above 100 plans a reserve for no-shows
+  coveragePercent Int @default(100)
+
+  /// the weight of a Hof is its Leitende to this power, in hundredths: 100 is strictly
+  /// proportional, lower evens the Höfe out so a big one gives a smaller share of its Leitende
+  weightingPercent Int @default(80)
+
+  /// at most this percent of the Leitende of a Hof on one day; the rest goes to the others
+  maxPerDayPercent Int @default(30)
+
+  updatedAt DateTime @updatedAt
+  updatedBy String?
 }

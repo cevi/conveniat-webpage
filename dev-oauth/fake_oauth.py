@@ -75,6 +75,13 @@ SELECTABLE_GROUPS = [
         "role_class": "editor",
         "description": "Security and first aid, reads the NFC wristbands.",
     },
+    {
+        "id": get_env_int("CEVIDB_GROUP_HELPER_POOL", 112),
+        "group_name": "Helferpool",
+        "role_name": "Helferpool",
+        "role_class": "editor",
+        "description": "Plans the Schichteinsätze, their Schichtleitung and the quota of each Hof.",
+    },
 ]
 
 
@@ -244,6 +251,17 @@ FAKE_USERS = [
             {"group_id": 540, "group_name": "Billing", "role_name": "Billing", "role_class": "billing"}
         ],
         "comment": "Dieser Benutzer gehört zum Rechnungswesen: öffnet das Adminpanel und sieht dort nur die Rechnungen."
+    },
+    {
+        "id": "11",
+        "email": "benutzer11@conveniat27.ch",
+        "first_name": "Helferpool User",
+        "last_name": "Helferpool",
+        "nickname": "Helferpool",
+        "roles": [
+            {"group_id": 112, "group_name": "Helferpool", "role_name": "Helferpool", "role_class": "editor"}
+        ],
+        "comment": "Dieser Benutzer gehört zum Helferpool: plant die Schichteinsätze und die Kontingente der Höfe, ohne die übrigen Rechte des Web-Teams."
     }
 ]
 

@@ -82,6 +82,8 @@ export interface ChatDetails {
   status: ChatStatus;
   caseNumber?: string | undefined;
   courseId?: string | null;
+  /** whether `courseId` is a programme block or a Schichteinsatz; missing in older caches */
+  courseType?: 'PROGRAM' | 'SHIFT' | undefined;
   archivedAt: Date | null;
   /** When the chat was created; missing in caches persisted before it was sent. */
   createdAt?: Date | undefined;

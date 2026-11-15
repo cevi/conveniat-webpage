@@ -39,6 +39,12 @@ describe('OrganiserContacts', () => {
     expect(screen.getByText('Anna Muster')).toBeInTheDocument();
   });
 
+  it('calls the organisers of a Schichteinsatz its Schichtleitung', () => {
+    render(<OrganiserContacts organisers={[anna]} locale="de" isShift />);
+
+    expect(screen.getByText('Schichtleitung')).toBeInTheDocument();
+  });
+
   /**
    * Helpers know each other by Ceviname, so the contact row spells it out the way the chat
    * contact list does - "Vorname Nachname v/o Ceviname" - rather than by the civil name alone.

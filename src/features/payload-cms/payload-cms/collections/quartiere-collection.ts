@@ -1,6 +1,6 @@
 import {
+  canReadCampReferences,
   hasAdminOrWebAccess,
-  isEditor,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import {
@@ -56,8 +56,9 @@ export const QuartiereCollection: CollectionConfig = {
   defaultSort: 'number',
   access: {
     // the names reach every participant through the chat address book, which reads them
-    // server-side; the collection itself is for the editors
-    read: isEditor,
+    // server-side; the collection itself is for the editors, and the Helferpool sees the
+    // Quartier of each Hof
+    read: canReadCampReferences,
     create: hasAdminOrWebAccess,
     update: hasAdminOrWebAccess,
     // a Hof that points at a deleted Quartier simply has none again

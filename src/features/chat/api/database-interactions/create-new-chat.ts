@@ -2,6 +2,7 @@ import {
   ChatCapability,
   ChatMembershipPermission,
   ChatType,
+  type CourseType,
   MessageEventType,
   MessageType,
 } from '@/lib/prisma/enums';
@@ -31,6 +32,8 @@ export interface ChatMembership {
 
 export interface CreateChatOptions {
   courseId?: string;
+  /** whether `courseId` names a programme block or a helper shift; a programme block if left out */
+  courseType?: CourseType;
   chatType?: ChatType;
   /**
    * Client-generated id to persist the chat under. Passing it lets the client
@@ -69,6 +72,7 @@ export const createNewChat = async (
       name: finalChatName,
       type: chatType,
       courseId: options?.courseId ?? null,
+      ...(options?.courseType === undefined ? {} : { courseType: options.courseType }),
       messages: {
         create: {
           contentVersions: { create: [{ payload: newChatText[locale] }] },

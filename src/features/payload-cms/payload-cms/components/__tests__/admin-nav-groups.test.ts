@@ -6,11 +6,15 @@ jest.mock('@/config/environment-variables', () => ({
     CEVIDB_GROUP_PROGRAM_TEAM: [],
     CEVIDB_GROUP_MATERIAL_TEAM: [108],
     CEVIDB_GROUP_FORUM_ZENTRALE: [],
+    CEVIDB_GROUP_HELPER_POOL: [],
   },
 }));
 
 import type { AdminEntityGroup } from '@/features/payload-cms/payload-cms/components/admin-nav/admin-nav-groups';
-import { buildAdminNavGroups } from '@/features/payload-cms/payload-cms/components/admin-nav/admin-nav-groups';
+import {
+  buildAdminNavGroups,
+  listAdminViewEntries,
+} from '@/features/payload-cms/payload-cms/components/admin-nav/admin-nav-groups';
 import type { TypedUser } from 'payload';
 
 const FULL_ADMIN = 541;
@@ -69,6 +73,7 @@ describe('buildAdminNavGroups', () => {
       // the Zentrale is a page of the app
       'App · Betrieb': ['/admin/forum-protocol', '/app/forum/zentrale'],
       'App · Story': ['/admin/story-board'],
+      'App · Helfende': ['/admin/schicht-kontingente'],
     });
     expect(groups.flatMap((group) => group.links.map((link) => link.label))).toEqual([
       'Benutzer',
@@ -79,6 +84,7 @@ describe('buildAdminNavGroups', () => {
       'Story-Board',
       'Forum-Protokoll',
       'Forum-Zentrale',
+      'Schicht-Kontingente',
     ]);
   });
 
@@ -95,10 +101,11 @@ describe('buildAdminNavGroups', () => {
       ['Paramètres du tableau de bord des Hofs', 'Configurer le dépôt de matériel'],
       ['Story-Board'],
       ['Protocole du forum', 'Zentrale du forum'],
+      ['Quotas de services'],
     ]);
   });
 
-  it('shows the web core team the forum protocol and the Zentrale, and no other custom view', () => {
+  it('shows the web core team the forum protocol, the Zentrale and the shift quotas, and no other custom view', () => {
     const groups = buildAdminNavGroups({
       entityGroups: entityGroups(),
       user: userIn(WEB_CORE_TEAM),
@@ -111,6 +118,7 @@ describe('buildAdminNavGroups', () => {
       'Backoffice · Höfe & Material': ['/admin/globals/hof-dashboard-settings'],
       'App · Betrieb': ['/admin/forum-protocol', '/app/forum/zentrale'],
       'App · Story': ['/admin/story-board'],
+      'App · Helfende': ['/admin/schicht-kontingente'],
     });
   });
 
@@ -158,5 +166,25 @@ describe('buildAdminNavGroups', () => {
     expect(linksByGroup(groups)).toEqual({
       'Backoffice · Höfe & Material': ['/admin/material-setup'],
     });
+  });
+});
+
+describe('listAdminViewEntries', () => {
+  it('gives the dashboard the same views the sidebar shows, in their groups', () => {
+    const entries = listAdminViewEntries({
+      user: userIn(MATERIAL_TEAM),
+      locale: 'de',
+      adminRoute: '/admin',
+    });
+
+    expect(entries.map(({ group, link }) => [group, link.href])).toEqual([
+      ['BackofficeHoefeAndMaterial', '/admin/material-setup'],
+    ]);
+  });
+
+  it('gives nobody without a role any view', () => {
+    expect(listAdminViewEntries({ user: userIn(), locale: 'de', adminRoute: '/admin' })).toEqual(
+      [],
+    );
   });
 });
