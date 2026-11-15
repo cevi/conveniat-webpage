@@ -4,6 +4,7 @@ import { listEnrolmentHoefe, resolveEnrolmentHof } from '@/features/schedule/api
 import {
   addShiftWalkIn,
   getShiftRoster,
+  plansShifts,
   searchWalkInCandidates,
   setShiftAttendance,
 } from '@/features/schedule/api/shift-roster';
@@ -163,6 +164,8 @@ export const shiftsRouter = createTRPCRouter({
       isOrganiser,
       enableEnrolment: shift.enable_enrolment,
       hideList: shift.hide_participant_list,
+      /** the Helferpool reads and corrects every roster, hidden ones included */
+      plansShifts: user !== undefined && plansShifts(user),
       participants,
     };
   }),

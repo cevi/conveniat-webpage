@@ -1,3 +1,4 @@
+import { ACTIVE_REGISTRATION } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import type { QuotaDistributionSettings } from '@/features/payload-cms/payload-cms/utils/hof-shift-quota-formula';
 import { DEFAULT_DISTRIBUTION_SETTINGS } from '@/features/payload-cms/payload-cms/utils/hof-shift-quota-formula';
 import prisma from '@/lib/db/prisma';
@@ -183,7 +184,7 @@ const isParticipantRole = (roleType: string): boolean => roleType.endsWith('::Pa
 
 /**
  * The Leitende of each Hof, `hofId → count`: everyone the billing synced from the Hof's
- * Hof-Lager events with any role but Teilnehmende, and not since removed. Only the counts leave
+ * Hof-Lager events with any role but Teilnehmende, whose registration still counts. Only the counts leave
  * the billing data.
  */
 export const countHofLeaders = async (
@@ -197,17 +198,18 @@ export const countHofLeaders = async (
   if (hofOfEvent.size === 0) return counts;
   const { docs } = await payload.find({
     collection: 'bill-participants',
-    where: { eventId: { in: [...hofOfEvent.keys()] } },
+    // the same rule as the bills: a registration the sync found gone is `removed`, still active
+    where: { and: [{ eventId: { in: [...hofOfEvent.keys()] } }, ACTIVE_REGISTRATION] },
     depth: 0,
     pagination: false,
     overrideAccess: true,
-    select: { eventId: true, roleType: true, active: true, userId: true },
+    select: { eventId: true, roleType: true, userId: true },
   });
   // a person in two events of one Hof counts once
   const seen = new Set<string>();
   for (const participant of docs) {
     const hofId = hofOfEvent.get(participant.eventId);
-    if (hofId === undefined || participant.active === false) continue;
+    if (hofId === undefined) continue;
     if (isParticipantRole(participant.roleType ?? '')) continue;
     const key = `${hofId} ${participant.userId}`;
     if (seen.has(key)) continue;

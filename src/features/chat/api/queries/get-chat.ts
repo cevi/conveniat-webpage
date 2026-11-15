@@ -112,6 +112,7 @@ export const getChat = trpcBaseProcedure
       status: chat.status,
       caseNumber: formatCaseNumber(chat.caseNumber),
       courseId: chat.courseId,
+      courseType: chat.courseType,
       // Reverse to chronological order (we fetched in desc to get newest 25)
       messages: [...messages].reverse().map((message) => {
         const isReadByAdmin = chat.adminReadAt !== null && message.createdAt <= chat.adminReadAt;

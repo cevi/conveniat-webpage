@@ -348,7 +348,7 @@ export const ShiftDetailView: React.FC<{
               </div>
 
               {/*
-                Who comes and who came, for the Schichtleitung of this shift only. The component
+                Who comes and who came, for the Schichtleitung of this shift and the Helferpool. The component
                 renders nothing for everyone else, and the server refuses them the roster.
               */}
               <ShiftRoster shift={{ id: shift.id, title: shift.title }} locale={locale} />

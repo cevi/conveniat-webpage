@@ -43,7 +43,7 @@ export const hasShiftEnded = (shift: Pick<HelperShift, 'timeslot'>, now: Date): 
 };
 
 /** The Helferpool, the admins and the web core team see every roster and correct it any time. */
-const plansShifts = (user: HitobitoNextAuthUser): boolean =>
+export const plansShifts = (user: HitobitoNextAuthUser): boolean =>
   hasAccessToThisUser({ user, requiredRoles: HELPER_SHIFT_ROLES });
 
 /**

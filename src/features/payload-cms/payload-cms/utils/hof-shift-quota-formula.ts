@@ -129,6 +129,19 @@ export const distributeQuotas = ({
       byRemainder.push(next);
       missing -= 1;
     }
+    // a carry can round the day above its target, after a pin took places from it: take the
+    // extra Einsätze back from the Höfe that were owed least
+    const byShortfall = free
+      .map((_hof, index) => index)
+      .toSorted((a, b) => (owed[a] ?? 0) - (slots[a] ?? 0) - ((owed[b] ?? 0) - (slots[b] ?? 0)));
+    while (missing < 0) {
+      const next = byShortfall.find((index) => (slots[index] ?? 0) > 0);
+      if (next === undefined) break;
+      slots[next] = (slots[next] ?? 0) - 1;
+      byShortfall.splice(byShortfall.indexOf(next), 1);
+      byShortfall.push(next);
+      missing += 1;
+    }
     // a carry above what a later day can repay would grow without end; keep it to a few
     for (const [index, hof] of free.entries()) {
       (result[hof.id] ??= {})[day] = slots[index] ?? 0;

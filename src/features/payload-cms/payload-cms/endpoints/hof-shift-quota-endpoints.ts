@@ -229,6 +229,8 @@ export interface QuotaImport {
   unknownHoefe: string[];
   /** cells that hold something other than a whole number from 0 */
   invalidCells: string[];
+  /** day columns without a Schichteinsatz now, left out because the grid would not show them */
+  unknownDays: string[];
 }
 
 const cellText = (value: ExcelJS.CellValue): string => {
@@ -266,23 +268,31 @@ export const importQuotaGridHandler: PayloadHandler = async (request) => {
   const sheet = workbook.worksheets[0];
   if (sheet === undefined) return Response.json({ error: 'Empty workbook' }, { status: 400 });
 
-  const hoefe = await listGridHoefe(request);
+  const [hoefe, shifts] = await Promise.all([
+    listGridHoefe(request),
+    listQuotaShifts(request.payload),
+  ]);
+  const shiftDays = new Set(shifts.map((shift) => shift.day));
   const hofByName = new Map(hoefe.map((hof) => [hof.name.trim().toLowerCase(), hof.id]));
 
   const header = sheet.getRow(1);
   const dayColumns: { column: number; day: CampDay }[] = [];
+  const unknownDays: string[] = [];
   let hofColumn: number | undefined;
   header.eachCell((cell, column) => {
     const text = cellText(cell.value).trim();
     if (text === HOF_HEADER) hofColumn = column;
     const day = dayOfHeader(text);
-    if (day !== undefined) dayColumns.push({ column, day });
+    if (day === undefined) return;
+    // an older workbook may name a day whose shifts moved since
+    if (shiftDays.has(day)) dayColumns.push({ column, day });
+    else unknownDays.push(text);
   });
-  if (hofColumn === undefined || dayColumns.length === 0) {
+  if (hofColumn === undefined || dayColumns.length + unknownDays.length === 0) {
     return Response.json({ error: 'No Hof column or no day columns' }, { status: 400 });
   }
 
-  const result: QuotaImport = { changes: [], unknownHoefe: [], invalidCells: [] };
+  const result: QuotaImport = { changes: [], unknownHoefe: [], invalidCells: [], unknownDays };
   sheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1 || hofColumn === undefined) return;
     const name = cellText(row.getCell(hofColumn).value).trim();

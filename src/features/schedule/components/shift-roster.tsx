@@ -70,7 +70,8 @@ const filterOf = (entry: RosterEntry): Mark | 'open' => entry.attendance ?? 'ope
 /**
  * The roster of a Schichteinsatz for its Schichtleitung: who comes, from which Hof, and from 30
  * minutes before the start until a day after the end, who came. A ✓ or ✗ per row sets the mark,
- * a second tap on the same one clears it. Marks queue while offline and show as being sent.
+ * a second tap on the same one clears it. A mark shows as being sent until the server took it,
+ * and goes back with a message when it could not be sent.
  */
 export const ShiftRoster: React.FC<{
   shift: { id: string; title: string };
@@ -80,7 +81,10 @@ export const ShiftRoster: React.FC<{
   const queryClient = useQueryClient();
   const now = useNow();
   const { status } = useShiftStatus(shift.id);
-  const isLead = status?.isOrganiser === true && status.hideList !== true;
+  const leadsOnSite = status?.isOrganiser === true && status.hideList !== true;
+  // the Helferpool corrects marks any time, also on a shift it does not lead; read with `=== true`,
+  // a status persisted before the field has none
+  const isLead = leadsOnSite || status?.plansShifts === true;
   const [filter, setFilter] = useState<Filter>('all');
   const [person, setPerson] = useState<RosterEntry | undefined>();
   const [isAdding, setIsAdding] = useState(false);
@@ -112,9 +116,10 @@ export const ShiftRoster: React.FC<{
 
   const mark = useMutation(
     trpc.shifts.setShiftAttendance.mutationOptions({
-      // the mark shows at once, and stays while it waits for a connection
+      // the mark shows at once; a mutation fails at once offline, and the mark goes back
       onMutate: async ({ userId, attendance }) => {
         await queryClient.cancelQueries(rosterOptions);
+        const previous = queryClient.getQueryData(rosterOptions.queryKey);
         queryClient.setQueryData(rosterOptions.queryKey, (current) =>
           current === undefined
             ? current
@@ -125,12 +130,18 @@ export const ShiftRoster: React.FC<{
                 ),
               },
         );
+        return { previous };
       },
-      onError: failed,
+      onError: (error, _variables, context) => {
+        if (context?.previous !== undefined) {
+          queryClient.setQueryData(rosterOptions.queryKey, context.previous);
+        }
+        failed(error);
+      },
       onSettled: refresh,
     }),
   );
-  const pendingFor = mark.isPaused ? mark.variables?.userId : undefined;
+  const pendingFor = mark.isPending ? mark.variables.userId : undefined;
 
   const addWalkIn = useMutation(
     trpc.shifts.addShiftWalkIn.mutationOptions({
@@ -296,20 +307,22 @@ export const ShiftRoster: React.FC<{
             {texts.addPerson[locale]}
           </Button>
         )}
-        <Button
-          variant="outlined"
-          size="touch"
-          className="min-w-fit flex-1"
-          disabled={openChat.isPending}
-          onClick={() => openChat.mutate({ shiftId: shift.id, chatName: shift.title })}
-        >
-          {openChat.isPending ? (
-            <Loader2 className="animate-spin" aria-hidden="true" />
-          ) : (
-            <MessagesSquare aria-hidden="true" />
-          )}
-          {texts.groupChat[locale]}
-        </Button>
+        {leadsOnSite && (
+          <Button
+            variant="outlined"
+            size="touch"
+            className="min-w-fit flex-1"
+            disabled={openChat.isPending}
+            onClick={() => openChat.mutate({ shiftId: shift.id, chatName: shift.title })}
+          >
+            {openChat.isPending ? (
+              <Loader2 className="animate-spin" aria-hidden="true" />
+            ) : (
+              <MessagesSquare aria-hidden="true" />
+            )}
+            {texts.groupChat[locale]}
+          </Button>
+        )}
       </div>
 
       <BottomSheet

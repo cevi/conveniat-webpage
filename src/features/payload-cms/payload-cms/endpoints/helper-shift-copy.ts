@@ -1,4 +1,5 @@
 import { canManageHelperShifts } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import prisma from '@/lib/db/prisma';
 import type { PayloadHandler } from 'payload';
 import { z } from 'zod';
 
@@ -64,40 +65,49 @@ export const helperShiftCopyHandler: PayloadHandler = async (request) => {
     overrideAccess: false,
   });
 
-  // the shifts that already carry this title, to skip a slot that is taken
-  const existing = await request.payload.find({
-    collection: 'helper-shifts',
-    where: { title: { equals: source.title } },
-    locale: 'de',
-    depth: 0,
-    pagination: false,
-    select: { timeslot: true },
-    req: request,
-    overrideAccess: false,
-  });
-  const taken = new Set(
-    existing.docs.map((shift) => `${zurichDay(shift.timeslot.date)} ${shift.timeslot.time}`),
-  );
-
-  let created = 0;
-  let skipped = 0;
-  for (const day of new Set(parsed.data.days)) {
-    for (const time of new Set(parsed.data.times)) {
-      if (taken.has(`${day} ${time}`)) {
-        skipped += 1;
-        continue;
-      }
-      await request.payload.duplicate({
+  // two planners copying the same shift at once would both find a slot free and both fill it;
+  // the copies of one title wait for each other. Postgres holds the lock, Mongo the shifts.
+  const result = await prisma.$transaction(
+    async (transaction) => {
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`helper-shift-copy ${source.title}`}))`;
+      // the shifts that already carry this title, to skip a slot that is taken
+      const existing = await request.payload.find({
         collection: 'helper-shifts',
-        id,
-        data: { timeslot: { date: moveToDay(source.timeslot.date, day), time } },
+        where: { title: { equals: source.title } },
+        locale: 'de',
+        depth: 0,
+        pagination: false,
+        select: { timeslot: true },
         req: request,
         overrideAccess: false,
       });
-      created += 1;
-    }
-  }
+      const taken = new Set(
+        existing.docs.map((shift) => `${zurichDay(shift.timeslot.date)} ${shift.timeslot.time}`),
+      );
 
-  request.payload.logger.info({ msg: 'Copied helper shift', shiftId: id, created, skipped });
-  return Response.json({ created, skipped } satisfies HelperShiftCopyResult);
+      let created = 0;
+      let skipped = 0;
+      for (const day of new Set(parsed.data.days)) {
+        for (const time of new Set(parsed.data.times)) {
+          if (taken.has(`${day} ${time}`)) {
+            skipped += 1;
+            continue;
+          }
+          await request.payload.duplicate({
+            collection: 'helper-shifts',
+            id,
+            data: { timeslot: { date: moveToDay(source.timeslot.date, day), time } },
+            req: request,
+            overrideAccess: false,
+          });
+          created += 1;
+        }
+      }
+      return { created, skipped } satisfies HelperShiftCopyResult;
+    },
+    { timeout: 120_000 },
+  );
+
+  request.payload.logger.info({ msg: 'Copied helper shift', shiftId: id, ...result });
+  return Response.json(result satisfies HelperShiftCopyResult);
 };

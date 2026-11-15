@@ -6,6 +6,15 @@ jest.mock('@/config/environment-variables', () => ({
   },
 }));
 
+// the advisory lock that keeps two copies of one title apart; one request at a time here
+jest.mock('@/lib/db/prisma', () => ({
+  __esModule: true,
+  default: {
+    $transaction: async (work: (transaction: unknown) => Promise<unknown>): Promise<unknown> =>
+      work({ $executeRaw: jest.fn().mockResolvedValue(1) }),
+  },
+}));
+
 import { helperShiftCopyHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-shift-copy';
 import type { PayloadRequest } from 'payload';
 

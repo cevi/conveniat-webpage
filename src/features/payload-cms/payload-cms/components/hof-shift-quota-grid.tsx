@@ -76,6 +76,11 @@ const texts = {
     en: 'These Höfe from the workbook do not exist:',
     fr: 'Ces Höfe du fichier n’existent pas :',
   },
+  unknownDays: {
+    de: 'An diesen Tagen aus dem Excel gibt es keine Schichteinsätze mehr, sie wurden übergangen:',
+    en: 'These days from the workbook have no shifts any more and were skipped:',
+    fr: 'Ces jours du fichier n’ont plus de services et ont été ignorés :',
+  },
   invalidCells: {
     de: 'Diese Zellen sind keine ganzen Zahlen und wurden übergangen:',
     en: 'These cells are not whole numbers and were skipped:',
@@ -287,6 +292,8 @@ export const HofShiftQuotaGrid: React.FC<{ initialGrid: QuotaGrid; locale: Local
   };
 
   const save = async (): Promise<void> => {
+    // the grid stays editable while saving; a cell changed meanwhile was not sent and stays
+    const submitted = edits;
     setSaving(true);
     try {
       const response = await fetch('/api/helper-shifts/quotas', {
@@ -298,7 +305,9 @@ export const HofShiftQuotaGrid: React.FC<{ initialGrid: QuotaGrid; locale: Local
       const saved = (await response.json()) as QuotaGrid;
       setGrid(saved);
       setSettings(saved.settings);
-      setEdits(new Map());
+      setEdits(
+        (current) => new Map([...current].filter(([key, edit]) => submitted.get(key) !== edit)),
+      );
       setDistributed(false);
       setImportProblems(undefined);
       toast.success(texts.saved[locale]);
@@ -331,7 +340,9 @@ export const HofShiftQuotaGrid: React.FC<{ initialGrid: QuotaGrid; locale: Local
         return next;
       });
       setImportProblems(
-        result.unknownHoefe.length + result.invalidCells.length > 0 ? result : undefined,
+        result.unknownHoefe.length + result.invalidCells.length + result.unknownDays.length > 0
+          ? result
+          : undefined,
       );
       toast.info(texts.importDone[locale]);
     } catch (error) {
@@ -442,6 +453,11 @@ export const HofShiftQuotaGrid: React.FC<{ initialGrid: QuotaGrid; locale: Local
           {importProblems.unknownHoefe.length > 0 && (
             <p className="m-0">
               {texts.unknownHoefe[locale]} {importProblems.unknownHoefe.join(', ')}
+            </p>
+          )}
+          {importProblems.unknownDays.length > 0 && (
+            <p className="m-0">
+              {texts.unknownDays[locale]} {importProblems.unknownDays.join(', ')}
             </p>
           )}
           {importProblems.invalidCells.length > 0 && (

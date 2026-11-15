@@ -20,7 +20,12 @@ jest.mock('@/utils/auth', () => ({
 }));
 
 jest.mock('@/config/environment-variables', () => ({
-  environmentVariables: { APP_HOST_URL: 'https://example.test' },
+  environmentVariables: {
+    APP_HOST_URL: 'https://example.test',
+    CEVIDB_GROUP_FULL_ADMIN: [541],
+    CEVIDB_GROUP_WEB_CORE_TEAM: [105],
+    CEVIDB_GROUP_HELPER_POOL: [112],
+  },
 }));
 
 // `superjson` ships untranspiled ESM and is only the wire transformer; a direct caller never

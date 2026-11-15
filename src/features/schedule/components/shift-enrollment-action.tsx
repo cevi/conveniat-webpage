@@ -145,7 +145,11 @@ export const ShiftEnrollmentAction: React.FC<{
    * The Höfe the shift may count for. Read defensively: a persisted cache written before this
    * query existed, or by a build where it answered differently, hands back something else.
    */
-  const { data: hoefeData } = useQuery({
+  const {
+    data: hoefeData,
+    status: hoefeStatus,
+    refetch: refetchHoefe,
+  } = useQuery({
     ...trpc.shifts.getMyEnrolmentHoefe.queryOptions(),
     enabled: isAuthorized && enrolSheetOpen,
   });
@@ -491,6 +495,8 @@ export const ShiftEnrollmentAction: React.FC<{
         unenrollmentDeadline={status.unenrollmentDeadline}
         isWithdrawalClosed={isUnenrollmentWindowClosed}
         hoefe={hoefe}
+        hoefeStatus={hoefeStatus}
+        onRetryHoefe={() => void refetchHoefe()}
         chosenHofId={chosenHofId}
         onChooseHof={setChosenHofId}
         onConfirm={() =>

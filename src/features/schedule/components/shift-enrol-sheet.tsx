@@ -63,6 +63,18 @@ const countsForHint: StaticTranslationString = {
   fr: 'Tu es inscrit dans plusieurs Höfe. Le service compte pour le Hof que tu choisis.',
 };
 
+const hoefeFailedLabel: StaticTranslationString = {
+  de: 'Deine Höfe konnten nicht geladen werden.',
+  en: 'Your Höfe could not be loaded.',
+  fr: 'Tes Höfe n’ont pas pu être chargés.',
+};
+
+const retryLabel: StaticTranslationString = {
+  de: 'Erneut versuchen',
+  en: 'Try again',
+  fr: 'Réessayer',
+};
+
 /**
  * What a helper agrees to before the enrolment is made: when, where, until when they can still
  * step back, and for a person in several Höfe, which one the shift counts for. Enrolling from a
@@ -79,6 +91,9 @@ export const ShiftEnrolSheet: React.FC<{
   isWithdrawalClosed: boolean;
   /** the Höfe the user is in; a choice is offered from two on */
   hoefe: EnrolmentHof[];
+  /** until the Höfe are known, nobody can tell whether a choice is needed */
+  hoefeStatus: 'pending' | 'error' | 'success';
+  onRetryHoefe: () => void;
   chosenHofId: string | undefined;
   onChooseHof: (hofId: string) => void;
   onConfirm: () => void;
@@ -93,6 +108,8 @@ export const ShiftEnrolSheet: React.FC<{
   unenrollmentDeadline,
   isWithdrawalClosed,
   hoefe,
+  hoefeStatus,
+  onRetryHoefe,
   chosenHofId,
   onChooseHof,
   onConfirm,
@@ -108,7 +125,8 @@ export const ShiftEnrolSheet: React.FC<{
           '$1,',
         );
   const needsHofChoice = hoefe.length > 1;
-  const canConfirm = !isPending && (!needsHofChoice || chosenHofId !== undefined);
+  const canConfirm =
+    !isPending && hoefeStatus === 'success' && (!needsHofChoice || chosenHofId !== undefined);
 
   return (
     <BottomSheet
@@ -123,7 +141,9 @@ export const ShiftEnrolSheet: React.FC<{
           disabled={!canConfirm}
           onClick={onConfirm}
         >
-          {isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
+          {(isPending || hoefeStatus === 'pending') && (
+            <Loader2 className="animate-spin" aria-hidden="true" />
+          )}
           {(isWithdrawalClosed ? enrolAnywayLabel : confirmLabel)[locale]}
         </Button>
       }
@@ -164,6 +184,15 @@ export const ShiftEnrolSheet: React.FC<{
           <div className="border-danger-line bg-danger-soft text-danger-text flex items-start gap-2 rounded-[14px] border p-3 text-[15px]">
             <Lock className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <p>{noWithdrawalWarning[locale]}</p>
+          </div>
+        )}
+
+        {hoefeStatus === 'error' && (
+          <div className="bg-quiet flex items-center gap-3 rounded-[14px] p-3 text-[15px] text-green-700">
+            <p className="flex-1">{hoefeFailedLabel[locale]}</p>
+            <Button variant="outlined" size="touch" onClick={onRetryHoefe}>
+              {retryLabel[locale]}
+            </Button>
           </div>
         )}
 

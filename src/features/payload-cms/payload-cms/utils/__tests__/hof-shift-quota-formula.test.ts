@@ -121,4 +121,17 @@ describe('distributeQuotas', () => {
     });
     expect(result['empty']?.['2027-07-26']).toBe(0);
   });
+
+  it('never asks more than the day has, when a carry meets a pin', () => {
+    const equal = ['a', 'b', 'c', 'd'].map((id) => ({ id, leaders: 10 }));
+    const result = distributeQuotas({
+      days: ['2027-07-26', '2027-07-27'],
+      hoefe: equal,
+      placesPerDay: { '2027-07-26': 2, '2027-07-27': 1 },
+      pinned: { a: { '2027-07-27': 0 }, b: { '2027-07-27': 0 } },
+      settings: DEFAULT_DISTRIBUTION_SETTINGS,
+    });
+    expect(sumOfDay(result, '2027-07-26')).toBe(2);
+    expect(sumOfDay(result, '2027-07-27')).toBe(1);
+  });
 });

@@ -18,9 +18,11 @@ import {
   MessageType,
 } from '@/lib/prisma/enums';
 import { MAX_STAR_CHANGES_PER_SYNC } from '@/lib/star-sync';
+import { invariantError } from '@/trpc/error-formatter';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';
+import { rateLimit } from '@/trpc/middleware/rate-limit';
 import { convertLexicalToMarkdown, convertMarkdownToLexical } from '@/utils/markdown-to-lexical';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
@@ -34,6 +36,18 @@ const MAX_COURSE_IDS_PER_STATUS_REQUEST = 100;
 
 const enrollInCourseSchema = z.object({
   courseId: z.string(),
+});
+
+/** Whether a chat membership manages the chat, as the Schichtleitung does in a shift chat. */
+const isLeadPermission = (permission: ChatMembershipPermission): boolean =>
+  permission === ChatMembershipPermission.ADMIN || permission === ChatMembershipPermission.OWNER;
+
+/** A Schichtleitung opens the chat of their shift a few times a day, not dozens a minute. */
+const shiftChatRateLimit = rateLimit({
+  name: 'schedule.openShiftChat',
+  limit: 20,
+  windowMs: 60_000,
+  refuse: () => scheduleError('TOO_MANY_REQUESTS', 'tooManyRosterChanges'),
 });
 
 export const scheduleRouter = createTRPCRouter({
@@ -966,6 +980,7 @@ export const scheduleRouter = createTRPCRouter({
    */
   openShiftChat: trpcBaseProcedure
     .input(z.object({ shiftId: z.string(), chatName: z.string().max(200) }))
+    .use(shiftChatRateLimit)
     .use(databaseTransactionWrapper)
     .mutation(async ({ input, ctx }) => {
       const { user, prisma, locale } = ctx;
@@ -980,6 +995,10 @@ export const scheduleRouter = createTRPCRouter({
       );
       if (!organisers.includes(user.uuid)) {
         throw scheduleError('FORBIDDEN', 'onlyOrganisersChat');
+      }
+      if (shift.hide_participant_list === true) {
+        // a hidden roster offers no chat in our client, and its members would read the list
+        throw invariantError('FORBIDDEN', 'The roster of this shift is hidden');
       }
 
       const existing = await prisma.chat.findFirst({
@@ -1008,6 +1027,7 @@ export const scheduleRouter = createTRPCRouter({
         }),
       ]);
       const enrolled = new Set(enrolments.map((enrolment) => enrolment.userId));
+      const leads = new Set(organisers);
       const members = new Set(memberships.map((membership) => membership.userId));
 
       await prisma.chatMembership.createMany({
@@ -1016,15 +1036,40 @@ export const scheduleRouter = createTRPCRouter({
             .filter((id) => !members.has(id))
             .map((id) => ({ userId: id, chatId, chatPermission: ChatMembershipPermission.ADMIN })),
           ...[...enrolled]
-            .filter((id) => !members.has(id) && !organisers.includes(id))
+            .filter((id) => !members.has(id) && !leads.has(id))
             .map((id) => ({ userId: id, chatId, chatPermission: ChatMembershipPermission.GUEST })),
         ],
         skipDuplicates: true,
       });
+      // the planners change the Schichtleitung: a new one who was a helper leads now, a former
+      // one still enrolled is a helper again, and one who is neither leaves
+      const promoted = memberships.filter(
+        (membership) =>
+          leads.has(membership.userId) && !isLeadPermission(membership.chatPermission),
+      );
+      const demoted = memberships.filter(
+        (membership) =>
+          !leads.has(membership.userId) &&
+          isLeadPermission(membership.chatPermission) &&
+          enrolled.has(membership.userId),
+      );
+      if (promoted.length > 0) {
+        await prisma.chatMembership.updateMany({
+          where: { chatId, userId: { in: promoted.map((membership) => membership.userId) } },
+          data: { chatPermission: ChatMembershipPermission.ADMIN },
+        });
+      }
+      if (demoted.length > 0) {
+        await prisma.chatMembership.updateMany({
+          where: { chatId, userId: { in: demoted.map((membership) => membership.userId) } },
+          data: { chatPermission: ChatMembershipPermission.GUEST },
+        });
+      }
       const gone = memberships.filter(
         (membership) =>
-          membership.chatPermission === ChatMembershipPermission.GUEST &&
-          !enrolled.has(membership.userId),
+          !leads.has(membership.userId) &&
+          !enrolled.has(membership.userId) &&
+          membership.chatPermission !== ChatMembershipPermission.MEMBER,
       );
       if (gone.length > 0) {
         await prisma.chatMembership.deleteMany({
