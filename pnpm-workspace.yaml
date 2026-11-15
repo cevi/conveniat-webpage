@@ -12,6 +12,7 @@ allowBuilds:
   unrs-resolver: true
 patchedDependencies:
   '@payloadcms/next': patches/@payloadcms__next.patch
+  payload@3.93.0: patches/payload@3.93.0.patch
 overrides:
   '@types/react': 19.3.0
   '@types/react-dom': 19.3.0

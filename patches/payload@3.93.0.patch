@@ -1,0 +1,50 @@
+diff --git a/dist/utilities/mergeLocalizedData.js b/dist/utilities/mergeLocalizedData.js
+index 419481f5f06471c7ef0a8c0975aa75c4d033f53d..a734fb395d46f2b9115680fc9f2cff10e6b12f47 100644
+--- a/dist/utilities/mergeLocalizedData.js
++++ b/dist/utilities/mergeLocalizedData.js
+@@ -26,6 +26,14 @@ import { fieldAffectsData, fieldShouldBeLocalized, tabHasName } from '../fields/
+     }
+     return names;
+ }
++/**
++ * Finds the stored row the incoming row was edited from, by its id (and block type for blocks).
++ */ function findExistingRow(existingRows, newRow, blockType) {
++    if (!Array.isArray(existingRows) || !newRow || typeof newRow !== 'object' || newRow.id == null) {
++        return undefined;
++    }
++    return existingRows.find((row)=>row && typeof row === 'object' && row.id === newRow.id && (blockType === undefined || row.blockType === blockType));
++}
+ /**
+  * Merges data from dataWithLocales onto docWithLocales for specified locales.
+  * For localized fields, merges only the specified locales while preserving others.
+@@ -75,8 +83,10 @@ import { fieldAffectsData, fieldShouldBeLocalized, tabHasName } from '../fields/
+                                 result[field.name] = null;
+                             } else if (Array.isArray(newValue)) {
+                                 // Non-localized array - still process children for any localized fields
+-                                result[field.name] = newValue.map((newItem, index)=>{
+-                                    const existingItem = existingValue?.[index] || {};
++                                // Pair rows by id, not by position: a row inserted, removed or moved in
++                                // one locale would otherwise take the other locales of its neighbour.
++                                result[field.name] = newValue.map((newItem)=>{
++                                    const existingItem = findExistingRow(existingValue, newItem) || {};
+                                     return mergeLocalizedData({
+                                         configBlockReferences,
+                                         dataWithLocales: newItem,
+@@ -115,7 +125,7 @@ import { fieldAffectsData, fieldShouldBeLocalized, tabHasName } from '../fields/
+                                 result[field.name] = null;
+                             } else if (Array.isArray(newValue)) {
+                                 // Non-localized blocks - still process children for any localized fields
+-                                result[field.name] = newValue.map((newBlockData, index)=>{
++                                result[field.name] = newValue.map((newBlockData)=>{
+                                     let block;
+                                     if (configBlockReferences && field.blockReferences) {
+                                         for (const blockOrReference of field.blockReferences){
+@@ -129,7 +139,7 @@ import { fieldAffectsData, fieldShouldBeLocalized, tabHasName } from '../fields/
+                                         block = field.blocks.find((b)=>b.slug === newBlockData.blockType);
+                                     }
+                                     if (block) {
+-                                        const blockData = Array.isArray(existingValue) && existingValue[index] ? existingValue[index] : {};
++                                        const blockData = findExistingRow(existingValue, newBlockData, newBlockData.blockType) || {};
+                                         const merged = mergeLocalizedData({
+                                             configBlockReferences,
+                                             dataWithLocales: newBlockData,

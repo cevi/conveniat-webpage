@@ -31,9 +31,10 @@ const config: Config = {
   },
 
   // `fractional-indexing` (pulled in by @tanstack/db), `file-type` with the tokenizers it
-  // reads files through, and `superjson` with `copy-anything` ship untranspiled ESM
+  // reads files through, and `superjson` with `copy-anything` ship untranspiled ESM, and so does
+  // `payload`, whose patched internals a test imports by path
   transformIgnorePatterns: [
-    String.raw`/node_modules/(?!(\.pnpm|@t3-oss|fractional-indexing|file-type|strtok3|token-types|uint8array-extras|@tokenizer|@borewit|superjson|copy-anything)/)`,
+    String.raw`/node_modules/(?!(\.pnpm|@t3-oss|fractional-indexing|file-type|strtok3|token-types|uint8array-extras|@tokenizer|@borewit|superjson|copy-anything|payload)/)`,
   ],
 
   testPathIgnorePatterns: [
