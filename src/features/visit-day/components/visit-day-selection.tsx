@@ -64,9 +64,9 @@ const visitorTypeLegend: StaticTranslationString = {
 };
 
 const visitingChildText: StaticTranslationString = {
-  de: 'Ein Kind im Lager, z.B. unser Kind, Göttikind oder Enkelkind',
-  en: 'A child at the camp, e.g. our child, godchild or grandchild',
-  fr: 'Un enfant au camp, p. ex. notre enfant, filleul·e ou petit-enfant',
+  de: 'Ein Kind oder eine Leitungsperson im Lager, z.B. unser Kind, Göttikind oder Enkelkind',
+  en: 'A child or a leader at the camp, e.g. our child, godchild or grandchild',
+  fr: 'Un enfant ou un·e responsable au camp, p. ex. notre enfant, filleul·e ou petit-enfant',
 };
 
 const externalVisitText: StaticTranslationString = {
@@ -76,9 +76,9 @@ const externalVisitText: StaticTranslationString = {
 };
 
 const childNameLabel: StaticTranslationString = {
-  de: 'Vor- und Nachname des Kindes (optional)',
-  en: 'First and last name of the child (optional)',
-  fr: 'Prénom et nom de l’enfant (facultatif)',
+  de: 'Vor- und Nachname des Angehörigen',
+  en: 'First and last name of your relative',
+  fr: 'Prénom et nom de la personne de ta famille',
 };
 
 const childNamePlaceholder: StaticTranslationString = {
@@ -215,7 +215,7 @@ export const VisitDaySelection: React.FC<
 }) => {
   const trpc = useTRPC();
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { setValue, getValues } = useFormContext();
+  const { setValue, getValues, formState } = useFormContext();
   const hoefe = useQuery(
     trpc.visitDay.getVisitDayHofList.queryOptions(undefined, { refetchOnMount: true }),
   );
@@ -389,7 +389,10 @@ export const VisitDaySelection: React.FC<
           blockType="text"
           name={childNameField}
           label={childNameLabel[locale]}
-          required={false}
+          required
+          {...(formState.errors[childNameField] === undefined
+            ? {}
+            : { error: formState.errors[childNameField] })}
           placeholder={childNamePlaceholder[locale]}
           registerAction={registerAction}
         />

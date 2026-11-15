@@ -1,4 +1,7 @@
-import { calculateVisitDayBill } from '@/features/visit-day/billing/visit-day-bill-amount';
+import {
+  calculateVisitDayBill,
+  visitDayPricesOf,
+} from '@/features/visit-day/billing/visit-day-bill-amount';
 import { recordVisitDayBillEvent } from '@/features/visit-day/billing/visit-day-bill-events';
 import type { SendVisitDayBillInput } from '@/features/visit-day/billing/visit-day-bill-mail';
 import { SEND_VISIT_DAY_BILL_TASK } from '@/features/visit-day/billing/visit-day-bill-mail';
@@ -50,8 +53,7 @@ const answerOf = (
 };
 
 /**
- * Issues the bill of a registration just saved: one ticket per person at the price of their
- * lunch choice, the payer and address from the answers the Besuchstag field names, and the
+ * Issues the bill of a registration just saved: the entry, lunch and SBB day pass of each person, the payer and address from the answers the Besuchstag field names, and the
  * language of the form. The PDF and the mail follow in a job, so a slow PDF never holds up the
  * registration, and a mail that fails can be sent again.
  *
@@ -74,13 +76,20 @@ export async function createVisitDayBill(
     overrideAccess: true,
     req: request,
   });
+  const travelPasses = Array.from({ length: registration.persons }, (_, index) => ({
+    personNumber: index + 1,
+    pass:
+      typeof fields.travelPassField === 'string' && fields.travelPassField !== ''
+        ? (answerOf(registration.answers, `${fields.travelPassField}_${String(index + 1)}`) ?? '')
+        : '',
+  }));
   const amount = calculateVisitDayBill(
-    registration,
     {
-      withLunch: settings.priceWithLunch,
-      withoutLunch: settings.priceWithoutLunch,
-      vatRate: settings.vatRate,
+      persons: registration.persons,
+      withLunch: registration.withLunch,
+      travelPasses: travelPasses.map((person) => person.pass),
     },
+    visitDayPricesOf(settings),
     registration.locale,
   );
   const issuedAt = new Date();
@@ -99,13 +108,6 @@ export async function createVisitDayBill(
   const postalCode = answerOf(registration.answers, fields.billPostalCodeField);
   const city = answerOf(registration.answers, fields.billCityField);
   const email = answerOf(registration.answers, fields.billEmailField);
-  const travelPasses = Array.from({ length: registration.persons }, (_, index) => ({
-    personNumber: index + 1,
-    pass:
-      typeof fields.travelPassField === 'string' && fields.travelPassField !== ''
-        ? (answerOf(registration.answers, `${fields.travelPassField}_${String(index + 1)}`) ?? '')
-        : '',
-  }));
 
   const bill = await payload.create({
     collection: 'visit-day-bills',

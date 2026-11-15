@@ -437,9 +437,9 @@ export const VisitDayBillsCollection: CollectionConfig = {
                   name: 'vatAmount',
                   type: 'number',
                   label: {
-                    en: 'Included VAT (CHF)',
-                    de: 'Enthaltene MWST (CHF)',
-                    fr: 'TVA incluse (CHF)',
+                    en: 'VAT added (CHF)',
+                    de: 'Zuzüglich MWST (CHF)',
+                    fr: 'TVA en sus (CHF)',
                   },
                   ...serverOnly,
                 },

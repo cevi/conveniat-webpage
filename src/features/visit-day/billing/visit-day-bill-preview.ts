@@ -1,5 +1,8 @@
 import type { VisitDayBill } from '@/features/payload-cms/payload-types';
-import { calculateVisitDayBill } from '@/features/visit-day/billing/visit-day-bill-amount';
+import {
+  calculateVisitDayBill,
+  visitDayPricesOf,
+} from '@/features/visit-day/billing/visit-day-bill-amount';
 import { renderStoredVisitDayBill } from '@/features/visit-day/billing/visit-day-bill-mail';
 import {
   visitDayBillReference,
@@ -14,14 +17,18 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** The day the preview visits when no Besuchstag is set up yet. */
 const FALLBACK_DAY = '2027-07-28';
 
+const PREVIEW_TRAVEL_PASSES = ['halbtax', 'ga'];
+
 /**
  * A bill for a registration that does not exist: two persons with lunch on the first Besuchstag,
+ * one of them with a GA,
  * priced and worded by the saved settings, as the bill would be issued today.
  */
 export const buildPreviewBill = (
   settings: {
-    priceWithLunch: number;
-    priceWithoutLunch: number;
+    entryFee: number;
+    lunchFee: number;
+    railTicketPrice: number;
     vatRate: number;
     invoiceNumberPrefix: string;
     paymentDeadlineDays: number;
@@ -31,12 +38,8 @@ export const buildPreviewBill = (
   now: Date,
 ): VisitDayBill => {
   const amount = calculateVisitDayBill(
-    { persons: 2, withLunch: true },
-    {
-      withLunch: settings.priceWithLunch,
-      withoutLunch: settings.priceWithoutLunch,
-      vatRate: settings.vatRate,
-    },
+    { persons: 2, withLunch: true, travelPasses: PREVIEW_TRAVEL_PASSES },
+    visitDayPricesOf(settings),
     locale,
   );
   return {
@@ -65,6 +68,7 @@ export const buildPreviewBill = (
     issuedAt: now.toISOString(),
     dueDate: new Date(now.getTime() + settings.paymentDeadlineDays * DAY_MS).toISOString(),
     lines: amount.lines,
+    travelPasses: PREVIEW_TRAVEL_PASSES.map((pass, index) => ({ personNumber: index + 1, pass })),
     updatedAt: now.toISOString(),
     createdAt: now.toISOString(),
   } as VisitDayBill;

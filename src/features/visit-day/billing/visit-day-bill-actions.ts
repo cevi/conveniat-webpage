@@ -1,6 +1,9 @@
 import { formatChf } from '@/features/billing-core/money';
 import type { VisitDayBill } from '@/features/payload-cms/payload-types';
-import { calculateVisitDayBill } from '@/features/visit-day/billing/visit-day-bill-amount';
+import {
+  calculateVisitDayBill,
+  visitDayPricesOf,
+} from '@/features/visit-day/billing/visit-day-bill-amount';
 import {
   reconcileVisitDayBills,
   VISIT_DAY_BILL_COLLECTION,
@@ -90,12 +93,12 @@ export async function reissueVisitDayBill(
   });
   const persons = options.persons ?? bill.persons;
   const amount = calculateVisitDayBill(
-    { persons, withLunch: bill.withLunch === true },
     {
-      withLunch: settings.priceWithLunch,
-      withoutLunch: settings.priceWithoutLunch,
-      vatRate: settings.vatRate,
+      persons,
+      withLunch: bill.withLunch === true,
+      travelPasses: (bill.travelPasses ?? []).map((person) => person.pass ?? ''),
     },
+    visitDayPricesOf(settings),
     localeOf(bill),
   );
   const issue = bill.issue + 1;

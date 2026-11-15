@@ -42,10 +42,11 @@ const labels = {
   unitPrice: { de: 'Preis', fr: 'Prix', en: 'Price' },
   amount: { de: 'Betrag', fr: 'Montant', en: 'Amount' },
   total: { de: 'Total', fr: 'Total', en: 'Total' },
-  vatIncluded: {
-    de: 'inkl. {{rate}} % MWST',
-    fr: 'TVA {{rate}} % incluse',
-    en: 'incl. {{rate}} % VAT',
+  subtotal: { de: 'Zwischentotal', fr: 'Sous-total', en: 'Subtotal' },
+  vatAdded: {
+    de: 'zzgl. {{rate}} % MWST',
+    fr: 'TVA {{rate}} % en sus',
+    en: 'plus {{rate}} % VAT',
   },
   vatNumber: { de: 'MWST-Nr.', fr: 'N° TVA', en: 'VAT no.' },
   qrMessage: { de: 'Rechnung Nr.', fr: 'Facture n°', en: 'Bill no.' },
@@ -170,14 +171,20 @@ export async function renderVisitDayBillPdf(bill: VisitDayBillPdf): Promise<Buff
       .lineTo(mm2pt(188), y - 3)
       .lineWidth(0.5)
       .stroke();
-    row(
-      { item: t('total'), quantity: '', unitPrice: 'CHF', amount: formatAmount(bill.total) },
-      true,
-    );
+    // the prices are without VAT, so the VAT comes on top of what the lines add up to
     if (bill.vatRate > 0) {
       row(
         {
-          item: t('vatIncluded').replace('{{rate}}', String(bill.vatRate)),
+          item: t('subtotal'),
+          quantity: '',
+          unitPrice: 'CHF',
+          amount: formatAmount(bill.total - bill.vatAmount),
+        },
+        false,
+      );
+      row(
+        {
+          item: t('vatAdded').replace('{{rate}}', String(bill.vatRate)),
           quantity: '',
           unitPrice: 'CHF',
           amount: formatAmount(bill.vatAmount),
@@ -185,6 +192,10 @@ export async function renderVisitDayBillPdf(bill: VisitDayBillPdf): Promise<Buff
         false,
       );
     }
+    row(
+      { item: t('total'), quantity: '', unitPrice: 'CHF', amount: formatAmount(bill.total) },
+      true,
+    );
     if (bill.vatRate > 0 && creditor.uid !== undefined) {
       document_
         .font('Helvetica')
@@ -230,6 +241,9 @@ export async function renderVisitDayBillPdf(bill: VisitDayBillPdf): Promise<Buff
       },
       { language: QR_LANGUAGE[bill.locale], scissors: false, separate: false },
     );
+    // the QR slip always gets a page of its own, like the camp bill's, so the payer can print
+    // or tear it off without cutting the letter, however many lines the bill has
+    document_.addPage();
     qrBill.attachTo(document_);
     document_.end();
   });
