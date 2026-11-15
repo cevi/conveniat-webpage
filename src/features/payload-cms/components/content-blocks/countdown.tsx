@@ -63,7 +63,7 @@ export const Countdown: React.FC<CountdownType> = ({ ...block }) => {
     <div className="bg-conveniat-green/10 border-conveniat-green/20 my-6 rounded-lg border p-6">
       <div className="mb-4 text-center">
         {title && <h3 className="text-conveniat-green mb-2 text-xl font-bold">{title}</h3>}
-        {descriptionAbove && <p className="text-gray-600">{descriptionAbove}</p>}
+        {descriptionAbove && <p className="text-balance text-gray-600">{descriptionAbove}</p>}
       </div>
 
       <div className="my-4 grid grid-cols-4 gap-2">
@@ -85,7 +85,7 @@ export const Countdown: React.FC<CountdownType> = ({ ...block }) => {
         </div>
       </div>
       {descriptionBelow && (
-        <p className="mt-2 text-center text-sm text-gray-600">{descriptionBelow}</p>
+        <p className="mt-2 text-center text-sm text-balance text-gray-600">{descriptionBelow}</p>
       )}
     </div>
   );
