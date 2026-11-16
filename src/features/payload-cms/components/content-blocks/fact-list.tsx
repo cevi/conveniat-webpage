@@ -28,7 +28,10 @@ export const FactList: React.FC<FactListBlock> = ({ title, facts }) => {
             icon={contentIconOf(fact.icon) ?? Info}
             title={fact.title}
             {...(typeof fact.description === 'string' && fact.description !== ''
-              ? { sub: fact.description }
+              ? {
+                  // balanced, so a description that wraps does not leave one word on a line
+                  sub: <span className="block text-balance">{fact.description}</span>,
+                }
               : {})}
           />
         ))}
