@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.61.1](https://github.com/cevi/conveniat-webpage/compare/v1.61.0...v1.61.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **content:** balance the wrapped lines of fact descriptions ([ab27b78](https://github.com/cevi/conveniat-webpage/commit/ab27b7808f411995b4b0ff4a3389d62322632c40))
+* **content:** balance the wrapped lines of fact descriptions ([706bb6f](https://github.com/cevi/conveniat-webpage/commit/706bb6f4fb9205e037616d89b7c4c3517ccdbd01))
+
 ## [1.61.0](https://github.com/cevi/conveniat-webpage/compare/v1.60.0...v1.61.0) (2026-11-15)
 
 
