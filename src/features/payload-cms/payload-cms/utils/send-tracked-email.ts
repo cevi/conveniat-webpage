@@ -53,9 +53,11 @@ export const sendTrackedEmail = async (
   /**
    * For the outgoing queue: a mail the server refused because its hourly limit is reached
    * goes back to `queued` instead of turning `error`, so a bill waiting for it is not
-   * marked failed and the queue sends it once the server takes mail again.
+   * marked failed and the queue sends it once the server takes mail again. A function is
+   * asked for what the row needs to be sent from the queue later, like the attachments of
+   * a mail that was not queued to begin with; it is written with the same update.
    */
-  deferOnRateLimit = false,
+  deferOnRateLimit: boolean | (() => Promise<Record<string, unknown>>) = false,
 ): Promise<TrackedEmailResult> => {
   const options = emailOptions as unknown as {
     to?: string | string[];
@@ -186,10 +188,20 @@ export const sendTrackedEmail = async (
   }
   const isPartlyWithheld = suppressed.length > 0 && !isWithheld;
   const isRateLimited = !success && !isWithheld && isRateLimitRejection(responseOrError);
-  const isDeferred = deferOnRateLimit && isRateLimited;
-  let deliveryStatus: 'success' | 'queued' | 'error' = 'error';
-  if (success) deliveryStatus = 'success';
-  else if (isDeferred) deliveryStatus = 'queued';
+  let deliveryStatus: 'success' | 'queued' | 'error' = success ? 'success' : 'error';
+  let deferredData: Record<string, unknown> = {};
+  if (deferOnRateLimit !== false && isRateLimited) {
+    try {
+      if (typeof deferOnRateLimit === 'function') deferredData = await deferOnRateLimit();
+      deliveryStatus = 'queued';
+    } catch (error) {
+      // Without what it needs to be sent later, the mail stays failed for a person to resend.
+      payload.logger.error({
+        err: error,
+        msg: `Could not queue mail ${String(outgoingEmailId)} after the server refused it for its limit.`,
+      });
+    }
+  }
 
   // 3. Prepare the SMTP result
   const smtpResult: Record<string, unknown> = {
@@ -230,6 +242,7 @@ export const sendTrackedEmail = async (
         smtpResults: results,
         rawSmtpResults: results,
         deliveryStatus,
+        ...deferredData,
         smtpReceivedAt: new Date().toISOString(),
       },
     });

@@ -1,5 +1,6 @@
 import {
   sendTrackedEmail,
+  type SendEmailOptions,
   type TrackedEmailResult,
 } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import type { OutgoingEmail } from '@/features/payload-cms/payload-types';
@@ -26,6 +27,30 @@ export interface BackgroundEmail {
   /** the Besuchstag bill the mail carries, whose mail status follows the mail's delivery */
   visitDayBill?: string;
 }
+
+/**
+ * The envelope a form mail was written with, kept with it while it waits in the queue:
+ * a contact form answers to whoever filled it in, and an approval mail may name a sender.
+ */
+interface QueuedHeaders {
+  from?: unknown;
+  cc?: unknown;
+  bcc?: unknown;
+  replyTo?: unknown;
+}
+
+const HEADER_NAMES = ['from', 'cc', 'bcc', 'replyTo'] as const;
+
+/** The column is `json`, so it holds whatever was written, including nothing. */
+const readQueuedHeaders = (value: unknown): QueuedHeaders => {
+  if (typeof value !== 'object' || value === null) return {};
+  const stored = value as Record<string, unknown>;
+  return Object.fromEntries(
+    HEADER_NAMES.filter((name) => stored[name] !== undefined && stored[name] !== null).map(
+      (name) => [name, stored[name]],
+    ),
+  );
+};
 
 /** Where one attachment of a queued mail waits. */
 interface StoredAttachment {
@@ -127,6 +152,37 @@ export const releaseQueuedAttachments = async (
   });
 };
 
+/** Copies attachments to the bucket where a queued mail's attachments wait. */
+const storeAttachments = async (
+  payload: Payload,
+  attachments: NonNullable<BackgroundEmail['attachments']>,
+): Promise<StoredAttachment[]> => {
+  const folder = randomUUID();
+  const stored: StoredAttachment[] = [];
+  try {
+    for (const attachment of attachments) {
+      const key = `${folder}/${attachment.filename}`;
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: MAIL_ATTACHMENT_BUCKET_NAME,
+          Key: key,
+          Body: attachment.content,
+          ...(attachment.contentType === undefined ? {} : { ContentType: attachment.contentType }),
+        }),
+      );
+      stored.push({
+        filename: attachment.filename,
+        key,
+        ...(attachment.contentType === undefined ? {} : { contentType: attachment.contentType }),
+      });
+    }
+    return stored;
+  } catch (error) {
+    await deleteStoredAttachments(payload, stored);
+    throw error;
+  }
+};
+
 /**
  * Puts a mail into the outgoing queue instead of sending it.
  *
@@ -144,27 +200,9 @@ export const queueBackgroundEmail = async (
   email: BackgroundEmail,
   billParticipantId?: string | string[],
 ): Promise<TrackedEmailResult> => {
-  const folder = randomUUID();
-  const stored: StoredAttachment[] = [];
+  const stored = await storeAttachments(payload, email.attachments ?? []);
 
   try {
-    for (const attachment of email.attachments ?? []) {
-      const key = `${folder}/${attachment.filename}`;
-      await s3Client.send(
-        new PutObjectCommand({
-          Bucket: MAIL_ATTACHMENT_BUCKET_NAME,
-          Key: key,
-          Body: attachment.content,
-          ...(attachment.contentType === undefined ? {} : { ContentType: attachment.contentType }),
-        }),
-      );
-      stored.push({
-        filename: attachment.filename,
-        key,
-        ...(attachment.contentType === undefined ? {} : { contentType: attachment.contentType }),
-      });
-    }
-
     const document_ = await payload.create({
       collection: 'outgoing-emails',
       data: {
@@ -263,20 +301,71 @@ export const loadQueuedAttachments = async (
   return attachments;
 };
 
+/** The submission a queued form mail belongs to, so its results are recorded there too. */
+const formSubmissionIdOf = (email: OutgoingEmail): string | undefined => {
+  const submission = email.formSubmission;
+  if (submission === null || submission === undefined) return undefined;
+  return typeof submission === 'string' ? submission : submission.id;
+};
+
+/** Stops the queue for a while after the server refused a mail for its limit. */
+const holdQueue = async (payload: Payload, emailId: string): Promise<void> => {
+  await redis.set(HOLD_KEY, '1', 'PX', HOLD_MS);
+  payload.logger.warn(
+    `Mail server refused mail ${emailId} for its limit of outgoing mail; the outgoing queue holds for ${String(HOLD_MS / 60_000)} minutes.`,
+  );
+};
+
+/** The attachments of a mail as the transport takes them, where they are files in memory. */
+const attachmentsOf = (email: SendEmailOptions): NonNullable<BackgroundEmail['attachments']> => {
+  const { attachments } = email as { attachments?: unknown };
+  if (!Array.isArray(attachments)) return [];
+  return attachments.filter(
+    (attachment): attachment is { filename: string; content: Buffer; contentType?: string } =>
+      typeof attachment === 'object' &&
+      attachment !== null &&
+      typeof (attachment as { filename?: unknown }).filename === 'string' &&
+      Buffer.isBuffer((attachment as { content?: unknown }).content),
+  );
+};
+
+/**
+ * Sends a mail of a form, a confirmation, a contact form or an approval mail, right away.
+ *
+ * Somebody just submitted the form and waits for it, so it does not wait in the queue. Only
+ * when the server refuses it because its limit of outgoing mail is reached does it go into
+ * the queue, with its attachments and envelope, and then ahead of every other queued mail.
+ */
+export const sendFormEmail = async (
+  payload: Payload,
+  email: SendEmailOptions,
+  formSubmissionId: string,
+  outgoingEmailId?: string,
+): Promise<TrackedEmailResult> => {
+  const result = await sendTrackedEmail(
+    payload,
+    email,
+    formSubmissionId,
+    undefined,
+    outgoingEmailId,
+    async () => ({
+      queuedAttachments: await storeAttachments(payload, attachmentsOf(email)),
+      queuedHeaders: readQueuedHeaders(email),
+    }),
+  );
+  if (result.rateLimited === true) await holdQueue(payload, result.outgoingEmailId);
+  return result;
+};
+
 /** The oldest queued mails, at most as many as an hour's budget could ever send. */
 const findQueued = async (
   payload: Payload,
-  linkedToOneParticipant: boolean,
+  kind: Record<string, { exists: boolean }>[],
   limit: number,
 ): Promise<OutgoingEmail[]> => {
   const found = await payload.find({
     collection: 'outgoing-emails',
-    where: {
-      and: [
-        { deliveryStatus: { equals: 'queued' } },
-        { billParticipant: { exists: linkedToOneParticipant } },
-      ],
-    },
+    where: { and: [{ deliveryStatus: { equals: 'queued' } }, ...kind] },
     sort: 'createdAt',
     limit,
   });
@@ -286,8 +375,9 @@ const findQueued = async (
 /**
  * Sends queued mails, oldest first, until the queue is empty or the hourly budget is used up.
  *
- * Bills come last. They are the one kind of mail that arrives by the thousand, and a
- * weekly report or a reminder queued behind them would otherwise wait for days.
+ * Mails of a form come first: somebody submitted it and waits for the answer. Bills come
+ * last. They are the one kind of mail that arrives by the thousand, and a weekly report or a
+ * reminder queued behind them would otherwise wait for days.
  *
  * A mail is marked `pending` before it is handed to the mail server. A replica that dies in
  * between leaves that one mail in `pending` for a person to look at, which is the better
@@ -314,8 +404,17 @@ export const drainEmailOutbox = async (
     if ((await redis.get(HOLD_KEY)) !== null) return { ...summary, held: true };
 
     const queue = [
-      ...(await findQueued(payload, false, batchSize)),
-      ...(await findQueued(payload, true, batchSize)),
+      ...(await findQueued(payload, [{ formSubmission: { exists: true } }], batchSize)),
+      ...(await findQueued(
+        payload,
+        [{ formSubmission: { exists: false } }, { billParticipant: { exists: false } }],
+        batchSize,
+      )),
+      ...(await findQueued(
+        payload,
+        [{ formSubmission: { exists: false } }, { billParticipant: { exists: true } }],
+        batchSize,
+      )),
     ];
 
     for (const email of queue) {
@@ -347,9 +446,10 @@ export const drainEmailOutbox = async (
             subject: email.subject,
             ...(typeof email.html === 'string' && email.html !== '' ? { html: email.html } : {}),
             ...(typeof email.text === 'string' && email.text !== '' ? { text: email.text } : {}),
+            ...readQueuedHeaders(email.queuedHeaders),
             attachments,
-          },
-          undefined,
+          } as SendEmailOptions,
+          formSubmissionIdOf(email),
           undefined,
           email.id,
           true,
@@ -358,10 +458,7 @@ export const drainEmailOutbox = async (
         if (result.rateLimited === true) {
           // The mail is queued again with its attachments, and so is everything after it.
           summary.rateLimited = true;
-          await redis.set(HOLD_KEY, '1', 'PX', HOLD_MS);
-          payload.logger.warn(
-            `Mail server refused queued mail ${email.id} for its limit of outgoing mail; the outgoing queue holds for ${String(HOLD_MS / 60_000)} minutes.`,
-          );
+          await holdQueue(payload, email.id);
           break;
         }
       } catch (error) {

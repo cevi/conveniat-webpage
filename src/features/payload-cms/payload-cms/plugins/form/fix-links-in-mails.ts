@@ -7,12 +7,12 @@ import {
 import { getFormFieldNames } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
 import { isUploadedBySender } from '@/features/payload-cms/payload-cms/plugins/form/form-file-uploader';
 import { getMailDisplayValues } from '@/features/payload-cms/payload-cms/plugins/form/mail-display-values';
+import { sendFormEmail } from '@/features/payload-cms/payload-cms/utils/email-outbox';
 import {
   type CustomAutoLinkNode,
   escapeHTML,
 } from '@/features/payload-cms/payload-cms/utils/html-utils';
 import { phoneLinkHTMLConverters } from '@/features/payload-cms/payload-cms/utils/phone-link-html-converter';
-import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import { FORM_FILE_BUCKET_NAME, s3Client } from '@/lib/s3';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -545,19 +545,13 @@ export const beforeEmailChangeHook: BeforeEmail = async (
   void (async (): Promise<void> => {
     for (const item of emailsWithIds) {
       try {
-        await sendTrackedEmail(
-          payload,
-          item.email,
-          formSubmissionId,
-          undefined,
-          item.outgoingEmailId,
-        );
+        await sendFormEmail(payload, item.email, formSubmissionId, item.outgoingEmailId);
       } catch (error: unknown) {
         const itemEmailOptions = item.email as { to?: unknown };
         const emailTo = typeof itemEmailOptions.to === 'string' ? itemEmailOptions.to : 'unknown';
         payload.logger.error({
           err: error instanceof Error ? error : new Error(String(error)),
-          msg: `Asynchronous sendTrackedEmail failed for email to: ${emailTo}`,
+          msg: `Asynchronous sendFormEmail failed for email to: ${emailTo}`,
         });
       }
     }

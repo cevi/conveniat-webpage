@@ -38,6 +38,7 @@ import {
   discardQueuedEmailsFor,
   drainEmailOutbox,
   queueBackgroundEmail,
+  sendFormEmail,
 } from '@/features/payload-cms/payload-cms/utils/email-outbox';
 import type { Payload } from 'payload';
 
@@ -246,6 +247,40 @@ describe('drainEmailOutbox', () => {
     expect(rows[0]?.['deliveryStatus']).toBe('queued');
   });
 
+  it('lets the mails of a form out before everything else', async () => {
+    const { payload } = payloadDouble([
+      queuedRow('bill', { billParticipant: 'p1' }),
+      queuedRow('report'),
+      queuedRow('confirmation', { formSubmission: 'submission-1' }),
+    ]);
+    mockReserve.mockResolvedValueOnce(true).mockResolvedValue(false);
+
+    await drainEmailOutbox(payload, 50);
+
+    const [, mail, submission] = mockSendTrackedEmail.mock.calls[0] as [
+      unknown,
+      { to: string },
+      string,
+    ];
+    expect(mail.to).toBe('confirmation@example.com');
+    // so the submission records the delivery too
+    expect(submission).toBe('submission-1');
+  });
+
+  it('sends a queued form mail with the reply address and copies it was written with', async () => {
+    const { payload } = payloadDouble([
+      queuedRow('contact', {
+        formSubmission: 'submission-1',
+        queuedHeaders: { replyTo: 'eltern@example.com', cc: ['kernteam@example.com'] },
+      }),
+    ]);
+
+    await drainEmailOutbox(payload, 50);
+
+    const [, mail] = mockSendTrackedEmail.mock.calls[0] as [unknown, Record<string, unknown>];
+    expect(mail).toMatchObject({ replyTo: 'eltern@example.com', cc: ['kernteam@example.com'] });
+  });
+
   it('lets reminders and reports out before the bills', async () => {
     const { payload } = payloadDouble([
       queuedRow('bill-1', { billParticipant: 'p1' }),
@@ -283,6 +318,52 @@ describe('drainEmailOutbox', () => {
     expect(summary).toMatchObject({ sent: 0, duplicate: true });
     expect(mockSendTrackedEmail).not.toHaveBeenCalled();
     expect(rows[0]?.['deliveryStatus']).toBe('queued');
+  });
+});
+
+describe('sendFormEmail', () => {
+  const confirmation = {
+    to: 'eltern@example.com',
+    replyTo: 'kernteam@example.com',
+    subject: 'Bestätigung',
+    html: '<p>Danke</p>',
+    attachments: [
+      { filename: 'plan.pdf', content: Buffer.from([1]), contentType: 'application/pdf' },
+    ],
+  };
+
+  it('sends the mail right away', async () => {
+    const { payload } = payloadDouble();
+
+    const result = await sendFormEmail(payload, confirmation, 'submission-1', 'mail-1');
+
+    expect(result.success).toBe(true);
+    const call = mockSendTrackedEmail.mock.calls[0] as unknown[];
+    expect(call.slice(1, 5)).toEqual([confirmation, 'submission-1', undefined, 'mail-1']);
+    expect(mockRedis.set).not.toHaveBeenCalled();
+  });
+
+  it('keeps what a refused mail needs to be sent from the queue, and holds the queue', async () => {
+    const { payload } = payloadDouble();
+    mockSendTrackedEmail.mockResolvedValue({
+      success: false,
+      outgoingEmailId: 'mail-1',
+      error: 'limit',
+      rateLimited: true,
+    });
+
+    await sendFormEmail(payload, confirmation, 'submission-1', 'mail-1');
+
+    // what the queue needs is written with the refusal, in the same update
+    const keep = (mockSendTrackedEmail.mock.calls[0] as unknown[])[5] as () => Promise<unknown>;
+    expect(await keep()).toEqual({
+      queuedAttachments: [
+        expect.objectContaining({ filename: 'plan.pdf', contentType: 'application/pdf' }),
+      ],
+      queuedHeaders: { replyTo: 'kernteam@example.com' },
+    });
+    expect(s3Calls('put')).toEqual([expect.stringMatching(/\/plan\.pdf$/)]);
+    expect(mockRedis.set).toHaveBeenCalledWith('email:outbox-hold', '1', 'PX', expect.any(Number));
   });
 });
 
