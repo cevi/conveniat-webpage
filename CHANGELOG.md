@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.61.2](https://github.com/cevi/conveniat-webpage/compare/v1.61.1...v1.61.2) (2026-11-16)
+
+
+### Bug Fixes
+
+* **mail:** hold the mail queue when the server refuses for its limit ([7ef481d](https://github.com/cevi/conveniat-webpage/commit/7ef481d6dcc2244fc8765df96709e6119d743e8e))
+* **mail:** hold the mail queue when the server refuses for its limit ([79609d8](https://github.com/cevi/conveniat-webpage/commit/79609d817bff0901cd3ca3df70d10360636afa3b))
+
 ## [1.61.1](https://github.com/cevi/conveniat-webpage/compare/v1.61.0...v1.61.1) (2026-11-16)
 
 
