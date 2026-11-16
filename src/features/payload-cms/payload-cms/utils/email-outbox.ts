@@ -301,6 +301,12 @@ export const loadQueuedAttachments = async (
   return attachments;
 };
 
+/** Until when the queue holds after the server refused a mail for its limit; undefined when it does not. */
+export const outboxHoldEndsAt = async (): Promise<Date | undefined> => {
+  const remaining = await redis.pttl(HOLD_KEY);
+  return remaining > 0 ? new Date(Date.now() + remaining) : undefined;
+};
+
 /** The submission a queued form mail belongs to, so its results are recorded there too. */
 const formSubmissionIdOf = (email: OutgoingEmail): string | undefined => {
   const submission = email.formSubmission;
