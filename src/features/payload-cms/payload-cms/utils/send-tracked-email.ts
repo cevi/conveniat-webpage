@@ -21,7 +21,27 @@ export interface TrackedEmailResult {
   outgoingEmailId: string;
   /** The SMTP error, when there was one. */
   error?: string;
+  /**
+   * Set when the mail server refused the mail because its limit of outgoing mail was reached.
+   * With `deferOnRateLimit` the mail is then back in the queue rather than failed.
+   */
+  rateLimited?: boolean;
 }
+
+/**
+ * How mail servers word a refusal because too much mail went out, e.g. Plesk's
+ * "554 5.7.0 … The limit on the number of allowed outgoing messages was exceeded".
+ */
+const RATE_LIMIT_REJECTION =
+  /limit on the number of allowed outgoing messages|rate.?limit|too many (?:messages|mails|emails|recipients)|sending (?:quota|limit) exceeded/i;
+
+/**
+ * Whether an SMTP error says the server's limit of outgoing mail was reached, rather than
+ * that something is wrong with this mail. The server took nothing, so the mail can be sent
+ * again later without anybody getting it twice.
+ */
+export const isRateLimitRejection = (error: unknown): boolean =>
+  RATE_LIMIT_REJECTION.test(String(error));
 
 export const sendTrackedEmail = async (
   payload: Payload,
@@ -30,6 +50,12 @@ export const sendTrackedEmail = async (
   /** One participation, or the several a reminder to a Hof's Adressverwalter covers. */
   billParticipantId?: string | string[],
   existingOutgoingEmailId?: string,
+  /**
+   * For the outgoing queue: a mail the server refused because its hourly limit is reached
+   * goes back to `queued` instead of turning `error`, so a bill waiting for it is not
+   * marked failed and the queue sends it once the server takes mail again.
+   */
+  deferOnRateLimit = false,
 ): Promise<TrackedEmailResult> => {
   const options = emailOptions as unknown as {
     to?: string | string[];
@@ -159,6 +185,11 @@ export const sendTrackedEmail = async (
     });
   }
   const isPartlyWithheld = suppressed.length > 0 && !isWithheld;
+  const isRateLimited = !success && !isWithheld && isRateLimitRejection(responseOrError);
+  const isDeferred = deferOnRateLimit && isRateLimited;
+  let deliveryStatus: 'success' | 'queued' | 'error' = 'error';
+  if (success) deliveryStatus = 'success';
+  else if (isDeferred) deliveryStatus = 'queued';
 
   // 3. Prepare the SMTP result
   const smtpResult: Record<string, unknown> = {
@@ -198,7 +229,7 @@ export const sendTrackedEmail = async (
         ...body,
         smtpResults: results,
         rawSmtpResults: results,
-        deliveryStatus: success ? 'success' : 'error',
+        deliveryStatus,
         smtpReceivedAt: new Date().toISOString(),
       },
     });
@@ -239,5 +270,6 @@ export const sendTrackedEmail = async (
     success,
     outgoingEmailId: String(outgoingEmailId),
     ...(success ? {} : { error: String(responseOrError) }),
+    ...(isRateLimited ? { rateLimited: true } : {}),
   };
 };
