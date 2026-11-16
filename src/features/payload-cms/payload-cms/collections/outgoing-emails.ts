@@ -496,6 +496,16 @@ export const OutgoingEmails: CollectionConfig = {
       },
     },
     {
+      // The sender, copies and reply address of a form mail that had to wait in the queue,
+      // so it leaves the way it was written. See `sendFormEmail`.
+      name: 'queuedHeaders',
+      type: 'json',
+      admin: {
+        hidden: true,
+        readOnly: true,
+      },
+    },
+    {
       name: 'createdAt',
       type: 'date',
       index: true,

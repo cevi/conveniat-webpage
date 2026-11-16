@@ -1,10 +1,10 @@
+import { sendFormEmail } from '@/features/payload-cms/payload-cms/utils/email-outbox';
 import { EMAIL_SENDER_ADDRESS } from '@/features/payload-cms/payload-cms/utils/email-sender';
 import {
   escapeHTML,
   type CustomAutoLinkNode,
 } from '@/features/payload-cms/payload-cms/utils/html-utils';
 import { phoneLinkHTMLConverters } from '@/features/payload-cms/payload-cms/utils/phone-link-html-converter';
-import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import { FORM_FILE_BUCKET_NAME, s3Client } from '@/lib/s3';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import type { FormattedEmail } from '@payloadcms/plugin-form-builder/types';
@@ -357,13 +357,7 @@ export const sendApprovalEmail: CollectionAfterChangeHook = async ({
     // Send tracked email asynchronously in background so approval response returns immediately
     void (async (): Promise<void> => {
       try {
-        await sendTrackedEmail(
-          req.payload,
-          formattedEmail,
-          formSubmissionId,
-          undefined,
-          outgoingEmailId,
-        );
+        await sendFormEmail(req.payload, formattedEmail, formSubmissionId, outgoingEmailId);
       } catch (sendError) {
         req.payload.logger.error(
           `sendApprovalEmail: Failed to send tracked approval email to ${emailTo}: ${String(sendError)}`,
