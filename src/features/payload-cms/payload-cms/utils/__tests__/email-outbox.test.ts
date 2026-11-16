@@ -17,9 +17,10 @@ jest.mock('@aws-sdk/client-s3', () => ({
     constructor(readonly input: { Key: string }) {}
   },
 }));
-const mockRedis = { set: jest.fn(), eval: jest.fn() };
+const mockRedis = { get: jest.fn(), set: jest.fn(), eval: jest.fn() };
 jest.mock('@/lib/db/redis', () => ({
   redis: {
+    get: (...arguments_: unknown[]): unknown => mockRedis.get(...arguments_),
     set: (...arguments_: unknown[]): unknown => mockRedis.set(...arguments_),
     eval: (...arguments_: unknown[]): unknown => mockRedis.eval(...arguments_),
   },
@@ -95,6 +96,7 @@ const s3Calls = (kind: string): string[] =>
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockRedis.get.mockResolvedValue(null);
   mockRedis.set.mockResolvedValue('OK');
   mockReserve.mockResolvedValue(true);
   mockS3Send.mockImplementation((command: { kind: string }) =>
@@ -197,8 +199,51 @@ describe('drainEmailOutbox', () => {
     expect(summary).toMatchObject({ sent: 0, failed: 1 });
     expect(s3Calls('delete')).toEqual([]);
     expect(rows[0]?.['queuedAttachments']).toEqual([attachment]);
-    // Never back to `queued`: the next run must not send it a second time.
+    // Not back to `queued` for any other refusal: the next run must not send it a second time.
     expect(rows[0]?.['deliveryStatus']).not.toBe('queued');
+  });
+
+  it('queues a mail the server refused for its limit again, and holds the queue', async () => {
+    const attachment = { filename: 'rechnung.pdf', key: 'folder/rechnung.pdf' };
+    const { payload, rows } = payloadDouble([
+      queuedRow('a', { queuedAttachments: [attachment] }),
+      queuedRow('b'),
+    ]);
+    // The real one writes `queued` back onto the row when it was told to defer.
+    mockSendTrackedEmail.mockImplementation(
+      (_payload: unknown, _mail: unknown, ...rest: unknown[]) => {
+        const row = rows.find((candidate) => candidate.id === rest[2]);
+        if (row !== undefined) row['deliveryStatus'] = 'queued';
+        return Promise.resolve({
+          success: false,
+          outgoingEmailId: 'a',
+          error: 'limit',
+          rateLimited: true,
+        });
+      },
+    );
+
+    const summary = await drainEmailOutbox(payload, 50);
+
+    expect(summary).toMatchObject({ sent: 0, rateLimited: true });
+    expect(mockSendTrackedEmail).toHaveBeenCalledTimes(1);
+    // asked to defer such a refusal rather than fail the mail
+    expect((mockSendTrackedEmail.mock.calls[0] as unknown[])[5]).toBe(true);
+    expect(rows.map((row) => row['deliveryStatus'])).toEqual(['queued', 'queued']);
+    expect(rows[0]?.['queuedAttachments']).toEqual([attachment]);
+    expect(mockRedis.set).toHaveBeenCalledWith('email:outbox-hold', '1', 'PX', expect.any(Number));
+  });
+
+  it('sends nothing while the queue holds after such a refusal', async () => {
+    const { payload, rows } = payloadDouble([queuedRow('a')]);
+    mockRedis.get.mockResolvedValue('1');
+
+    const summary = await drainEmailOutbox(payload, 50);
+
+    expect(summary).toMatchObject({ sent: 0, held: true });
+    expect(mockSendTrackedEmail).not.toHaveBeenCalled();
+    expect(mockReserve).not.toHaveBeenCalled();
+    expect(rows[0]?.['deliveryStatus']).toBe('queued');
   });
 
   it('lets reminders and reports out before the bills', async () => {

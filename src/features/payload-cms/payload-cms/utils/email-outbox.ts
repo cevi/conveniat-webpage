@@ -42,6 +42,10 @@ export interface OutboxDrainSummary {
   budgetExhausted: boolean;
   /** Set when the other replica was already draining. */
   duplicate?: boolean;
+  /** Set when the mail server refused a mail because its limit was reached; the queue now holds. */
+  rateLimited?: boolean;
+  /** Set when the queue was holding after such a refusal and sent nothing. */
+  held?: boolean;
 }
 
 export interface OutboxDrainHooks {
@@ -55,6 +59,17 @@ export interface OutboxDrainHooks {
 const DRAIN_LOCK_KEY = 'email:outbox-drain-lock';
 /** A full hour's budget at a few seconds a mail still fits; a drain that died frees the queue after this. */
 const DRAIN_LOCK_TTL_MS = 10 * 60 * 1000;
+/**
+ * Set when the mail server refused a mail because its limit of outgoing mail was reached.
+ * Its limit counts every mail of the domain, the forms' confirmations and other deployments
+ * included, so our own budget can have room while the server has none.
+ */
+const HOLD_KEY = 'email:outbox-hold';
+/**
+ * How long the queue waits after such a refusal before it tries one mail again. The server
+ * counts the last sixty minutes, so room comes back bit by bit as the oldest mails age out.
+ */
+const HOLD_MS = 10 * 60 * 1000;
 const RELEASE_SCRIPT = `
 if redis.call("get", KEYS[1]) == ARGV[1] then
   return redis.call("del", KEYS[1])
@@ -274,9 +289,11 @@ const findQueued = async (
  * Bills come last. They are the one kind of mail that arrives by the thousand, and a
  * weekly report or a reminder queued behind them would otherwise wait for days.
  *
- * A mail is marked `pending` before it is handed to the mail server and never returns to
- * `queued`. A replica that dies in between leaves that one mail in `pending` for a person
- * to look at, which is the better failure than a participant receiving a bill twice.
+ * A mail is marked `pending` before it is handed to the mail server. A replica that dies in
+ * between leaves that one mail in `pending` for a person to look at, which is the better
+ * failure than a participant receiving a bill twice. The one way back to `queued` is a
+ * refusal because the server's limit of outgoing mail is reached: the server took nothing,
+ * so the mail waits, and the whole queue holds for a while before it tries again.
  *
  * @param batchSize how many mails to look at in one run; an hour's budget is the most that could go out
  */
@@ -294,6 +311,8 @@ export const drainEmailOutbox = async (
   if (locked !== 'OK') return { ...summary, duplicate: true };
 
   try {
+    if ((await redis.get(HOLD_KEY)) !== null) return { ...summary, held: true };
+
     const queue = [
       ...(await findQueued(payload, false, batchSize)),
       ...(await findQueued(payload, true, batchSize)),
@@ -333,8 +352,18 @@ export const drainEmailOutbox = async (
           undefined,
           undefined,
           email.id,
+          true,
         );
         delivered = result.success;
+        if (result.rateLimited === true) {
+          // The mail is queued again with its attachments, and so is everything after it.
+          summary.rateLimited = true;
+          await redis.set(HOLD_KEY, '1', 'PX', HOLD_MS);
+          payload.logger.warn(
+            `Mail server refused queued mail ${email.id} for its limit of outgoing mail; the outgoing queue holds for ${String(HOLD_MS / 60_000)} minutes.`,
+          );
+          break;
+        }
       } catch (error) {
         payload.logger.error({ err: error, msg: `Queued mail ${email.id} could not be sent.` });
         await payload.update({
