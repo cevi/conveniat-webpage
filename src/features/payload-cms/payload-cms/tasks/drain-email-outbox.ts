@@ -16,7 +16,8 @@ import { countRunnableOrActiveJobsForQueue } from 'payload';
  *
  * Bills, Pflichtangaben reminders and the weekly report are queued rather than sent, and
  * this is the only place they leave from. It sends as many as the hourly budget for
- * background mail allows and leaves the rest for the next minute. See `email-outbox`.
+ * background mail allows and leaves the rest for the next minute. When the mail server refuses
+ * a mail because its own limit is reached, the queue holds for a while. See `email-outbox`.
  */
 export const drainEmailOutboxTask: TaskConfig<'drainEmailOutbox'> = {
   slug: 'drainEmailOutbox',

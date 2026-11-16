@@ -668,3 +668,69 @@ describe('suppressing addresses that bounced', () => {
     expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: 'avp@example.com' }));
   });
 });
+
+describe('refusals because the mail server limit is reached', () => {
+  const LIMIT_REFUSAL =
+    'Message failed: 554 5.7.0 Your message could not be sent. The limit on the number of allowed outgoing messages was exceeded. Try again later.';
+
+  it('puts a queued mail back into the queue instead of failing it', async () => {
+    const { payload, mails, sendEmail } = world();
+    sendEmail.mockRejectedValueOnce(new Error(LIMIT_REFUSAL));
+    mails.push({
+      id: 'queued-1',
+      to: 'eltern@example.com',
+      subject: 'Rechnung',
+      deliveryStatus: 'pending',
+    });
+
+    const result = await sendTrackedEmail(
+      payload,
+      { to: 'eltern@example.com', subject: 'Rechnung' },
+      undefined,
+      undefined,
+      'queued-1',
+      true,
+    );
+
+    expect(result).toMatchObject({ success: false, rateLimited: true });
+    expect(mails[0]?.['deliveryStatus']).toBe('queued');
+    // the refusal stays visible on the mail
+    expect(JSON.stringify(mails[0]?.['smtpResults'])).toContain('limit on the number');
+  });
+
+  it('still fails a mail sent straight away, which has no queue to wait in', async () => {
+    const { payload, mails, sendEmail } = world();
+    sendEmail.mockRejectedValueOnce(new Error(LIMIT_REFUSAL));
+
+    const result = await sendTrackedEmail(payload, {
+      to: 'eltern@example.com',
+      subject: 'Bestätigung',
+    });
+
+    expect(result).toMatchObject({ success: false, rateLimited: true });
+    expect(mails[0]?.['deliveryStatus']).toBe('error');
+  });
+
+  it('fails a queued mail the server refused for another reason', async () => {
+    const { payload, mails, sendEmail } = world();
+    sendEmail.mockRejectedValueOnce(new Error('550 5.1.1 Mailbox unavailable'));
+    mails.push({
+      id: 'queued-1',
+      to: 'eltern@example.com',
+      subject: 'Rechnung',
+      deliveryStatus: 'pending',
+    });
+
+    const result = await sendTrackedEmail(
+      payload,
+      { to: 'eltern@example.com', subject: 'Rechnung' },
+      undefined,
+      undefined,
+      'queued-1',
+      true,
+    );
+
+    expect(result.rateLimited).toBeUndefined();
+    expect(mails[0]?.['deliveryStatus']).toBe('error');
+  });
+});
