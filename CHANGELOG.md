@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.61.0](https://github.com/cevi/conveniat-webpage/compare/v1.60.0...v1.61.0) (2026-11-15)
+
+
+### Features
+
+* **visit-day:** price summary beside the Besuchstag form ([6716431](https://github.com/cevi/conveniat-webpage/commit/67164319c1ea1de9c6cd38a84636ec4a6b9ad52b))
+* **visit-day:** price summary beside the Besuchstag form ([ec05b00](https://github.com/cevi/conveniat-webpage/commit/ec05b0028da15b3111a44a6171fdc8e0a19faaa9))
+
+
+### Bug Fixes
+
+* **admin:** join tables no longer overflow under the sidebar ([e35bbd6](https://github.com/cevi/conveniat-webpage/commit/e35bbd63b71d4163a2a605653a4086006a02689c))
+* **admin:** join tables no longer overflow under the sidebar ([9e72479](https://github.com/cevi/conveniat-webpage/commit/9e724798ded12ac8bde43f205fa022e2f1169bd6))
+* **admin:** name the rows of titled points after their title ([db8e793](https://github.com/cevi/conveniat-webpage/commit/db8e79322f5c8ceda88d60760f9456b1db5fe7e7))
+* **admin:** name the rows of titled points after their title ([31fa08a](https://github.com/cevi/conveniat-webpage/commit/31fa08a578beb63f33c0fda9569573790ed79579))
+* **countdown:** balance the wrapped description lines ([f936880](https://github.com/cevi/conveniat-webpage/commit/f9368805a968b2a23bba4f1cc62dc9730b060257))
+* **countdown:** balance the wrapped description lines ([27803a1](https://github.com/cevi/conveniat-webpage/commit/27803a15d0da4e2a785b07d5946e516f56bbd05b))
+* **visit-day:** count every person, find nested fields, show the name error ([0f47083](https://github.com/cevi/conveniat-webpage/commit/0f4708369ece005156553c1a1cafc20897e699d5))
+
 ## [1.60.0](https://github.com/cevi/conveniat-webpage/compare/v1.59.0...v1.60.0) (2026-11-15)
 
 
