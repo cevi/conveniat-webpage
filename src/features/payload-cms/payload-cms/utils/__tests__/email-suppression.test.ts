@@ -711,6 +711,41 @@ describe('refusals because the mail server limit is reached', () => {
     expect(mails[0]?.['deliveryStatus']).toBe('error');
   });
 
+  it('writes what the queue needs with the refusal', async () => {
+    const { payload, mails, sendEmail } = world();
+    sendEmail.mockRejectedValueOnce(new Error(LIMIT_REFUSAL));
+
+    await sendTrackedEmail(
+      payload,
+      { to: 'eltern@example.com', subject: 'Bestätigung' },
+      undefined,
+      undefined,
+      undefined,
+      () => Promise.resolve({ queuedHeaders: { replyTo: 'kernteam@example.com' } }),
+    );
+
+    expect(mails[0]).toMatchObject({
+      deliveryStatus: 'queued',
+      queuedHeaders: { replyTo: 'kernteam@example.com' },
+    });
+  });
+
+  it('fails the mail when what the queue needs cannot be kept', async () => {
+    const { payload, mails, sendEmail } = world();
+    sendEmail.mockRejectedValueOnce(new Error(LIMIT_REFUSAL));
+
+    await sendTrackedEmail(
+      payload,
+      { to: 'eltern@example.com', subject: 'Bestätigung' },
+      undefined,
+      undefined,
+      undefined,
+      () => Promise.reject(new Error('bucket unreachable')),
+    );
+
+    expect(mails[0]?.['deliveryStatus']).toBe('error');
+  });
+
   it('fails a queued mail the server refused for another reason', async () => {
     const { payload, mails, sendEmail } = world();
     sendEmail.mockRejectedValueOnce(new Error('550 5.1.1 Mailbox unavailable'));

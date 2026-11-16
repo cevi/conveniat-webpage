@@ -5211,6 +5211,15 @@ export interface OutgoingEmail {
     | number
     | boolean
     | null;
+  queuedHeaders?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   createdAt: string;
   lastRetriggeredBy?: (string | null) | User;
   updatedAt: string;
@@ -8116,6 +8125,7 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
   rawSmtpResults?: T;
   rawDsnEmail?: T;
   queuedAttachments?: T;
+  queuedHeaders?: T;
   createdAt?: T;
   lastRetriggeredBy?: T;
   updatedAt?: T;
