@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.62.0](https://github.com/cevi/conveniat-webpage/compare/v1.61.2...v1.62.0) (2026-11-16)
+
+
+### Features
+
+* **mail:** queue form mails the server refused for its limit, ahead of other mail ([818c320](https://github.com/cevi/conveniat-webpage/commit/818c32080eb8cc506d188415e45a894bb2bce726))
+* **mail:** queue form mails the server refused for its limit, ahead of other mail ([7b5466b](https://github.com/cevi/conveniat-webpage/commit/7b5466b3ddf22c07ca34ce6ccb1d9e71f9e57c8f))
+
 ## [1.61.2](https://github.com/cevi/conveniat-webpage/compare/v1.61.1...v1.61.2) (2026-11-16)
 
 
