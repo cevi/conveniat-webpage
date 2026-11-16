@@ -1,69 +1,55 @@
 'use client';
 
+import { useSmtpTranslation } from '@/features/payload-cms/payload-cms/components/smtp-results/use-smtp-translation';
+import type { StaticTranslationString } from '@/types/types';
 import { useField, useFormFields } from '@payloadcms/ui';
-import React, { useRef } from 'react';
+import type React from 'react';
 
-export const EmailPreviewField: React.FC<{
-  path: string;
-  label?: Record<string, string> | string;
-}> = ({ path, label }) => {
+const noContent: StaticTranslationString = {
+  en: 'This mail has no content.',
+  de: 'Diese Mail hat keinen Inhalt.',
+  fr: "Cet e-mail n'a pas de contenu.",
+};
+const previewTitle: StaticTranslationString = {
+  en: 'Mail preview',
+  de: 'Vorschau der Mail',
+  fr: "Aperçu de l'e-mail",
+};
+
+/**
+ * The mail as its recipient sees it. Sits alone in its tab, which names it, so it has no label.
+ */
+export const EmailPreviewField: React.FC<{ path: string }> = ({ path }) => {
   const { value } = useField<string | null | undefined>({ path });
   // Plain-text mails have no HTML part; their body lives in the sibling `text` field.
   const textValue = useFormFields(([fields]) => fields['text']?.value);
-  const iframeReference = useRef<HTMLIFrameElement>(null);
+  const { lang } = useSmtpTranslation();
 
-  // We are not using a dynamic resize effect here.
-  // Because sandbox="" makes the iframe cross-origin, reading the height from the parent throws a DOMSecurityError.
-  // Instead, the container just relies on a large min-height and allows the user to scroll inside if needed.
+  const hasHtml = typeof value === 'string' && value !== '';
 
-  let labelText = 'Email Content';
-  if (typeof label === 'string') {
-    labelText = label;
-  } else if (label !== undefined && typeof label === 'object') {
-    if (typeof label['en'] === 'string') {
-      labelText = label['en'];
-    } else if (typeof label['de'] === 'string') {
-      labelText = label['de'];
-    }
-  }
-
-  if (
-    (value === null || value === undefined || value === '') &&
-    typeof textValue === 'string' &&
-    textValue !== ''
-  ) {
+  if (!hasHtml && typeof textValue === 'string' && textValue !== '') {
     return (
-      <div className="field-type custom-field mb-4">
-        <label className="field-label">{labelText}</label>
-        <pre className="mt-1 rounded border border-(--theme-elevation-150) p-4 font-sans whitespace-pre-wrap">
-          {textValue}
-        </pre>
-      </div>
+      <pre className="field-type mb-4 rounded border border-(--theme-elevation-150) p-4 font-sans whitespace-pre-wrap">
+        {textValue}
+      </pre>
     );
   }
 
-  if (value === null || value === undefined || value === '') {
-    return (
-      <div className="field-type custom-field mb-4">
-        <label className="field-label">{labelText}</label>
-        <div className="text-gray-500">No email content available</div>
-      </div>
-    );
+  if (!hasHtml) {
+    return <p className="field-type mb-4 text-(--theme-elevation-500)">{noContent[lang]}</p>;
   }
 
+  // An iframe with sandbox="" cannot be measured from here (it is cross-origin), so it gets a
+  // tall fixed height and scrolls inside.
   return (
-    <div className="field-type custom-field mb-4">
-      <label className="field-label">{labelText}</label>
-      <div className="mt-1 min-h-[600px] overflow-hidden rounded border border-gray-200 bg-white dark:border-gray-800">
-        {/* We use an empty sandbox="" to securely isolate the rendered email content completely, stripping it of the parent's origin. */}
-        <iframe
-          ref={iframeReference}
-          srcDoc={value}
-          className="h-full min-h-[600px] w-full border-none"
-          sandbox=""
-          title="Email Preview"
-        />
-      </div>
+    <div className="field-type mb-4 overflow-hidden rounded border border-(--theme-elevation-150) bg-white">
+      {/* The empty sandbox isolates the mail completely, stripping it of the parent's origin. */}
+      <iframe
+        srcDoc={value}
+        className="h-full min-h-[600px] w-full border-none"
+        sandbox=""
+        title={previewTitle[lang]}
+      />
     </div>
   );
 };

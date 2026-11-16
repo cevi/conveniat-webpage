@@ -1,9 +1,22 @@
 'use client';
 
 import type { SmtpResult } from '@/features/payload-cms/payload-cms/components/smtp-results/types';
+import { useSmtpTranslation } from '@/features/payload-cms/payload-cms/components/smtp-results/use-smtp-translation';
+import type { StaticTranslationString } from '@/types/types';
 import { toast, useAuth, useDocumentInfo, useFormFields, useTranslation } from '@payloadcms/ui';
 import { RefreshCw } from 'lucide-react';
 import React, { useState } from 'react';
+
+const resendLabel: StaticTranslationString = {
+  en: 'Send again',
+  de: 'Erneut senden',
+  fr: 'Renvoyer',
+};
+const resendingLabel: StaticTranslationString = {
+  en: 'Sending…',
+  de: 'Wird gesendet…',
+  fr: 'Envoi…',
+};
 
 export interface ResendEmailButtonProperties {
   fullAdminGroupIds?: number[];
@@ -14,6 +27,7 @@ export const ResendEmailButton: React.FC<ResendEmailButtonProperties> = ({ fullA
   const { user } = useAuth();
   const [isResending, setIsResending] = useState(false);
   const { t } = useTranslation();
+  const { lang } = useSmtpTranslation();
 
   const { value: smtpResults } = useFormFields(
     ([fields]) => fields['smtpResults'] ?? { value: [] },
@@ -95,7 +109,7 @@ export const ResendEmailButton: React.FC<ResendEmailButtonProperties> = ({ fullA
         }}
       >
         <RefreshCw size={16} className={isResending ? 'animate-spin' : ''} />
-        {isResending ? 'Resending...' : 'Resend Failed Email'}
+        {isResending ? resendingLabel[lang] : resendLabel[lang]}
       </button>
     </div>
   );

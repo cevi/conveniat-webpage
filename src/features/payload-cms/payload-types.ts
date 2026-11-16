@@ -5181,8 +5181,6 @@ export interface OutgoingEmail {
   visitDayBill?: (string | null) | VisitDayBill;
   type?: ('formSubmission' | 'billParticipant' | 'visitDayBill' | 'other') | null;
   form?: (string | null) | Form;
-  html?: string | null;
-  text?: string | null;
   smtpResults?:
     | {
         [k: string]: unknown;
@@ -5192,6 +5190,8 @@ export interface OutgoingEmail {
     | number
     | boolean
     | null;
+  html?: string | null;
+  text?: string | null;
   rawSmtpResults?:
     | {
         [k: string]: unknown;
@@ -8119,9 +8119,9 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
   visitDayBill?: T;
   type?: T;
   form?: T;
+  smtpResults?: T;
   html?: T;
   text?: T;
-  smtpResults?: T;
   rawSmtpResults?: T;
   rawDsnEmail?: T;
   queuedAttachments?: T;

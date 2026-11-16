@@ -2,7 +2,7 @@
 
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import type { Config } from '@/features/payload-cms/payload-types';
-import { toast, useAuth, useDocumentInfo, useLocale } from '@payloadcms/ui';
+import { Button, FieldLabel, toast, useAuth, useDocumentInfo, useLocale } from '@payloadcms/ui';
 import { CheckCircle, XCircle } from 'lucide-react';
 import React, { useState } from 'react';
 
@@ -130,65 +130,31 @@ export const OverrideStatusButton: React.FC<OverrideStatusButtonProperties> = ({
   };
 
   return (
-    <div
-      style={{
-        marginBottom: '1.5rem',
-        borderTop: '1px solid var(--theme-elevation-150)',
-        paddingTop: '1rem',
-      }}
-    >
-      <h4
-        style={{
-          fontSize: '0.85rem',
-          marginBottom: '0.75rem',
-          fontWeight: 600,
-          color: 'var(--theme-elevation-600)',
-        }}
-      >
-        {labels.title[code]}
-      </h4>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <button
-          type="button"
+    <div className="field-type mb-6">
+      <FieldLabel label={labels.title[code]} />
+      <div className="flex flex-col gap-2">
+        <Button
+          buttonStyle="secondary"
+          size="small"
+          margin={false}
+          icon={<CheckCircle size={16} />}
+          iconPosition="left"
+          disabled={isSubmitting}
           onClick={() => handleOpenModal('success')}
-          disabled={isSubmitting}
-          className="btn btn--style-primary btn--size-small"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            width: '100%',
-            justifyContent: 'center',
-            backgroundColor: '#10b981',
-            borderColor: '#10b981',
-            color: '#fff',
-            cursor: 'pointer',
-          }}
         >
-          <CheckCircle size={16} />
           {labels.markSuccess[code]}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleOpenModal('error')}
+        </Button>
+        <Button
+          buttonStyle="secondary"
+          size="small"
+          margin={false}
+          icon={<XCircle size={16} />}
+          iconPosition="left"
           disabled={isSubmitting}
-          className="btn btn--style-secondary btn--size-small"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            width: '100%',
-            justifyContent: 'center',
-            backgroundColor: '#ef4444',
-            borderColor: '#ef4444',
-            color: '#fff',
-            cursor: 'pointer',
-          }}
+          onClick={() => handleOpenModal('error')}
         >
-          <XCircle size={16} />
           {labels.markError[code]}
-        </button>
+        </Button>
       </div>
 
       <ConfirmationModal

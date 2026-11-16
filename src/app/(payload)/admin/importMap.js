@@ -87,10 +87,13 @@ import { default as default_96dadebc60fbc2b92e64bd956d60c3cb } from '@/features/
 import { EventRowLabel as EventRowLabel_7fd9e802aba4470ba78c74210269ca9c } from '@/features/billing/components/event-row-label'
 import { PopulateSubeventsButton as PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678 } from '@/features/billing/components/populate-subevents-button'
 import { default as default_5ef9787d26b4ecd448f299564fb6b977 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell'
+import { DeliveryStatusField as DeliveryStatusField_a14283fd9175b89db94cf713b73331e5 } from '@/features/payload-cms/payload-cms/components/outgoing-email/delivery-status-field'
 import { ResendEmailButton as ResendEmailButton_e62af8aa593181d6540c08021abb9c8b } from '@/features/payload-cms/payload-cms/components/resend-email/resend-email-button'
 import { OverrideStatusButton as OverrideStatusButton_8c304667b297b7e538d558abfba16bf0 } from '@/features/payload-cms/payload-cms/components/override-status/override-status-button'
-import { default as default_30bb34ba732976b67b42694b834628a5 } from '@/features/payload-cms/payload-cms/components/email-preview/email-preview-field'
+import { ShownInOverview as ShownInOverview_70b822c8acd27f2866153b0deddfec1c } from '@/features/payload-cms/payload-cms/components/outgoing-email/shown-in-overview'
+import { OutgoingEmailOverview as OutgoingEmailOverview_03c4ac1a19ba007d3278a13d2de006f9 } from '@/features/payload-cms/payload-cms/components/outgoing-email/outgoing-email-overview'
 import { default as default_a06f68e0cdad6b2fba6e2223cd5b6303 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field'
+import { default as default_30bb34ba732976b67b42694b834628a5 } from '@/features/payload-cms/payload-cms/components/email-preview/email-preview-field'
 import { default as default_84e24e99aa7b2bdd4ca81a1fd23b526b } from '@/features/payload-cms/payload-cms/components/smtp-results/raw-smtp-results-field'
 import { FormBlockLabel as FormBlockLabel_38d14c2698379009ac744a1a2c27c19b } from '@/features/payload-cms/payload-cms/components/form-block-label'
 import { FormSectionRowLabel as FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955 } from '@/features/payload-cms/payload-cms/components/form-section-row-label'
@@ -247,10 +250,13 @@ export const importMap = {
   "@/features/billing/components/event-row-label#EventRowLabel": EventRowLabel_7fd9e802aba4470ba78c74210269ca9c,
   "@/features/billing/components/populate-subevents-button#PopulateSubeventsButton": PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678,
   "@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell#default": default_5ef9787d26b4ecd448f299564fb6b977,
+  "@/features/payload-cms/payload-cms/components/outgoing-email/delivery-status-field#DeliveryStatusField": DeliveryStatusField_a14283fd9175b89db94cf713b73331e5,
   "@/features/payload-cms/payload-cms/components/resend-email/resend-email-button#ResendEmailButton": ResendEmailButton_e62af8aa593181d6540c08021abb9c8b,
   "@/features/payload-cms/payload-cms/components/override-status/override-status-button#OverrideStatusButton": OverrideStatusButton_8c304667b297b7e538d558abfba16bf0,
-  "@/features/payload-cms/payload-cms/components/email-preview/email-preview-field#default": default_30bb34ba732976b67b42694b834628a5,
+  "@/features/payload-cms/payload-cms/components/outgoing-email/shown-in-overview#ShownInOverview": ShownInOverview_70b822c8acd27f2866153b0deddfec1c,
+  "@/features/payload-cms/payload-cms/components/outgoing-email/outgoing-email-overview#OutgoingEmailOverview": OutgoingEmailOverview_03c4ac1a19ba007d3278a13d2de006f9,
   "@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field#default": default_a06f68e0cdad6b2fba6e2223cd5b6303,
+  "@/features/payload-cms/payload-cms/components/email-preview/email-preview-field#default": default_30bb34ba732976b67b42694b834628a5,
   "@/features/payload-cms/payload-cms/components/smtp-results/raw-smtp-results-field#default": default_84e24e99aa7b2bdd4ca81a1fd23b526b,
   "@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel": FormBlockLabel_38d14c2698379009ac744a1a2c27c19b,
   "@/features/payload-cms/payload-cms/components/form-section-row-label#FormSectionRowLabel": FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955,

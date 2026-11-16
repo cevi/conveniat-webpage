@@ -11,8 +11,27 @@ import {
   EMAIL_SENDER_ADDRESS,
   EMAIL_SENDER_DOMAIN,
 } from '@/features/payload-cms/payload-cms/utils/email-sender';
+import {
+  OUTGOING_EMAIL_TYPE_LABELS,
+  outgoingEmailTypeOf,
+} from '@/features/payload-cms/payload-cms/utils/outgoing-email-type';
 import type { OutgoingEmail } from '@/features/payload-cms/payload-types';
-import type { CollectionAfterChangeHook, CollectionConfig, FieldHook } from 'payload';
+import type { CollectionAfterChangeHook, CollectionConfig, Condition, FieldHook } from 'payload';
+
+/** For a field the overview of the page already shows; see the component. */
+const SHOWN_IN_OVERVIEW = {
+  Field:
+    '@/features/payload-cms/payload-cms/components/outgoing-email/shown-in-overview#ShownInOverview',
+};
+
+/** For a link to another record: shown when the mail has one, so the sidebar lists only those. */
+const whenSet =
+  (name: string): Condition =>
+  (data) => {
+    const value = (data as Record<string, unknown>)[name];
+    if (Array.isArray(value)) return value.length > 0;
+    return value !== undefined && value !== null && value !== '';
+  };
 
 /**
  * Keeps a bill's status in step with its mail. A mail can turn `success` or `error` from
@@ -152,6 +171,10 @@ export const OutgoingEmails: CollectionConfig = {
         readOnly: true,
         position: 'sidebar',
         components: {
+          Field: {
+            path: '@/features/payload-cms/payload-cms/components/outgoing-email/delivery-status-field#DeliveryStatusField',
+            clientProps: { systemEmails: [EMAIL_SENDER_ADDRESS] },
+          },
           // The list column for a mail's state. It sits on this field rather than on the
           // delivery log, because a select can be sorted and filtered and a `json` cannot.
           Cell: {
@@ -195,33 +218,39 @@ export const OutgoingEmails: CollectionConfig = {
     {
       name: 'dsnReceivedAt',
       type: 'date',
+      label: { en: 'Last delivery report', de: 'Letzter Zustellbericht', fr: 'Dernier rapport' },
       admin: {
         readOnly: true,
-        position: 'sidebar',
+        components: SHOWN_IN_OVERVIEW,
       },
     },
     {
       name: 'smtpReceivedAt',
       type: 'date',
+      label: { en: 'Last attempt', de: 'Letzter Versuch', fr: 'Dernière tentative' },
       admin: {
         readOnly: true,
-        position: 'sidebar',
+        components: SHOWN_IN_OVERVIEW,
       },
     },
     {
       name: 'to',
       type: 'text',
       required: true,
+      label: { en: 'To', de: 'An', fr: 'À' },
       admin: {
         readOnly: true,
+        components: SHOWN_IN_OVERVIEW,
       },
     },
     {
       name: 'subject',
       type: 'text',
       required: true,
+      label: { en: 'Subject', de: 'Betreff', fr: 'Objet' },
       admin: {
         readOnly: true,
+        components: SHOWN_IN_OVERVIEW,
       },
     },
     {
@@ -229,9 +258,11 @@ export const OutgoingEmails: CollectionConfig = {
       type: 'relationship',
       relationTo: 'form-submissions',
       hasMany: false,
+      label: { en: 'Form submission', de: 'Formularantwort', fr: 'Soumission de formulaire' },
       admin: {
         readOnly: true,
         position: 'sidebar',
+        condition: whenSet('formSubmission'),
       },
     },
     {
@@ -239,9 +270,11 @@ export const OutgoingEmails: CollectionConfig = {
       type: 'relationship',
       relationTo: 'bill-participants',
       hasMany: false,
+      label: { en: 'Registration', de: 'Anmeldung', fr: 'Inscription' },
       admin: {
         readOnly: true,
         position: 'sidebar',
+        condition: whenSet('billParticipant'),
       },
     },
     {
@@ -259,6 +292,7 @@ export const OutgoingEmails: CollectionConfig = {
       admin: {
         readOnly: true,
         position: 'sidebar',
+        condition: whenSet('billParticipants'),
       },
     },
     {
@@ -271,6 +305,7 @@ export const OutgoingEmails: CollectionConfig = {
       admin: {
         readOnly: true,
         position: 'sidebar',
+        condition: whenSet('visitDayBill'),
       },
     },
     {
@@ -282,63 +317,18 @@ export const OutgoingEmails: CollectionConfig = {
       },
       type: 'select',
       virtual: true,
-      options: [
-        {
-          label: {
-            en: 'Form Submission',
-            de: 'Formular Antwort',
-            fr: 'Soumission de formulaire',
-          },
-          value: 'formSubmission',
-        },
-        {
-          label: {
-            en: 'Bill Participant',
-            de: 'Rechnungsteilnehmer',
-            fr: 'Participant à la facture',
-          },
-          value: 'billParticipant',
-        },
-        {
-          label: {
-            en: 'Besuchstag bill',
-            de: 'Besuchstag-Rechnung',
-            fr: 'Facture de la journée des visites',
-          },
-          value: 'visitDayBill',
-        },
-        {
-          label: {
-            en: 'Other',
-            de: 'Andere',
-            fr: 'Autre',
-          },
-          value: 'other',
-        },
-      ],
+      options: Object.entries(OUTGOING_EMAIL_TYPE_LABELS).map(([value, label]) => ({
+        value,
+        label,
+      })),
       admin: {
         readOnly: true,
+        components: SHOWN_IN_OVERVIEW,
       },
       hooks: {
         afterRead: [
-          (({ data }): string => {
-            const safeData = (data ?? {}) as Record<string, unknown>;
-            const formSubmission = safeData['formSubmission'];
-            const billParticipant = safeData['billParticipant'];
-            const billParticipants = safeData['billParticipants'];
-            if (formSubmission !== undefined && formSubmission !== null) {
-              return 'formSubmission';
-            }
-            if (billParticipant !== undefined && billParticipant !== null) {
-              return 'billParticipant';
-            }
-            if (Array.isArray(billParticipants) && billParticipants.length > 0) {
-              return 'billParticipant';
-            }
-            const visitDayBill = safeData['visitDayBill'];
-            if (visitDayBill !== undefined && visitDayBill !== null) return 'visitDayBill';
-            return 'other';
-          }) as FieldHook,
+          (({ data }): string =>
+            outgoingEmailTypeOf((data ?? {}) as Record<string, unknown>)) as FieldHook,
         ],
       },
     },
@@ -354,6 +344,8 @@ export const OutgoingEmails: CollectionConfig = {
       virtual: true,
       admin: {
         readOnly: true,
+        position: 'sidebar',
+        condition: whenSet('form'),
       },
       hooks: {
         afterRead: [
@@ -406,30 +398,17 @@ export const OutgoingEmails: CollectionConfig = {
       type: 'tabs',
       tabs: [
         {
-          label: {
-            en: 'Overview',
-            de: 'Übersicht',
-            fr: 'Aperçu',
-          },
+          label: { en: 'Overview', de: 'Übersicht', fr: 'Aperçu' },
           fields: [
             {
-              name: 'html',
-              type: 'textarea',
+              name: 'overview',
+              type: 'ui',
               admin: {
-                readOnly: true,
                 components: {
                   Field:
-                    '@/features/payload-cms/payload-cms/components/email-preview/email-preview-field',
+                    '@/features/payload-cms/payload-cms/components/outgoing-email/outgoing-email-overview#OutgoingEmailOverview',
                 },
-              },
-            },
-            {
-              // The plain-text part. Shown by the preview above when a mail has no HTML part.
-              name: 'text',
-              type: 'textarea',
-              admin: {
-                readOnly: true,
-                hidden: true,
+                disableListColumn: true,
               },
             },
             {
@@ -453,16 +432,40 @@ export const OutgoingEmails: CollectionConfig = {
                 // Shown in the list through `deliveryStatus`.
                 disableListColumn: true,
                 disableListFilter: true,
+                // A queued mail has reached nobody yet. Its refused attempts would read as
+                // failed recipients here; the history above says what they were.
+                condition: (data) => data['deliveryStatus'] !== 'queued',
               },
             },
           ],
         },
         {
-          label: {
-            en: 'Details',
-            de: 'Details',
-            fr: 'Détails',
-          },
+          label: { en: 'Content', de: 'Inhalt', fr: 'Contenu' },
+          fields: [
+            {
+              name: 'html',
+              type: 'textarea',
+              admin: {
+                readOnly: true,
+                components: {
+                  Field:
+                    '@/features/payload-cms/payload-cms/components/email-preview/email-preview-field',
+                },
+              },
+            },
+            {
+              // The plain-text part. Shown by the preview above when a mail has no HTML part.
+              name: 'text',
+              type: 'textarea',
+              admin: {
+                readOnly: true,
+                hidden: true,
+              },
+            },
+          ],
+        },
+        {
+          label: { en: 'Technical', de: 'Technisch', fr: 'Technique' },
           fields: [
             {
               name: 'rawSmtpResults',
@@ -509,9 +512,11 @@ export const OutgoingEmails: CollectionConfig = {
       name: 'createdAt',
       type: 'date',
       index: true,
+      label: { en: 'Created', de: 'Erstellt', fr: 'Créé' },
       admin: {
         readOnly: true,
-        position: 'sidebar',
+        // The document header says it.
+        components: SHOWN_IN_OVERVIEW,
       },
     },
     {
@@ -519,9 +524,11 @@ export const OutgoingEmails: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       hasMany: false,
+      label: { en: 'Last resent by', de: 'Zuletzt erneut gesendet von', fr: 'Dernier renvoi par' },
       admin: {
         readOnly: true,
         position: 'sidebar',
+        condition: whenSet('lastRetriggeredBy'),
       },
     },
   ],
