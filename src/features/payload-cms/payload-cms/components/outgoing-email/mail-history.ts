@@ -1,6 +1,7 @@
 import type { DeliveryAction } from '@/features/payload-cms/payload-cms/components/smtp-results/delivery-overview';
-import { parseDeliveryReport } from '@/features/payload-cms/payload-cms/components/smtp-results/delivery-overview';
+import { reportBlocksOf } from '@/features/payload-cms/payload-cms/components/smtp-results/delivery-overview';
 import type { SmtpResult } from '@/features/payload-cms/payload-cms/components/smtp-results/types';
+import { isManualOverrideItem } from '@/features/payload-cms/payload-cms/components/smtp-results/utils';
 import { isRateLimitRejection } from '@/features/payload-cms/payload-cms/utils/rate-limit-rejection';
 
 /**
@@ -93,7 +94,8 @@ export const deriveMailHistory = (
     if (typeof stored !== 'object' || stored === null) continue;
     const row = stored as SmtpResult;
 
-    if (row.manualOverride === true) {
+    // Overrides stored before `manualOverride` existed are told apart by their text.
+    if (isManualOverrideItem(stored as Record<string, unknown>)) {
       // The override writes one row for the handover and one for the report; one says it.
       if (row.bounceReport !== true) {
         entries.push({
@@ -106,8 +108,7 @@ export const deriveMailHistory = (
     }
 
     if (row.bounceReport === true) {
-      const text = typeof row.error === 'string' ? row.error : (row.response?.response ?? '');
-      for (const block of parseDeliveryReport(text)) {
+      for (const block of reportBlocksOf(row)) {
         entries.push({
           kind: 'report',
           action: block.event.action,

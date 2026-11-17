@@ -159,6 +159,53 @@ describe('deriveMailHistory', () => {
     expect(history.attempts).toBe(1);
   });
 
+  it('reads an override stored before overrides were flagged as one, not as a send', () => {
+    const history = deriveMailHistory(
+      [
+        accepted('2026-11-16T09:02:04.000Z'),
+        {
+          success: false,
+          to: TO,
+          retriggeredBy: 'admin',
+          retriggeredAt: '2026-11-16T13:00:00.000Z',
+          response: { response: 'manually set to failed' },
+        },
+      ],
+      '2026-11-16T09:02:00.000Z',
+    );
+
+    expect(history.attempts).toBe(1);
+    expect(history.entries.at(-1)).toEqual({
+      kind: 'override',
+      success: false,
+      at: '2026-11-16T13:00:00.000Z',
+    });
+  });
+
+  it('reads a delivery report stored only as parsed fields', () => {
+    const history = deriveMailHistory(
+      [
+        accepted('2026-11-16T09:02:04.000Z'),
+        {
+          success: false,
+          to: TO,
+          bounceReport: true,
+          receivedAt: '2026-11-16T09:05:00.000Z',
+          parsedDsn: { action: 'failed', finalRecipient: TO, remoteMta: 'mx01.example.ch' },
+        },
+      ],
+      '2026-11-16T09:02:00.000Z',
+    );
+
+    expect(history.entries.at(-1)).toEqual({
+      kind: 'report',
+      action: 'failed',
+      at: '2026-11-16T09:05:00.000Z',
+      server: 'mx01.example.ch',
+      recipient: TO,
+    });
+  });
+
   it('copes with a mail nobody has tried to send yet', () => {
     expect(deriveMailHistory(undefined, '2026-11-16T09:02:00.000Z')).toEqual({
       entries: [{ kind: 'created', at: '2026-11-16T09:02:00.000Z' }],

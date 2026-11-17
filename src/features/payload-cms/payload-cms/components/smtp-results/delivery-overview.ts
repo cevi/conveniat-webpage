@@ -334,6 +334,34 @@ const readSends = (
   return { sends, current };
 };
 
+/**
+ * What one stored report row says, read from its text, or from the fields an older version of
+ * the bounce job parsed out of it when the text holds no status part.
+ */
+export const reportBlocksOf = (row: SmtpResult): ReportBlock[] => {
+  const blocks = parseDeliveryReport(reportTextOf(row));
+  if (blocks.length > 0) return blocks;
+
+  // Stored rows do not always carry an action, whatever the type says.
+  const storedAction: unknown = row.parsedDsn?.action;
+  const action = typeof storedAction === 'string' ? storedAction.toLowerCase() : '';
+  if (!DELIVERY_ACTIONS.has(action)) return [];
+  const finalRecipient = addressOf(row.parsedDsn?.finalRecipient ?? row.to);
+  return [
+    {
+      ...(finalRecipient !== undefined && { finalRecipient }),
+      event: {
+        action: action as DeliveryAction,
+        ...(row.parsedDsn?.remoteMta !== undefined && { server: row.parsedDsn.remoteMta }),
+        ...(row.parsedDsn?.status !== undefined && { status: row.parsedDsn.status }),
+        ...(row.parsedDsn?.diagnosticCode !== undefined && {
+          diagnostic: row.parsedDsn.diagnosticCode,
+        }),
+      },
+    },
+  ];
+};
+
 /** The reports of one stored row, or none when it repeats a report or is not one. */
 const readReport = (
   row: SmtpResult,
@@ -344,7 +372,6 @@ const readReport = (
   let blocks = parseDeliveryReport(text);
 
   if (blocks.length === 0) {
-    // Stored rows do not always carry an action, whatever the type says.
     const storedAction: unknown = row.parsedDsn?.action;
     const action = typeof storedAction === 'string' ? storedAction.toLowerCase() : '';
     const finalRecipient = addressOf(row.parsedDsn?.finalRecipient ?? row.to);
@@ -352,23 +379,11 @@ const readReport = (
     if (seen.has(key)) return [];
     seen.add(key);
 
-    if (!DELIVERY_ACTIONS.has(action)) {
+    blocks = reportBlocksOf(row);
+    if (blocks.length === 0) {
       counters.unreadable++;
       return [];
     }
-    blocks = [
-      {
-        ...(finalRecipient !== undefined && { finalRecipient }),
-        event: {
-          action: action as DeliveryAction,
-          ...(row.parsedDsn?.remoteMta !== undefined && { server: row.parsedDsn.remoteMta }),
-          ...(row.parsedDsn?.status !== undefined && { status: row.parsedDsn.status }),
-          ...(row.parsedDsn?.diagnosticCode !== undefined && {
-            diagnostic: row.parsedDsn.diagnosticCode,
-          }),
-        },
-      },
-    ];
   } else {
     // The bounce job stores a report once per recipient it covers, each time in full.
     if (seen.has(text)) return [];
