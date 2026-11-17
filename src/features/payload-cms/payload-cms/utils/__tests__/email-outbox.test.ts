@@ -35,6 +35,7 @@ jest.mock('@/features/payload-cms/payload-cms/utils/send-tracked-email', () => (
 }));
 
 import {
+  countQueuedAhead,
   discardQueuedEmailsFor,
   drainEmailOutbox,
   queueBackgroundEmail,
@@ -76,6 +77,22 @@ const payloadDouble = (rows: Row[] = []): { payload: Payload; rows: Row[] } => {
       );
       return Promise.resolve({ docs: matching.slice(0, limit) });
     },
+    count: ({
+      where,
+    }: {
+      where: { and: Record<string, { equals?: unknown; exists?: boolean; less_than?: string }>[] };
+    }) =>
+      Promise.resolve({
+        totalDocs: rows.filter((row) =>
+          where.and.every((condition) =>
+            Object.entries(condition).every(([field, rule]) => {
+              if (rule.less_than !== undefined) return String(row[field]) < rule.less_than;
+              if (rule.exists !== undefined) return (row[field] !== undefined) === rule.exists;
+              return row[field] === rule.equals;
+            }),
+          ),
+        ).length,
+      }),
   } as unknown as Payload;
   return { payload, rows };
 };
@@ -378,5 +395,45 @@ describe('discardQueuedEmailsFor', () => {
     await discardQueuedEmailsFor(payload, 'p1', 'replaced');
 
     expect(rows.map((row) => row['deliveryStatus'])).toEqual(['error', 'queued', 'success']);
+  });
+});
+
+describe('countQueuedAhead', () => {
+  it('counts what the queue sends first: every waiting form mail, and the older bills', async () => {
+    const { payload } = payloadDouble([
+      queuedRow('form', { formSubmission: 'submission-1', createdAt: '2026-11-16T11:00:00.000Z' }),
+      queuedRow('report', { createdAt: '2026-11-16T10:30:00.000Z' }),
+      queuedRow('older-bill', { billParticipant: 'p-1', createdAt: '2026-11-16T09:00:00.000Z' }),
+      queuedRow('newer-bill', { billParticipant: 'p-3', createdAt: '2026-11-16T10:00:00.000Z' }),
+      queuedRow('sent-bill', {
+        billParticipant: 'p-4',
+        deliveryStatus: 'success',
+        createdAt: '2026-11-16T08:00:00.000Z',
+      }),
+    ]);
+
+    await expect(
+      countQueuedAhead(payload, {
+        billParticipant: 'p-2',
+        createdAt: '2026-11-16T09:30:00.000Z',
+      }),
+    ).resolves.toBe(3);
+  });
+
+  it('puts a form mail behind older form mails only', async () => {
+    const { payload } = payloadDouble([
+      queuedRow('older-form', {
+        formSubmission: 'submission-1',
+        createdAt: '2026-11-16T09:00:00.000Z',
+      }),
+      queuedRow('bill', { billParticipant: 'p-1', createdAt: '2026-11-16T08:00:00.000Z' }),
+    ]);
+
+    await expect(
+      countQueuedAhead(payload, {
+        formSubmission: 'submission-2',
+        createdAt: '2026-11-16T10:00:00.000Z',
+      }),
+    ).resolves.toBe(1);
   });
 });

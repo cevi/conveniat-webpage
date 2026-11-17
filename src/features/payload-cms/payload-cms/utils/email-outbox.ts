@@ -363,10 +363,34 @@ export const sendFormEmail = async (
   return result;
 };
 
+type QueueClause = Record<string, { exists: boolean }>;
+
+/**
+ * The order the queue sends in, first to last. Mails of a form come first: somebody submitted
+ * it and waits for the answer. Bills come last. They are the one kind of mail that arrives by
+ * the thousand, and a weekly report or a reminder queued behind them would otherwise wait for
+ * days. Within one kind, the oldest goes first.
+ */
+const QUEUE_ORDER: QueueClause[][] = [
+  [{ formSubmission: { exists: true } }],
+  [{ formSubmission: { exists: false } }, { billParticipant: { exists: false } }],
+  [{ formSubmission: { exists: false } }, { billParticipant: { exists: true } }],
+];
+
+const hasValue = (value: unknown): boolean => value !== undefined && value !== null;
+
+/** Where a mail stands in `QUEUE_ORDER`. */
+const queuePositionOf = (
+  email: Pick<OutgoingEmail, 'formSubmission' | 'billParticipant'>,
+): number => {
+  if (hasValue(email.formSubmission)) return 0;
+  return hasValue(email.billParticipant) ? 2 : 1;
+};
+
 /** The oldest queued mails, at most as many as an hour's budget could ever send. */
 const findQueued = async (
   payload: Payload,
-  kind: Record<string, { exists: boolean }>[],
+  kind: QueueClause[],
   limit: number,
 ): Promise<OutgoingEmail[]> => {
   const found = await payload.find({
@@ -379,11 +403,29 @@ const findQueued = async (
 };
 
 /**
- * Sends queued mails, oldest first, until the queue is empty or the hourly budget is used up.
- *
- * Mails of a form come first: somebody submitted it and waits for the answer. Bills come
- * last. They are the one kind of mail that arrives by the thousand, and a weekly report or a
- * reminder queued behind them would otherwise wait for days.
+ * How many queued mails the queue sends before this one: every mail of a kind that goes first,
+ * and the older ones of its own kind.
+ */
+export const countQueuedAhead = async (
+  payload: Payload,
+  email: Pick<OutgoingEmail, 'createdAt' | 'formSubmission' | 'billParticipant'>,
+): Promise<number> => {
+  const position = queuePositionOf(email);
+  const counts = await Promise.all(
+    QUEUE_ORDER.slice(0, position + 1).map(async (kind, index) => {
+      const older = index === position ? [{ createdAt: { less_than: email.createdAt } }] : [];
+      const { totalDocs } = await payload.count({
+        collection: 'outgoing-emails',
+        where: { and: [{ deliveryStatus: { equals: 'queued' } }, ...kind, ...older] },
+      });
+      return totalDocs;
+    }),
+  );
+  return counts.reduce((sum, count) => sum + count, 0);
+};
+
+/**
+ * Sends queued mails in `QUEUE_ORDER` until the queue is empty or the hourly budget is used up.
  *
  * A mail is marked `pending` before it is handed to the mail server. A replica that dies in
  * between leaves that one mail in `pending` for a person to look at, which is the better
@@ -409,19 +451,8 @@ export const drainEmailOutbox = async (
   try {
     if ((await redis.get(HOLD_KEY)) !== null) return { ...summary, held: true };
 
-    const queue = [
-      ...(await findQueued(payload, [{ formSubmission: { exists: true } }], batchSize)),
-      ...(await findQueued(
-        payload,
-        [{ formSubmission: { exists: false } }, { billParticipant: { exists: false } }],
-        batchSize,
-      )),
-      ...(await findQueued(
-        payload,
-        [{ formSubmission: { exists: false } }, { billParticipant: { exists: true } }],
-        batchSize,
-      )),
-    ];
+    const queue: OutgoingEmail[] = [];
+    for (const kind of QUEUE_ORDER) queue.push(...(await findQueued(payload, kind, batchSize)));
 
     for (const email of queue) {
       const staleReason = await hooks.staleReason?.(email);
