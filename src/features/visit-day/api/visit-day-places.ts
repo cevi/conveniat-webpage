@@ -9,24 +9,40 @@ export interface TakenPlaces {
   external: number;
 }
 
-/** The places taken on each day, by `YYYY-MM-DD`. A day nobody registered for is absent. */
-export const countTakenPlaces = async (prisma: PrismaClient): Promise<Map<string, TakenPlaces>> => {
-  const registrations = await prisma.visitDayRegistration.findMany({
-    select: {
-      visitDate: true,
-      withLunch: true,
-      hofId: true,
-      _count: { select: { visitors: true } },
-    },
-  });
+/** The visitors of one kind on one day, as the database counts them. */
+interface TakenPlacesRow {
+  /** `YYYY-MM-DD` */
+  day: string;
+  withLunch: boolean;
+  external: boolean;
+  visitors: number;
+}
+
+/**
+ * The places taken on each day, by `YYYY-MM-DD`. A day nobody registered for is absent.
+ *
+ * The database counts: the open registration form asks for this every minute, and Prisma's
+ * `groupBy` cannot group the visitors by the day of their registration, so a query of its own
+ * answers with one row per day and kind instead of one per registration.
+ */
+export const countTakenPlaces = async (
+  prisma: Pick<PrismaClient, '$queryRaw'>,
+): Promise<Map<string, TakenPlaces>> => {
+  const rows = await prisma.$queryRaw<TakenPlacesRow[]>`
+    SELECT to_char(r."visitDate", 'YYYY-MM-DD') AS "day",
+           r."withLunch" AS "withLunch",
+           r."hofId" IS NULL AS "external",
+           COUNT(*)::int AS "visitors"
+    FROM "VisitDayVisitor" v
+    JOIN "VisitDayRegistration" r ON r."id" = v."registrationId"
+    GROUP BY 1, 2, 3`;
   const taken = new Map<string, TakenPlaces>();
-  for (const registration of registrations) {
-    const day = registration.visitDate.toISOString().slice(0, 10);
-    const places = taken.get(day) ?? { withLunch: 0, withoutLunch: 0, external: 0 };
-    if (registration.withLunch) places.withLunch += registration._count.visitors;
-    else places.withoutLunch += registration._count.visitors;
-    if (registration.hofId === null) places.external += registration._count.visitors;
-    taken.set(day, places);
+  for (const row of rows) {
+    const places = taken.get(row.day) ?? { withLunch: 0, withoutLunch: 0, external: 0 };
+    if (row.withLunch) places.withLunch += row.visitors;
+    else places.withoutLunch += row.visitors;
+    if (row.external) places.external += row.visitors;
+    taken.set(row.day, places);
   }
   return taken;
 };
