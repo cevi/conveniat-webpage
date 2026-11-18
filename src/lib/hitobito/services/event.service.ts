@@ -32,6 +32,32 @@ function fetchRestrictedPersonDetailsAttributes(
   };
 }
 
+/**
+ * How much a role in an event outranks another, by the last segment of its type. Hitobito
+ * namespaces the same role twice, `Event::Role::Leader` and `Event::Camp::Role::Leader`.
+ *
+ * A person can hold several roles in one participation, and the bill prices the
+ * participation by one of them: Hauptleitung (`Leader`) before Leitung (`AssistantLeader`)
+ * before Teilnehmer:in. Any other role, a Küche or a Helfer:in, is still a function in
+ * the camp and ranks above a plain participant.
+ */
+function eventRoleRank(roleType: string): number {
+  switch (roleType.split('::').at(-1)) {
+    case 'Leader': {
+      return 3;
+    }
+    case 'AssistantLeader': {
+      return 2;
+    }
+    case 'Participant': {
+      return 0;
+    }
+    default: {
+      return 1;
+    }
+  }
+}
+
 export class EventService {
   constructor(
     private readonly client: HitobitoClient,
@@ -59,7 +85,7 @@ export class EventService {
     ): Promise<z.infer<typeof EventParticipationWithPersonSchema>[]> {
       const allParticipations: z.infer<typeof EventParticipationWithPersonSchema>[] = [];
       const includedPeople = new Map<string, z.infer<typeof IncludedPersonSchema>['attributes']>();
-      const roleTypes = new Map<string, string>(); // participationId -> roleType
+      const roleTypes = new Map<string, string>(); // participationId -> highest roleType
 
       let nextUrl: string | null = `/api/event_participations`;
       const baseParameters: Record<string, string> = {
@@ -129,7 +155,11 @@ export class EventService {
                 included.attributes.type !== undefined &&
                 included.attributes.type !== ''
               ) {
-                roleTypes.set(participationId, included.attributes.type);
+                const roleType = included.attributes.type;
+                const kept = roleTypes.get(participationId);
+                if (kept === undefined || eventRoleRank(roleType) > eventRoleRank(kept)) {
+                  roleTypes.set(participationId, roleType);
+                }
               }
             }
           }
