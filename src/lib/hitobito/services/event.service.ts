@@ -59,7 +59,8 @@ export class EventService {
     ): Promise<z.infer<typeof EventParticipationWithPersonSchema>[]> {
       const allParticipations: z.infer<typeof EventParticipationWithPersonSchema>[] = [];
       const includedPeople = new Map<string, z.infer<typeof IncludedPersonSchema>['attributes']>();
-      const roleTypes = new Map<string, string>(); // participationId -> roleType
+      // participationId -> every role the participation holds, in the order Cevi.DB lists them
+      const roleTypes = new Map<string, string[]>();
 
       let nextUrl: string | null = `/api/event_participations`;
       const baseParameters: Record<string, string> = {
@@ -129,7 +130,9 @@ export class EventService {
                 included.attributes.type !== undefined &&
                 included.attributes.type !== ''
               ) {
-                roleTypes.set(participationId, included.attributes.type);
+                const roles = roleTypes.get(participationId) ?? [];
+                roles.push(included.attributes.type);
+                roleTypes.set(participationId, roles);
               }
             }
           }
@@ -168,8 +171,6 @@ export class EventService {
           const trimmedName = `${firstName} ${lastName}`.trim();
           const fullName = trimmedName.length > 0 ? trimmedName : `Person ${participantId}`;
 
-          const roleType = roleTypes.get(participation.id) ?? 'unknown';
-
           allParticipations.push({
             participationId: participation.id,
             participantId,
@@ -178,7 +179,7 @@ export class EventService {
             lastName,
             nickname,
             fullName,
-            roleType,
+            roleTypes: roleTypes.get(participation.id) ?? [],
             enrollmentDate: participation.attributes.created_at ?? new Date().toISOString(),
             active: participation.attributes.active ?? true,
             email: person?.email ?? undefined,

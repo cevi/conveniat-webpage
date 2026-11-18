@@ -45,6 +45,52 @@ export function isRoleAllowed(
   );
 }
 
+/**
+ * How a role ranks when a participation holds several, by the last segment of its type,
+ * since Hitobito namespaces the same role twice (`Event::Role::Leader` and
+ * `Event::Camp::Role::Leader`). Hauptleitung before Leitung before Teilnehmer:in; any other
+ * role is still a function in the camp and sits above a plain participant.
+ */
+function billedRoleRank(roleType: string): number {
+  switch (roleType.split('::').at(-1)) {
+    case 'Leader': {
+      return 3;
+    }
+    case 'AssistantLeader': {
+      return 2;
+    }
+    case 'Participant': {
+      return 0;
+    }
+    default: {
+      return 1;
+    }
+  }
+}
+
+/**
+ * Picks the role a participation is billed by.
+ *
+ * A participation with one role is billed by it, and one without any stays `unknown`, which
+ * nothing prices. Only a person entered with several roles, say as Hauptleitung and as
+ * Teilnehmer:in, needs a choice: the highest role the bill settings price. Choosing among the
+ * priced ones first keeps an extra role nobody priced, a Küche say, from turning a billable
+ * participant into an unbillable one. When none of them is priced the highest is kept, so
+ * the refusal names a real role.
+ */
+export function resolveBilledRoleType(roleTypes: string[], rolePricingPatterns: string[]): string {
+  const [firstRole, ...otherRoles] = roleTypes;
+  if (firstRole === undefined) return 'unknown';
+  if (otherRoles.length === 0) return firstRole;
+
+  const priced = roleTypes.filter((roleType) => isRoleAllowed(roleType, rolePricingPatterns));
+  const candidates = priced.length > 0 ? priced : roleTypes;
+  // Ties keep the role Cevi.DB lists first, so the choice does not flip between syncs.
+  return candidates.reduce((best, roleType) =>
+    billedRoleRank(roleType) > billedRoleRank(best) ? roleType : best,
+  );
+}
+
 const findAnswer = (
   answers: Record<string, string>,
   questionKeywords: string[],
