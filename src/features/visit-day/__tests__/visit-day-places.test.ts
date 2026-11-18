@@ -1,4 +1,8 @@
-import { formatRegistrationNumber, reservePlaces } from '@/features/visit-day/api/visit-day-places';
+import {
+  countTakenPlaces,
+  formatRegistrationNumber,
+  reservePlaces,
+} from '@/features/visit-day/api/visit-day-places';
 import type { PrismaClient } from '@/lib/prisma/client';
 
 const fakePrisma = (
@@ -133,5 +137,31 @@ describe('reservePlaces', () => {
 describe('formatRegistrationNumber', () => {
   it('keeps counting past three digits', () => {
     expect(formatRegistrationNumber('5321', 1234)).toBe('5321-B1234');
+  });
+});
+
+describe('countTakenPlaces', () => {
+  it('counts visitors without a Hof among the places of their kind and in their Kontingent', async () => {
+    // what the database answers: one row per day, kind of place and Hof or none
+    const queryRaw = jest.fn().mockResolvedValue([
+      { day: '2027-07-28', withLunch: true, external: false, visitors: 3 },
+      { day: '2027-07-28', withLunch: true, external: true, visitors: 1 },
+      { day: '2027-07-28', withLunch: false, external: true, visitors: 2 },
+      { day: '2027-07-29', withLunch: false, external: false, visitors: 5 },
+    ]);
+    const prisma = { $queryRaw: queryRaw } as unknown as PrismaClient;
+
+    const taken = await countTakenPlaces(prisma);
+
+    expect(Object.fromEntries(taken)).toEqual({
+      '2027-07-28': { withLunch: 4, withoutLunch: 2, external: 3 },
+      '2027-07-29': { withLunch: 0, withoutLunch: 5, external: 0 },
+    });
+  });
+
+  it('leaves out a day nobody registered for', async () => {
+    const prisma = { $queryRaw: jest.fn().mockResolvedValue([]) } as unknown as PrismaClient;
+
+    await expect(countTakenPlaces(prisma)).resolves.toEqual(new Map());
   });
 });
