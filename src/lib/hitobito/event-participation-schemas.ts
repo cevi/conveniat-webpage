@@ -138,7 +138,11 @@ export const EventParticipationWithPersonSchema = z.object({
   lastName: z.string(),
   nickname: z.string(),
   fullName: z.string(),
-  roleType: z.string(),
+  /**
+   * Every role the participation holds. Usually one, but a person can be entered twice, as
+   * Hauptleitung and as Teilnehmer:in, and which of them counts is the caller's decision.
+   */
+  roleTypes: z.array(z.string()),
   enrollmentDate: z.string(),
   active: z.boolean(),
   email: z.string().nullable().optional(),

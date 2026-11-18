@@ -32,40 +32,26 @@ const clientWithRoles = (roles: IncludedRole[]): HitobitoClient =>
     }),
   }) as unknown as HitobitoClient;
 
-const roleOf = async (roles: IncludedRole[]): Promise<string | undefined> => {
+const rolesOf = async (roles: IncludedRole[]): Promise<string[] | undefined> => {
   const participations = await new EventService(clientWithRoles(roles)).listEventParticipations(
     '1',
     '100',
   );
-  return participations[0]?.roleType;
+  return participations[0]?.roleTypes;
 };
 
-describe('EventService.listEventParticipations with several roles on one participation', () => {
-  it('bills the Hauptleitung over a Leitung and a participant role, in any order', async () => {
-    const roles = [
-      'Event::Camp::Role::Participant',
-      'Event::Camp::Role::Leader',
-      'Event::Camp::Role::AssistantLeader',
-    ];
-    for (const order of [roles, [...roles].reverse()]) {
-      await expect(roleOf(order.map((type) => ({ participationId: 7, type })))).resolves.toBe(
-        'Event::Camp::Role::Leader',
-      );
-    }
-  });
-
-  it('bills a Leitung over a participant role', async () => {
+describe('EventService.listEventParticipations roles', () => {
+  it('lists every role of a participation, in the order Cevi.DB sends them', async () => {
     await expect(
-      roleOf([
-        { participationId: 7, type: 'Event::Role::AssistantLeader' },
-        { participationId: 7, type: 'Event::Role::Participant' },
+      rolesOf([
+        { participationId: 7, type: 'Event::Camp::Role::Participant' },
+        { participationId: 8, type: 'Event::Camp::Role::Cook' },
+        { participationId: 7, type: 'Event::Camp::Role::Leader' },
       ]),
-    ).resolves.toBe('Event::Role::AssistantLeader');
+    ).resolves.toEqual(['Event::Camp::Role::Participant', 'Event::Camp::Role::Leader']);
   });
 
-  it('keeps the only role a participation has', async () => {
-    await expect(roleOf([{ participationId: 7, type: 'Event::Role::Participant' }])).resolves.toBe(
-      'Event::Role::Participant',
-    );
+  it('lists no role for a participation Cevi.DB sends none for', async () => {
+    await expect(rolesOf([])).resolves.toEqual([]);
   });
 });

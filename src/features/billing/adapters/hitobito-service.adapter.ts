@@ -111,7 +111,7 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
       lastName: p.lastName,
       nickname: p.nickname,
       fullName: p.fullName,
-      roleType: p.roleType,
+      roleTypes: p.roleTypes,
       enrollmentDate: p.enrollmentDate,
       street: p.street ?? null,
       housenumber: p.housenumber ?? null,
