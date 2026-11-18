@@ -96,26 +96,21 @@ describe('DateSlotSelection', () => {
     expect(value()).toBe('2027-07-25 – 2027-07-27');
   });
 
-  it('does not offer a Ressort that takes helpers only for a concrete job', () => {
+  it('offers only the areas that also have jobs', () => {
     render(<Harness asksForRessort />);
 
-    const offered = screen
+    const labels = screen
       .getAllByRole('option')
-      .map((option) => (option as HTMLOptionElement).value);
+      .filter((option) => (option as HTMLOptionElement).value !== '')
+      .map((option) => option.textContent);
 
-    expect(offered).toContain('infrastruktur');
-    expect(offered).not.toContain('finanzen');
-    expect(offered).not.toContain('relations');
-  });
-
-  it('names areas of work instead of Ressorts and offers to help wherever needed', () => {
-    render(<Harness asksForRessort />);
-
-    const labels = screen.getAllByRole('option').map((option) => option.textContent ?? '');
-
-    expect(labels).toContain('Aufbau & Infrastruktur');
-    expect(labels).toContain('Allgemein helfende Person');
-    expect(labels.filter((label) => /ressort/i.test(label))).toEqual([]);
+    expect(labels).toEqual([
+      'Aufbau & Infrastruktur',
+      'Programm & Events',
+      'Kommunikation & Marketing',
+      'Küche & Verpflegung',
+      'Logistik & Transport',
+    ]);
   });
 
   it('names the camp phase of each day and lists the phases in the window', () => {
