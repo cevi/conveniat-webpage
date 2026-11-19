@@ -51,6 +51,12 @@ declare global {
         closeNotifications?: (filter: { tags?: string[]; tagPrefixes?: string[] }) => void;
         /** Closes every notification of the app. Missing on the same older builds. */
         closeAllNotifications?: () => void;
+        /**
+         * Bridge protocol of the app. From 2 on the app keeps its latest events in `events`
+         * for a page that attaches its listener late. Missing on older app builds.
+         */
+        protocol?: number;
+        events?: { id?: string; type?: string; payload?: unknown }[];
       }
     | undefined;
 }
@@ -403,6 +409,9 @@ export function useNativePush(): {
   const [lastError, setLastError] = useState<string | undefined>();
   const rollbackTimeoutReference = useRef<NodeJS.Timeout | undefined>(undefined);
   const hasReceivedBridgeEventReference = useRef(false);
+  // Outlives the effect below: it runs again when its dependencies change and then reads the
+  // app's buffer again, which must not repeat events this hook already handled.
+  const handledEventIdsReference = useRef(new Set<string>());
   /**
    * Token this device has already registered, and the one currently in flight. The
    * bridge re-emits `native-push-token` several times per permission change - three
@@ -559,10 +568,19 @@ export function useNativePush(): {
     // bubbles from `document` to the window therefore arrives twice - same Event
     // object, so it can be recognised and dropped rather than handled again.
     const handledEvents = new WeakSet<Event>();
+    // Protocol 2 apps give each event an id and hand it to the page twice: live, and from
+    // `AppWebViewNativePush.events` for a listener that was not attached yet.
+    const handledEventIds = handledEventIdsReference.current;
 
     const handleNativeEvent = (event: Event): void => {
       if (handledEvents.has(event)) return;
       handledEvents.add(event);
+
+      const eventId = (event as CustomEvent<{ id?: unknown } | null | undefined>).detail?.id;
+      if (typeof eventId === 'string') {
+        if (handledEventIds.has(eventId)) return;
+        handledEventIds.add(eventId);
+      }
 
       hasReceivedBridgeEventReference.current = true;
       const customEvent = event as CustomEvent<NativePushEventDetail | null | undefined>;
@@ -775,6 +793,16 @@ export function useNativePush(): {
     globalThis.addEventListener('visibilitychange', handleAppResume);
     globalThis.addEventListener('focus', handleAppResume);
     globalThis.addEventListener('pageshow', handleAppResume);
+
+    // Events the app dispatched before the listeners above existed.
+    const bridge = globalThis.AppWebViewNativePush;
+    if (bridge?.protocol !== undefined && bridge.protocol >= 2 && Array.isArray(bridge.events)) {
+      for (const { id, type, payload } of bridge.events) {
+        handleNativeEvent(
+          new CustomEvent('app-webview-native-push-event', { detail: { id, type, payload } }),
+        );
+      }
+    }
 
     nativePushBridge.getStatus();
 
