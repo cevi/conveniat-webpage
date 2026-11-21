@@ -54,7 +54,7 @@ export const listHofZipEntries = async (
   locale: Locale,
   isReviewer: boolean,
 ): Promise<HofZipEntry[]> => {
-  const { forms } = await getHofDashboardData(hof.id, locale, isReviewer);
+  const { forms, areas } = await getHofDashboardData(hof.id, locale, isReviewer);
   const submissionIds = forms.flatMap((form) => form.entries.map((entry) => entry.id));
   if (submissionIds.length === 0) return [];
 
@@ -122,6 +122,7 @@ export const listHofZipEntries = async (
       renderSubmissionPdf({
         hofName: hof.name,
         form,
+        areaLabel: areas.find((area) => area.id === form.area)?.label[locale] ?? form.area,
         entry,
         heading,
         fileNames,

@@ -12,7 +12,11 @@ import {
   type HofReviewLogEntry,
   type StoredSubmission,
 } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import type { HofEntryMode, HofEntryStatus } from '@/features/hof-dashboard/constants';
+import {
+  MATERIAL_AREA,
+  type HofEntryMode,
+  type HofEntryStatus,
+} from '@/features/hof-dashboard/constants';
 import { parseMaterialAnswer } from '@/features/payload-cms/components/form/utils/material-list';
 import type { HofName } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import type { Locale } from '@/types/types';
@@ -134,7 +138,7 @@ export const getMaterialOrders = async (
 ): Promise<MaterialOrderForm[]> => {
   const payload = await getPayload({ config });
   const forms = sortDashboardForms(await findDashboardForms(payload, locale), locale).filter(
-    (form) => form.hofDashboard?.area === 'material' && materialListsOf(form).length > 0,
+    (form) => form.hofDashboard?.area === MATERIAL_AREA && materialListsOf(form).length > 0,
   );
   if (forms.length === 0) return [];
 

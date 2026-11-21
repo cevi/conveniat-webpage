@@ -27,9 +27,9 @@ import { HofOverviewTable } from '@/features/hof-dashboard/components/hof-overvi
 import { MaterialOrdersView } from '@/features/hof-dashboard/components/material-orders-view';
 import { OverviewView } from '@/features/hof-dashboard/components/overview-view';
 import {
-  HOF_DASHBOARD_AREA_LABELS,
-  HOF_DASHBOARD_AREAS,
+  MATERIAL_AREA,
   type HofDashboardArea,
+  type HofDashboardAreaInfo,
 } from '@/features/hof-dashboard/constants';
 import { useRememberedHofId } from '@/features/hof-dashboard/hooks/use-remembered-hof-id';
 import { useScrollToForm } from '@/features/hof-dashboard/hooks/use-scroll-to-form';
@@ -56,15 +56,22 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 
-/** The sections of one Hof's dashboard. */
-type Tab = 'overview' | HofDashboardArea | 'documents';
+/**
+ * A section of one Hof's dashboard: `overview`, `documents`, or the id of a tab of the
+ * settings in between.
+ */
+type Tab = string;
 
-const TAB_IDS: readonly Tab[] = ['overview', ...HOF_DASHBOARD_AREAS, 'documents'];
+const tabIdsOf = (areas: readonly HofDashboardAreaInfo[]): Tab[] => [
+  'overview',
+  ...areas.map((area) => area.id),
+  'documents',
+];
 
-/** What a reviewer can look at: every Hof, the material orders, or one Hof's sections. */
-type ReviewerScreen = 'hoefe' | 'orders' | Tab;
+const NO_AREAS: HofDashboardAreaInfo[] = [];
 
-const REVIEWER_SCREENS: readonly ReviewerScreen[] = ['hoefe', 'orders', ...TAB_IDS];
+/** What a reviewer can look at: every Hof (`hoefe`), the material `orders`, or one Hof's tabs. */
+type ReviewerScreen = string;
 
 const Message: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Panel className="space-y-4 text-base text-green-800">{children}</Panel>
@@ -165,16 +172,17 @@ const DashboardForHof: React.FC<{
     onTab(area);
     setScrollTarget(formId);
   };
-  const areaView = (area: HofDashboardArea): React.ReactNode => (
+  const areaView = (area: HofDashboardAreaInfo): React.ReactNode => (
     <AreaView
       area={area}
       data={data}
       progress={progress}
-      selectedFormId={chosenForms[area]}
-      onSelect={(formId) => openForm(area, formId)}
+      selectedFormId={chosenForms[area.id]}
+      onSelect={(formId) => openForm(area.id, formId)}
       locale={locale}
     />
   );
+  const tabIds = tabIdsOf(data.areas);
   const panels: Record<Tab, React.ReactNode> = {
     overview: (
       <OverviewView
@@ -186,31 +194,33 @@ const DashboardForHof: React.FC<{
         onOpenDocuments={() => onTab('documents')}
       />
     ),
-    infrastructure: areaView('infrastructure'),
-    program: areaView('program'),
-    material: areaView('material'),
+    ...Object.fromEntries(data.areas.map((area) => [area.id, areaView(area)])),
     documents: <DocumentsView data={data} progress={progress} locale={locale} />,
   };
+  const areaOf = (id: Tab): HofDashboardAreaInfo | undefined =>
+    data.areas.find((area) => area.id === id);
   const tabLabel = (id: Tab): string => {
     if (id === 'overview') return translate('tabOverview', locale);
     if (id === 'documents') return translate('tabDocuments', locale);
-    return HOF_DASHBOARD_AREA_LABELS[id][locale];
+    return areaOf(id)?.label[locale] ?? id;
   };
   const marker = (id: Tab): React.ReactNode => {
-    if (id === 'overview') return <LayoutGrid className="h-4 w-4" aria-hidden />;
+    const area = areaOf(id);
+    if (area !== undefined) return <AreaIcon icon={area.icon} />;
     if (id === 'documents') return <FileText className="h-4 w-4" aria-hidden />;
-    return <AreaIcon area={id} />;
+    return <LayoutGrid className="h-4 w-4" aria-hidden />;
   };
 
   return (
     <div ref={root}>
       <TabGroup
-        selectedIndex={TAB_IDS.indexOf(tab)}
-        onChange={(index) => onTab(TAB_IDS[index] ?? 'overview')}
+        // a tab removed since the address named it opens the overview
+        selectedIndex={Math.max(0, tabIds.indexOf(tab))}
+        onChange={(index) => onTab(tabIds[index] ?? 'overview')}
         className="space-y-6"
       >
         <DashboardTabList
-          tabs={TAB_IDS.map((id) => {
+          tabs={tabIds.map((id) => {
             // what the Hof still has to hand in or revise behind an area's tab
             const open = data.forms.filter((form) => {
               const formProgress = progress[form.id];
@@ -227,7 +237,7 @@ const DashboardForHof: React.FC<{
         />
         {/* kept mounted, so what was typed into an open form survives a look at another tab */}
         <TabPanels className="@container min-w-0">
-          {TAB_IDS.map((id) => (
+          {tabIds.map((id) => (
             <TabPanel key={id} unmount={false}>
               {panels[id]}
             </TabPanel>
@@ -266,10 +276,12 @@ const hofCrumb = (
 /** The dashboard of a Hof's own people: their Hof, or a choice of theirs. */
 const DashboardForAdministrator: React.FC<{
   hoefe: { id: string; name: string }[];
+  areas: HofDashboardAreaInfo[];
   account: React.ReactNode;
   locale: Locale;
-}> = ({ hoefe, account, locale }) => {
-  const [tab, setTab] = useTabInAddress(TAB_IDS, 'overview');
+}> = ({ hoefe, areas, account, locale }) => {
+  const tabIds = useMemo(() => tabIdsOf(areas), [areas]);
+  const [tab, setTab] = useTabInAddress(tabIds, 'overview');
   const [selectedHofId, setSelectedHofId] = useRememberedHofId();
   const hof = hoefe.find((candidate) => candidate.id === selectedHofId) ?? hoefe[0];
   if (hof === undefined) return <></>;
@@ -323,10 +335,12 @@ const ReviewerTabs: React.FC<{
 const DashboardForReviewer: React.FC<{
   hoefe: { id: string; name: string }[];
   rows: HofOverviewRow[];
+  areas: HofDashboardAreaInfo[];
   account: React.ReactNode;
   locale: Locale;
-}> = ({ hoefe, rows, account, locale }) => {
-  const [screen, setScreen] = useTabInAddress(REVIEWER_SCREENS, 'hoefe');
+}> = ({ hoefe, rows, areas, account, locale }) => {
+  const screens = useMemo((): ReviewerScreen[] => ['hoefe', 'orders', ...tabIdsOf(areas)], [areas]);
+  const [screen, setScreen] = useTabInAddress(screens, 'hoefe');
   const [selectedHofId, setSelectedHofId] = useRememberedHofId();
   const hof = hoefe.find((candidate) => candidate.id === selectedHofId) ?? hoefe[0];
 
@@ -347,9 +361,12 @@ const DashboardForReviewer: React.FC<{
         <DashboardHeader crumbs={[{ label: title }]} isReviewer account={account} locale={locale} />
         <ReviewerTabs screen={list} onScreen={setScreen} locale={locale} />
         {list === 'orders' ? (
-          <MaterialOrdersView onOpenHof={(hofId) => openHof(hofId, 'material')} locale={locale} />
+          <MaterialOrdersView
+            onOpenHof={(hofId) => openHof(hofId, MATERIAL_AREA)}
+            locale={locale}
+          />
         ) : (
-          <HofOverviewTable hoefe={rows} onOpen={openHof} locale={locale} />
+          <HofOverviewTable hoefe={rows} areas={areas} onOpen={openHof} locale={locale} />
         )}
       </div>
     );
@@ -395,6 +412,8 @@ const DashboardForUser: React.FC<{ account: React.ReactNode; locale: Locale }> =
   );
 
   if (hoefe.isLoading || overview.isLoading) return <DashboardSkeleton locale={locale} />;
+  // without the overview a tab the address names opens the overview; the tabs still show
+  const areas = overview.data?.areas ?? NO_AREAS;
   if (hoefe.data === undefined) {
     return <RetryMessage locale={locale} onRetry={() => void hoefe.refetch()} />;
   }
@@ -410,11 +429,12 @@ const DashboardForUser: React.FC<{ account: React.ReactNode; locale: Locale }> =
     <DashboardForReviewer
       hoefe={hoefe.data}
       rows={overview.data.hoefe}
+      areas={areas}
       account={account}
       locale={locale}
     />
   ) : (
-    <DashboardForAdministrator hoefe={hoefe.data} account={account} locale={locale} />
+    <DashboardForAdministrator hoefe={hoefe.data} areas={areas} account={account} locale={locale} />
   );
 };
 

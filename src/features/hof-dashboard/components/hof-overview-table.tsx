@@ -17,10 +17,10 @@ import {
   type SegmentTone,
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import {
-  HOF_DASHBOARD_AREA_LABELS,
-  HOF_DASHBOARD_AREAS,
   HOF_ENTRY_STATUS_LABELS,
+  MATERIAL_AREA,
   type HofDashboardArea,
+  type HofDashboardAreaInfo,
 } from '@/features/hof-dashboard/constants';
 import { useAcceptHofArea } from '@/features/hof-dashboard/hooks/use-accept-hof-area';
 import { translate, translateCount, type TextKey } from '@/features/hof-dashboard/texts';
@@ -30,8 +30,13 @@ import { CheckCheck, ChevronRight, Download } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 
-/** The areas a reviewer accepts at once; material orders are confirmed one by one. */
-const ACCEPTED_AT_ONCE: readonly HofDashboardArea[] = ['infrastructure', 'program'];
+/** The tabs a reviewer accepts at once: all but the material orders, confirmed one by one. */
+const acceptedAtOnce = (areas: readonly HofDashboardAreaInfo[]): HofDashboardArea[] =>
+  areas.map((area) => area.id).filter((area) => area !== MATERIAL_AREA);
+
+/** Where a Hof stands in a tab, as nothing at all where the overview has not counted it. */
+const summaryOf = (hof: HofOverviewRow, area: HofDashboardArea): HofAreaSummary =>
+  hof.areas[area] ?? { forms: 0, done: 0, overdue: 0, toReview: 0, toAccept: 0, formStates: [] };
 
 const FILTERS = ['all', 'toReview', 'withSubmissions', 'nothing'] as const;
 
@@ -50,12 +55,15 @@ const SEGMENT_TONE: Record<HofFormState, SegmentTone> = {
   missing: 'empty',
 };
 
-/** The table's columns where it has the room; a narrow screen stacks each Hof as a card. */
+/**
+ * The table's columns where it has the room, one per tab in `--areas`; a narrow screen stacks
+ * each Hof as a card.
+ */
 const ROW_GRID =
-  '@3xl:grid @3xl:grid-cols-[minmax(10rem,1.4fr)_repeat(3,minmax(0,1fr))_6.5rem_5.5rem_1.25rem] @3xl:items-center @3xl:gap-x-6';
+  '@3xl:grid @3xl:grid-cols-[minmax(10rem,1.4fr)_repeat(var(--areas),minmax(0,1fr))_6.5rem_5.5rem_1.25rem] @3xl:items-center @3xl:gap-x-6';
 
 const toReviewOf = (hof: HofOverviewRow): number =>
-  HOF_DASHBOARD_AREAS.reduce((sum, area) => sum + hof.areas[area].toReview, 0);
+  Object.values(hof.areas).reduce((sum, summary) => sum + summary.toReview, 0);
 
 /** A name as it is searched: lower case, without accents, so "zuri" finds "Züri 11". */
 const searchable = (value: string): string =>
@@ -84,7 +92,7 @@ const matchesFilter = (hof: HofOverviewRow, filter: Filter): boolean => {
 
 /** What waits for the Ressort in one area of a Hof, in words. */
 const waitingLine = (area: HofDashboardArea, n: number, locale: Locale): string =>
-  area === 'material'
+  area === MATERIAL_AREA
     ? translateCount(n, 'orderedOne', 'orderedMany', locale)
     : translateCount(n, 'handedInOne', 'handedInMany', locale);
 
@@ -95,13 +103,17 @@ const waitingLine = (area: HofDashboardArea, n: number, locale: Locale): string 
  */
 const WaitingRow: React.FC<{
   hof: HofOverviewRow;
+  areas: readonly HofDashboardAreaInfo[];
   accepting: boolean;
   onReview: (area: HofDashboardArea) => void;
   onAccept: () => void;
   locale: Locale;
-}> = ({ hof, accepting, onReview, onAccept, locale }) => {
-  const waiting = HOF_DASHBOARD_AREAS.filter((area) => hof.areas[area].toReview > 0);
-  const toAccept = ACCEPTED_AT_ONCE.reduce((sum, area) => sum + hof.areas[area].toAccept, 0);
+}> = ({ hof, areas, accepting, onReview, onAccept, locale }) => {
+  const waiting = areas.filter((area) => summaryOf(hof, area.id).toReview > 0);
+  const toAccept = acceptedAtOnce(areas).reduce(
+    (sum, area) => sum + summaryOf(hof, area).toAccept,
+    0,
+  );
   const first = waiting[0];
   return (
     <li className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4 @xl:px-6">
@@ -109,10 +121,10 @@ const WaitingRow: React.FC<{
         <p className="text-base font-semibold text-green-900">{hof.name}</p>
         <ul className="flex flex-wrap gap-x-4 gap-y-1">
           {waiting.map((area) => (
-            <li key={area} className="flex items-center gap-1.5 text-sm text-green-700">
-              <AreaIcon area={area} />
-              {HOF_DASHBOARD_AREA_LABELS[area][locale]} ·{' '}
-              {waitingLine(area, hof.areas[area].toReview, locale)}
+            <li key={area.id} className="flex items-center gap-1.5 text-sm text-green-700">
+              <AreaIcon icon={area.icon} />
+              {area.label[locale]} ·{' '}
+              {waitingLine(area.id, summaryOf(hof, area.id).toReview, locale)}
             </li>
           ))}
         </ul>
@@ -126,7 +138,7 @@ const WaitingRow: React.FC<{
             type="button"
             className={SECONDARY_BUTTON_CLASS}
             aria-label={translate('reviewHofLabel', locale, { hof: hof.name })}
-            onClick={() => onReview(first)}
+            onClick={() => onReview(first.id)}
           >
             {translate('review', locale)}
           </button>
@@ -155,11 +167,11 @@ const WaitingRow: React.FC<{
 };
 
 /** How far a Hof is in one area: handed in of all, one mark per form. */
-const AreaCell: React.FC<{ area: HofDashboardArea; summary: HofAreaSummary; locale: Locale }> = ({
-  area,
-  summary,
-  locale,
-}) => {
+const AreaCell: React.FC<{
+  area: HofDashboardAreaInfo;
+  summary: HofAreaSummary;
+  locale: Locale;
+}> = ({ area, summary, locale }) => {
   if (summary.forms === 0) return <span className="text-gray-400">–</span>;
   const count = (state: HofFormState): number =>
     summary.formStates.filter((candidate) => candidate === state).length;
@@ -177,7 +189,7 @@ const AreaCell: React.FC<{ area: HofDashboardArea; summary: HofAreaSummary; loca
       <SegmentBar
         segments={summary.formStates.map((state) => SEGMENT_TONE[state])}
         label={translate('formStatesLabel', locale, {
-          area: HOF_DASHBOARD_AREA_LABELS[area][locale],
+          area: area.label[locale],
           done: summary.done,
           total: summary.forms,
           accepted: count('accepted'),
@@ -197,14 +209,15 @@ const LegendMark: React.FC<{ className: string; label: string }> = ({ className,
 
 /**
  * Where every Hof stands, for the reviewers: first what waits for them, by Hof, with accepting
- * a Hof's Infrastruktur and Programm at once; then every Hof with how far it is per form,
+ * all of a Hof but its material orders at once; then every Hof with how far it is per tab,
  * searchable and filtered. A row opens the Hof's dashboard.
  */
 export const HofOverviewTable: React.FC<{
   hoefe: HofOverviewRow[];
+  areas: HofDashboardAreaInfo[];
   onOpen: (hofId: string, area?: HofDashboardArea) => void;
   locale: Locale;
-}> = ({ hoefe, onOpen, locale }) => {
+}> = ({ hoefe, areas, onOpen, locale }) => {
   const { accept, pendingHofId } = useAcceptHofArea(locale);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -240,9 +253,10 @@ export const HofOverviewTable: React.FC<{
               <WaitingRow
                 key={hof.id}
                 hof={hof}
+                areas={areas}
                 accepting={pendingHofId === hof.id}
                 onReview={(area) => onOpen(hof.id, area)}
-                onAccept={() => void accept(hof.id, ACCEPTED_AT_ONCE)}
+                onAccept={() => void accept(hof.id, acceptedAtOnce(areas))}
                 locale={locale}
               />
             ))}
@@ -288,7 +302,10 @@ export const HofOverviewTable: React.FC<{
             {translate(hoefe.length === 0 ? 'noHoefe' : 'noMatchingHof', locale)}
           </p>
         ) : (
-          <div className="border-line border-t">
+          <div
+            className="border-line border-t"
+            style={{ '--areas': areas.length } as React.CSSProperties}
+          >
             {/* the column heads of the wide layout; a narrow one names each area in its card */}
             <div
               aria-hidden
@@ -299,10 +316,10 @@ export const HofOverviewTable: React.FC<{
               )}
             >
               <span>{translate('hof', locale)}</span>
-              {HOF_DASHBOARD_AREAS.map((area) => (
-                <span key={area} className="flex items-center gap-2">
-                  <AreaIcon area={area} />
-                  {HOF_DASHBOARD_AREA_LABELS[area][locale]}
+              {areas.map((area) => (
+                <span key={area.id} className="flex items-center gap-2">
+                  <AreaIcon icon={area.icon} />
+                  {area.label[locale]}
                 </span>
               ))}
               <span>{translate('filterToReview', locale)}</span>
@@ -328,13 +345,11 @@ export const HofOverviewTable: React.FC<{
                     >
                       {hof.name}
                     </button>
-                    {HOF_DASHBOARD_AREAS.map((area) => (
-                      <div key={area} className="min-w-0">
+                    {areas.map((area) => (
+                      <div key={area.id} className="min-w-0">
                         {/* read out on every width, shown where no column head names it */}
-                        <p className={cn(LABEL_CLASS, 'mb-1 @3xl:sr-only')}>
-                          {HOF_DASHBOARD_AREA_LABELS[area][locale]}
-                        </p>
-                        <AreaCell area={area} summary={hof.areas[area]} locale={locale} />
+                        <p className={cn(LABEL_CLASS, 'mb-1 @3xl:sr-only')}>{area.label[locale]}</p>
+                        <AreaCell area={area} summary={summaryOf(hof, area.id)} locale={locale} />
                       </div>
                     ))}
                     <div className="flex flex-wrap items-center gap-3 @3xl:contents">

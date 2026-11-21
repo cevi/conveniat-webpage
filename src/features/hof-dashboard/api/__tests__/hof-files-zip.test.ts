@@ -3,6 +3,7 @@ import type {
   HofDashboardForm,
 } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import type { SubmissionPdfInput } from '@/features/hof-dashboard/api/render-submission-pdf';
+import { DEFAULT_HOF_DASHBOARD_AREAS } from '@/features/hof-dashboard/constants';
 import { strFromU8, unzipSync } from 'fflate';
 
 const entry = (id: string, submittedAt: string, title?: string): HofDashboardEntry => ({
@@ -65,7 +66,9 @@ const FILES = [
 
 const BUCKET: Record<string, string> = { 'a.pdf': 'A', 'b.pdf': 'B', 'c.png': 'C', 'e.pdf': 'E' };
 
-const mockGetHofDashboardData = jest.fn(() => Promise.resolve({ forms: FORMS }));
+const mockGetHofDashboardData = jest.fn(() =>
+  Promise.resolve({ forms: FORMS, areas: DEFAULT_HOF_DASHBOARD_AREAS }),
+);
 const mockRender = jest.fn((input: SubmissionPdfInput) =>
   Promise.resolve(Buffer.from(`PDF ${input.heading}`)),
 );

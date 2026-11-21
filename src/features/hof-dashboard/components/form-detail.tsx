@@ -19,8 +19,9 @@ import { EntryAnswers } from '@/features/hof-dashboard/components/entry-answers'
 import { ReviewPanel } from '@/features/hof-dashboard/components/review-panel';
 import { EntryTimeline } from '@/features/hof-dashboard/components/review-timeline';
 import {
-  HOF_DASHBOARD_AREA_LABELS,
   HOF_ENTRY_STATUS_LABELS,
+  MATERIAL_AREA,
+  type HofDashboardAreaInfo,
   type HofEntryStatus,
 } from '@/features/hof-dashboard/constants';
 import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
@@ -152,7 +153,7 @@ const EntryBlock: React.FC<{
 /** The label of the button that opens the form, after what there is already. */
 const actionLabel = (form: HofDashboardForm): TextKey => {
   const first = form.entries.length === 0;
-  if (form.area === 'material') return first ? 'placeOrder' : 'changeOrder';
+  if (form.area === MATERIAL_AREA) return first ? 'placeOrder' : 'changeOrder';
   if (first) return 'handIn';
   return form.mode === 'versions' ? 'handInNewVersion' : 'handInAnother';
 };
@@ -160,7 +161,7 @@ const actionLabel = (form: HofDashboardForm): TextKey => {
 /** What the button's neighbour says about handing in again; nothing for a form of entries. */
 const actionHint = (form: HofDashboardForm): TextKey | undefined => {
   if (form.mode === 'entries') return undefined;
-  return form.area === 'material' ? 'orderHint' : 'versionsHint';
+  return form.area === MATERIAL_AREA ? 'orderHint' : 'versionsHint';
 };
 
 /** What the Hof handed in so far: the newest version with the earlier ones folded away below. */
@@ -258,6 +259,8 @@ const Submissions: React.FC<{
  */
 export const FormDetail: React.FC<{
   form: HofDashboardForm;
+  /** The form's tab. */
+  area: HofDashboardAreaInfo;
   progress: SubmissionProgress;
   hofId: string;
   /** A reviewer answers what the Hof handed in, and hands in nothing for it. */
@@ -266,7 +269,7 @@ export const FormDetail: React.FC<{
   documents: HofDashboardDocument[];
   hidden: boolean;
   locale: Locale;
-}> = ({ form, progress, hofId, isReviewer, documents, hidden, locale }) => {
+}> = ({ form, area, progress, hofId, isReviewer, documents, hidden, locale }) => {
   const trpc = useTRPC();
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -288,8 +291,8 @@ export const FormDetail: React.FC<{
     >
       <header className="space-y-2">
         <p className={cn(LABEL_CLASS, 'flex items-center gap-2')}>
-          <AreaIcon area={form.area} />
-          {HOF_DASHBOARD_AREA_LABELS[form.area][locale]}
+          <AreaIcon icon={area.icon} />
+          {area.label[locale]}
         </p>
         <h3
           id={titleId}
@@ -336,7 +339,7 @@ export const FormDetail: React.FC<{
             }
             onClick={() => setOpen(true)}
           >
-            {form.area === 'material' ? <ShoppingCart aria-hidden /> : <Upload aria-hidden />}
+            {form.area === MATERIAL_AREA ? <ShoppingCart aria-hidden /> : <Upload aria-hidden />}
             {translate(actionLabel(form), locale)}
           </button>
           {hint !== undefined && (

@@ -1,3 +1,4 @@
+import { getHofDashboardAreas } from '@/features/hof-dashboard/api/hof-dashboard-areas';
 import {
   countedSubmissions,
   findDashboardForms,
@@ -7,11 +8,7 @@ import {
   sortDashboardForms,
   statusOf,
 } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import {
-  HOF_DASHBOARD_AREAS,
-  type HofDashboardArea,
-  type HofEntryStatus,
-} from '@/features/hof-dashboard/constants';
+import type { HofDashboardArea, HofEntryStatus } from '@/features/hof-dashboard/constants';
 import { getSubmissionProgress } from '@/features/hof-dashboard/utils/submission-progress';
 import type { HofName } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import type { FormSubmission } from '@/features/payload-cms/payload-types';
@@ -51,6 +48,7 @@ export interface HofAreaSummary {
 export interface HofOverviewRow {
   id: string;
   name: string;
+  /** By tab, for every tab of the dashboard. */
   areas: Record<HofDashboardArea, HofAreaSummary>;
   /**
    * What the Hof's ZIP holds: the files it handed in with any submission of a form on the
@@ -80,7 +78,11 @@ export const getHofOverview = async (
   locale: Locale,
 ): Promise<HofOverviewRow[]> => {
   const payload = await getPayload({ config });
-  const forms = sortDashboardForms(await findDashboardForms(payload, locale), locale);
+  const [areas, dashboardForms] = await Promise.all([
+    getHofDashboardAreas(payload),
+    findDashboardForms(payload, locale),
+  ]);
+  const forms = sortDashboardForms(dashboardForms, locale);
 
   const submissions =
     forms.length === 0 || hoefe.length === 0
@@ -133,8 +135,8 @@ export const getHofOverview = async (
   const now = new Date();
   return hoefe.map((hof): HofOverviewRow => {
     const ofHof = stored.filter((submission) => idOf(submission.hof) === hof.id);
-    const areas = Object.fromEntries(
-      HOF_DASHBOARD_AREAS.map((area): [HofDashboardArea, HofAreaSummary] => {
+    const summaries = Object.fromEntries(
+      areas.map(({ id: area }): [HofDashboardArea, HofAreaSummary] => {
         const summary: HofAreaSummary = {
           forms: 0,
           done: 0,
@@ -172,7 +174,7 @@ export const getHofOverview = async (
         }
         return [area, summary];
       }),
-    ) as Record<HofDashboardArea, HofAreaSummary>;
-    return { id: hof.id, name: hof.name, areas, files: filesByHof.get(hof.id) ?? 0 };
+    );
+    return { id: hof.id, name: hof.name, areas: summaries, files: filesByHof.get(hof.id) ?? 0 };
   });
 };
