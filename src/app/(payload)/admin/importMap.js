@@ -99,6 +99,7 @@ import { FormBlockLabel as FormBlockLabel_38d14c2698379009ac744a1a2c27c19b } fro
 import { FormSectionRowLabel as FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955 } from '@/features/payload-cms/payload-cms/components/form-section-row-label'
 import { WorkflowFieldMapping as WorkflowFieldMapping_250a2659e1c657e86d416a8a839c97c5 } from '@/features/payload-cms/payload-cms/plugins/form/components/workflow-field-mapping'
 import { default as default_841c75d2a11733c455bbe07946842305 } from '@/features/payload-cms/payload-cms/components/form/trigger-workflows-button'
+import { AreaSelectField as AreaSelectField_796f17a222671d2dc870af09432f4500 } from '@/features/hof-dashboard/payload-cms/components/area-select-field'
 import { FormExportButton as FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4 } from '@/features/payload-cms/payload-cms/components/form-export-button'
 import { FormSubmissionCount as FormSubmissionCount_fa7a19089a3d6737b1d85b7fdf6c8f81 } from '@/features/payload-cms/payload-cms/components/form-submission-count'
 import { default as default_5a1afd3768a7bf55d4be4961f0c79351 } from '@/features/payload-cms/payload-cms/components/form-submissions/submission-value-field'
@@ -262,6 +263,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/form-section-row-label#FormSectionRowLabel": FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955,
   "@/features/payload-cms/payload-cms/plugins/form/components/workflow-field-mapping#WorkflowFieldMapping": WorkflowFieldMapping_250a2659e1c657e86d416a8a839c97c5,
   "@/features/payload-cms/payload-cms/components/form/trigger-workflows-button#default": default_841c75d2a11733c455bbe07946842305,
+  "@/features/hof-dashboard/payload-cms/components/area-select-field#AreaSelectField": AreaSelectField_796f17a222671d2dc870af09432f4500,
   "@/features/payload-cms/payload-cms/components/form-export-button#FormExportButton": FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4,
   "@/features/payload-cms/payload-cms/components/form-submission-count#FormSubmissionCount": FormSubmissionCount_fa7a19089a3d6737b1d85b7fdf6c8f81,
   "@/features/payload-cms/payload-cms/components/form-submissions/submission-value-field#default": default_5a1afd3768a7bf55d4be4961f0c79351,

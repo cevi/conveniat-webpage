@@ -29,6 +29,20 @@ const orderForm = {
   sections: asksForHof,
 };
 
+/** A form under a tab an editor added. */
+const generalForm = {
+  id: 'form-general',
+  title: 'Teilnahmeprognose 2.0',
+  _localized_status: published,
+  hofDashboard: { area: 'general', entries: 'versions' },
+  sections: asksForHof,
+};
+
+let mockForms: unknown[] = [];
+
+/** The dashboard settings as stored; never saved with tabs unless a test sets them. */
+let mockSettings: { areas?: unknown } = {};
+
 interface Submission {
   id: string;
   form: string;
@@ -62,7 +76,7 @@ const mockPayload = {
   find: jest.fn(
     ({ collection, where }: { collection: string; where: Clause & { and?: Clause[] } }) => {
       if (collection === 'forms') {
-        return Promise.resolve({ docs: [planForm, standForm, orderForm] });
+        return Promise.resolve({ docs: mockForms });
       }
       const clauses = where.and ?? [where];
       const found = (collection === 'form-submissions' ? mockSubmissions : FILES).filter(
@@ -72,6 +86,7 @@ const mockPayload = {
     },
   ),
   update: jest.fn<Promise<unknown>, [unknown]>(() => Promise.resolve({})),
+  findGlobal: jest.fn(() => Promise.resolve(mockSettings)),
 };
 
 jest.mock('@/config/environment-variables', () => ({
@@ -96,6 +111,8 @@ const REVIEWER = { id: 'web-1', name: 'Sara Keller v/o Biber' };
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockForms = [planForm, standForm, orderForm];
+  mockSettings = {};
   mockSubmissions = [
     { id: 'plan-2', form: 'form-plan', hof: 'hof-nord', hofReviewStatus: 'inReview' },
     { id: 'plan-1', form: 'form-plan', hof: 'hof-nord', hofReviewStatus: 'revisionRequired' },
@@ -185,9 +202,29 @@ describe('getHofOverview form states', () => {
     ];
     const [nord] = await getHofOverview([HOF_NORD], 'de');
 
-    expect(nord?.areas.infrastructure.formStates).toEqual(['accepted']);
+    expect(nord?.areas['infrastructure']?.formStates).toEqual(['accepted']);
     // an entry sent back for a revision leaves the form missing, the accepted one aside
-    expect(nord?.areas.program.formStates).toEqual(['missing']);
+    expect(nord?.areas['program']?.formStates).toEqual(['missing']);
+  });
+});
+
+describe('getHofOverview with tabs set up by the editors', () => {
+  it('counts the tabs of the settings, and leaves out a form of a tab that is gone', async () => {
+    mockForms = [planForm, standForm, generalForm];
+    mockSettings = {
+      areas: [
+        { id: 'general', label: { de: 'Allgemein' }, icon: 'info' },
+        { id: 'infrastructure', label: { de: 'Infrastruktur' }, icon: 'hammer' },
+      ],
+    };
+    mockSubmissions = [{ id: 'general-1', form: 'form-general', hof: 'hof-nord' }];
+
+    const [nord] = await getHofOverview([HOF_NORD], 'de');
+
+    expect(Object.keys(nord?.areas ?? {})).toEqual(['general', 'infrastructure']);
+    expect(nord?.areas['general']).toMatchObject({ forms: 1, done: 1, toReview: 1 });
+    // the Stadtleben stands' tab "program" is no longer set up: their form shows nowhere
+    expect(nord?.files).toBe(1);
   });
 });
 

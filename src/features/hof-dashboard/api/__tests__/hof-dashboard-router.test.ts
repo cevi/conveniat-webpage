@@ -23,6 +23,8 @@ const mockPayload = {
       ],
     }),
   ),
+  // settings never saved with tabs
+  findGlobal: jest.fn(() => Promise.resolve({})),
   find: jest.fn(({ where }: { where?: { groupId: { in: string[] } } }) =>
     Promise.resolve({
       docs: HOEFE.filter((hof) => where === undefined || where.groupId.in.includes(hof.groupId)),
@@ -76,6 +78,7 @@ jest.mock('superjson', () => ({
 }));
 
 import { hofDashboardRouter } from '@/features/hof-dashboard/api/hof-dashboard-router';
+import { DEFAULT_HOF_DASHBOARD_AREAS } from '@/features/hof-dashboard/constants';
 
 const createCaller = createCallerFactory(hofDashboardRouter);
 
@@ -217,13 +220,21 @@ describe('hofDashboardRouter', () => {
     expect(mockComment).not.toHaveBeenCalled();
   });
 
-  it("gives a Hof's own people no overview of the Höfe, and reads nothing for it", async () => {
-    await expect(hofNordAdmin.getHofOverview()).resolves.toEqual({ isReviewer: false, hoefe: [] });
+  it("gives a Hof's own people the tabs but no overview of the Höfe", async () => {
+    await expect(hofNordAdmin.getHofOverview()).resolves.toEqual({
+      isReviewer: false,
+      areas: DEFAULT_HOF_DASHBOARD_AREAS,
+      hoefe: [],
+    });
     expect(mockOverview).not.toHaveBeenCalled();
   });
 
   it('gives a reviewer the overview of every Hof', async () => {
-    await expect(reviewer.getHofOverview()).resolves.toEqual({ isReviewer: true, hoefe: [] });
+    await expect(reviewer.getHofOverview()).resolves.toEqual({
+      isReviewer: true,
+      areas: DEFAULT_HOF_DASHBOARD_AREAS,
+      hoefe: [],
+    });
     expect(mockOverview).toHaveBeenCalledWith(
       [
         { id: 'hof-nord', name: 'Hof Nord' },

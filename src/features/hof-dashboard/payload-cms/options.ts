@@ -1,6 +1,6 @@
 import {
-  HOF_DASHBOARD_AREA_LABELS,
-  HOF_DASHBOARD_AREAS,
+  HOF_AREA_ICON_LABELS,
+  HOF_AREA_ICONS,
   HOF_ENTRY_MODE_LABELS,
   HOF_ENTRY_MODES,
   HOF_ENTRY_STATUS_LABELS,
@@ -16,7 +16,7 @@ const toOptions = <T extends string>(
 ): OptionObject[] => values.map((value) => ({ value, label: labels[value] }));
 
 /** The choices of the dashboard's select fields, labelled in the admin's three languages. */
-export const areaOptions = toOptions(HOF_DASHBOARD_AREAS, HOF_DASHBOARD_AREA_LABELS);
+export const areaIconOptions = toOptions(HOF_AREA_ICONS, HOF_AREA_ICON_LABELS);
 export const entryModeOptions = toOptions(HOF_ENTRY_MODES, HOF_ENTRY_MODE_LABELS);
 export const reviewStatusOptions = toOptions(HOF_REVIEW_STATUSES, HOF_ENTRY_STATUS_LABELS);
 export const reviewChoiceOptions = toOptions(HOF_REVIEW_CHOICES, HOF_ENTRY_STATUS_LABELS);

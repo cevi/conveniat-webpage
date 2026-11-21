@@ -16,10 +16,7 @@ import {
   dueByDay,
 } from '@/features/hof-dashboard/components/deadline-list';
 import { FormDetail } from '@/features/hof-dashboard/components/form-detail';
-import {
-  HOF_DASHBOARD_AREA_LABELS,
-  type HofDashboardArea,
-} from '@/features/hof-dashboard/constants';
+import type { HofDashboardAreaInfo } from '@/features/hof-dashboard/constants';
 import { formatDate, translate } from '@/features/hof-dashboard/texts';
 import {
   isOpen,
@@ -54,23 +51,23 @@ const defaultFormOf = (
  * list on the left and the chosen one beside it. With a single form the list is left out.
  */
 export const AreaView: React.FC<{
-  area: HofDashboardArea;
+  area: HofDashboardAreaInfo;
   data: HofDashboardData;
   progress: Record<string, SubmissionProgress>;
   selectedFormId: string | undefined;
   onSelect: (formId: string) => void;
   locale: Locale;
 }> = ({ area, data, progress, selectedFormId, onSelect, locale }) => {
-  const forms = data.forms.filter((form) => form.area === area);
-  const deadlines = data.deadlines.filter((deadline) => deadline.area === area);
-  const documents = data.documents.filter((document) => document.area === area);
+  const forms = data.forms.filter((form) => form.area === area.id);
+  const deadlines = data.deadlines.filter((deadline) => deadline.area === area.id);
+  const documents = data.documents.filter((document) => document.area === area.id);
   const selected = forms.some((form) => form.id === selectedFormId)
     ? selectedFormId
     : defaultFormOf(forms, progress, data.isReviewer);
   const states = forms.map((form) => progress[form.id]?.state);
   const done = states.filter((state) => state === 'done').length;
   const count = translate('progressCount', locale, { done, total: forms.length });
-  const label = HOF_DASHBOARD_AREA_LABELS[area][locale];
+  const label = area.label[locale];
   const due = dueByDay(
     forms.map((form) => {
       const formProgress = progress[form.id];
@@ -170,6 +167,7 @@ export const AreaView: React.FC<{
                 <FormDetail
                   key={form.id}
                   form={form}
+                  area={area}
                   progress={formProgress}
                   hofId={data.hof.id}
                   isReviewer={data.isReviewer}

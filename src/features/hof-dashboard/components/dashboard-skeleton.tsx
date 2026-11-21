@@ -1,7 +1,7 @@
 import { segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LABEL_CLASS, Panel } from '@/features/hof-dashboard/components/dashboard-ui';
-import { HOF_DASHBOARD_AREA_LABELS, HOF_DASHBOARD_AREAS } from '@/features/hof-dashboard/constants';
+import { DEFAULT_HOF_DASHBOARD_AREAS } from '@/features/hof-dashboard/constants';
 import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/texts';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -58,11 +58,12 @@ const StatsSkeleton: React.FC<{ locale: Locale }> = ({ locale }) => (
         </Words>
       </p>
     </div>
-    {HOF_DASHBOARD_AREAS.map((area) => (
-      <div key={area} className="space-y-3 p-5 @xl:p-6">
+    {/* the tabs are not known yet: the default ones hold their place */}
+    {DEFAULT_HOF_DASHBOARD_AREAS.map((area) => (
+      <div key={area.id} className="space-y-3 p-5 @xl:p-6">
         <span className="flex items-center gap-2 text-base font-semibold">
           <Skeleton className="h-4 w-4 shrink-0" />
-          <Words>{HOF_DASHBOARD_AREA_LABELS[area][locale]}</Words>
+          <Words>{area.label[locale]}</Words>
         </span>
         <span className="block text-sm">
           <Words>{translate('progressCount', locale, { done: 0, total: 0 })}</Words>
@@ -88,7 +89,7 @@ const TabsSkeleton: React.FC<{ locale: Locale }> = ({ locale }) => (
   <div className={cn(segmentedTrackClassName, 'w-fit max-w-full animate-pulse overflow-hidden')}>
     {[
       translate('tabOverview', locale),
-      ...HOF_DASHBOARD_AREAS.map((area) => HOF_DASHBOARD_AREA_LABELS[area][locale]),
+      ...DEFAULT_HOF_DASHBOARD_AREAS.map((area) => area.label[locale]),
       translate('tabDocuments', locale),
     ].map((label) => (
       <span
