@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.63.0](https://github.com/cevi/conveniat-webpage/compare/v1.62.0...v1.63.0) (2026-11-22)
+
+
+### Features
+
+* **admin:** show queue wait and attempts on an outgoing mail ([42b793a](https://github.com/cevi/conveniat-webpage/commit/42b793a8d763662543e9347796922e283579d5f9))
+* **admin:** show queue wait and attempts on an outgoing mail ([30b168a](https://github.com/cevi/conveniat-webpage/commit/30b168a84de5cb9280de4dfb29164b7269cd538e))
+* **hof-dashboard:** editors set up the dashboard's tabs in the CMS ([4f9bc97](https://github.com/cevi/conveniat-webpage/commit/4f9bc978ff99a57e27e5cca360fe3c896f92bfc0))
+* **hof-dashboard:** editors set up the dashboard's tabs in the CMS ([370ae2c](https://github.com/cevi/conveniat-webpage/commit/370ae2cc8ca78b593df149bef0b0e3c28690e6ec))
+
+
+### Bug Fixes
+
+* **admin:** read older overrides and reports in the mail history ([cfa139a](https://github.com/cevi/conveniat-webpage/commit/cfa139a31de893a1e3f91de4bc67d6c216f693da))
+* **billing:** bill a participation by its highest event role ([b6a5c6b](https://github.com/cevi/conveniat-webpage/commit/b6a5c6b751fb46b920ff8ad8f2cf3459da5b76a6))
+* **billing:** bill a participation by its highest event role ([8dc3627](https://github.com/cevi/conveniat-webpage/commit/8dc3627349fe0a4a077007615b64e3de072540c3))
+* **billing:** pick the billed role among the priced ones ([27e876b](https://github.com/cevi/conveniat-webpage/commit/27e876b884dea2d6cb721dd2aae569aaaa9dd130))
+
 ## [1.62.0](https://github.com/cevi/conveniat-webpage/compare/v1.61.2...v1.62.0) (2026-11-16)
 
 
