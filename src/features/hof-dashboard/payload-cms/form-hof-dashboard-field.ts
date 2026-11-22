@@ -1,8 +1,10 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { areaOptions, entryModeOptions } from '@/features/hof-dashboard/payload-cms/options';
+import { getHofDashboardAreas } from '@/features/hof-dashboard/api/hof-dashboard-areas';
+import { hofAreaField, unknownAreaMessage } from '@/features/hof-dashboard/payload-cms/area-field';
+import { entryModeOptions } from '@/features/hof-dashboard/payload-cms/options';
 import { getFormBlockNames } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
-import type { Field, SelectFieldSingleValidation, TextFieldSingleValidation } from 'payload';
+import type { Field, TextFieldSingleValidation } from 'payload';
 
 /** Whether a form asks for the Hof, which is what links a submission to a Hof's dashboard. */
 const asksForHof = (sections: unknown): boolean =>
@@ -11,15 +13,19 @@ const asksForHof = (sections: unknown): boolean =>
     getFormBlockNames(section?.formSection?.fields, 'hofSelection').some(Boolean),
   );
 
-const requiresHofSelection: SelectFieldSingleValidation = (value, { data, req }) =>
-  value === null ||
-  value === undefined ||
-  asksForHof((data as { sections?: unknown }).sections) ||
-  getValidationMessage(req.i18n.language, {
-    en: 'Add a "Hof Selection" field to the form first: it tells which Hof a submission belongs to.',
-    de: 'Zuerst ein Feld "Hof Auswahl" ins Formular einfügen: Es sagt, zu welchem Hof eine Antwort gehört.',
-    fr: 'Ajoute d’abord un champ « Sélection du Hof » au formulaire : il indique à quel Hof une réponse appartient.',
-  });
+/** A tab of the dashboard, on a form that asks for the Hof. */
+const isDashboardArea: TextFieldSingleValidation = async (value, { data, req }) => {
+  if (value === null || value === undefined || value === '') return true;
+  if (!asksForHof((data as { sections?: unknown }).sections)) {
+    return getValidationMessage(req.i18n.language, {
+      en: 'Add a "Hof Selection" field to the form first: it tells which Hof a submission belongs to.',
+      de: 'Zuerst ein Feld "Hof Auswahl" ins Formular einfügen: Es sagt, zu welchem Hof eine Antwort gehört.',
+      fr: 'Ajoute d’abord un champ « Sélection du Hof » au formulaire : il indique à quel Hof une réponse appartient.',
+    });
+  }
+  const areas = await getHofDashboardAreas(req.payload);
+  return areas.some((area) => area.id === value) || unknownAreaMessage(req.i18n.language);
+};
 
 /** Every field name of a form, conditioned fields included. */
 const fieldNamesOf = (sections: unknown): string[] => {
@@ -73,21 +79,17 @@ export const formHofDashboardField: Field = {
     {
       type: 'row',
       fields: [
-        {
+        hofAreaField({
           name: 'area',
-          type: 'select',
-          options: areaOptions,
-          validate: requiresHofSelection,
-          label: { en: 'Area', de: 'Bereich', fr: 'Domaine' },
-          admin: {
-            width: '50%',
-            description: {
-              en: 'The tab it shows under. Leave empty to keep the form off the dashboard.',
-              de: 'Der Reiter, unter dem es erscheint. Leer lassen, damit das Formular nicht auf dem Dashboard erscheint.',
-              fr: 'L’onglet sous lequel il apparaît. Laisser vide pour ne pas l’afficher sur le tableau de bord.',
-            },
+          validate: isDashboardArea,
+          label: { en: 'Tab', de: 'Reiter', fr: 'Onglet' },
+          width: '50%',
+          description: {
+            en: 'The tab it shows under; the tabs are set up in the Hof dashboard settings. Leave empty to keep the form off the dashboard.',
+            de: 'Der Reiter, unter dem es erscheint; die Reiter stehen in den Hof-Dashboard Einstellungen. Leer lassen, damit das Formular nicht auf dem Dashboard erscheint.',
+            fr: 'L’onglet sous lequel il apparaît ; les onglets se règlent dans les paramètres du tableau de bord des Hofs. Laisser vide pour ne pas l’afficher sur le tableau de bord.',
           },
-        },
+        }),
         {
           name: 'entries',
           type: 'select',
@@ -221,9 +223,9 @@ export const formHofDashboardField: Field = {
       admin: {
         condition: isOnDashboard,
         description: {
-          en: 'Lower numbers show first within their area.',
-          de: 'Kleinere Zahlen erscheinen in ihrem Bereich zuerst.',
-          fr: 'Les nombres plus petits apparaissent en premier dans leur domaine.',
+          en: 'Lower numbers show first within their tab.',
+          de: 'Kleinere Zahlen erscheinen in ihrem Reiter zuerst.',
+          fr: 'Les nombres plus petits apparaissent en premier dans leur onglet.',
         },
       },
     },

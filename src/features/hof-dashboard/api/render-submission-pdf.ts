@@ -3,10 +3,7 @@ import type {
   HofDashboardEntry,
   HofDashboardForm,
 } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import {
-  HOF_DASHBOARD_AREA_LABELS,
-  HOF_ENTRY_STATUS_LABELS,
-} from '@/features/hof-dashboard/constants';
+import { HOF_ENTRY_STATUS_LABELS } from '@/features/hof-dashboard/constants';
 import {
   formatDateTime,
   formatFileSize,
@@ -21,7 +18,9 @@ import path from 'node:path';
 /** One submission of a Hof, and what the PDF needs around it. */
 export interface SubmissionPdfInput {
   hofName: string;
-  form: Pick<HofDashboardForm, 'title' | 'area'>;
+  form: Pick<HofDashboardForm, 'title'>;
+  /** The name of the form's tab, in `locale`. */
+  areaLabel: string;
   entry: HofDashboardEntry;
   /** "Version 2" or the entry's title, as the dashboard heads the submission. */
   heading: string;
@@ -149,7 +148,7 @@ export async function renderSubmissionPdf(input: SubmissionPdfInput): Promise<Bu
       { label: translate('hof', locale), value: input.hofName },
       {
         label: translate('pdfArea', locale),
-        value: HOF_DASHBOARD_AREA_LABELS[input.form.area][locale],
+        value: input.areaLabel,
       },
       {
         label: translate('pdfSubmittedAt', locale),

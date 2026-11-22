@@ -1,18 +1,63 @@
 import type { StaticTranslationString } from '@/types/types';
 
 /**
- * Where a form belongs on the dashboard, and so under which tab the Hof finds it. Material
- * orders get a tab of their own, since a Hof keeps coming back to them.
+ * A tab of the dashboard, under which the Hof finds the forms, deadlines and documents of one
+ * area. Editors set the tabs up in the dashboard settings; the id is the row id there, and what
+ * a form, a deadline or a document stores to say where it belongs.
  */
-export const HOF_DASHBOARD_AREAS = ['infrastructure', 'program', 'material'] as const;
+export type HofDashboardArea = string;
 
-export type HofDashboardArea = (typeof HOF_DASHBOARD_AREAS)[number];
+/** The icons an editor can give a tab, by the name the settings store. */
+export const HOF_AREA_ICONS = [
+  'hammer',
+  'sparkles',
+  'package',
+  'clipboard-list',
+  'info',
+  'users',
+  'tent',
+  'calendar',
+] as const;
 
-export const HOF_DASHBOARD_AREA_LABELS: Record<HofDashboardArea, StaticTranslationString> = {
-  infrastructure: { de: 'Infrastruktur', en: 'Infrastructure', fr: 'Infrastructure' },
-  program: { de: 'Programm', en: 'Programme', fr: 'Programme' },
-  material: { de: 'Material', en: 'Material', fr: 'Matériel' },
+export type HofAreaIcon = (typeof HOF_AREA_ICONS)[number];
+
+export const HOF_AREA_ICON_LABELS: Record<HofAreaIcon, StaticTranslationString> = {
+  hammer: { de: 'Hammer', en: 'Hammer', fr: 'Marteau' },
+  sparkles: { de: 'Funken', en: 'Sparkles', fr: 'Étincelles' },
+  package: { de: 'Paket', en: 'Package', fr: 'Colis' },
+  'clipboard-list': { de: 'Klemmbrett', en: 'Clipboard', fr: 'Presse-papiers' },
+  info: { de: 'Info', en: 'Info', fr: 'Info' },
+  users: { de: 'Personen', en: 'People', fr: 'Personnes' },
+  tent: { de: 'Zelt', en: 'Tent', fr: 'Tente' },
+  calendar: { de: 'Kalender', en: 'Calendar', fr: 'Calendrier' },
 };
+
+/** A tab of the dashboard as the dashboard shows it, its name in every language. */
+export interface HofDashboardAreaInfo {
+  id: HofDashboardArea;
+  label: StaticTranslationString;
+  icon: HofAreaIcon;
+}
+
+/**
+ * The tabs the dashboard had before editors could set them up, and still has until they change
+ * them. Their ids are the values forms, deadlines and documents stored back then.
+ */
+export const DEFAULT_HOF_DASHBOARD_AREAS: readonly HofDashboardAreaInfo[] = [
+  {
+    id: 'infrastructure',
+    label: { de: 'Infrastruktur', en: 'Infrastructure', fr: 'Infrastructure' },
+    icon: 'hammer',
+  },
+  { id: 'program', label: { de: 'Programm', en: 'Programme', fr: 'Programme' }, icon: 'sparkles' },
+  { id: 'material', label: { de: 'Material', en: 'Material', fr: 'Matériel' }, icon: 'package' },
+];
+
+/**
+ * The tab whose forms are material orders: the Ressort sees them together under
+ * "Materialbestellungen", confirms them one by one and the Hof "orders" there.
+ */
+export const MATERIAL_AREA: HofDashboardArea = 'material';
 
 /**
  * How a form's submissions read on the dashboard: as versions of one thing, where only the

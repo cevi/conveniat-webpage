@@ -1,5 +1,7 @@
+import { getHofDashboardAreas } from '@/features/hof-dashboard/api/hof-dashboard-areas';
 import {
   type HofDashboardArea,
+  type HofDashboardAreaInfo,
   type HofEntryMode,
   type HofEntryStatus,
   type HofReviewChoice,
@@ -140,6 +142,8 @@ export interface HofDashboardData {
    * from Cevi.DB.
    */
   responsible: HofContact[];
+  /** The tabs between the overview and the documents, in the editors' order. */
+  areas: HofDashboardAreaInfo[];
   deadlines: HofDashboardDeadline[];
   forms: HofDashboardForm[];
   documents: HofDashboardDocument[];
@@ -431,12 +435,14 @@ export const isClosedAtDeadline = (
   daysUntil(settings.deadline, now) < 0;
 
 /**
- * The forms on the dashboard, read in `locale`: linked to an area, asking for the Hof, and
- * published in that language or in German, the fallback. A form not yet translated reads in
- * German, as the settings do, rather than vanishing with the Hof's submissions of it.
+ * The forms on the dashboard, read in `locale`: linked to one of its tabs, asking for the Hof,
+ * and published in that language or in German, the fallback. A form not yet translated reads in
+ * German, as the settings do, rather than vanishing with the Hof's submissions of it. A draft
+ * skips validation, so a tab that no longer exists is checked here.
  */
 export const findDashboardForms = async (payload: Payload, locale: Locale): Promise<Form[]> => {
-  const [linkedForms, publishedInGerman] = await Promise.all([
+  const [areas, linkedForms, publishedInGerman] = await Promise.all([
+    getHofDashboardAreas(payload),
     payload.find({
       collection: 'forms',
       where: { 'hofDashboard.area': { exists: true } },
@@ -461,9 +467,11 @@ export const findDashboardForms = async (payload: Payload, locale: Locale): Prom
   const germanIds = new Set(
     publishedInGerman.docs.filter((form) => isPublished(form)).map((form) => form.id),
   );
+  const areaIds = new Set(areas.map((area) => area.id));
   return linkedForms.docs.filter(
     (form) =>
       typeof form.hofDashboard?.area === 'string' &&
+      areaIds.has(form.hofDashboard.area) &&
       (isPublished(form) || germanIds.has(form.id)) &&
       hofFieldOf(form) !== undefined,
   );
@@ -537,7 +545,7 @@ export const getHofDashboardData = async (
 ): Promise<HofDashboardData> => {
   const payload = await getPayload({ config });
 
-  const [hof, settings, forms] = await Promise.all([
+  const [hof, settings, forms, areas] = await Promise.all([
     payload.findByID({
       collection: 'hoefe',
       id: hofId,
@@ -566,6 +574,7 @@ export const getHofDashboardData = async (
       overrideAccess: true,
     }),
     findDashboardForms(payload, locale),
+    getHofDashboardAreas(payload),
   ]);
 
   const submissions = (
@@ -767,6 +776,7 @@ export const getHofDashboardData = async (
   return {
     hof: { id: hof.id, name: hof.name },
     responsible: await findResponsible(payload, hof),
+    areas,
     deadlines,
     forms: dashboardForms,
     documents,

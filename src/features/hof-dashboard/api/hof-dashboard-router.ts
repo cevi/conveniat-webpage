@@ -1,4 +1,5 @@
 import { hofDashboardProcedure } from '@/features/hof-dashboard/api/hof-dashboard-access';
+import { getHofDashboardAreas } from '@/features/hof-dashboard/api/hof-dashboard-areas';
 import { getHofDashboardData } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import {
   acceptHofArea,
@@ -8,7 +9,7 @@ import {
 } from '@/features/hof-dashboard/api/hof-dashboard-mutations';
 import { getHofOverview } from '@/features/hof-dashboard/api/hof-overview';
 import { getMaterialOrders } from '@/features/hof-dashboard/api/material-orders';
-import { HOF_DASHBOARD_AREAS, HOF_REVIEW_CHOICES } from '@/features/hof-dashboard/constants';
+import { HOF_REVIEW_CHOICES } from '@/features/hof-dashboard/constants';
 import { findHoefe } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { enabledLocales, LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { createTRPCRouter, publicProcedure } from '@/trpc/init';
@@ -35,14 +36,20 @@ export const hofDashboardRouter = createTRPCRouter({
   getMyHofList: hofDashboardProcedure.query(async ({ ctx }) => await ctx.accessibleHoefe()),
 
   /**
-   * Where every Hof stands, for the reviewers. Asked by everyone who opens the dashboard, so
-   * a Hof's own people get an empty list rather than an error, and nothing is read for them.
+   * The dashboard's tabs, and where every Hof stands, for the reviewers. Asked by everyone who
+   * opens the dashboard, before a Hof's dashboard, so the tab the address names is known; a
+   * Hof's own people get an empty list of Höfe rather than an error, and nothing of them is read.
    */
-  getHofOverview: hofDashboardProcedure.query(async ({ ctx }) =>
-    ctx.isReviewer
-      ? { isReviewer: true, hoefe: await getHofOverview(await ctx.accessibleHoefe(), ctx.locale) }
-      : { isReviewer: false, hoefe: [] },
-  ),
+  getHofOverview: hofDashboardProcedure.query(async ({ ctx }) => {
+    const areas = await getHofDashboardAreas(await getPayload({ config }));
+    return ctx.isReviewer
+      ? {
+          isReviewer: true,
+          areas,
+          hoefe: await getHofOverview(await ctx.accessibleHoefe(), ctx.locale),
+        }
+      : { isReviewer: false, areas, hoefe: [] };
+  }),
 
   /** Every Hof's material orders by form, for the reviewers. */
   getMaterialOrderList: hofDashboardProcedure.query(async ({ ctx }) => {
@@ -121,7 +128,8 @@ export const hofDashboardRouter = createTRPCRouter({
 
   /** Accepts everything that counts of one Hof in one area at once, for the reviewers only. */
   acceptHofArea: hofDashboardProcedure
-    .input(hofIdInput.extend({ area: z.enum(HOF_DASHBOARD_AREAS) }))
+    // a tab no form is linked to accepts nothing
+    .input(hofIdInput.extend({ area: z.string().min(1).max(64) }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.isReviewer) throw new TRPCError({ code: 'FORBIDDEN' });
       const hof = await ctx.assertHofAccess(input.hofId);

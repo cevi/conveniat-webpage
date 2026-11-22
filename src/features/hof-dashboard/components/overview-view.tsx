@@ -15,9 +15,9 @@ import {
 import { DeadlineTimeline, dueByDay } from '@/features/hof-dashboard/components/deadline-list';
 import { DocumentLinks } from '@/features/hof-dashboard/components/document-links';
 import {
-  HOF_DASHBOARD_AREA_LABELS,
-  HOF_DASHBOARD_AREAS,
+  MATERIAL_AREA,
   type HofDashboardArea,
+  type HofDashboardAreaInfo,
 } from '@/features/hof-dashboard/constants';
 import {
   formatCountdown,
@@ -65,13 +65,19 @@ const groupByDeadline = (
 /** What the row's button does: hand in, revise, or order. */
 const rowAction = ({ form, progress }: FormWithProgress): TextKey => {
   if (progress.gap === 'revision') return 'revise';
-  if (form.area === 'material') return form.entries.length === 0 ? 'placeOrder' : 'changeOrder';
+  if (form.area === MATERIAL_AREA) {
+    return form.entries.length === 0 ? 'placeOrder' : 'changeOrder';
+  }
   return 'handIn';
 };
 
-/** The area, and what the Hof handed in so far or how the form counts. */
-const rowDetail = (form: HofDashboardForm, locale: Locale): string => {
-  const parts = [HOF_DASHBOARD_AREA_LABELS[form.area][locale]];
+/** The tab, and what the Hof handed in so far or how the form counts. */
+const rowDetail = (
+  form: HofDashboardForm,
+  area: HofDashboardAreaInfo | undefined,
+  locale: Locale,
+): string => {
+  const parts = area === undefined ? [] : [area.label[locale]];
   const newest = form.entries[0];
   if (form.mode === 'entries' && form.entries.length > 0) {
     parts.push(translate('entriesCount', locale, { n: form.entries.length }));
@@ -82,7 +88,7 @@ const rowDetail = (form: HofDashboardForm, locale: Locale): string => {
         date: formatDate(newest.submittedAt, locale),
       }),
     );
-  } else if (form.area === 'material' && form.mode === 'versions') {
+  } else if (form.area === MATERIAL_AREA && form.mode === 'versions') {
     parts.push(translate('newestOrderCounts', locale));
   }
   return parts.join(' · ');
@@ -91,18 +97,19 @@ const rowDetail = (form: HofDashboardForm, locale: Locale): string => {
 /** One form in the overview's list, with the button that leads to it. */
 const FormRow: React.FC<{
   entry: FormWithProgress;
+  area: HofDashboardAreaInfo | undefined;
   locale: Locale;
   onOpen: () => void;
-}> = ({ entry, locale, onOpen }) => {
+}> = ({ entry, area, locale, onOpen }) => {
   const { form, progress } = entry;
   const open = isOpen(progress);
   return (
     <li className="grid items-center gap-x-4 gap-y-3 px-5 py-4 @min-[420px]:grid-cols-[minmax(0,1fr)_auto] @min-[640px]:grid-cols-[minmax(0,1fr)_auto_auto] @xl:px-6">
       <div className="flex min-w-0 items-start gap-3">
-        <AreaIcon area={form.area} className="mt-1" />
+        {area !== undefined && <AreaIcon icon={area.icon} className="mt-1" />}
         <div className="min-w-0">
           <p className="text-base font-semibold text-balance text-green-900">{form.title}</p>
-          <p className="text-sm text-green-700">{rowDetail(form, locale)}</p>
+          <p className="text-sm text-green-700">{rowDetail(form, area, locale)}</p>
           {/* under the title while the row is narrow, a column of its own once it is wide */}
           <p className="pt-1.5 @min-[640px]:hidden">
             <ProgressPill progress={progress} locale={locale} />
@@ -158,8 +165,8 @@ const SummaryStrip: React.FC<{
 }> = ({ data, entries, locale, onOpenArea }) => {
   const open = entries.filter(({ progress }) => isOpen(progress)).toSorted(byDeadline);
   const next = open.find(({ progress }) => progress.deadline !== undefined)?.progress;
-  // an area without forms has nothing to count
-  const areas = HOF_DASHBOARD_AREAS.filter((area) => data.forms.some((form) => form.area === area));
+  // a tab without forms has nothing to count
+  const areas = data.areas.filter((area) => data.forms.some((form) => form.area === area.id));
 
   return (
     <Panel className="divide-line grid divide-y p-0 @min-[640px]:auto-cols-fr @min-[640px]:grid-flow-col @min-[640px]:divide-x @min-[640px]:divide-y-0 @xl:p-0">
@@ -195,19 +202,19 @@ const SummaryStrip: React.FC<{
         )}
       </div>
       {areas.map((area) => {
-        const ofArea = entries.filter(({ form }) => form.area === area);
+        const ofArea = entries.filter(({ form }) => form.area === area.id);
         const done = ofArea.filter(({ progress }) => progress.state === 'done').length;
         const count = translate('progressCount', locale, { done, total: ofArea.length });
-        const label = HOF_DASHBOARD_AREA_LABELS[area][locale];
+        const label = area.label[locale];
         return (
           <button
-            key={area}
+            key={area.id}
             type="button"
             className="cursor-pointer space-y-3 p-5 text-left transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-green-600 @xl:p-6"
-            onClick={() => onOpenArea(area)}
+            onClick={() => onOpenArea(area.id)}
           >
             <span className="flex items-center gap-2 text-base font-semibold text-green-900">
-              <AreaIcon area={area} />
+              <AreaIcon icon={area.icon} />
               {label}
             </span>
             <span className="block text-sm text-green-700 tabular-nums">{count}</span>
@@ -252,6 +259,7 @@ export const OverviewView: React.FC<{
     <FormRow
       key={entry.form.id}
       entry={entry}
+      area={data.areas.find((area) => area.id === entry.form.area)}
       locale={locale}
       onOpen={() => onOpen(entry.form.area, entry.form.id)}
     />
