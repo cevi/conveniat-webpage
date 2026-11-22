@@ -63,7 +63,7 @@ const externalParticipant = (
   lastName: 'Mustermann',
   nickname: 'Muster',
   fullName: 'Max Mustermann',
-  roleType: 'Event::Role::Participant',
+  roleTypes: ['Event::Role::Participant'],
   enrollmentDate: '2026-06-22T00:00:00Z',
   street: 'Musterstrasse',
   housenumber: '42',
@@ -224,7 +224,7 @@ describe('Sync Service', () => {
       lastName: 'Mustermann',
       nickname: 'Muster',
       fullName: 'Max Mustermann',
-      roleType: 'Event::Role::Participant',
+      roleTypes: ['Event::Role::Participant'],
       enrollmentDate: '2026-06-22T00:00:00Z',
       street: 'Musterstrasse',
       housenumber: '42',
@@ -297,7 +297,7 @@ describe('Sync Service', () => {
       lastName: 'Mustermann',
       nickname: 'Muster',
       fullName: 'Max Mustermann',
-      roleType: 'Event::Role::Participant',
+      roleTypes: ['Event::Role::Participant'],
       enrollmentDate: '2026-06-22T00:00:00Z',
       street: 'Musterstrasse',
       housenumber: '42',
@@ -375,6 +375,25 @@ describe('Sync Service', () => {
     expect(update?.status).toBe('pflichtangaben_missing');
     expect(update?.missingAnmeldeangaben).toEqual(['Anmeldestatus']);
     expect(isBillable(String(update?.status))).toBe(false);
+  });
+
+  it('files a new participant entered as Teilnehmer:in and Hauptleitung under the Hauptleitung', async () => {
+    mockParticipantRepo.findByParticipationUuid.mockResolvedValue(null);
+    mockParticipantRepo.findRemovedParticipant.mockResolvedValue(null);
+    mockHitobitoService.fetchParticipations.mockResolvedValue([
+      externalParticipant({ roleTypes: ['Event::Role::Participant', 'Event::Role::Leader'] }),
+    ]);
+    mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(completeAnswers);
+
+    await syncParticipantsUseCase(
+      mockParticipantRepo,
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    const [created] = mockParticipantRepo.create.mock.calls[0] ?? [];
+    expect(created).toMatchObject({ roleType: 'Event::Role::Leader', status: 'new' });
   });
 
   it('ignores Aufbau- and Abbaulager events configured in settings and deactivates active participants', async () => {

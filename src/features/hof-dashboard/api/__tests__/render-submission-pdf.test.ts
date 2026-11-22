@@ -48,7 +48,8 @@ describe('renderSubmissionPdf', () => {
   it('renders a long submission onto as many pages as it needs', async () => {
     const pdf = await renderSubmissionPdf({
       hofName: 'Cevi Uster',
-      form: { title: 'Hofbauten', area: 'infrastructure' },
+      form: { title: 'Hofbauten' },
+      areaLabel: 'Infrastruktur',
       entry: ENTRY,
       heading: 'Version 2',
       fileNames: new Map([['file-a', 'plan_v2.pdf']]),

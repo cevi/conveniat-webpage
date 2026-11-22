@@ -1,4 +1,8 @@
-import { isRoleAllowed, validateParticipant } from '@/features/billing/services/validation-service';
+import {
+  isRoleAllowed,
+  resolveBilledRoleType,
+  validateParticipant,
+} from '@/features/billing/services/validation-service';
 
 describe('Validation Service', () => {
   const validPerson = {
@@ -153,5 +157,61 @@ describe('Validation Service', () => {
       expect(isRoleAllowed('Event::Role::Leader', [])).toBe(false);
       expect(isRoleAllowed('Event::Role::Leader', [''])).toBe(false);
     });
+  });
+});
+
+describe('resolveBilledRoleType', () => {
+  const priced = [
+    'Event::Role::Participant',
+    'Event::Role::Leader',
+    'Event::Role::AssistantLeader',
+  ];
+
+  it('bills a single role as it is, priced or not', () => {
+    expect(resolveBilledRoleType(['Event::Role::Participant'], priced)).toBe(
+      'Event::Role::Participant',
+    );
+    expect(resolveBilledRoleType(['Event::Role::Cook'], priced)).toBe('Event::Role::Cook');
+  });
+
+  it('leaves a participation without a role unknown', () => {
+    expect(resolveBilledRoleType([], priced)).toBe('unknown');
+  });
+
+  it('bills the Hauptleitung over a Leitung and a participant role, in any order', () => {
+    const roles = [
+      'Event::Role::Participant',
+      'Event::Role::Leader',
+      'Event::Role::AssistantLeader',
+    ];
+    expect(resolveBilledRoleType(roles, priced)).toBe('Event::Role::Leader');
+    expect(resolveBilledRoleType([...roles].reverse(), priced)).toBe('Event::Role::Leader');
+  });
+
+  it('bills a Leitung over a participant role', () => {
+    expect(
+      resolveBilledRoleType(['Event::Role::Participant', 'Event::Role::AssistantLeader'], priced),
+    ).toBe('Event::Role::AssistantLeader');
+  });
+
+  it('does not let an unpriced extra role make a participant unbillable', () => {
+    expect(resolveBilledRoleType(['Event::Role::Cook', 'Event::Role::Participant'], priced)).toBe(
+      'Event::Role::Participant',
+    );
+  });
+
+  it('bills a priced extra role over a participant role', () => {
+    expect(
+      resolveBilledRoleType(
+        ['Event::Role::Participant', 'Event::Role::Cook'],
+        [...priced, 'Event::Role::Cook'],
+      ),
+    ).toBe('Event::Role::Cook');
+  });
+
+  it('names the highest role when none of them is priced', () => {
+    expect(resolveBilledRoleType(['Event::Role::Cook', 'Event::Role::Leader'], [])).toBe(
+      'Event::Role::Leader',
+    );
   });
 });

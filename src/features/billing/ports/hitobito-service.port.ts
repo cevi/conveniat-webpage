@@ -8,7 +8,8 @@ export interface SyncedExternalParticipant {
   lastName: string;
   nickname: string;
   fullName: string;
-  roleType: string;
+  /** Every role of the participation; `resolveBilledRoleType` picks the one that is billed. */
+  roleTypes: string[];
   enrollmentDate: string;
   street?: string | null;
   housenumber?: string | null;

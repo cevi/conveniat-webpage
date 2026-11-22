@@ -23,7 +23,11 @@ import {
 } from '@/features/billing/services/billing-status';
 import { CEVIDB_SESSION_EXPIRED_MESSAGE } from '@/features/billing/services/cevidb-session';
 import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
-import { isRoleAllowed, validateParticipant } from '@/features/billing/services/validation-service';
+import {
+  isRoleAllowed,
+  resolveBilledRoleType,
+  validateParticipant,
+} from '@/features/billing/services/validation-service';
 import type { SyncSummary } from '@/features/billing/types';
 import { BillingTaskSlug } from '@/features/billing/types';
 import { isAufbauOrAbbaulager } from '@/features/billing/utils';
@@ -129,6 +133,8 @@ async function syncParticipation(
   rolePricingPatterns: string[],
   logger: SyncLogger,
 ): Promise<void> {
+  const roleType = resolveBilledRoleType(participation.roleTypes, rolePricingPatterns);
+
   // Fetch custom answers for custom questions verification
   const answers = await withSpan('syncParticipants:fetchAnswers', async (span) => {
     const answersResult = await hitobitoService.fetchParticipationAnswers(
@@ -199,7 +205,7 @@ async function syncParticipation(
       lastName: participation.lastName,
       nickname: participation.nickname,
       fullName: participation.fullName,
-      roleType: participation.roleType,
+      roleType,
       enrollmentDate: participation.enrollmentDate,
       street: participation.street ?? null,
       zip: participation.zip ?? null,
@@ -212,7 +218,7 @@ async function syncParticipation(
       active: participation.active,
     };
 
-    const isRoleOk = isRoleAllowed(participation.roleType, rolePricingPatterns);
+    const isRoleOk = isRoleAllowed(roleType, rolePricingPatterns);
     const isMissing = !validationResult.isValid;
     let finalStatus = isReAdded ? 're_added' : 'new';
     if (!isRoleOk) {
@@ -282,7 +288,7 @@ async function syncParticipation(
     }
 
     const normalize = (val: unknown): string => (typeof val === 'string' ? val : '');
-    const hasRoleChanged = normalize(document_.roleType) !== normalize(participation.roleType);
+    const hasRoleChanged = normalize(document_.roleType) !== normalize(roleType);
     const hasNameChanged = normalize(document_.fullName) !== normalize(participation.fullName);
     const hasFirstNameChanged =
       normalize(document_.firstName) !== normalize(participation.firstName);
@@ -313,14 +319,14 @@ async function syncParticipation(
       JSON.stringify(document_.missingAnmeldeangaben ?? []) !==
       JSON.stringify(validationResult.missingAnmeldeangaben);
 
-    const isRoleOk = isRoleAllowed(participation.roleType, rolePricingPatterns);
+    const isRoleOk = isRoleAllowed(roleType, rolePricingPatterns);
     const isMissing = !validationResult.isValid;
 
     const diff: Record<string, { from: string; to: string }> = {};
     if (hasRoleChanged)
       diff['roleType'] = {
         from: String(document_.roleType),
-        to: participation.roleType,
+        to: roleType,
       };
     if (hasFirstNameChanged)
       diff['firstName'] = {
@@ -415,7 +421,7 @@ async function syncParticipation(
         lastName: participation.lastName,
         nickname: participation.nickname,
         fullName: participation.fullName,
-        roleType: participation.roleType,
+        roleType,
         status: newStatus,
         street: participation.street ?? null,
         zip: participation.zip ?? null,

@@ -1,4 +1,4 @@
-import { HOF_ENTRY_STATUS_LABELS, type HofDashboardArea } from '@/features/hof-dashboard/constants';
+import { HOF_ENTRY_STATUS_LABELS, type HofAreaIcon } from '@/features/hof-dashboard/constants';
 import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/texts';
 import {
   isOpen,
@@ -9,11 +9,16 @@ import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import {
   AlertCircle,
+  CalendarDays,
   CheckCircle2,
+  ClipboardList,
   Clock,
   Hammer,
+  Info,
   Package,
   Sparkles,
+  Tent,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 import type React from 'react';
@@ -167,22 +172,27 @@ export const ProgressLine: React.FC<{ progress: SubmissionProgress; locale: Loca
   );
 };
 
-/** What each area is about, as its icon: building, the programme's activities, the depot. */
-const AREA_ICON: Record<HofDashboardArea, LucideIcon> = {
-  infrastructure: Hammer,
-  program: Sparkles,
-  material: Package,
+/** The icons an editor can give a tab, by the name the dashboard settings store. */
+const AREA_ICON: Record<HofAreaIcon, LucideIcon> = {
+  hammer: Hammer,
+  sparkles: Sparkles,
+  package: Package,
+  'clipboard-list': ClipboardList,
+  info: Info,
+  users: Users,
+  tent: Tent,
+  calendar: CalendarDays,
 };
 
 /**
  * The area's icon, in front of its name wherever an area is named. The icon tells the areas
  * apart, not a colour: every area is in the secondary text colour, as the app's icons are.
  */
-export const AreaIcon: React.FC<{ area: HofDashboardArea; className?: string }> = ({
-  area,
+export const AreaIcon: React.FC<{ icon: HofAreaIcon; className?: string }> = ({
+  icon,
   className,
 }) => {
-  const Icon = AREA_ICON[area];
+  const Icon = AREA_ICON[icon];
   return <Icon aria-hidden className={cn('h-4 w-4 shrink-0 text-green-700', className)} />;
 };
 

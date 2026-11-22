@@ -24,6 +24,10 @@ redis.call("pexpire", KEYS[1], window)
 return 1
 `;
 
+/** How many mails the background queue sent in the last hour, of the hourly budget. */
+export const countBackgroundEmailsLastHour = async (): Promise<number> =>
+  redis.zcount(BUDGET_KEY, Date.now() - WINDOW_MS, '+inf');
+
 /**
  * Claims room for one mail the background queue is about to send.
  *

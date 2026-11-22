@@ -2338,9 +2338,9 @@ export interface Form {
    */
   hofDashboard?: {
     /**
-     * The tab it shows under. Leave empty to keep the form off the dashboard.
+     * The tab it shows under; the tabs are set up in the Hof dashboard settings. Leave empty to keep the form off the dashboard.
      */
-    area?: ('infrastructure' | 'program' | 'material') | null;
+    area?: string | null;
     entries?: ('versions' | 'entries') | null;
     /**
      * E.g. "Hof buildings". Without one, the dashboard uses the internal form title.
@@ -2365,7 +2365,7 @@ export interface Form {
      */
     publishApprovedFiles?: boolean | null;
     /**
-     * Lower numbers show first within their area.
+     * Lower numbers show first within their tab.
      */
     position?: number | null;
   };
@@ -5181,8 +5181,6 @@ export interface OutgoingEmail {
   visitDayBill?: (string | null) | VisitDayBill;
   type?: ('formSubmission' | 'billParticipant' | 'visitDayBill' | 'other') | null;
   form?: (string | null) | Form;
-  html?: string | null;
-  text?: string | null;
   smtpResults?:
     | {
         [k: string]: unknown;
@@ -5192,6 +5190,8 @@ export interface OutgoingEmail {
     | number
     | boolean
     | null;
+  html?: string | null;
+  text?: string | null;
   rawSmtpResults?:
     | {
         [k: string]: unknown;
@@ -8119,9 +8119,9 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
   visitDayBill?: T;
   type?: T;
   form?: T;
+  smtpResults?: T;
   html?: T;
   text?: T;
-  smtpResults?: T;
   rawSmtpResults?: T;
   rawDsnEmail?: T;
   queuedAttachments?: T;
@@ -10298,20 +10298,30 @@ export interface VisitDayBillSetting {
 export interface HofDashboardSetting {
   id: string;
   /**
+   * The dashboard’s tabs in their order, between "Overview" and "Documents". A form picks its tab under "Hof dashboard", a deadline or document here. A tab still in use cannot be removed. The forms of "Material" are the material orders the Ressort confirms one by one.
+   */
+  areas?:
+    | {
+        label: string;
+        icon: 'hammer' | 'sparkles' | 'package' | 'clipboard-list' | 'info' | 'users' | 'tent' | 'calendar';
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * The camp’s milestones, shown on every dashboard. A form’s own due date is set on the form.
    */
   deadlines?:
     | {
         date: string;
         title: string;
-        area: 'infrastructure' | 'program' | 'material';
+        area: string;
         id?: string | null;
       }[]
     | null;
   documents?:
     | {
         document: string | Document;
-        area?: ('infrastructure' | 'program' | 'material') | null;
+        area?: string | null;
         id?: string | null;
       }[]
     | null;
@@ -11005,6 +11015,13 @@ export interface VisitDayBillSettingsSelect<T extends boolean = true> {
  * via the `definition` "hof-dashboard-settings_select".
  */
 export interface HofDashboardSettingsSelect<T extends boolean = true> {
+  areas?:
+    | T
+    | {
+        label?: T;
+        icon?: T;
+        id?: T;
+      };
   deadlines?:
     | T
     | {
