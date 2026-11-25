@@ -1,5 +1,6 @@
 'use client';
 
+import { ProofreadPanel } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/proofread-panel';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import { documentControlButtonClasses } from '@/features/payload-cms/payload-cms/components/shared/document-control-button-styles';
 import { usePublishingStatus } from '@/features/payload-cms/payload-cms/hooks/use-publishing-status';
@@ -288,7 +289,12 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
           modalType === 'publish' ? publishingTextString[code] : unpublishingTextString[code]
         }
         confirmVariant={modalType === 'publish' ? 'primary' : 'danger'}
-      />
+      >
+        {modalType === 'publish' ? (
+          // mounted only while the dialog is open, so each opening checks the current text
+          <ProofreadPanel locale={code} onClose={() => setIsModalOpen(false)} />
+        ) : undefined}
+      </ConfirmationModal>
       {showUnpublish ? (
         <FormSubmit
           className={unpublishClasses}

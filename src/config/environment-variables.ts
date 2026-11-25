@@ -41,6 +41,8 @@ export const environmentVariables = createEnv({
       .transform((value) => value === 'true'),
     BREVO_API_KEY: z.string().optional(),
     GOOGLE_TRANSLATE_API_KEY: z.string().optional(),
+    // switches on the proofreading in the publish dialog
+    GEMINI_API_KEY: z.string().optional(),
     FIREBASE_SERVICE_ACCOUNT_KEY_PATH: z.string().optional(),
     /**
      * The TURN relays voice calls fall back to when two phones cannot reach each other
