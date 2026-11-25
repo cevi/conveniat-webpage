@@ -8,13 +8,15 @@ import {
 } from '@/features/payload-cms/payload-cms/utils/proofread';
 import type { Config } from '@/features/payload-cms/payload-types';
 import { useConfig, useDocumentInfo, useForm } from '@payloadcms/ui';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type ProofreadState =
   | { kind: 'loading' }
   /** The deployment has no Gemini key, so the dialog shows nothing. */
   | { kind: 'off' }
   | { kind: 'failed' }
+  /** The editor chose to publish without waiting for the check. */
+  | { kind: 'skipped' }
   | { kind: 'done'; findings: ProofreadFinding[] };
 
 export interface Proofread {
@@ -27,6 +29,8 @@ export interface Proofread {
    */
   apply: (finding: ProofreadFinding) => boolean;
   dismiss: (finding: ProofreadFinding) => void;
+  /** Cancels a running check, so the editor can publish without it. */
+  skip: () => void;
 }
 
 /**
@@ -34,17 +38,23 @@ export interface Proofread {
  * mounts. The publish dialog mounts it on every opening, and closing the dialog cancels a check
  * still running.
  */
-export const useProofread = (locale: Config['locale']): Proofread => {
+export const useProofread = (
+  locale: Config['locale'],
+  /** Told while the check runs, so the dialog can hold its confirm button back meanwhile. */
+  onCheckingChange: (checking: boolean) => void,
+): Proofread => {
   const { collectionSlug, globalSlug } = useDocumentInfo();
   const { config } = useConfig();
   const { getData, getDataByPath, dispatchFields, setModified } = useForm();
   const [state, setState] = useState<ProofreadState>({ kind: 'loading' });
   const [handled, setHandled] = useState<ReadonlySet<string>>(new Set());
+  const runningCheck = useRef<AbortController | undefined>(undefined);
 
   const url = `${config.serverURL}${config.routes.api}/proofread`;
 
   useEffect(() => {
     const controller = new AbortController();
+    runningCheck.current = controller;
     const run = async (): Promise<void> => {
       try {
         const response = await fetch(url, {
@@ -77,6 +87,18 @@ export const useProofread = (locale: Config['locale']): Proofread => {
     return (): void => controller.abort();
   }, [collectionSlug, getData, globalSlug, locale, url]);
 
+  const checking = state.kind === 'loading';
+  useEffect(() => {
+    onCheckingChange(checking);
+  }, [checking, onCheckingChange]);
+  // the dialog closing unmounts the check, which must not leave its confirm button held back
+  useEffect(() => (): void => onCheckingChange(false), [onCheckingChange]);
+
+  const skip = useCallback((): void => {
+    runningCheck.current?.abort();
+    setState({ kind: 'skipped' });
+  }, []);
+
   const markHandled = useCallback((finding: ProofreadFinding): void => {
     setHandled((previous) => new Set(previous).add(finding.id));
   }, []);
@@ -108,5 +130,5 @@ export const useProofread = (locale: Config['locale']): Proofread => {
   const openFindings =
     state.kind === 'done' ? state.findings.filter((finding) => !handled.has(finding.id)) : [];
 
-  return { state, openFindings, apply, dismiss: markHandled };
+  return { state, openFindings, apply, dismiss: markHandled, skip };
 };

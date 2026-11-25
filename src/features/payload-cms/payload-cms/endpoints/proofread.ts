@@ -5,6 +5,7 @@ import {
   collectProofreadSegments,
   ProofreadUnavailableError,
   proofreadWithGemini,
+  type ProofreadModel,
 } from '@/features/payload-cms/payload-cms/services/gemini-proofread';
 import type { ProofreadResponse } from '@/features/payload-cms/payload-cms/utils/proofread';
 import { defineCounter, defineHistogram } from '@/lib/telemetry/metrics';
@@ -19,12 +20,13 @@ const proofreads = defineCounter<{ outcome: ProofreadOutcome }>({
   description: 'Proofreading checks in the publish dialog, by outcome',
 });
 
-const proofreadDuration = defineHistogram<{ outcome: ProofreadOutcome }>({
+const proofreadDuration = defineHistogram<{ model: ProofreadModel }>({
   scope: 'payload-cms',
   name: 'cms_proofread_duration_seconds',
-  description: 'How long Gemini took to proofread a document before publishing',
-  // the lite model answers in one to five seconds; the request gives up at twenty
-  buckets: [0.5, 1, 2, 3, 5, 8, 13, 20],
+  description: 'How long Gemini took to proofread a document before publishing, by model',
+  // Flash-Lite answers in about five seconds, Flash in fifteen to twenty; the request gives
+  // up at forty-five
+  buckets: [2, 5, 8, 12, 16, 20, 25, 30, 45],
 });
 
 const requestSchema = z
@@ -94,19 +96,18 @@ export const proofreadHandler: PayloadHandler = async (request) => {
   const started = performance.now();
   const seconds = (): number => (performance.now() - started) / 1000;
   try {
-    const findings = await proofreadWithGemini(segments, locale, apiKey);
-    const outcome = findings.length > 0 ? 'findings' : 'clean';
-    proofreads.add(1, { outcome });
-    proofreadDuration.record(seconds(), { outcome });
+    const { model, findings } = await proofreadWithGemini(segments, locale, apiKey);
+    proofreads.add(1, { outcome: findings.length > 0 ? 'findings' : 'clean' });
+    // only answered checks: how often the fallback answers shows in its count
+    proofreadDuration.record(seconds(), { model });
     payload.logger.debug(
-      { collection, global, locale, segments: segments.length, findings: findings.length },
+      { collection, global, locale, model, segments: segments.length, findings: findings.length },
       'Proofread a document before publishing',
     );
     return Response.json({ status: 'done', findings } satisfies ProofreadResponse);
   } catch (error) {
     const outcome = error instanceof ProofreadUnavailableError ? error.reason : 'failed';
     proofreads.add(1, { outcome });
-    proofreadDuration.record(seconds(), { outcome });
     // publishing goes on without the check, so this is worth a look but no alarm
     payload.logger.warn(
       { err: error, collection, global, locale },

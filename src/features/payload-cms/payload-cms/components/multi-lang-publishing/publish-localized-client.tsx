@@ -112,6 +112,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'publish' | 'unpublish'>('publish');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProofreading, setIsProofreading] = useState(false);
 
   const forceDisable = operation === 'update' && !modified;
 
@@ -289,10 +290,15 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
           modalType === 'publish' ? publishingTextString[code] : unpublishingTextString[code]
         }
         confirmVariant={modalType === 'publish' ? 'primary' : 'danger'}
+        confirmDisabled={modalType === 'publish' && isProofreading}
       >
         {modalType === 'publish' ? (
           // mounted only while the dialog is open, so each opening checks the current text
-          <ProofreadPanel locale={code} onClose={() => setIsModalOpen(false)} />
+          <ProofreadPanel
+            locale={code}
+            onClose={() => setIsModalOpen(false)}
+            onCheckingChange={setIsProofreading}
+          />
         ) : undefined}
       </ConfirmationModal>
       {showUnpublish ? (

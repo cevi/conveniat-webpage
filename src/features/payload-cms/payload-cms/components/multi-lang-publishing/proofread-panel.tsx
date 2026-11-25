@@ -7,14 +7,26 @@ import type {
 } from '@/features/payload-cms/payload-cms/utils/proofread';
 import type { Config } from '@/features/payload-cms/payload-types';
 import type { StaticTranslationString } from '@/types/types';
-import { Button, Pill, ShimmerEffect } from '@payloadcms/ui';
-import { CircleCheck, Info, Sparkles } from 'lucide-react';
+import { Button, Pill } from '@payloadcms/ui';
+import { CircleCheck, Info, LoaderCircle, Sparkles } from 'lucide-react';
 import type React from 'react';
 
 const checkingString: StaticTranslationString = {
-  de: 'Text wird geprüft …',
-  fr: 'Vérification du texte …',
-  en: 'Checking the text …',
+  de: 'KI prüft den Text …',
+  fr: "L'IA vérifie le texte …",
+  en: 'AI is checking the text …',
+};
+
+const checkingHintString: StaticTranslationString = {
+  de: 'Dauert meist 15 bis 20 Sekunden.',
+  fr: 'Prend généralement 15 à 20 secondes.',
+  en: 'Usually takes 15 to 20 seconds.',
+};
+
+const skipString: StaticTranslationString = {
+  de: 'KI-Prüfung überspringen',
+  fr: 'Passer la vérification IA',
+  en: 'Skip AI check',
 };
 
 const headingString: StaticTranslationString = {
@@ -149,27 +161,38 @@ const FindingRow: React.FC<{
 );
 
 /**
- * The proofreading inside the publish dialog. It never holds publishing back: while it runs,
- * when it fails and when findings remain open, the editor can still confirm.
+ * The proofreading inside the publish dialog. While it runs the dialog holds its confirm button
+ * back, and the editor can skip it; when it fails or findings remain open, they can confirm.
  */
 export const ProofreadPanel: React.FC<{
   locale: Config['locale'];
   /** Closes the dialog, so the editor can fix a finding in its field. */
   onClose: () => void;
-}> = ({ locale, onClose }) => {
-  const { state, openFindings, apply, dismiss } = useProofread(locale);
+  onCheckingChange: (checking: boolean) => void;
+}> = ({ locale, onClose, onCheckingChange }) => {
+  const { state, openFindings, apply, dismiss, skip } = useProofread(locale, onCheckingChange);
 
-  if (state.kind === 'off') return <></>;
+  if (state.kind === 'off' || state.kind === 'skipped') return <></>;
 
   if (state.kind === 'loading') {
     return (
-      <div className="flex flex-col gap-2" aria-live="polite">
-        <span className="flex items-center gap-2 text-sm text-(--theme-elevation-500)">
-          <Sparkles className="h-4 w-4" aria-hidden />
-          {checkingString[locale]}
+      <div
+        className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-(--theme-elevation-50) px-3 py-2.5"
+        aria-live="polite"
+        aria-busy
+      >
+        <span className="flex items-start gap-2 text-sm text-(--theme-elevation-800)">
+          <LoaderCircle className="mt-0.5 h-4 w-4 shrink-0 animate-spin" aria-hidden />
+          <span className="flex flex-col">
+            {checkingString[locale]}
+            <span className="text-xs text-(--theme-elevation-500)">
+              {checkingHintString[locale]}
+            </span>
+          </span>
         </span>
-        <ShimmerEffect height={14} width="85%" />
-        <ShimmerEffect height={14} width="60%" />
+        <Button buttonStyle="secondary" size="small" margin={false} onClick={skip}>
+          {skipString[locale]}
+        </Button>
       </div>
     );
   }

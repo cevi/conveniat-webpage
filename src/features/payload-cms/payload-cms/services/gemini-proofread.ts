@@ -7,14 +7,35 @@ import {
   type ProofreadFinding,
 } from '@/features/payload-cms/payload-cms/utils/proofread';
 import type { Config } from '@/features/payload-cms/payload-types';
+import { Agent, fetch, type Response } from 'undici';
 import { z } from 'zod';
 
 /**
- * The lite model answers a page in one to five seconds. The full Flash models took between 40
- * seconds and three minutes for the same request in November 2026, far too slow for a dialog.
+ * On a page with ten planted mistakes (November 2026), 3.6 Flash found all ten in 14 to 21
+ * seconds and Flash-Lite seven or eight in 5 to 9, missing "PROST!" and a wrong article. The
+ * dialog waits with a skip button, so quality wins; Flash-Lite answers when Flash is overloaded,
+ * which it is often enough. Thinking `minimal` is as good as `low` here and faster.
  */
-const GEMINI_MODEL = 'gemini-3.5-flash-lite';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+export const PROOFREAD_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'] as const;
+
+export type ProofreadModel = (typeof PROOFREAD_MODELS)[number];
+
+const modelUrl = (model: ProofreadModel): string =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+/** Longer than the slowest answer we measured, shorter than an editor's patience. */
+const TIMEOUT_MS = 45_000;
+
+/**
+ * Gemini sends its headers only with the finished answer. The process-wide agent from
+ * `next-auth-config.ts` and `http-client.ts` gives up after 5 or 10 seconds without headers,
+ * which suits Cevi.DB but cuts off every Flash answer, so this request brings its own.
+ */
+const geminiAgent = new Agent({
+  headersTimeout: TIMEOUT_MS,
+  bodyTimeout: TIMEOUT_MS,
+  connect: { timeout: 10_000 },
+});
 
 /** A long page is checked from the top; the rest would only make every check slower. */
 const MAX_CHARACTERS = 30_000;
@@ -251,12 +272,37 @@ export const toFindings = (
   return findings;
 };
 
-const callGemini = async (body: string, apiKey: string, signal: AbortSignal): Promise<Response> =>
-  fetch(GEMINI_URL, {
+/** The `generateContent` request for `segments`. */
+export const proofreadRequest = (
+  segments: ProofreadSegment[],
+  locale: Config['locale'],
+): Record<string, unknown> => ({
+  systemInstruction: { parts: [{ text: systemInstruction(locale) }] },
+  contents: [
+    {
+      role: 'user',
+      parts: [{ text: JSON.stringify(segments.map(({ id, text }) => ({ id, text }))) }],
+    },
+  ],
+  generationConfig: {
+    responseMimeType: 'application/json',
+    responseJsonSchema: RESPONSE_SCHEMA,
+    thinkingConfig: { thinkingLevel: 'minimal' },
+  },
+});
+
+const callGemini = async (
+  model: ProofreadModel,
+  body: string,
+  apiKey: string,
+  signal: AbortSignal,
+): Promise<Response> =>
+  fetch(modelUrl(model), {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
     body,
     signal,
+    dispatcher: geminiAgent,
   });
 
 /**
@@ -265,52 +311,40 @@ const callGemini = async (body: string, apiKey: string, signal: AbortSignal): Pr
  * @param segments The text of the fields, from `collectProofreadSegments`.
  * @param locale The language of the text.
  * @param apiKey The deployment's Gemini key.
- * @returns The findings that point at a real place in the text.
+ * @returns The model that answered and the findings that point at a real place in the text.
  * @throws {ProofreadUnavailableError} When Gemini fails, is busy or takes too long.
  */
 export const proofreadWithGemini = async (
   segments: ProofreadSegment[],
   locale: Config['locale'],
   apiKey: string,
-): Promise<ProofreadFinding[]> => {
-  if (segments.length === 0) return [];
+): Promise<{ model: ProofreadModel; findings: ProofreadFinding[] }> => {
+  const [primary, fallback] = PROOFREAD_MODELS;
+  if (segments.length === 0) return { model: primary, findings: [] };
 
-  const body = JSON.stringify({
-    systemInstruction: { parts: [{ text: systemInstruction(locale) }] },
-    contents: [
-      {
-        role: 'user',
-        parts: [{ text: JSON.stringify(segments.map(({ id, text }) => ({ id, text }))) }],
-      },
-    ],
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseJsonSchema: RESPONSE_SCHEMA,
-      thinkingConfig: { thinkingLevel: 'low' },
-    },
-  });
-
-  // the dialog stays usable meanwhile, but a check that arrives after the editor
-  // confirmed is of no use
-  const signal = AbortSignal.timeout(20_000);
+  const body = JSON.stringify(proofreadRequest(segments, locale));
+  const signal = AbortSignal.timeout(TIMEOUT_MS);
+  let model: ProofreadModel = primary;
   let response: Response;
   try {
-    response = await callGemini(body, apiKey, signal);
-    // "high demand" passes within seconds, so one more try is worth it
+    response = await callGemini(model, body, apiKey, signal);
+    // "high demand" on Flash can last for hours, so the lighter model answers instead
     if (response.status === 503 || response.status === 429) {
-      await new Promise((resolve) => setTimeout(resolve, 750));
-      response = await callGemini(body, apiKey, signal);
+      model = fallback;
+      response = await callGemini(model, body, apiKey, signal);
     }
   } catch (error) {
     if (signal.aborted) throw new ProofreadUnavailableError('Gemini took too long', 'timeout');
+    // undici hides the reason, like a refused connection, in the cause of "fetch failed"
+    const cause = error instanceof Error && error.cause instanceof Error ? error.cause : error;
     throw new ProofreadUnavailableError(
-      `Gemini unreachable: ${error instanceof Error ? error.message : String(error)}`,
+      `${model} unreachable: ${cause instanceof Error ? cause.message : String(cause)}`,
       'failed',
     );
   }
 
   if (!response.ok) {
-    throw new ProofreadUnavailableError(`Gemini answered ${response.status}`, 'failed');
+    throw new ProofreadUnavailableError(`${model} answered ${response.status}`, 'failed');
   }
 
   const parsed = geminiResponseSchema.safeParse(await response.json());
@@ -326,5 +360,5 @@ export const proofreadWithGemini = async (
   if (!findings.success) {
     throw new ProofreadUnavailableError('Gemini answered outside the schema', 'failed');
   }
-  return toFindings(findings.data.findings, segments);
+  return { model, findings: toFindings(findings.data.findings, segments) };
 };
