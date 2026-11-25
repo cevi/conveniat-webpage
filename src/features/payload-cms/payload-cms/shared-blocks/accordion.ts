@@ -352,6 +352,24 @@ export const accordion: Block = {
           },
         },
         {
+          name: 'category',
+          label: {
+            de: 'Kategorie (optional)',
+            en: 'Category (optional)',
+            fr: 'Catégorie (optionnel)',
+          },
+          type: 'relationship',
+          relationTo: 'faq-categories',
+          required: false,
+          admin: {
+            description: {
+              de: 'Sobald Einträge eine Kategorie haben, gruppiert das Akkordeon sie danach und zeigt darüber einen Filter pro Kategorie. Einträge ohne Kategorie stehen am Schluss unter «Weitere».',
+              en: 'Once entries have a category, the accordion groups them by it and shows a filter per category above them. Entries without one are listed last, under "More".',
+              fr: 'Dès que des entrées ont une catégorie, l’accordéon les regroupe et affiche un filtre par catégorie. Les entrées sans catégorie figurent à la fin, sous « Autres ».',
+            },
+          },
+        },
+        {
           name: 'searchKeywords',
           label: {
             de: 'Suchbegriffe (optional)',

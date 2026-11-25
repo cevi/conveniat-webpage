@@ -7,6 +7,21 @@ import { convertLexicalToPlaintext } from '@payloadcms/richtext-lexical/plaintex
 import type React from 'react';
 
 /**
+ * The name of the entry's category. The page is read at depth 1, which populates it; an id
+ * alone means the category could not be read, e.g. because it was deleted, and a draft may
+ * carry an empty name, so both count as no category.
+ */
+const categoryName = (
+  accordionBlock: NonNullable<AccordionBlocks['accordionBlocks']>[number],
+): string | undefined => {
+  const category = accordionBlock.category;
+  if (typeof category !== 'object' || category === null) return undefined;
+  // a locale without a translation of the name has none
+  const name = (category.name as string | undefined)?.trim() ?? '';
+  return name === '' ? undefined : name;
+};
+
+/**
  * Builds a plain-text search index string for a single accordion block item,
  * combining its title/name, optional search keywords, and the plain text
  * extracted from all PlainTextBlock value blocks.
@@ -14,7 +29,7 @@ import type React from 'react';
 const buildSearchIndex = (
   accordionBlock: NonNullable<AccordionBlocks['accordionBlocks']>[number],
 ): string => {
-  const parts: string[] = [];
+  const parts: string[] = [categoryName(accordionBlock) ?? ''];
 
   // Index the visible title or team leader name
   if (accordionBlock.titleOrPortrait === 'portrait') {
@@ -84,6 +99,14 @@ export const Accordion: React.FC<{
     {},
   );
 
+  const categoryNames: Record<string, string> = {};
+  for (const accordionBlock of accordionBlocks) {
+    const name = categoryName(accordionBlock);
+    if (accordionBlock.id !== undefined && accordionBlock.id !== null && name !== undefined) {
+      categoryNames[accordionBlock.id] = name;
+    }
+  }
+
   return (
     <div>
       <AccordionClientContainer
@@ -92,6 +115,7 @@ export const Accordion: React.FC<{
         isNested={isNested ?? false}
         enableSearch={block.enableSearch === true && isNested !== true}
         searchIndex={searchIndex}
+        categoryNames={categoryNames}
         locale={locale}
       />
     </div>

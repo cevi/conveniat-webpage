@@ -8,6 +8,7 @@ import { collectionsConfig } from '@/features/payload-cms/payload-cms/collection
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
 import { emailSettings } from '@/features/payload-cms/payload-cms/email-settings';
 import { autoTranslateHandler } from '@/features/payload-cms/payload-cms/endpoints/auto-translate';
+import { proofreadHandler } from '@/features/payload-cms/payload-cms/endpoints/proofread';
 import { dropRouteInfo } from '@/features/payload-cms/payload-cms/global-routes';
 import { globalConfig } from '@/features/payload-cms/payload-cms/globals';
 import { onPayloadInit } from '@/features/payload-cms/payload-cms/initialization';
@@ -314,6 +315,11 @@ const customEndpoints: Endpoint[] = [
     path: '/auto-translate',
     method: 'post',
     handler: autoTranslateHandler,
+  },
+  {
+    path: '/proofread',
+    method: 'post',
+    handler: proofreadHandler,
   },
   ...billingEndpoints,
   // the Besuchstag claims its payments by their reference; the camp bills take the rest
