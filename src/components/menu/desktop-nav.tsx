@@ -238,6 +238,7 @@ export const DesktopNav: React.FC<{
   const pinnedReference = useRef<HTMLElement>(null);
   const measureRowReference = useRef<HTMLDivElement>(null);
   const panelReference = useRef<HTMLDivElement>(null);
+  const languageReference = useRef<HTMLDivElement>(null);
   const dismissReferences = [barReference];
   const pathname = usePathname();
 
@@ -259,6 +260,7 @@ export const DesktopNav: React.FC<{
   const closeMenu = (): void => setOpenedFrom(undefined);
 
   useDismissOnOutsideInteraction(dismissReferences, isMenuOpen, closeMenu);
+  useDismissOnOutsideInteraction([languageReference], isLangOpen, () => setIsLangOpen(false));
 
   const closeOnLinkClick = (event: React.MouseEvent): void => {
     if (event.target instanceof Element && event.target.closest('a') !== null) closeMenu();
@@ -329,13 +331,10 @@ export const DesktopNav: React.FC<{
       {/* Utilities: Language Switcher & Search */}
       <div className="relative flex h-8 shrink-0 items-center gap-2 border-l border-gray-200/80 pl-3">
         {/* Language Switcher */}
-        <div
-          className="relative"
-          onMouseEnter={() => setIsLangOpen(true)}
-          onMouseLeave={() => setIsLangOpen(false)}
-        >
+        <div ref={languageReference} className="relative">
           <button
             type="button"
+            aria-expanded={isLangOpen}
             onClick={() => setIsLangOpen(!isLangOpen)}
             className="hover:border-conveniat-green/40 hover:text-conveniat-green flex h-8 items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50/80 px-2.5 text-xs font-semibold text-gray-700 transition-all duration-200 hover:bg-white"
           >
