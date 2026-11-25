@@ -118,7 +118,7 @@ const createTitleElement = (
     <h3
       className={cn(
         'font-medium',
-        variant === 'row' ? 'text-[15px] text-green-900' : 'text-lg text-gray-900',
+        variant === 'row' ? 'text-[0.9375rem] text-green-900' : 'text-lg text-gray-900',
       )}
     >
       {accordionBlock.title}
