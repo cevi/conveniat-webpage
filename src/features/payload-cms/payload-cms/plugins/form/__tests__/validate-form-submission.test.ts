@@ -80,14 +80,12 @@ describe('validateFormSubmission — Ressort wish', () => {
 
     await expect(errorsOf('finanzen')).resolves.toEqual(invalid);
     await expect(errorsOf('relations')).resolves.toEqual(invalid);
+    await expect(errorsOf('sicherheit')).resolves.toEqual(invalid);
+    await expect(errorsOf('allgemein')).resolves.toEqual(invalid);
   });
 
   it('accepts a Ressort the form offers', async () => {
     await expect(errorsOf('infrastruktur')).resolves.toBeUndefined();
-  });
-
-  it('accepts a helper who goes wherever help is needed', async () => {
-    await expect(errorsOf('allgemein')).resolves.toBeUndefined();
   });
 
   it('rejects a Ressort that does not exist at all', async () => {

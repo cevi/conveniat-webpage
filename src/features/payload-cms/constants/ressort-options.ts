@@ -163,33 +163,17 @@ export const HELPER_AREA_LABELS: Record<RessortCategory, StaticTranslationString
 };
 
 /**
- * Ressorts that staff their helpers themselves and therefore only appear as a job category.
- * A helper signing up by availability cannot wish for them. `other` names no area at all, so
- * the general helper below takes its place in the wish.
- */
-const RESSORTS_WITHOUT_WISH = new Set<RessortCategory>(['finanzen', 'relations', 'other']);
-
-/** The wish of a helper who goes wherever help is needed instead of into one area. */
-export const GENERAL_HELPER_WISH = 'allgemein';
-
-/**
  * The areas a helper can wish for when signing up by availability instead of for a concrete
- * job, keyed by Ressort so the team can route the helper, and labelled by area.
+ * job: the areas that also offer jobs. Keyed by Ressort so the team can route the helper, and
+ * labelled by area.
  */
-export const RESSORT_WISH_OPTIONS: {
-  label: StaticTranslationString;
-  value: RessortCategory | typeof GENERAL_HELPER_WISH;
-}[] = [
-  ...RESSORT_OPTIONS.filter((option) => !RESSORTS_WITHOUT_WISH.has(option.value)).map((option) => ({
-    label: HELPER_AREA_LABELS[option.value],
-    value: option.value,
-  })),
-  {
-    label: {
-      de: 'Allgemein helfende Person',
-      en: 'General helper',
-      fr: 'Bénévole polyvalent·e',
-    },
-    value: GENERAL_HELPER_WISH,
-  },
+const WISHABLE_RESSORTS: RessortCategory[] = [
+  'infrastruktur',
+  'programm',
+  'marketing',
+  'verpflegung',
+  'logistik',
 ];
+
+export const RESSORT_WISH_OPTIONS: { label: StaticTranslationString; value: RessortCategory }[] =
+  WISHABLE_RESSORTS.map((value) => ({ label: HELPER_AREA_LABELS[value], value }));
