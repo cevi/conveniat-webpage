@@ -260,8 +260,6 @@ export const DesktopNav: React.FC<{
   const closeMenu = (): void => setOpenedFrom(undefined);
 
   useDismissOnOutsideInteraction(dismissReferences, isMenuOpen, closeMenu);
-  // The languages open on a click only, like the pinned entries. Opening them on hover as well
-  // made the click that follows the hover close them again.
   useDismissOnOutsideInteraction([languageReference], isLangOpen, () => setIsLangOpen(false));
 
   const closeOnLinkClick = (event: React.MouseEvent): void => {
