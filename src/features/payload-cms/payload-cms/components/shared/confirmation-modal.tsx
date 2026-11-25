@@ -65,7 +65,8 @@ export const ConfirmationModal: React.FC<{
       <div className="w-full max-w-md rounded-lg border border-(--theme-elevation-150) bg-(--theme-elevation-0) p-6 shadow-2xl">
         <h3 className="mb-4 text-xl font-semibold text-(--theme-elevation-900)">{title}</h3>
         <p className="mb-6 whitespace-pre-line text-(--theme-elevation-600)">{message}</p>
-        {children !== undefined && <div className="mb-6">{children}</div>}
+        {/* a child that renders nothing leaves no gap */}
+        {children !== undefined && <div className="mb-6 empty:hidden">{children}</div>}
         <div className="flex justify-end gap-3">
           {!hideCancel && (
             <button

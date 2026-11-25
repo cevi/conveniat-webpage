@@ -3,6 +3,8 @@ import type { Field } from 'payload';
 export interface LocalizedFieldReference {
   path: string[];
   type: 'text' | 'textarea' | 'richText';
+  /** The field's own `label`, as configured: a string, one per locale, or none. */
+  label?: unknown;
 }
 
 /**
@@ -112,9 +114,17 @@ export function getLocalizedFieldPaths(
     // inside a localized parent (meaning the parent handles localization)
     if ('name' in field && (field.localized || insideLocalizedParent)) {
       if (field.type === 'text' || field.type === 'textarea') {
-        localizedFields.push({ path: [...currentPath, field.name], type: field.type });
+        localizedFields.push({
+          path: [...currentPath, field.name],
+          type: field.type,
+          label: field.label,
+        });
       } else if (field.type === 'richText') {
-        localizedFields.push({ path: [...currentPath, field.name], type: 'richText' });
+        localizedFields.push({
+          path: [...currentPath, field.name],
+          type: 'richText',
+          label: field.label,
+        });
       }
     }
   }
