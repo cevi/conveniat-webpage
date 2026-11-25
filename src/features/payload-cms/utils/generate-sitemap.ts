@@ -42,26 +42,47 @@ const addLocalizedEntries = (
 };
 
 /**
+ * What the sitemap reads of a page, in every locale at once.
+ *
+ * It asks for these fields only. A read of the whole document also works out its
+ * `publishingStatus`, which compares the published version against the latest draft and costs
+ * three more queries a page. Whether a locale is published is all the sitemap needs of that,
+ * and `_localized_status` holds it.
+ */
+const SITEMAP_PAGE_FIELDS = {
+  seo: { urlSlug: true },
+  content: { permissions: true },
+  _localized_status: true,
+  updatedAt: true,
+} as const;
+
+type SitemapPage = Pick<GenericPage, 'id' | 'updatedAt' | '_localized_status'> & {
+  seo: Pick<GenericPage['seo'], 'urlSlug'>;
+  content: Pick<GenericPage['content'], 'permissions'>;
+};
+
+/**
  * Retrieves all published localized URLs for a given generic page.
  * It checks the publishing status and slug for each locale.
  *
- * @param page - The generic page from Payload CMS.
+ * @param page - The generic page from Payload CMS, read with `locale: 'all'`.
  * @param appHostUrl - The base URL of the application.
  * @returns A partial record mapping each locale to its corresponding published URL, if available.
  */
 const getPublishedLocalizedPageUrls = (
-  page: GenericPage,
+  page: SitemapPage,
   appHostUrl: string,
 ): Partial<Record<Locale, string>> => {
   const localizedUrls: Partial<Record<Locale, string>> = {};
 
-  const publishingStatus = page.publishingStatus as
-    Record<Locale, { published: boolean }> | undefined;
+  // read in every locale, both fields are keyed by locale; one never saved has no entry
+  const localizedStatus = page._localized_status as unknown as Partial<
+    Record<Locale, { published?: boolean }>
+  >;
   const multiLangSlug = page.seo.urlSlug as unknown as Record<Locale, string>;
 
   for (const locale of enabledLocales) {
-    const isPublished = publishingStatus?.[locale].published ?? false;
-    if (!isPublished) {
+    if (localizedStatus[locale]?.published !== true) {
       continue;
     }
 
@@ -72,7 +93,7 @@ const getPublishedLocalizedPageUrls = (
 };
 
 function processDocumentsForSitemap(
-  documents: GenericPage[],
+  documents: SitemapPage[],
   sitemap: MetadataRoute.Sitemap,
   {
     APP_HOST_URL,
@@ -135,6 +156,7 @@ export const cachedSitemapGenerator = async (): Promise<MetadataRoute.Sitemap> =
     depth: 0,
     limit: 1000,
     locale: 'all',
+    select: SITEMAP_PAGE_FIELDS,
     where: {
       'content.releaseDate': {
         less_than_equal: currentDate,
