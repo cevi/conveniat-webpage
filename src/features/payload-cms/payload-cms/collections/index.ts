@@ -12,6 +12,7 @@ import { ChatImagesCollection } from '@/features/payload-cms/payload-cms/collect
 import { DocumentsCollection } from '@/features/payload-cms/payload-cms/collections/documents-collection';
 import { EmailSuppressions } from '@/features/payload-cms/payload-cms/collections/email-suppressions';
 import { EmergencyCardsCollection } from '@/features/payload-cms/payload-cms/collections/emergency-cards';
+import { FaqCategoriesCollection } from '@/features/payload-cms/payload-cms/collections/faq-categories-collection';
 import { FormCollection } from '@/features/payload-cms/payload-cms/collections/form-collection';
 import { ForumTopicsCollection } from '@/features/payload-cms/payload-cms/collections/forum-topics';
 import { FunktionenCollection } from '@/features/payload-cms/payload-cms/collections/funktionen-collection';
@@ -58,6 +59,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   GenericPageCollection,
   TimelineCollection,
   TimelineEntryCategory,
+  FaqCategoriesCollection,
   ImageCollection,
   UserSubmittedImagesCollection,
   DocumentsCollection,

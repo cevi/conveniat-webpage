@@ -1,11 +1,14 @@
 'use client';
 
+import { SectionLabel } from '@/components/ui/section-label';
 import AccordionItem from '@/features/payload-cms/components/accordion/accordion-item';
 import { AccordionSearchBar } from '@/features/payload-cms/components/accordion/accordion-search-bar';
+import { groupByCategory } from '@/features/payload-cms/components/accordion/group-by-category';
 import { TeamLeaderPortrait } from '@/features/payload-cms/components/accordion/team-members/team-leader-portrait';
 import type { AccordionBlocks, Image } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { replaceUmlautsAndAccents } from '@/utils/node-to-anchor-reference';
+import { cn } from '@/utils/tailwindcss-override';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const searchPlaceholder: StaticTranslationString = {
@@ -25,6 +28,30 @@ const clearSearchLabel: StaticTranslationString = {
   en: 'Clear search',
   fr: 'Effacer la recherche',
 };
+
+const allCategoriesLabel: StaticTranslationString = {
+  de: 'Alle',
+  en: 'All',
+  fr: 'Toutes',
+};
+
+const otherCategoryLabel: StaticTranslationString = {
+  de: 'Weitere',
+  en: 'More',
+  fr: 'Autres',
+};
+
+const categoryFilterLabel: StaticTranslationString = {
+  de: 'Nach Kategorie filtern',
+  en: 'Filter by category',
+  fr: 'Filtrer par catégorie',
+};
+
+/** The filter key of the entries without a category, which no category name can equal. */
+const OTHER_CATEGORY = '\u0000other';
+
+/** The filter key of a group of entries. */
+const groupKey = (name: string | undefined): string => name ?? OTHER_CATEGORY;
 
 /**
  * Sanitizes a title string into a URL-friendly fragment.
@@ -62,6 +89,7 @@ const getFragmentFromBlock = (
  */
 const createTitleElement = (
   accordionBlock: NonNullable<AccordionBlocks['accordionBlocks']>[number],
+  variant: 'card' | 'row' = 'card',
 ): React.ReactNode => {
   if (accordionBlock.titleOrPortrait === 'portrait') {
     if (accordionBlock.teamLeaderGroup === undefined) return <></>;
@@ -86,7 +114,16 @@ const createTitleElement = (
   }
 
   // Default to rendering title if 'portrait' is not selected or if title exists
-  return <h3 className="text-lg font-medium text-gray-900">{accordionBlock.title}</h3>;
+  return (
+    <h3
+      className={cn(
+        'font-medium',
+        variant === 'row' ? 'text-[15px] text-green-900' : 'text-lg text-gray-900',
+      )}
+    >
+      {accordionBlock.title}
+    </h3>
+  );
 };
 
 const AccordionClientContainer: React.FC<{
@@ -97,12 +134,16 @@ const AccordionClientContainer: React.FC<{
   isNested?: boolean;
   enableSearch?: boolean;
   searchIndex?: Record<string, string>;
+  /** the name of the category of each entry that has one, by entry id */
+  categoryNames?: Record<string, string>;
   locale?: Locale;
-}> = ({ accordionBlocks, childs, isNested, enableSearch, searchIndex, locale }) => {
+}> = ({ accordionBlocks, childs, isNested, enableSearch, searchIndex, categoryNames, locale }) => {
   // Change expandedId to an array to hold multiple expanded fragments
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [rawQuery, setRawQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  // the filter key of the chosen category, undefined for all of them
+  const [chosenCategory, setChosenCategory] = useState<string | undefined>();
   const accordionItemReferences = useRef<Record<string, HTMLDivElement | null>>({});
   const lastHandledHashReference = useRef<string | undefined>(undefined);
 
@@ -208,6 +249,65 @@ const AccordionClientContainer: React.FC<{
   const totalCount = accordionBlocks?.length ?? 0;
   const effectiveLocale: Locale = locale ?? 'de';
 
+  // a nested accordion has no categories of its own, and one without any looks as it always did
+  const hasCategories =
+    isNested !== true && categoryNames !== undefined && Object.keys(categoryNames).length > 0;
+  const allGroups = useMemo(
+    () => (hasCategories ? groupByCategory(accordionBlocks ?? [], categoryNames) : []),
+    [accordionBlocks, categoryNames, hasCategories],
+  );
+  const shownGroups = useMemo(
+    () =>
+      hasCategories
+        ? groupByCategory(visibleBlocks, categoryNames).filter(
+            (group) => chosenCategory === undefined || groupKey(group.name) === chosenCategory,
+          )
+        : [],
+    [visibleBlocks, categoryNames, chosenCategory, hasCategories],
+  );
+  const shownCount = hasCategories
+    ? shownGroups.reduce((count, group) => count + group.entries.length, 0)
+    : visibleBlocks.length;
+
+  const renderEntry = (
+    accordionBlock: NonNullable<AccordionBlocks['accordionBlocks']>[number],
+    variant: 'card' | 'row',
+  ): React.ReactNode => {
+    const fragment = getFragmentFromBlock(accordionBlock);
+    return (
+      <div
+        key={accordionBlock.id ?? fragment}
+        ref={(element) => {
+          accordionItemReferences.current[fragment] = element;
+        }}
+        className="scroll-mt-10"
+      >
+        {accordionBlock.id !== undefined && accordionBlock.id !== null && (
+          <AccordionItem
+            titleElement={createTitleElement(accordionBlock, variant)}
+            showChevron={accordionBlock.titleOrPortrait !== 'portrait'}
+            accordionId={accordionBlock.id}
+            isExpanded={expandedIds.includes(fragment)}
+            onToggle={() => toggleExpand(accordionBlock)}
+            isNested={isNested ?? false}
+            variant={variant}
+          >
+            {expandedIds.includes(fragment) && childs[accordionBlock.id ?? '']}
+          </AccordionItem>
+        )}
+      </div>
+    );
+  };
+
+  const filters: { key: string | undefined; label: string; count: number }[] = [
+    { key: undefined, label: allCategoriesLabel[effectiveLocale], count: totalCount },
+    ...allGroups.map((group) => ({
+      key: groupKey(group.name),
+      label: group.name ?? otherCategoryLabel[effectiveLocale],
+      count: group.entries.length,
+    })),
+  ];
+
   return (
     <div>
       {enableSearch === true && isNested !== true && (
@@ -217,37 +317,54 @@ const AccordionClientContainer: React.FC<{
           placeholder={searchPlaceholder[effectiveLocale]}
           noResultsLabel={noResultsLabel[effectiveLocale]}
           clearSearchLabel={clearSearchLabel[effectiveLocale]}
-          resultCount={visibleBlocks.length}
+          resultCount={shownCount}
           totalCount={totalCount}
         />
       )}
-      <div className="space-y-4">
-        {visibleBlocks.map((accordionBlock) => {
-          const fragment = getFragmentFromBlock(accordionBlock);
-          return (
-            <div
-              key={accordionBlock.id ?? fragment}
-              ref={(element) => {
-                accordionItemReferences.current[fragment] = element;
-              }}
-              className="scroll-mt-10"
-            >
-              {accordionBlock.id !== undefined && accordionBlock.id !== null && (
-                <AccordionItem
-                  titleElement={createTitleElement(accordionBlock)}
-                  showChevron={accordionBlock.titleOrPortrait !== 'portrait'}
-                  accordionId={accordionBlock.id}
-                  isExpanded={expandedIds.includes(fragment)}
-                  onToggle={() => toggleExpand(accordionBlock)}
-                  isNested={isNested ?? false}
+      {hasCategories ? (
+        <>
+          <div
+            role="group"
+            aria-label={categoryFilterLabel[effectiveLocale]}
+            className="-mx-4 mb-2 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0"
+          >
+            {filters.map((filter) => {
+              const isChosen = filter.key === chosenCategory;
+              return (
+                <button
+                  key={filter.key ?? ''}
+                  type="button"
+                  aria-pressed={isChosen}
+                  onClick={() => setChosenCategory(filter.key)}
+                  className={cn(
+                    'flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors',
+                    isChosen
+                      ? 'focus-visible:focus-surface-filled border-conveniat-green bg-conveniat-green text-white'
+                      : 'focus-visible:focus-surface border-green-200 bg-white text-green-700 hover:text-green-900',
+                  )}
                 >
-                  {expandedIds.includes(fragment) && childs[accordionBlock.id ?? '']}
-                </AccordionItem>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                  {filter.label}
+                  <span className={isChosen ? 'text-green-100' : 'text-green-500'}>
+                    {filter.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {shownGroups.map((group) => (
+            <section key={groupKey(group.name)} className="mt-4">
+              <SectionLabel className="mb-2">
+                {group.name ?? otherCategoryLabel[effectiveLocale]}
+              </SectionLabel>
+              <div className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
+                {group.entries.map((entry) => renderEntry(entry, 'row'))}
+              </div>
+            </section>
+          ))}
+        </>
+      ) : (
+        <div className="space-y-4">{visibleBlocks.map((entry) => renderEntry(entry, 'card'))}</div>
+      )}
     </div>
   );
 };

@@ -54,6 +54,7 @@ export interface Config {
     'generic-page': GenericPage;
     timeline: Timeline;
     timelineCategory: TimelineCategory;
+    'faq-categories': FaqCategory;
     images: Image;
     userSubmittedImages: UserSubmittedImage;
     documents: Document;
@@ -146,6 +147,7 @@ export interface Config {
     'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
     timeline: TimelineSelect<false> | TimelineSelect<true>;
     timelineCategory: TimelineCategorySelect<false> | TimelineCategorySelect<true>;
+    'faq-categories': FaqCategoriesSelect<false> | FaqCategoriesSelect<true>;
     images: ImagesSelect<false> | ImagesSelect<true>;
     userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
@@ -2796,6 +2798,10 @@ export interface AccordionBlocks {
           portrait?: (string | null) | Image;
         };
         /**
+         * Once entries have a category, the accordion groups them by it and shows a filter per category above them. Entries without one are listed last, under "More".
+         */
+        category?: (string | null) | FaqCategory;
+        /**
          * Optional keywords to improve the discoverability of this entry in the search bar. Only used when the search bar is enabled for this accordion block.
          */
         searchKeywords?: string | null;
@@ -2817,6 +2823,21 @@ export interface AccordionBlocks {
   id?: string | null;
   blockName?: string | null;
   blockType: 'accordion';
+}
+/**
+ * Categories for the entries of an accordion, e.g. "Finances" or "Helpers" in the FAQ. The accordion groups its entries by them and shows a filter per category.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "faq-categories".
+ */
+export interface FaqCategory {
+  id: string;
+  /**
+   * Short, it is shown as a filter above the FAQ, e.g. "Finances".
+   */
+  name: string;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5782,6 +5803,10 @@ export interface PayloadLockedDocument {
         value: string | TimelineCategory;
       } | null)
     | ({
+        relationTo: 'faq-categories';
+        value: string | FaqCategory;
+      } | null)
+    | ({
         relationTo: 'images';
         value: string | Image;
       } | null)
@@ -6420,6 +6445,7 @@ export interface AccordionBlocksSelect<T extends boolean = true> {
               ceviname?: T;
               portrait?: T;
             };
+        category?: T;
         searchKeywords?: T;
         valueBlocks?:
           | T
@@ -7120,6 +7146,15 @@ export interface TimelineCategorySelect<T extends boolean = true> {
   name?: T;
   description?: T;
   relatedTimelineEntries?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "faq-categories_select".
+ */
+export interface FaqCategoriesSelect<T extends boolean = true> {
+  name?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -11380,6 +11415,7 @@ export interface TaskCreateCollectionExport {
       | 'generic-page'
       | 'timeline'
       | 'timelineCategory'
+      | 'faq-categories'
       | 'images'
       | 'userSubmittedImages'
       | 'documents'
