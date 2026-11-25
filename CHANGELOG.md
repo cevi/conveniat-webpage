@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.64.0](https://github.com/cevi/conveniat-webpage/compare/v1.63.0...v1.64.0) (2026-11-25)
+
+
+### Features
+
+* **cms:** FAQ entries are filed under categories to filter by ([7ffc61f](https://github.com/cevi/conveniat-webpage/commit/7ffc61f67ccffaefbfbb928a7c68a7ef1b9a4e84))
+* **cms:** FAQ entries are filed under categories to filter by ([81d3a56](https://github.com/cevi/conveniat-webpage/commit/81d3a56da88806ea83366ed64f61da063ede38e9))
+* **cms:** Gemini proofreads the text in the publish dialog ([480c2db](https://github.com/cevi/conveniat-webpage/commit/480c2db66c38518592df1b6e8c156ac805cb7dd3))
+* **cms:** Gemini proofreads the text in the publish dialog ([917bc6e](https://github.com/cevi/conveniat-webpage/commit/917bc6e9278e43475c792100dbe8c730ce5dafed))
+* **cms:** proofread with Gemini 3.6 Flash, wait for it with a skip button ([466c911](https://github.com/cevi/conveniat-webpage/commit/466c911ae3f128f5e910d0df8b13f2f71ea5d011))
+
+
+### Bug Fixes
+
+* **auth:** log the reason Cevi.DB gives when it refuses a login ([82c5667](https://github.com/cevi/conveniat-webpage/commit/82c56670a5087292dc60a91f5834397a65fe4c89))
+* **auth:** log the reason Cevi.DB gives when it refuses a login ([0d191d2](https://github.com/cevi/conveniat-webpage/commit/0d191d24e5bd30398ac8b1e52d80258e11fb9dd1))
+* **cms:** FAQ row titles follow the website's larger desktop font ([0027bf1](https://github.com/cevi/conveniat-webpage/commit/0027bf1b5a0d3ba1d4425b613a9af85caf76c8da))
+* **cms:** proofreading offers only fixes it can apply and checks long text in part ([4c23cf6](https://github.com/cevi/conveniat-webpage/commit/4c23cf649a5a63df9743b8ebf71d56f22848228b))
+* **cms:** slug check no longer crashes in the admin form after a failed save ([9b26f96](https://github.com/cevi/conveniat-webpage/commit/9b26f96cecac9618743f1ac4fd9443c6f2837251))
+* **cms:** slug check no longer crashes in the admin form after a failed save ([9ff2440](https://github.com/cevi/conveniat-webpage/commit/9ff24405d4d11f3c18a72b3a821dc633377317bc))
+* **login:** a failed Cevi.DB login says so and returns to the page it started on ([70ad716](https://github.com/cevi/conveniat-webpage/commit/70ad716fb82bad30d1b5a4bcb275dd8d9acb75d2))
+* **login:** a failed Cevi.DB login says so and returns to the page it started on ([382e2c9](https://github.com/cevi/conveniat-webpage/commit/382e2c946a519ded2e9030ed357bfe43f495949f))
+* **menu:** language button on desktop opens on the first click ([343c7d4](https://github.com/cevi/conveniat-webpage/commit/343c7d4110cf0379df15705c7171623f8d27ece0))
+* **menu:** language button on desktop opens on the first click ([603e9c4](https://github.com/cevi/conveniat-webpage/commit/603e9c469c5897505aa46a02f058de23cc61c753))
+
+
+### Dependencies
+
+* **deps:** bump Payload CMS to 3.94.2 ([be44cb0](https://github.com/cevi/conveniat-webpage/commit/be44cb04c9a2eb90043f794ec33ab1fde51d7b1a))
+* **deps:** bump Payload CMS to 3.94.2 ([24a2e6a](https://github.com/cevi/conveniat-webpage/commit/24a2e6a39fc2207769b4005cd9e400a7ac65afc4))
+
 ## [1.63.0](https://github.com/cevi/conveniat-webpage/compare/v1.62.0...v1.63.0) (2026-11-22)
 
 
