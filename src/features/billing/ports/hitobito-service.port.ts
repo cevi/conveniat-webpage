@@ -22,16 +22,6 @@ export interface SyncedExternalParticipant {
   active: boolean;
 }
 
-export interface HitobitoPersonDetails {
-  firstName?: string | undefined;
-  lastName?: string | undefined;
-  street?: string | undefined;
-  houseNumber?: string | undefined;
-  zip?: string | undefined;
-  town?: string | undefined;
-  birthday?: string | undefined;
-}
-
 /** What a write-back to a single participation answer did. */
 export interface ParticipationAnswerUpdate {
   /** False when the Cevi.DB already held the target value, or one that must be kept. */
@@ -49,7 +39,6 @@ export interface HitobitoServicePort {
   ): Promise<Record<string, string>>;
   fetchSubgroupLinks(parentGroupId: string): Promise<string[]>;
   fetchEventsForGroup(groupId: string): Promise<Array<{ id: string; name: string }>>;
-  fetchPersonDetails(personId: string): Promise<HitobitoPersonDetails | null>;
   /**
    * Everyone holding the Adressverwalter role in a group, once per address. They are who a
    * Pflichtangaben reminder for that Hof goes to, and whom the Hof dashboard names as its

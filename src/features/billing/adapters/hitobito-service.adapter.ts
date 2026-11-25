@@ -1,5 +1,4 @@
 import type {
-  HitobitoPersonDetails,
   HitobitoServicePort,
   ParticipationAnswerUpdate,
   SyncedExternalParticipant,
@@ -16,7 +15,6 @@ import {
 } from '@/lib/hitobito/html-parser';
 import { EventService } from '@/lib/hitobito/services/event.service';
 import { GroupService } from '@/lib/hitobito/services/group.service';
-import { PersonService } from '@/lib/hitobito/services/person.service';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { trace } from '@opentelemetry/api';
 
@@ -79,7 +77,6 @@ function assertOffered(field: ParticipationAnswerField, value: string): void {
 export class HitobitoServiceAdapter implements HitobitoServicePort {
   private readonly client: HitobitoClient;
   private readonly eventService: EventService;
-  private readonly personService: PersonService;
   private readonly groupService: GroupService;
   private readonly participationsJsonCache = new Map<string, LegacyParticipationsResponse>();
 
@@ -94,7 +91,6 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
     this.client =
       'apiRequest' in configOrClient ? configOrClient : new HitobitoClient(configOrClient, logger);
     this.eventService = new EventService(this.client, logger);
-    this.personService = new PersonService(this.client, logger);
     this.groupService = new GroupService(this.client);
   }
 
@@ -469,21 +465,5 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
       );
     }
     return body;
-  }
-
-  async fetchPersonDetails(personId: string): Promise<HitobitoPersonDetails | null> {
-    const result = await this.personService.getDetails({ personId });
-    if (!result.success || !result.attributes) {
-      return null;
-    }
-    return {
-      firstName: result.attributes.first_name ?? undefined,
-      lastName: result.attributes.last_name ?? undefined,
-      street: result.attributes.street ?? undefined,
-      houseNumber: result.attributes.house_number ?? result.attributes.housenumber ?? undefined,
-      zip: result.attributes.zip ?? result.attributes.zip_code ?? undefined,
-      town: result.attributes.town ?? undefined,
-      birthday: result.attributes.birthday ?? undefined,
-    };
   }
 }

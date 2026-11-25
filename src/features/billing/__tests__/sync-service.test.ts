@@ -122,6 +122,10 @@ const billedRow = (overrides: Record<string, unknown> = {}): BillParticipant =>
     ...overrides,
   }) as unknown as BillParticipant;
 
+/** A row that waits for its bill. */
+const waitingRow = (overrides: Record<string, unknown> = {}): BillParticipant =>
+  billedRow({ status: 'new', invoiceNumber: null, billCreatedDate: null, ...overrides });
+
 /** What the sync wrote to one row, if it wrote to it at all. */
 const updateOf = (
   update: jest.Mocked<ParticipantRepositoryPort>['update'],
@@ -164,7 +168,6 @@ describe('Sync Service', () => {
       fetchParticipationAnswers: jest.fn(),
       fetchSubgroupLinks: jest.fn(),
       fetchEventsForGroup: jest.fn(),
-      fetchPersonDetails: jest.fn(),
       fetchAddressManagers: jest.fn(),
       updateParticipationAnswer: jest
         .fn()
@@ -928,6 +931,66 @@ describe('Sync Service', () => {
       expect(update?.status).toBeUndefined();
       expect(summary.needsReviewCount).toBe(0);
       expect(summary.unchangedCount).toBe(1);
+    });
+  });
+
+  const syncRow = async (
+    row: BillParticipant,
+    external: SyncedExternalParticipant,
+  ): Promise<{ update: Partial<BillParticipant> | undefined; changedCount: number }> => {
+    mockParticipantRepo.findByParticipationUuid.mockResolvedValue(row);
+    mockHitobitoService.fetchParticipations.mockResolvedValue([external]);
+    mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(completeAnswers);
+
+    const summary = await syncParticipantsUseCase(
+      mockParticipantRepo,
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+    return {
+      update: updateOf(mockParticipantRepo.update, 'doc-1'),
+      changedCount: summary.changedCount,
+    };
+  };
+
+  describe('the house number', () => {
+    it('is stored with a new registration, so the bill can print it', async () => {
+      mockParticipantRepo.findByParticipationUuid.mockResolvedValue(null);
+      mockParticipantRepo.findRemovedParticipant.mockResolvedValue(null);
+      mockHitobitoService.fetchParticipations.mockResolvedValue([externalParticipant()]);
+      mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(completeAnswers);
+
+      await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+      );
+
+      expect(mockParticipantRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ street: 'Musterstrasse', housenumber: '42' }),
+      );
+    });
+
+    it('is filled in on a row synced before it was stored, without calling that a change', async () => {
+      // Every waiting row lacks it on the first sync after the field arrived. Marking them
+      // all `updated` would tell an editor the Cevi.DB changed, which it did not.
+      const { update, changedCount } = await syncRow(waitingRow(), externalParticipant());
+
+      expect(update?.housenumber).toBe('42');
+      expect(update?.status).toBeUndefined();
+      expect(changedCount).toBe(0);
+    });
+
+    it('is recorded as a change once the Cevi.DB holds a different one', async () => {
+      const { update } = await syncRow(
+        waitingRow({ housenumber: '42' }),
+        externalParticipant({ housenumber: '7' }),
+      );
+
+      expect(update?.housenumber).toBe('7');
+      expect(update?.status).toBe('updated');
     });
   });
 

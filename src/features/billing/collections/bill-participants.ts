@@ -743,11 +743,23 @@ export const BillParticipantsCollection: CollectionConfig = {
               admin: { disableGroupBy: true },
             },
             {
-              name: 'street',
-              access: { read: canAccessBillingField, update: canAccessBillingField },
-              type: 'text',
-              label: { en: 'Street', de: 'Strasse', fr: 'Rue' },
-              admin: { disableGroupBy: true },
+              type: 'row',
+              fields: [
+                {
+                  name: 'street',
+                  access: { read: canAccessBillingField, update: canAccessBillingField },
+                  type: 'text',
+                  label: { en: 'Street', de: 'Strasse', fr: 'Rue' },
+                  admin: { disableGroupBy: true },
+                },
+                {
+                  name: 'housenumber',
+                  access: { read: canAccessBillingField, update: canAccessBillingField },
+                  type: 'text',
+                  label: { en: 'House Number', de: 'Hausnummer', fr: 'Numéro' },
+                  admin: { disableGroupBy: true },
+                },
+              ],
             },
             {
               type: 'row',

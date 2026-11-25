@@ -4886,6 +4886,7 @@ export interface BillParticipant {
   nickname?: string | null;
   email?: string | null;
   street?: string | null;
+  housenumber?: string | null;
   zipCode?: string | null;
   zip?: string | null;
   town?: string | null;
@@ -7913,6 +7914,7 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   nickname?: T;
   email?: T;
   street?: T;
+  housenumber?: T;
   zipCode?: T;
   zip?: T;
   town?: T;
