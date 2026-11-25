@@ -33,7 +33,7 @@ export const generateBillsTask: TaskConfig<'generateBills'> = {
 
     // Clearing the live record is the job of whoever holds the run lock, not of
     // every worker that reaches this handler — see `JobProgressReporter.finish`.
-    const result = await generateBills(payload, undefined, undefined, reporter, String(job.id));
+    const result = await generateBills(payload, undefined, reporter, String(job.id));
 
     // The same rule as the toolbar's lock on the send step: only a generation that ran to
     // the end hands over. A duplicate execution did nothing, and the worker that did the

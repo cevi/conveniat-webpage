@@ -40,7 +40,6 @@ describe('populateSubeventsUseCase', () => {
       fetchParticipationAnswers: jest.fn(),
       fetchSubgroupLinks: jest.fn(),
       fetchEventsForGroup: jest.fn(),
-      fetchPersonDetails: jest.fn(),
       fetchAddressManagers: jest.fn().mockResolvedValue([]),
       updateParticipationAnswer: jest.fn(),
       markParticipationPaid: jest.fn(),

@@ -1,8 +1,6 @@
 import { buildCreditorFromSettings } from '@/features/billing-core/creditor';
-import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
 import { PayloadParticipantRepositoryAdapter } from '@/features/billing/adapters/payload-participant-repository.adapter';
 import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-settings.adapter';
-import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import {
@@ -31,7 +29,7 @@ import {
   isAufbauOrAbbaulager,
   resolveRoleOptions,
 } from '@/features/billing/utils';
-import type { HitobitoClient } from '@/lib/hitobito/client';
+import type { BillParticipant } from '@/features/payload-cms/payload-types';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -355,18 +353,45 @@ function parseMarkdownSegments(
 }
 
 /**
- * Generates QR Bill PDFs for all participants with status 'new' or 're_added'.
+ * Who a bill is addressed to, from what the sync stored on the participant.
+ *
+ * The name and address used to be read again from `/api/people/:id` for every bill. Cevi.DB
+ * refuses that for everyone outside the groups the API token can see, so nine bills in ten
+ * fell back to a guess: the full name split at its first space, and a street without its
+ * house number. The participation the sync reads carries all of it, so the stored row is
+ * the one source, and a bill shows what the admin panel shows.
  */
-/**
- * Generates bills for participants by orchestrating port operations.
- */
+export function resolveBillRecipient(
+  participant: Pick<
+    BillParticipant,
+    'fullName' | 'firstName' | 'lastName' | 'street' | 'housenumber' | 'zipCode' | 'zip' | 'town'
+  >,
+): { debtor: PdfGenerationParameters['debtor']; firstName: string } {
+  const storedFirstName = participant.firstName?.trim() ?? '';
+  const storedLastName = participant.lastName?.trim() ?? '';
+  const hasStoredName = storedFirstName !== '' || storedLastName !== '';
+  const buildingNumber = participant.housenumber?.trim() ?? '';
+
+  return {
+    // A row from before the sync stored the two parts only has the full name.
+    firstName: hasStoredName ? storedFirstName : (participant.fullName.split(' ')[0] ?? ''),
+    debtor: {
+      name: hasStoredName ? `${storedFirstName} ${storedLastName}`.trim() : participant.fullName,
+      street: participant.street ?? '',
+      ...(buildingNumber === '' ? {} : { buildingNumber }),
+      zip: participant.zipCode ?? participant.zip ?? '',
+      city: participant.town ?? '',
+      country: 'CH',
+    },
+  };
+}
+
 /**
  * Generates bills for participants by orchestrating port operations.
  */
 export async function generateBillsUseCase(
   participantRepo: ParticipantRepositoryPort,
   settingsRepo: SettingsPort,
-  hitobitoService: HitobitoServicePort,
   logger: {
     info: (message: string) => void;
     warn: (message: string) => void;
@@ -508,7 +533,6 @@ export async function generateBillsUseCase(
         continue;
       }
 
-      const userId = document_.userId;
       const roleType = document_.roleType as string;
       const pricing = resolvePricing(roleType, rolePricing);
 
@@ -553,50 +577,7 @@ export async function generateBillsUseCase(
         exemption: vatExemption,
       });
 
-      // Fetch person address from Cevi.DB
-      const personAttributes = await hitobitoService.fetchPersonDetails(userId);
-
-      logger.info(
-        // Whether the lookup worked, and which address fields came back — never the
-        // values. This used to log the participant's full name and home address on every
-        // bill, minors included, straight into the log aggregator.
-        `[Billing] Hitobito person lookup for userId=${userId}: ` +
-          JSON.stringify({
-            success: personAttributes !== null,
-            hasName: Boolean(personAttributes?.firstName ?? personAttributes?.lastName),
-            hasStreet: Boolean(personAttributes?.street),
-            hasZip: Boolean(personAttributes?.zip),
-            hasTown: Boolean(personAttributes?.town),
-          }),
-      );
-
-      const firstName = personAttributes?.firstName ?? document_.fullName.split(' ')[0] ?? '';
-      const lastName =
-        personAttributes?.lastName ?? document_.fullName.split(' ').slice(1).join(' ');
-
-      // Parse Address to Structured format (SIX requirement)
-      let street = '';
-      let buildingNumber: string | undefined = undefined;
-
-      const hitobitoStreet = personAttributes?.street;
-      const hitobitoHouseNumber = personAttributes?.houseNumber;
-
-      if (typeof hitobitoStreet === 'string' && hitobitoStreet !== '') {
-        // Use native structured fields if available
-        street = hitobitoStreet;
-        buildingNumber = hitobitoHouseNumber ?? undefined;
-      } else {
-        // Fallback to participant document fields or parse
-        const documentStreet = document_.street ?? '';
-        const match = documentStreet.match(/^(.*?)\s*(\d+[a-zA-Z]?.*)?$/);
-        street =
-          typeof match?.[1] === 'string' && match[1] !== '' ? match[1].trim() : documentStreet;
-        buildingNumber =
-          typeof match?.[2] === 'string' && match[2] !== '' ? match[2].trim() : undefined;
-      }
-
-      const zip = personAttributes?.zip ?? document_.zipCode ?? document_.zip;
-      const city = personAttributes?.town ?? document_.town;
+      const { debtor, firstName } = resolveBillRecipient(document_);
 
       const referenceNumber = generateQrReference(
         document_.userId,
@@ -630,14 +611,7 @@ export async function generateBillsUseCase(
       const pdfBuffer = await generateQrBillPdf({
         documentTitle,
         creditor: buildCreditorFromSettings(settings),
-        debtor: {
-          name: `${firstName} ${lastName}`.trim(),
-          street,
-          ...(buildingNumber !== undefined && buildingNumber !== '' ? { buildingNumber } : {}),
-          zip: zip ?? '',
-          city: city ?? '',
-          country: 'CH',
-        },
+        debtor,
         amount,
         currency: settings.currency ?? 'CHF',
         reference: referenceNumber,
@@ -718,7 +692,6 @@ export async function generateBillsUseCase(
 export async function generateBills(
   payload: Payload,
   participantId?: string,
-  dependencies?: { hitobitoClient?: HitobitoClient },
   reporter?: JobProgressReporter,
   /** Identifies the run. Queued tasks pass their job id; see `RunLockPort`. */
   runOwner?: string,
@@ -767,7 +740,7 @@ export async function generateBills(
   }
 
   try {
-    return await generateBillsLocked(payload, participantId, dependencies, reporter);
+    return await generateBillsLocked(payload, participantId, reporter);
   } finally {
     // Inside the lock on purpose: only the execution that acquired it owns the progress
     // record, and the keys are scoped by task slug rather than by job.
@@ -779,7 +752,6 @@ export async function generateBills(
 async function generateBillsLocked(
   payload: Payload,
   participantId: string | undefined,
-  dependencies: { hitobitoClient?: HitobitoClient } | undefined,
   reporter: JobProgressReporter | undefined,
 ): Promise<GenerationSummary> {
   const settingsRepo = new PayloadSettingsAdapter(payload);
@@ -797,34 +769,7 @@ async function generateBillsLocked(
     },
   };
 
-  const regManagement = await settingsRepo.getRegistrationManagement();
-  const cookieValue = regManagement.browserCookie;
-  const browserCookie =
-    typeof cookieValue === 'string' && cookieValue.length > 0 ? cookieValue : '';
-
-  // Lazily imported for the same reason as the run lock: the Hitobito config reads the
-  // validated environment at module load, which used to make this module impossible to
-  // import from a unit test of the pure use case below — `bill-generator-unpriced-role`
-  // had been failing to load, and running zero tests, since it was written.
-  const { HITOBITO_CONFIG } = await import('@/lib/hitobito');
-
-  const hitobitoService = new HitobitoServiceAdapter(
-    dependencies?.hitobitoClient ?? {
-      baseUrl: HITOBITO_CONFIG.baseUrl,
-      apiToken: HITOBITO_CONFIG.apiToken,
-      browserCookie,
-    },
-    logger,
-  );
-
-  return generateBillsUseCase(
-    participantRepo,
-    settingsRepo,
-    hitobitoService,
-    logger,
-    participantId,
-    reporter,
-  );
+  return generateBillsUseCase(participantRepo, settingsRepo, logger, participantId, reporter);
 }
 
 // ─── PDF Generation ──────────────────────────────────────────────────────────

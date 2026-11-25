@@ -208,6 +208,7 @@ async function syncParticipation(
       roleType,
       enrollmentDate: participation.enrollmentDate,
       street: participation.street ?? null,
+      housenumber: participation.housenumber ?? null,
       zip: participation.zip ?? null,
       zipCode: participation.zipCode ?? null,
       town: participation.town ?? null,
@@ -298,6 +299,12 @@ async function syncParticipation(
     const hasEventNameChanged = normalize(document_.eventName) !== normalize(event.eventName);
 
     const hasStreetChanged = normalize(document_.street) !== normalize(participation.street);
+    const hasHousenumberChanged =
+      normalize(document_.housenumber) !== normalize(participation.housenumber);
+    // A row synced before the house number was stored holds none. Filling it in is not a
+    // change in the Cevi.DB, so it is written below without marking every waiting row as
+    // `updated`.
+    const isHousenumberBackfill = typeof document_.housenumber !== 'string';
     const hasZipChanged = normalize(document_.zip) !== normalize(participation.zip);
     const hasZipCodeChanged = normalize(document_.zipCode) !== normalize(participation.zipCode);
     const hasTownChanged = normalize(document_.town) !== normalize(participation.town);
@@ -353,6 +360,11 @@ async function syncParticipation(
       diff['eventName'] = { from: String(document_.eventName), to: event.eventName ?? '' };
     if (hasStreetChanged)
       diff['street'] = { from: String(document_.street), to: participation.street ?? '' };
+    if (hasHousenumberChanged && !isHousenumberBackfill)
+      diff['housenumber'] = {
+        from: String(document_.housenumber),
+        to: participation.housenumber ?? '',
+      };
     if (hasZipChanged) diff['zip'] = { from: String(document_.zip), to: participation.zip ?? '' };
     if (hasZipCodeChanged)
       diff['zipCode'] = { from: String(document_.zipCode), to: participation.zipCode ?? '' };
@@ -424,6 +436,7 @@ async function syncParticipation(
         roleType,
         status: newStatus,
         street: participation.street ?? null,
+        housenumber: participation.housenumber ?? null,
         zip: participation.zip ?? null,
         zipCode: participation.zipCode ?? null,
         town: participation.town ?? null,
@@ -451,6 +464,7 @@ async function syncParticipation(
     } else {
       await participantRepo.update(document_.id, {
         lastSyncDate: now,
+        ...(hasHousenumberChanged ? { housenumber: participation.housenumber ?? null } : {}),
         syncHistory: [...history, { date: now, action: 'sync_confirmed' }],
       });
       summary.unchangedCount++;

@@ -3,13 +3,13 @@
 /* eslint-disable @typescript-eslint/unbound-method -- asserting on a jest mock reads it off
    its object by design; it is never called from there. */
 import { buildCreditorFromSettings } from '@/features/billing-core/creditor';
-import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import {
   buildCreditorFooterItems,
   generateBillsUseCase,
   layoutFooterLines,
+  resolveBillRecipient,
   resolvePricing,
 } from '@/features/billing/services/bill-generator-service';
 import { NEEDS_MANUAL_REVIEW } from '@/features/billing/services/billing-status';
@@ -47,7 +47,6 @@ const buildDependencies = (
 ): {
   participantRepo: jest.Mocked<ParticipantRepositoryPort>;
   settingsRepo: jest.Mocked<SettingsPort>;
-  hitobitoService: jest.Mocked<HitobitoServicePort>;
   logger: { info: jest.Mock; warn: jest.Mock; error: jest.Mock };
 } => {
   const participantRepo = {
@@ -65,14 +64,9 @@ const buildDependencies = (
     updateNextReferenceNumber: jest.fn().mockResolvedValue(undefined),
   } as unknown as jest.Mocked<SettingsPort>;
 
-  const hitobitoService = {
-    fetchPersonDetails: jest.fn().mockResolvedValue(undefined),
-  } as unknown as jest.Mocked<HitobitoServicePort>;
-
   return {
     participantRepo,
     settingsRepo,
-    hitobitoService,
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
   };
 };
@@ -94,16 +88,11 @@ describe('resolvePricing', () => {
 
 describe('generateBillsUseCase with an unpriced role', () => {
   it('refuses to bill it and flags the registration instead', async () => {
-    const { participantRepo, settingsRepo, hitobitoService, logger } = buildDependencies([
+    const { participantRepo, settingsRepo, logger } = buildDependencies([
       participant({ roleType: 'Event::Role::Cook' }),
     ]);
 
-    const summary = await generateBillsUseCase(
-      participantRepo,
-      settingsRepo,
-      hitobitoService,
-      logger,
-    );
+    const summary = await generateBillsUseCase(participantRepo, settingsRepo, logger);
 
     expect(participantRepo.uploadPdf).not.toHaveBeenCalled();
     expect(summary.generatedCount).toBe(0);
@@ -118,16 +107,11 @@ describe('generateBillsUseCase with an unpriced role', () => {
   });
 
   it('names the role and points the operator at the settings', async () => {
-    const { participantRepo, settingsRepo, hitobitoService, logger } = buildDependencies([
+    const { participantRepo, settingsRepo, logger } = buildDependencies([
       participant({ roleType: 'Event::Role::Cook' }),
     ]);
 
-    const summary = await generateBillsUseCase(
-      participantRepo,
-      settingsRepo,
-      hitobitoService,
-      logger,
-    );
+    const summary = await generateBillsUseCase(participantRepo, settingsRepo, logger);
 
     expect(summary.errors).toEqual([
       'Max Mustermann: Rollentyp "Event::Role::Cook" ist in den Lager-Rechnungseinstellungen nicht konfiguriert.',
@@ -136,7 +120,7 @@ describe('generateBillsUseCase with an unpriced role', () => {
   });
 
   it('does not record the same reason twice when a run is repeated', async () => {
-    const { participantRepo, settingsRepo, hitobitoService, logger } = buildDependencies([
+    const { participantRepo, settingsRepo, logger } = buildDependencies([
       participant({
         roleType: 'Event::Role::Cook',
         missingAnmeldeangaben: [
@@ -145,7 +129,7 @@ describe('generateBillsUseCase with an unpriced role', () => {
       }),
     ]);
 
-    await generateBillsUseCase(participantRepo, settingsRepo, hitobitoService, logger);
+    await generateBillsUseCase(participantRepo, settingsRepo, logger);
 
     expect(participantRepo.update).toHaveBeenCalledWith('p1', {
       status: 'invalid_anmeldeangaben',
@@ -156,16 +140,11 @@ describe('generateBillsUseCase with an unpriced role', () => {
   });
 
   it('leaves a priced participant alone', async () => {
-    const { participantRepo, settingsRepo, hitobitoService, logger } = buildDependencies([
+    const { participantRepo, settingsRepo, logger } = buildDependencies([
       participant({ roleType: 'Event::Role::Leader' }),
     ]);
 
-    const summary = await generateBillsUseCase(
-      participantRepo,
-      settingsRepo,
-      hitobitoService,
-      logger,
-    );
+    const summary = await generateBillsUseCase(participantRepo, settingsRepo, logger);
 
     // It gets as far as needing a PDF, which is all this test cares about: it was not
     // rejected for its role.
@@ -178,7 +157,7 @@ describe('generateBillsUseCase and a participant who already has a bill', () => 
     // Only reachable if something put a billed row back into a billable status behind the
     // sync's back. Billing it again would issue a second invoice number and a second QR
     // reference against a bill the participant may already have paid.
-    const { participantRepo, settingsRepo, hitobitoService, logger } = buildDependencies([
+    const { participantRepo, settingsRepo, logger } = buildDependencies([
       participant({
         status: 'new',
         roleType: 'Event::Role::Leader',
@@ -187,12 +166,7 @@ describe('generateBillsUseCase and a participant who already has a bill', () => 
       }),
     ]);
 
-    const summary = await generateBillsUseCase(
-      participantRepo,
-      settingsRepo,
-      hitobitoService,
-      logger,
-    );
+    const summary = await generateBillsUseCase(participantRepo, settingsRepo, logger);
 
     expect(participantRepo.uploadPdf).not.toHaveBeenCalled();
     expect(summary.generatedCount).toBe(0);
@@ -206,7 +180,7 @@ describe('generateBillsUseCase and a participant who already has a bill', () => 
   it('still lets an operator regenerate one deliberately, by naming them', async () => {
     // The per-row "Neu generieren" action passes a participantId — that is the operator
     // saying they mean it, and it has to keep working.
-    const { participantRepo, settingsRepo, hitobitoService, logger } = buildDependencies([
+    const { participantRepo, settingsRepo, logger } = buildDependencies([
       participant({
         status: 'new',
         roleType: 'Event::Role::Leader',
@@ -215,29 +189,18 @@ describe('generateBillsUseCase and a participant who already has a bill', () => 
       }),
     ]);
 
-    const summary = await generateBillsUseCase(
-      participantRepo,
-      settingsRepo,
-      hitobitoService,
-      logger,
-      'p1',
-    );
+    const summary = await generateBillsUseCase(participantRepo, settingsRepo, logger, 'p1');
 
     expect(summary.errors.every((error) => !error.includes('besteht bereits'))).toBe(true);
   });
 
   it('bills the statuses that used to be dead ends', async () => {
     for (const status of ['updated', 're_added'] as const) {
-      const { participantRepo, settingsRepo, hitobitoService, logger } = buildDependencies([
+      const { participantRepo, settingsRepo, logger } = buildDependencies([
         participant({ status, roleType: 'Event::Role::Leader' }),
       ]);
 
-      const summary = await generateBillsUseCase(
-        participantRepo,
-        settingsRepo,
-        hitobitoService,
-        logger,
-      );
+      const summary = await generateBillsUseCase(participantRepo, settingsRepo, logger);
 
       expect(summary.errors.every((error) => !error.includes('kann nicht verrechnet'))).toBe(true);
     }
@@ -246,7 +209,7 @@ describe('generateBillsUseCase and a participant who already has a bill', () => 
 
 describe('reference number reservation', () => {
   it('reserves the whole block before the first bill is written', async () => {
-    const { participantRepo, settingsRepo, hitobitoService, logger } = buildDependencies([
+    const { participantRepo, settingsRepo, logger } = buildDependencies([
       participant({ id: 'p1', roleType: 'Event::Role::Leader' }),
       participant({ id: 'p2', roleType: 'Event::Role::Leader' }),
       participant({ id: 'p3', roleType: 'Event::Role::Leader' }),
@@ -258,7 +221,7 @@ describe('reference number reservation', () => {
       nextReferenceNumber: 41,
     });
 
-    await generateBillsUseCase(participantRepo, settingsRepo, hitobitoService, logger);
+    await generateBillsUseCase(participantRepo, settingsRepo, logger);
 
     // Written once, up front, covering every participant the run picked up. A crash
     // partway through then burns numbers rather than reissuing them: the counter used to
@@ -269,9 +232,9 @@ describe('reference number reservation', () => {
   });
 
   it('does not touch the counter when there is nothing to bill', async () => {
-    const { participantRepo, settingsRepo, hitobitoService, logger } = buildDependencies([]);
+    const { participantRepo, settingsRepo, logger } = buildDependencies([]);
 
-    await generateBillsUseCase(participantRepo, settingsRepo, hitobitoService, logger);
+    await generateBillsUseCase(participantRepo, settingsRepo, logger);
 
     expect(settingsRepo.updateNextReferenceNumber).not.toHaveBeenCalled();
   });
@@ -398,16 +361,11 @@ describe('layoutFooterLines', () => {
 
 describe('generateBillsUseCase with Aufbau- or Abbaulager participant', () => {
   it('skips billing and reports an error message without generating a PDF', async () => {
-    const { participantRepo, settingsRepo, hitobitoService, logger } = buildDependencies([
+    const { participantRepo, settingsRepo, logger } = buildDependencies([
       participant({ eventName: 'Aufbaulager conveniat27 - Hof 1' }),
     ]);
 
-    const summary = await generateBillsUseCase(
-      participantRepo,
-      settingsRepo,
-      hitobitoService,
-      logger,
-    );
+    const summary = await generateBillsUseCase(participantRepo, settingsRepo, logger);
 
     expect(participantRepo.uploadPdf).not.toHaveBeenCalled();
     expect(summary.generatedCount).toBe(0);
@@ -420,7 +378,7 @@ describe('generateBillsUseCase with Aufbau- or Abbaulager participant', () => {
 
 describe('generateBillsUseCase stores the Anmeldenummer', () => {
   it('keeps the number the PDF prints on the row', async () => {
-    const { participantRepo, settingsRepo, hitobitoService, logger } = buildDependencies([
+    const { participantRepo, settingsRepo, logger } = buildDependencies([
       participant({ roleType: 'Event::Role::Leader' }),
     ]);
     const settings = await settingsRepo.getBillSettings();
@@ -433,10 +391,52 @@ describe('generateBillsUseCase stores the Anmeldenummer', () => {
       customReferenceTemplate: '{{event-id}}-{{participation-id}}',
     });
 
-    await generateBillsUseCase(participantRepo, settingsRepo, hitobitoService, logger);
+    await generateBillsUseCase(participantRepo, settingsRepo, logger);
 
     const [, update] = participantRepo.update.mock.calls.at(-1) ?? [];
     expect(update?.status).toBe('bill_created');
     expect(update?.registrationNumber).toBe('1234-9012');
+  });
+});
+
+describe('resolveBillRecipient', () => {
+  const stored = {
+    fullName: 'Anna Maria Muster',
+    firstName: 'Anna Maria',
+    lastName: 'Muster',
+    street: 'Zürichstrasse',
+    housenumber: '11a',
+    zipCode: '8610',
+    town: 'Uster',
+  };
+
+  it('addresses the bill with the name and address the sync stored', () => {
+    expect(resolveBillRecipient(stored).debtor).toEqual({
+      name: 'Anna Maria Muster',
+      street: 'Zürichstrasse',
+      buildingNumber: '11a',
+      zip: '8610',
+      city: 'Uster',
+      country: 'CH',
+    });
+  });
+
+  it('greets someone with two first names by both of them', () => {
+    // Splitting the full name at its first space made this "Anna".
+    expect(resolveBillRecipient(stored).firstName).toBe('Anna Maria');
+  });
+
+  it('leaves the house number out when the Cevi.DB holds none', () => {
+    const { debtor } = resolveBillRecipient({ ...stored, housenumber: null });
+
+    expect(debtor.street).toBe('Zürichstrasse');
+    expect(debtor.buildingNumber).toBeUndefined();
+  });
+
+  it('falls back to the full name on a row stored before the name was split', () => {
+    const recipient = resolveBillRecipient({ ...stored, firstName: null, lastName: null });
+
+    expect(recipient.debtor.name).toBe('Anna Maria Muster');
+    expect(recipient.firstName).toBe('Anna');
   });
 });
