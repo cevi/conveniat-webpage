@@ -7,6 +7,13 @@ import { text } from 'payload/shared';
 const slugMinLength = 3;
 const slugMaxLength = 100;
 
+/**
+ * Where the slug of a page sits, in the SEO tab. Payload names the field's `path` only when it
+ * validates a save: the admin form state, which checks again on the next change after a failed
+ * save, calls `validate` without it.
+ */
+const SEO_SLUG_PATH = 'seo.urlSlug';
+
 const checkForbiddenRegexes = (
   value: string,
   locale?: string | null,
@@ -109,25 +116,11 @@ export const slugValidation: TextFieldSingleValidation = async (value, arguments
 
     // check if the slug is unique
     const { payload, locale } = arguments_.req;
-    const { data, collectionSlug, path } = arguments_;
+    const { data, collectionSlug } = arguments_;
 
     if (collectionSlug === 'redirects') {
       return text(value, arguments_); // do not check for uniqueness in redirects
     }
-
-    // rebuild the path of the slug field
-    const mergedPath = path
-      .map((element) => {
-        if (typeof element === 'string') {
-          return element;
-        }
-        if (typeof element === 'number') {
-          return `[${element}]`;
-        }
-        return '';
-      })
-      .join('.')
-      .replaceAll('.[', '[');
 
     const duplicates = await payload.find({
       collection: collectionSlug as CollectionSlug,
@@ -137,7 +130,7 @@ export const slugValidation: TextFieldSingleValidation = async (value, arguments
       where: {
         and: [
           { id: { not_equals: (data as { id: string })['id'] } },
-          { [mergedPath]: { equals: value } },
+          { [SEO_SLUG_PATH]: { equals: value } },
         ],
       },
     });
