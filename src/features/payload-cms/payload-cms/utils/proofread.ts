@@ -31,7 +31,9 @@ export interface ProofreadFinding {
 
 export type ProofreadResponse =
   /** The deployment has no Gemini key. */
-  { status: 'disabled' } | { status: 'done'; findings: ProofreadFinding[] };
+  | { status: 'disabled' }
+  /** `truncated`: the text was longer than one check takes, and its end stays unchecked. */
+  | { status: 'done'; findings: ProofreadFinding[]; truncated: boolean };
 
 interface LexicalNode {
   type?: unknown;

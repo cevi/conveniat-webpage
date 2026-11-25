@@ -51,10 +51,16 @@ const fields: Field[] = [
   },
 ];
 
-const richText = (value: string): unknown => ({
+/** A rich text state of one paragraph; each string is a text node, every second one bold. */
+const richText = (...texts: string[]): unknown => ({
   root: {
     type: 'root',
-    children: [{ type: 'paragraph', children: [{ type: 'text', text: value }] }],
+    children: [
+      {
+        type: 'paragraph',
+        children: texts.map((text, index) => ({ type: 'text', text, format: index % 2 })),
+      },
+    ],
   },
 });
 
@@ -74,16 +80,29 @@ describe('collectProofreadSegments', () => {
       ],
     };
 
-    const segments = collectProofreadSegments(data, getLocalizedFieldPaths(fields), 'de');
+    const { segments, truncated } = collectProofreadSegments(
+      data,
+      getLocalizedFieldPaths(fields),
+      'de',
+    );
 
+    expect(truncated).toBe(false);
     expect(segments).toEqual([
-      { id: 0, path: 'title', fieldType: 'text', label: 'Titel', text: data.title },
+      {
+        id: 0,
+        path: 'title',
+        fieldType: 'text',
+        label: 'Titel',
+        text: data.title,
+        value: data.title,
+      },
       {
         id: 1,
         path: 'mainContent.0.richTextSection',
         fieldType: 'richText',
         label: 'Text',
         text: 'Über die CeviDB anmelden.',
+        value: data.mainContent[0]?.richTextSection,
       },
       {
         id: 2,
@@ -91,8 +110,28 @@ describe('collectProofreadSegments', () => {
         fieldType: 'textarea',
         label: 'Line',
         text: 'Jede Abteilung melden ihre Höfe.',
+        value: 'Jede Abteilung melden ihre Höfe.',
       },
     ]);
+  });
+
+  it('checks the beginning of a field too long for the budget and says the rest is unchecked', () => {
+    const longText = `Das Aufbaulger beginnt. ${'Wir bauen den Hof auf. '.repeat(2000)}`;
+    const data = {
+      title: 'Kurz',
+      mainContent: [{ blockType: 'richTextSection', richTextSection: richText(longText) }],
+    };
+
+    const { segments, truncated } = collectProofreadSegments(
+      data,
+      getLocalizedFieldPaths(fields),
+      'de',
+    );
+
+    expect(truncated).toBe(true);
+    expect(segments.map(({ path }) => path)).toEqual(['title', 'mainContent.0.richTextSection']);
+    expect(segments[1]?.text.startsWith('Das Aufbaulger beginnt.')).toBe(true);
+    expect(segments.reduce((sum, { text }) => sum + text.length, 0)).toBe(30_000);
   });
 });
 
@@ -116,6 +155,7 @@ describe('toFindings', () => {
       fieldType: 'text' as const,
       label: 'Titel',
       text: 'Der Hof und der Hof',
+      value: 'Der Hof und der Hof',
     },
     {
       id: 1,
@@ -123,6 +163,15 @@ describe('toFindings', () => {
       fieldType: 'richText' as const,
       label: 'Text',
       text: 'Bitte über die CeviDB anmelden.',
+      value: richText('Bitte über die CeviDB anmelden.'),
+    },
+    {
+      id: 2,
+      path: 'intro',
+      fieldType: 'richText' as const,
+      label: 'Einleitung',
+      text: 'Das Aufbaulger beginnt.',
+      value: richText('Das Aufbau', 'lger', ' beginnt.'),
     },
   ];
 
@@ -157,11 +206,23 @@ describe('toFindings', () => {
     const [result] = toFindings([finding(0, 'Hof', 'Höfe')], segments);
     expect(result?.applicable).toBe(false);
   });
+
+  it('cannot apply a place that spans normal and bold text', () => {
+    const [result] = toFindings([finding(2, 'Aufbaulger', 'Aufbaulager')], segments);
+    expect(result?.applicable).toBe(false);
+  });
 });
 
 describe('proofreadWithGemini', () => {
   const segments = [
-    { id: 0, path: 'title', fieldType: 'text' as const, label: 'Titel', text: 'Das Aufbaulger' },
+    {
+      id: 0,
+      path: 'title',
+      fieldType: 'text' as const,
+      label: 'Titel',
+      text: 'Das Aufbaulger',
+      value: 'Das Aufbaulger',
+    },
   ];
   const aufbaulager = {
     segmentId: 0,

@@ -88,9 +88,13 @@ export const proofreadHandler: PayloadHandler = async (request) => {
     return Response.json({ error: 'Collection or global not found' }, { status: 404 });
   }
 
-  const segments = collectProofreadSegments(data, getLocalizedFieldPaths(fields), locale);
+  const { segments, truncated } = collectProofreadSegments(
+    data,
+    getLocalizedFieldPaths(fields),
+    locale,
+  );
   if (segments.length === 0) {
-    return Response.json({ status: 'done', findings: [] } satisfies ProofreadResponse);
+    return Response.json({ status: 'done', findings: [], truncated } satisfies ProofreadResponse);
   }
 
   const started = performance.now();
@@ -104,7 +108,7 @@ export const proofreadHandler: PayloadHandler = async (request) => {
       { collection, global, locale, model, segments: segments.length, findings: findings.length },
       'Proofread a document before publishing',
     );
-    return Response.json({ status: 'done', findings } satisfies ProofreadResponse);
+    return Response.json({ status: 'done', findings, truncated } satisfies ProofreadResponse);
   } catch (error) {
     const outcome = error instanceof ProofreadUnavailableError ? error.reason : 'failed';
     proofreads.add(1, { outcome });

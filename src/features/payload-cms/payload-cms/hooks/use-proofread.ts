@@ -17,7 +17,7 @@ export type ProofreadState =
   | { kind: 'failed' }
   /** The editor chose to publish without waiting for the check. */
   | { kind: 'skipped' }
-  | { kind: 'done'; findings: ProofreadFinding[] };
+  | { kind: 'done'; findings: ProofreadFinding[]; truncated: boolean };
 
 export interface Proofread {
   state: ProofreadState;
@@ -77,7 +77,11 @@ export const useProofread = (
         setState(
           result.status === 'disabled'
             ? { kind: 'off' }
-            : { kind: 'done', findings: Array.isArray(result.findings) ? result.findings : [] },
+            : {
+                kind: 'done',
+                findings: Array.isArray(result.findings) ? result.findings : [],
+                truncated: result.truncated === true,
+              },
         );
       } catch {
         if (!controller.signal.aborted) setState({ kind: 'failed' });

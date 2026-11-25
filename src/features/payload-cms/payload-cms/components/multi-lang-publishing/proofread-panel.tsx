@@ -53,6 +53,18 @@ const cleanString: StaticTranslationString = {
   en: 'No typos or grammar mistakes found.',
 };
 
+const cleanPartString: StaticTranslationString = {
+  de: 'Im geprüften Teil keine Tipp- oder Grammatikfehler gefunden.',
+  fr: 'Aucune faute de frappe ni de grammaire dans la partie vérifiée.',
+  en: 'No typos or grammar mistakes in the checked part.',
+};
+
+const truncatedString: StaticTranslationString = {
+  de: 'Der Text ist länger, als eine Prüfung liest: sein Ende wurde nicht geprüft.',
+  fr: "Le texte est plus long qu'une vérification ne peut lire : sa fin n'a pas été vérifiée.",
+  en: 'The text is longer than one check reads: its end was not checked.',
+};
+
 const allHandledString: StaticTranslationString = {
   de: 'Alle Hinweise erledigt.',
   fr: 'Toutes les remarques sont traitées.',
@@ -202,9 +214,18 @@ export const ProofreadPanel: React.FC<{
   }
 
   if (openFindings.length === 0) {
+    const handled = state.findings.length > 0;
+    // a clean result says so only for the text that was actually checked
+    if (state.truncated) {
+      return (
+        <Notice icon={<Info className="h-4 w-4" aria-hidden />}>
+          {handled ? allHandledString[locale] : cleanPartString[locale]} {truncatedString[locale]}
+        </Notice>
+      );
+    }
     return (
       <Notice icon={<CircleCheck className="h-4 w-4 text-(--theme-success-500)" aria-hidden />}>
-        {state.findings.length === 0 ? cleanString[locale] : allHandledString[locale]}
+        {handled ? allHandledString[locale] : cleanString[locale]}
       </Notice>
     );
   }
@@ -235,7 +256,10 @@ export const ProofreadPanel: React.FC<{
           />
         ))}
       </ul>
-      <p className="m-0 mt-2 text-xs text-(--theme-elevation-500)">{footnoteString[locale]}</p>
+      <p className="m-0 mt-2 text-xs text-(--theme-elevation-500)">
+        {state.truncated ? `${truncatedString[locale]} ` : ''}
+        {footnoteString[locale]}
+      </p>
     </div>
   );
 };

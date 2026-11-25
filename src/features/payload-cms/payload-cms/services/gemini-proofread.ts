@@ -1,10 +1,11 @@
 import type { LocalizedFieldReference } from '@/features/payload-cms/payload-cms/services/field-introspection';
 import {
-  countOccurrences,
   lexicalPlainText,
   PROOFREAD_CATEGORIES,
   type ProofreadFieldType,
   type ProofreadFinding,
+  replaceUniqueInLexical,
+  replaceUniqueInText,
 } from '@/features/payload-cms/payload-cms/utils/proofread';
 import type { Config } from '@/features/payload-cms/payload-types';
 import { Agent, fetch, type Response } from 'undici';
@@ -37,7 +38,10 @@ const geminiAgent = new Agent({
   connect: { timeout: 10_000 },
 });
 
-/** A long page is checked from the top; the rest would only make every check slower. */
+/**
+ * A long page is checked from the top; the rest would only make every check slower. The editor
+ * is told when text was left out, so an unchecked part never passes for a clean one.
+ */
 const MAX_CHARACTERS = 30_000;
 const MAX_FINDINGS = 50;
 const CONTEXT_CHARACTERS = 30;
@@ -48,7 +52,16 @@ export interface ProofreadSegment {
   path: string;
   fieldType: ProofreadFieldType;
   label: string;
+  /** The text sent to Gemini: the field's text, or its beginning when the budget ran out. */
   text: string;
+  /** The field's whole value, a string or a Lexical state, to decide whether a fix applies. */
+  value: unknown;
+}
+
+export interface ProofreadSegments {
+  segments: ProofreadSegment[];
+  /** Whether some text did not fit into the budget and stays unchecked. */
+  truncated: boolean;
 }
 
 const LANGUAGE_NAMES: Record<Config['locale'], string> = {
@@ -79,13 +92,22 @@ export const collectProofreadSegments = (
   data: unknown,
   references: LocalizedFieldReference[],
   locale: Config['locale'],
-): ProofreadSegment[] => {
+): ProofreadSegments => {
   const referenceBySchemaPath = new Map(references.map((r) => [r.path.join('.'), r]));
   const segments: ProofreadSegment[] = [];
   let characters = 0;
+  let truncated = false;
 
-  const push = (reference: LocalizedFieldReference, formPath: string[], text: string): void => {
-    if (text.trim() === '' || characters + text.length > MAX_CHARACTERS) return;
+  const push = (
+    reference: LocalizedFieldReference,
+    formPath: string[],
+    fullText: string,
+    value: unknown,
+  ): void => {
+    if (fullText.trim() === '') return;
+    const text = fullText.slice(0, MAX_CHARACTERS - characters);
+    if (text.length < fullText.length) truncated = true;
+    if (text.trim() === '') return;
     characters += text.length;
     segments.push({
       id: segments.length,
@@ -93,6 +115,7 @@ export const collectProofreadSegments = (
       fieldType: reference.type,
       label: resolveLabel(reference, locale),
       text,
+      value,
     });
   };
 
@@ -118,15 +141,15 @@ export const collectProofreadSegments = (
       if (reference === undefined) {
         walk(child, childSchemaPath, childFormPath);
       } else if (reference.type === 'richText') {
-        push(reference, childFormPath, lexicalPlainText(child));
+        push(reference, childFormPath, lexicalPlainText(child), child);
       } else if (typeof child === 'string') {
-        push(reference, childFormPath, child);
+        push(reference, childFormPath, child, child);
       }
     }
   };
 
   walk(data, [], []);
-  return segments;
+  return { segments, truncated };
 };
 
 const GLOSSARY = `
@@ -231,6 +254,20 @@ export class ProofreadUnavailableError extends Error {
 }
 
 /**
+ * Whether a click on "Übernehmen" will apply the fix: the very check the dialog runs then, so it
+ * never offers a fix it would refuse, like one across normal and bold text.
+ */
+const canApply = (segment: ProofreadSegment, original: string, suggestion: string): boolean => {
+  if (segment.fieldType === 'richText') {
+    return replaceUniqueInLexical(segment.value, original, suggestion) !== undefined;
+  }
+  return (
+    typeof segment.value === 'string' &&
+    replaceUniqueInText(segment.value, original, suggestion) !== undefined
+  );
+};
+
+/**
  * Keeps what the editor can act on: a place that exists in its segment and a suggestion that
  * differs from it. A model sometimes quotes text with a changed character, which would point
  * the editor nowhere.
@@ -265,7 +302,7 @@ export const toFindings = (
         position + original.length,
         position + original.length + CONTEXT_CHARACTERS,
       ),
-      applicable: countOccurrences(segment.text, original) === 1,
+      applicable: canApply(segment, original, suggestion),
     });
     if (findings.length === MAX_FINDINGS) break;
   }
