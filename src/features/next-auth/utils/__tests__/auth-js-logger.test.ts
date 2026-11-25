@@ -85,6 +85,37 @@ describe('createAuthJsLogger', () => {
     expect(record?.['oauth.error']).toBe('invalid_grant');
   });
 
+  it('writes the reason of a refusal that came as a WWW-Authenticate challenge', () => {
+    const { lines, logger } = build();
+    // oauth4webapi's WWWAuthenticateChallengeError: the parsed challenges on `cause`, no `error`.
+    const refused = Object.assign(
+      new Error('server responded with a challenge in the WWW-Authenticate HTTP Header', {
+        cause: [
+          { scheme: 'bearer', parameters: { realm: 'Cevi.DB' } },
+          { scheme: 'bearer', parameters: { error: 'invalid_grant' } },
+        ],
+      }),
+      {
+        name: 'WWWAuthenticateChallengeError',
+        code: 'OAUTH_WWW_AUTHENTICATE_CHALLENGE',
+        status: 401,
+      },
+    );
+    const callbackError = Object.assign(
+      new Error('Read more at https://errors.authjs.dev#callbackrouteerror', {
+        cause: { err: refused, provider: 'cevi-db' },
+      }),
+      { name: 'CallbackRouteError', type: 'CallbackRouteError' },
+    );
+
+    logger.error?.(callbackError);
+
+    const [record] = records(lines);
+    expect(record?.['auth.cause.code']).toBe('OAUTH_WWW_AUTHENTICATE_CHALLENGE');
+    expect(record?.['oauth.error']).toBe('invalid_grant');
+    expect(record?.['http.response.status_code']).toBe(401);
+  });
+
   it('drops the docs link Auth.js appends to every message', () => {
     const { lines, logger } = build();
 
