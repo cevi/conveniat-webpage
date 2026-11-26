@@ -20,7 +20,7 @@ import {
 } from '@/utils/foreground-notifications';
 import { reloadPage } from '@/utils/reload-page';
 import type { RenderHookResult } from '@testing-library/react';
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 
 jest.mock('@/utils/reload-page', () => ({
   reloadPage: jest.fn(),
@@ -118,6 +118,27 @@ const openEvent = (url: string, bubbles: boolean): CustomEvent =>
     bubbles,
     detail: { type: 'native-push-open', payload: { url } },
   });
+
+const bufferedReady = (id: string): { id: string; type: string; payload: unknown } => ({
+  id,
+  type: 'native-push-ready',
+  payload: {},
+});
+
+const baseBridge = (): NonNullable<typeof globalThis.AppWebViewNativePush> => ({
+  getStatus: jest.fn(),
+  requestPermission: jest.fn(),
+  deleteToken: jest.fn(),
+  openSettings: jest.fn(),
+});
+
+// A `native-push-ready` makes the hook ask for the status again, so the calls of
+// `getStatus` show how often it was handled.
+const statusRequests = (bridge: ReturnType<typeof baseBridge>): number => {
+  globalThis.AppWebViewNativePush = bridge;
+  renderNativePush();
+  return jest.mocked(bridge.getStatus).mock.calls.length;
+};
 
 describe('useNativePush', () => {
   beforeEach(() => {
@@ -346,6 +367,60 @@ describe('useNativePush', () => {
    * most of them lost, and the user was told registration had failed for a subscription
    * that was in fact stored.
    */
+  describe('events buffered by the app', () => {
+    beforeEach(() => {
+      server = createServer();
+    });
+
+    it('handles events the app dispatched before the listener existed', () => {
+      const without = statusRequests(baseBridge());
+      cleanup();
+
+      const buffered = statusRequests({
+        ...baseBridge(),
+        protocol: 2,
+        events: [bufferedReady('e1')],
+      });
+
+      expect(buffered).toBeGreaterThan(without);
+    });
+
+    it('handles an event once when it arrives live and from the buffer', () => {
+      const bridge = { ...baseBridge(), protocol: 2, events: [bufferedReady('e1')] };
+      const afterBuffer = statusRequests(bridge);
+
+      globalThis.dispatchEvent(
+        new CustomEvent('app-webview-native-push-event', { detail: bufferedReady('e1') }),
+      );
+
+      expect(bridge.getStatus).toHaveBeenCalledTimes(afterBuffer);
+    });
+
+    it('ignores the buffer of an app that does not speak protocol 2', () => {
+      const without = statusRequests(baseBridge());
+      cleanup();
+
+      const buffered = statusRequests({ ...baseBridge(), events: [bufferedReady('e1')] });
+
+      expect(buffered).toBe(without);
+    });
+
+    it('still handles every event of an app before protocol 2, which sends no id', () => {
+      const bridge = baseBridge();
+      const before = statusRequests(bridge);
+
+      for (let sent = 0; sent < 2; sent++) {
+        globalThis.dispatchEvent(
+          new CustomEvent('app-webview-native-push-event', {
+            detail: { type: 'native-push-ready', payload: {} },
+          }),
+        );
+      }
+
+      expect(bridge.getStatus).toHaveBeenCalledTimes(before + 2);
+    });
+  });
+
   describe('duplicate registration suppression', () => {
     beforeEach(() => {
       // A leftover pending redirect would navigate on mount and blur the count below.
